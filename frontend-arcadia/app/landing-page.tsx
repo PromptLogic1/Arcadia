@@ -1,8 +1,6 @@
-// landing-page.tsx
-
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useEmblaCarousel from 'embla-carousel-react'
 import Image from 'next/image'
@@ -17,6 +15,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -26,9 +25,14 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 import NeonText from '@/components/ui/NeonText'
 
-// Utility components
 interface NeonBorderProps {
   children: React.ReactNode
   className?: string
@@ -61,7 +65,9 @@ interface ArcadeDecorationProps {
   className?: string
 }
 
-const ArcadeDecoration: React.FC<ArcadeDecorationProps> = ({ className = '' }) => (
+const ArcadeDecoration: React.FC<ArcadeDecorationProps> = ({
+  className = '',
+}) => (
   <div
     className={`absolute pointer-events-none ${className}`}
     aria-hidden="true"
@@ -130,27 +136,27 @@ const FeaturedGamesCarousel: React.FC = () => {
     {
       title: 'World of Warcraft',
       image: '/placeholder.svg',
-      description: 'High-speed racing in a neon-lit cyberpunk city',
+      description: 'Embark on epic quests in a vast fantasy world.',
     },
     {
       title: 'Elden Ring',
       image: '/placeholder.svg',
-      description: 'Mind-bending puzzles in a quantum realm',
+      description: 'Explore a sprawling realm filled with mystery and peril.',
     },
     {
       title: 'Cyberpunk 2077',
       image: '/placeholder.svg',
-      description: 'Epic space battles across the galaxy',
+      description: 'Dive into a dystopian future teeming with cybernetic intrigue.',
     },
     {
       title: 'Fortnite',
       image: '/placeholder.svg',
-      description: 'Time-traveling strategy game',
+      description: 'Battle it out in this wildly popular survival game.',
     },
     {
       title: 'The Witcher 3',
       image: '/placeholder.svg',
-      description: 'Open-world fantasy RPG with monster hunting',
+      description: 'Become a monster slayer in a land of magic and folklore.',
     },
   ]
 
@@ -208,6 +214,126 @@ const FeaturedGamesCarousel: React.FC = () => {
   )
 }
 
+interface Partner {
+  name: string
+  logoUrl: string
+  website: string
+}
+
+const partners: Partner[] = [
+  {
+    name: 'Partner One',
+    logoUrl: '/partners/partner1.png',
+    website: 'https://partnerone.com',
+  },
+  {
+    name: 'Partner Two',
+    logoUrl: '/partners/partner2.png',
+    website: 'https://partnertwo.com',
+  },
+  {
+    name: 'Partner Three',
+    logoUrl: '/partners/partner3.png',
+    website: 'https://partnerthree.com',
+  },
+  {
+    name: 'Partner Four',
+    logoUrl: '/partners/partner4.png',
+    website: 'https://partnerfour.com',
+  },
+]
+
+const PartnersSection: React.FC = () => (
+  <section className="py-20 bg-gray-800 text-gray-100">
+    <div className="container mx-auto px-4">
+      <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
+        <NeonText>Our Partners</NeonText>
+      </h2>
+      <div className="flex flex-wrap justify-center items-center gap-8">
+        {partners.map((partner, index) => (
+          <a
+            key={index}
+            href={partner.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-32 h-16 bg-gray-700 rounded-lg hover:scale-105 transition-transform duration-300"
+            aria-label={`Visit ${partner.name}`}
+          >
+            <Image
+              src={partner.logoUrl}
+              alt={`${partner.name} Logo`}
+              width={150}
+              height={50}
+              className="object-contain"
+            />
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+)
+
+interface Event {
+  title: string
+  date: string
+  description: string
+  imageUrl: string
+}
+
+const upcomingEvents: Event[] = [
+  {
+    title: 'Arcadia Tournament 2024',
+    date: 'June 15, 2024',
+    description: 'Join our annual tournament and compete with top gamers worldwide.',
+    imageUrl: '/events/tournament2024.jpg',
+  },
+  {
+    title: 'Live Stream Marathon',
+    date: 'July 10, 2024',
+    description: 'Watch live streams from your favorite gamers and participate in giveaways.',
+    imageUrl: '/events/streammarathon.jpg',
+  },
+  {
+    title: 'Developer Meetup',
+    date: 'August 20, 2024',
+    description: 'Meet the developers behind Arcadia and share your feedback.',
+    imageUrl: '/events/developermeetup.jpg',
+  },
+]
+
+const UpcomingEventsSection: React.FC = () => (
+  <section className="py-20 bg-gray-900 text-gray-100">
+    <div className="container mx-auto px-4">
+      <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
+        <NeonText>Upcoming Events</NeonText>
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {upcomingEvents.map((event, index) => (
+          <Card key={index} className="bg-gray-800 border-none hover:scale-105 transition-transform duration-300">
+            <CardHeader className="p-0">
+              <div className="relative h-48">
+                <Image
+                  src={event.imageUrl}
+                  alt={event.title}
+                  fill
+                  className="object-cover rounded-t-lg"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <CardTitle className="text-2xl font-bold text-cyan-300 mb-2">
+                {event.title}
+              </CardTitle>
+              <p className="text-cyan-100 mb-2">{event.date}</p>
+              <p className="text-cyan-100">{event.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  </section>
+)
+
 interface Challenge {
   name: string
   icon: React.ComponentType<{ className?: string }>
@@ -218,9 +344,10 @@ interface Challenge {
   estimatedTime: string
 }
 
-export default function LandingPage() {
+const LandingPage: React.FC = () => {
   const [currentChallenge, setCurrentChallenge] = useState<number>(0)
   const [selectedChallenge, setSelectedChallenge] = useState<number | null>(null)
+  const { setTheme } = useTheme()
 
   const challenges: Challenge[] = [
     {
@@ -303,8 +430,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100">
       <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden py-20 md:py-32">
+        <section className="relative overflow-hidden py-20 md:py-32" id="home">
           <ArcadeDecoration className="top-10 left-10 opacity-10" />
           <ArcadeDecoration className="bottom-10 right-10 opacity-10" />
           <div className="container mx-auto px-4">
@@ -386,8 +512,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Featured Games */}
-        <section className="py-20">
+        <section className="py-20" id="games">
           <div className="container mx-auto px-4">
             <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
               <NeonText>Featured Games</NeonText>
@@ -396,7 +521,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Featured Challenges */}
         <section id="challenges" className="py-20 bg-gray-800">
           <div className="container mx-auto px-4">
             <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
@@ -484,19 +608,25 @@ export default function LandingPage() {
                             Key Features:
                           </h4>
                           <ul className="list-disc list-inside text-cyan-100 mb-4 space-y-2">
-                            {challenges[selectedChallenge].keyFeatures.map((feature, index) => (
-                              <li key={index}>{feature}</li>
-                            ))}
+                            {challenges[selectedChallenge].keyFeatures.map(
+                              (feature, index) => (
+                                <li key={index}>{feature}</li>
+                              )
+                            )}
                           </ul>
                           <div className="flex flex-wrap gap-4">
                             <div>
-                              <h4 className="text-sm font-semibold text-cyan-300">Difficulty</h4>
+                              <h4 className="text-sm font-semibold text-cyan-300">
+                                Difficulty
+                              </h4>
                               <p className="text-cyan-100">
                                 {challenges[selectedChallenge].difficulty}
                               </p>
                             </div>
                             <div>
-                              <h4 className="text-sm font-semibold text-cyan-300">Estimated Time</h4>
+                              <h4 className="text-sm font-semibold text-cyan-300">
+                                Estimated Time
+                              </h4>
                               <p className="text-cyan-100">
                                 {challenges[selectedChallenge].estimatedTime}
                               </p>
@@ -534,7 +664,51 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        <PartnersSection />
+
+        <UpcomingEventsSection />
+
+        <section className="py-20 bg-gray-900 text-gray-100">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12">
+              <NeonText>Frequently Asked Questions</NeonText>
+            </h2>
+            <Accordion type="single" collapsible>
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`faq-${index}`}>
+                  <AccordionTrigger className="text-xl font-semibold">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-cyan-100">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
       </main>
     </div>
   )
 }
+
+const faqs = [
+  {
+    question: 'What is Arcadia?',
+    answer:
+      'Arcadia is a gaming platform offering innovative challenges and experiences.',
+  },
+  {
+    question: 'How can I join the community?',
+    answer:
+      'You can join our community by signing up on our website and participating in forums and events.',
+  },
+  {
+    question: 'Is Arcadia free to use?',
+    answer:
+      'Yes, Arcadia offers a range of free challenges and games. Premium content is also available.',
+  },
+]
+
+export default LandingPage
