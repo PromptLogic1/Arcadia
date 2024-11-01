@@ -95,9 +95,9 @@ const LandingPage: React.FC = () => {
   }, [])
 
   const memoizedComponents = useMemo(() => ({
-    heroSection: <HeroSection currentChallenge={currentChallenge} challenges={challenges as Challenge[]} />,
+    heroSection: <HeroSection currentChallenge={currentChallenge} challenges={challenges} />,
     featuredGamesCarousel: <FeaturedGamesCarousel />,
-    featuredChallenges: <FeaturedChallenges challenges={challenges as Challenge[]} />,
+    featuredChallenges: <FeaturedChallenges challenges={challenges} />,
     partnersSection: <PartnersSection />,
     upcomingEventsSection: <UpcomingEventsSection />,
     faqSection: <FAQSection />,
