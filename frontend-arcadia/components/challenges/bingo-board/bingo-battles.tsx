@@ -10,24 +10,27 @@ import { Label } from "@/components/ui/label"
 import { ThumbsUp, Search, PlusCircle, Bookmark, BookmarkCheck, X, Users, Grid, Clock } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import BingoBoardDetail from './BingoBoardDetail'
 
-// Define the Board type
 interface Board {
-  id: number;
-  name: string;
-  players: number;
-  size: number;
-  timeLeft: number;
-  votes: number;
-  game: string;
-  createdAt: Date;
-  votedBy: Set<string>;
-  bookmarked: boolean;
-  creator: string;
-  avatar: string;
+  id: number
+  name: string
+  players: number
+  size: number
+  timeLeft: number
+  votes: number
+  game: string
+  createdAt: Date
+  votedBy: Set<string>
+  bookmarked: boolean
+  creator: string
+  avatar: string
+  winConditions: {
+    line: boolean
+    majority: boolean
+  }
 }
 
-// Define available games as a const array for type safety
 const GAMES = [
   "All Games",
   "World of Warcraft",
@@ -39,58 +42,36 @@ const GAMES = [
   "Overwatch",
   "Call of Duty: Warzone",
   "Valorant",
-] as const;
+] as const
 
-type Game = typeof GAMES[number];
+type Game = typeof GAMES[number]
 
-// Define sort options
 const SORT_OPTIONS = {
   NEWEST: 'newest',
   VOTES: 'votes',
-} as const;
+} as const
 
-type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS];
-
-// Mocking the BingoBoardDetail component
-const BingoBoardDetail: React.FC<BingoBoardDetailProps> = React.memo(({ board, onClose, onBookmark }) => (
-  <div className="p-4">
-    <h3 className="text-2xl font-bold mb-4">{board.name}</h3>
-    <p>This is a placeholder for the BingoBoardDetail component.</p>
-    <Button onClick={onClose} className="mt-4">Close</Button>
-  </div>
-));
-
-BingoBoardDetail.displayName = 'BingoBoardDetail';
-
-interface BingoBoardDetailProps {
-  board: Board;
-  onClose: () => void;
-  onBookmark: () => void;
-}
+type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS]
 
 export default function BingoBattles() {
   const [boards, setBoards] = useState<Board[]>([])
   const [filterGame, setFilterGame] = useState<Game>("All Games")
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [selectedBoard, setSelectedBoard] = useState<Board | null>(null)
+  const [expandedBoardId, setExpandedBoardId] = useState<{ id: number | null, section: string | null }>({ id: null, section: null });
   const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
 
   useEffect(() => {
-    // Simulating fetching boards from an API
     const fetchBoards = async () => {
       try {
-        // Replace this with actual API call
-        const response = await fetch('/api/boards');
-        const fetchedBoards: Board[] = await response.json();
-        setBoards(fetchedBoards);
+        const response = await fetch('/api/boards')
+        const fetchedBoards: Board[] = await response.json()
+        setBoards(fetchedBoards)
       } catch (error) {
-        console.error('Failed to fetch boards:', error);
-        // Handle error (e.g., show error message to user)
+        console.error('Failed to fetch boards:', error)
       }
-    };
-
-    fetchBoards();
+    }
+    fetchBoards()
   }, [])
 
   const createNewBoard = useCallback(() => {
@@ -107,9 +88,13 @@ export default function BingoBattles() {
       bookmarked: false,
       creator: "NewUser",
       avatar: "/placeholder.svg?height=32&width=32",
+      winConditions: {
+        line: true,
+        majority: false
+      }
     }
     setBoards(prevBoards => [newBoard, ...prevBoards])
-    setSelectedBoard(newBoard)
+    setExpandedBoardId({ id: newBoard.id, section: 'all' })
   }, [boards.length])
 
   const voteBoard = useCallback((boardId: number, userId: string) => {
@@ -127,22 +112,20 @@ export default function BingoBattles() {
     setBoards(prevBoards => {
       const updatedBoards = prevBoards.map(board => 
         board.id === boardId ? { ...board, bookmarked: !board.bookmarked } : board
-      );
-      
-      const updatedBookmarkedBoards = updatedBoards.filter(board => board.bookmarked);
-      setBookmarkedBoards(updatedBookmarkedBoards);
-      
-      return updatedBoards;
-    });
+      )
+      const updatedBookmarkedBoards = updatedBoards.filter(board => board.bookmarked)
+      setBookmarkedBoards(updatedBookmarkedBoards)
+      return updatedBoards
+    })
   }, [])
 
-  const selectBoard = useCallback((board: Board) => {
-    setSelectedBoard(board)
-  }, [])
-
-  const closeBoardDetail = useCallback(() => {
-    setSelectedBoard(null)
-  }, [])
+  const selectBoard = useCallback((board: Board, section: string) => {
+    setExpandedBoardId(current => 
+      current.id === board.id && current.section === section 
+        ? { id: null, section: null }
+        : { id: board.id, section }
+    );
+  }, []);
 
   const sortedAndFilteredBoards = useMemo(() => {
     return boards
@@ -160,64 +143,103 @@ export default function BingoBattles() {
       })
   }, [boards, filterGame, searchTerm, sortBy])
 
-  const renderBoardCard = useCallback((board: Board) => (
-    <Card key={board.id} className="bg-gray-800 border-2 border-cyan-500 hover:border-fuchsia-500 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Avatar>
-            <AvatarImage src={board.avatar} alt={board.creator} />
-            <AvatarFallback>{board.creator[0]}</AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">{board.name}</CardTitle>
-            <CardDescription className="text-cyan-300">Created by {board.creator}</CardDescription>
+  const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => (
+    <motion.div key={`${section}-${board.id}`} layout className="w-full">
+      <Card 
+        className="bg-gray-800 border-2 border-cyan-500 hover:border-fuchsia-500 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer"
+        onClick={() => selectBoard(board, section)}
+      >
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Avatar>
+              <AvatarImage src={board.avatar} alt={board.creator} />
+              <AvatarFallback>{board.creator[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+                {board.name}
+              </CardTitle>
+              <CardDescription className="text-cyan-300">Created by {board.creator}</CardDescription>
+            </div>
           </div>
-        </div>
-        <Badge variant="secondary" className="bg-cyan-500 text-white">{board.game}</Badge>
-      </CardHeader>
-      <CardContent className="flex justify-between items-center">
-        <div className="flex space-x-4">
-          <div className="flex items-center">
-            <Users className="h-5 w-5 text-cyan-400 mr-2" />
-            <span className="text-cyan-100">{board.players}</span>
+          <Badge variant="secondary" className="bg-cyan-500 text-white">{board.game}</Badge>
+        </CardHeader>
+        <CardContent className="flex justify-between items-center">
+          <div className="flex space-x-4">
+            <div className="flex items-center">
+              <Users className="h-5 w-5 text-cyan-400 mr-2" />
+              <span className="text-cyan-100">{board.players}</span>
+            </div>
+            <div className="flex items-center">
+              <Grid className="h-5 w-5 text-cyan-400 mr-2" />
+              <span className="text-cyan-100">{board.size}x{board.size}</span>
+            </div>
+            <div className="flex items-center">
+              <Clock className="h-5 w-5 text-cyan-400 mr-2" />
+              <span className="text-cyan-100">
+                {Math.floor(board.timeLeft / 60)}:{(board.timeLeft % 60).toString().padStart(2, '0')}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center">
-            <Grid className="h-5 w-5 text-cyan-400 mr-2" />
-            <span className="text-cyan-100">{board.size}x{board.size}</span>
+          <div className="flex space-x-2">
+            <Button 
+              onClick={(e) => {
+                e.stopPropagation()
+                voteBoard(board.id, "user123")
+              }} 
+              className="bg-cyan-500 text-white hover:bg-cyan-600"
+            >
+              <ThumbsUp className="mr-2 h-4 w-4" />
+              {board.votes}
+            </Button>
+            <Button 
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleBookmark(board.id)
+              }} 
+              variant="ghost" 
+              className="text-cyan-400 hover:text-cyan-300"
+            >
+              {board.bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
+            </Button>
           </div>
-          <div className="flex items-center">
-            <Clock className="h-5 w-5 text-cyan-400 mr-2" />
-            <span className="text-cyan-100">
-              {Math.floor(board.timeLeft / 60)}:{(board.timeLeft % 60).toString().padStart(2, '0')}
-            </span>
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <Button onClick={() => voteBoard(board.id, "user123")} className="bg-cyan-500 text-white hover:bg-cyan-600">
-            <ThumbsUp className="mr-2 h-4 w-4" />
-            {board.votes}
-          </Button>
-          <Button onClick={() => toggleBookmark(board.id)} variant="ghost" className="text-cyan-400 hover:text-cyan-300">
-            {board.bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
-          </Button>
-          <Button onClick={() => selectBoard(board)} className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white">
-            View
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  ), [voteBoard, toggleBookmark, selectBoard]);
+        </CardContent>
+      </Card>
+      <AnimatePresence>
+        {expandedBoardId.id === board.id && expandedBoardId.section === section && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-gray-800 border-2 border-t-0 border-cyan-500 rounded-b-lg overflow-hidden"
+          >
+            <BingoBoardDetail
+              board={board}
+              onBookmark={() => toggleBookmark(board.id)}
+              onClose={() => setExpandedBoardId({ id: null, section: null })}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  ), [expandedBoardId, selectBoard, toggleBookmark, voteBoard]);
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen text-white">
+    <div className="container mx-auto p-6 space-y-8">
       <motion.div
+        className="flex justify-between items-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex justify-between items-center mb-6"
       >
-        <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">Bingo Battles</h2>
-        <Button onClick={createNewBoard} className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white">
+        <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+          Bingo Battles
+        </h2>
+        <Button 
+          onClick={createNewBoard} 
+          className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white"
+        >
           <PlusCircle className="mr-2 h-4 w-4" />
           Create New Board
         </Button>
@@ -282,8 +304,8 @@ export default function BingoBattles() {
           className="mb-8"
         >
           <h3 className="text-2xl font-bold text-cyan-400 mb-4">My Boards</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bookmarkedBoards.map(renderBoardCard)}
+          <div className="grid grid-cols-1 gap-4">
+            {bookmarkedBoards.map(board => renderBoardCard(board, 'bookmarked'))}
           </div>
         </motion.div>
       )}
@@ -295,35 +317,10 @@ export default function BingoBattles() {
         className="space-y-4"
       >
         <h3 className="text-2xl font-bold text-cyan-400 mb-4">All Boards</h3>
-        {sortedAndFilteredBoards.map(renderBoardCard)}
+        <div className="grid grid-cols-1 gap-4">
+          {sortedAndFilteredBoards.map(board => renderBoardCard(board, 'all'))}
+        </div>
       </motion.div>
-
-      <AnimatePresence>
-        {selectedBoard && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm"
-          >
-            <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 rounded-lg shadow-xl border-2 border-cyan-500">
-              <Button
-                className="absolute top-4 right-4 z-10"
-                variant="ghost"
-                onClick={closeBoardDetail}
-              >
-                <X className="h-6 w-6 text-cyan-400" />
-              </Button>
-              <BingoBoardDetail
-                board={selectedBoard}
-                onClose={closeBoardDetail}
-                onBookmark={() => toggleBookmark(selectedBoard.id)}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

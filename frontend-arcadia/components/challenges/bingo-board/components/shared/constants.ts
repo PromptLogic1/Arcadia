@@ -1,0 +1,40 @@
+import { ColorOption } from './types'
+
+export const colorPalette: ColorOption[] = [
+  { name: 'Cyan', color: 'bg-cyan-500', hoverColor: 'hover:bg-cyan-600' },
+  { name: 'Fuchsia', color: 'bg-fuchsia-500', hoverColor: 'hover:bg-fuchsia-600' },
+  { name: 'Lime', color: 'bg-lime-500', hoverColor: 'hover:bg-lime-600' },
+  { name: 'Yellow', color: 'bg-yellow-500', hoverColor: 'hover:bg-yellow-600' },
+  { name: 'Red', color: 'bg-red-500', hoverColor: 'hover:bg-red-600' },
+  { name: 'Blue', color: 'bg-blue-500', hoverColor: 'hover:bg-blue-600' },
+  { name: 'Green', color: 'bg-green-500', hoverColor: 'hover:bg-green-600' },
+  { name: 'Purple', color: 'bg-purple-500', hoverColor: 'hover:bg-purple-600' },
+]
+
+export const wowChallenges: ReadonlyArray<string> = [
+  'Defeat the Lich King',
+  'Collect 10 Peacebloom',
+  'Complete a Mythic+ dungeon',
+  'Win a PvP battleground',
+  'Tame a rare pet',
+  'Craft an epic item',
+  'Reach level 60',
+  'Defeat Ragnaros',
+  'Complete a raid',
+  'Explore all zones in Azeroth',
+  'Earn 1000 gold',
+  'Defeat a world boss',
+  'Complete a daily quest',
+  'Win a duel',
+  'Earn an achievement',
+  'Collect a mount',
+  'Complete a timewalking dungeon',
+  "Defeat C'Thun",
+  'Win an arena match',
+  'Collect all dragon aspects',
+  'Complete the Darkmoon Faire',
+  'Defeat Deathwing',
+  'Earn exalted reputation',
+  'Complete a scenario',
+  'Defeat the Jailer',
+]
