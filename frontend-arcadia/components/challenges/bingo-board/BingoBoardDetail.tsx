@@ -9,11 +9,11 @@ import { usePlayerManagement } from './hooks/usePlayerManagement'
 import { useTimer } from './hooks/useTimer'
 import type { BingoBoardDetailProps } from './components/shared/types'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { BingoContainer } from './components/layout/BingoLayout'
 
 const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   board,
   onBookmark,
-  onClose,
 }) => {
   // Reference to useBingoGame hook
   const {
@@ -124,58 +124,56 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
 
   return (
     <ErrorBoundary>
-      <div className="w-full p-8">
-        <div className="flex gap-8 max-w-[1800px] mx-auto">
-          <div className="flex-[3] min-w-0">
-            <Board
-              boardState={boardState}
-              boardName={boardName}
-              boardSize={boardSize}
-              players={players}
-              currentPlayer={currentPlayer}
-              winner={winner}
-              isOwner={isOwner}
-              isBookmarked={board.bookmarked}
-              onCellChange={handleCellChange}
-              onCellClick={handleCellClick}
-              onBoardNameChange={setBoardName}
-              onShare={() => {}}
-              onBookmark={onBookmark}
-              onReset={resetBoard}
-            />
-          </div>
-          <div className="flex-[2] min-w-[450px] max-w-[600px]">
-            <GameControls
-              players={players}
-              teamNames={teamNames as [string, string]}
-              teamColors={teamColors as [string, string]}
-              teamMode={teamMode}
-              time={time}
-              isTimerRunning={isTimerRunning}
-              boardSize={boardSize}
-              soundEnabled={soundEnabled}
-              lockout={lockout}
-              winConditions={winConditions}
-              isOwner={isOwner}
-              onUpdatePlayer={updatePlayerInfo}
-              onAddPlayer={addPlayer}
-              onRemovePlayer={removePlayer}
-              onUpdateTeamName={updateTeamName}
-              onUpdateTeamColor={updateTeamColor}
-              onTimeChange={handleTimeChange}
-              onTimerToggle={() => setIsTimerRunning(!isTimerRunning)}
-              onBoardSizeChange={setBoardSize}
-              onSoundToggle={setSoundEnabled}
-              onTeamModeToggle={handleTeamModeToggle}
-              onLockoutToggle={setLockout}
-              onWinConditionsChange={setWinConditions}
-              onStartBoard={handleStartBoard}
-              onResetBoard={resetBoard}
-              formatTime={formatTime}
-            />
-          </div>
+      <BingoContainer>
+        <div className="flex-[3] min-w-0">
+          <Board
+            boardState={boardState}
+            boardName={boardName}
+            boardSize={boardSize}
+            players={players}
+            currentPlayer={currentPlayer}
+            winner={winner}
+            isOwner={isOwner}
+            isBookmarked={board.bookmarked}
+            onCellChange={handleCellChange}
+            onCellClick={handleCellClick}
+            onBoardNameChange={setBoardName}
+            onShare={() => {}}
+            onBookmark={onBookmark}
+            onReset={resetBoard}
+          />
         </div>
-      </div>
+        <div className="lg:flex-[1.5] lg:min-w-[400px] lg:max-w-[500px]">
+          <GameControls
+            players={players}
+            teamNames={teamNames as [string, string]}
+            teamColors={teamColors as [string, string]}
+            teamMode={teamMode}
+            time={time}
+            isTimerRunning={isTimerRunning}
+            boardSize={boardSize}
+            soundEnabled={soundEnabled}
+            lockout={lockout}
+            winConditions={winConditions}
+            isOwner={isOwner}
+            onUpdatePlayer={updatePlayerInfo}
+            onAddPlayer={addPlayer}
+            onRemovePlayer={removePlayer}
+            onUpdateTeamName={updateTeamName}
+            onUpdateTeamColor={updateTeamColor}
+            onTimeChange={handleTimeChange}
+            onTimerToggle={() => setIsTimerRunning(!isTimerRunning)}
+            onBoardSizeChange={setBoardSize}
+            onSoundToggle={setSoundEnabled}
+            onTeamModeToggle={handleTeamModeToggle}
+            onLockoutToggle={setLockout}
+            onWinConditionsChange={setWinConditions}
+            onStartBoard={handleStartBoard}
+            onResetBoard={resetBoard}
+            formatTime={formatTime}
+          />
+        </div>
+      </BingoContainer>
     </ErrorBoundary>
   )
 }
