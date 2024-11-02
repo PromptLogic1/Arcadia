@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Player, ColorOption } from '../components/shared/types'
+import { Player } from '../components/shared/types'
 import { colorPalette } from '../components/shared/constants'
 
 export const usePlayerManagement = () => {

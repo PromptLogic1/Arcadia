@@ -2,11 +2,10 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Grid, Zap, Trophy, Puzzle } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 
-interface Challenge {
+export interface Challenge {
   id: string
   name: string
   description: string

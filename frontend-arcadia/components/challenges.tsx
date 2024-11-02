@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Gamepad2, Dice5, Trophy, Target, Grid, Zap, Puzzle } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { Trophy, Grid, Zap, Puzzle } from 'lucide-react'
 import { ChallengesTabs } from './challenges/ChallengesTabs'
 import BingoBattles from './challenges/bingo-board/bingo-battles'
+import { Challenge } from './challenges/ChallengesTabs'
 
-const CHALLENGES = [
+const CHALLENGES: Challenge[] = [
   {
     id: 'bingo',
     name: 'Bingo Battles',
@@ -36,8 +37,16 @@ const CHALLENGES = [
 ]
 
 export default function Challenges() {
-  const [activeChallenge, setActiveChallenge] = useState('bingo')
+  const [activeChallenge, setActiveChallenge] = useState<Challenge['id']>('bingo')
 
+  const currentChallenge = useMemo(() => {
+    switch (activeChallenge) {
+      case 'bingo':
+        return <BingoBattles />
+      default:
+        return null
+    }
+  }, [activeChallenge])
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <ChallengesTabs
@@ -45,10 +54,7 @@ export default function Challenges() {
         activeChallenge={activeChallenge}
         onChallengeChange={setActiveChallenge}
       />
-      
-      {activeChallenge === 'bingo' && <BingoBattles />}
-      
-      {/* Add other challenge components here when they're ready */}
+      {currentChallenge}
     </div>
   )
 }
