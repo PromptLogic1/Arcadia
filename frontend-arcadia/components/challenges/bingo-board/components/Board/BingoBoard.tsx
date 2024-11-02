@@ -28,6 +28,8 @@ interface BoardProps {
   winner: number | null
   isOwner: boolean
   isBookmarked: boolean
+  isGameStarted: boolean
+  lockoutMode: boolean
   onCellChange: (index: number, value: string) => void
   onCellClick: (index: number) => void
   onBookmark: () => void
@@ -42,6 +44,8 @@ export const Board: React.FC<BoardProps> = ({
   winner,
   isOwner,
   isBookmarked,
+  isGameStarted,
+  lockoutMode,
   onCellChange,
   onCellClick,
   onBookmark,
@@ -165,6 +169,8 @@ export const Board: React.FC<BoardProps> = ({
               isEditing={editingCell === index}
               winner={winner}
               currentPlayer={currentPlayer}
+              isGameStarted={isGameStarted}
+              lockoutMode={lockoutMode}
               onCellChange={onCellChange}
               onCellClick={onCellClick}
               onEditStart={(idx) => setEditingCell(idx)}

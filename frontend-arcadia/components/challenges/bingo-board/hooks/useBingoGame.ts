@@ -14,6 +14,12 @@ interface PlayerCount {
   color: string
 }
 
+interface BlockingState {
+  isBlockingMode: boolean
+  playerWithBlock: number | null
+  earnedFromCell: number | null
+}
+
 export const useBingoGame = (initialSize: number) => {
   const [boardState, setBoardState] = useState<BoardCell[]>([])
   const [winner, setWinner] = useState<number | null>(null)
@@ -23,6 +29,11 @@ export const useBingoGame = (initialSize: number) => {
     majority: false,
   })
   const [editingCell, setEditingCell] = useState<number | null>(null)
+  const [blockingState, setBlockingState] = useState<BlockingState>({
+    isBlockingMode: false,
+    playerWithBlock: null,
+    earnedFromCell: null
+  })
 
   const generateBoard = useCallback((): BoardCell[] => {
     return Array.from({ length: boardSize * boardSize }, () => ({
@@ -62,18 +73,47 @@ export const useBingoGame = (initialSize: number) => {
       try {
         if (editingCell !== null || winner !== null) return
 
-        setBoardState((prevBoard) => {
+        if (blockingState.isBlockingMode && blockingState.playerWithBlock === currentPlayer) {
+          setBoardState(prevBoard => {
+            const newBoard = [...prevBoard]
+            if (index === blockingState.earnedFromCell) return prevBoard
+            
+            newBoard[index] = {
+              ...newBoard[index],
+              blocked: true,
+              blockedBy: players[currentPlayer].color
+            }
+            return newBoard
+          })
+          setBlockingState({
+            isBlockingMode: false,
+            playerWithBlock: null,
+            earnedFromCell: null
+          })
+          return
+        }
+
+        setBoardState(prevBoard => {
           const newBoard = [...prevBoard]
           const currentColor = players[currentPlayer]?.color
 
           if (!currentColor) return prevBoard
 
+          if (newBoard[index].blocked) return prevBoard
+
           if (!newBoard[index].colors.includes(currentColor)) {
             newBoard[index].colors = [...newBoard[index].colors, currentColor]
-          } else {
-            newBoard[index].colors = newBoard[index].colors.filter(
-              (color) => color !== currentColor
-            )
+            newBoard[index].completedBy = [...(newBoard[index].completedBy || []), currentColor]
+
+            if (newBoard[index].difficulty && 
+                newBoard[index].difficulty !== 'normal' && 
+                newBoard[index].reward === 'block') {
+              setBlockingState({
+                isBlockingMode: true,
+                playerWithBlock: currentPlayer,
+                earnedFromCell: index
+              })
+            }
           }
           return newBoard
         })
@@ -81,8 +121,16 @@ export const useBingoGame = (initialSize: number) => {
         console.error('Error handling cell click:', error)
       }
     },
-    [editingCell, winner]
+    [editingCell, winner, blockingState]
   )
+
+  const cancelBlocking = useCallback(() => {
+    setBlockingState({
+      isBlockingMode: false,
+      playerWithBlock: null,
+      earnedFromCell: null
+    })
+  }, [])
 
   const getPlayerCounts = useCallback((players: Player[]): PlayerCount[] => {
     try {
@@ -241,5 +289,7 @@ export const useBingoGame = (initialSize: number) => {
     handleCellChange,
     handleCellClick,
     checkWinningCondition,
+    blockingState,
+    cancelBlocking,
   }
 }

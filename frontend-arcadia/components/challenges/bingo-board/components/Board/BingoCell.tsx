@@ -11,6 +11,8 @@ interface BingoCellProps {
   isEditing: boolean
   winner: number | null
   currentPlayer: number
+  isGameStarted: boolean
+  lockoutMode: boolean
   onCellChange: (index: number, value: string) => void
   onCellClick: (index: number) => void
   onEditStart: (index: number) => void
@@ -40,6 +42,8 @@ export const BingoCell: React.FC<BingoCellProps> = ({
   isEditing,
   winner,
   currentPlayer,
+  isGameStarted,
+  lockoutMode,
   onCellChange,
   onCellClick,
   onEditStart,
@@ -50,9 +54,60 @@ export const BingoCell: React.FC<BingoCellProps> = ({
   
   const handleCellClick = (e: MouseEvent): void => {
     e.preventDefault()
-    if (!isEditing && !winner && currentPlayer !== undefined) {
-      onCellClick(index)
+    
+    // If game hasn't started and owner is editing
+    if (!isGameStarted && isOwner) {
+      if (!isEditing) {
+        onEditStart(index)
+      }
+      return
     }
+
+    // If game is in progress
+    if (isGameStarted && !winner) {
+      // Check if cell is blocked
+      if (cell.blocked) {
+        return
+      }
+
+      // Check if cell is already completed and lockout is enabled
+      if (lockoutMode && cell.completedBy?.length) {
+        return
+      }
+
+      // Handle completion
+      onCellClick(index)
+
+      // If this is a hard/extreme cell that was just completed
+      if (cell.difficulty && cell.difficulty !== 'normal' && 
+          cell.reward === 'block' && !cell.completedBy?.includes(cell.colors[currentPlayer])) {
+        // Enable blocking functionality for the player/team
+        handleRewardUnlock()
+      }
+    }
+  }
+
+  const handleRewardUnlock = () => {
+    // Show UI for selecting a cell to block
+    // This could be a modal or a state that enables "block mode"
+    // where the next cell click blocks that cell
+  }
+
+  // Visual indicators for cell states
+  const getCellStyles = () => {
+    if (cell.blocked) {
+      return "opacity-50 cursor-not-allowed"
+    }
+    
+    if (cell.difficulty === 'hard') {
+      return "border-yellow-500/50"
+    }
+    
+    if (cell.difficulty === 'extreme') {
+      return "border-red-500/50"
+    }
+
+    return ""
   }
 
   const handleTextClick = (e: MouseEvent): void => {
@@ -138,10 +193,35 @@ export const BingoCell: React.FC<BingoCellProps> = ({
         "transition-all duration-300 ease-in-out",
         "hover:shadow-lg hover:shadow-cyan-500/10",
         "hover:border-cyan-500/40",
-        isEditing && "ring-2 ring-cyan-500"
+        isEditing && "ring-2 ring-cyan-500",
+        getCellStyles()
       )}
       onClick={handleCellClick}
     >
+      {/* Difficulty Indicator */}
+      {cell.difficulty && cell.difficulty !== 'normal' && (
+        <div className={cn(
+          "absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full",
+          cell.difficulty === 'hard' ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"
+        )}>
+          {cell.difficulty}
+        </div>
+      )}
+
+      {/* Reward Indicator */}
+      {cell.reward === 'block' && (
+        <div className="absolute top-1 right-1 text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">
+          Block
+        </div>
+      )}
+
+      {/* Blocked Overlay */}
+      {cell.blocked && (
+        <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="text-xs text-gray-400">Blocked</div>
+        </div>
+      )}
+
       {/* Color Layers */}
       {cell.colors.length > 0 && (
         <div className="absolute inset-0 flex">
