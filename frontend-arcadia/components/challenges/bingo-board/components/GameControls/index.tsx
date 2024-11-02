@@ -1,12 +1,5 @@
 import React from 'react'
-import { motion } from 'framer-motion'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card'
+import { BingoLayout, BingoSection } from '../layout/BingoLayout'
 import { Clock, Users, Settings } from 'lucide-react'
 import { PlayerManagement } from './PlayerManagement'
 import { TimerControls } from './TimerControls'
@@ -57,94 +50,84 @@ export const GameControls: React.FC<GameControlsProps> = ({
   lockout,
   winConditions,
   isOwner,
-  onUpdatePlayer,
-  onAddPlayer,
-  onRemovePlayer,
-  onUpdateTeamName,
-  onUpdateTeamColor,
-  onTimeChange,
-  onTimerToggle,
-  onBoardSizeChange,
-  onSoundToggle,
-  onTeamModeToggle,
-  onLockoutToggle,
-  onWinConditionsChange,
-  onStartBoard,
-  onResetBoard,
-  formatTime,
+  ...props
 }) => {
+  const playerManagementProps = {
+    players,
+    teamNames,
+    teamColors,
+    teamMode,
+    isOwner,
+    onUpdatePlayer: props.onUpdatePlayer,
+    onAddPlayer: props.onAddPlayer,
+    onRemovePlayer: props.onRemovePlayer,
+    onUpdateTeamName: props.onUpdateTeamName,
+    onUpdateTeamColor: props.onUpdateTeamColor,
+  }
+
+  const timerControlsProps = {
+    time,
+    isTimerRunning,
+    isOwner,
+    formatTime: props.formatTime,
+    onTimeChange: props.onTimeChange,
+    onTimerToggle: props.onTimerToggle,
+  }
+
+  const gameSettingsProps = {
+    boardSize,
+    soundEnabled,
+    teamMode,
+    lockout,
+    winConditions,
+    isOwner,
+    onBoardSizeChange: props.onBoardSizeChange,
+    onSoundToggle: props.onSoundToggle,
+    onTeamModeToggle: props.onTeamModeToggle,
+    onLockoutToggle: props.onLockoutToggle,
+    onWinConditionsChange: props.onWinConditionsChange,
+    onStartBoard: props.onStartBoard,
+    onResetBoard: props.onResetBoard,
+  }
+
   return (
-    <motion.div
-      className="w-full h-full"
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
+    <BingoLayout
+      title="Game Controls"
+      description="Manage players, settings, and game rules"
+      delay={0.4}
+      direction="right"
+      contentClassName="flex flex-col gap-3 overflow-y-auto"
+      fullHeight
+      variant="compact"
     >
-      <Card className="h-full bg-gray-800 border-2 border-cyan-500 flex flex-col">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-cyan-400">Game Controls</CardTitle>
-          <CardDescription className="text-cyan-300">
-            Manage players, settings, and game rules
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6 flex-grow overflow-y-auto">
-          <section>
-            <h3 className="text-xl font-semibold text-cyan-400 flex items-center mb-4">
-              <Users className="mr-2 h-5 w-5" />
-              Players
-            </h3>
-            <PlayerManagement
-              players={players}
-              teamNames={teamNames}
-              teamColors={teamColors}
-              teamMode={teamMode}
-              isOwner={isOwner}
-              onUpdatePlayer={onUpdatePlayer}
-              onAddPlayer={onAddPlayer}
-              onRemovePlayer={onRemovePlayer}
-              onUpdateTeamName={onUpdateTeamName}
-              onUpdateTeamColor={onUpdateTeamColor}
-            />
-          </section>
+      <div className="flex flex-col gap-3 min-h-0">
+        <BingoSection 
+          title="Players" 
+          icon={<Users className="h-4 w-4" />}
+          variant="compact"
+          className="bg-gradient-to-br from-gray-800/80 to-gray-800/40"
+        >
+          <PlayerManagement {...playerManagementProps} />
+        </BingoSection>
 
-          <section>
-            <h3 className="text-xl font-semibold text-cyan-400 flex items-center mb-4">
-              <Clock className="mr-2 h-5 w-5" />
-              Timer
-            </h3>
-            <TimerControls
-              time={time}
-              isTimerRunning={isTimerRunning}
-              isOwner={isOwner}
-              formatTime={formatTime}
-              onTimeChange={onTimeChange}
-              onTimerToggle={onTimerToggle}
-            />
-          </section>
+        <BingoSection 
+          title="Timer" 
+          icon={<Clock className="h-4 w-4" />}
+          variant="compact"
+          className="bg-gradient-to-br from-gray-800/80 to-gray-800/40"
+        >
+          <TimerControls {...timerControlsProps} />
+        </BingoSection>
 
-          <section>
-            <h3 className="text-xl font-semibold text-cyan-400 flex items-center mb-4">
-              <Settings className="mr-2 h-5 w-5" />
-              Settings
-            </h3>
-            <GameSettings
-              boardSize={boardSize}
-              soundEnabled={soundEnabled}
-              teamMode={teamMode}
-              lockout={lockout}
-              winConditions={winConditions}
-              isOwner={isOwner}
-              onBoardSizeChange={onBoardSizeChange}
-              onSoundToggle={onSoundToggle}
-              onTeamModeToggle={onTeamModeToggle}
-              onLockoutToggle={onLockoutToggle}
-              onWinConditionsChange={onWinConditionsChange}
-              onStartBoard={onStartBoard}
-              onResetBoard={onResetBoard}
-            />
-          </section>
-        </CardContent>
-      </Card>
-    </motion.div>
+        <BingoSection 
+          title="Settings" 
+          icon={<Settings className="h-4 w-4" />}
+          variant="compact"
+          className="bg-gradient-to-br from-gray-800/80 to-gray-800/40"
+        >
+          <GameSettings {...gameSettingsProps} />
+        </BingoSection>
+      </div>
+    </BingoLayout>
   )
 }

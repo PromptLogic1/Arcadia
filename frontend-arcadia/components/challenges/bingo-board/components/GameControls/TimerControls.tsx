@@ -14,7 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Clock, Play, Pause } from 'lucide-react'
+import { Play, Pause } from 'lucide-react'
 
 interface TimerControlsProps {
   time: number
@@ -68,9 +68,9 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800/90 rounded-lg p-6 border border-cyan-500/30 backdrop-blur-sm">
-        <div className="flex items-center justify-center space-x-4">
+    <div className="flex flex-col gap-2">
+      <div className="bg-gray-800/90 rounded-lg p-3 border border-cyan-500/30 backdrop-blur-sm">
+        <div className="flex items-center justify-center gap-3">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -86,11 +86,11 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
                   }}
                   disabled={!isOwner || isTimerRunning}
                   className={cn(
-                    "font-mono text-4xl tracking-wider",
+                    "font-mono text-2xl sm:text-3xl tracking-wider",
                     "bg-transparent hover:bg-cyan-500/10",
                     "text-cyan-400 disabled:text-cyan-400/70",
                     "border-none disabled:opacity-80",
-                    "transition-all duration-200"
+                    "transition-all duration-200 px-3 h-12"
                   )}
                 >
                   {formatTime(time)}
@@ -113,9 +113,8 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
               onKeyDown={handleKeyDown}
               disabled={time === 0}
               className={cn(
-                "px-6 py-2 text-lg font-semibold",
+                "h-12 w-12 rounded-full",
                 "transition-all duration-200",
-                "rounded-lg",
                 isTimerRunning 
                   ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30" 
                   : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30",
@@ -135,28 +134,27 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
       <Dialog open={isTimeDialogOpen} onOpenChange={setIsTimeDialogOpen}>
         <DialogContent className="bg-gray-800/95 border-cyan-500/30 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-cyan-400 flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+            <DialogTitle className="text-lg font-semibold text-cyan-400">
               Set Timer
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {[
               { label: 'Hours', value: hours, setter: setHours, max: 99 },
               { label: 'Minutes', value: minutes, setter: setMinutes, max: 59 },
               { label: 'Seconds', value: seconds, setter: setSeconds, max: 59 },
             ].map((field) => (
-              <div key={field.label}>
+              <div key={field.label} className="space-y-1">
                 <Input
                   type="number"
                   min={0}
                   max={field.max}
                   value={field.value}
                   onChange={(e) => handleInputChange(e, field.setter, field.max)}
-                  className="bg-gray-700/50 border-cyan-500/30 text-cyan-100 
-                    focus:ring-cyan-500 focus:border-cyan-500"
+                  className="bg-gray-700/50 border-cyan-500/30 text-cyan-100 h-8
+                    focus:ring-cyan-500 focus:border-cyan-500 text-center"
                 />
-                <span className="text-sm text-cyan-400 mt-1 block text-center">
+                <span className="text-xs text-cyan-400 block text-center">
                   {field.label}
                 </span>
               </div>
@@ -166,7 +164,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
             onClick={handleTimeSubmit}
             className="w-full bg-cyan-500/20 hover:bg-cyan-500/30 
               text-cyan-400 border border-cyan-500/30
-              transition-all duration-200"
+              transition-all duration-200 h-8"
           >
             Set Time
           </Button>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lock, Volume2, VolumeX, Play, RotateCcw, Save, Upload, Grid, Trophy } from 'lucide-react'
+import { Lock, Volume2, VolumeX, Play, RotateCcw, Save, Upload, Trophy } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -56,12 +56,8 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-cyan-400 flex items-center">
-        <Grid className="mr-2 h-5 w-5" /> Game Settings
-      </h3>
-      
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -73,13 +69,14 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
                 >
                   <SelectTrigger 
                     className={cn(
-                      "w-full bg-gray-700 border-cyan-500 text-white",
+                      "w-full h-8 text-sm",
+                      "bg-gray-700/50 border-cyan-500/30 text-cyan-100",
                       "disabled:opacity-50 disabled:cursor-not-allowed"
                     )}
                   >
                     <SelectValue placeholder={`${boardSize}x${boardSize}`} />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-cyan-500">
+                  <SelectContent className="bg-gray-800 border-cyan-500/30">
                     {[3, 4, 5, 6].map((size) => (
                       <SelectItem 
                         key={size} 
@@ -99,7 +96,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           </Tooltip>
         </TooltipProvider>
 
-        <div className="flex items-center space-x-2 bg-gray-700/50 rounded-md px-3 py-1.5 border border-cyan-500/30">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-700/50 rounded-md border border-cyan-500/30">
           {soundEnabled ? (
             <Volume2 className="h-4 w-4 text-cyan-400" />
           ) : (
@@ -109,73 +106,75 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             checked={soundEnabled}
             onCheckedChange={onSoundToggle}
             disabled={!isOwner}
+            className="data-[state=checked]:bg-cyan-500"
           />
         </div>
       </div>
 
       <Separator className="bg-cyan-500/20" />
 
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between bg-gray-700 rounded-md px-4 py-2 border border-cyan-500">
-            <Label className="text-sm text-cyan-200">Team Mode</Label>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between p-2 bg-gray-700/50 rounded-md border border-cyan-500/30">
+          <Label className="text-sm text-cyan-200">Team Mode</Label>
+          <Switch
+            checked={teamMode}
+            onCheckedChange={onTeamModeToggle}
+            disabled={!isOwner}
+            className="data-[state=checked]:bg-cyan-500"
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-2 bg-gray-700/50 rounded-md border border-cyan-500/30">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-cyan-400" />
+            <Label className="text-sm text-cyan-200">Lockout</Label>
+          </div>
+          <Switch
+            checked={lockout}
+            onCheckedChange={onLockoutToggle}
+            disabled={!isOwner}
+            className="data-[state=checked]:bg-cyan-500"
+          />
+        </div>
+      </div>
+
+      <div className="p-2 bg-gray-700/50 rounded-md border border-cyan-500/30">
+        <div className="flex items-center mb-2">
+          <Trophy className="h-4 w-4 text-cyan-400 mr-2" />
+          <Label className="text-sm text-cyan-200">Win Conditions</Label>
+        </div>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
             <Switch
-              checked={teamMode}
-              onCheckedChange={onTeamModeToggle}
+              checked={winConditions.line}
+              onCheckedChange={() => handleWinConditionChange('line')}
               disabled={!isOwner}
               className="data-[state=checked]:bg-cyan-500"
             />
+            <Label className="text-xs text-cyan-200">Line</Label>
           </div>
-
-          <div className="flex items-center justify-between bg-gray-700/50 rounded-md px-3 py-1.5 border border-cyan-500/30">
-            <div className="flex items-center space-x-2">
-              <Lock className="h-4 w-4 text-cyan-400" />
-              <Label className="text-sm text-cyan-200">Lockout</Label>
-            </div>
+          <div className="flex items-center gap-2">
             <Switch
-              checked={lockout}
-              onCheckedChange={onLockoutToggle}
+              checked={winConditions.majority}
+              onCheckedChange={() => handleWinConditionChange('majority')}
               disabled={!isOwner}
+              className="data-[state=checked]:bg-cyan-500"
             />
-          </div>
-        </div>
-
-        <div className="bg-gray-700 rounded-md p-4 border border-cyan-500">
-          <div className="flex items-center mb-3">
-            <Trophy className="h-4 w-4 text-cyan-400 mr-2" />
-            <Label className="text-sm text-cyan-200">Win Conditions</Label>
-          </div>
-          <div className="flex gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={winConditions.line}
-                onCheckedChange={() => handleWinConditionChange('line')}
-                disabled={!isOwner}
-                className="data-[state=checked]:bg-cyan-500"
-              />
-              <Label className="text-xs text-cyan-200">Line</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={winConditions.majority}
-                onCheckedChange={() => handleWinConditionChange('majority')}
-                disabled={!isOwner}
-                className="data-[state=checked]:bg-cyan-500"
-              />
-              <Label className="text-xs text-cyan-200">Majority</Label>
-            </div>
+            <Label className="text-xs text-cyan-200">Majority</Label>
           </div>
         </div>
       </div>
 
       <Separator className="bg-cyan-500/20" />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={onStartBoard}
           disabled={!isOwner}
           className={cn(
-            "w-full bg-cyan-500 hover:bg-cyan-600 text-white",
+            "h-8 text-sm",
+            "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400",
+            "border border-cyan-500/30",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
@@ -186,19 +185,19 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           onClick={onResetBoard}
           disabled={!isOwner}
           variant="outline"
-          className="w-full border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
+          className="h-8 text-sm border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           Reset
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="w-full bg-transparent border border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
+                className="h-8 text-sm bg-transparent border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
                 onClick={() => {}}
               >
                 <Save className="mr-2 h-4 w-4" />
@@ -213,7 +212,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="w-full bg-transparent border border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
+                className="h-8 text-sm bg-transparent border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
                 onClick={() => {}}
               >
                 <Upload className="mr-2 h-4 w-4" />
