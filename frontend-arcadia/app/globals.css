@@ -2,86 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Define color variables */
-:root {
-  /* Light mode colors */
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #1a1a1a;
-  --primary-foreground: #fafafa;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #1a1a1a;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #f5f5f5;
-  --accent-foreground: #1a1a1a;
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: #fafafa;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #171717;
-  --chart-1: hsl(12, 76%, 61%);
-  --chart-2: hsl(173, 58%, 39%);
-  --chart-3: hsl(197, 37%, 24%);
-  --chart-4: hsl(43, 74%, 66%);
-  --chart-5: hsl(27, 87%, 67%);
-  --radius: 0.5rem;
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --card: #0a0a0a;
-    --card-foreground: #ededed;
-    --popover: #0a0a0a;
-    --popover-foreground: #ededed;
-    --primary: #ededed;
-    --primary-foreground: #1a1a1a;
-    --secondary: #262626;
-    --secondary-foreground: #ededed;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --accent: #262626;
-    --accent-foreground: #ededed;
-    --destructive: hsl(0, 62.8%, 30.6%);
-    --destructive-foreground: #ededed;
-    --border: #262626;
-    --input: #262626;
-    --ring: #d4d4d4;
-    --chart-1: hsl(220, 70%, 50%);
-    --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-  }
-}
-
-/* Apply variables */
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* Tailwind utility class */
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
-/* Tailwind base styles */
 @layer base {
-  * {
-    @apply border-border;
+  :root {
+    --radius: 0.5rem;
+    
+    /* Core colors */
+    --background: theme('colors.gray.900');
+    --foreground: theme('colors.gray.100');
+    
+    /* UI Elements */
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+    --popover: theme('colors.gray.800');
+    --popover-foreground: var(--foreground);
+    
+    /* Brand Colors */
+    --primary: theme('colors.cyan.400');
+    --primary-hover: theme('colors.cyan.300');
+    --primary-foreground: theme('colors.gray.900');
+    
+    /* Accent Colors */
+    --accent: theme('colors.fuchsia.500');
+    --accent-hover: theme('colors.fuchsia.400');
+    --accent-foreground: theme('colors.white');
+    
+    /* Functional Colors */
+    --success: theme('colors.emerald.500');
+    --warning: theme('colors.yellow.500');
+    --error: theme('colors.red.500');
+    
+    /* UI Borders & Inputs */
+    --border: theme('colors.cyan.500');
+    --border-opacity: 0.3;
+    --input: theme('colors.gray.700');
+    --ring: theme('colors.cyan.400');
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-800/50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cyan-500/30 rounded-full hover:bg-cyan-500/50 transition-colors;
+  }
+}
+
+@layer utilities {
+  /* Glass Effect */
+  .glass {
+    @apply bg-gray-800/80 backdrop-blur-sm border border-cyan-500/30;
+  }
+
+  /* Text Gradient */
+  .text-gradient {
+    @apply bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-transparent;
+  }
+
+  /* Hover Effects */
+  .hover-glow {
+    @apply transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/20;
+  }
+
+  /* Animation Utilities */
+  .animate-fade {
+    @apply transition-opacity duration-200;
   }
 }

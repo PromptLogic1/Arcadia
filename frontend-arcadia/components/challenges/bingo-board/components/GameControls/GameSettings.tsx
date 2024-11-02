@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lock, Volume2, VolumeX, Play, RotateCcw, Save, Upload, Trophy } from 'lucide-react'
+import { Lock, Volume2, VolumeX, Play, Pause, RotateCcw, Save, Upload, Trophy } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ export interface GameSettingsProps {
     majority: boolean
   }
   isOwner: boolean
+  isTimerRunning: boolean
   onBoardSizeChange: (size: number) => void
   onSoundToggle: (enabled: boolean) => void
   onTeamModeToggle: (enabled: boolean) => void
@@ -40,6 +41,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   lockout,
   winConditions,
   isOwner,
+  isTimerRunning,
   onBoardSizeChange,
   onSoundToggle,
   onTeamModeToggle,
@@ -173,13 +175,24 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           disabled={!isOwner}
           className={cn(
             "h-8 text-sm",
-            "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400",
-            "border border-cyan-500/30",
+            isTimerRunning
+              ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
+              : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-cyan-500/30",
+            "border",
             "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
-          <Play className="mr-2 h-4 w-4" />
-          Start Board
+          {isTimerRunning ? (
+            <>
+              <Pause className="mr-2 h-4 w-4" />
+              Pause Board
+            </>
+          ) : (
+            <>
+              <Play className="mr-2 h-4 w-4" />
+              Start Board
+            </>
+          )}
         </Button>
         <Button
           onClick={onResetBoard}

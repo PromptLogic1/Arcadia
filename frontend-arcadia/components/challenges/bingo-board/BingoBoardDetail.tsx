@@ -94,9 +94,9 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
 
   const handleStartBoard = useCallback((): void => {
     try {
-      setIsTimerRunning(true)
+      setIsTimerRunning(prev => !prev)
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to start board'))
+      setError(err instanceof Error ? err : new Error('Failed to toggle board state'))
     }
   }, [setIsTimerRunning])
 

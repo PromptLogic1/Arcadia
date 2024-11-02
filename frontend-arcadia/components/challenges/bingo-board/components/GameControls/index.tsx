@@ -81,6 +81,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
     lockout,
     winConditions,
     isOwner,
+    isTimerRunning,
     onBoardSizeChange: props.onBoardSizeChange,
     onSoundToggle: props.onSoundToggle,
     onTeamModeToggle: props.onTeamModeToggle,
