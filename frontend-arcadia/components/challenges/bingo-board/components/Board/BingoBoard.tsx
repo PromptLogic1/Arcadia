@@ -1,23 +1,8 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card'
+import { BingoLayout, BingoGrid } from '../layout/BingoLayout'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Share2,
-  Monitor,
-  HelpCircle,
-  Download,
-  Copy,
-  Bookmark,
-  BookmarkCheck,
-} from 'lucide-react'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { HelpCircle, Download, Copy, Share2, Monitor, Bookmark, BookmarkCheck } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -37,24 +22,19 @@ import { BoardCell, Player } from '../shared/types'
 
 interface BoardProps {
   boardState: BoardCell[]
-  boardName: string
   boardSize: number
   players: Player[]
-  currentPlayer: number
   winner: number | null
   isOwner: boolean
   isBookmarked: boolean
   onCellChange: (index: number, value: string) => void
   onCellClick: (index: number) => void
-  onBoardNameChange: (name: string) => void
-  onShare: () => void
   onBookmark: () => void
   onReset: () => void
 }
 
 export const Board: React.FC<BoardProps> = ({
   boardState,
-  boardName,
   boardSize,
   players,
   winner,
@@ -62,22 +42,12 @@ export const Board: React.FC<BoardProps> = ({
   isBookmarked,
   onCellChange,
   onCellClick,
-  onBoardNameChange,
-  onShare,
   onBookmark,
   onReset,
 }) => {
-  const [editingBoardName, setEditingBoardName] = useState(false)
   const [editingCell, setEditingCell] = useState<number | null>(null)
-  const [boardId, setBoardId] = useState('')
-  const [showBoardId, setShowBoardId] = useState(false)
-
-  const handleShare = async () => {
-    const id = Math.random().toString(36).substr(2, 9) + Date.now().toString(36)
-    setBoardId(id)
-    setShowBoardId(true)
-    onShare()
-  }
+  const [boardId] = useState('')
+  const [showBoardId] = useState(false)
 
   const copyBoardIdToClipboard = async () => {
     try {
@@ -90,147 +60,85 @@ export const Board: React.FC<BoardProps> = ({
   }
 
   return (
-    <motion.div
-      className="flex-grow"
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
+    <BingoLayout
+      delay={0.2}
+      direction="left"
+      className="h-full"
+      fullHeight
     >
-      <Card className="bg-gray-800 border-2 border-cyan-500 flex flex-col h-full">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-cyan-400 flex justify-between items-center">
-            {editingBoardName ? (
-              <Input
-                value={boardName}
-                onChange={(e) => onBoardNameChange(e.target.value)}
-                onBlur={() => setEditingBoardName(false)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') setEditingBoardName(false)
-                }}
-                className="text-2xl font-bold text-cyan-400 bg-transparent border-none focus:ring-2 focus:ring-cyan-500"
-                autoFocus
-                aria-label="Edit board name"
-              />
-            ) : (
-              <span
-                onClick={() => isOwner && setEditingBoardName(true)}
-                className="cursor-pointer"
-                role={isOwner ? 'button' : undefined}
-                tabIndex={isOwner ? 0 : undefined}
-              >
-                {boardName}
-              </span>
-            )}
+      <div className="flex flex-col h-full gap-3">
+        {/* Board Actions */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onBookmark}
+                    className="h-8 bg-gray-700/50 hover:bg-gray-700/80 border border-cyan-500/30"
+                  >
+                    {isBookmarked ? (
+                      <BookmarkCheck className="h-4 w-4 text-cyan-400" />
+                    ) : (
+                      <Bookmark className="h-4 w-4 text-cyan-400" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isBookmarked ? 'Remove from My Boards' : 'Add to My Boards'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleShare}
-                      aria-label="Share Board"
-                      className="border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Share Board</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {}}
+                    className="h-8 bg-gray-700/50 hover:bg-gray-700/80 border border-cyan-500/30"
+                  >
+                    <Share2 className="h-4 w-4 text-cyan-400" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Share Board</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => alert('Pushed to overlay!')}
-                      aria-label="Push to Overlay"
-                      className="border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
-                    >
-                      <Monitor className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Push to Overlay</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={onBookmark}
-                      aria-label={isBookmarked ? 'Remove Bookmark' : 'Bookmark Board'}
-                      className="border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
-                    >
-                      {isBookmarked ? (
-                        <BookmarkCheck className="h-4 w-4" />
-                      ) : (
-                        <Bookmark className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isBookmarked ? 'Remove Bookmark' : 'Bookmark Board'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="flex-grow">
-          <div
-            className="grid gap-2 p-6 bg-gray-700 rounded-lg h-full"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`,
-              gap: '1rem',
-              aspectRatio: '1',
-              maxHeight: 'calc(100vh - 200px)',
-              margin: 'auto'
-            }}
-          >
-            {boardState.map((cell, index) => (
-              <BingoCell
-                key={index}
-                cell={cell}
-                index={index}
-                isOwner={isOwner}
-                isEditing={editingCell === index}
-                winner={winner}
-                onCellChange={onCellChange}
-                onCellClick={onCellClick}
-                onEditStart={(idx) => setEditingCell(idx)}
-                onEditEnd={() => setEditingCell(null)}
-              />
-            ))}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {}}
+                    className="h-8 bg-gray-700/50 hover:bg-gray-700/80 border border-cyan-500/30"
+                  >
+                    <Monitor className="h-4 w-4 text-cyan-400" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Push to Overlay</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-        </CardContent>
 
-        <CardFooter className="flex justify-between mt-4">
           <Dialog>
             <DialogTrigger asChild>
               <Button
-                variant="outline"
-                className="bg-transparent border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
-                aria-label="Quick Start Guide"
+                variant="ghost"
+                size="sm"
+                className="h-8 bg-gray-700/50 hover:bg-gray-700/80 border border-cyan-500/30"
               >
-                <HelpCircle className="mr-2 h-4 w-4" />
-                Quick Start Guide
+                <HelpCircle className="h-4 w-4 text-cyan-400 mr-2" />
+                <span className="text-cyan-400 text-xs">Quick Start Guide</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 text-white border-2 border-cyan-500">
+            <DialogContent className="bg-gray-800/95 border-cyan-500/30 backdrop-blur-sm">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-cyan-400">
+                <DialogTitle className="text-lg font-semibold text-cyan-400">
                   Quick Start Guide
                 </DialogTitle>
               </DialogHeader>
@@ -242,39 +150,48 @@ export const Board: React.FC<BoardProps> = ({
               </ol>
             </DialogContent>
           </Dialog>
+        </div>
 
-          <Button
-            variant="outline"
-            className="bg-transparent border-cyan-500 text-cyan-400 hover:bg-cyan-500/20 transition-all duration-300"
-            aria-label="Download App"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download App
-          </Button>
-        </CardFooter>
-      </Card>
+        {/* Bingo Grid */}
+        <BingoGrid size={boardSize} className="flex-1">
+          {boardState.map((cell, index) => (
+            <BingoCell
+              key={index}
+              cell={cell}
+              index={index}
+              isOwner={isOwner}
+              isEditing={editingCell === index}
+              winner={winner}
+              onCellChange={onCellChange}
+              onCellClick={onCellClick}
+              onEditStart={(idx) => setEditingCell(idx)}
+              onEditEnd={() => setEditingCell(null)}
+            />
+          ))}
+        </BingoGrid>
 
-      {showBoardId && (
-        <Card className="mt-4 bg-gray-800 border-2 border-cyan-500">
-          <CardContent className="flex items-center justify-between p-4">
-            <span className="text-cyan-400 font-semibold">
-              Board ID: {boardId}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyBoardIdToClipboard}
-              className="bg-transparent border-cyan-500 text-cyan-400 hover:bg-cyan-500/20"
-              aria-label="Copy Board ID"
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Copy ID
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+        {/* Board ID Display */}
+        {showBoardId && (
+          <Card className="bg-gray-800/90 border border-cyan-500/30">
+            <CardContent className="flex items-center justify-between p-2">
+              <span className="text-sm text-cyan-400 font-mono">
+                Board ID: {boardId}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyBoardIdToClipboard}
+                className="h-7 bg-gray-700/50 hover:bg-gray-700/80 border border-cyan-500/30"
+              >
+                <Copy className="h-3 w-3 text-cyan-400 mr-1" />
+                <span className="text-cyan-400 text-xs">Copy ID</span>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-      <WinnerModal winner={winner} players={players} onReset={onReset} />
-    </motion.div>
+        <WinnerModal winner={winner} players={players} onReset={onReset} />
+      </div>
+    </BingoLayout>
   )
 }
