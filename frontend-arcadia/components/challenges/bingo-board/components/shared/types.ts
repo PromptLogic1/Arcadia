@@ -1,4 +1,17 @@
-import { ReactNode } from 'react'
+export const GAMES = [
+  "All Games",
+  "World of Warcraft",
+  "Fortnite",
+  "Minecraft",
+  "Among Us",
+  "Apex Legends",
+  "League of Legends",
+  "Overwatch",
+  "Call of Duty: Warzone",
+  "Valorant",
+] as const
+
+export type Game = (typeof GAMES)[number]
 
 export interface ColorOption {
   name: string
@@ -16,40 +29,16 @@ export interface Player {
 export interface BoardCell {
   text: string
   colors: string[]
-}
-
-export interface GameSettings {
-  boardSize: number
-  soundEnabled: boolean
-  teamMode: boolean
-  lockout: boolean
+  difficulty?: 'normal' | 'hard' | 'extreme'
+  reward?: 'block'
+  blocked?: boolean
+  blockedBy?: string // player/team color that blocked it
+  completedBy?: string[] // players/teams that completed this cell
 }
 
 export interface WinConditions {
   line: boolean
   majority: boolean
-}
-
-export interface BingoBoardDetailProps {
-  board: {
-    readonly id: number
-    readonly name: string
-    readonly players: number
-    readonly size: number
-    readonly timeLeft: number
-    readonly votes: number
-    readonly game: string
-    readonly createdAt: Date
-    readonly votedBy: ReadonlySet<string>
-    readonly bookmarked: boolean
-  }
-  onClose: () => void
-  onBookmark: () => void
-}
-
-export interface NeonTextProps {
-  children: ReactNode
-  className?: string
 }
 
 export interface Board {
@@ -59,7 +48,7 @@ export interface Board {
   size: number
   timeLeft: number
   votes: number
-  game: string
+  game: Game
   createdAt: Date
   votedBy: Set<string>
   bookmarked: boolean
@@ -68,17 +57,16 @@ export interface Board {
   winConditions: WinConditions
 }
 
-export const GAMES = [
-  "All Games",
-  "World of Warcraft",
-  "Fortnite",
-  "Minecraft",
-  "Among Us",
-  "Apex Legends",
-  "League of Legends",
-  "Overwatch",
-  "Call of Duty: Warzone",
-  "Valorant",
-] as const
+export interface BingoBoardDetailProps {
+  board: Board
+  onBookmark: () => void
+  onClose: () => void
+}
 
-export type Game = typeof GAMES[number]
+export interface BoardCardProps {
+  board: Board
+  section: 'bookmarked' | 'all'
+  onVote: (boardId: number, userId: string) => void
+  onBookmark: (boardId: number) => void
+  onSelect: (board: Board, section: string) => void
+}

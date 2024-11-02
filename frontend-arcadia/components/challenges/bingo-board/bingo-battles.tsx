@@ -9,22 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
 import BingoBoardDetail from './BingoBoardDetail'
 import { BoardCard } from './components/cards/BoardCard'
-import { Board } from './components/shared/types'
-
-const GAMES = [
-  "All Games",
-  "World of Warcraft",
-  "Fortnite",
-  "Minecraft",
-  "Among Us",
-  "Apex Legends",
-  "League of Legends",
-  "Overwatch",
-  "Call of Duty: Warzone",
-  "Valorant",
-] as const
-
-type Game = typeof GAMES[number]
+import { GAMES, type Game, type Board } from './components/shared/types'
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -33,14 +18,20 @@ const SORT_OPTIONS = {
 
 type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS]
 
-export default function BingoBattles() {
-  const [boards, setBoards] = useState<Board[]>([])
+interface BingoBattlesProps {
+  initialBoards?: Board[]
+}
+
+export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) {
+  // State
+  const [boards, setBoards] = useState<Board[]>(initialBoards)
   const [filterGame, setFilterGame] = useState<Game>("All Games")
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [expandedBoardId, setExpandedBoardId] = useState<{ id: number | null, section: string | null }>({ id: null, section: null });
+  const [expandedBoardId, setExpandedBoardId] = useState<{ id: number | null, section: string | null }>({ id: null, section: null })
   const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
 
+  // Fetch boards
   useEffect(() => {
     const fetchBoards = async () => {
       try {
@@ -51,9 +42,13 @@ export default function BingoBattles() {
         console.error('Failed to fetch boards:', error)
       }
     }
-    fetchBoards()
-  }, [])
 
+    if (boards.length === 0) {
+      fetchBoards()
+    }
+  }, [boards.length])
+
+  // Board actions
   const createNewBoard = useCallback(() => {
     const newBoard: Board = {
       id: Date.now(),
@@ -104,9 +99,10 @@ export default function BingoBattles() {
       current.id === board.id && current.section === section 
         ? { id: null, section: null }
         : { id: board.id, section }
-    );
-  }, []);
+    )
+  }, [])
 
+  // Filtered and sorted boards
   const sortedAndFilteredBoards = useMemo(() => {
     return boards
       .filter(board =>
@@ -116,15 +112,21 @@ export default function BingoBattles() {
       .sort((a, b) => {
         if (sortBy === SORT_OPTIONS.NEWEST) {
           return b.createdAt.getTime() - a.createdAt.getTime()
-        } else if (sortBy === SORT_OPTIONS.VOTES) {
-          return b.votes - a.votes
         }
-        return 0
+        return b.votes - a.votes
       })
   }, [boards, filterGame, searchTerm, sortBy])
 
+  // Render board card
   const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => (
-    <motion.div key={`${section}-${board.id}`} layout className="w-full">
+    <motion.div 
+      key={`${section}-${board.id}`} 
+      layout 
+      className="w-full"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+    >
       <BoardCard
         board={board}
         section={section}
@@ -150,10 +152,11 @@ export default function BingoBattles() {
         )}
       </AnimatePresence>
     </motion.div>
-  ), [expandedBoardId, selectBoard, toggleBookmark, voteBoard]);
+  ), [expandedBoardId, selectBoard, toggleBookmark, voteBoard])
 
   return (
     <div className="container mx-auto p-6 space-y-8">
+      {/* Header */}
       <motion.div
         className="flex justify-between items-center"
         initial={{ opacity: 0, y: -20 }}
@@ -172,6 +175,7 @@ export default function BingoBattles() {
         </Button>
       </motion.div>
 
+      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -179,6 +183,7 @@ export default function BingoBattles() {
         className="mb-6"
       >
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+          {/* Game Filter */}
           <div className="w-full md:w-1/3">
             <Label htmlFor="filter-game" className="text-cyan-300 mb-2 block">Filter by Game:</Label>
             <Select value={filterGame} onValueChange={(value: Game) => setFilterGame(value)}>
@@ -186,13 +191,16 @@ export default function BingoBattles() {
                 <SelectValue placeholder="All Games" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-cyan-500">
-                {GAMES.map(game => (
-                  <SelectItem key={game} value={game} className="text-cyan-100">{game}</SelectItem>
+                {GAMES.map((game) => (
+                  <SelectItem key={game} value={game} className="text-cyan-100">
+                    {game}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Sort */}
           <div className="w-full md:w-1/3">
             <Label htmlFor="sort-by" className="text-cyan-300 mb-2 block">Sort by:</Label>
             <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
@@ -206,6 +214,7 @@ export default function BingoBattles() {
             </Select>
           </div>
 
+          {/* Search */}
           <div className="w-full md:w-1/3">
             <Label htmlFor="search" className="text-cyan-300 mb-2 block">Search:</Label>
             <div className="relative">
@@ -223,6 +232,7 @@ export default function BingoBattles() {
         </div>
       </motion.div>
 
+      {/* Bookmarked Boards */}
       {bookmarkedBoards.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -237,6 +247,7 @@ export default function BingoBattles() {
         </motion.div>
       )}
 
+      {/* All Boards */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

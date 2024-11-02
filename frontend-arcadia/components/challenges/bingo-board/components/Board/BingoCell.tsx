@@ -10,6 +10,7 @@ interface BingoCellProps {
   isOwner: boolean
   isEditing: boolean
   winner: number | null
+  currentPlayer: number
   onCellChange: (index: number, value: string) => void
   onCellClick: (index: number) => void
   onEditStart: (index: number) => void
@@ -38,6 +39,7 @@ export const BingoCell: React.FC<BingoCellProps> = ({
   isOwner,
   isEditing,
   winner,
+  currentPlayer,
   onCellChange,
   onCellClick,
   onEditStart,
@@ -45,11 +47,12 @@ export const BingoCell: React.FC<BingoCellProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const [fontSize, setFontSize] = useState<number>(FONT_SIZES.max)
-  const [isTextHovered, setIsTextHovered] = useState<boolean>(false)
   
   const handleCellClick = (e: MouseEvent): void => {
     e.preventDefault()
-    onCellClick(index)
+    if (!isEditing && !winner && currentPlayer !== undefined) {
+      onCellClick(index)
+    }
   }
 
   const handleTextClick = (e: MouseEvent): void => {
@@ -165,8 +168,6 @@ export const BingoCell: React.FC<BingoCellProps> = ({
           isOwner && !winner && "cursor-text"
         )}
         onClick={handleTextClick}
-        onMouseEnter={() => setIsTextHovered(true)}
-        onMouseLeave={() => setIsTextHovered(false)}
       >
         <div className={cn(
           "relative flex items-center justify-center",

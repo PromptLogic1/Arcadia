@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { BingoLayout, BingoGrid } from '../layout/BingoLayout'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
-import { HelpCircle, Download, Copy, Share2, Monitor, Bookmark, BookmarkCheck } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { HelpCircle, Copy, Share2, Monitor, Bookmark, BookmarkCheck } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ interface BoardProps {
   boardState: BoardCell[]
   boardSize: number
   players: Player[]
+  currentPlayer: number
   winner: number | null
   isOwner: boolean
   isBookmarked: boolean
@@ -37,6 +38,7 @@ export const Board: React.FC<BoardProps> = ({
   boardState,
   boardSize,
   players,
+  currentPlayer,
   winner,
   isOwner,
   isBookmarked,
@@ -162,6 +164,7 @@ export const Board: React.FC<BoardProps> = ({
               isOwner={isOwner}
               isEditing={editingCell === index}
               winner={winner}
+              currentPlayer={currentPlayer}
               onCellChange={onCellChange}
               onCellClick={onCellClick}
               onEditStart={(idx) => setEditingCell(idx)}

@@ -52,7 +52,6 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     setTime,
   } = useTimer(board.timeLeft, () => checkWinningCondition(players, true))
 
-  const [boardName, setBoardName] = useState<string>(board.name)
   const [isOwner] = useState<boolean>(true)
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true)
   const [teamMode, setTeamMode] = useState<boolean>(false)
@@ -128,7 +127,6 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
         <div className="flex-[3] min-w-0">
           <Board
             boardState={boardState}
-            boardName={boardName}
             boardSize={boardSize}
             players={players}
             currentPlayer={currentPlayer}
@@ -137,8 +135,6 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
             isBookmarked={board.bookmarked}
             onCellChange={handleCellChange}
             onCellClick={handleCellClick}
-            onBoardNameChange={setBoardName}
-            onShare={() => {}}
             onBookmark={onBookmark}
             onReset={resetBoard}
           />

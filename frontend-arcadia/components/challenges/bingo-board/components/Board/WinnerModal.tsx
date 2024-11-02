@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, Crown, Star, RotateCcw } from 'lucide-react'
+import { Crown, Star, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Player } from '../shared/types'
 
