@@ -31,8 +31,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { BingoCell } from '../Board/BingoCell'
-import { WinnerModal } from '../Board/WinnerModal'
+import { BingoCell } from './BingoCell'
+import { WinnerModal } from './WinnerModal'
 import { BoardCell, Player } from '../shared/types'
 
 interface BoardProps {

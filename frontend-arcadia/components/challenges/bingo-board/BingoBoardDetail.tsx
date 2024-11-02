@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Board } from './components/Board'
+import { Board } from './components/Board/BingoBoard'
 import { GameControls } from './components/GameControls'
 import { useBingoGame } from './hooks/useBingoGame'
 import { usePlayerManagement } from './hooks/usePlayerManagement'
