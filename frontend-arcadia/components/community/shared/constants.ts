@@ -1,8 +1,12 @@
+import { Discussion, Event } from '../types'
+
 export const GAMES = ['All Games', 'Elden Ring', 'Fortnite', 'World of Warcraft', 'Cyberpunk 2077'] as const
+export type Game = typeof GAMES[number]
 
 export const CHALLENGE_TYPES = ['All Challenges', 'Speed Run', 'Win Challenge', 'Bingo Battle'] as const
+export type ChallengeType = typeof CHALLENGE_TYPES[number]
 
-export const MOCK_DISCUSSIONS = [
+export const MOCK_DISCUSSIONS: readonly Discussion[] = [
   {
     id: 1,
     author: 'Player1',
@@ -14,12 +18,12 @@ export const MOCK_DISCUSSIONS = [
     upvotes: 45,
     content: 'Looking for tips on defeating Malenia...',
     date: '2024-03-15T10:00:00Z',
-    tags: ['boss-fight', 'strategy', 'help']
-  },
-  // Add more mock discussions as needed
+    tags: ['boss-fight', 'strategy', 'help'] as const,
+    commentList: []
+  }
 ] as const
 
-export const MOCK_EVENTS = [
+export const MOCK_EVENTS: readonly Event[] = [
   {
     id: 1,
     title: 'Fortnite Tournament',
@@ -28,7 +32,6 @@ export const MOCK_EVENTS = [
     participants: 100,
     prize: '$1000',
     description: 'Join our monthly Fortnite tournament...',
-    tags: ['tournament', 'competitive', 'prizes']
-  },
-  // Add more mock events as needed
+    tags: ['tournament', 'competitive', 'prizes'] as const
+  }
 ] as const 

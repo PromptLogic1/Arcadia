@@ -27,7 +27,7 @@ import EventView from '@/components/community/EventView'
 import CreateDiscussionForm from '@/components/community/CreateDiscussionForm'
 
 import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from './community/shared/constants'
-import { Discussion, Event, NeonButtonProps } from './community/types'
+import { Discussion, Event, NeonButtonProps, Comment } from './community/types'
 import { SearchInput } from './community/shared/SearchInput'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
@@ -99,7 +99,7 @@ export function CommunityComponent() {
           discussion.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
           discussion.author.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
           discussion.game.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          discussion.tags.some((tag) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+          discussion.tags.some((tag: string) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
 
         const matchesGame = selectedGame === 'All Games' || discussion.game === selectedGame
         const matchesChallenge =
@@ -122,13 +122,12 @@ export function CommunityComponent() {
         debouncedSearchQuery === '' ||
         event.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         event.game.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        event.tags.some((tag) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+        event.tags.some((tag: string) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
       )
     })
   }, [debouncedSearchQuery])
 
-  const handleCreateDiscussion = (formData: Omit<Discussion, 'id' | 'comments' | 'upvotes' | 'date'>) => {
-    // In a real app, this would be an API call
+  const handleCreateDiscussion = (formData: Omit<Discussion, 'id' | 'comments' | 'upvotes' | 'date' | 'commentList'>) => {
     const newDiscussion: Discussion = {
       ...formData,
       id: Math.max(...MOCK_DISCUSSIONS.map(d => d.id)) + 1,
@@ -140,6 +139,39 @@ export function CommunityComponent() {
     
     // Update your state management here
     console.log('New discussion:', newDiscussion)
+  }
+
+  const handleUpvote = (discussionId: number) => {
+    // In a real app, this would be an API call
+    const updatedDiscussions = MOCK_DISCUSSIONS.map(discussion =>
+      discussion.id === discussionId
+        ? { ...discussion, upvotes: discussion.upvotes + 1 }
+        : discussion
+    )
+    
+    // Update your state management here
+    console.log('Updated discussions:', updatedDiscussions)
+  }
+
+  const handleComment = (discussionId: number, commentData: Omit<Comment, 'id' | 'date'>) => {
+    const newComment = {
+      ...commentData,
+      id: Math.floor(Math.random() * 10000),
+      date: new Date().toISOString()
+    } as Comment
+
+    const updatedDiscussions = MOCK_DISCUSSIONS.map(discussion =>
+      discussion.id === discussionId
+        ? {
+            ...discussion,
+            comments: discussion.comments + 1,
+            commentList: [...discussion.commentList, newComment]
+          }
+        : discussion
+    )
+    
+    // Update your state management here
+    console.log('Updated discussions with new comment:', updatedDiscussions)
   }
 
   return (
@@ -249,6 +281,7 @@ export function CommunityComponent() {
                     key={discussion.id}
                     discussion={discussion}
                     onClick={() => setSelectedDiscussion(discussion)}
+                    onUpvote={handleUpvote}
                   />
                 ))
               )}
@@ -275,8 +308,8 @@ export function CommunityComponent() {
                 filteredEvents().map((event) => (
                   <EventCard
                     key={event.id}
-                    event={event}
-                    onClick={() => setSelectedEvent(event)}
+                    event={event as Event}
+                    onClick={() => setSelectedEvent(event as Event)}
                   />
                 ))
               )}
@@ -291,6 +324,7 @@ export function CommunityComponent() {
           <DiscussionView
             discussion={selectedDiscussion}
             onClose={() => setSelectedDiscussion(null)}
+            onComment={handleComment}
           />
         )}
       </AnimatePresence>

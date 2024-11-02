@@ -1,48 +1,48 @@
 import { ReactNode } from 'react'
 
+export interface Comment {
+  readonly id: number
+  readonly author: string
+  readonly avatar: string
+  readonly content: string
+  readonly date: string
+  readonly upvotes: number
+}
+
 export interface Discussion {
-  id: number
-  author: string
-  avatar: string
-  title: string
-  game: string
-  challengeType: string | null
+  readonly id: number
+  readonly author: string
+  readonly avatar: string
+  readonly title: string
+  readonly game: string
+  readonly challengeType: string | null
   comments: number
   upvotes: number
-  content: string
-  date: string
-  tags: readonly string[]
-  commentList?: Comment[]
+  readonly content: string
+  readonly date: string
+  readonly tags: readonly string[]
+  commentList: Comment[]
 }
 
 export interface Event {
-  id: number
-  title: string
-  date: Date
-  game: string
+  readonly id: number
+  readonly title: string
+  readonly date: Date
+  readonly game: string
   participants: number
-  prize: string
-  description: string
-  tags: readonly string[]
+  readonly prize: string
+  readonly description: string
+  readonly tags: readonly string[]
 }
 
 export interface CardWrapperProps {
-  children: ReactNode
-  onClick: () => void
-  className?: string
-  hoverAccentColor?: 'cyan' | 'fuchsia' | 'lime'
+  readonly children: ReactNode
+  readonly onClick: () => void
+  readonly className?: string
+  readonly hoverAccentColor?: 'cyan' | 'fuchsia' | 'lime'
 }
 
 export interface NeonButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  children: ReactNode
-  className?: string
-}
-
-export interface Comment {
-  id: number
-  author: string
-  avatar: string
-  content: string
-  date: string
-  upvotes: number
+  readonly children: ReactNode
+  readonly className?: string
 } 
