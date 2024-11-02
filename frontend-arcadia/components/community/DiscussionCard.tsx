@@ -1,48 +1,72 @@
-import { motion } from "framer-motion"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { MessageCircle, ThumbsUp } from "lucide-react"
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-
-interface Discussion {
-  id: number;
-  author: string;
-  avatar: string;
-  title: string;
-  game: string;
-  challengeType: string | null;
-  comments: number;
-  upvotes: number;
-  content: string;
-  date: string;
-  tags: string[];
-}
+import { CardWrapper } from "./shared/CardWrapper"
+import { Discussion } from "./types"
 
 interface DiscussionCardProps {
-  discussion: Discussion;
-  onClick: () => void;
+  discussion: Discussion
+  onClick: () => void
 }
 
 const DiscussionCard: React.FC<DiscussionCardProps> = ({ discussion, onClick }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
-  >
-    <Card className="w-full mb-4 bg-gray-800 border-cyan-500 hover:border-fuchsia-500 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer group" onClick={onClick}>
-      <CardHeader className="flex flex-row items-center justify-between">
-        {/* ... bestehender CardHeader-Inhalt ... */}
-      </CardHeader>
-      <CardContent>
-        {/* ... bestehender CardContent-Inhalt ... */}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        {/* ... bestehender CardFooter-Inhalt ... */}
-      </CardFooter>
-    </Card>
-  </motion.div>
+  <CardWrapper onClick={onClick} hoverAccentColor="fuchsia">
+    <CardHeader className="flex flex-row items-center justify-between">
+      <div className="flex items-center space-x-4">
+        <Avatar>
+          <AvatarImage src={discussion.avatar} alt={discussion.author} />
+          <AvatarFallback>{discussion.author[0]}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h3 className="font-semibold text-lg">{discussion.title}</h3>
+          <p className="text-sm text-gray-400">by {discussion.author}</p>
+        </div>
+      </div>
+      <Badge variant="outline" className="bg-gray-700">
+        {discussion.game}
+      </Badge>
+    </CardHeader>
+    <CardContent>
+      <p className="text-gray-300 line-clamp-2">{discussion.content}</p>
+      <div className="flex flex-wrap gap-2 mt-4">
+        {discussion.tags.map((tag) => (
+          <Badge key={tag} variant="secondary" className="bg-gray-700">
+            {tag}
+          </Badge>
+        ))}
+      </div>
+    </CardContent>
+    <CardFooter className="flex justify-between">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center space-x-2">
+              <ThumbsUp className="h-4 w-4" />
+              <span>{discussion.upvotes}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Upvotes</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center space-x-2">
+              <MessageCircle className="h-4 w-4" />
+              <span>{discussion.comments}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Comments</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </CardFooter>
+  </CardWrapper>
 )
 
 export default DiscussionCard

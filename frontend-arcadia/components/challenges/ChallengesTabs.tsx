@@ -9,7 +9,11 @@ export interface Challenge {
   id: string
   name: string
   description: string
-  icon: React.ReactNode
+  icon: React.ComponentType<{ className?: string }>
+  details: string
+  keyFeatures: string[]
+  difficulty: string
+  estimatedTime: string
   disabled?: boolean
 }
 
@@ -61,7 +65,7 @@ export const ChallengesTabs: React.FC<ChallengesTabsProps> = ({
                       ? "bg-cyan-500/20"
                       : "bg-gray-800 group-hover:bg-cyan-500/10"
                   )}>
-                    {challenge.icon}
+                    <challenge.icon className="w-6 h-6" />
                   </div>
                   <h3 className={cn(
                     "font-medium text-sm mb-2",

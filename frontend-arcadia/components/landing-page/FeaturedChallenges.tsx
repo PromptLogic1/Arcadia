@@ -18,7 +18,7 @@ interface Challenge {
 }
 
 interface FeaturedChallengesProps {
-  challenges: Challenge[]
+  challenges: readonly Challenge[] | Challenge[]
 }
 
 const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) => {

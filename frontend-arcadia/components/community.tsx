@@ -3,9 +3,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectTrigger,
@@ -16,16 +14,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
-  GamepadIcon,
   MessageCircle,
   Plus,
   Calendar,
-  Menu,
-  X,
-  Download,
-  ArrowUpRight,
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 
 import DiscussionCard from '@/components/community/DiscussionCard'
 import EventCard from '@/components/community/EventCard'
@@ -33,46 +26,10 @@ import DiscussionView from '@/components/community/DiscussionView'
 import EventView from '@/components/community/EventView'
 import CreateDiscussionForm from '@/components/community/CreateDiscussionForm'
 
-interface Discussion {
-  id: number
-  author: string
-  avatar: string
-  title: string
-  game: string
-  challengeType: string | null
-  comments: number
-  upvotes: number
-  content: string
-  date: string
-  tags: string[]
-}
-
-interface Event {
-  id: number
-  title: string
-  date: Date
-  game: string
-  participants: number
-  prize: string
-  description: string
-  tags: string[]
-}
-
-const discussionData: Discussion[] = [
-  // ... (Your discussion data here)
-]
-
-const eventData: Event[] = [
-  // ... (Your event data here)
-]
-
-const games = ['All Games', 'Elden Ring', 'Fortnite', 'World of Warcraft', 'Cyberpunk 2077']
-const challengeTypes = ['All Challenges', 'Speed Run', 'Win Challenge', 'Bingo Battle']
-
-interface NeonButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  children: React.ReactNode
-  className?: string
-}
+import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from './community/shared/constants'
+import { Discussion, Event, NeonButtonProps } from './community/types'
+import { SearchInput } from './community/shared/SearchInput'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 const NeonButton: React.FC<NeonButtonProps> = ({ children, className = '', ...props }) => (
   <Button
@@ -104,7 +61,6 @@ export function CommunityComponent() {
   const [activeTab, setActiveTab] = useState<'discussions' | 'events'>('discussions')
   const [searchQuery, setSearchQuery] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [language, setLanguage] = useState('en')
   const [sortBy, setSortBy] = useState<'newest' | 'hot'>('newest')
   const [selectedGame, setSelectedGame] = useState('All Games')
   const [selectedChallenge, setSelectedChallenge] = useState('All Challenges')
@@ -136,7 +92,7 @@ export function CommunityComponent() {
   }, [debouncedSearchQuery, selectedGame, selectedChallenge, sortBy])
 
   const filteredAndSortedDiscussions = useCallback(() => {
-    return discussionData
+    return MOCK_DISCUSSIONS
       .filter((discussion) => {
         const matchesSearchQuery =
           debouncedSearchQuery === '' ||
@@ -161,7 +117,7 @@ export function CommunityComponent() {
   }, [debouncedSearchQuery, selectedGame, selectedChallenge, sortBy])
 
   const filteredEvents = useCallback(() => {
-    return eventData.filter((event) => {
+    return MOCK_EVENTS.filter((event) => {
       return (
         debouncedSearchQuery === '' ||
         event.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -170,6 +126,21 @@ export function CommunityComponent() {
       )
     })
   }, [debouncedSearchQuery])
+
+  const handleCreateDiscussion = (formData: Omit<Discussion, 'id' | 'comments' | 'upvotes' | 'date'>) => {
+    // In a real app, this would be an API call
+    const newDiscussion: Discussion = {
+      ...formData,
+      id: Math.max(...MOCK_DISCUSSIONS.map(d => d.id)) + 1,
+      comments: 0,
+      upvotes: 0,
+      date: new Date().toISOString(),
+      commentList: []
+    }
+    
+    // Update your state management here
+    console.log('New discussion:', newDiscussion)
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
@@ -205,12 +176,17 @@ export function CommunityComponent() {
             {/* Filters */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-8">
               <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search discussions..."
+                />
                 <Select value={selectedGame} onValueChange={setSelectedGame}>
                   <SelectTrigger className="bg-gray-800 border-cyan-500 focus:border-cyan-400 focus:ring-cyan-400">
                     <SelectValue placeholder="Select Game" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-cyan-500">
-                    {games.map((game) => (
+                    {GAMES.map((game) => (
                       <SelectItem key={game} value={game}>
                         {game}
                       </SelectItem>
@@ -222,7 +198,7 @@ export function CommunityComponent() {
                     <SelectValue placeholder="Select Challenge" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-cyan-500">
-                    {challengeTypes.map((challenge) => (
+                    {CHALLENGE_TYPES.map((challenge) => (
                       <SelectItem key={challenge} value={challenge}>
                         {challenge}
                       </SelectItem>
@@ -327,7 +303,10 @@ export function CommunityComponent() {
 
       <AnimatePresence>
         {isCreateDiscussionOpen && (
-          <CreateDiscussionForm onClose={() => setIsCreateDiscussionOpen(false)} />
+          <CreateDiscussionForm 
+            onClose={() => setIsCreateDiscussionOpen(false)} 
+            onSubmit={handleCreateDiscussion}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -335,5 +314,9 @@ export function CommunityComponent() {
 }
 
 export default function Community() {
-  return <CommunityComponent />
+  return (
+    <ErrorBoundary>
+      <CommunityComponent />
+    </ErrorBoundary>
+  )
 }

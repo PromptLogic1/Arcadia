@@ -9,23 +9,13 @@ import PartnersSection from '../components/landing-page/PartnersSection'
 import UpcomingEventsSection from '@/components/landing-page/UpcomingEventsSection'
 import FAQSection from '@/components/landing-page/FAQSection'
 import { Grid, Zap, Trophy, Puzzle } from 'lucide-react'
+import { type Challenge } from '@/components/challenges/ChallengesTabs'
 
-interface Challenge {
-  id: string
-  name: string
-  icon: React.ComponentType<{ className?: string }>
-  description: string
-  details: string
-  keyFeatures: ReadonlyArray<string>
-  difficulty: string
-  estimatedTime: string
-}
-
-const challenges: ReadonlyArray<Challenge> = [
+const FEATURED_CHALLENGES: Challenge[] = [
   {
     id: 'bingo-battles',
     name: 'Bingo Battles',
-    icon: Grid,
+    icon: () => <Grid className="w-6 h-6" />,
     description: 'Create and play custom bingo boards based on your favorite games.',
     details: 'Compete against friends or join global tournaments. Customize your boards, set win conditions, and race against the clock in this exciting twist on classic bingo.',
     keyFeatures: [
@@ -40,7 +30,7 @@ const challenges: ReadonlyArray<Challenge> = [
   {
     id: 'speed-runs',
     name: 'Speed Runs',
-    icon: Zap,
+    icon: () => <Zap className="w-6 h-6" />,
     description: 'Race against the clock in timed challenges across various games.',
     details: 'Test your skills and efficiency as you attempt to complete game objectives in record time. Compete on global leaderboards and discover new strategies to shave off those precious seconds.',
     keyFeatures: [
@@ -51,11 +41,12 @@ const challenges: ReadonlyArray<Challenge> = [
     ],
     difficulty: 'Medium to Hard',
     estimatedTime: 'Varies by game',
+    disabled: true,
   },
   {
     id: 'achievement-hunt',
     name: 'Achievement Hunt',
-    icon: Trophy,
+    icon: () => <Trophy className="w-6 h-6" />,
     description: 'Compete to unlock the most achievements across multiple games.',
     details: 'Embark on a quest to become the ultimate completionist. Track your progress, discover hidden achievements, and climb the ranks as you showcase your gaming prowess across a wide range of titles.',
     keyFeatures: [
@@ -66,11 +57,12 @@ const challenges: ReadonlyArray<Challenge> = [
     ],
     difficulty: 'Varies',
     estimatedTime: 'Ongoing',
+    disabled: true,
   },
   {
     id: 'puzzle-quests',
     name: 'Puzzle Quests',
-    icon: Puzzle,
+    icon: () => <Puzzle className="w-6 h-6" />,
     description: 'Solve intricate puzzles and riddles inspired by your favorite games.',
     details: 'Put your problem-solving skills to the test with mind-bending puzzles and riddles. From logic challenges to visual conundrums, these quests will push your cognitive abilities to their limits.',
     keyFeatures: [
@@ -81,6 +73,7 @@ const challenges: ReadonlyArray<Challenge> = [
     ],
     difficulty: 'Easy to Expert',
     estimatedTime: '5-30 minutes per puzzle',
+    disabled: true,
   },
 ] as const
 
@@ -89,15 +82,15 @@ const LandingPage: React.FC = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentChallenge((prev) => (prev + 1) % challenges.length)
+      setCurrentChallenge((prev) => (prev + 1) % FEATURED_CHALLENGES.length)
     }, 5000)
     return () => clearInterval(interval)
   }, [])
 
   const memoizedComponents = useMemo(() => ({
-    heroSection: <HeroSection currentChallenge={currentChallenge} challenges={challenges} />,
+    heroSection: <HeroSection currentChallenge={currentChallenge} challenges={FEATURED_CHALLENGES} />,
     featuredGamesCarousel: <FeaturedGamesCarousel />,
-    featuredChallenges: <FeaturedChallenges challenges={challenges} />,
+    featuredChallenges: <FeaturedChallenges challenges={[...FEATURED_CHALLENGES]} />,
     partnersSection: <PartnersSection />,
     upcomingEventsSection: <UpcomingEventsSection />,
     faqSection: <FAQSection />,
