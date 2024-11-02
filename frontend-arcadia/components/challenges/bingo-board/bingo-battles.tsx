@@ -3,33 +3,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ThumbsUp, Search, PlusCircle, Bookmark, BookmarkCheck, Users, Grid, Clock } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Search, PlusCircle } from 'lucide-react'
 import BingoBoardDetail from './BingoBoardDetail'
-
-interface Board {
-  id: number
-  name: string
-  players: number
-  size: number
-  timeLeft: number
-  votes: number
-  game: string
-  createdAt: Date
-  votedBy: Set<string>
-  bookmarked: boolean
-  creator: string
-  avatar: string
-  winConditions: {
-    line: boolean
-    majority: boolean
-  }
-}
+import { BoardCard } from './components/cards/BoardCard'
+import { Board } from './components/shared/types'
 
 const GAMES = [
   "All Games",
@@ -145,68 +125,13 @@ export default function BingoBattles() {
 
   const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => (
     <motion.div key={`${section}-${board.id}`} layout className="w-full">
-      <Card 
-        className="bg-gray-800 border-2 border-cyan-500 hover:border-fuchsia-500 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 cursor-pointer"
-        onClick={() => selectBoard(board, section)}
-      >
-        <CardHeader className="flex flex-row items-center justify-between py-2">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={board.avatar} alt={board.creator} />
-              <AvatarFallback>{board.creator[0]}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                {board.name}
-              </CardTitle>
-              <CardDescription className="text-sm text-cyan-300">Created by {board.creator}</CardDescription>
-            </div>
-          </div>
-          <Badge variant="secondary" className="bg-cyan-500 text-white text-sm">{board.game}</Badge>
-        </CardHeader>
-        <CardContent className="flex justify-between items-center py-2">
-          <div className="flex space-x-4">
-            <div className="flex items-center">
-              <Users className="h-4 w-4 text-cyan-400 mr-1" />
-              <span className="text-sm text-cyan-100">{board.players}</span>
-            </div>
-            <div className="flex items-center">
-              <Grid className="h-4 w-4 text-cyan-400 mr-1" />
-              <span className="text-sm text-cyan-100">{board.size}x{board.size}</span>
-            </div>
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 text-cyan-400 mr-1" />
-              <span className="text-sm text-cyan-100">
-                {Math.floor(board.timeLeft / 60)}:{(board.timeLeft % 60).toString().padStart(2, '0')}
-              </span>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <Button 
-              onClick={(e) => {
-                e.stopPropagation()
-                voteBoard(board.id, "user123")
-              }} 
-              size="sm"
-              className="bg-cyan-500 text-white hover:bg-cyan-600 h-8"
-            >
-              <ThumbsUp className="mr-1 h-3 w-3" />
-              {board.votes}
-            </Button>
-            <Button 
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleBookmark(board.id)
-              }} 
-              variant="ghost" 
-              size="sm"
-              className="text-cyan-400 hover:text-cyan-300 h-8"
-            >
-              {board.bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <BoardCard
+        board={board}
+        section={section}
+        onVote={voteBoard}
+        onBookmark={toggleBookmark}
+        onSelect={selectBoard}
+      />
       <AnimatePresence>
         {expandedBoardId.id === board.id && expandedBoardId.section === section && (
           <motion.div
