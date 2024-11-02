@@ -87,10 +87,9 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   }, [toggleTeamMode, resetBoard])
 
   const handleTimeChange = useCallback((timeString: string): void => {
-    const [minutes, seconds] = timeString.split(':').map(Number)
-    const totalSeconds = minutes * 60 + seconds
+    const totalSeconds = parseInt(timeString)
     if (!isNaN(totalSeconds)) {
-      setTime(totalSeconds)  // Use setTime instead of modifying board.timeLeft
+      setTime(totalSeconds)
     }
   }, [setTime])
 

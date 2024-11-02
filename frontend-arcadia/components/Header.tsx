@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from "@/lib/utils"
 
 // NeonText Component for Gradient Text
 const NeonText = ({
@@ -107,12 +108,13 @@ const Header: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`px-3 py-2 rounded-md text-base font-medium transition-all duration-200 ${
+              className={cn(
+                "px-4 py-2 text-base font-medium rounded-md transition-all duration-200",
+                "hover:bg-cyan-500/10 hover:text-cyan-400",
                 isActive(item.href)
-                  ? 'bg-gradient-to-r from-cyan-500/20 to-fuchsia-500/20 text-white'
-                  : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
-              }`}
-              aria-current={isActive(item.href) ? 'page' : undefined}
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 font-semibold"
+                  : "text-gray-200 hover:text-cyan-400"
+              )}
             >
               {item.label}
             </Link>
@@ -143,13 +145,16 @@ const Header: React.FC = () => {
           </AnimatePresence>
           <Button
             variant="ghost"
-            size="icon"
-            onClick={() => setIsSearchOpen((prev) => !prev)}
-            className="text-gray-300 hover:text-cyan-400 transition-colors duration-200"
-            aria-label={isSearchOpen ? 'Close search' : 'Open search'}
-            aria-expanded={isSearchOpen}
+            size="sm"
+            onClick={() => setIsSearchOpen(prev => !prev)}
+            className={cn(
+              "text-gray-200 hover:text-cyan-400 hover:bg-cyan-500/10",
+              "transition-all duration-200 rounded-full",
+              "focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+            )}
+            aria-label="Toggle search"
           >
-            <Search className="h-6 w-6" aria-hidden="true" />
+            <Search className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
@@ -177,10 +182,14 @@ const Header: React.FC = () => {
           <Link href="/download">
             <Button
               variant="outline"
-              className="h-10 bg-transparent border-cyan-500 text-cyan-400 hover:bg-cyan-500/20 transition-all duration-300 flex items-center"
-              aria-label="Download"
+              className={cn(
+                "border-2 border-cyan-500 text-cyan-400",
+                "hover:bg-cyan-500 hover:text-white",
+                "transition-all duration-200 rounded-full",
+                "shadow-lg shadow-cyan-500/20"
+              )}
             >
-              <Download className="h-6 w-6 mr-2" aria-hidden="true" />
+              <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
           </Link>
@@ -228,10 +237,13 @@ const Header: React.FC = () => {
           {/* Sign In Button */}
           <Link href="/signin">
             <Button
-              className="h-10 bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white transition-all duration-300 flex items-center"
-              aria-label="Sign In"
+              className={cn(
+                "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
+                "text-white font-medium px-6 py-2 rounded-full",
+                "hover:opacity-90 transition-all duration-200",
+                "shadow-lg shadow-cyan-500/25"
+              )}
             >
-              <UserPlus className="h-6 w-6 mr-2" aria-hidden="true" />
               Sign In
             </Button>
           </Link>
@@ -275,7 +287,7 @@ const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block py-2 px-3 rounded-md text-base font-medium transition-colors duration-200 ${
+                  className={`block py-2 px-3 rounded-md text-lg font-medium transition-colors duration-200 ${
                     isActive(item.href)
                       ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500'
                       : 'text-gray-300 hover:text-cyan-400'
@@ -288,21 +300,21 @@ const Header: React.FC = () => {
               ))}
               <Link
                 href="/download"
-                className="block py-2 px-3 rounded-md text-base font-medium text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
+                className="block py-2 px-3 rounded-md text-lg font-medium text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Download
               </Link>
               <Link
                 href="/profile"
-                className="block py-2 px-3 rounded-md text-base font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
+                className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Profile
               </Link>
               <Link
                 href="/signin"
-                className="block py-2 px-3 rounded-md text-base font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
+                className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Sign In
