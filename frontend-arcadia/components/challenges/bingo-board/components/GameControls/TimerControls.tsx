@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Clock, Play, Pause } from 'lucide-react'
 
 interface TimerControlsProps {
   time: number
@@ -69,8 +70,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-cyan-400">Timer Controls</h3>
-      <div className="bg-gray-800/80 rounded-lg p-6 border border-cyan-500/20 hover:border-cyan-500/40 transition-colors duration-200">
+      <div className="bg-gray-800/90 rounded-lg p-6 border border-cyan-500/30 backdrop-blur-sm">
         <div className="flex items-center justify-center space-x-4">
           <TooltipProvider>
             <Tooltip>
@@ -85,85 +85,89 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
                       setIsTimeDialogOpen(true)
                     }
                   }}
-                  disabled={!isOwner}
+                  disabled={!isOwner || isTimerRunning}
                   className={cn(
-                    "font-mono text-4xl text-[#00FFFF] tracking-wider",
+                    "font-mono text-4xl tracking-wider",
                     "bg-transparent hover:bg-cyan-500/10",
-                    "disabled:opacity-50",
+                    "text-cyan-400 disabled:text-cyan-400/70",
+                    "border-none disabled:opacity-80",
                     "transition-all duration-200"
                   )}
                 >
                   {formatTime(time)}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                {isOwner ? "Click to set timer" : "Only the owner can set the timer"}
+              <TooltipContent className="bg-gray-800 border border-cyan-500/30">
+                {isOwner 
+                  ? isTimerRunning 
+                    ? "Stop timer to edit" 
+                    : "Click to set timer"
+                  : "Only the owner can set the timer"
+                }
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
-          <Button
-            onClick={onTimerToggle}
-            onKeyDown={handleKeyDown}
-            disabled={!isOwner}
-            className={cn(
-              "px-8 py-2 text-xl font-semibold",
-              "transition-colors duration-200",
-              isTimerRunning 
-                ? "bg-fuchsia-600 hover:bg-fuchsia-700" 
-                : "bg-cyan-600 hover:bg-cyan-700",
-              "text-white"
-            )}
-          >
-            {isTimerRunning ? 'Pause' : 'Start'}
-          </Button>
+          {isOwner && (
+            <Button
+              onClick={onTimerToggle}
+              onKeyDown={handleKeyDown}
+              disabled={time === 0}
+              className={cn(
+                "px-6 py-2 text-lg font-semibold",
+                "transition-all duration-200",
+                "rounded-lg",
+                isTimerRunning 
+                  ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30" 
+                  : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30",
+                "disabled:opacity-50"
+              )}
+            >
+              {isTimerRunning ? (
+                <Pause className="h-5 w-5" />
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
+            </Button>
+          )}
         </div>
       </div>
-      <Separator className="bg-cyan-500/20" />
 
       <Dialog open={isTimeDialogOpen} onOpenChange={setIsTimeDialogOpen}>
-        <DialogContent className="bg-gray-800/95 border-cyan-500/20">
+        <DialogContent className="bg-gray-800/95 border-cyan-500/30 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-cyan-400">Set Timer</DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-cyan-400 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Set Timer
+            </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Input
-                type="number"
-                min={0}
-                max={99}
-                value={hours}
-                onChange={(e) => handleInputChange(e, setHours, 99)}
-                className="bg-gray-700 border-cyan-500/20 text-cyan-100"
-              />
-              <span className="text-sm text-cyan-400 mt-1 block text-center">Hours</span>
-            </div>
-            <div>
-              <Input
-                type="number"
-                min={0}
-                max={59}
-                value={minutes}
-                onChange={(e) => handleInputChange(e, setMinutes, 59)}
-                className="bg-gray-700 border-cyan-500/20 text-cyan-100"
-              />
-              <span className="text-sm text-cyan-400 mt-1 block text-center">Minutes</span>
-            </div>
-            <div>
-              <Input
-                type="number"
-                min={0}
-                max={59}
-                value={seconds}
-                onChange={(e) => handleInputChange(e, setSeconds, 59)}
-                className="bg-gray-700 border-cyan-500/20 text-cyan-100"
-              />
-              <span className="text-sm text-cyan-400 mt-1 block text-center">Seconds</span>
-            </div>
+            {[
+              { label: 'Hours', value: hours, setter: setHours, max: 99 },
+              { label: 'Minutes', value: minutes, setter: setMinutes, max: 59 },
+              { label: 'Seconds', value: seconds, setter: setSeconds, max: 59 },
+            ].map((field) => (
+              <div key={field.label}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={field.max}
+                  value={field.value}
+                  onChange={(e) => handleInputChange(e, field.setter, field.max)}
+                  className="bg-gray-700/50 border-cyan-500/30 text-cyan-100 
+                    focus:ring-cyan-500 focus:border-cyan-500"
+                />
+                <span className="text-sm text-cyan-400 mt-1 block text-center">
+                  {field.label}
+                </span>
+              </div>
+            ))}
           </div>
           <Button
             onClick={handleTimeSubmit}
-            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white mt-4"
+            className="w-full bg-cyan-500/20 hover:bg-cyan-500/30 
+              text-cyan-400 border border-cyan-500/30
+              transition-all duration-200"
           >
             Set Time
           </Button>

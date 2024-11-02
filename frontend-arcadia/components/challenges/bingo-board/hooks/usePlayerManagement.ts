@@ -1,10 +1,8 @@
 import { useState, useCallback, useMemo } from 'react'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Player, ColorOption } from '../components/shared/types'
 import { colorPalette } from '../components/shared/constants'
 
 export const usePlayerManagement = () => {
-  // Initialize players with the first 4 colors from the palette
   const initialPlayers: Player[] = useMemo(
     () =>
       colorPalette.slice(0, 4).map((p, i) => ({
@@ -29,7 +27,7 @@ export const usePlayerManagement = () => {
         const newPlayers = [...prevPlayers]
         newPlayers[index] = {
           ...newPlayers[index],
-          name: name.slice(0, 20),
+          name,
           color,
           ...(team !== undefined && { team }),
         }
@@ -69,23 +67,28 @@ export const usePlayerManagement = () => {
       newColors[index] = color
       return newColors as [string, string]
     })
+    
+    // Update all players in the team with the new color
+    setPlayers((prevPlayers) =>
+      prevPlayers.map((player) =>
+        player.team === index
+          ? { ...player, color }
+          : player
+      )
+    )
   }, [])
 
   const toggleTeamMode = useCallback((enabled: boolean): void => {
-    setPlayers((prevPlayers) =>
-      prevPlayers.map((player, index) => ({
-        ...player,
-        name: enabled
-          ? `${teamNames[index % 2]} Player ${Math.floor(index / 2) + 1}`
-          : `Player ${index + 1}`,
-        team: index % 2,
-        color: enabled ? teamColors[index % 2] : colorPalette[index].color,
-        hoverColor: enabled
-          ? `hover:${teamColors[index % 2]}`
-          : colorPalette[index].hoverColor,
-      }))
-    )
-  }, [teamNames, teamColors])
+    if (enabled) {
+      setPlayers((prevPlayers) =>
+        prevPlayers.map((player) => ({
+          ...player,
+          team: player.team || 0,
+          color: teamColors[player.team || 0], // Use team color when enabling team mode
+        }))
+      )
+    }
+  }, [teamColors])
 
   return {
     players,
@@ -93,7 +96,6 @@ export const usePlayerManagement = () => {
     teamNames,
     setTeamNames,
     teamColors,
-    setTeamColors,
     currentPlayer,
     setCurrentPlayer,
     updatePlayerInfo,
