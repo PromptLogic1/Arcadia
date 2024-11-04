@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
-import BingoBoardDetail from './BingoBoardDetail'
+import dynamic from 'next/dynamic'
 import { BoardCard } from './components/cards/BoardCard'
 import { GAMES, type Game, type Board } from './components/shared/types'
 
@@ -21,6 +21,10 @@ type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS]
 interface BingoBattlesProps {
   initialBoards?: Board[]
 }
+
+const BingoBoardDetail = dynamic(() => import('./BingoBoardDetail'), {
+  loading: () => <div>Loading board...</div>,
+})
 
 export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) {
   // State

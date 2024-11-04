@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { BoardCell, Player, WinConditions } from '../components/shared/types'
 import { wowChallenges } from '../components/shared/constants'
 
@@ -35,12 +35,12 @@ export const useBingoGame = (initialSize: number) => {
     earnedFromCell: null
   })
 
-  const generateBoard = useCallback((): BoardCell[] => {
-    return Array.from({ length: boardSize * boardSize }, () => ({
+  const generateBoard = useCallback(() => 
+    Array.from({ length: boardSize * boardSize }, () => ({
       text: wowChallenges[Math.floor(Math.random() * wowChallenges.length)],
       colors: [],
     }))
-  }, [boardSize])
+  , [boardSize])
 
   const resetBoard = useCallback(() => {
     try {
@@ -193,8 +193,8 @@ export const useBingoGame = (initialSize: number) => {
     }
   }, [])
 
-  const checkWinningCondition = useCallback(
-    (players: Player[], timerEnded: boolean = false): void => {
+  const checkWinningCondition = useMemo(
+    () => (players: Player[], timerEnded: boolean = false): void => {
       try {
         if (!players.length) return
 
