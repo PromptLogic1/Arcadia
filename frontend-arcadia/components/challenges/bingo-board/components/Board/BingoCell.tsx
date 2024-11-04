@@ -172,7 +172,9 @@ export const BingoCell: React.FC<BingoCellProps> = ({
     cell.colors.length > 0 ? '0 2px 4px rgba(0,0,0,0.8)' : '0 1px 2px rgba(0,0,0,0.5)';
 
   const cellClasses = cn(
-    'relative aspect-square rounded-md border border-cyan-500/20 bg-gray-800/80 overflow-hidden transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-cyan-500/10 hover:border-cyan-500/40',
+    'relative aspect-square rounded-md border border-cyan-500/20 bg-gray-800/80',
+    'overflow-hidden transition-all duration-300 ease-in-out',
+    'hover:shadow-lg hover:shadow-cyan-500/10 hover:border-cyan-500/40',
     isEditing && 'ring-2 ring-cyan-500',
     cell.blocked && 'opacity-50 cursor-not-allowed',
     cell.difficulty === 'hard' && 'border-yellow-500/50',

@@ -144,9 +144,9 @@ export const BingoGrid: React.FC<{
 }) => (
   <div
     className={cn(
-      "grid bg-gray-800/80 rounded-lg",
-      "border border-cyan-500/20 shadow-inner",
-      "p-2 sm:p-3 md:p-4",
+      'grid bg-gray-800/80 rounded-lg',
+      'border border-cyan-500/20 shadow-inner',
+      'p-2 sm:p-3 md:p-4',
       className
     )}
     style={{
@@ -167,7 +167,7 @@ export const BingoContainer: React.FC<{
   className
 }) => (
   <div className={cn(
-    "w-full min-h-[calc(100vh-4rem)]",
+    "w-full min-h-0",
     "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900",
     "p-2 sm:p-4 md:p-6",
     className
