@@ -137,13 +137,13 @@ const DiscussionCard = React.memo(({
   const [isUpvoted, setIsUpvoted] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [newComment, setNewComment] = useState('')
+  const [localUpvotes, setLocalUpvotes] = useState(discussion.upvotes)
 
   const handleUpvote = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!isUpvoted) {
-      setIsUpvoted(true)
-      onUpvote(discussion.id)
-    }
+    setIsUpvoted(prev => !prev)
+    setLocalUpvotes(prev => isUpvoted ? prev - 1 : prev + 1)
+    onUpvote(discussion.id)
   }, [isUpvoted, onUpvote, discussion.id])
 
   const handleComment = useCallback((e: React.MouseEvent) => {
@@ -166,8 +166,9 @@ const DiscussionCard = React.memo(({
 
   const handleBookmark = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
-    setIsBookmarked(!isBookmarked)
-  }, [isBookmarked])
+    setIsBookmarked(prev => !prev)
+    // Hier könnte ein API-Call kommen um den Bookmark-Status zu speichern
+  }, [])
 
   const handleShare = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -293,14 +294,17 @@ const DiscussionCard = React.memo(({
 
         <CardFooter className="flex justify-between p-4 bg-gradient-to-r from-gray-800/30 to-gray-900/30">
           <div 
-            className={`flex items-center space-x-2 cursor-pointer transition-colors
-              ${isUpvoted ? 'text-red-400' : 'hover:text-red-400'}`}
+            className={`flex items-center space-x-2 cursor-pointer transition-all px-3 py-1 rounded-full
+              ${isUpvoted 
+                ? 'text-red-400 bg-red-400/10' 
+                : 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
+              }`}
             onClick={handleUpvote}
           >
-            <Heart className={`h-4 w-4 ${isUpvoted ? 'fill-current' : ''}`} />
-            <span>{discussion.upvotes + (isUpvoted ? 1 : 0)}</span>
+            <Heart className={`h-4 w-4 ${isUpvoted ? 'fill-current' : ''} transition-transform ${isUpvoted ? 'scale-110' : 'scale-100'}`} />
+            <span>{localUpvotes}</span>
           </div>
-          <div className="flex items-center space-x-2 text-gray-400">
+          <div className="flex items-center space-x-2 text-gray-400 px-3 py-1">
             <MessageCircle className="h-4 w-4" />
             <span>{discussion.comments}</span>
           </div>
