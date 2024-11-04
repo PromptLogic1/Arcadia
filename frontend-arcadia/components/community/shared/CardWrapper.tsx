@@ -2,12 +2,6 @@ import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { CardWrapperProps } from '../types'
 
-const cardVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 }
-}
-
 export const CardWrapper: React.FC<CardWrapperProps> = ({
   children,
   onClick,
@@ -22,14 +16,22 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
 
   return (
     <motion.div
-      variants={cardVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      transition={{ duration: 0.3 }}
+      layout
+      transition={{ duration: 0.2 }}
     >
       <Card
-        className={`w-full mb-4 bg-gray-800 border-cyan-500 transition-all duration-300 hover:shadow-lg cursor-pointer group ${hoverColors[hoverAccentColor]} ${className}`}
+        className={`
+          w-full 
+          bg-gray-800/90 
+          border-gray-700/50
+          transition-all 
+          duration-300 
+          hover:shadow-lg 
+          cursor-pointer 
+          group 
+          ${hoverColors[hoverAccentColor]} 
+          ${className}
+        `}
         onClick={onClick}
       >
         {children}

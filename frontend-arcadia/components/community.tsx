@@ -2,45 +2,46 @@
 
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
+import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react'
+import { Metadata } from 'next'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
+import { MessageCircle, Calendar, Plus } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
-  MessageCircle,
-  Plus,
-  Calendar,
-} from 'lucide-react'
-import { AnimatePresence } from 'framer-motion'
-
-import DiscussionCard from '@/components/community/DiscussionCard'
-import EventCard from '@/components/community/EventCard'
-import DiscussionView from '@/components/community/DiscussionView'
-import EventView from '@/components/community/EventView'
-import CreateDiscussionForm from '@/components/community/CreateDiscussionForm'
-
-import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from './community/shared/constants'
-import { Discussion, Event, NeonButtonProps, Comment } from './community/types'
-import { SearchInput } from './community/shared/SearchInput'
+  ToggleGroup,
+  ToggleGroupItem
+} from "@/components/ui/toggle-group"
+import { NeonButton } from '@/components/ui/NeonButton'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { Discussion, Event, Comment } from './community/types'
+import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from './community/shared/constants'
+import { SearchInput } from './community/shared/SearchInput'
+import { useVirtualizer } from '@tanstack/react-virtual'
 
-const NeonButton: React.FC<NeonButtonProps> = ({ children, className = '', ...props }) => (
-  <Button
-    className={`relative overflow-hidden transition-all duration-300 ${className}`}
-    {...props}
-  >
-    <span className="relative z-10 flex items-center">{children}</span>
-    <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-fuchsia-500 opacity-50 blur-md transition-opacity duration-300 group-hover:opacity-75"></span>
-  </Button>
-)
+// Dynamic imports for better code splitting
+const DiscussionCard = dynamic(() => import('./community/DiscussionCard'), {
+  loading: () => <Skeleton className="h-40 w-full" />,
+  ssr: false
+})
 
+const EventCard = dynamic(() => import('./community/EventCard'), {
+  loading: () => <Skeleton className="h-40 w-full" />,
+  ssr: false
+})
+
+const CreateDiscussionForm = dynamic(() => import('./community/CreateDiscussionForm'), {
+  ssr: false
+})
+
+// Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
@@ -57,39 +58,35 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
+// Add metadata
+export const metadata: Metadata = {
+  title: 'Arcadia Community',
+  description: 'Join discussions and events with fellow gamers',
+  openGraph: {
+    title: 'Arcadia Community',
+    description: 'Join discussions and events with fellow gamers',
+    type: 'website'
+  }
+}
+
 export function CommunityComponent() {
   const [activeTab, setActiveTab] = useState<'discussions' | 'events'>('discussions')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [sortBy, setSortBy] = useState<'newest' | 'hot'>('newest')
   const [selectedGame, setSelectedGame] = useState('All Games')
   const [selectedChallenge, setSelectedChallenge] = useState('All Challenges')
   const [selectedDiscussion, setSelectedDiscussion] = useState<Discussion | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isCreateDiscussionOpen, setIsCreateDiscussionOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+
+  // Add loading states for different sections
+  const [isDiscussionsLoading, setIsDiscussionsLoading] = useState(true)
+  const [isEventsLoading, setIsEventsLoading] = useState(true)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  useEffect(() => {
-    const closeMenuOnResize = () => {
-      if (window.innerWidth >= 768 && isMenuOpen) {
-        setIsMenuOpen(false)
-      }
-    }
-
-    window.addEventListener('resize', closeMenuOnResize)
-    return () => window.removeEventListener('resize', closeMenuOnResize)
-  }, [isMenuOpen])
-
-  useEffect(() => {
-    setIsLoading(true)
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [debouncedSearchQuery, selectedGame, selectedChallenge, sortBy])
+  const parentRef = useRef<HTMLDivElement>(null)
 
   const filteredAndSortedDiscussions = useCallback(() => {
     return MOCK_DISCUSSIONS
@@ -126,6 +123,48 @@ export function CommunityComponent() {
       )
     })
   }, [debouncedSearchQuery])
+
+  const discussions = filteredAndSortedDiscussions()
+  const events = filteredEvents()
+
+  const discussionsVirtualizer = useVirtualizer({
+    count: discussions.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 200,
+    overscan: 5
+  })
+
+  const eventsVirtualizer = useVirtualizer({
+    count: events.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 200,
+    overscan: 5
+  })
+
+  // Simulate API loading on initial mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false)
+      setIsDiscussionsLoading(false)
+      setIsEventsLoading(false)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Add loading state when filters change
+  useEffect(() => {
+    if (!isInitialLoad) {
+      const section = activeTab === 'discussions' ? setIsDiscussionsLoading : setIsEventsLoading
+      section(true)
+      
+      const timer = setTimeout(() => {
+        section(false)
+      }, 500)
+
+      return () => clearTimeout(timer)
+    }
+  }, [debouncedSearchQuery, selectedGame, selectedChallenge, sortBy, activeTab, isInitialLoad])
 
   const handleCreateDiscussion = (formData: Omit<Discussion, 'id' | 'comments' | 'upvotes' | 'date' | 'commentList'>) => {
     const newDiscussion: Discussion = {
@@ -174,6 +213,105 @@ export function CommunityComponent() {
     console.log('Updated discussions with new comment:', updatedDiscussions)
   }
 
+  // Virtualized lists with loading states
+  const renderDiscussionsList = () => {
+    if (isDiscussionsLoading) {
+      return (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full" />
+          ))}
+        </div>
+      )
+    }
+
+    return (
+      <div ref={parentRef} className="h-[calc(100vh-300px)] overflow-auto">
+        <div
+          style={{
+            height: `${discussionsVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {discussionsVirtualizer.getVirtualItems().map((virtualRow) => (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <DiscussionCard
+                discussion={discussions[virtualRow.index]}
+                isExpanded={selectedDiscussion?.id === discussions[virtualRow.index].id}
+                onToggle={() => setSelectedDiscussion(
+                  selectedDiscussion?.id === discussions[virtualRow.index].id 
+                    ? null 
+                    : discussions[virtualRow.index]
+                )}
+                onUpvote={handleUpvote}
+                onComment={handleComment}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const renderEventsList = () => {
+    if (isEventsLoading) {
+      return (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full" />
+          ))}
+        </div>
+      )
+    }
+
+    return (
+      <div ref={parentRef} className="h-[calc(100vh-300px)] overflow-auto">
+        <div
+          style={{
+            height: `${eventsVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {eventsVirtualizer.getVirtualItems().map((virtualRow) => (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <EventCard
+                event={events[virtualRow.index]}
+                isExpanded={selectedEvent?.id === events[virtualRow.index].id}
+                onToggle={() => setSelectedEvent(
+                  selectedEvent?.id === events[virtualRow.index].id 
+                    ? null 
+                    : events[virtualRow.index]
+                )}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
       {/* Main content */}
@@ -204,7 +342,7 @@ export function CommunityComponent() {
 
         {/* Discussions tab content */}
         {activeTab === 'discussions' && (
-          <>
+          <Suspense fallback={<Skeleton className="h-40 w-full" />}>
             {/* Filters */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-8">
               <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
@@ -263,77 +401,25 @@ export function CommunityComponent() {
               </div>
             </div>
 
-            {/* Discussion cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isLoading ? (
-                <>
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-40 bg-gray-800" />
-                  ))}
-                </>
-              ) : filteredAndSortedDiscussions().length === 0 ? (
-                <div className="col-span-full text-center">
-                  <p className="text-lg">No discussions found.</p>
-                </div>
-              ) : (
-                filteredAndSortedDiscussions().map((discussion) => (
-                  <DiscussionCard
-                    key={discussion.id}
-                    discussion={discussion}
-                    onClick={() => setSelectedDiscussion(discussion)}
-                    onUpvote={handleUpvote}
-                  />
-                ))
-              )}
-            </div>
-          </>
+            {renderDiscussionsList()}
+          </Suspense>
         )}
 
         {/* Events tab content */}
         {activeTab === 'events' && (
-          <>
-            {/* Events cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isLoading ? (
-                <>
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-40 bg-gray-800" />
-                  ))}
-                </>
-              ) : filteredEvents().length === 0 ? (
-                <div className="col-span-full text-center">
-                  <p className="text-lg">No events found.</p>
-                </div>
-              ) : (
-                filteredEvents().map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event as Event}
-                    onClick={() => setSelectedEvent(event as Event)}
-                  />
-                ))
-              )}
+          <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+              <SearchInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search events..."
+              />
             </div>
-          </>
+
+            {renderEventsList()}
+          </Suspense>
         )}
       </main>
-
-      {/* Dialogs */}
-      <AnimatePresence>
-        {selectedDiscussion && (
-          <DiscussionView
-            discussion={selectedDiscussion}
-            onClose={() => setSelectedDiscussion(null)}
-            onComment={handleComment}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedEvent && (
-          <EventView event={selectedEvent} onClose={() => setSelectedEvent(null)} />
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {isCreateDiscussionOpen && (
