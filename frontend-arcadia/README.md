@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend Arcadia
 
-## Getting Started
+A modern web application built with Next.js, featuring arcade-style UI components and neon aesthetics.
 
-First, run the development server:
+## 🎮 Features
 
+- Custom arcade-themed UI components
+- Neon border effects and decorative elements
+- Responsive design
+- Built with modern React and TypeScript
+- Shadcn UI integration for consistent component design
+
+## 🚀 Getting Started
+
+1. Clone the repository:
+```bash
+git clone [your-repository-url]
+cd frontend-arcadia
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎨 UI Components
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The project includes several custom UI components:
 
-## Learn More
+- `ArcadeDecoration` - Arcade-style decorative elements
+- `NeonBorder` - Glowing border effects
+- Basic UI components (Button, Card, Dialog, etc.)
+- Custom scroll areas and popovers
 
-To learn more about Next.js, take a look at the following resources:
+## 🔤 Fonts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project uses custom fonts:
+- Geist Variable Font
+- Geist Mono Variable Font
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Tech Stack
 
-## Deploy on Vercel
+- [Next.js](https://nextjs.org/)
+- [React](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Shadcn UI](https://ui.shadcn.com/)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📝 Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The project structure follows Next.js 13+ conventions with the `app` directory. Key directories include:
+
+- `/app` - Main application pages and layouts
+- `/components` - Reusable UI components
+- `/lib` - Utility functions and shared code
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+[Your chosen license]
