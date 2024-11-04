@@ -314,93 +314,137 @@ export function CommunityComponent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
-      {/* Main content */}
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400">
-          Arcadia Community
-        </h1>
+      {/* Header & Navigation */}
+      <header className="relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 via-fuchsia-500/5 to-transparent" />
+        <div className="container mx-auto px-4 py-8 relative">
+          <h1 className="text-4xl font-bold text-center mb-6">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400 drop-shadow-lg">
+              Arcadia Community
+            </span>
+          </h1>
 
-        {/* Tab buttons */}
-        <div className="flex justify-center mb-8">
-          <NeonButton
-            className={`mr-4 ${
-              activeTab === 'discussions' ? 'bg-cyan-500 text-gray-900' : 'bg-gray-800 text-gray-100'
-            }`}
-            onClick={() => setActiveTab('discussions')}
-          >
-            <MessageCircle className="mr-2 h-4 w-4" /> Discussions
-          </NeonButton>
-          <NeonButton
-            className={`${
-              activeTab === 'events' ? 'bg-cyan-500 text-gray-900' : 'bg-gray-800 text-gray-100'
-            }`}
-            onClick={() => setActiveTab('events')}
-          >
-            <Calendar className="mr-2 h-4 w-4" /> Events
-          </NeonButton>
+          {/* Navigation Tabs */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-gray-800/50 p-1 rounded-lg backdrop-blur-sm border border-gray-700/50">
+              <NeonButton
+                className={`mr-1 transition-all duration-300 ${
+                  activeTab === 'discussions' 
+                    ? 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-lg shadow-cyan-500/20' 
+                    : 'bg-gray-800/50 text-gray-300 hover:text-white'
+                }`}
+                onClick={() => setActiveTab('discussions')}
+              >
+                <MessageCircle className="mr-2 h-4 w-4" /> 
+                Discussions
+              </NeonButton>
+              <NeonButton
+                className={`transition-all duration-300 ${
+                  activeTab === 'events' 
+                    ? 'bg-gradient-to-r from-lime-500 to-emerald-500 text-white shadow-lg shadow-lime-500/20' 
+                    : 'bg-gray-800/50 text-gray-300 hover:text-white'
+                }`}
+                onClick={() => setActiveTab('events')}
+              >
+                <Calendar className="mr-2 h-4 w-4" /> 
+                Events
+              </NeonButton>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700/50" />
+            </div>
+            <div className="relative flex justify-center">
+              <div className="px-2 bg-gray-900">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500" />
+              </div>
+            </div>
+          </div>
         </div>
+      </header>
 
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 py-8">
         {/* Discussions tab content */}
         {activeTab === 'discussions' && (
           <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+            {/* Search & Filters */}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-gray-800/30 p-4 rounded-lg border border-gray-700/50">
               <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
                 <SearchInput
                   value={searchQuery}
                   onChange={setSearchQuery}
                   placeholder="Search discussions..."
+                  className="min-w-[300px]"
                 />
-                <Select value={selectedGame} onValueChange={setSelectedGame}>
-                  <SelectTrigger className="bg-gray-800 border-cyan-500 focus:border-cyan-400 focus:ring-cyan-400">
-                    <SelectValue placeholder="Select Game" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-cyan-500">
-                    {GAMES.map((game) => (
-                      <SelectItem key={game} value={game}>
-                        {game}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedChallenge} onValueChange={setSelectedChallenge}>
-                  <SelectTrigger className="bg-gray-800 border-cyan-500 focus:border-cyan-400 focus:ring-cyan-400">
-                    <SelectValue placeholder="Select Challenge" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-cyan-500">
-                    {CHALLENGE_TYPES.map((challenge) => (
-                      <SelectItem key={challenge} value={challenge}>
-                        {challenge}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex space-x-4">
+                  <Select value={selectedGame} onValueChange={setSelectedGame}>
+                    <SelectTrigger className="bg-gray-800/50 border-gray-700/50 hover:border-cyan-500/50 focus:border-cyan-500 transition-colors min-w-[180px]">
+                      <SelectValue placeholder="Select Game" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      {GAMES.map((game) => (
+                        <SelectItem 
+                          key={game} 
+                          value={game}
+                          className="hover:bg-cyan-500/10 cursor-pointer"
+                        >
+                          {game}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedChallenge} onValueChange={setSelectedChallenge}>
+                    <SelectTrigger className="bg-gray-800/50 border-gray-700/50 hover:border-cyan-500/50 focus:border-cyan-500 transition-colors min-w-[180px]">
+                      <SelectValue placeholder="Select Challenge" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      {CHALLENGE_TYPES.map((challenge) => (
+                        <SelectItem 
+                          key={challenge} 
+                          value={challenge}
+                          className="hover:bg-cyan-500/10 cursor-pointer"
+                        >
+                          {challenge}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <ToggleGroup
                   type="single"
                   value={sortBy}
                   onValueChange={(value) => setSortBy(value as 'newest' | 'hot')}
+                  className="bg-gray-800/50 p-1 rounded-lg border border-gray-700/50"
                 >
                   <ToggleGroupItem
                     value="newest"
-                    className="bg-gray-800 border-cyan-500 data-[state=on]:bg-cyan-500 data-[state=on]:text-gray-900"
+                    className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-cyan-500 data-[state=on]:to-fuchsia-500 data-[state=on]:text-white"
                   >
                     Newest
                   </ToggleGroupItem>
                   <ToggleGroupItem
                     value="hot"
-                    className="bg-gray-800 border-cyan-500 data-[state=on]:bg-cyan-500 data-[state=on]:text-gray-900"
+                    className="data-[state=on]:bg-gradient-to-r data-[state=on]:from-orange-500 data-[state=on]:to-red-500 data-[state=on]:text-white"
                   >
                     Hot
                   </ToggleGroupItem>
                 </ToggleGroup>
-                <NeonButton onClick={() => setIsCreateDiscussionOpen(true)}>
+                <NeonButton 
+                  onClick={() => setIsCreateDiscussionOpen(true)}
+                  className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white shadow-lg shadow-cyan-500/20 transition-all duration-300 transform hover:scale-105"
+                >
                   <Plus className="mr-2 h-4 w-4" /> Create Discussion
                 </NeonButton>
               </div>
             </div>
 
+            {/* Discussion List */}
             {renderDiscussionsList()}
           </Suspense>
         )}

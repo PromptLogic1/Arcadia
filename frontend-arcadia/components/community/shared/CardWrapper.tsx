@@ -9,9 +9,9 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
   hoverAccentColor = 'cyan'
 }) => {
   const hoverColors = {
-    cyan: 'hover:border-cyan-500 hover:shadow-cyan-500/20',
-    fuchsia: 'hover:border-fuchsia-500 hover:shadow-fuchsia-500/20',
-    lime: 'hover:border-lime-500 hover:shadow-lime-500/20'
+    cyan: 'hover:border-cyan-500/50',
+    fuchsia: 'hover:border-fuchsia-500/50',
+    lime: 'hover:border-lime-500/50'
   }
 
   return (
@@ -24,12 +24,10 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
           w-full 
           bg-gray-800/90 
           border-gray-700/50
-          transition-all 
-          duration-300 
-          hover:shadow-lg 
+          transition-colors 
+          duration-200 
           cursor-pointer 
-          group 
-          ${hoverColors[hoverAccentColor]} 
+          ${hoverColors[hoverAccentColor]}
           ${className}
         `}
         onClick={onClick}
