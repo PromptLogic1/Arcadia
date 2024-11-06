@@ -260,12 +260,12 @@ const Header: React.FC = () => {
                   forceMount
                 >
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center w-full">
+                    <Link href="/user/user-page" className="flex items-center w-full">
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center w-full">
+                    <Link href="/user/settings" className="flex items-center w-full">
                       Settings
                     </Link>
                   </DropdownMenuItem>
@@ -366,11 +366,18 @@ const Header: React.FC = () => {
               {user ? (
                 <>
                   <Link
-                    href="/profile"
+                    href="/user/user-page"
                     className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Profile
+                  </Link>
+                  <Link
+                    href="/user/settings"
+                    className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Settings
                   </Link>
                   <button
                     onClick={async () => {

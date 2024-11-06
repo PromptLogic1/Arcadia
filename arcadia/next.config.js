@@ -7,6 +7,23 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'ui-avatars.com',
+        pathname: '/api/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'platform-lookaside.fbsbx.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'your-supabase-project.supabase.co',
       }
     ],
@@ -33,7 +50,7 @@ const nextConfig = {
     // Nur unterstützte experimentelle Features
     workerThreads: true,
     scrollRestoration: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons']
   },
   // Cache-Optimierungen
   onDemandEntries: {
