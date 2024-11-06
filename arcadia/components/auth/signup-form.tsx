@@ -74,10 +74,7 @@ export function SignUpForm() {
           email,
           password,
           username
-        },
-        confirmPassword,
-        passwordChecks
-      )
+        })
       
       localStorage.removeItem('signupForm') // Clear saved data on success
       router.push(`/verify-email?email=${encodeURIComponent(signUpEmail)}`)
