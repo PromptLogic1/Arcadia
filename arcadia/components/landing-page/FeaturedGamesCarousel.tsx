@@ -19,23 +19,23 @@ interface FeaturedGame {
 const featuredGames: FeaturedGame[] = [
   {
     title: 'World of Warcraft',
-    image: '/images/wow.jpg',
+    image: '/images/Featured_Games/wow.jpg',
   },
   {
     title: 'Elden Ring',
-    image: '/images/elden-ring.jpg',
+    image: '/images/Featured_Games/elden-ring.jpg',
   },
   {
     title: 'Cyberpunk 2077',
-    image: '/images/cyberpunk.jpg',
+    image: '/images/Featured_Games/cyberpunk.jpg',
   },
   {
     title: 'Fortnite',
-    image: '/images/@Featured Games/fortnite.jpg',
+    image: '/images/Featured_Games/fortnite.jpg',
   },
   {
     title: 'The Witcher 3',
-    image: '/images/witcher.jpg',
+    image: '/images/Featured_Games/witcher.jpg',
   },
 ]
 

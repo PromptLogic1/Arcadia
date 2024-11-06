@@ -30,10 +30,10 @@ export async function middleware(req: CustomRequest) {
       res.headers.set('x-user-id', session.user.id)
     }
 
-    // Schnelles Redirect für geschützte Routen
+    // Update protected routes paths
     const protectedRoutes = ['/profile', '/settings']
     if (protectedRoutes.includes(req.nextUrl.pathname) && !session) {
-      return NextResponse.redirect(new URL('/login', req.url))
+      return NextResponse.redirect(new URL('/auth/login', req.url))
     }
 
     return res

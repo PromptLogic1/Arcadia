@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { Database } from '@/types/database.types'
 
-export function LoginContainer() {
+export function LogInForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -100,7 +100,7 @@ export function LoginContainer() {
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="max-w-md w-full text-center space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
           Welcome back
@@ -203,7 +203,7 @@ export function LoginContainer() {
         <p className="text-center text-sm text-gray-400">
           Don&apos;t have an account?{' '}
           <Link 
-            href="/signup" 
+            href="/auth/signup" 
             className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
           >
             Sign up

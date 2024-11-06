@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
-// Dynamische Imports mit Preload
+// Dynamic imports with preload
 const Header = dynamic(() => import("@/components/Header"), {
   loading: () => <LoadingSpinner />,
   ssr: true,
@@ -19,7 +19,7 @@ const Footer = dynamic(() => import("@/components/Footer"), {
   ssr: true,
 })
 
-// Font-Optimierung
+// Font optimization
 const inter = Inter({
   subsets: ["latin"],
   display: 'swap',
@@ -44,11 +44,17 @@ export const metadata: Metadata = {
   },
 };
 
+interface RootLayoutProps {
+  children: React.ReactNode;
+  childPropSegment?: string;
+}
+
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<RootLayoutProps>) {
+  // Check if the current path is an auth route
+  const isAuthPage = (children as { props?: { childPropSegment?: string } })?.props?.childPropSegment === 'auth'
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -62,22 +68,30 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <ErrorBoundary>
             <ServiceWorkerRegistration />
-            <div className="flex flex-col min-h-screen">
-              <Suspense fallback={<LoadingSpinner />}>
-                <Header />
-              </Suspense>
-              <main className="flex-grow">
+            {isAuthPage ? (
+              <main>
                 <Suspense fallback={<LoadingSpinner />}>
                   {children}
                 </Suspense>
               </main>
-              <Suspense fallback={<LoadingSpinner />}>
-                <Footer />
-              </Suspense>
-            </div>
+            ) : (
+              <div className="flex flex-col min-h-screen">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Header />
+                </Suspense>
+                <main className="flex-grow">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    {children}
+                  </Suspense>
+                </main>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Footer />
+                </Suspense>
+              </div>
+            )}
           </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

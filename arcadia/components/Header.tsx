@@ -282,7 +282,7 @@ const Header: React.FC = () => {
             ) : (
               // Show Sign In/Up buttons when logged out
               <div className="flex items-center gap-2">
-                <Link href="/login">
+                <Link href="/auth/login">
                   <Button
                     variant="ghost"
                     className="text-gray-200 hover:text-cyan-400 hover:bg-cyan-500/10"
@@ -290,7 +290,7 @@ const Header: React.FC = () => {
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/signup">
+                <Link href="/auth/signup">
                   <Button
                     className={cn(
                       "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
@@ -385,14 +385,14 @@ const Header: React.FC = () => {
               ) : (
                 <>
                   <Link
-                    href="/login"
+                    href="/auth/login"
                     className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link
-                    href="/signup"
+                    href="/auth/signup"
                     className="block py-2 px-3 rounded-md text-lg font-medium text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >

@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { Suspense } from 'react'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import HeroSection from '../components/landing-page/heroSection'
-import FeaturedGamesCarousel from '../components/landing-page/FeaturedGamesCarousel'
-import FeaturedChallenges from '../components/landing-page/FeaturedChallenges'
-import PartnersSection from '../components/landing-page/PartnersSection'
+import HeroSection from '@/components/landing-page/heroSection'
+import FeaturedGamesCarousel from '@/components/landing-page/FeaturedGamesCarousel'
+import FeaturedChallenges from '@/components/landing-page/FeaturedChallenges'
+import PartnersSection from '@/components/landing-page/PartnersSection'
 import UpcomingEventsSection from '@/components/landing-page/UpcomingEventsSection'
 import FAQSection from '@/components/landing-page/FAQSection'
 import { Grid, Zap, Trophy, Puzzle } from 'lucide-react'
-import { type Challenge } from '@/components/challenges/ChallengesTabs'
+import { type Challenge } from '@/types/challenges'
 
 const FEATURED_CHALLENGES: Challenge[] = [
   {

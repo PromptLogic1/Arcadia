@@ -1,14 +1,15 @@
-import { Suspense } from 'react'
-import { lazy } from 'react'
+'use client'
+
+import React, { Suspense, lazy } from 'react'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 
-// Seiten-Konfiguration
+// Page Configuration
 export const runtime = 'edge'
 export const preferredRegion = 'auto'
 export const dynamic = 'force-dynamic'
 
-// Lazy Loading der Landing Page
-const LandingPage = lazy(() => import('../app/landing-page'))
+// Lazy Loading of Landing Page
+const LandingPage = lazy(() => import('./landing-page'))
 
 export default function Home() {
   return (
@@ -16,4 +17,4 @@ export default function Home() {
       <LandingPage />
     </Suspense>
   )
-}
+} 

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Info, Github, Mail, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { supabaseAuth, AuthError } from '@/lib/auth/supabase-auth'
+import { supabaseAuth, AuthError } from '@/lib/superbase_lib/supabase-auth'
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -77,7 +77,7 @@ export function SignUpForm() {
         })
       
       localStorage.removeItem('signupForm') // Clear saved data on success
-      router.push(`/verify-email?email=${encodeURIComponent(signUpEmail)}`)
+      router.push(`/auth/verify-email?email=${encodeURIComponent(signUpEmail)}`)
     } catch (error) {
       if (error instanceof AuthError) {
         setError(error.message)
@@ -99,7 +99,7 @@ export function SignUpForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="max-w-md w-full space-y-8">
       <div className="text-center">
         <h2 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
           Create your account
@@ -260,7 +260,7 @@ export function SignUpForm() {
       <p className="text-center text-sm text-gray-400">
         Already have an account?{' '}
         <Link 
-          href="/login" 
+          href="/auth/login" 
           className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
         >
           Sign in
