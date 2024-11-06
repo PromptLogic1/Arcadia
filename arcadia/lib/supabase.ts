@@ -20,6 +20,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     autoRefreshToken: true,
   },
+  db: {
+    schema: 'public'
+  },
   global: {
     headers: {
       'x-application-name': 'arcadia',

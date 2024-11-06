@@ -12,13 +12,18 @@ export interface Database {
       users: {
         Row: {
           id: string
+          auth_id: string
           email: string
           username: string
           full_name: string | null
           avatar_url: string | null
           role: 'user' | 'moderator' | 'admin'
           experience_points: number
-          preferred_language: 'javascript' | 'typescript' | 'python' | 'java' | 'cpp' | 'csharp' | null
+          preferred_language: 'javascript' | 'typescript' | 'python' | 'java' | 'cpp' | 'rust' | null
+          github_username: string | null
+          bio: string | null
+          is_active: boolean
+          last_login_at: string | null
           created_at: string
           updated_at: string
         }

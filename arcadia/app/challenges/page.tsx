@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const revalidate = 60 // Revalidiere alle 60 Sekunden
+export const revalidate = 60
 
 import Challenges from '@/components/challenges'
 
