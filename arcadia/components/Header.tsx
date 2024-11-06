@@ -32,6 +32,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from "@/lib/utils"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { User } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/types/database.types'
 
 // NeonText Component for Gradient Text
 const NeonText = ({
@@ -60,6 +63,23 @@ const Header: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
   const pathname = usePathname() ?? ''
+  const [user, setUser] = useState<User | null>(null)
+  const supabase = createClientComponentClient<Database>()
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+    }
+
+    getUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth])
 
   // Handle Scroll to Change Header Style
   useEffect(() => {
@@ -194,59 +214,76 @@ const Header: React.FC = () => {
             </Button>
           </Link>
 
-          {/* User Dropdown Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative h-10 w-10 rounded-full focus:ring-2 focus:ring-cyan-400"
-                aria-label="User menu"
-              >
-                <Avatar className="h-10 w-10 transition-transform duration-200 hover:scale-110">
-                  <AvatarImage src="/images/placeholder-avatar.jpg" alt="User avatar" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-56 bg-gray-800 border-cyan-500/50 text-white"
-              align="end"
-              forceMount
-            >
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center w-full">
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="flex items-center w-full">
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/logout"
-                  className="flex items-center w-full text-red-400"
-                >
-                  Log out
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* User Actions */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* ... other buttons like search and notifications ... */}
 
-          {/* Sign In Button */}
-          <Link href="/signin">
-            <Button
-              className={cn(
-                "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
-                "text-white font-medium px-6 py-2 rounded-full",
-                "hover:opacity-90 transition-all duration-200",
-                "shadow-lg shadow-cyan-500/25"
-              )}
-            >
-              Sign In
-            </Button>
-          </Link>
+            {user ? (
+              // Show User Dropdown when logged in
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-10 w-10 rounded-full focus:ring-2 focus:ring-cyan-400"
+                    aria-label="User menu"
+                  >
+                    <Avatar className="h-10 w-10 transition-transform duration-200 hover:scale-110">
+                      <AvatarImage src={user.user_metadata.avatar_url || "/images/placeholder-avatar.jpg"} alt="User avatar" />
+                      <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-56 bg-gray-800 border-cyan-500/50 text-white"
+                  align="end"
+                  forceMount
+                >
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center w-full">
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="flex items-center w-full">
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={async () => {
+                      await supabase.auth.signOut()
+                    }}
+                    className="text-red-400 cursor-pointer"
+                  >
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              // Show Sign In/Up buttons when logged out
+              <div className="flex items-center gap-2">
+                <Link href="/login">
+                  <Button
+                    variant="ghost"
+                    className="text-gray-200 hover:text-cyan-400 hover:bg-cyan-500/10"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button
+                    className={cn(
+                      "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
+                      "text-white font-medium px-6 py-2 rounded-full",
+                      "hover:opacity-90 transition-all duration-200",
+                      "shadow-lg shadow-cyan-500/25"
+                    )}
+                  >
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -305,20 +342,43 @@ const Header: React.FC = () => {
               >
                 Download
               </Link>
-              <Link
-                href="/profile"
-                className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Profile
-              </Link>
-              <Link
-                href="/signin"
-                className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Sign In
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/profile"
+                    className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await supabase.auth.signOut()
+                      setIsMenuOpen(false)
+                    }}
+                    className="block w-full text-left py-2 px-3 rounded-md text-lg font-medium text-red-400 hover:text-red-300 transition-colors duration-200"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="block py-2 px-3 rounded-md text-lg font-medium text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </motion.nav>
         )}

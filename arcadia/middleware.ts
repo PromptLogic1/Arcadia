@@ -8,7 +8,20 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient<Database>({ req, res })
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Geschützte Routen
+  // Handle email verification callback
+  if (req.nextUrl.pathname === '/auth/callback') {
+    const requestUrl = new URL(req.url)
+    const code = requestUrl.searchParams.get('code')
+    const next = requestUrl.searchParams.get('next') ?? '/'
+
+    if (code) {
+      // Exchange the code for a session
+      await supabase.auth.exchangeCodeForSession(code)
+      return NextResponse.redirect(new URL(next, req.url))
+    }
+  }
+
+  // Protected routes
   const protectedPaths = [
     '/dashboard',
     '/profile',
@@ -20,18 +33,17 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(path)
   )
 
-  // Weiterleitung zur Login-Seite, wenn nicht authentifiziert
+  // Redirect to login page if not authenticated
   if (isProtectedPath && !session) {
     const redirectUrl = new URL('/login', req.url)
     redirectUrl.searchParams.set('redirect', req.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Aktualisiere die Auth-Cookie-Header
+  // Update auth cookie header
   return res
 }
 
-// Konfiguriere, auf welchen Pfaden die Middleware ausgeführt werden soll
 export const config = {
   matcher: [
     '/dashboard/:path*',
