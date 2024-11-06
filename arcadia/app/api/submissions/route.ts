@@ -25,7 +25,8 @@ export async function POST(request: Request) {
         user_id: user.id,
         code,
         language,
-        status: 'pending'
+        status: 'pending',
+        results: null
       })
       .select()
       .single()

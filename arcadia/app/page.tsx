@@ -5,10 +5,7 @@ import LoadingSpinner from '@/components/ui/loading-spinner'
 // Seiten-Konfiguration
 export const runtime = 'edge'
 export const preferredRegion = 'auto'
-export const config = {
-  dynamic: 'force-static',
-  revalidate: 3600 // Revalidiere stündlich
-}
+export const dynamic = 'force-dynamic'
 
 // Lazy Loading der Landing Page
 const LandingPage = lazy(() => import('../app/landing-page'))

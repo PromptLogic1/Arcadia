@@ -201,7 +201,7 @@ export function LoginContainer() {
 
         {/* Sign Up Link */}
         <p className="text-center text-sm text-gray-400">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link 
             href="/signup" 
             className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"

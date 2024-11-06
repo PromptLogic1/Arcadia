@@ -1,5 +1,6 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
+import type { AuthError as SupabaseAuthError } from '@supabase/supabase-js'
 
 export interface SignUpCredentials {
   email: string
@@ -25,7 +26,7 @@ export class AuthError extends Error {
 class SupabaseAuth {
   private supabase = createClientComponentClient<Database>()
 
-  private handleSignUpError(error: any): never {
+  private handleSignUpError(error: SupabaseAuthError): never {
     console.error('Auth signup error:', error)
     switch (error.message) {
       case 'User already registered':
@@ -60,11 +61,7 @@ class SupabaseAuth {
     }
   }
 
-  public async signUp(
-    credentials: SignUpCredentials, 
-    confirmPassword: string, 
-    passwordReqs: PasswordRequirements
-  ): Promise<string> {
+  public async signUp(credentials: SignUpCredentials): Promise<string> {
     try {
       const { data, error: signUpError } = await this.supabase.auth.signUp({
         email: credentials.email,
@@ -85,17 +82,8 @@ class SupabaseAuth {
       }
 
       if (!data?.user) {
-        throw new AuthError('Failed to create auth user - No user data returned')
+        throw new AuthError('Failed to create user - No user data returned')
       }
-
-      // Update the user's metadata to include display name
-      await this.supabase.auth.updateUser({
-        data: { 
-          username: credentials.username,
-          full_name: credentials.username,
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`
-        }
-      })
 
       return credentials.email
     } catch (error) {
@@ -104,6 +92,17 @@ class SupabaseAuth {
       }
       console.error('Signup error:', error)
       throw new AuthError('Failed to complete signup process')
+    }
+  }
+
+  public async resendVerificationEmail(email: string): Promise<void> {
+    const { error } = await this.supabase.auth.resend({
+      type: 'signup',
+      email,
+    })
+
+    if (error) {
+      throw new AuthError(error.message)
     }
   }
 }

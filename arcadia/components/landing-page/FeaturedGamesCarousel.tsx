@@ -31,7 +31,7 @@ const featuredGames: FeaturedGame[] = [
   },
   {
     title: 'Fortnite',
-    image: '/images/fortnite.jpg',
+    image: '/images/@Featured Games/fortnite.jpg',
   },
   {
     title: 'The Witcher 3',

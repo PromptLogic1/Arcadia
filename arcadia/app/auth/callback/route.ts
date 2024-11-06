@@ -2,7 +2,6 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
-import type { Tables } from '@/types/database.types'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -19,62 +18,88 @@ export async function GET(request: Request) {
       cookies: () => cookieStore 
     })
     
+    // Exchange the code for a session
     const { data: { session }, error: sessionError } = 
       await supabase.auth.exchangeCodeForSession(code)
 
-    if (sessionError || !session?.user) {
-      console.error('Session error:', sessionError || 'No user found')
+    if (sessionError || !session?.user || !session.user.email) {
+      console.error('Session error:', sessionError || 'No user or email found')
       return NextResponse.redirect(new URL('/signup-error', request.url))
     }
 
-    console.log('User metadata:', session.user.user_metadata)
-    
-    const { data: existingProfile } = await supabase
+    // Warte kurz, damit die Auth-Session sich etablieren kann
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Prüfe, ob das Profil bereits existiert (jetzt auch nach E-Mail)
+    const { data: existingProfile, error: profileCheckError } = await supabase
       .from('users')
-      .select('username')
-      .eq('auth_id', session.user.id)
+      .select('id')
+      .or(`auth_id.eq.${session.user.id},email.eq.${session.user.email}`)
       .single()
 
-    if (existingProfile) {
-      console.log('Profile already exists')
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+      console.error('Profile check error:', profileCheckError)
+      return NextResponse.redirect(new URL('/signup-error', request.url))
     }
 
-    const metadata = session.user.user_metadata
-    
-    if (metadata?.pendingProfile) {
-      const newUserProfile = {
-        auth_id: session.user.id,
-        email: session.user.email!,
-        username: metadata.username as string,
-        full_name: metadata.full_name as string | null,
-        avatar_url: metadata.avatar_url as string | null,
-        role: 'user' as const,
-        experience_points: 0,
-        preferred_language: null,
-        github_username: null,
-        bio: null,
-        is_active: true,
-        last_login_at: new Date().toISOString()
-      } satisfies Tables['users']['Insert']
-
-      const { error: profileError } = await supabase
+    if (existingProfile) {
+      // Wenn ein Profil existiert, aktualisiere nur die auth_id
+      const { error: updateError } = await supabase
         .from('users')
-        .insert([newUserProfile])
+        .update({ auth_id: session.user.id })
+        .eq('email', session.user.email)
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
+      if (updateError) {
+        console.error('Profile update error:', updateError)
         return NextResponse.redirect(new URL('/signup-error', request.url))
       }
 
-      await supabase.auth.updateUser({
-        data: { pendingProfile: false }
-      })
-
-      console.log('Profile created successfully')
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
+    // Erstelle das Profil nur, wenn pendingProfile in den Metadaten ist
+    const metadata = session.user.user_metadata
+    if (metadata?.pendingProfile) {
+      try {
+        const { error: insertError } = await supabase
+          .from('users')
+          .upsert({
+            auth_id: session.user.id,
+            email: session.user.email,
+            username: metadata.username,
+            full_name: metadata.full_name || null,
+            avatar_url: metadata.avatar_url || null,
+            role: 'user',
+            experience_points: 0,
+            preferred_language: null,
+            github_username: null,
+            bio: null,
+            is_active: true,
+            last_login_at: new Date().toISOString()
+          }, {
+            onConflict: 'email',
+            ignoreDuplicates: false
+          })
+
+        if (insertError) {
+          console.error('Profile creation error:', insertError)
+          throw insertError
+        }
+
+        // Entferne das pendingProfile Flag
+        await supabase.auth.updateUser({
+          data: { pendingProfile: false }
+        })
+
+      } catch (error) {
+        console.error('Failed to create profile:', error)
+        return NextResponse.redirect(new URL('/signup-error', request.url))
+      }
+    }
+
+    // Erfolgreiche Weiterleitung
     return NextResponse.redirect(new URL('/dashboard', request.url))
+
   } catch (error) {
     console.error('Callback error:', error)
     return NextResponse.redirect(new URL('/signup-error', request.url))

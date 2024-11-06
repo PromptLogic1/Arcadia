@@ -80,7 +80,8 @@ export async function POST(request: Request) {
         created_by: user.id,
         test_cases,
         initial_code,
-        solution_code
+        solution_code,
+        status: 'draft'
       })
       .select()
       .single()
