@@ -1,12 +1,31 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
-const inter = Inter({ subsets: ["latin"] });
+// Dynamische Imports mit Preload
+const Header = dynamic(() => import("@/components/Header"), {
+  loading: () => <LoadingSpinner />,
+  ssr: true,
+})
+
+const Footer = dynamic(() => import("@/components/Footer"), {
+  loading: () => <LoadingSpinner />,
+  ssr: true,
+})
+
+// Font-Optimierung
+const inter = Inter({
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial'],
+})
 
 export const metadata: Metadata = {
   title: "Arcadia - Gaming Community Platform",
@@ -32,13 +51,29 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100`}>
+      <head>
+        <link
+          rel="preconnect"
+          href={process.env.NEXT_PUBLIC_SUPABASE_URL!}
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <ErrorBoundary>
+            <ServiceWorkerRegistration />
             <div className="flex flex-col min-h-screen">
-              <Header />
-              <main className="flex-grow">{children}</main>
-              <Footer />
+              <Suspense fallback={<LoadingSpinner />}>
+                <Header />
+              </Suspense>
+              <main className="flex-grow">
+                <Suspense fallback={<LoadingSpinner />}>
+                  {children}
+                </Suspense>
+              </main>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Footer />
+              </Suspense>
             </div>
           </ErrorBoundary>
         </ThemeProvider>

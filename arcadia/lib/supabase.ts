@@ -4,7 +4,40 @@ import { Database } from '@/types/database.types'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Implementiere Cache-Handling
+const CACHE_TIME = 5 * 60 * 1000 // 5 minutes
+const cache = new Map()
+
+// Definiere den Rückgabetyp für gecachte Daten
+type CachedData<T> = {
+  data: T
+  timestamp: number
+}
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    detectSessionInUrl: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    headers: {
+      'x-application-name': 'arcadia',
+    },
+  },
+})
+
+// Helper für gecachte Datenbankabfragen mit generischem Typ
+export const getCachedData = async <T>(key: string, fetchFn: () => Promise<T>): Promise<T> => {
+  const cached = cache.get(key) as CachedData<T> | undefined
+  if (cached && cached.timestamp > Date.now() - CACHE_TIME) {
+    return cached.data
+  }
+
+  const data = await fetchFn()
+  cache.set(key, { data, timestamp: Date.now() })
+  return data
+}
 
 // Helper function für typsichere Datenbankabfragen
 export const createServerSupabaseClient = async () => {
@@ -28,9 +61,11 @@ export class DatabaseError extends Error {
   }
 }
 
+// Typdefinitionen für die Tabellen
+type Tables = Database['public']['Tables']
+
 // Typsichere Hilfsfunktionen für häufige Datenbankoperationen
 export const db = {
-  // Benutzer
   users: {
     getById: async (id: string) => {
       const { data, error } = await supabase
@@ -43,7 +78,7 @@ export const db = {
       return data
     },
     
-    updateProfile: async (id: string, profile: Partial<Database['public']['Tables']['users']['Update']>) => {
+    updateProfile: async (id: string, profile: Partial<Tables['users']['Update']>) => {
       const { data, error } = await supabase
         .from('users')
         .update(profile)
@@ -56,11 +91,10 @@ export const db = {
     }
   },
 
-  // Challenges
   challenges: {
     getAll: async (options?: { 
-      status?: Database['public']['Tables']['challenges']['Row']['status'],
-      difficulty?: Database['public']['Tables']['challenges']['Row']['difficulty'],
+      status?: Tables['challenges']['Row']['status'],
+      difficulty?: Tables['challenges']['Row']['difficulty'],
       category_id?: string,
       limit?: number
     }) => {
@@ -105,7 +139,7 @@ export const db = {
       return data
     },
 
-    create: async (challenge: Database['public']['Tables']['challenges']['Insert']) => {
+    create: async (challenge: Tables['challenges']['Insert']) => {
       const { data, error } = await supabase
         .from('challenges')
         .insert(challenge)
@@ -117,9 +151,8 @@ export const db = {
     }
   },
 
-  // Submissions
   submissions: {
-    create: async (submission: Database['public']['Tables']['submissions']['Insert']) => {
+    create: async (submission: Tables['submissions']['Insert']) => {
       const { data, error } = await supabase
         .from('submissions')
         .insert(submission)

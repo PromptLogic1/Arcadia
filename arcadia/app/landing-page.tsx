@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
-import Head from 'next/head'
+import React, { useState, useEffect } from 'react'
+import { Suspense } from 'react'
+import LoadingSpinner from '@/components/ui/loading-spinner'
 import HeroSection from '../components/landing-page/heroSection'
 import FeaturedGamesCarousel from '../components/landing-page/FeaturedGamesCarousel'
 import FeaturedChallenges from '../components/landing-page/FeaturedChallenges'
@@ -87,36 +88,35 @@ const LandingPage: React.FC = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const memoizedComponents = useMemo(() => ({
-    heroSection: <HeroSection currentChallenge={currentChallenge} challenges={FEATURED_CHALLENGES} />,
-    featuredGamesCarousel: <FeaturedGamesCarousel />,
-    featuredChallenges: <FeaturedChallenges challenges={[...FEATURED_CHALLENGES]} />,
-    partnersSection: <PartnersSection />,
-    upcomingEventsSection: <UpcomingEventsSection />,
-    faqSection: <FAQSection />,
-  }), [currentChallenge])
-
   return (
-    <>
-      <Head>
-        <title>Arcadia - Experience the Thrill of Gaming</title>
-        <meta name="description" content="Arcadia offers innovative gaming challenges." />
-        <meta property="og:title" content="Arcadia" />
-        <meta property="og:description" content="Experience the thrill of gaming with Arcadia." />
-        {/* Add more SEO tags as needed */}
-      </Head>
-      <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100">
-        <main className="flex-grow">
-          {memoizedComponents.heroSection}
-          {memoizedComponents.featuredGamesCarousel}
-          {memoizedComponents.featuredChallenges}
-          {memoizedComponents.partnersSection}
-          {memoizedComponents.upcomingEventsSection}
-          {memoizedComponents.faqSection}
-        </main>
-      </div>
-    </>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100">
+      <main className="flex-grow">
+        <Suspense fallback={<LoadingSpinner />}>
+          <HeroSection currentChallenge={currentChallenge} challenges={FEATURED_CHALLENGES} />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <FeaturedGamesCarousel />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <FeaturedChallenges challenges={FEATURED_CHALLENGES} />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <PartnersSection />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <UpcomingEventsSection />
+        </Suspense>
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <FAQSection />
+        </Suspense>
+      </main>
+    </div>
   )
 }
 
-export default React.memo(LandingPage)
+export default LandingPage

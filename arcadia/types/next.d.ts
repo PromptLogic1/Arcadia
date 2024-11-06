@@ -1,0 +1,6 @@
+declare module 'next/link'
+declare module 'next/navigation'
+declare module 'next/dynamic'
+declare module 'next/font/google'
+declare module 'next/headers'
+declare module 'next/server' 

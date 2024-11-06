@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   GamepadIcon,
   Search,
   Bell,
-  UserPlus,
   Menu,
   X,
   Download,
@@ -90,19 +89,40 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Navigation Items
-  const navItems: NavItem[] = [
+  // Verbesserte isActive Funktion
+  const isActive = useCallback(
+    (path: string) => {
+      if (path === '/' && pathname === '/') return true
+      if (path !== '/' && pathname.startsWith(path)) return true
+      return false
+    },
+    [pathname]
+  )
+
+  // Verbesserte Navigation Items
+  const navItems = useMemo<NavItem[]>(() => [
     { href: '/', label: 'Home' },
     { href: '/challenges', label: 'Challenges' },
     { href: '/community', label: 'Community' },
     { href: '/about', label: 'About' },
-  ]
+  ], [])
 
-  // Check if a NavItem is Active
-  const isActive = useCallback(
-    (path: string) => pathname === path,
-    [pathname]
-  )
+  // Verbesserter Link-Click Handler
+  const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Verhindere Standard-Navigation
+    e.preventDefault()
+    
+    // Hole href aus dem geklickten Link
+    const href = e.currentTarget.getAttribute('href')
+    if (!href) return
+
+    // Schließe Mobile Menü und Suche
+    setIsMenuOpen(false)
+    setIsSearchOpen(false)
+
+    // Navigiere zur neuen Seite
+    window.location.href = href
+  }, [])
 
   return (
     <header
@@ -128,6 +148,7 @@ const Header: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={handleLinkClick}
               className={cn(
                 "px-4 py-2 text-base font-medium rounded-md transition-all duration-200",
                 "hover:bg-cyan-500/10 hover:text-cyan-400",
@@ -324,12 +345,12 @@ const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={handleLinkClick}
                   className={`block py-2 px-3 rounded-md text-lg font-medium transition-colors duration-200 ${
                     isActive(item.href)
                       ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500'
                       : 'text-gray-300 hover:text-cyan-400'
                   }`}
-                  onClick={() => setIsMenuOpen(false)}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                 >
                   {item.label}
@@ -387,4 +408,5 @@ const Header: React.FC = () => {
   )
 }
 
-export default Header
+// Exportiere als memoized Komponente
+export default memo(Header)

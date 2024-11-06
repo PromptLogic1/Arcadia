@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, memo } from 'react'
 import useEmblaCarousel from 'embla-carousel-react'
-import Image from 'next/image'
+import { OptimizedImage } from '@/components/ui/image'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
 import NeonBorder from '@/components/ui/NeonBorder'
 import { Card, CardContent } from '@/components/ui/card'
@@ -48,12 +48,13 @@ const GameCard: React.FC<GameCardProps> = memo(({ game }) => (
   <Card className="bg-gray-800 border-none transition-transform duration-300 hover:scale-105">
     <CardContent className="p-0">
       <div className="aspect-[16/9] overflow-hidden rounded-lg relative">
-        <Image
+        <OptimizedImage
           src={game.image}
           alt={game.title}
-          layout="fill"
-          objectFit="cover"
+          width={1920}
+          height={1080}
           className="transition-transform duration-300 hover:scale-110"
+          priority
         />
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
           <h3 className="text-2xl font-bold text-cyan-300">
