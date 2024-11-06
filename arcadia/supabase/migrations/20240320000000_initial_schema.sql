@@ -20,6 +20,18 @@ DROP TYPE IF EXISTS programming_language CASCADE;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Grant necessary permissions to authenticated users
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT USAGE ON SCHEMA public TO anon;
+
+-- Grant specific table permissions
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+
+-- Grant limited permissions to anonymous users
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+
 -- Enum types for better data consistency
 CREATE TYPE user_role AS ENUM ('user', 'moderator', 'admin');
 CREATE TYPE challenge_difficulty AS ENUM ('beginner', 'easy', 'medium', 'hard', 'expert');
@@ -217,6 +229,24 @@ CREATE POLICY "Users can view their own data"
     ON users FOR SELECT
     USING (auth.uid()::uuid = auth_id);
 
+-- Allow new user registration
+CREATE POLICY "Enable insert for authentication users"
+    ON users FOR INSERT
+    WITH CHECK (
+        -- Allow insert during signup when auth.uid() matches auth_id
+        auth.uid()::uuid = auth_id
+        -- Or when the user doesn't exist yet (during signup)
+        OR NOT EXISTS (
+            SELECT 1 FROM users 
+            WHERE users.auth_id = auth.uid()::uuid
+        )
+    );
+
+-- Allow public username availability check
+CREATE POLICY "Public can check username availability"
+    ON users FOR SELECT
+    USING (true);
+
 -- Challenges policies
 CREATE POLICY "Published challenges are viewable by everyone"
     ON challenges FOR SELECT
@@ -245,4 +275,4 @@ CREATE POLICY "Comments are viewable by everyone"
 CREATE POLICY "Users can create comments"
     ON comments FOR INSERT
     TO authenticated
-    WITH CHECK (auth.uid()::uuid = user_id); 
+    WITH CHECK (auth.uid()::uuid = user_id);

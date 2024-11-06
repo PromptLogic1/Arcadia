@@ -1,17 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info } from 'lucide-react'
+import { Info, Github, Mail, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Github, Mail } from 'lucide-react'
 import Link from 'next/link'
-import type { Database } from '@/types/database.types'
-import { Check, X } from 'lucide-react'
+import { supabaseAuth, AuthError } from '@/lib/auth/supabase-auth'
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -20,8 +17,6 @@ export function SignUpForm() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const supabase = createClientComponentClient<Database>()
   const [isPasswordFocused, setIsPasswordFocused] = useState(false)
   const [passwordChecks, setPasswordChecks] = useState({
     uppercase: false,
@@ -30,6 +25,8 @@ export function SignUpForm() {
     special: false,
     length: false,
   })
+
+  const router = useRouter()
 
   // Load saved form data on component mount
   useEffect(() => {
@@ -59,29 +56,11 @@ export function SignUpForm() {
         [field]: value
       }))
     }
-  }
 
-  // Clear saved data on successful signup or unmount
-  const clearSavedData = () => {
-    localStorage.removeItem('signupForm')
-  }
-
-  useEffect(() => {
-    return () => {
-      // Optional: clear data when component unmounts
-      // Remove this if you want to persist across navigation
-      clearSavedData()
+    // Update password checks if password field changes
+    if (field === 'password') {
+      setPasswordChecks(supabaseAuth.checkPasswordRequirements(value))
     }
-  }, [])
-
-  const checkPasswordRequirements = (password: string) => {
-    setPasswordChecks({
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-      length: password.length >= 8,
-    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,166 +69,36 @@ export function SignUpForm() {
     setLoading(true)
 
     try {
-      // Input validation with specific messages
-      if (!username) {
-        throw new Error('Username is required')
-      }
-      
-      if (username.length < 3) {
-        throw new Error('Username must be at least 3 characters long')
-      }
-
-      if (!email) {
-        throw new Error('Email address is required')
-      }
-
-      // Basic email format validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        throw new Error('Please enter a valid email address')
-      }
-
-      if (!password) {
-        throw new Error('Password is required')
-      }
-
-      if (password.length < 8) {
-        throw new Error('Password must be at least 8 characters long')
-      }
-
-      if (!passwordChecks.uppercase || !passwordChecks.lowercase || 
-          !passwordChecks.number || !passwordChecks.special) {
-        throw new Error(
-          'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
-        )
-      }
-
-      if (!confirmPassword) {
-        throw new Error('Please confirm your password')
-      }
-
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match')
-      }
-
-      // Username format validation
-      const usernameRegex = /^[a-zA-Z0-9_-]+$/
-      if (!usernameRegex.test(username)) {
-        throw new Error('Username can only contain letters, numbers, underscores, and hyphens')
-      }
-
-      // Sign up the user
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username: username,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+      const signUpEmail = await supabaseAuth.signUp(
+        {
+          email,
+          password,
+          username
         },
-      })
-
-      if (signUpError) {
-        // Enhanced Supabase error handling
-        switch (signUpError.message) {
-          case 'User already registered':
-            throw new Error('An account with this email already exists. Please try signing in instead.')
-          case 'Password should be at least 6 characters':
-            throw new Error('Password must be at least 6 characters long')
-          case 'Unable to validate email address: invalid format':
-            throw new Error('Please enter a valid email address')
-          case 'Email rate limit exceeded':
-            throw new Error('Too many signup attempts. Please try again later.')
-          default:
-            // Log unexpected errors for debugging
-            console.error('Signup error:', signUpError)
-            throw new Error(signUpError.message || 'An error occurred during sign up')
-        }
+        confirmPassword,
+        passwordChecks
+      )
+      
+      localStorage.removeItem('signupForm') // Clear saved data on success
+      router.push(`/verify-email?email=${encodeURIComponent(signUpEmail)}`)
+    } catch (error) {
+      if (error instanceof AuthError) {
+        setError(error.message)
+      } else {
+        setError('An unexpected error occurred')
+        console.error(error)
       }
-
-      if (signUpData.user) {
-        try {
-          // Check if username is already taken
-          const { data: existingUser, error: userCheckError } = await supabase
-            .from('users')
-            .select('username')
-            .eq('username', username)
-            .single()
-
-          if (userCheckError && userCheckError.code !== 'PGRST116') { // PGRST116 means no rows returned
-            throw new Error('Error checking username availability')
-          }
-
-          if (existingUser) {
-            // Cleanup and throw error
-            await supabase.auth.admin.deleteUser(signUpData.user.id)
-            throw new Error('This username is already taken. Please choose another one.')
-          }
-
-          // Create user profile
-          const { error: profileError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: signUpData.user.id,
-                username: username,
-                email: email,
-              },
-            ])
-
-          if (profileError) {
-            // Handle database errors
-            switch (profileError.code) {
-              case '23505': // unique_violation
-                throw new Error('This username is already taken. Please choose another one.')
-              case '23503': // foreign_key_violation
-                throw new Error('Unable to create user profile. Please try again.')
-              default:
-                console.error('Profile creation error:', profileError)
-                throw new Error('Failed to create user profile')
-            }
-          }
-
-          // Success - redirect to verification page with email
-          clearSavedData()
-          router.push(`/verify-email?email=${encodeURIComponent(email)}`)
-        } catch (err) {
-          // If profile creation fails, clean up the auth user
-          if (signUpData.user?.id) {
-            await supabase.auth.admin.deleteUser(signUpData.user.id)
-          }
-          throw err
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleGithubLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-        scopes: 'read:user user:email'
-      }
-    })
-  }
-
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent'
-        }
-      }
-    })
+  const handleOAuthLogin = async (provider: 'github' | 'google') => {
+    try {
+      await supabaseAuth.signInWithOAuth(provider)
+    } catch (error) {
+      setError(error instanceof AuthError ? error.message : 'Failed to login with provider')
+    }
   }
 
   return (
@@ -267,12 +116,12 @@ export function SignUpForm() {
         {error && (
           <div className="p-3 rounded-lg bg-gray-800/50 border border-cyan-500/20 flex items-start gap-2">
             <Info className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-300">
-              {error}
-            </p>
+            <p className="text-sm text-gray-300">{error}</p>
           </div>
         )}
 
+        {/* Form fields remain the same... */}
+        {/* Username field */}
         <div className="space-y-2">
           <Label htmlFor="username">Username</Label>
           <Input
@@ -289,6 +138,7 @@ export function SignUpForm() {
           />
         </div>
 
+        {/* Email field */}
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
           <Input
@@ -305,16 +155,14 @@ export function SignUpForm() {
           />
         </div>
 
+        {/* Password field with requirements checklist */}
         <div className="space-y-2 relative">
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"
             type="password"
             value={password}
-            onChange={(e) => {
-              handleInputChange(setPassword, e.target.value, 'password')
-              checkPasswordRequirements(e.target.value)
-            }}
+            onChange={(e) => handleInputChange(setPassword, e.target.value, 'password')}
             onFocus={() => setIsPasswordFocused(true)}
             onBlur={() => setIsPasswordFocused(false)}
             className={cn(
@@ -325,7 +173,6 @@ export function SignUpForm() {
             disabled={loading}
           />
           
-          {/* Password Requirements Checklist */}
           {isPasswordFocused && (
             <div className="absolute left-full top-0 ml-4 w-72 bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2 backdrop-blur-sm">
               <p className="text-sm font-medium text-gray-300 mb-3">
@@ -345,11 +192,7 @@ export function SignUpForm() {
                     check ? "text-green-400" : "text-gray-400"
                   )}
                 >
-                  {check ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <X className="w-4 h-4" />
-                  )}
+                  {check ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                   {label}
                 </div>
               ))}
@@ -357,6 +200,7 @@ export function SignUpForm() {
           )}
         </div>
 
+        {/* Confirm Password field */}
         <div className="space-y-2">
           <Label htmlFor="confirm-password">Confirm Password</Label>
           <Input
@@ -400,7 +244,7 @@ export function SignUpForm() {
       <div className="space-y-4">
         <Button 
           variant="outline" 
-          onClick={handleGithubLogin}
+          onClick={() => handleOAuthLogin('github')}
           className="w-full flex items-center justify-center gap-2"
         >
           <Github className="w-5 h-5" />
@@ -408,7 +252,7 @@ export function SignUpForm() {
         </Button>
         <Button 
           variant="outline" 
-          onClick={handleGoogleLogin}
+          onClick={() => handleOAuthLogin('google')}
           className="w-full flex items-center justify-center gap-2"
         >
           <Mail className="w-5 h-5" />
@@ -427,4 +271,4 @@ export function SignUpForm() {
       </p>
     </div>
   )
-} 
+}
