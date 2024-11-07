@@ -248,11 +248,11 @@ export function CommunityComponent() {
             >
               <DiscussionCard
                 discussion={discussions[virtualRow.index]}
-                isExpanded={selectedDiscussion?.id === discussions[virtualRow.index].id}
+                isExpanded={selectedDiscussion?.id === discussions[virtualRow.index]?.id}
                 onToggle={() => setSelectedDiscussion(
-                  selectedDiscussion?.id === discussions[virtualRow.index].id 
+                  selectedDiscussion?.id === discussions[virtualRow.index]?.id 
                     ? null 
-                    : discussions[virtualRow.index]
+                    : discussions[virtualRow.index] ?? null
                 )}
                 onUpvote={handleUpvote}
                 onComment={handleComment}
@@ -298,11 +298,11 @@ export function CommunityComponent() {
             >
               <EventCard
                 event={events[virtualRow.index]}
-                isExpanded={selectedEvent?.id === events[virtualRow.index].id}
+                isExpanded={selectedEvent?.id === events[virtualRow.index]?.id}
                 onToggle={() => setSelectedEvent(
-                  selectedEvent?.id === events[virtualRow.index].id 
+                  selectedEvent?.id === events[virtualRow.index]?.id 
                     ? null 
-                    : events[virtualRow.index]
+                    : events[virtualRow.index] ?? null
                 )}
               />
             </div>

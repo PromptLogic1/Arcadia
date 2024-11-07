@@ -7,15 +7,14 @@ import { motion } from 'framer-motion';
 import { Trophy, GamepadIcon, Star, Clock, Calendar, Github, Mail, Globe } from 'lucide-react';
 import NeonBorder from '@/components/ui/NeonBorder';
 import NeonText from '@/components/ui/NeonText';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 interface UserPageProps {
-  userId?: string;
   userData?: Tables['users']['Row'];
 }
 
-export default function UserPage({ userId, userData }: UserPageProps) {
+export default function UserPage({ userData }: UserPageProps) {
   const [activeTab, setActiveTab] = useState('overview');
 
   if (!userData) {

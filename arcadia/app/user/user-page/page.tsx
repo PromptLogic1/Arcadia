@@ -2,7 +2,6 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import UserPage from '@/components/user/user-page/user-page';
-import type { Tables } from '@/types/database.types';
 
 export default async function UserProfilePage() {
   const supabase = createServerComponentClient({ cookies });
@@ -32,9 +31,6 @@ export default async function UserProfilePage() {
 
   // At this point we have both session and user data
   return (
-    <UserPage 
-      userId={session.user.id} 
-      userData={userData as Tables['users']['Row']} 
-    />
+    <UserPage userData={userData} />
   );
 }

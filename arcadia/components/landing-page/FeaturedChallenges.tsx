@@ -83,10 +83,10 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                   <CardHeader className="flex flex-row items-start justify-between p-4">
                     <div>
                       <CardTitle className="text-3xl font-bold text-cyan-300">
-                        {challenges[selectedChallenge].name}
+                        {challenges[selectedChallenge]?.name}
                       </CardTitle>
                       <CardDescription className="text-lg text-cyan-100 mt-2">
-                        {challenges[selectedChallenge].description}
+                        {challenges[selectedChallenge]?.description}
                       </CardDescription>
                     </div>
                     <Button
@@ -105,27 +105,27 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                         Challenge Details
                       </h3>
                       <p className="text-cyan-100 mb-4 leading-relaxed">
-                        {challenges[selectedChallenge].details}
+                        {challenges[selectedChallenge]?.details}
                       </p>
                       <h4 className="text-lg font-semibold text-cyan-300 mb-2">
                         Key Features:
                       </h4>
                       <ul className="list-disc list-inside text-cyan-100 mb-4 space-y-2">
-                        {challenges[selectedChallenge].keyFeatures.map((feature, idx) => (
-                          <li key={`${challenges[selectedChallenge].name}-feature-${idx}`}>{feature}</li>
+                        {challenges[selectedChallenge]?.keyFeatures.map((feature, idx) => (
+                          <li key={`${challenges[selectedChallenge]?.name}-feature-${idx}`}>{feature}</li>
                         ))}
                       </ul>
                       <div className="flex flex-wrap gap-4">
                         <div>
                           <h4 className="text-sm font-semibold text-cyan-300">Difficulty</h4>
                           <p className="text-cyan-100">
-                            {challenges[selectedChallenge].difficulty}
+                            {challenges[selectedChallenge]?.difficulty}
                           </p>
                         </div>
                         <div>
                           <h4 className="text-sm font-semibold text-cyan-300">Estimated Time</h4>
                           <p className="text-cyan-100">
-                            {challenges[selectedChallenge].estimatedTime}
+                            {challenges[selectedChallenge]?.estimatedTime}
                           </p>
                         </div>
                       </div>
@@ -133,8 +133,8 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                     <div>
                       <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden mb-4 shadow-lg">
                         <Image
-                          src={`/challenges/${challenges[selectedChallenge].name.toLowerCase().replace(/\s+/g, '-')}.jpg`}
-                          alt={`${challenges[selectedChallenge].name} demo`}
+                          src={`/challenges/${challenges[selectedChallenge]?.name.toLowerCase().replace(/\s+/g, '-')}.jpg`}
+                          alt={`${challenges[selectedChallenge]?.name} demo`}
                           width={640}
                           height={360}
                           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
