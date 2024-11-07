@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Tables } from '@/types/database.types';
+import type { Tables } from '@/types/database.types';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Trophy, GamepadIcon, Star, Clock, Calendar, Github, Mail, Globe } from 'lucide-react';

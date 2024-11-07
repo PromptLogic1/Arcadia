@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import HeroSection from '@/components/landing-page/heroSection'
 import FeaturedGamesCarousel from '@/components/landing-page/FeaturedGamesCarousel'
