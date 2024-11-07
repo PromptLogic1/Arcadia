@@ -27,10 +27,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/signup-error', request.url))
     }
 
-    // Warte kurz, damit die Auth-Session sich etablieren kann
+    // Wait briefly for auth session to establish
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Prüfe, ob das Profil bereits existiert (jetzt auch nach E-Mail)
+    // Check if profile exists (by email or auth_id)
     const { data: existingProfile, error: profileCheckError } = await supabase
       .from('users')
       .select('id')
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     }
 
     if (existingProfile) {
-      // Wenn ein Profil existiert, aktualisiere nur die auth_id
+      // If profile exists, just update the auth_id
       const { error: updateError } = await supabase
         .from('users')
         .update({ auth_id: session.user.id })
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
-    // Erstelle das Profil nur, wenn pendingProfile in den Metadaten ist
+    // Create profile only if pendingProfile is in metadata
     const metadata = session.user.user_metadata
     if (metadata?.pendingProfile) {
       try {
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
           throw insertError
         }
 
-        // Entferne das pendingProfile Flag
+        // Remove pendingProfile flag
         await supabase.auth.updateUser({
           data: { pendingProfile: false }
         })
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
       }
     }
 
-    // Erfolgreiche Weiterleitung
+    // Successful redirect
     return NextResponse.redirect(new URL('/dashboard', request.url))
 
   } catch (error) {
