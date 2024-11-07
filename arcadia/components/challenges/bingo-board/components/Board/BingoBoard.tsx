@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { BingoCell } from './BingoCell'
 import { WinnerModal } from './WinnerModal'
-import { BoardCell, Player } from '../shared/types'
+import type { BoardCell, Player } from '../shared/types'
 
 interface BoardProps {
   boardState: BoardCell[]

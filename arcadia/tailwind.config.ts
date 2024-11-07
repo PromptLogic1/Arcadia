@@ -9,9 +9,18 @@ const config: Config = {
     "./hooks/**/*.{js,ts,jsx,tsx,mdx}",
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
     "./utils/**/*.{js,ts,jsx,tsx,mdx}",
-    "@/components/ui/**/*.{js,ts,jsx,tsx}"
   ],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       colors: {
         background: 'hsl(var(--background))',
@@ -76,7 +85,11 @@ const config: Config = {
       }
     }
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+    require("@tailwindcss/forms"),
+  ],
 };
 
 export default config;

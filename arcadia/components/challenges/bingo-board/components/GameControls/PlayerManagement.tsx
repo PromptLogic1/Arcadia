@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Player } from '../shared/types'
+import type { Player } from '../shared/types'
 import { colorPalette } from '../shared/constants'
 
 interface PlayerManagementProps {
@@ -140,7 +140,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     <Select
                       value={player.team.toString()}
                       onValueChange={(value) => 
-                        onUpdatePlayer(i, player.name, teamColors[parseInt(value)], parseInt(value))
+                        onUpdatePlayer(i, player.name, teamColors[parseInt(value)] || teamColors[0], parseInt(value))
                       }
                     >
                       <SelectTrigger className="h-8 bg-gray-700/50 border-cyan-500/30 text-cyan-100 text-sm">

@@ -1,8 +1,9 @@
+import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
-import { CardWrapperProps } from '../types'
+import type { CardWrapperProps } from '../types'
 
-export const CardWrapper: React.FC<CardWrapperProps> = ({
+export const CardWrapper = memo<CardWrapperProps>(({
   children,
   onClick,
   className = '',
@@ -12,7 +13,7 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
     cyan: 'hover:border-cyan-500/50',
     fuchsia: 'hover:border-fuchsia-500/50',
     lime: 'hover:border-lime-500/50'
-  }
+  } as const
 
   return (
     <motion.div
@@ -36,4 +37,6 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
       </Card>
     </motion.div>
   )
-} 
+})
+
+CardWrapper.displayName = 'CardWrapper' 

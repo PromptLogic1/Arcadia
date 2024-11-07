@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 export interface Comment {
   readonly id: number
@@ -16,12 +16,12 @@ export interface Discussion {
   readonly title: string
   readonly game: string
   readonly challengeType: string | null
-  comments: number
-  upvotes: number
+  readonly comments: number
+  readonly upvotes: number
   readonly content: string
   readonly date: string
   readonly tags: readonly string[]
-  commentList: Comment[]
+  readonly commentList: Comment[]
 }
 
 export interface Event {
@@ -29,7 +29,7 @@ export interface Event {
   readonly title: string
   readonly date: Date
   readonly game: string
-  participants: number
+  readonly participants: number
   readonly prize: string
   readonly description: string
   readonly tags: readonly string[]
@@ -37,7 +37,7 @@ export interface Event {
 
 export interface CardWrapperProps {
   readonly children: ReactNode
-  readonly onClick: () => void
+  readonly onClick?: () => void
   readonly className?: string
   readonly hoverAccentColor?: 'cyan' | 'fuchsia' | 'lime'
 }
@@ -45,4 +45,5 @@ export interface CardWrapperProps {
 export interface NeonButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   readonly children: ReactNode
   readonly className?: string
+  readonly variant?: 'default' | 'outline' | 'ghost'
 } 

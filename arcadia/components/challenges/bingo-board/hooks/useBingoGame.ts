@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { BoardCell, Player, WinConditions } from '../components/shared/types'
+import type { BoardCell, Player, WinConditions } from '../components/shared/types'
 import { wowChallenges } from '../components/shared/constants'
 
 interface WinningLine {
@@ -39,13 +39,14 @@ export const useBingoGame = (initialSize: number) => {
     Array.from({ length: boardSize * boardSize }, () => ({
       text: wowChallenges[Math.floor(Math.random() * wowChallenges.length)],
       colors: [],
+      completedBy: []
     }))
   , [boardSize])
 
   const resetBoard = useCallback(() => {
     try {
       const newBoard = generateBoard()
-      setBoardState(newBoard)
+      setBoardState(newBoard as BoardCell[])
       setWinner(null)
       setEditingCell(null)
     } catch (error) {
@@ -58,7 +59,15 @@ export const useBingoGame = (initialSize: number) => {
       try {
         setBoardState((prevBoard) => {
           const newBoard = [...prevBoard]
-          newBoard[index] = { ...newBoard[index], text: value.slice(0, 50) }
+          const existingCell = newBoard[index]
+          if (!existingCell) return prevBoard
+
+          newBoard[index] = {
+            ...existingCell,
+            text: value.slice(0, 50),
+            colors: existingCell.colors || [],
+            completedBy: existingCell.completedBy || []
+          }
           return newBoard
         })
       } catch (error) {
@@ -76,12 +85,16 @@ export const useBingoGame = (initialSize: number) => {
         if (blockingState.isBlockingMode && blockingState.playerWithBlock === currentPlayer) {
           setBoardState(prevBoard => {
             const newBoard = [...prevBoard]
-            if (index === blockingState.earnedFromCell) return prevBoard
+            const existingCell = newBoard[index]
+            if (!existingCell || index === blockingState.earnedFromCell) return prevBoard
             
             newBoard[index] = {
-              ...newBoard[index],
+              ...existingCell,
+              text: existingCell.text,
+              colors: existingCell.colors,
+              completedBy: existingCell.completedBy,
               blocked: true,
-              blockedBy: players[currentPlayer].color
+              blockedBy: players[currentPlayer]?.color || ''
             }
             return newBoard
           })
@@ -99,20 +112,13 @@ export const useBingoGame = (initialSize: number) => {
 
           if (!currentColor) return prevBoard
 
-          if (newBoard[index].blocked) return prevBoard
+          if (newBoard[index]?.blocked) return prevBoard
 
-          if (!newBoard[index].colors.includes(currentColor)) {
-            newBoard[index].colors = [...newBoard[index].colors, currentColor]
-            newBoard[index].completedBy = [...(newBoard[index].completedBy || []), currentColor]
-
-            if (newBoard[index].difficulty && 
-                newBoard[index].difficulty !== 'normal' && 
-                newBoard[index].reward === 'block') {
-              setBlockingState({
-                isBlockingMode: true,
-                playerWithBlock: currentPlayer,
-                earnedFromCell: index
-              })
+          if (!newBoard[index]?.colors?.includes(currentColor)) {
+            const cell = newBoard[index];
+            if (cell) {
+              cell.colors = [...cell.colors, currentColor];
+              cell.completedBy = [...cell.completedBy, currentColor];
             }
           }
           return newBoard
@@ -184,7 +190,7 @@ export const useBingoGame = (initialSize: number) => {
       
       if (winners.length > 1) {
         setWinner(-1) // Tie
-      } else if (winners.length === 1) {
+      } else if (winners.length === 1 && winners[0]) {
         setWinner(winners[0].team !== -1 ? winners[0].team : winners[0].id)
       }
     } catch (error) {
@@ -212,24 +218,38 @@ export const useBingoGame = (initialSize: number) => {
             players.some(p => p.color === color && p.team === playerOrTeam)
 
           const getCells = (line: WinningLine): BoardCell[] => {
+            const cells: BoardCell[] = [];
             switch (line.type) {
               case 'horizontal':
-                return Array.from({ length: boardSize }, (_, col) => 
-                  boardState[getIndex(line.index, col)])
+                for (let col = 0; col < boardSize; col++) {
+                  const cell = boardState[getIndex(line.index, col)];
+                  if (!cell) throw new Error('Invalid board state');
+                  cells.push(cell);
+                }
+                return cells;
               case 'vertical':
-                return Array.from({ length: boardSize }, (_, row) => 
-                  boardState[getIndex(row, line.index)])
+                for (let row = 0; row < boardSize; row++) {
+                  const cell = boardState[getIndex(row, line.index)];
+                  if (!cell) throw new Error('Invalid board state');
+                  cells.push(cell);
+                }
+                return cells;
               case 'diagonal':
-                return Array.from({ length: boardSize }, (_, i) => 
-                  boardState[getIndex(i, line.index === 1 ? i : boardSize - 1 - i)])
+                for (let i = 0; i < boardSize; i++) {
+                  const cell = boardState[getIndex(i, line.index === 1 ? i : boardSize - 1 - i)];
+                  if (!cell) throw new Error('Invalid board state');
+                  cells.push(cell);
+                }
+                return cells;
             }
+            return cells;
           }
 
           const cells = getCells(line)
           return cells.every(cell => 
             teamMode 
               ? cell.colors.some(isColorInTeam)
-              : cell.colors.includes(players[playerOrTeam].color)
+              : cell.colors.includes(players[playerOrTeam]?.color || '')
           )
         }
 

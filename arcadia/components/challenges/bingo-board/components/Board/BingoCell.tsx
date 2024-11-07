@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
-import { BoardCell } from '../shared/types';
+import type { BoardCell } from '../shared/types';
 import { cn } from '@/lib/utils';
 
 interface BingoCellProps {
@@ -77,7 +77,7 @@ export const BingoCell = React.memo<BingoCellProps>(({
         cell.difficulty &&
         cell.difficulty !== 'normal' &&
         cell.reward === 'block' &&
-        !cell.completedBy?.includes(cell.colors[currentPlayer])
+        !cell.completedBy?.includes(cell.colors[currentPlayer] || '')
       ) {
         handleRewardUnlock();
       }

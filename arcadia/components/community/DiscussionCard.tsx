@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MessageCircle, ChevronDown, Share2, Bookmark, Flag, Heart } from "lucide-react"
 import { CardWrapper } from "./shared/CardWrapper"
-import { Discussion, Comment } from "./types"
+import type { Discussion, Comment } from "./types"
 import { format } from 'date-fns'
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
 

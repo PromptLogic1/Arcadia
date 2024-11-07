@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Users, Trophy, Calendar, MapPin } from "lucide-react"
 import { DialogWrapper } from "./shared/DialogWrapper"
-import { Event } from "./types"
+import type { Event } from "./types"
 
 interface EventViewProps {
   event: Event

@@ -33,7 +33,7 @@ export interface BoardCell {
   reward?: 'block'
   blocked?: boolean
   blockedBy?: string // player/team color that blocked it
-  completedBy?: string[] // players/teams that completed this cell
+  completedBy: string[] // Make this required with empty array as default
 }
 
 export interface WinConditions {

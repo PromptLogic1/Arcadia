@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Info, Github, Mail, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { supabaseAuth, AuthError } from '@/lib/superbase_lib/supabase-auth'
+import { supabaseAuth, AuthError } from '@/lib/supabase_lib/supabase-auth'
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')

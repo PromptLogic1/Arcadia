@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThumbsUp, Bookmark, BookmarkCheck, Users, Grid, Clock } from 'lucide-react'
-import { Board } from "../shared/types"
+import type { Board } from "../shared/types"
 
 interface BoardCardProps {
   board: Board

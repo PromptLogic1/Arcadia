@@ -1,10 +1,10 @@
-import { Discussion, Event } from '../types'
+import type { Discussion, Event } from '../types'
 
 export const GAMES = ['All Games', 'Elden Ring', 'Fortnite', 'World of Warcraft', 'Cyberpunk 2077'] as const
-export type Game = typeof GAMES[number]
+export type Game = (typeof GAMES)[number]
 
 export const CHALLENGE_TYPES = ['All Challenges', 'Speed Run', 'Win Challenge', 'Bingo Battle'] as const
-export type ChallengeType = typeof CHALLENGE_TYPES[number]
+export type ChallengeType = (typeof CHALLENGE_TYPES)[number]
 
 export const MOCK_DISCUSSIONS: readonly Discussion[] = [
   {

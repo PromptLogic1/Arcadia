@@ -1,4 +1,4 @@
-import { ColorOption } from './types'
+import type { ColorOption } from './types'
 
 export const colorPalette: ColorOption[] = [
   { name: 'Cyan', color: 'bg-cyan-500', hoverColor: 'hover:bg-cyan-600' },

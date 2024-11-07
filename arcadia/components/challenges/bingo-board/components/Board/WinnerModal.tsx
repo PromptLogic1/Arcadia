@@ -2,7 +2,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Crown, Star, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Player } from '../shared/types'
+import type { Player } from '../shared/types'
 
 interface WinnerModalProps {
   winner: number | null
@@ -16,6 +16,10 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
   onReset,
 }) => {
   if (winner === null) return null
+
+  const winnerName = winner !== null && winner >= 0 && players[winner] 
+    ? players[winner].name 
+    : 'Unknown Player';
 
   return (
     <AnimatePresence>
@@ -48,18 +52,18 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
               </div>
               
               <h2 className="mt-6 text-2xl font-bold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent">
-                {winner === -1 ? "Time's up!" : `${players[winner].name} Wins!`}
+                {winner === -1 ? "Time's up!" : `${winnerName} Wins!`}
               </h2>
               
               <p className="mt-2 text-cyan-200 text-sm">
                 {winner === -1
                   ? 'The game has ended in a tie!'
-                  : `Congratulations to ${players[winner].name} for winning the Bingo Battle!`}
+                  : `Congratulations to ${winnerName} for winning the Bingo Battle!`}
               </p>
             </div>
 
             {/* Winner Display */}
-            {winner !== -1 && (
+            {winner !== -1 && winner !== null && players[winner] && (
               <div className="px-6 py-4 bg-gray-800/50 border-y border-cyan-500/20">
                 <div className="flex items-center justify-center gap-4">
                   <div 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Player } from '../components/shared/types'
+import type { Player } from '../components/shared/types'
 import { colorPalette } from '../components/shared/constants'
 
 export const usePlayerManagement = () => {
@@ -16,8 +16,8 @@ export const usePlayerManagement = () => {
   const [players, setPlayers] = useState<Player[]>(initialPlayers)
   const [teamNames, setTeamNames] = useState<[string, string]>(['Team 1', 'Team 2'])
   const [teamColors, setTeamColors] = useState<[string, string]>([
-    colorPalette[0].color,
-    colorPalette[1].color,
+    colorPalette[0]?.color || 'bg-cyan-500',
+    colorPalette[1]?.color || 'bg-fuchsia-500',
   ])
   const [currentPlayer, setCurrentPlayer] = useState<number>(0)
 
@@ -25,11 +25,14 @@ export const usePlayerManagement = () => {
     (index: number, name: string, color: string, team?: number): void => {
       setPlayers((prevPlayers) => {
         const newPlayers = [...prevPlayers]
-        newPlayers[index] = {
-          ...newPlayers[index],
-          name,
-          color,
-          ...(team !== undefined && { team }),
+        const currentPlayer = newPlayers[index]
+        if (currentPlayer) {
+          newPlayers[index] = {
+            ...currentPlayer,
+            name,
+            color,
+            ...(team !== undefined && { team }),
+          }
         }
         return newPlayers
       })
@@ -39,11 +42,14 @@ export const usePlayerManagement = () => {
 
   const addPlayer = useCallback((): void => {
     if (players.length < 4) {
+      const paletteItem = colorPalette[players.length % colorPalette.length]
+      if (!paletteItem) return
+
       const newPlayer: Player = {
-        ...colorPalette[players.length % colorPalette.length],
         name: `Player ${players.length + 1}`,
-        team: players.length % 2,
-        hoverColor: colorPalette[players.length % colorPalette.length].hoverColor,
+        color: paletteItem.color,
+        hoverColor: paletteItem.hoverColor,
+        team: players.length % 2
       }
       setPlayers((prevPlayers) => [...prevPlayers, newPlayer])
     }
@@ -83,8 +89,9 @@ export const usePlayerManagement = () => {
       setPlayers((prevPlayers) =>
         prevPlayers.map((player) => ({
           ...player,
-          team: player.team || 0,
-          color: teamColors[player.team || 0], // Use team color when enabling team mode
+          team: player.team ?? 0,
+          color: teamColors[player.team ?? 0] || teamColors[0],
+          hoverColor: player.hoverColor
         }))
       )
     }
