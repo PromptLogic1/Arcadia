@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BingoGrid } from '../layout/BingoLayout'
 import { Button } from '@/components/ui/button'
-import { Copy, HelpCircle, Share2, Monitor } from 'lucide-react'
+import { Copy, HelpCircle, Monitor, Bookmark, BookmarkCheck } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { BingoCell } from './BingoCell'
@@ -16,10 +16,12 @@ interface BoardProps {
   currentPlayer: number
   winner: number | null
   isOwner: boolean
+  isBookmarked: boolean
   isGameStarted: boolean
   lockoutMode: boolean
   onCellChange: (index: number, value: string) => void
   onCellClick: (index: number) => void
+  onBookmark?: () => void
   onReset: () => void
 }
 
@@ -30,10 +32,12 @@ const Board = React.memo<BoardProps>(({
   currentPlayer,
   winner,
   isOwner,
+  isBookmarked,
   isGameStarted,
   lockoutMode,
   onCellChange,
   onCellClick,
+  onBookmark,
   onReset,
 }) => {
   const [editingCell, setEditingCell] = useState<number | null>(null)
@@ -98,13 +102,19 @@ const Board = React.memo<BoardProps>(({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {}}
+                  onClick={onBookmark}
                   className="h-8 bg-gray-700/50 hover:bg-gray-700/80 border border-cyan-500/30"
                 >
-                  <Share2 className="h-4 w-4 text-cyan-400" />
+                  {isBookmarked ? (
+                    <BookmarkCheck className="h-4 w-4 text-cyan-400" />
+                  ) : (
+                    <Bookmark className="h-4 w-4 text-cyan-400" />
+                  )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Share Board</TooltipContent>
+              <TooltipContent>
+                {isBookmarked ? 'Remove from My Boards' : 'Add to My Boards'}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 

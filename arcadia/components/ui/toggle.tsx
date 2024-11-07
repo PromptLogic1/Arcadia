@@ -1,56 +1,45 @@
-import React from 'react';
-import { cva, VariantProps } from 'class-variance-authority';
+"use client"
 
-/**
- * Define toggle variants using Class Variance Authority (CVA)
- */
-export const toggleVariants = cva(
-  "px-4 py-2 rounded cursor-pointer transition-colors",
+import * as React from "react"
+import * as TogglePrimitive from "@radix-ui/react-toggle"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const toggleVariants = cva(
+  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
-      color: {
-        cyan: "bg-cyan-500 text-white",
-        fuchsia: "bg-fuchsia-500 text-white",
-        lime: "bg-lime-500 text-black",
-        yellow: "bg-yellow-500 text-black",
-        red: "bg-red-500 text-white",
-        blue: "bg-blue-500 text-white",
-        green: "bg-green-500 text-white",
-        purple: "bg-purple-500 text-white",
+      variant: {
+        default: "bg-transparent",
+        outline:
+          "border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground",
       },
       size: {
-        sm: "text-sm",
-        md: "text-md",
-        lg: "text-lg",
+        default: "h-9 px-2 min-w-9",
+        sm: "h-8 px-1.5 min-w-8",
+        lg: "h-10 px-2.5 min-w-10",
       },
     },
     defaultVariants: {
-      color: "cyan",
-      size: "md",
+      variant: "default",
+      size: "default",
     },
   }
-);
+)
 
-/**
- * Props interface for the Toggle component
- */
-interface ToggleProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof toggleVariants> {
-  variant?: keyof typeof toggleVariants.variants.color;
-  size?: keyof typeof toggleVariants.variants.size;
-}
+const Toggle = React.forwardRef<
+  React.ElementRef<typeof TogglePrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> &
+    VariantProps<typeof toggleVariants>
+>(({ className, variant, size, ...props }, ref) => (
+  <TogglePrimitive.Root
+    ref={ref}
+    className={cn(toggleVariants({ variant, size, className }))}
+    {...props}
+  />
+))
 
-/**
- * Toggle Component
- */
-const Toggle: React.FC<ToggleProps> = ({ variant, size, className, children, ...props }) => {
-  return (
-    <button
-      className={`${toggleVariants({ color: variant, size })} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
+Toggle.displayName = TogglePrimitive.Root.displayName
 
-export default Toggle;
+export { Toggle, toggleVariants }
