@@ -5,10 +5,10 @@ import type { Tables } from '@/types/database.types';
 
 interface UserSettingsProps {
   userId: string;
-  _userData: Tables['users']['Row'];
+  userData: Tables['users']['Row'];
 }
 
-export default function UserSettings({ userId, _userData }: UserSettingsProps) {
+export default function UserSettings({ userId, userData }: UserSettingsProps) {
   const [activeTab, setActiveTab] = useState('general');
 
   return (
