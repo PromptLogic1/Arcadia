@@ -34,16 +34,27 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [expandedBoardId, setExpandedBoardId] = useState<{ id: number | null, section: string | null }>({ id: null, section: null })
   const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch boards
   useEffect(() => {
     const fetchBoards = async () => {
       try {
+        setIsLoading(true)
+        setError(null)
         const response = await fetch('/api/boards')
+        if (!response.ok) {
+          throw new Error('Failed to fetch boards')
+        }
         const fetchedBoards: Board[] = await response.json()
         setBoards(fetchedBoards)
       } catch (error) {
         console.error('Failed to fetch boards:', error)
+        setError('Failed to load boards. Please try again later.')
+        setBoards([]) // Or use mock data as fallback
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -263,6 +274,16 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
           {sortedAndFilteredBoards.map(board => renderBoardCard(board, 'all'))}
         </div>
       </motion.div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-400 p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+          {error}
+        </div>
+      ) : null}
     </div>
   )
 }

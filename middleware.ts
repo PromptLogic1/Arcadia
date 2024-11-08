@@ -1,51 +1,62 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import type { Database } from '@/types/database.types'
 
-// Definiere den Request-Typ explizit
-interface CustomRequest extends Request {
-  nextUrl: URL
-}
-
-export async function middleware(req: CustomRequest) {
-  // Schnelle Rückgabe für statische Assets
-  if (
-    req.nextUrl.pathname.startsWith('/_next/') ||
-    req.nextUrl.pathname.startsWith('/static/') ||
-    req.nextUrl.pathname.includes('.')
-  ) {
-    return NextResponse.next()
-  }
-
+export async function middleware(request: Request) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createMiddlewareClient<Database>({ req: request, res })
 
-  // Optimiere Session-Handling
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+  // Get session
+  const { data: { session } } = await supabase.auth.getSession()
 
-    // Cache die Session-Info im Response-Header
+  // Protected Routes
+  const protectedRoutes = [
+    '/user/settings',
+    '/user/user-page',
+    // Add other protected routes here
+  ]
+
+  // Check if the current path is a protected route
+  const isProtectedRoute = protectedRoutes.some(route => 
+    request.url.includes(route)
+  )
+
+  if (isProtectedRoute) {
+    // If no session, redirect to login
+    if (!session) {
+      return NextResponse.redirect(new URL('/auth/login', request.url))
+    }
+
+    // If session exists but no user profile, redirect to profile creation
     if (session) {
-      res.headers.set('x-user-id', session.user.id)
-    }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', session.user.id)
+        .single()
 
-    // Update protected routes paths
-    const protectedRoutes = ['/profile', '/settings']
-    if (protectedRoutes.includes(req.nextUrl.pathname) && !session) {
-      return NextResponse.redirect(new URL('/auth/login', req.url))
+      if (!profile && !request.url.includes('/user/create-profile')) {
+        return NextResponse.redirect(new URL('/user/create-profile', request.url))
+      }
     }
-
-    return res
-  } catch (error) {
-    console.error('Middleware error:', error)
-    return res
   }
+
+  // For auth pages, redirect to home if already logged in
+  const authRoutes = ['/auth/login', '/auth/signup']
+  if (authRoutes.some(route => request.url.includes(route)) && session) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  return res
 }
 
-// Optimiere die Matcher-Konfiguration
+// Configure which routes use this middleware
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+    '/user/:path*',
+    '/challenges/:path*',
+    '/auth/:path*',
+    // Add other paths that need middleware protection
+  ]
 } 

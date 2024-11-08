@@ -89,28 +89,32 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
         {players.map((player, i) => (
           <Popover key={i}>
             <PopoverTrigger asChild>
-              <div className="flex flex-col items-center gap-1.5">
-                <Button
+              <div className="flex flex-col items-center gap-1.5 relative">
+                <div
                   className={`w-12 h-12 ${player.color} rounded-full relative group
-                    transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20`}
+                    transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20
+                    cursor-pointer`}
                   aria-label={`Edit ${player.name}`}
                 >
-                  <span className="text-lg font-bold">{player.name.charAt(0)}</span>
+                  <span className="text-lg font-bold absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    {player.name.charAt(0)}
+                  </span>
                   {isOwner && (
-                    <button
+                    <div
                       onClick={(e) => {
                         e.stopPropagation()
                         onRemovePlayer(i)
                       }}
                       className="absolute -top-1 -right-1 bg-gray-800/90 rounded-full p-1
                         opacity-0 group-hover:opacity-100 transition-opacity
-                        hover:bg-red-500/20 border border-red-500/30"
+                        hover:bg-red-500/20 border border-red-500/30 cursor-pointer"
+                      role="button"
                       aria-label={`Remove ${player.name}`}
                     >
                       <X className="h-3 w-3 text-red-400" />
-                    </button>
+                    </div>
                   )}
-                </Button>
+                </div>
                 <span className="text-xs text-cyan-300 truncate max-w-full">
                   {player.name}
                 </span>
@@ -181,16 +185,18 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
 
         {players.length < 4 && isOwner && (
           <div className="flex flex-col items-center gap-1.5">
-            <Button
+            <div
               onClick={onAddPlayer}
               className="w-12 h-12 bg-gray-700/50 hover:bg-gray-600/50 
                 border border-dashed border-cyan-500/30 rounded-full
                 transition-all duration-200 hover:scale-105
-                hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20"
+                hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20
+                cursor-pointer flex items-center justify-center"
+              role="button"
               aria-label="Add Player"
             >
               <PlusCircle className="h-6 w-6 text-cyan-400" />
-            </Button>
+            </div>
             <span className="text-xs text-cyan-300">Add Player</span>
           </div>
         )}
