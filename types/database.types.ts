@@ -92,12 +92,54 @@ export interface Database {
         Insert: Omit<Tables['tags']['Row'], 'id' | 'created_at'>
         Update: Partial<Tables['tags']['Insert']>
       }
+      discussions: {
+        Row: {
+          id: number
+          title: string
+          content: string
+          game: string
+          challenge_type: string | null
+          tags: string[]
+          upvotes: number
+          author_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['discussions']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Tables['discussions']['Row'], 'id' | 'created_at' | 'updated_at'>>
+      }
+      comments: {
+        Row: {
+          id: number
+          content: string
+          upvotes: number
+          author_id: string
+          discussion_id: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['comments']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Tables['comments']['Row'], 'id' | 'created_at' | 'updated_at'>>
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_discussion_upvotes: {
+        Args: {
+          discussion_id: number
+        }
+        Returns: void
+      }
+      add_comment: {
+        Args: {
+          p_discussion_id: number
+          p_content: string
+          p_author_id: string
+        }
+        Returns: Database['public']['Tables']['comments']['Row']
+      }
     }
     Enums: {
       [_ in never]: never

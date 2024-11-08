@@ -76,3 +76,50 @@ CREATE TRIGGER update_discussion_comment_count_trigger
 AFTER INSERT OR DELETE ON comments
 FOR EACH ROW
 EXECUTE FUNCTION update_discussion_comment_count();
+
+-- Bingo board statistics update
+CREATE OR REPLACE FUNCTION update_bingo_board_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' AND NEW.status = 'completed' THEN
+        -- Update creator stats or other relevant statistics
+        UPDATE users
+        SET experience_points = experience_points + 50
+        WHERE id = NEW.creator_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_bingo_board_stats_trigger
+AFTER UPDATE ON bingo_boards
+FOR EACH ROW
+EXECUTE FUNCTION update_bingo_board_stats();
+
+-- User experience points trigger
+CREATE OR REPLACE FUNCTION update_user_experience()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'completed' THEN
+        UPDATE users
+        SET experience_points = experience_points + (
+            SELECT CASE difficulty
+                WHEN 'easy' THEN 10
+                WHEN 'medium' THEN 20
+                WHEN 'hard' THEN 30
+                WHEN 'expert' THEN 50
+                ELSE 0
+            END
+            FROM challenges
+            WHERE id = NEW.challenge_id
+        )
+        WHERE id = NEW.user_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_user_experience_trigger
+AFTER UPDATE ON submissions
+FOR EACH ROW
+EXECUTE FUNCTION update_user_experience();
