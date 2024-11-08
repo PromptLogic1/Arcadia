@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Info, Github, Mail, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { supabaseAuth, AuthError } from '@/lib/supabase_lib/supabase-auth'
+import { supabaseAuth } from '@/lib/supabase_lib/supabase-auth'
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -32,9 +32,14 @@ export function SignUpForm() {
   useEffect(() => {
     const savedFormData = localStorage.getItem('signupForm')
     if (savedFormData) {
-      const { email, username } = JSON.parse(savedFormData)
-      setEmail(email || '')
-      setUsername(username || '')
+      try {
+        const { email, username } = JSON.parse(savedFormData)
+        setEmail(email || '')
+        setUsername(username || '')
+      } catch (e) {
+        console.error('Error loading saved form data:', e)
+        localStorage.removeItem('signupForm')
+      }
     }
   }, [])
 
@@ -49,17 +54,36 @@ export function SignUpForm() {
 
     // Only save non-sensitive data to localStorage
     if (field === 'email' || field === 'username') {
-      const currentData = localStorage.getItem('signupForm')
-      const existingData = currentData ? JSON.parse(currentData) : {}
-      localStorage.setItem('signupForm', JSON.stringify({
-        ...existingData,
-        [field]: value
-      }))
+      try {
+        const currentData = localStorage.getItem('signupForm')
+        const existingData = currentData ? JSON.parse(currentData) : {}
+        localStorage.setItem('signupForm', JSON.stringify({
+          ...existingData,
+          [field]: value
+        }))
+      } catch (e) {
+        console.error('Error saving form data:', e)
+      }
     }
 
     // Update password checks if password field changes
     if (field === 'password') {
       setPasswordChecks(supabaseAuth.checkPasswordRequirements(value))
+    }
+  }
+
+  const validateForm = () => {
+    if (!email || !password || !confirmPassword || !username) {
+      throw new Error('Please fill in all fields')
+    }
+    if (password !== confirmPassword) {
+      throw new Error('Passwords do not match')
+    }
+    if (username.length < 3) {
+      throw new Error('Username must be at least 3 characters long')
+    }
+    if (!Object.values(passwordChecks).every(check => check)) {
+      throw new Error('Password does not meet all requirements')
     }
   }
 
@@ -69,32 +93,55 @@ export function SignUpForm() {
     setLoading(true)
 
     try {
-      const signUpEmail = await supabaseAuth.signUp(
-        {
-          email,
-          password,
-          username
-        })
+      // Validate form
+      validateForm()
+
+      // Attempt signup with retry logic
+      let retryCount = 0
+      const maxRetries = 3
       
-      localStorage.removeItem('signupForm') // Clear saved data on success
-      router.push(`/auth/verify-email?email=${encodeURIComponent(signUpEmail)}`)
-    } catch (error) {
-      if (error instanceof AuthError) {
-        setError(error.message)
-      } else {
-        setError('An unexpected error occurred')
-        console.error(error)
+      while (retryCount < maxRetries) {
+        try {
+          await supabaseAuth.signUp({
+            email,
+            password,
+            username
+          })
+          
+          // Clear saved data on success
+          localStorage.removeItem('signupForm')
+          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+          return
+          
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('network') && retryCount < maxRetries - 1) {
+            retryCount++
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)) // Exponential backoff
+            continue
+          }
+          throw err
+        }
       }
+
+    } catch (error) {
+      console.error('Signup error:', error)
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred')
     } finally {
       setLoading(false)
     }
   }
 
   const handleOAuthLogin = async (provider: 'github' | 'google') => {
+    setError(null)
+    setLoading(true)
+
     try {
       await supabaseAuth.signInWithOAuth(provider)
     } catch (error) {
-      setError(error instanceof AuthError ? error.message : 'Failed to login with provider')
+      console.error('OAuth error:', error)
+      setError('Failed to login with provider. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 

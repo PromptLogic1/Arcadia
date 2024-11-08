@@ -23,8 +23,35 @@ export class AuthError extends Error {
   }
 }
 
+type NetworkOperation<T> = () => Promise<T>
+
 class SupabaseAuth {
   private supabase = createClientComponentClient<Database>()
+
+  private async handleNetworkError<T>(
+    operation: NetworkOperation<T>,
+    maxRetries = 3
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation()
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message.includes('fetch') || error.message.includes('network')) &&
+          attempt < maxRetries
+        ) {
+          // Wait with exponential backoff before retrying
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+          continue
+        }
+        throw error
+      }
+    }
+    // This should never be reached due to the throw in the catch block,
+    // but TypeScript needs it for type safety
+    throw new Error('Failed to complete operation after all retries')
+  }
 
   private handleSignUpError(error: SupabaseAuthError): never {
     console.error('Auth signup error:', error)
@@ -49,61 +76,65 @@ class SupabaseAuth {
   }
 
   public async signInWithOAuth(provider: 'github' | 'google'): Promise<void> {
-    const { error } = await this.supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-
-    if (error) {
-      throw new AuthError(error.message)
-    }
-  }
-
-  public async signUp(credentials: SignUpCredentials): Promise<string> {
-    try {
-      const { data, error: signUpError } = await this.supabase.auth.signUp({
-        email: credentials.email,
-        password: credentials.password,
+    return this.handleNetworkError<void>(async () => {
+      const { error } = await this.supabase.auth.signInWithOAuth({
+        provider,
         options: {
-          data: { 
-            username: credentials.username,
-            full_name: credentials.username,
-            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
-            pendingProfile: true
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: provider === 'google' ? {
+            access_type: 'offline',
+            prompt: 'consent',
+          } : undefined
         }
       })
 
-      if (signUpError) {
-        this.handleSignUpError(signUpError)
+      if (error) {
+        throw new AuthError(error.message)
       }
+    })
+  }
 
-      if (!data?.user) {
-        throw new AuthError('Failed to create user - No user data returned')
-      }
+  public async signUp(credentials: SignUpCredentials): Promise<void> {
+    return this.handleNetworkError<void>(async () => {
+      try {
+        const { error } = await this.supabase.auth.signUp({
+          email: credentials.email,
+          password: credentials.password,
+          options: {
+            data: {
+              username: credentials.username,
+              full_name: credentials.username,
+              avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
+              pendingProfile: true
+            },
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        })
 
-      return credentials.email
-    } catch (error) {
-      if (error instanceof AuthError) {
-        throw error
+        if (error) {
+          this.handleSignUpError(error)
+        }
+      } catch (error) {
+        if (error instanceof AuthError) {
+          throw error
+        }
+        console.error('Signup error:', error)
+        throw new AuthError('Failed to complete signup process')
       }
-      console.error('Signup error:', error)
-      throw new AuthError('Failed to complete signup process')
-    }
+    })
   }
 
   public async resendVerificationEmail(email: string): Promise<void> {
-    const { error } = await this.supabase.auth.resend({
-      type: 'signup',
-      email,
-    })
+    return this.handleNetworkError<void>(async () => {
+      const { error } = await this.supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
 
-    if (error) {
-      throw new AuthError(error.message)
-    }
+      if (error) {
+        throw new AuthError(error.message)
+      }
+    })
   }
 }
 
