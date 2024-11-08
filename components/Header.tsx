@@ -107,23 +107,6 @@ const Header: React.FC = () => {
     { href: '/about', label: 'About' },
   ], [])
 
-  // Verbesserter Link-Click Handler
-  const handleLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Verhindere Standard-Navigation
-    e.preventDefault()
-    
-    // Hole href aus dem geklickten Link
-    const href = e.currentTarget.getAttribute('href')
-    if (!href) return
-
-    // Schließe Mobile Menü und Suche
-    setIsMenuOpen(false)
-    setIsSearchOpen(false)
-
-    // Navigiere zur neuen Seite
-    window.location.href = href
-  }, [])
-
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
@@ -148,7 +131,6 @@ const Header: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
-              onClick={handleLinkClick}
               className={cn(
                 "px-4 py-2 text-base font-medium rounded-md transition-all duration-200",
                 "hover:bg-cyan-500/10 hover:text-cyan-400",
@@ -345,7 +327,6 @@ const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={handleLinkClick}
                   className={`block py-2 px-3 rounded-md text-lg font-medium transition-colors duration-200 ${
                     isActive(item.href)
                       ? 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500'
