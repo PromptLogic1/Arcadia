@@ -56,17 +56,10 @@ As a logged-in user, I inherit guest permissions and can also:
 ### Premium User
 As a premium user, I inherit authenticated user permissions and get enhanced features:
 - Community Enhancements:
-  - [ ] Create featured/highlighted discussions
-  - [ ] Extended edit time window (72 hours)
   - [ ] Priority comment visibility
   - [ ] Unlimited upvotes/downvotes
   - [ ] Custom profile badges and themes
-  - [ ] Create private discussion groups
-  - [ ] Advanced search filters
-  - [ ] Follow unlimited discussions
   - [ ] Create and manage events
-  - [ ] Advanced notification controls
-  - [ ] Access to premium-only forums
   - [ ] Early access to new features
   - [ ] Ad-free experience
   - [ ] Priority support queue
@@ -75,11 +68,8 @@ As a premium user, I inherit authenticated user permissions and get enhanced fea
   - [ ] Access to premium-only challenges
   - [ ] Unlimited daily submissions
   - [ ] Priority submission review
-  - [ ] Advanced solution feedback
-  - [ ] Access to solution explanations
   - [ ] Private leaderboards
   - [ ] Custom challenge paths
-  - [ ] Download solution history
   - [ ] Advanced analytics dashboard
   - [ ] Beta feature access
   - [ ] Premium achievement badges
@@ -156,9 +146,7 @@ As an administrator, I have complete system control:
 
 ### Premium User Features
 - [ ] Create featured discussions
-- [ ] Priority comment visibility
 - [ ] Custom profile badges
-- [ ] Create private discussion groups
 - [ ] Advanced search filters
 - [ ] Extended notification options
 - [ ] Analytics insights
@@ -191,7 +179,6 @@ As an administrator, I have complete system control:
 - [ ] See difficulty ratings
 
 ### Authenticated User Features
-- [ ] Submit solutions
 - [ ] Track progress
 - [ ] Earn points
 - [ ] View personal stats
@@ -289,3 +276,4 @@ As a user, I can:
 - [ ] Content creation tools
 - [ ] API access
 - [ ] Mobile app 
+- [ ] Desktop app
