@@ -20,18 +20,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${requestUrl.origin}/auth/error?error=rate_limited`)
   }
 
-  const cookieStore = cookies()
+  // Initialize Supabase client with async cookies
+  const cookieStore = await cookies()
   const supabase = createRouteHandlerClient<Database>({ 
-    cookies: () => cookieStore,
-    options: {
-      db: {
-        schema: 'public'
-      },
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true
-      }
-    }
+    cookies: () => cookieStore 
   })
   
   try {
@@ -42,85 +34,94 @@ export async function GET(request: Request) {
       throw new Error('Failed to exchange auth code')
     }
 
-    // Wait a short moment to ensure auth is completed
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Get authenticated user data using Promise.all for parallel requests
+    const [userResponse, existingUserResponse] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from('users')
+        .select('id')
+        .eq('auth_id', (await supabase.auth.getUser()).data.user?.id || '')
+        .maybeSingle()
+    ])
 
-    // Get the session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    if (sessionError) {
-      console.error('Session error:', sessionError)
-      throw new Error('Failed to get session')
+    const { data: { user }, error: userError } = userResponse
+    const { data: existingUser, error: checkError } = existingUserResponse
+
+    if (userError || !user) {
+      throw new Error('Failed to get authenticated user')
     }
-    if (!session?.user) {
-      throw new Error('No user in session')
+
+    if (checkError) {
+      console.error('Error checking existing user:', checkError)
+      throw new Error(`Database error: ${checkError.message}`)
+    }
+
+    // Ensure required user data exists
+    if (!user.email) {
+      throw new Error('User email is required')
     }
 
     // Get user metadata
-    const metadata = session.user.user_metadata || {}
-    const username = metadata.username || session.user.email?.split('@')[0] || 'user'
+    const metadata = user.user_metadata || {}
+    const username = metadata.username || user.email.split('@')[0] || 'user'
 
-    try {
-      // Check if user already exists in the users table
-      const { data: existingUser, error: checkError } = await supabase
+    if (!existingUser) {
+      // Create new user profile
+      const newUser = {
+        auth_id: user.id,
+        email: user.email,
+        username,
+        full_name: metadata.full_name as string | null,
+        avatar_url: metadata.avatar_url as string | null || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`,
+        role: 'user' as const,
+        experience_points: 0,
+        preferred_language: null,
+        github_username: null,
+        bio: null,
+        is_active: true,
+        last_login_at: new Date().toISOString()
+      } satisfies Database['public']['Tables']['users']['Insert']
+
+      const { error: insertError } = await supabase
         .from('users')
-        .select('id')
-        .eq('auth_id', session.user.id)
-        .maybeSingle()
+        .insert(newUser)
 
-      if (checkError) {
-        console.error('Error checking existing user:', checkError)
-        throw new Error(`Database error: ${checkError.message}`)
+      if (insertError) {
+        console.error('Profile creation error:', insertError)
+        throw new Error(`Failed to create profile: ${insertError.message}`)
       }
 
-      if (!existingUser) {
-        // Create new user profile with service role
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([{
-            auth_id: session.user.id,
-            email: session.user.email || '',
-            username: username,
-            full_name: metadata.full_name || null,
-            avatar_url: metadata.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`,
-            role: 'user',
-            experience_points: 0,
-            preferred_language: null,
-            github_username: null,
-            bio: null,
-            is_active: true,
-            last_login_at: new Date().toISOString()
-          }])
-
-        if (insertError) {
-          console.error('Profile creation error:', insertError)
-          throw new Error(`Failed to create profile: ${insertError.message}`)
-        }
-
-        // Redirect new users to their profile page
-        return NextResponse.redirect(`${requestUrl.origin}/user/user-page`)
-      }
-
-      // Existing users go to dashboard
-      return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
-
-    } catch (dbError) {
-      console.error('Database operation error:', dbError)
-      throw dbError
+      // Use Response objects for better control
+      const response = NextResponse.redirect(
+        new URL('/user/user-page', requestUrl.origin)
+      )
+      response.headers.set('Cache-Control', 'no-store')
+      return response
     }
+
+    // Update last login for existing users using Promise
+    await Promise.resolve(
+      supabase
+        .from('users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('auth_id', user.id)
+    )
+
+    // Use Response objects for existing users too
+    const response = NextResponse.redirect(
+      new URL('/dashboard', requestUrl.origin)
+    )
+    response.headers.set('Cache-Control', 'no-store')
+    return response
 
   } catch (error) {
     console.error('Auth/Profile Error:', error)
     
     // Sign out on error
-    try {
-      await supabase.auth.signOut()
-    } catch (signOutError) {
-      console.error('Sign out error:', signOutError)
-    }
+    await supabase.auth.signOut()
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.redirect(
-      `${requestUrl.origin}/auth/error?error=${encodeURIComponent(errorMessage)}`
+      new URL(`/auth/error?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin)
     )
   }
 }

@@ -3,6 +3,9 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 
+export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -10,7 +13,8 @@ export async function GET(request: Request) {
     const category = searchParams.get('category')
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
     
     let query = supabase.from('challenges')
       .select(`
@@ -34,16 +38,23 @@ export async function GET(request: Request) {
 
     if (error) throw error
 
-    return NextResponse.json(data)
+    const response = NextResponse.json(data)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
     console.error('Error fetching challenges:', error)
-    return NextResponse.json({ error: 'Error fetching challenges' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error fetching challenges' }, 
+      { status: 500 }
+    )
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
@@ -88,7 +99,9 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    return NextResponse.json(data)
+    const response = NextResponse.json(data)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
     console.error('Error creating challenge:', error)
     return NextResponse.json(

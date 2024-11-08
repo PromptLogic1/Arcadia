@@ -3,9 +3,14 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 
+export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
@@ -33,10 +38,9 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    // Hier würde normalerweise die Code-Ausführung getriggert
-    // Zum Beispiel durch einen Webhook oder eine Queue
-
-    return NextResponse.json(data)
+    const response = NextResponse.json(data)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
     console.error('Error creating submission:', error)
     return NextResponse.json(
@@ -51,7 +55,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const challenge_id = searchParams.get('challenge_id')
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
@@ -77,7 +83,9 @@ export async function GET(request: Request) {
 
     if (error) throw error
 
-    return NextResponse.json(data)
+    const response = NextResponse.json(data)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
     console.error('Error fetching submissions:', error)
     return NextResponse.json(

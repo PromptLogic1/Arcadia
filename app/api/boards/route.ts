@@ -21,13 +21,19 @@ const initialBoards: Board[] = [
       majority: false
     }
   },
-  // Add more mock boards as needed
 ]
+
+export const runtime = 'edge' // Use edge runtime for better performance
+export const dynamic = 'force-dynamic' // Ensure fresh data on each request
 
 export async function GET() {
   try {
-    return NextResponse.json(initialBoards)
+    // Set appropriate cache headers
+    const response = NextResponse.json(initialBoards)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
   } catch (error) {
+    console.error('Error fetching boards:', error)
     return NextResponse.json(
       { error: 'Failed to fetch boards' },
       { status: 500 }
