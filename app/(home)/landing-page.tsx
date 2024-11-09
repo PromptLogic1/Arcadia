@@ -10,6 +10,7 @@ import UpcomingEventsSection from '@/components/landing-page/UpcomingEventsSecti
 import FAQSection from '@/components/landing-page/FAQSection'
 import { Grid, Zap, Trophy, Puzzle } from 'lucide-react'
 import { type Challenge } from '@/types/challenges'
+import { motion } from 'framer-motion'
 
 const FEATURED_CHALLENGES: Challenge[] = [
   {
@@ -87,31 +88,92 @@ const LandingPage: React.FC = () => {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    document.documentElement.style.scrollBehavior = 'smooth'
+    return () => {
+      document.documentElement.style.scrollBehavior = 'auto'
+    }
+  }, [])
+
+  const sectionVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100">
       <main className="flex-grow">
         <Suspense fallback={<LoadingSpinner />}>
-          <HeroSection currentChallenge={currentChallenge} challenges={FEATURED_CHALLENGES} />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={sectionVariants}
+          >
+            <HeroSection currentChallenge={currentChallenge} challenges={FEATURED_CHALLENGES} />
+          </motion.div>
         </Suspense>
         
         <Suspense fallback={<LoadingSpinner />}>
-          <FeaturedGamesCarousel />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={sectionVariants}
+          >
+            <FeaturedGamesCarousel />
+          </motion.div>
         </Suspense>
         
         <Suspense fallback={<LoadingSpinner />}>
-          <FeaturedChallenges challenges={FEATURED_CHALLENGES} />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={sectionVariants}
+          >
+            <FeaturedChallenges challenges={FEATURED_CHALLENGES} />
+          </motion.div>
         </Suspense>
         
         <Suspense fallback={<LoadingSpinner />}>
-          <PartnersSection />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={sectionVariants}
+          >
+            <PartnersSection />
+          </motion.div>
         </Suspense>
         
         <Suspense fallback={<LoadingSpinner />}>
-          <UpcomingEventsSection />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={sectionVariants}
+          >
+            <UpcomingEventsSection />
+          </motion.div>
         </Suspense>
         
         <Suspense fallback={<LoadingSpinner />}>
-          <FAQSection />
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={sectionVariants}
+          >
+            <FAQSection />
+          </motion.div>
         </Suspense>
       </main>
     </div>

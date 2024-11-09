@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
-import dynamic from 'next/dynamic'
 import { BoardCard } from './components/cards/BoardCard'
-import { GAMES, type Game, type Board } from './components/shared/types'
+import { GAMES, type Game, type Board, isSet } from './components/shared/types'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
+import BingoBoardDetail from './BingoBoardDetail'
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -22,13 +24,15 @@ interface BingoBattlesProps {
   initialBoards?: Board[]
 }
 
-const BingoBoardDetail = dynamic(() => import('./BingoBoardDetail'), {
-  loading: () => <div>Loading board...</div>,
-})
-
 export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) {
-  // State
-  const [boards, setBoards] = useState<Board[]>(initialBoards)
+  // Convert initialBoards votedBy from plain object to Set
+  const processedInitialBoards = initialBoards.map(board => ({
+    ...board,
+    votedBy: new Set(board.votedBy)
+  }))
+  
+  // Update state initialization with processed boards
+  const [boards, setBoards] = useState<Board[]>(processedInitialBoards)
   const [filterGame, setFilterGame] = useState<Game>("All Games")
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
   const [searchTerm, setSearchTerm] = useState<string>("")
@@ -36,6 +40,18 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
   const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const supabase = createClientComponentClient()
+  const router = useRouter()
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsAuthenticated(!!session)
+    }
+    checkAuth()
+  }, [supabase.auth])
 
   // Fetch boards
   useEffect(() => {
@@ -48,11 +64,16 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
           throw new Error('Failed to fetch boards')
         }
         const fetchedBoards: Board[] = await response.json()
-        setBoards(fetchedBoards)
+        // Convert votedBy to Set for each board
+        const processedBoards = fetchedBoards.map(board => ({
+          ...board,
+          votedBy: new Set(board.votedBy)
+        }))
+        setBoards(processedBoards)
       } catch (error) {
         console.error('Failed to fetch boards:', error)
         setError('Failed to load boards. Please try again later.')
-        setBoards([]) // Or use mock data as fallback
+        setBoards([])
       } finally {
         setIsLoading(false)
       }
@@ -65,6 +86,11 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
 
   // Board actions
   const createNewBoard = useCallback(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
+
     const newBoard: Board = {
       id: Date.now(),
       name: `Bingo Board ${boards.length + 1}`,
@@ -81,24 +107,48 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
       winConditions: {
         line: true,
         majority: false
-      }
+      },
+      difficulty: 'medium',
+      isPublic: true,
     }
     setBoards(prevBoards => [newBoard, ...prevBoards])
     setExpandedBoardId({ id: newBoard.id, section: 'all' })
-  }, [boards.length])
+  }, [boards.length, isAuthenticated, router])
 
   const voteBoard = useCallback((boardId: number, userId: string) => {
+    if (!isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
+    
     setBoards(prevBoards => prevBoards.map(board => {
-      if (board.id === boardId && !board.votedBy.has(userId)) {
+      if (board.id === boardId) {
+        const hasVoted = isSet(board.votedBy) 
+          ? board.votedBy.has(userId)
+          : board.votedBy.includes(userId)
+        
         const newVotedBy = new Set(board.votedBy)
-        newVotedBy.add(userId)
-        return { ...board, votes: board.votes + 1, votedBy: newVotedBy }
+        
+        if (hasVoted) {
+          // Remove vote
+          newVotedBy.delete(userId)
+          return { ...board, votes: board.votes - 1, votedBy: newVotedBy }
+        } else {
+          // Add vote
+          newVotedBy.add(userId)
+          return { ...board, votes: board.votes + 1, votedBy: newVotedBy }
+        }
       }
       return board
     }))
-  }, [])
+  }, [isAuthenticated, router])
 
   const toggleBookmark = useCallback((boardId: number) => {
+    if (!isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
+    
     setBoards(prevBoards => {
       const updatedBoards = prevBoards.map(board => 
         board.id === boardId ? { ...board, bookmarked: !board.bookmarked } : board
@@ -107,67 +157,107 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
       setBookmarkedBoards(updatedBookmarkedBoards)
       return updatedBoards
     })
-  }, [])
+  }, [isAuthenticated, router])
 
   const selectBoard = useCallback((board: Board, section: string) => {
-    setExpandedBoardId(current => 
-      current.id === board.id && current.section === section 
+    console.log('Selecting board:', board.id, 'Section:', section)
+    setExpandedBoardId(current => {
+      const newState = current.id === board.id && current.section === section 
         ? { id: null, section: null }
         : { id: board.id, section }
-    )
+      console.log('New expanded state:', newState)
+      return newState
+    })
   }, [])
+
+  // Add saveAsCopy function
+  const saveAsCopy = useCallback((boardId: number) => {
+    if (!isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
+
+    const originalBoard = boards.find(b => b.id === boardId)
+    if (!originalBoard) return
+
+    const newBoard: Board = {
+      ...originalBoard,
+      id: Date.now(),
+      name: `Copy of ${originalBoard.name}`,
+      bookmarked: false,
+      votedBy: new Set(),
+      votes: 0,
+      creator: "CurrentUser", // Should be replaced with actual user
+      clonedFrom: originalBoard.id,
+      isPublic: false,
+    }
+
+    setBoards(prevBoards => [newBoard, ...prevBoards])
+    setBookmarkedBoards(prev => [...prev, newBoard])
+  }, [boards, isAuthenticated, router])
 
   // Filtered and sorted boards
   const sortedAndFilteredBoards = useMemo(() => {
     return boards
-      .filter(board =>
-        (filterGame === "All Games" || board.game === filterGame) &&
-        board.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      .filter(board => {
+        const matchesFilter = filterGame === "All Games" || board.game === filterGame
+        const matchesSearch = board.name.toLowerCase().includes(searchTerm.toLowerCase())
+        return matchesFilter && matchesSearch
+      })
       .sort((a, b) => {
         if (sortBy === SORT_OPTIONS.NEWEST) {
-          return b.createdAt.getTime() - a.createdAt.getTime()
+          const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
+          const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)
+          return dateB.getTime() - dateA.getTime()
         }
         return b.votes - a.votes
       })
   }, [boards, filterGame, searchTerm, sortBy])
 
   // Render board card
-  const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => (
-    <motion.div 
-      key={`${section}-${board.id}`} 
-      layout 
-      className="w-full"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-    >
-      <BoardCard
-        board={board}
-        section={section}
-        onVote={voteBoard}
-        onBookmark={toggleBookmark}
-        onSelect={selectBoard}
-      />
-      <AnimatePresence>
-        {expandedBoardId.id === board.id && expandedBoardId.section === section && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-gray-800 border-2 border-t-0 border-cyan-500 rounded-b-lg overflow-hidden"
-          >
-            <BingoBoardDetail
-              board={board}
-              onBookmark={() => toggleBookmark(board.id)}
-              onClose={() => setExpandedBoardId({ id: null, section: null })}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  ), [expandedBoardId, selectBoard, toggleBookmark, voteBoard])
+  const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => {
+    const debugInfo = () => {
+      console.log('Expanded Board ID:', expandedBoardId, 'Current Board:', board.id, 'Section:', section)
+    }
+    debugInfo()
+
+    return (
+      <motion.div 
+        key={`${section}-${board.id}`} 
+        layout 
+        className="w-full"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+      >
+        <BoardCard
+          board={board}
+          section={section}
+          onVote={voteBoard}
+          onBookmark={toggleBookmark}
+          onSelect={selectBoard}
+          onSaveAsCopy={saveAsCopy}
+        />
+        <AnimatePresence>
+          {expandedBoardId.id === board.id && expandedBoardId.section === section && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-gray-800 border-2 border-t-0 border-cyan-500 rounded-b-lg overflow-hidden"
+            >
+              <BingoBoardDetail
+                board={board}
+                onBookmark={() => toggleBookmark(board.id)}
+                onClose={() => setExpandedBoardId({ id: null, section: null })}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    )
+  }, [expandedBoardId, selectBoard, toggleBookmark, voteBoard, saveAsCopy])
 
   return (
     <div className="container mx-auto p-6 space-y-8">

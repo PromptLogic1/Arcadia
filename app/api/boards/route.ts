@@ -12,14 +12,16 @@ const initialBoards: Board[] = [
     votes: 15,
     game: "World of Warcraft",
     createdAt: new Date(),
-    votedBy: new Set(),
+    votedBy: [],
     bookmarked: false,
     creator: "WoWMaster",
     avatar: "/avatars/default.jpg",
     winConditions: {
       line: true,
       majority: false
-    }
+    },
+    difficulty: 'medium',
+    isPublic: true
   },
 ]
 

@@ -1,5 +1,3 @@
-// community.tsx
-
 'use client'
 
 import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react'

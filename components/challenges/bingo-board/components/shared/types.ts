@@ -49,12 +49,15 @@ export interface Board {
   timeLeft: number
   votes: number
   game: Game
-  createdAt: Date
-  votedBy: Set<string>
+  createdAt: Date | string
+  votedBy: Set<string> | string[] // Allow both Set and array for serialization
   bookmarked: boolean
   creator: string
   avatar: string
   winConditions: WinConditions
+  difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
+  clonedFrom?: number  // Reference to original board if this is a clone
+  isPublic: boolean    // Whether this board appears in "All Boards"
 }
 
 export interface BingoBoardDetailProps {
@@ -69,4 +72,8 @@ export interface BoardCardProps {
   onVote: (boardId: number, userId: string) => void
   onBookmark: (boardId: number) => void
   onSelect: (board: Board, section: string) => void
+}
+
+export function isSet(value: Set<string> | string[]): value is Set<string> {
+  return value instanceof Set
 }

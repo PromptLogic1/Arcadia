@@ -1,3 +1,5 @@
+'use client'
+
 import Link from "next/link"
 import { GamepadIcon } from 'lucide-react'
 import NeonText from '@/components/ui/NeonText'

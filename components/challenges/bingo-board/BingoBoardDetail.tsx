@@ -7,26 +7,37 @@ import { GameControls } from './components/GameControls'
 import { useBingoGame } from './hooks/useBingoGame'
 import { usePlayerManagement } from './hooks/usePlayerManagement'
 import { useTimer } from './hooks/useTimer'
-import type { BingoBoardDetailProps } from './components/shared/types'
+import type { BingoBoardDetailProps, BoardCell } from './components/shared/types'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { BingoContainer } from './components/layout/BingoLayout'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
 
 const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   board,
   onBookmark,
+  onClose,
 }) => {
-  // Reference to useBingoGame hook
+  // Add state for tracking temporary changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+
+  // Reference to useBingoGame hook with modified handlers
   const {
     boardState,
+    setBoardState,
     winner,
     boardSize,
     setBoardSize,
     winConditions,
     setWinConditions,
     resetBoard,
-    handleCellChange,
-    handleCellClick: handleCellClickBase,
+    handleCellChange: baseHandleCellChange,
+    handleCellClick: baseHandleCellClick,
     checkWinningCondition,
+    generateBoard,
   } = useBingoGame(board.size)
 
   // Reference to usePlayerManagement hook
@@ -52,59 +63,81 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     setTime,
   } = useTimer(board.timeLeft, () => checkWinningCondition(players, true))
 
-  const [isOwner] = useState<boolean>(true)
+  // Initialize board state
+  useEffect(() => {
+    try {
+      const initialBoard = generateBoard().map(cell => ({
+        text: cell.text || 'Click to edit...',
+        colors: [] as string[],
+        completedBy: [] as string[],
+      })) satisfies BoardCell[]
+      
+      setBoardState(initialBoard)
+    } catch (error) {
+      console.error('Error initializing board:', error)
+      setError(error instanceof Error ? error : new Error('Failed to initialize board'))
+    }
+  }, [generateBoard, setBoardState])
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsAuthenticated(!!session)
+    }
+    checkAuth()
+  }, [supabase.auth])
+
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true)
   const [teamMode, setTeamMode] = useState<boolean>(false)
   const [lockout, setLockout] = useState<boolean>(true)
   const [error, setError] = useState<Error | null>(null)
 
-  const handleCellClick = useCallback((index: number): void => {
-    if (!isTimerRunning || winner !== null || !players[currentPlayer]) return
-    try {
-      handleCellClickBase(index, currentPlayer, players)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to handle cell click'))
-    }
-  }, [isTimerRunning, winner, handleCellClickBase, currentPlayer, players])
-
+  // Add cleanup effect that uses onClose
   useEffect(() => {
-    try {
-      resetBoard()
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to reset board'))
+    return () => {
+      if (hasUnsavedChanges && !isAuthenticated) {
+        resetBoard()
+        onClose()
+      }
     }
-  }, [resetBoard])
+  }, [hasUnsavedChanges, isAuthenticated, resetBoard, onClose])
 
-  const handleTeamModeToggle = useCallback((enabled: boolean): void => {
-    try {
-      setTeamMode(enabled)
-      toggleTeamMode(enabled)
-      resetBoard()
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to toggle team mode'))
+  // Wrap handleCellChange to track changes
+  const handleCellChange = useCallback((index: number, value: string) => {
+    if (!isAuthenticated) {
+      setHasUnsavedChanges(true)
     }
-  }, [toggleTeamMode, resetBoard])
+    baseHandleCellChange(index, value)
+  }, [baseHandleCellChange, isAuthenticated])
 
-  const handleTimeChange = useCallback((timeString: string): void => {
-    const totalSeconds = parseInt(timeString)
-    if (!isNaN(totalSeconds)) {
-      setTime(totalSeconds)
+  // Create a wrapper for handleCellClick
+  const handleCellClick = useCallback((index: number) => {
+    baseHandleCellClick(index, currentPlayer, players)
+  }, [baseHandleCellClick, currentPlayer, players])
+
+  // Handle actions that require authentication
+  const handleAuthenticatedAction = useCallback((action: string) => {
+    if (!isAuthenticated) {
+      const shouldLogin = window.confirm(
+        `You need to be logged in to ${action}. Would you like to log in now?`
+      )
+      if (shouldLogin) {
+        router.push('/auth/login')
+      }
+      return false
     }
-  }, [setTime])
+    return true
+  }, [isAuthenticated, router])
 
-  const handleStartBoard = useCallback((): void => {
-    try {
-      setIsTimerRunning(prev => !prev)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to toggle board state'))
+  // Wrap timer toggle to check authentication
+  const handleTimerToggle = useCallback(() => {
+    if (!isTimerRunning) {
+      // Only check auth when starting the board
+      if (!handleAuthenticatedAction('start the board')) return
     }
-  }, [setIsTimerRunning])
-
-  const handleError = useCallback((): void => {
-    setError(null)
-    resetBoard()
-    setIsTimerRunning(false)
-  }, [resetBoard, setIsTimerRunning])
+    setIsTimerRunning(!isTimerRunning)
+  }, [isTimerRunning, handleAuthenticatedAction, setIsTimerRunning])
 
   if (error) {
     return (
@@ -112,7 +145,11 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
         <h3 className="text-red-500 font-bold">Error</h3>
         <p className="text-red-400">{error.message}</p>
         <Button 
-          onClick={handleError}
+          onClick={() => {
+            setError(null)
+            resetBoard()
+            setIsTimerRunning(false)
+          }}
           className="mt-2 bg-red-500 hover:bg-red-600 text-white"
         >
           Reset Board
@@ -131,7 +168,7 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
             players={players}
             currentPlayer={currentPlayer}
             winner={winner}
-            isOwner={isOwner}
+            isOwner={true} // Allow editing for all users
             isBookmarked={board.bookmarked}
             isGameStarted={isTimerRunning}
             lockoutMode={lockout}
@@ -140,12 +177,26 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
             onBookmark={onBookmark}
             onReset={resetBoard}
           />
+          {hasUnsavedChanges && !isAuthenticated && (
+            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-yellow-400 text-sm">
+                Log in to save your changes
+                <Button
+                  onClick={() => router.push('/auth/login')}
+                  variant="link"
+                  className="text-yellow-400 hover:text-yellow-300 underline ml-2"
+                >
+                  Login now
+                </Button>
+              </p>
+            </div>
+          )}
         </div>
         <div className="lg:flex-[1.5] lg:min-w-[400px] lg:max-w-[500px]">
           <GameControls
             players={players}
-            teamNames={teamNames as [string, string]}
-            teamColors={teamColors as [string, string]}
+            teamNames={teamNames}
+            teamColors={teamColors}
             teamMode={teamMode}
             time={time}
             isTimerRunning={isTimerRunning}
@@ -153,20 +204,27 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
             soundEnabled={soundEnabled}
             lockout={lockout}
             winConditions={winConditions}
-            isOwner={isOwner}
+            isOwner={true} // Allow all controls for guests
             onUpdatePlayer={updatePlayerInfo}
             onAddPlayer={addPlayer}
             onRemovePlayer={removePlayer}
             onUpdateTeamName={updateTeamName}
             onUpdateTeamColor={updateTeamColor}
-            onTimeChange={handleTimeChange}
-            onTimerToggle={() => setIsTimerRunning(!isTimerRunning)}
+            onTimeChange={(timeString) => setTime(parseInt(timeString))}
+            onTimerToggle={handleTimerToggle}
             onBoardSizeChange={setBoardSize}
             onSoundToggle={setSoundEnabled}
-            onTeamModeToggle={handleTeamModeToggle}
+            onTeamModeToggle={(enabled) => {
+              setTeamMode(enabled)
+              toggleTeamMode(enabled)
+            }}
             onLockoutToggle={setLockout}
             onWinConditionsChange={setWinConditions}
-            onStartBoard={handleStartBoard}
+            onStartBoard={() => {
+              if (handleAuthenticatedAction('start the board')) {
+                setIsTimerRunning(true)
+              }
+            }}
             onResetBoard={resetBoard}
             formatTime={formatTime}
           />

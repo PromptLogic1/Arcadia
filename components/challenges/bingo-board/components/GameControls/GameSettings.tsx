@@ -1,5 +1,5 @@
 import React from 'react'
-import { Lock, Volume2, VolumeX, Play, Pause, RotateCcw, Save, Upload, Trophy } from 'lucide-react'
+import { Lock, Volume2, VolumeX, Play, Pause, RotateCcw, Save, Trophy } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -171,30 +171,6 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
 
       <div className="grid grid-cols-2 gap-2">
         <Button
-          onClick={onStartBoard}
-          disabled={!isOwner}
-          className={cn(
-            "h-8 text-sm",
-            isTimerRunning
-              ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-              : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-cyan-500/30",
-            "border",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
-        >
-          {isTimerRunning ? (
-            <>
-              <Pause className="mr-2 h-4 w-4" />
-              Pause Board
-            </>
-          ) : (
-            <>
-              <Play className="mr-2 h-4 w-4" />
-              Start Board
-            </>
-          )}
-        </Button>
-        <Button
           onClick={onResetBoard}
           disabled={!isOwner}
           variant="outline"
@@ -203,9 +179,6 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <RotateCcw className="mr-2 h-4 w-4" />
           Reset
         </Button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -220,22 +193,32 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <TooltipContent>Coming soon!</TooltipContent>
           </Tooltip>
         </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className="h-8 text-sm bg-transparent border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
-                onClick={() => {}}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Load
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Coming soon!</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </div>
+
+      <Button
+        onClick={onStartBoard}
+        disabled={!isOwner}
+        className={cn(
+          "w-full h-10 text-base",
+          isTimerRunning
+            ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
+            : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-cyan-500/30",
+          "border",
+          "disabled:opacity-50 disabled:cursor-not-allowed"
+        )}
+      >
+        {isTimerRunning ? (
+          <>
+            <Pause className="mr-2 h-5 w-5" />
+            Pause Board
+          </>
+        ) : (
+          <>
+            <Play className="mr-2 h-5 w-5" />
+            Start Board
+          </>
+        )}
+      </Button>
     </div>
   )
 }
