@@ -1,8 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, Star, Shield, Trophy } from 'lucide-react';
 import type { BoardCell } from '../shared/types';
 import { cn } from '@/lib/utils';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
 interface BingoCellProps {
   cell: BoardCell;
@@ -17,9 +23,8 @@ interface BingoCellProps {
   onCellClick: (index: number) => void;
   onEditStart: (index: number) => void;
   onEditEnd: (index: number) => void;
-  progress?: number;
-  cellType?: 'pvp' | 'pve' | 'quest' | 'achievement';
   isPartOfWinningLine?: boolean;
+  cellType?: 'pvp' | 'pve' | 'quest' | 'achievement';
 }
 
 const FONT_SIZES = {
@@ -42,18 +47,20 @@ export const BingoCell = React.memo<BingoCellProps>(({
   onCellClick,
   onEditStart,
   onEditEnd,
-  progress = 0,
-  cellType,
   isPartOfWinningLine,
+  cellType,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [fontSize, setFontSize] = useState<number>(FONT_SIZES.max);
   const [isComposing, setIsComposing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleRewardUnlock = useCallback(() => {
     // Implement reward unlock logic
   }, []);
+
+  const isEmpty = !cell.text || cell.text.trim() === '';
 
   const handleCellClick = useCallback(
     (e: React.MouseEvent): void => {
@@ -146,23 +153,11 @@ export const BingoCell = React.memo<BingoCellProps>(({
     return () => window.removeEventListener('resize', handleResize);
   }, [adjustTextSize]);
 
-  const handleTextClick = useCallback(
-    (e: React.MouseEvent): void => {
-      e.stopPropagation();
-      if (!isEditing && isOwner && !isGameStarted) {
-        onEditStart(index);
-      }
-    },
-    [isEditing, isOwner, isGameStarted, index, onEditStart]
-  );
-
   const handleTextChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
       const newValue = e.target.value;
-      if (newValue.length <= MAX_CHARS) {
-        onCellChange(index, newValue);
-        requestAnimationFrame(adjustTextSize);
-      }
+      onCellChange(index, newValue);
+      requestAnimationFrame(adjustTextSize);
     },
     [index, onCellChange, adjustTextSize]
   );
@@ -200,85 +195,134 @@ export const BingoCell = React.memo<BingoCellProps>(({
   const textShadow =
     cell.colors.length > 0 ? '0 2px 4px rgba(0,0,0,0.8)' : '0 1px 2px rgba(0,0,0,0.5)';
 
-  const cellClasses = cn(
-    'relative aspect-square rounded-md border bg-gray-800/80',
-    'overflow-hidden',
-    'transition-[border-color] duration-200',
-    {
-      'border-cyan-500/20': !cell.blocked,
-      'border-gray-600/20': cell.blocked,
-      'border-cyan-500/40': isFocused || isEditing,
-      'ring-2 ring-cyan-400 shadow-lg shadow-cyan-400/20': isPartOfWinningLine,
-      'border-red-500/30': cellType === 'pvp',
-      'border-green-500/30': cellType === 'pve',
-      'border-blue-500/30': cellType === 'quest',
-      'border-purple-500/30': cellType === 'achievement',
-      'opacity-50 cursor-not-allowed': cell.blocked,
-    }
-  );
-
-  const isEmpty = !cell.text.trim();
-
   return (
-    <div className={cellClasses} onClick={handleCellClick}>
-      {/* Progress Bar */}
-      {progress > 0 && progress < 100 && (
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-700">
-          <div 
-            className="h-full bg-cyan-500 transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+    <motion.div
+      className={cn(
+        "relative aspect-square rounded-lg overflow-hidden",
+        "transition-all duration-300",
+        "group cursor-pointer",
+        {
+          'bg-gradient-to-br from-gray-800/95 to-gray-800/75': !cell.colors.length,
+          'shadow-lg': isHovered || isEditing,
+          'scale-[0.98]': isEditing,
+        }
+      )}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onClick={handleCellClick}
+      whileHover={{ scale: isEditing ? 0.98 : 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {/* Border Glow Effect */}
+      <div className={cn(
+        "absolute inset-0 border-2 transition-all duration-300",
+        isPartOfWinningLine
+          ? "border-cyan-500 shadow-lg shadow-cyan-500/20"
+          : cell.blocked
+          ? "border-red-500/30"
+          : isEditing || isFocused
+          ? "border-cyan-500/50"
+          : "border-cyan-500/20 group-hover:border-cyan-500/40",
+      )} />
+
+      {/* Cell Type Indicator */}
+      {cellType && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cn(
+                "absolute top-2 left-2 w-2 h-2 rounded-full",
+                {
+                  'bg-red-500': cellType === 'pvp',
+                  'bg-green-500': cellType === 'pve',
+                  'bg-blue-500': cellType === 'quest',
+                  'bg-purple-500': cellType === 'achievement',
+                }
+              )} />
+            </TooltipTrigger>
+            <TooltipContent>
+              {cellType === 'pvp' && 'PvP Challenge'}
+              {cellType === 'pve' && 'PvE Challenge'}
+              {cellType === 'quest' && 'Quest Challenge'}
+              {cellType === 'achievement' && 'Achievement Challenge'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
 
-      {/* Completion Animation */}
+      {/* Difficulty Badge */}
+      {cell.difficulty && cell.difficulty !== 'normal' && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cn(
+                "absolute top-2 right-2 p-1.5 rounded-full",
+                "bg-gray-900/50 backdrop-blur-sm",
+                "transition-all duration-300",
+                {
+                  'text-yellow-400 border border-yellow-500/20': cell.difficulty === 'hard',
+                  'text-red-400 border border-red-500/20': cell.difficulty === 'extreme',
+                }
+              )}>
+                {cell.difficulty === 'hard' ? (
+                  <Star className="h-3 w-3" />
+                ) : (
+                  <Trophy className="h-3 w-3" />
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {cell.difficulty.charAt(0).toUpperCase() + cell.difficulty.slice(1)} Difficulty
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      {/* Reward Badge */}
+      {cell.reward === 'block' && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="absolute bottom-2 right-2 p-1.5 rounded-full
+                bg-purple-500/20 border border-purple-500/30
+                transition-all duration-300">
+                <Shield className="h-3 w-3 text-purple-400" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Earn a block ability</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      {/* Color Layers with Animation */}
       <AnimatePresence>
         {cell.colors.length > 0 && (
           <motion.div
-            initial={{ scale: 1.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0 }}
-            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0, scale: 1.2 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute inset-0 flex"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-transparent" />
+            {cell.colors.map((color, index) => (
+              <motion.div
+                key={`${color}-${index}`}
+                className={cn(
+                  'flex-1',
+                  color,
+                  'transition-opacity duration-300',
+                  'opacity-80 group-hover:opacity-90'
+                )}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.8 }}
+                exit={{ opacity: 0 }}
+              />
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Cell Type Indicator */}
-      {cellType && (
-        <div className={cn(
-          'absolute top-1 left-1 w-2 h-2 rounded-full',
-          {
-            'bg-red-500': cellType === 'pvp',
-            'bg-green-500': cellType === 'pve',
-            'bg-blue-500': cellType === 'quest',
-            'bg-purple-500': cellType === 'achievement',
-          }
-        )} />
-      )}
-
-      {/* Difficulty Indicator */}
-      {cell.difficulty && cell.difficulty !== 'normal' && (
-        <DifficultyIndicator difficulty={cell.difficulty} />
-      )}
-
-      {/* Reward Indicator */}
-      {cell.reward === 'block' && <RewardIndicator reward={cell.reward} />}
-
-      {/* Blocked Overlay */}
-      {cell.blocked && <BlockedOverlay />}
-
-      {/* Color Layers */}
-      {cell.colors.length > 0 && <ColorLayers colors={cell.colors} />}
-
-      {/* Text Container */}
-      <TextContainer
-        isOwner={isOwner}
-        winner={winner}
-        isGameStarted={isGameStarted}
-        onTextClick={handleTextClick}
-      >
+      {/* Text Content */}
+      <div className="absolute inset-0 p-3 flex items-center justify-center">
         {isEmpty && !isEditing && isOwner && !isGameStarted ? (
           <div className="text-gray-500 text-sm text-center px-2 cursor-text">
             Click to add task...
@@ -294,6 +338,7 @@ export const BingoCell = React.memo<BingoCellProps>(({
               onKeyDown={handleKeyDown}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
+              maxLength={MAX_CHARS}
               className={cn(
                 'w-full text-center bg-transparent border-none text-white resize-none',
                 'overflow-hidden font-medium focus:ring-0 focus:outline-none',
@@ -311,7 +356,6 @@ export const BingoCell = React.memo<BingoCellProps>(({
                 textShadow,
               }}
               readOnly={!isOwner || winner !== null || !isEditing}
-              maxLength={MAX_CHARS}
               spellCheck={false}
             />
             {!isEditing && !isEmpty && isOwner && !isGameStarted && (
@@ -326,25 +370,38 @@ export const BingoCell = React.memo<BingoCellProps>(({
             )}
           </div>
         )}
-      </TextContainer>
+      </div>
 
       {/* Edit Controls */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {isEditing && (
-          <EditControls
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              textareaRef.current?.blur();
-              setIsFocused(false);
-              onEditEnd(index);
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-2 right-2 bg-cyan-500 hover:bg-cyan-400
+              rounded-full p-1.5 shadow-lg transition-colors duration-200"
+            onClick={(e) => {
+              e.stopPropagation()
+              textareaRef.current?.blur()
+              setIsFocused(false)
+              onEditEnd(index)
             }}
-          />
+          >
+            <Check className="h-3 w-3 text-gray-900" />
+          </motion.button>
         )}
       </AnimatePresence>
 
       {/* Character Count */}
-      {isEditing && <CharacterCount length={cell.text.length} max={MAX_CHARS} />}
-    </div>
+      {isEditing && (
+        <div className="absolute top-2 right-2 text-[10px] text-cyan-300/70
+          bg-gray-900/50 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+          {cell.text.length}/{MAX_CHARS}
+        </div>
+      )}
+    </motion.div>
   );
 }, (prevProps, nextProps) => {
   // Custom comparison function für bessere Memoization
@@ -358,121 +415,3 @@ export const BingoCell = React.memo<BingoCellProps>(({
 });
 
 BingoCell.displayName = 'BingoCell'
-
-interface DifficultyIndicatorProps {
-  difficulty: string;
-}
-
-const DifficultyIndicator = React.memo<DifficultyIndicatorProps>(({ difficulty }) => (
-  <div
-    className={cn(
-      'absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded-full',
-      difficulty === 'hard' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
-    )}
-  >
-    {difficulty}
-  </div>
-));
-
-DifficultyIndicator.displayName = 'DifficultyIndicator'
-
-interface RewardIndicatorProps {
-  reward: string;
-}
-
-const RewardIndicator = React.memo<RewardIndicatorProps>(({ reward }) => (
-  <div className="absolute top-1 right-1 text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">
-    {reward}
-  </div>
-));
-
-RewardIndicator.displayName = 'RewardIndicator'
-
-const BlockedOverlay = React.memo(() => (
-  <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-[1px] flex items-center justify-center">
-    <div className="text-xs text-gray-400">Blocked</div>
-  </div>
-));
-
-BlockedOverlay.displayName = 'BlockedOverlay'
-
-interface ColorLayersProps {
-  colors: string[];
-}
-
-const ColorLayers = React.memo<ColorLayersProps>(({ colors }) => (
-  <div className="absolute inset-0 flex">
-    {colors.map((color, index) => (
-      <div
-        key={`${color}-${index}`}
-        className={cn('flex-1', color, 'transition-opacity duration-200 ease-in-out opacity-80')}
-      />
-    ))}
-  </div>
-));
-
-ColorLayers.displayName = 'ColorLayers'
-
-interface TextContainerProps {
-  isOwner: boolean;
-  winner: number | null;
-  isGameStarted: boolean;
-  onTextClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
-}
-
-const TextContainer = React.memo<TextContainerProps>(({
-  isOwner,
-  winner,
-  isGameStarted,
-  onTextClick,
-  children,
-}) => (
-  <div
-    className={cn(
-      'absolute inset-0 flex items-center justify-center',
-      isOwner && !isGameStarted && !winner && 'cursor-text'
-    )}
-    onClick={onTextClick}
-  >
-    <div className="relative w-full h-full flex items-center justify-center">
-      {children}
-    </div>
-  </div>
-));
-
-TextContainer.displayName = 'TextContainer'
-
-interface EditControlsProps {
-  onClick: (e: React.MouseEvent) => void;
-}
-
-const EditControls = React.memo<EditControlsProps>(({ onClick }) => (
-  <motion.button
-    initial={{ scale: 0, opacity: 0 }}
-    animate={{ scale: 1, opacity: 1 }}
-    exit={{ scale: 0, opacity: 0 }}
-    transition={{ duration: 0.2 }}
-    className={cn(
-      'absolute bottom-1.5 right-1.5 bg-cyan-500 hover:bg-cyan-400 rounded-full p-1.5 shadow-lg transition-colors duration-200'
-    )}
-    onClick={onClick}
-  >
-    <Check className="h-3 w-3 text-gray-900" />
-  </motion.button>
-));
-
-EditControls.displayName = 'EditControls'
-
-interface CharacterCountProps {
-  length: number;
-  max: number;
-}
-
-const CharacterCount = React.memo<CharacterCountProps>(({ length, max }) => (
-  <div className="absolute top-1.5 right-1.5 text-[10px] text-cyan-300/70 bg-gray-900/50 px-1.5 py-0.5 rounded-full">
-    {length}/{max}
-  </div>
-));
-
-CharacterCount.displayName = 'CharacterCount'
