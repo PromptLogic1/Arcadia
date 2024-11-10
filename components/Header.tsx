@@ -75,6 +75,10 @@ const Header: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      
+      if (_event === 'SIGNED_OUT') {
+        window.location.href = '/'
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -106,6 +110,14 @@ const Header: React.FC = () => {
     { href: '/community', label: 'Community' },
     { href: '/about', label: 'About' },
   ], [])
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
 
   return (
     <header
@@ -252,10 +264,8 @@ const Header: React.FC = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={async () => {
-                      await supabase.auth.signOut()
-                    }}
-                    className="text-red-400 cursor-pointer"
+                    onClick={handleSignOut}
+                    className="text-red-400 cursor-pointer hover:bg-red-500/10"
                   >
                     Log out
                   </DropdownMenuItem>
@@ -361,11 +371,8 @@ const Header: React.FC = () => {
                     Settings
                   </Link>
                   <button
-                    onClick={async () => {
-                      await supabase.auth.signOut()
-                      setIsMenuOpen(false)
-                    }}
-                    className="block w-full text-left py-2 px-3 rounded-md text-lg font-medium text-red-400 hover:text-red-300 transition-colors duration-200"
+                    onClick={handleSignOut}
+                    className="block w-full text-left py-2 px-3 rounded-md text-lg font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200"
                   >
                     Log out
                   </button>

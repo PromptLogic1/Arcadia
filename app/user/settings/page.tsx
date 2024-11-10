@@ -1,30 +1,38 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import UserSettings from '@/components/user-settings';
-import type { Tables } from '@/types/database.types';
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import UserSettings from '@/components/user-settings'
+import type { Database } from '@/types/database.types'
+import type { User } from '@supabase/auth-helpers-nextjs'
 
 export default async function SettingsPage() {
-  const supabase = createServerComponentClient({ cookies });
-
-  const sessionResponse = await supabase.auth.getSession();
-  const session = sessionResponse.data.session;
-
-  if (!session?.user?.id) {
-    redirect('/auth/login');
-    return null;
+  // Use cookies() as a function to get read-only cookie store
+  const cookieStore = await cookies()
+  const supabase = createServerComponentClient<Database>({ 
+    cookies: () => cookieStore 
+  })
+  
+  // Get authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (userError || !user) {
+    redirect('/auth/login')
   }
 
-  const { data: userData } = await supabase
+  // At this point, we know user exists and has an id
+  const authenticatedUser = user as User
+
+  // Fetch user data
+  const { data: userData, error: dbError } = await supabase
     .from('users')
     .select('*')
-    .eq('auth_id', session.user.id)
-    .single();
+    .eq('auth_id', authenticatedUser.id)
+    .single()
 
-  if (!userData) {
-    redirect('/auth/login');
-    return null;
+  if (dbError) {
+    console.error('Error fetching user data:', dbError)
+    return <div>Error loading user settings</div>
   }
 
-  return <UserSettings userId={session.user.id} userData={userData as Tables['users']['Row']} />;
-}
+  return <UserSettings userId={authenticatedUser.id} userData={userData} />
+} 

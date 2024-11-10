@@ -1,62 +1,66 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import type { Database } from '@/types/database.types'
 
-export async function middleware(request: Request) {
+// Define paths that should be accessible without authentication
+const publicPaths = [
+  '/',
+  '/auth/login',
+  '/auth/signup',
+  '/auth/callback',
+  '/auth/error',
+  '/about',
+  '/api/auth/callback'
+]
+
+// Define paths that require authentication
+const protectedPaths = [
+  '/user/user-page',
+  '/user/settings'
+]
+
+export async function middleware(req: Request) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient<Database>({ req: request, res })
+  const supabase = createMiddlewareClient({ req, res })
 
-  // Get session
-  const { data: { session } } = await supabase.auth.getSession()
+  // Refresh session if expired
+  const { data: { session }, error } = await supabase.auth.getSession()
 
-  // Protected Routes
-  const protectedRoutes = [
-    '/user/settings',
-    '/user/user-page',
-    // Add other protected routes here
-  ]
+  // Get the pathname of the request
+  const pathname = req.url
 
-  // Check if the current path is a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
-    request.url.includes(route)
-  )
+  // Check if the path is public
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
+  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
 
-  if (isProtectedRoute) {
-    // If no session, redirect to login
-    if (!session) {
-      return NextResponse.redirect(new URL('/auth/login', request.url))
-    }
-
-    // If session exists but no user profile, redirect to profile creation
-    if (session) {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', session.user.id)
-        .single()
-
-      if (!profile && !request.url.includes('/user/create-profile')) {
-        return NextResponse.redirect(new URL('/user/create-profile', request.url))
-      }
-    }
+  // Handle authentication states
+  if (!session && isProtectedPath) {
+    // If user is not authenticated and tries to access protected route,
+    // redirect to login page
+    const redirectUrl = new URL('/login', req.url)
+    redirectUrl.searchParams.set('redirectedFrom', pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // For auth pages, redirect to home if already logged in
-  const authRoutes = ['/auth/login', '/auth/signup']
-  if (authRoutes.some(route => request.url.includes(route)) && session) {
-    return NextResponse.redirect(new URL('/', request.url))
+  if (session && (pathname === '/login' || pathname === '/signup')) {
+    // If user is authenticated and tries to access login/signup pages,
+    // redirect to dashboard or home
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
   return res
 }
 
-// Configure which routes use this middleware
+// Configure which routes to run middleware on
 export const config = {
   matcher: [
-    '/user/:path*',
-    '/challenges/:path*',
-    '/auth/:path*',
-    // Add other paths that need middleware protection
-  ]
-} 
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public assets)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
