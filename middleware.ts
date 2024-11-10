@@ -2,17 +2,6 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Define paths that should be accessible without authentication
-const publicPaths = [
-  '/',
-  '/auth/login',
-  '/auth/signup',
-  '/auth/callback',
-  '/auth/error',
-  '/about',
-  '/api/auth/callback'
-]
-
 // Define paths that require authentication
 const protectedPaths = [
   '/user/user-page',
@@ -30,7 +19,6 @@ export async function middleware(req: Request) {
   const pathname = req.url
 
   // Check if the path is public
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
 
   // Handle authentication states
