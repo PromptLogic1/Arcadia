@@ -123,3 +123,21 @@ CREATE TRIGGER update_user_experience_trigger
 AFTER UPDATE ON submissions
 FOR EACH ROW
 EXECUTE FUNCTION update_user_experience();
+
+-- Add to existing triggers
+CREATE OR REPLACE FUNCTION update_bingo_statistics()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE users
+        SET total_boards = total_boards + 1,
+            experience_points = experience_points + 10
+        WHERE id = NEW.creator_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE users
+        SET total_boards = total_boards - 1
+        WHERE id = OLD.creator_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;

@@ -33,6 +33,7 @@ export interface GameSettingsProps {
   onWinConditionsChange: (conditions: { line: boolean; majority: boolean }) => void
   onStartBoard: () => void
   onResetBoard: () => void
+  onTimerToggle: () => void
 }
 
 export const GameSettings: React.FC<GameSettingsProps> = ({
@@ -50,6 +51,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   onWinConditionsChange,
   onStartBoard,
   onResetBoard,
+  onTimerToggle,
 }) => {
   const { getResponsiveSpacing } = useResponsiveLayout()
   const spacing = getResponsiveSpacing(16)
@@ -61,46 +63,45 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
     })
   }
 
+  const handleStartPause = () => {
+    if (!isOwner) return
+    
+    if (isTimerRunning) {
+      onTimerToggle()
+    } else {
+      onStartBoard()
+    }
+  }
+
   return (
     <div className="space-y-3" style={{ gap: spacing.gap }}>
       <div className="grid grid-cols-2 gap-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="relative">
-                <Select
-                  value={boardSize.toString()}
-                  onValueChange={(value) => onBoardSizeChange(Number(value))}
-                  disabled={!isOwner}
-                >
-                  <SelectTrigger 
-                    className={cn(
-                      "w-full h-8 text-sm",
-                      "bg-gray-700/50 border-cyan-500/30 text-cyan-100",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                  >
-                    <SelectValue placeholder={`${boardSize}x${boardSize}`} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-cyan-500/30">
-                    {[3, 4, 5, 6].map((size) => (
-                      <SelectItem 
-                        key={size} 
-                        value={size.toString()} 
-                        className="text-cyan-100 hover:bg-cyan-500/20"
-                      >
-                        {size}x{size} Board
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {isOwner ? "Select board size" : "Only the owner can change board size"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Select
+          value={boardSize.toString()}
+          onValueChange={(value) => onBoardSizeChange(Number(value))}
+          disabled={!isOwner || isTimerRunning}
+        >
+          <SelectTrigger 
+            className={cn(
+              "w-full h-8 text-sm",
+              "bg-gray-700/50 border-cyan-500/30 text-cyan-100",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            <SelectValue placeholder={`${boardSize}x${boardSize}`} />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-cyan-500/30">
+            {[3, 4, 5, 6].map((size) => (
+              <SelectItem 
+                key={size} 
+                value={size.toString()} 
+                className="text-cyan-100 hover:bg-cyan-500/20"
+              >
+                {size}x{size} Board
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div className="flex items-center justify-between px-3 py-1.5 bg-gray-700/50 rounded-md border border-cyan-500/30">
           {soundEnabled ? (
@@ -111,7 +112,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <Switch
             checked={soundEnabled}
             onCheckedChange={onSoundToggle}
-            disabled={!isOwner}
+            disabled={!isOwner || isTimerRunning}
             className="data-[state=checked]:bg-cyan-500"
           />
         </div>
@@ -125,7 +126,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <Switch
             checked={teamMode}
             onCheckedChange={onTeamModeToggle}
-            disabled={!isOwner}
+            disabled={!isOwner || isTimerRunning}
             className="data-[state=checked]:bg-cyan-500"
           />
         </div>
@@ -138,7 +139,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <Switch
             checked={lockout}
             onCheckedChange={onLockoutToggle}
-            disabled={!isOwner}
+            disabled={!isOwner || isTimerRunning}
             className="data-[state=checked]:bg-cyan-500"
           />
         </div>
@@ -154,7 +155,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <Switch
               checked={winConditions.line}
               onCheckedChange={() => handleWinConditionChange('line')}
-              disabled={!isOwner}
+              disabled={!isOwner || isTimerRunning}
               className="data-[state=checked]:bg-cyan-500"
             />
             <Label className="text-xs text-cyan-200">Line</Label>
@@ -163,7 +164,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <Switch
               checked={winConditions.majority}
               onCheckedChange={() => handleWinConditionChange('majority')}
-              disabled={!isOwner}
+              disabled={!isOwner || isTimerRunning}
               className="data-[state=checked]:bg-cyan-500"
             />
             <Label className="text-xs text-cyan-200">Majority</Label>
@@ -176,7 +177,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={onResetBoard}
-          disabled={!isOwner}
+          disabled={!isOwner || isTimerRunning}
           variant="outline"
           className="h-8 text-sm border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
         >
@@ -200,29 +201,37 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
       </div>
 
       <Button
-        onClick={onStartBoard}
+        onClick={handleStartPause}
         disabled={!isOwner}
         className={cn(
-          "w-full h-10 text-base",
+          "w-full h-10 text-base font-medium",
+          "border transition-all duration-200",
+          "disabled:opacity-50 disabled:cursor-not-allowed",
           isTimerRunning
             ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-            : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-cyan-500/30",
-          "border",
-          "disabled:opacity-50 disabled:cursor-not-allowed"
+            : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"
         )}
       >
-        {isTimerRunning ? (
-          <>
-            <Pause className="mr-2 h-5 w-5" />
-            Pause Board
-          </>
-        ) : (
-          <>
-            <Play className="mr-2 h-5 w-5" />
-            Start Board
-          </>
-        )}
+        <div className="flex items-center justify-center gap-2">
+          {isTimerRunning ? (
+            <>
+              <Pause className="h-5 w-5" />
+              <span>Pause Board</span>
+            </>
+          ) : (
+            <>
+              <Play className="h-5 w-5" />
+              <span>Start Board</span>
+            </>
+          )}
+        </div>
       </Button>
+
+      {!isOwner && (
+        <p className="text-xs text-gray-400 text-center">
+          Only the board owner can start or pause the game
+        </p>
+      )}
     </div>
   )
 }

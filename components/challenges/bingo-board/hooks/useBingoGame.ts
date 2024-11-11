@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import type { BoardCell, Player, WinConditions } from '../components/shared/types'
 import { wowChallenges } from '../components/shared/constants'
 
@@ -34,109 +34,6 @@ export const useBingoGame = (initialSize: number) => {
     playerWithBlock: null,
     earnedFromCell: null
   })
-
-  const generateBoard = useCallback(() => 
-    Array.from({ length: boardSize * boardSize }, () => ({
-      text: wowChallenges[Math.floor(Math.random() * wowChallenges.length)],
-      colors: [],
-      completedBy: []
-    }))
-  , [boardSize])
-
-  const resetBoard = useCallback(() => {
-    try {
-      const newBoard = generateBoard()
-      setBoardState(newBoard as BoardCell[])
-      setWinner(null)
-      setEditingCell(null)
-    } catch (error) {
-      console.error('Error resetting board:', error)
-    }
-  }, [generateBoard])
-
-  const handleCellChange = useCallback(
-    (index: number, value: string): void => {
-      try {
-        setBoardState((prevBoard) => {
-          const newBoard = [...prevBoard]
-          const existingCell = newBoard[index]
-          if (!existingCell) return prevBoard
-
-          newBoard[index] = {
-            ...existingCell,
-            text: value.slice(0, 50),
-            colors: existingCell.colors || [],
-            completedBy: existingCell.completedBy || []
-          }
-          return newBoard
-        })
-      } catch (error) {
-        console.error('Error changing cell:', error)
-      }
-    },
-    []
-  )
-
-  const handleCellClick = useCallback(
-    (index: number, currentPlayer: number, players: Player[]): void => {
-      try {
-        if (editingCell !== null || winner !== null) return
-
-        if (blockingState.isBlockingMode && blockingState.playerWithBlock === currentPlayer) {
-          setBoardState(prevBoard => {
-            const newBoard = [...prevBoard]
-            const existingCell = newBoard[index]
-            if (!existingCell || index === blockingState.earnedFromCell) return prevBoard
-            
-            newBoard[index] = {
-              ...existingCell,
-              text: existingCell.text,
-              colors: existingCell.colors,
-              completedBy: existingCell.completedBy,
-              blocked: true,
-              blockedBy: players[currentPlayer]?.color || ''
-            }
-            return newBoard
-          })
-          setBlockingState({
-            isBlockingMode: false,
-            playerWithBlock: null,
-            earnedFromCell: null
-          })
-          return
-        }
-
-        setBoardState(prevBoard => {
-          const newBoard = [...prevBoard]
-          const currentColor = players[currentPlayer]?.color
-
-          if (!currentColor) return prevBoard
-
-          if (newBoard[index]?.blocked) return prevBoard
-
-          if (!newBoard[index]?.colors?.includes(currentColor)) {
-            const cell = newBoard[index];
-            if (cell) {
-              cell.colors = [...cell.colors, currentColor];
-              cell.completedBy = [...cell.completedBy, currentColor];
-            }
-          }
-          return newBoard
-        })
-      } catch (error) {
-        console.error('Error handling cell click:', error)
-      }
-    },
-    [editingCell, winner, blockingState]
-  )
-
-  const cancelBlocking = useCallback(() => {
-    setBlockingState({
-      isBlockingMode: false,
-      playerWithBlock: null,
-      earnedFromCell: null
-    })
-  }, [])
 
   const getPlayerCounts = useCallback((players: Player[]): PlayerCount[] => {
     try {
@@ -199,99 +96,165 @@ export const useBingoGame = (initialSize: number) => {
     }
   }, [])
 
-  const checkWinningCondition = useMemo(
-    () => (players: Player[], timerEnded: boolean = false): void => {
+  const checkWinningCondition = useCallback((players: Player[], forceCheck?: boolean) => {
+    if (!players.length) return false
+
+    if (forceCheck && winConditions.majority) {
+      const playerCounts = getPlayerCounts(players)
+      determineWinnerByMajority(playerCounts)
+      return false
+    }
+
+    const getIndex = (row: number, col: number): number => 
+      row * boardSize + col
+
+    const checkLine = (line: WinningLine, playerOrTeam: number, teamMode: boolean): boolean => {
+      const isColorInTeam = (color: string): boolean => 
+        players.some(p => p.color === color && p.team === playerOrTeam)
+
+      const getCells = (line: WinningLine): BoardCell[] => {
+        const cells: BoardCell[] = []
+        switch (line.type) {
+          case 'horizontal':
+            for (let col = 0; col < boardSize; col++) {
+              const cell = boardState[getIndex(line.index, col)]
+              if (!cell) return cells
+              cells.push(cell)
+            }
+            return cells
+          case 'vertical':
+            for (let row = 0; row < boardSize; row++) {
+              const cell = boardState[getIndex(row, line.index)]
+              if (!cell) return cells
+              cells.push(cell)
+            }
+            return cells
+          case 'diagonal':
+            for (let i = 0; i < boardSize; i++) {
+              const cell = boardState[getIndex(i, line.index === 1 ? i : boardSize - 1 - i)]
+              if (!cell) return cells
+              cells.push(cell)
+            }
+            return cells
+        }
+        return cells
+      }
+
+      const cells = getCells(line)
+      return cells.every(cell => {
+        const playerColor = players[playerOrTeam]?.color
+        return teamMode 
+          ? cell.colors.some(color => isColorInTeam(color))
+          : playerColor && cell.colors.includes(playerColor)
+      })
+    }
+
+    const allLines: WinningLine[] = [
+      ...Array.from({ length: boardSize }, (_, i) => ({ type: 'horizontal' as const, index: i })),
+      ...Array.from({ length: boardSize }, (_, i) => ({ type: 'vertical' as const, index: i })),
+      { type: 'diagonal' as const, index: 1 },
+      { type: 'diagonal' as const, index: -1 }
+    ]
+
+    if (winConditions.line) {
+      const teamMode = players.some(p => p.team !== undefined)
+      
+      if (teamMode) {
+        const teams = Array.from(new Set(players.map(p => p.team).filter((team): team is number => team !== undefined)))
+        for (const team of teams) {
+          if (allLines.some(line => checkLine(line, team, true))) {
+            setWinner(team)
+            return true
+          }
+        }
+      } else {
+        for (let i = 0; i < players.length; i++) {
+          if (allLines.some(line => checkLine(line, i, false))) {
+            setWinner(i)
+            return true
+          }
+        }
+      }
+    }
+
+    if (winConditions.majority && boardState.every(cell => cell.colors.length > 0)) {
+      const playerCounts = getPlayerCounts(players)
+      determineWinnerByMajority(playerCounts)
+    }
+
+    return false
+  }, [boardState, boardSize, winConditions, getPlayerCounts, determineWinnerByMajority])
+
+  const generateBoard = useCallback(() => 
+    Array.from({ length: boardSize * boardSize }, () => ({
+      text: wowChallenges[Math.floor(Math.random() * wowChallenges.length)] || '',
+      colors: [],
+      completedBy: [],
+      blocked: false
+    }))
+  , [boardSize])
+
+  const resetBoard = useCallback(() => {
+    try {
+      const newBoard = generateBoard()
+      setBoardState(newBoard)
+      setWinner(null)
+      setEditingCell(null)
+    } catch (error) {
+      console.error('Error resetting board:', error)
+    }
+  }, [generateBoard])
+
+  const handleCellChange = useCallback(
+    (index: number, value: string): void => {
       try {
-        if (!players.length) return
+        setBoardState((prevBoard) => {
+          const newBoard = [...prevBoard]
+          const existingCell = newBoard[index]
+          if (!existingCell) return prevBoard
 
-        if (timerEnded && winConditions.majority) {
-          const playerCounts = getPlayerCounts(players)
-          determineWinnerByMajority(playerCounts)
-          return
-        }
-
-        const getIndex = (row: number, col: number): number => 
-          row * boardSize + col
-
-        const checkLine = (line: WinningLine, playerOrTeam: number, teamMode: boolean): boolean => {
-          const isColorInTeam = (color: string): boolean => 
-            players.some(p => p.color === color && p.team === playerOrTeam)
-
-          const getCells = (line: WinningLine): BoardCell[] => {
-            const cells: BoardCell[] = [];
-            switch (line.type) {
-              case 'horizontal':
-                for (let col = 0; col < boardSize; col++) {
-                  const cell = boardState[getIndex(line.index, col)];
-                  if (!cell) throw new Error('Invalid board state');
-                  cells.push(cell);
-                }
-                return cells;
-              case 'vertical':
-                for (let row = 0; row < boardSize; row++) {
-                  const cell = boardState[getIndex(row, line.index)];
-                  if (!cell) throw new Error('Invalid board state');
-                  cells.push(cell);
-                }
-                return cells;
-              case 'diagonal':
-                for (let i = 0; i < boardSize; i++) {
-                  const cell = boardState[getIndex(i, line.index === 1 ? i : boardSize - 1 - i)];
-                  if (!cell) throw new Error('Invalid board state');
-                  cells.push(cell);
-                }
-                return cells;
-            }
-            return cells;
+          newBoard[index] = {
+            ...existingCell,
+            text: value.slice(0, 50),
+            colors: existingCell.colors || [],
+            completedBy: existingCell.completedBy || []
           }
-
-          const cells = getCells(line)
-          return cells.every(cell => 
-            teamMode 
-              ? cell.colors.some(isColorInTeam)
-              : cell.colors.includes(players[playerOrTeam]?.color || '')
-          )
-        }
-
-        const allLines: WinningLine[] = [
-          ...Array.from({ length: boardSize }, (_, i) => ({ type: 'horizontal' as const, index: i })),
-          ...Array.from({ length: boardSize }, (_, i) => ({ type: 'vertical' as const, index: i })),
-          { type: 'diagonal' as const, index: 1 },
-          { type: 'diagonal' as const, index: -1 }
-        ]
-
-        if (winConditions.line) {
-          const teamMode = players.some(p => p.team !== undefined)
-          
-          if (teamMode) {
-            const teams = Array.from(new Set(players.map(p => p.team).filter((team): team is number => team !== undefined)))
-            for (const team of teams) {
-              if (allLines.some(line => checkLine(line, team, true))) {
-                setWinner(team)
-                return
-              }
-            }
-          } else {
-            for (let i = 0; i < players.length; i++) {
-              if (allLines.some(line => checkLine(line, i, false))) {
-                setWinner(i)
-                return
-              }
-            }
-          }
-        }
-
-        if (winConditions.majority && boardState.every(cell => cell.colors.length > 0)) {
-          const playerCounts = getPlayerCounts(players)
-          determineWinnerByMajority(playerCounts)
-        }
+          return newBoard
+        })
       } catch (error) {
-        console.error('Error checking winning condition:', error)
-        setWinner(null)
+        console.error('Error changing cell:', error)
       }
     },
-    [boardState, boardSize, winConditions, getPlayerCounts, determineWinnerByMajority]
+    []
   )
+
+  const handleCellClick = useCallback((index: number, updates?: Partial<BoardCell>) => {
+    if (!updates) return
+
+    setBoardState(prevState => {
+      const newState = [...prevState]
+      const currentCell = newState[index]
+      if (!currentCell) return prevState
+
+      newState[index] = {
+        text: updates.text ?? currentCell.text,
+        colors: updates.colors ?? currentCell.colors,
+        completedBy: updates.completedBy ?? currentCell.completedBy,
+        blocked: updates.blocked ?? currentCell.blocked
+      }
+      return newState
+    })
+
+    checkWinningCondition([])
+  }, [checkWinningCondition])
+
+  const cancelBlocking = useCallback(() => {
+    setBlockingState({
+      isBlockingMode: false,
+      playerWithBlock: null,
+      earnedFromCell: null
+    })
+  }, [])
 
   return {
     boardState,

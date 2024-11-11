@@ -38,3 +38,12 @@ export const wowChallenges: ReadonlyArray<string> = [
   'Complete a scenario',
   'Defeat the Jailer',
 ]
+
+export const playerColors = [
+  { name: 'Blue', color: 'bg-blue-500', hoverColor: 'bg-blue-600' },
+  { name: 'Purple', color: 'bg-purple-500', hoverColor: 'bg-purple-600' },
+  { name: 'Cyan', color: 'bg-cyan-500', hoverColor: 'bg-cyan-600' },
+  { name: 'Green', color: 'bg-green-500', hoverColor: 'bg-green-600' },
+  { name: 'Red', color: 'bg-red-500', hoverColor: 'bg-red-600' },
+  { name: 'Fuchsia', color: 'bg-fuchsia-500', hoverColor: 'bg-fuchsia-600' }
+] as const

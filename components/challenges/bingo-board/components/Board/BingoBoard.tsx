@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { BingoGrid } from '../layout/BingoLayout'
 import { Button } from '@/components/ui/button'
 import { Copy } from 'lucide-react'
@@ -39,20 +39,12 @@ const Board = React.memo<BoardProps>(({
   const [editingCell, setEditingCell] = useState<number | null>(null)
   const [boardId] = useState('')
   const [showBoardId] = useState(false)
-  const [overallProgress, setOverallProgress] = useState(0)
 
   const { getGridLayout, getCellTypography } = useResponsiveLayout()
   const { isMobile, breakpoint } = useResponsive()
 
   const gridStyles = getGridLayout(boardSize, isMobile)
   const typography = getCellTypography(breakpoint)
-
-  // Calculate overall progress based on marked cells
-  useEffect(() => {
-    const completedCells = boardState.filter(cell => cell.colors.length > 0).length
-    const totalCells = boardState.length
-    setOverallProgress((completedCells / totalCells) * 100)
-  }, [boardState])
 
   const copyBoardIdToClipboard = async () => {
     try {
@@ -119,26 +111,12 @@ const Board = React.memo<BoardProps>(({
     return false
   }
 
-  const getCellType = (): 'pvp' | 'pve' | 'quest' | 'achievement' | undefined => {
-    // TODO: Implement cell type logic
-    return undefined
-  }
-
-  const getCellProgress = (): number => {
-    // TODO: Implement cell progress logic
-    return 0
+  const handleCellClick = (index: number) => {
+    onCellClick(index)
   }
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      {/* Progress Bar */}
-      <div className="h-1.5 bg-gray-700/50 rounded-full overflow-hidden flex-shrink-0">
-        <div 
-          className="h-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 transition-all duration-300"
-          style={{ width: `${overallProgress}%` }}
-        />
-      </div>
-
+    <div className="flex flex-col h-full">
       {/* Board Grid */}
       <div className="flex-1 min-h-0 w-full flex items-center justify-center">
         <div 
@@ -165,15 +143,14 @@ const Board = React.memo<BoardProps>(({
                 isEditing={editingCell === index}
                 winner={winner}
                 currentPlayer={currentPlayer}
+                players={players}
                 isGameStarted={isGameStarted}
                 lockoutMode={lockoutMode}
                 onCellChange={onCellChange}
-                onCellClick={onCellClick}
-                onEditStart={(idx) => setEditingCell(idx)}
+                onCellClick={handleCellClick}
+                _onEditStart={(idx) => setEditingCell(idx)}
                 onEditEnd={() => setEditingCell(null)}
                 isPartOfWinningLine={checkIfCellIsPartOfWinningLine(index)}
-                cellType={getCellType()}
-                progress={getCellProgress()}
                 typography={typography}
               />
             ))}

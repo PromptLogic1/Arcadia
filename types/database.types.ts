@@ -1,3 +1,5 @@
+import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+
 export type Json =
   | string
   | number
@@ -120,6 +122,64 @@ export interface Database {
         }
         Insert: Omit<Tables['comments']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Tables['comments']['Row'], 'id' | 'created_at' | 'updated_at'>>
+      }
+      bingo_boards: {
+        Row: {
+          id: string
+          title: string
+          creator_id: string
+          size: number
+          board_state: BoardCell[]
+          settings: {
+            teamMode: boolean
+            lockout: boolean
+            soundEnabled: boolean
+            winConditions: {
+              line: boolean
+              majority: boolean
+            }
+          }
+          status: 'draft' | 'published' | 'archived'
+          game_type: string
+          difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
+          is_public: boolean
+          cloned_from: string | null
+          votes: number
+          bookmarked_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['bingo_boards']['Row'], 'id' | 'votes' | 'bookmarked_count' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Tables['bingo_boards']['Row'], 'id' | 'created_at' | 'updated_at'>>
+      }
+      bingo_sessions: {
+        Row: {
+          id: string
+          board_id: string
+          status: 'active' | 'completed' | 'cancelled'
+          current_state: BoardCell[]
+          winner_id: string | null
+          started_at: string
+          ended_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['bingo_sessions']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Tables['bingo_sessions']['Row'], 'id' | 'created_at' | 'updated_at'>>
+      }
+      bingo_session_players: {
+        Row: {
+          session_id: string
+          user_id: string
+          player_name: string
+          color: string
+          team: number | null
+          joined_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['bingo_session_players']['Row'], 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Tables['bingo_session_players']['Row'], 'created_at' | 'updated_at'>>
       }
     }
     Views: {

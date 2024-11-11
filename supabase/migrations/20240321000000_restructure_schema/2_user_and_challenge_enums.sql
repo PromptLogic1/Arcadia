@@ -73,6 +73,19 @@ CREATE TYPE participant_status AS ENUM (
     'completed'
 );
 
+-- Add to existing enums
+CREATE TYPE game_category AS ENUM (
+    'World of Warcraft',
+    'Fortnite',
+    'Minecraft',
+    'Among Us',
+    'Apex Legends',
+    'League of Legends',
+    'Overwatch',
+    'Call of Duty: Warzone',
+    'Valorant'
+);
+
 -- Basis-Tabelle für Timestamps
 CREATE TABLE base_table (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,

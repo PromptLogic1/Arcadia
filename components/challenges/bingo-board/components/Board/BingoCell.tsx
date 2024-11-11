@@ -1,27 +1,25 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Check } from 'lucide-react';
-import type { BoardCell } from '../shared/types';
-import { cn } from '@/lib/utils';
-import type { FluidTypography } from '../../hooks/useResponsiveLayout';
+import React, { useRef, useEffect, useCallback } from 'react'
+import type { BoardCell, Player } from '../shared/types'
+import { cn } from '@/lib/utils'
+import type { FluidTypography } from '../../hooks/useResponsiveLayout'
 
 interface BingoCellProps {
-  cell: BoardCell;
-  index: number;
-  isOwner: boolean;
-  isEditing: boolean;
-  winner: number | null;
-  currentPlayer: number;
-  isGameStarted: boolean;
-  lockoutMode: boolean;
-  onCellChange: (index: number, value: string) => void;
-  onCellClick: (index: number) => void;
-  onEditStart: (index: number) => void;
-  onEditEnd: (index: number) => void;
-  progress?: number;
-  cellType?: 'pvp' | 'pve' | 'quest' | 'achievement';
-  isPartOfWinningLine?: boolean;
-  typography: FluidTypography;
+  cell: BoardCell
+  index: number
+  isOwner: boolean
+  isEditing: boolean
+  winner: number | null
+  currentPlayer: number
+  players: Player[]
+  isGameStarted: boolean
+  lockoutMode: boolean
+  onCellChange: (index: number, value: string) => void
+  onCellClick: (index: number, updates?: Partial<BoardCell>) => void
+  _onEditStart: (index: number) => void
+  onEditEnd: (index: number) => void
+  cellType?: 'pvp' | 'pve' | 'quest' | 'achievement'
+  isPartOfWinningLine?: boolean
+  typography: FluidTypography
 }
 
 export const BingoCell = React.memo<BingoCellProps>(({
@@ -31,209 +29,214 @@ export const BingoCell = React.memo<BingoCellProps>(({
   isEditing,
   winner,
   currentPlayer,
+  players,
   isGameStarted,
   lockoutMode,
   onCellChange,
   onCellClick,
-  onEditStart,
+  _onEditStart,
   onEditEnd,
-  progress = 0,
   cellType,
   isPartOfWinningLine,
   typography
 }) => {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const [isComposing, setIsComposing] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-
-  const handleRewardUnlock = useCallback(() => {
-    // Implement reward unlock logic
-  }, []);
-
-  const handleCellClick = useCallback(
-    (e: React.MouseEvent): void => {
-      e.preventDefault();
-
-      if (!isGameStarted) {
-        if (isOwner && !isEditing) {
-          onEditStart(index);
-        }
-        return;
-      }
-
-      if (winner || cell.blocked) return;
-
-      if (lockoutMode && cell.completedBy?.length) return;
-
-      onCellClick(index);
-
-      // If this is a hard/extreme cell with 'block' reward and not completed by current player
-      if (
-        cell.difficulty &&
-        cell.difficulty !== 'normal' &&
-        cell.reward === 'block' &&
-        !cell.completedBy?.includes(cell.colors[currentPlayer] || '')
-      ) {
-        handleRewardUnlock();
-      }
-    },
-    [
-      cell,
-      index,
-      isGameStarted,
-      isOwner,
-      isEditing,
-      lockoutMode,
-      winner,
-      currentPlayer,
-      handleRewardUnlock,
-      onCellClick,
-      onEditStart,
-    ]
-  );
-
-  const adjustTextSize = useCallback(() => {
-    // Implement adjustTextSize logic
-  }, []);
-
-  useEffect(() => {
-    if (isEditing) {
-      adjustTextSize();
-    }
-  }, [isEditing, cell.text, adjustTextSize]);
-
-  useEffect(() => {
-    const handleResize = (): void => {
-      adjustTextSize();
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [adjustTextSize]);
-
-  const handleTextChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-      const newValue = e.target.value;
-      if (newValue.length <= 50) {
-        onCellChange(index, newValue);
-        requestAnimationFrame(adjustTextSize);
-      }
-    },
-    [index, onCellChange, adjustTextSize]
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
-      if (isComposing) return;
-
-      if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') {
-        e.preventDefault();
-        e.currentTarget.blur();
-        setIsFocused(false);
-        onEditEnd(index);
-      }
-    },
-    [index, onEditEnd, isComposing]
-  );
-
-  const handleBlur = useCallback(() => {
-    setIsFocused(false);
-    setTimeout(() => {
-      if (isEditing) {
-        onEditEnd(index);
-      }
-    }, 100);
-  }, [isEditing, index, onEditEnd]);
-
-  const handleFocus = useCallback(() => {
-    setIsFocused(true);
-  }, []);
-
-  const handleCompositionStart = () => setIsComposing(true);
-  const handleCompositionEnd = () => setIsComposing(false);
-
-  const cellClasses = cn(
-    "relative aspect-square rounded-lg",
-    "bg-[#1a1f2e]",
-    "shadow-[0_2px_4px_rgba(0,0,0,0.1)]",
-    "border border-[#00b4d8]/40",
-    "before:absolute before:inset-0 before:rounded-lg",
-    "before:shadow-[inset_0_0_12px_rgba(0,180,216,0.1)]",
-    "before:pointer-events-none",
-    "transition-all duration-200",
-    "hover:scale-[1.02] hover:shadow-lg",
-    "hover:shadow-cyan-500/10 hover:border-[#00b4d8]/60",
-    "hover:before:shadow-[inset_0_0_16px_rgba(0,180,216,0.15)]",
-    {
-      'border-[#4cc9f0] shadow-[0_0_12px_rgba(76,201,240,0.2)]': cell.colors.length > 0,
-      'border-gray-600/20 opacity-50 cursor-not-allowed': cell.blocked,
-      'border-cyan-500/60 ring-2 ring-cyan-400/30': isFocused || isEditing,
-      'ring-2 ring-[#4cc9f0] shadow-lg': isPartOfWinningLine,
-      'border-red-500/40': cellType === 'pvp',
-      'border-green-500/40': cellType === 'pve',
-      'border-blue-500/40': cellType === 'quest',
-      'border-purple-500/40': cellType === 'achievement',
-    }
-  );
-
-  const isEmpty = !cell.text.trim();
-
-  // Optimierte Container-Klassen
-  const textContainerClasses = cn(
-    'w-full h-full',
-    'relative',
-    'transition-all duration-300 ease-out',
-    'flex items-center justify-center',
-    cell.colors.length > 0 ? 'text-white/90' : 'text-white/80'
-  );
-
-  // Optimierte Textarea-Klassen
-  const textareaClasses = cn(
-    'w-full h-full',
-    'bg-transparent border-none',
-    'font-semibold focus:ring-0 focus:outline-none',
-    'transition-all duration-300 ease-out',
-    'text-center',
-    'px-2 py-1',
-    'resize-none overflow-hidden',
-    isEditing ? 'opacity-90' : 'opacity-100',
-    !isEditing && 'pointer-events-none',
-    cell.colors.length > 0 && 'font-bold'
-  );
-
-  const CompletedIndicator = () => (
-    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#4cc9f0] shadow-lg
-      flex items-center justify-center transform translate-x-1/4 -translate-y-1/4">
-      <Check className="w-3 h-3 text-white" />
-    </div>
-  );
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
+      const textarea = textareaRef.current
+      const length = textarea.value.length
+      textarea.focus()
+      textarea.setSelectionRange(length, length)
     }
-  }, [isEditing]);
+  }, [isEditing])
+
+  const shouldUseWhiteText = (color: string | undefined): boolean => {
+    if (!color) return false
+    const darkColors = [
+      'bg-blue-500', 'bg-purple-500', 'bg-cyan-500', 
+      'bg-green-500', 'bg-red-500', 'bg-fuchsia-500'
+    ]
+    return darkColors.includes(color)
+  }
+
+  const handleClick = useCallback((e: React.MouseEvent): void => {
+    e.preventDefault()
+    
+    if (winner || cell.blocked) return
+
+    if (isGameStarted) {
+      const currentPlayerColor = players[currentPlayer]?.color
+      if (!currentPlayerColor) return
+
+      const hasPlayerColor = cell.colors.includes(currentPlayerColor)
+
+      if (hasPlayerColor) {
+        const newColors = cell.colors.filter(color => color !== currentPlayerColor)
+        const newCompletedBy = (cell.completedBy || []).filter(color => color !== currentPlayerColor)
+        
+        onCellClick(index, {
+          colors: newColors,
+          completedBy: newCompletedBy,
+          blocked: cell.blocked,
+          text: cell.text
+        })
+        return
+      }
+
+      if (lockoutMode) {
+        if (cell.colors.length === 0) {
+          onCellClick(index, {
+            colors: [currentPlayerColor],
+            completedBy: [currentPlayerColor],
+            blocked: cell.blocked,
+            text: cell.text
+          })
+        }
+        return
+      }
+
+      if (cell.colors.length < 4) {
+        const newColors = [...cell.colors, currentPlayerColor]
+        const newCompletedBy = [...(cell.completedBy || []), currentPlayerColor]
+        
+        onCellClick(index, {
+          colors: newColors,
+          completedBy: newCompletedBy,
+          blocked: cell.blocked,
+          text: cell.text
+        })
+      }
+    } else if (isOwner && !isEditing) {
+      _onEditStart(index)
+    }
+  }, [
+    cell,
+    lockoutMode,
+    currentPlayer,
+    players,
+    winner,
+    isGameStarted,
+    isOwner,
+    isEditing,
+    index,
+    onCellClick,
+    _onEditStart
+  ])
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    onCellChange(index, e.target.value)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') {
+      e.preventDefault()
+      e.currentTarget.blur()
+      onEditEnd(index)
+    }
+  }
+
+  const handleBlur = () => {
+    onEditEnd(index)
+  }
+
+  const handleFocus = () => {
+    // Fokus-Handling wenn nötig
+  }
+
+  // Multi-Color Indikator
+  const ColorIndicators = () => (
+    <div className="absolute -top-1 -right-1 flex -space-x-1">
+      {cell.colors.map((color, idx) => (
+        <div
+          key={`${color}-${idx}`}
+          className={cn(
+            "w-3 h-3 rounded-full",
+            color,
+            "border border-gray-900/20",
+            "transform",
+            idx > 0 && "-translate-x-1/2"
+          )}
+        />
+      ))}
+    </div>
+  )
+
+  const canInteract = isGameStarted 
+    ? (!lockoutMode || !cell.colors.length || 
+       (players[currentPlayer]?.color && 
+        (cell.colors.includes(players[currentPlayer].color) || cell.colors.length < 4)))
+    : isOwner
 
   return (
-    <div className={cellClasses} onClick={handleCellClick}>
-      {/* Progress Bar */}
-      {progress > 0 && progress < 100 && (
-        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-700/50">
-          <div 
-            className="h-full bg-gradient-to-r from-cyan-500 to-[#4cc9f0] 
-              transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
+    <div 
+      className={cn(
+        "relative aspect-square rounded-lg",
+        "border border-cyan-500/20",
+        "bg-gray-800/50",
+        "shadow-sm",
+        "transition-all duration-200",
+        
+        !isEditing && [
+          "hover:scale-[1.02]",
+          "hover:shadow-lg",
+          "hover:shadow-cyan-500/10",
+          "hover:border-cyan-500/40",
+        ],
+        
+        canInteract
+          ? "cursor-pointer hover:scale-[1.02]"
+          : "cursor-not-allowed",
+        
+        cell.colors.length > 0 && [
+          "shadow-[0_0_12px_rgba(76,201,240,0.2)]",
+          "border-cyan-500/40"
+        ],
+        
+        isEditing && "ring-2 ring-cyan-500",
+        cellType && `border-${cellType}-500/40`,
+        isPartOfWinningLine && "ring-2 ring-cyan-400",
+        
+        "w-full h-full"
+      )}
+      onClick={handleClick}
+    >
+      {/* Farbige Overlays für multiple Markierungen */}
+      {cell.colors.length > 0 && (
+        <div className="absolute inset-0 rounded-lg overflow-hidden">
+          {cell.colors.map((color, idx) => (
+            <div 
+              key={`${color}-${idx}`}
+              className={cn(
+                "absolute inset-0",
+                color,
+                "transition-opacity duration-200",
+                lockoutMode
+                  ? "opacity-80"
+                  : {
+                      'opacity-20': idx === 0,
+                      'opacity-40': idx === 1,
+                      'opacity-60': idx === 2,
+                      'opacity-80': idx === 3,
+                    }[idx]
+              )}
+            />
+          ))}
         </div>
       )}
 
-      {/* Main Content */}
-      <div className={textContainerClasses} style={{ minHeight: '100%' }}>
-        {isEmpty && !isEditing && isOwner && !isGameStarted ? (
-          <div className="text-white/50 text-sm font-medium flex items-center justify-center h-full">
-            Click to add task...
-          </div>
-        ) : (
+      {/* Color Indicators */}
+      {cell.colors.length > 0 && <ColorIndicators />}
+
+      {/* Content Container */}
+      <div className={cn(
+        "relative h-full w-full",
+        "flex items-center justify-center",
+        "p-2 sm:p-3",
+        "transition-colors duration-300",
+        cell.colors.length > 0 ? "text-white/90" : "text-white/80"
+      )}>
+        {isEditing ? (
           <textarea
             ref={textareaRef}
             value={cell.text}
@@ -241,109 +244,42 @@ export const BingoCell = React.memo<BingoCellProps>(({
             onBlur={handleBlur}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            className={textareaClasses}
-            style={{
-              ...typography,
-              textShadow: cell.colors.length > 0 
-                ? '0 1px 2px rgba(0,0,0,0.5)'
-                : 'none',
-              resize: 'none',
-              overflow: 'hidden',
-              willChange: 'transform',
-              textRendering: 'optimizeLegibility',
-              WebkitFontSmoothing: 'antialiased',
-              MozOsxFontSmoothing: 'grayscale',
-            }}
-            readOnly={!isOwner || winner !== null || !isEditing}
-            maxLength={50}
+            className={cn(
+              "w-full h-full",
+              "bg-transparent border-none",
+              "font-semibold focus:ring-0 focus:outline-none",
+              "transition-colors duration-300",
+              "text-center resize-none overflow-hidden",
+              "z-10",
+              shouldUseWhiteText(cell.colors[cell.colors.length - 1]) 
+                ? "text-white" 
+                : "text-gray-200"
+            )}
+            style={typography}
             spellCheck={false}
+            maxLength={50}
+            placeholder="Enter task..."
           />
+        ) : (
+          <p 
+            className={cn(
+              "w-full",
+              "text-center break-words",
+              "z-10",
+              shouldUseWhiteText(cell.colors[cell.colors.length - 1]) 
+                ? "text-white" 
+                : "text-gray-200",
+              isGameStarted && "select-none",
+              !cell.text && isOwner && !isGameStarted && "text-gray-500"
+            )}
+            style={typography}
+          >
+            {cell.text || (isOwner && !isGameStarted ? "Click to edit..." : "")}
+          </p>
         )}
       </div>
-
-      {/* Completed Indicator */}
-      {cell.colors.length > 0 && <CompletedIndicator />}
-
-      {/* Type Indicator */}
-      {cellType && (
-        <div className={cn(
-          'absolute top-2 left-2 w-2 h-2 rounded-full',
-          'ring-1 ring-white/20 shadow-sm',
-          {
-            'bg-red-500': cellType === 'pvp',
-            'bg-green-500': cellType === 'pve',
-            'bg-blue-500': cellType === 'quest',
-            'bg-purple-500': cellType === 'achievement',
-          }
-        )} />
-      )}
-
-      {/* Difficulty Badge */}
-      {cell.difficulty && cell.difficulty !== 'normal' && (
-        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full 
-          text-[10px] font-medium bg-white/10 text-white/90">
-          {cell.difficulty}
-        </div>
-      )}
-
-      {/* Edit Controls */}
-      <AnimatePresence mode="wait">
-        {isEditing && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="absolute bottom-2 right-2 p-1.5 rounded-full
-              bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg
-              transition-colors duration-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFocused(false);
-              onEditEnd(index);
-            }}
-          >
-            <Check className="w-3 h-3" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Character Count */}
-      {isEditing && (
-        <div className={cn(
-          "absolute top-2 right-2 px-1.5 py-0.5 rounded-full",
-          "text-[10px] font-medium backdrop-blur-sm",
-          cell.text.length >= 50 
-            ? "bg-red-500/20 text-red-300" 
-            : "bg-white/10 text-white/70"
-        )}>
-          {cell.text.length}/50
-        </div>
-      )}
-
-      {!isEditing && cell.text.length > 30 && (
-        <div className="absolute inset-0 group">
-          <div className="opacity-0 group-hover:opacity-100 
-            absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-            px-2 py-1 bg-gray-900 rounded text-xs text-white/90
-            transition-opacity duration-200 whitespace-normal max-w-[200px]
-            pointer-events-none">
-            {cell.text}
-          </div>
-        </div>
-      )}
     </div>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison function für bessere Memoization
-  return (
-    prevProps.cell === nextProps.cell &&
-    prevProps.isEditing === nextProps.isEditing &&
-    prevProps.winner === nextProps.winner &&
-    prevProps.currentPlayer === nextProps.currentPlayer &&
-    prevProps.isGameStarted === nextProps.isGameStarted
   )
-});
+})
 
 BingoCell.displayName = 'BingoCell'

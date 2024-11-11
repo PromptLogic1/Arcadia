@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
 interface GameControlsProps {
+  boardId: string
   players: Player[]
   teamNames: [string, string]
   teamColors: [string, string]
@@ -46,6 +47,7 @@ interface GameControlsProps {
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
+  boardId,
   players,
   teamNames,
   teamColors,
@@ -70,6 +72,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
 
   // Props objects for child components
   const playerManagementProps = {
+    boardId,
     players,
     teamNames,
     teamColors,
@@ -106,6 +109,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
     onWinConditionsChange: props.onWinConditionsChange,
     onStartBoard,
     onResetBoard: props.onResetBoard,
+    onTimerToggle: props.onTimerToggle,
   }
 
   const CollapsibleSection = ({ 

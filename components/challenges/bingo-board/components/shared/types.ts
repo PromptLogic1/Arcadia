@@ -28,12 +28,9 @@ export interface Player {
 
 export interface BoardCell {
   text: string
-  colors: string[]
-  difficulty?: 'normal' | 'hard' | 'extreme'
-  reward?: 'block'
-  blocked?: boolean
-  blockedBy?: string // player/team color that blocked it
-  completedBy: string[] // Make this required with empty array as default
+  colors: string[]  // Die Farben der Spieler, die diese Zelle markiert haben
+  completedBy: string[]  // Die IDs/Colors der Spieler, die diese Zelle abgeschlossen haben
+  blocked: boolean
 }
 
 export interface WinConditions {

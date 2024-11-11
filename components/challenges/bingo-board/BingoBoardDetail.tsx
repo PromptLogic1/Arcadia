@@ -15,11 +15,33 @@ import { useRouter } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Play, Wand2, BarChart2 } from 'lucide-react'
 import { BoardGenerator, type CellTemplate } from './components/Board/BoardGenerator'
+import { useBingoBoard } from './hooks/useBingoBoard'
+
+// Add timeLimit to board settings type
+interface BoardSettings {
+  teamMode: boolean
+  lockout: boolean
+  soundEnabled: boolean
+  winConditions: {
+    line: boolean
+    majority: boolean
+  }
+  timeLimit: number
+}
 
 const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
-  board,
+  board: initialBoard,
   onClose,
 }) => {
+  // Convert board id to string for Supabase
+  const boardId = initialBoard.id.toString()
+  
+  const { 
+    board, 
+    updateBoardState, 
+    updateBoardSettings 
+  } = useBingoBoard({ boardId })
+
   // Add state for tracking temporary changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -37,10 +59,9 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     setWinConditions,
     resetBoard,
     handleCellChange: baseHandleCellChange,
-    handleCellClick: baseHandleCellClick,
     checkWinningCondition,
     generateBoard,
-  } = useBingoGame(board.size)
+  } = useBingoGame(board?.size ?? initialBoard.size)
 
   // Reference to usePlayerManagement hook
   const {
@@ -55,25 +76,28 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     updateTeamColor,
   } = usePlayerManagement()
 
-  // Reference to useTimer hook
+  // Reference to useTimer hook with proper type checking
   const {
-    time,
     isTimerRunning,
     setIsTimerRunning,
     formatTime,
     setTime,
-  } = useTimer(board.timeLeft, () => checkWinningCondition(players, true))
+  } = useTimer(
+    (board?.settings as BoardSettings)?.timeLimit ?? 0, 
+    () => checkWinningCondition(players, true)
+  )
 
   // Initialize board state
   useEffect(() => {
     try {
-      const initialBoard = generateBoard().map(cell => ({
+      const initialBoardState = generateBoard().map(cell => ({
         text: cell.text || 'Click to edit...',
         colors: [] as string[],
         completedBy: [] as string[],
-      })) satisfies BoardCell[]
+        blocked: false // Add required blocked property
+      }))
       
-      setBoardState(initialBoard)
+      setBoardState(initialBoardState)
     } catch (error) {
       console.error('Error initializing board:', error)
       setError(error instanceof Error ? error : new Error('Failed to initialize board'))
@@ -113,9 +137,24 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   }, [baseHandleCellChange, isAuthenticated])
 
   // Create a wrapper for handleCellClick
-  const handleCellClick = useCallback((index: number) => {
-    baseHandleCellClick(index, currentPlayer, players)
-  }, [baseHandleCellClick, currentPlayer, players])
+  const handleCellClickAsync = async (index: number, updates?: Partial<BoardCell>) => {
+    if (!board?.board_state) return
+
+    const newState = [...board.board_state]
+    if (updates) {
+      const currentCell = newState[index]
+      if (!currentCell) return
+
+      newState[index] = {
+        text: updates.text ?? currentCell.text,
+        colors: updates.colors ?? currentCell.colors,
+        completedBy: updates.completedBy ?? currentCell.completedBy,
+        blocked: updates.blocked ?? currentCell.blocked
+      }
+    }
+
+    await updateBoardState(newState)
+  }
 
   // Handle actions that require authentication
   const handleAuthenticatedAction = useCallback((action: string) => {
@@ -139,6 +178,14 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     }
     setIsTimerRunning(!isTimerRunning)
   }, [isTimerRunning, handleAuthenticatedAction, setIsTimerRunning])
+
+  // Update handleSettingsUpdate to use proper types and actually use it
+  const handleSettingsUpdate = useCallback(async (settings: BoardSettings) => {
+    await updateBoardSettings({
+      ...board,
+      settings
+    })
+  }, [board, updateBoardSettings])
 
   if (error) {
     return (
@@ -196,7 +243,7 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
                 <div className="flex-1 min-h-0 flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-cyan-300">
-                      {board.name || 'Bingo Board'}
+                      {board?.title || 'Bingo Board'}
                     </h2>
                     <span className="text-sm text-cyan-400/60">
                       {boardSize}×{boardSize}
@@ -212,7 +259,7 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
                     isGameStarted={isTimerRunning}
                     lockoutMode={lockout}
                     onCellChange={handleCellChange}
-                    onCellClick={handleCellClick}
+                    onCellClick={handleCellClickAsync}
                     onReset={resetBoard}
                   />
                 </div>
@@ -220,11 +267,12 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
                 {/* Game Controls - Fixed width sidebar */}
                 <div className="w-full lg:w-[320px] h-full">
                   <GameControls
+                    boardId={boardId}
                     players={players}
                     teamNames={teamNames}
                     teamColors={teamColors}
                     teamMode={teamMode}
-                    time={time}
+                    time={(board?.settings as BoardSettings)?.timeLimit ?? 0}
                     isTimerRunning={isTimerRunning}
                     boardSize={boardSize}
                     soundEnabled={soundEnabled}
@@ -236,13 +284,44 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
                     onRemovePlayer={removePlayer}
                     onUpdateTeamName={updateTeamName}
                     onUpdateTeamColor={updateTeamColor}
-                    onTimeChange={(timeString) => setTime(parseInt(timeString))}
+                    onTimeChange={(timeString) => {
+                      const newTime = parseInt(timeString)
+                      setTime(newTime)
+                      handleSettingsUpdate({
+                        ...(board?.settings as BoardSettings),
+                        timeLimit: newTime
+                      })
+                    }}
                     onTimerToggle={handleTimerToggle}
                     onBoardSizeChange={setBoardSize}
-                    onSoundToggle={setSoundEnabled}
-                    onTeamModeToggle={setTeamMode}
-                    onLockoutToggle={setLockout}
-                    onWinConditionsChange={setWinConditions}
+                    onSoundToggle={(enabled) => {
+                      setSoundEnabled(enabled)
+                      handleSettingsUpdate({
+                        ...(board?.settings as BoardSettings),
+                        soundEnabled: enabled
+                      })
+                    }}
+                    onTeamModeToggle={(enabled) => {
+                      setTeamMode(enabled)
+                      handleSettingsUpdate({
+                        ...(board?.settings as BoardSettings),
+                        teamMode: enabled
+                      })
+                    }}
+                    onLockoutToggle={(enabled) => {
+                      setLockout(enabled)
+                      handleSettingsUpdate({
+                        ...(board?.settings as BoardSettings),
+                        lockout: enabled
+                      })
+                    }}
+                    onWinConditionsChange={(conditions) => {
+                      setWinConditions(conditions)
+                      handleSettingsUpdate({
+                        ...(board?.settings as BoardSettings),
+                        winConditions: conditions
+                      })
+                    }}
                     onStartBoard={() => {
                       if (handleAuthenticatedAction('start the board')) {
                         setIsTimerRunning(true)
