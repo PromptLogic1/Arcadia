@@ -146,13 +146,14 @@ export const BingoGrid: React.FC<{
     className={cn(
       'grid bg-gray-800/80 rounded-lg',
       'border border-cyan-500/20 shadow-inner',
-      'p-2 sm:p-3 md:p-4',
+      'p-1 sm:p-2 md:p-3',
+      'w-full h-full',
       className
     )}
     style={{
       gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-      gap: 'clamp(0.25rem, 2vw, 0.5rem)',
-      aspectRatio: '1',
+      gap: 'clamp(0.25rem, 1vw, 0.5rem)',
+      aspectRatio: '1 / 1',
     }}
   >
     {children}
@@ -167,12 +168,12 @@ export const BingoContainer: React.FC<{
   className
 }) => (
   <div className={cn(
-    "w-full min-h-0",
+    "w-full min-h-0 h-full",
     "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900",
     "p-2 sm:p-4 md:p-6",
     className
   )}>
-    <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 h-full max-w-[1800px] mx-auto">
+    <div className="grid lg:grid-cols-[1fr,400px] gap-3 sm:gap-4 h-full max-w-[1800px] mx-auto">
       {children}
     </div>
   </div>

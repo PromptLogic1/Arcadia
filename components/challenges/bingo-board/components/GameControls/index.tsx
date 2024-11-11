@@ -1,10 +1,25 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { BingoLayout, BingoSection } from '../layout/BingoLayout'
-import { Clock, Users, Settings } from 'lucide-react'
+import { 
+  Clock, 
+  Users, 
+  Settings, 
+  Pause, 
+  Play, 
+  RotateCcw,
+  ChevronDown 
+} from 'lucide-react'
 import { PlayerManagement } from './PlayerManagement'
 import { TimerControls } from './TimerControls'
 import { GameSettings } from './GameSettings'
 import type { Player } from '../shared/types'
+import { 
+  Collapsible, 
+  CollapsibleTrigger, 
+  CollapsibleContent 
+} from '@/components/ui/collapsible'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface GameControlsProps {
   players: Player[]
@@ -52,6 +67,11 @@ export const GameControls: React.FC<GameControlsProps> = ({
   isOwner,
   ...props
 }) => {
+  const [sectionsOpen, setSectionsOpen] = useState({
+    players: true,
+    settings: true
+  })
+
   const playerManagementProps = {
     players,
     teamNames,
@@ -101,16 +121,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
       fullHeight
       variant="compact"
     >
-      <div className="flex flex-col gap-3 min-h-0">
-        <BingoSection 
-          title="Players" 
-          icon={<Users className="h-4 w-4" />}
-          variant="compact"
-          className="bg-gradient-to-br from-gray-800/80 to-gray-800/40"
-        >
-          <PlayerManagement {...playerManagementProps} />
-        </BingoSection>
-
+      <div className="grid grid-cols-1 auto-rows-min gap-3 min-h-0">
+        {/* Timer Section - Always visible */}
         <BingoSection 
           title="Timer" 
           icon={<Clock className="h-4 w-4" />}
@@ -120,14 +132,99 @@ export const GameControls: React.FC<GameControlsProps> = ({
           <TimerControls {...timerControlsProps} />
         </BingoSection>
 
-        <BingoSection 
-          title="Settings" 
-          icon={<Settings className="h-4 w-4" />}
-          variant="compact"
-          className="bg-gradient-to-br from-gray-800/80 to-gray-800/40"
-        >
-          <GameSettings {...gameSettingsProps} />
-        </BingoSection>
+        {/* Players Section - Open by default */}
+        <Collapsible defaultOpen={true} open={sectionsOpen.players} onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, players: open }))}>
+          <CollapsibleTrigger className="w-full">
+            <BingoSection 
+              title="Players" 
+              icon={<Users className="h-4 w-4" />}
+              variant="compact"
+              className={cn(
+                "bg-gradient-to-br from-gray-800/80 to-gray-800/40",
+                "hover:bg-gray-800/60 transition-colors duration-200"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-cyan-300">{players.length} Players</span>
+                <ChevronDown className={cn(
+                  "h-4 w-4 text-cyan-400 transition-transform duration-200",
+                  sectionsOpen.players && "rotate-180"
+                )} />
+              </div>
+            </BingoSection>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 overflow-hidden transition-all duration-300 ease-in-out">
+            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20 
+              transform-gpu transition-transform duration-300">
+              <PlayerManagement {...playerManagementProps} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Settings Section - Open by default */}
+        <Collapsible defaultOpen={true} open={sectionsOpen.settings} onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, settings: open }))}>
+          <CollapsibleTrigger className="w-full">
+            <BingoSection 
+              title="Settings" 
+              icon={<Settings className="h-4 w-4" />}
+              variant="compact"
+              className={cn(
+                "bg-gradient-to-br from-gray-800/80 to-gray-800/40",
+                "hover:bg-gray-800/60 transition-colors duration-200"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-cyan-300">Game Configuration</span>
+                <ChevronDown className={cn(
+                  "h-4 w-4 text-cyan-400 transition-transform duration-200",
+                  sectionsOpen.settings && "rotate-180"
+                )} />
+              </div>
+            </BingoSection>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 overflow-hidden transition-all duration-300 ease-in-out">
+            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20 
+              transform-gpu transition-transform duration-300">
+              <GameSettings {...gameSettingsProps} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={props.onStartBoard}
+            disabled={!isOwner}
+            className={cn(
+              "h-10",
+              isTimerRunning
+                ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
+                : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-cyan-500/30",
+              "border"
+            )}
+          >
+            {isTimerRunning ? (
+              <>
+                <Pause className="mr-2 h-4 w-4" />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 h-4 w-4" />
+                Start
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={props.onResetBoard}
+            disabled={!isOwner}
+            variant="outline"
+            className="h-10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Reset
+          </Button>
+        </div>
       </div>
     </BingoLayout>
   )

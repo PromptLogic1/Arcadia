@@ -15,7 +15,6 @@ import { useRouter } from 'next/navigation'
 
 const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   board,
-  onBookmark,
   onClose,
 }) => {
   // Add state for tracking temporary changes
@@ -168,13 +167,11 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
             players={players}
             currentPlayer={currentPlayer}
             winner={winner}
-            isOwner={true} // Allow editing for all users
-            isBookmarked={board.bookmarked}
+            isOwner={true}
             isGameStarted={isTimerRunning}
             lockoutMode={lockout}
             onCellChange={handleCellChange}
             onCellClick={handleCellClick}
-            onBookmark={onBookmark}
             onReset={resetBoard}
           />
           {hasUnsavedChanges && !isAuthenticated && (
