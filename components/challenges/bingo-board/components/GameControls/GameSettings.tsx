@@ -13,6 +13,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
 export interface GameSettingsProps {
   boardSize: number
@@ -50,6 +51,9 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   onStartBoard,
   onResetBoard,
 }) => {
+  const { getResponsiveSpacing } = useResponsiveLayout()
+  const spacing = getResponsiveSpacing(16)
+
   const handleWinConditionChange = (type: 'line' | 'majority') => {
     onWinConditionsChange({
       ...winConditions,
@@ -58,7 +62,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" style={{ gap: spacing.gap }}>
       <div className="grid grid-cols-2 gap-2">
         <TooltipProvider>
           <Tooltip>

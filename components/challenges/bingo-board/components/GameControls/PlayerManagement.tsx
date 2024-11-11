@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select'
 import type { Player } from '../shared/types'
 import { colorPalette } from '../shared/constants'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { cn } from '@/lib/utils'
 
 interface PlayerManagementProps {
   players: Player[]
@@ -43,17 +45,22 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
   onUpdateTeamName,
   onUpdateTeamColor,
 }) => {
+  const { isCollapsed, getResponsiveSpacing } = useResponsiveLayout()
+  const spacing = getResponsiveSpacing(16)
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" style={{ gap: spacing.gap }}>
       {teamMode && (
         <div className="flex gap-2 mb-3">
           {teamNames.map((name, index) => (
             <Popover key={index}>
               <PopoverTrigger asChild>
                 <div 
-                  className={`flex-1 p-2 rounded-lg border border-cyan-500/20 
-                    bg-gray-800/50 hover:bg-gray-800/80 transition-all cursor-pointer
-                    group flex items-center gap-2`}
+                  className={cn(
+                    "flex-1 p-2 rounded-lg border border-cyan-500/20",
+                    "bg-gray-800/50 hover:bg-gray-800/80 transition-all cursor-pointer",
+                    "group flex items-center gap-2"
+                  )}
                 >
                   <div
                     className={`w-3 h-3 rounded-full ${teamColors[index]} 
@@ -67,14 +74,16 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                   />
                 </div>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2 bg-gray-800/95 backdrop-blur-sm border border-cyan-500/30">
+              <PopoverContent className="w-48 p-2 bg-gray-800/95 border border-cyan-500/30">
                 <div className="grid grid-cols-5 gap-1.5">
                   {colorPalette.map((color) => (
                     <Button
                       key={color.color}
-                      className={`w-6 h-6 ${color.color} rounded-full 
-                        transition-all duration-200 hover:scale-110
-                        ${teamColors[index] === color.color ? 'ring-2 ring-cyan-400' : ''}`}
+                      className={cn(
+                        `w-6 h-6 ${color.color} rounded-full`,
+                        "transition-all duration-200 hover:scale-110",
+                        teamColors[index] === color.color ? 'ring-2 ring-cyan-400' : ''
+                      )}
                       onClick={() => onUpdateTeamColor(index, color.color)}
                     />
                   ))}
@@ -85,15 +94,21 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className={cn(
+        "grid gap-2",
+        isCollapsed ? "grid-cols-2" : "grid-cols-4",
+        "sm:grid-cols-4"
+      )}>
         {players.map((player, i) => (
           <Popover key={i}>
             <PopoverTrigger asChild>
               <div className="flex flex-col items-center gap-1.5 relative">
                 <div
-                  className={`w-12 h-12 ${player.color} rounded-full relative group
-                    transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20
-                    cursor-pointer`}
+                  className={cn(
+                    `w-12 h-12 ${player.color} rounded-full relative group`,
+                    "transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20",
+                    "cursor-pointer"
+                  )}
                   aria-label={`Edit ${player.name}`}
                 >
                   <span className="text-lg font-bold absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -105,9 +120,11 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                         e.stopPropagation()
                         onRemovePlayer(i)
                       }}
-                      className="absolute -top-1 -right-1 bg-gray-800/90 rounded-full p-1
-                        opacity-0 group-hover:opacity-100 transition-opacity
-                        hover:bg-red-500/20 border border-red-500/30 cursor-pointer"
+                      className={cn(
+                        "absolute -top-1 -right-1 bg-gray-800/90 rounded-full p-1",
+                        "opacity-0 group-hover:opacity-100 transition-opacity",
+                        "hover:bg-red-500/20 border border-red-500/30 cursor-pointer"
+                      )}
                       role="button"
                       aria-label={`Remove ${player.name}`}
                     >
@@ -126,7 +143,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               </div>
             </PopoverTrigger>
             
-            <PopoverContent className="w-64 bg-gray-800/95 backdrop-blur-sm border border-cyan-500/30">
+            <PopoverContent className="w-64 bg-gray-800/95 border border-cyan-500/30">
               <div className="space-y-3 p-1">
                 <div className="space-y-2">
                   <Label className="text-xs text-cyan-200">Name</Label>
@@ -168,9 +185,11 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                       {colorPalette.map((color) => (
                         <Button
                           key={color.color}
-                          className={`w-6 h-6 ${color.color} rounded-full 
-                            transition-all duration-200 hover:scale-110 
-                            ${player.color === color.color ? 'ring-2 ring-cyan-400' : ''}`}
+                          className={cn(
+                            `w-6 h-6 ${color.color} rounded-full`,
+                            "transition-all duration-200 hover:scale-110",
+                            player.color === color.color ? 'ring-2 ring-cyan-400' : ''
+                          )}
                           onClick={() => onUpdatePlayer(i, player.name, color.color, player.team)}
                           aria-label={`Select ${color.name} color`}
                         />
@@ -187,11 +206,13 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
           <div className="flex flex-col items-center gap-1.5">
             <div
               onClick={onAddPlayer}
-              className="w-12 h-12 bg-gray-700/50 hover:bg-gray-600/50 
-                border border-dashed border-cyan-500/30 rounded-full
-                transition-all duration-200 hover:scale-105
-                hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20
-                cursor-pointer flex items-center justify-center"
+              className={cn(
+                "w-12 h-12 bg-gray-700/50 hover:bg-gray-600/50",
+                "border border-dashed border-cyan-500/30 rounded-full",
+                "transition-all duration-200 hover:scale-105",
+                "hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/20",
+                "cursor-pointer flex items-center justify-center"
+              )}
               role="button"
               aria-label="Add Player"
             >

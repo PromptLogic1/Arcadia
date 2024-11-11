@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Play, Pause } from 'lucide-react'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
 interface TimerControlsProps {
   time: number
@@ -37,6 +38,9 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   const [hours, setHours] = useState(Math.floor(time / 3600))
   const [minutes, setMinutes] = useState(Math.floor((time % 3600) / 60))
   const [seconds, setSeconds] = useState(time % 60)
+
+  const { getResponsiveSpacing } = useResponsiveLayout()
+  const spacing = getResponsiveSpacing(16)
 
   const handleTimeSubmit = () => {
     const validHours = Math.max(0, Math.min(99, hours))
@@ -68,8 +72,8 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="bg-gray-800/90 rounded-lg p-3 border border-cyan-500/30 backdrop-blur-sm">
+    <div className="flex flex-col" style={{ gap: spacing.gap }}>
+      <div className="bg-gray-800/90 rounded-lg p-3 border border-cyan-500/30">
         <div className="flex items-center justify-center gap-3">
           <TooltipProvider>
             <Tooltip>
@@ -132,7 +136,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
       </div>
 
       <Dialog open={isTimeDialogOpen} onOpenChange={setIsTimeDialogOpen}>
-        <DialogContent className="bg-gray-800/95 border-cyan-500/30 backdrop-blur-sm">
+        <DialogContent className="bg-gray-800/95 border-cyan-500/30">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-cyan-400">
               Set Timer

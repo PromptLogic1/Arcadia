@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Crown, Star, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Player } from '../shared/types'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { cn } from '@/lib/utils'
 
 interface WinnerModalProps {
   winner: number | null
@@ -15,11 +17,15 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
   players,
   onReset,
 }) => {
+  const { getFluidTypography, getResponsiveSpacing } = useResponsiveLayout()
+  const typography = getFluidTypography(16, 24)
+  const spacing = getResponsiveSpacing(16)
+
   if (winner === null) return null
 
   const winnerName = winner !== null && winner >= 0 && players[winner] 
     ? players[winner].name 
-    : 'Unknown Player';
+    : 'Unknown Player'
 
   return (
     <AnimatePresence>
@@ -27,7 +33,7 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50"
+        className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50"
         aria-modal="true"
         role="dialog"
       >
@@ -37,12 +43,16 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", duration: 0.5 }}
           className="relative w-full max-w-md mx-4"
+          style={{ gap: spacing.gap }}
         >
           <div className="bg-gray-800/95 rounded-xl border-2 border-cyan-500/30 shadow-xl overflow-hidden">
             {/* Header */}
             <div className="relative px-6 pt-6 pb-4 text-center">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="bg-cyan-500/20 rounded-full p-4 border-2 border-cyan-500/30">
+                <div className={cn(
+                  "bg-cyan-500/20 rounded-full p-4 border-2 border-cyan-500/30",
+                  "transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20"
+                )}>
                   {winner === -1 ? (
                     <Star className="w-8 h-8 text-yellow-400" />
                   ) : (
@@ -51,7 +61,10 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
                 </div>
               </div>
               
-              <h2 className="mt-6 text-2xl font-bold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent">
+              <h2 className={cn(
+                "mt-6 font-bold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400",
+                "bg-clip-text text-transparent transition-all duration-300"
+              )} style={typography}>
                 {winner === -1 ? "Time's up!" : `${winnerName} Wins!`}
               </h2>
               
@@ -67,9 +80,12 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
               <div className="px-6 py-4 bg-gray-800/50 border-y border-cyan-500/20">
                 <div className="flex items-center justify-center gap-4">
                   <div 
-                    className={`w-16 h-16 ${players[winner].color} rounded-full 
-                      flex items-center justify-center text-2xl font-bold
-                      shadow-lg shadow-cyan-500/10 border-2 border-cyan-500/30`}
+                    className={cn(
+                      `w-16 h-16 ${players[winner].color} rounded-full`,
+                      "flex items-center justify-center text-2xl font-bold",
+                      "shadow-lg shadow-cyan-500/10 border-2 border-cyan-500/30",
+                      "transition-all duration-300 hover:scale-105"
+                    )}
                   >
                     {players[winner].name.charAt(0)}
                   </div>
@@ -89,9 +105,12 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
             <div className="px-6 py-4 flex justify-center">
               <Button
                 onClick={onReset}
-                className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 
-                  border border-cyan-500/30 transition-all duration-200
-                  hover:shadow-lg hover:shadow-cyan-500/10"
+                className={cn(
+                  "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400",
+                  "border border-cyan-500/30 transition-all duration-200",
+                  "hover:shadow-lg hover:shadow-cyan-500/10",
+                  "hover:scale-105"
+                )}
                 size="lg"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />

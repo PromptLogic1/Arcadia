@@ -1,25 +1,23 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Checkbox } from '@/components/ui/checkbox'
 import { 
   BookMarked,
   Library,
   Globe,
   Star,
   Plus,
-  Filter,
-  Shuffle,
-  Download,
-  Upload,
-  Eye
+  Eye,
+  ChevronDown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { GeneratorSettings } from './GeneratorSettings'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
-interface CellTemplate {
+// Export the interface
+export interface CellTemplate {
   id: string
   text: string
   type: 'pvp' | 'pve' | 'quest' | 'achievement'
@@ -33,13 +31,6 @@ interface BoardGeneratorProps {
   onApplyTemplate: (template: CellTemplate) => void
   onPreview?: () => void
 }
-
-const CHALLENGE_TYPES = [
-  { id: 'pve', label: 'PvE', color: 'green' },
-  { id: 'pvp', label: 'PvP', color: 'red' },
-  { id: 'quest', label: 'Quest', color: 'blue' },
-  { id: 'achievement', label: 'Achievement', color: 'purple' },
-] as const
 
 // Beispiel-Templates als Konstante
 const EXAMPLE_TEMPLATES: CellTemplate[] = [
@@ -88,6 +79,9 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
     extreme: 1
   })
   const [activeTemplateTab, setActiveTemplateTab] = useState('library')
+  const { isCollapsed, getFluidTypography, getResponsiveSpacing } = useResponsiveLayout()
+  const typography = getFluidTypography(14, 16)
+  const spacing = getResponsiveSpacing(16)
 
   // Filtere Templates basierend auf ausgewählten Typen
   const filteredTemplates = EXAMPLE_TEMPLATES.filter(template => 
@@ -116,175 +110,107 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-[320px,1fr] gap-6 p-6 bg-gray-800/50 rounded-lg border border-cyan-500/20">
-      {/* Linke Seitenleiste */}
-      <div className="space-y-8">
-        {/* Challenge Type Selection */}
-        <div className="space-y-4">
-          <Label className="text-base font-semibold text-cyan-300">Challenge Types</Label>
-          <div className="grid grid-cols-1 gap-3">
-            {CHALLENGE_TYPES.map(type => (
-              <div
-                key={type.id}
-                className={cn(
-                  "flex items-center p-3 rounded-lg border transition-all",
-                  "hover:bg-gray-700/30 cursor-pointer",
-                  selectedTypes.has(type.id)
-                    ? `border-${type.color}-500/30 bg-${type.color}-500/10`
-                    : "border-gray-700/50 bg-gray-800/30"
-                )}
-                onClick={() => handleTypeToggle(type.id)}
-              >
-                <Checkbox
-                  checked={selectedTypes.has(type.id)}
-                  className={cn(
-                    "mr-3",
-                    `data-[state=checked]:bg-${type.color}-500 
-                     data-[state=checked]:border-${type.color}-500`
-                  )}
-                />
-                <span className={cn(
-                  "text-sm font-medium",
-                  selectedTypes.has(type.id)
-                    ? `text-${type.color}-400`
-                    : "text-gray-400"
-                )}>
-                  {type.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className={cn(
+      "grid gap-4 bg-gray-800/50 rounded-lg border border-cyan-500/20",
+      isCollapsed 
+        ? "grid-cols-1 p-4" 
+        : "grid-cols-[320px,1fr] gap-6 p-6"
+    )}>
+      
+      {/* Left Sidebar */}
+      <div className="space-y-4" style={{ gap: spacing.gap }}>
+        <Collapsible defaultOpen className="lg:hidden">
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 
+            bg-gray-700/50 rounded-lg border border-cyan-500/20 text-cyan-300">
+            <span className="font-semibold">Generator Settings</span>
+            <ChevronDown className="w-4 h-4 transition-transform duration-200 
+              data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <GeneratorSettings
+              selectedTypes={selectedTypes}
+              difficultyLevels={difficultyLevels}
+              onTypeToggle={handleTypeToggle}
+              onDifficultyChange={handleDifficultyChange}
+              typography={typography}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
-        {/* Difficulty Distribution */}
-        <div className="space-y-4">
-          <Label className="text-base font-semibold text-cyan-300">Difficulty Levels</Label>
-          {Object.entries(difficultyLevels).map(([diff, value]) => (
-            <div key={diff} className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className={cn(
-                  "font-medium",
-                  diff === 'normal' ? "text-cyan-300" :
-                  diff === 'hard' ? "text-amber-300" :
-                  "text-red-300"
-                )}>
-                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                </span>
-                <span className="text-gray-400">Level {value}</span>
-              </div>
-              <Slider
-                defaultValue={[value]}
-                min={0}
-                max={5}
-                step={1}
-                onValueChange={(newValue) => handleDifficultyChange(diff, newValue)}
-                className={cn(
-                  "[&>span]:transition-colors",
-                  diff === 'normal' ? "[&>span]:bg-cyan-500" :
-                  diff === 'hard' ? "[&>span]:bg-amber-500" :
-                  "[&>span]:bg-red-500"
-                )}
-              />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>None</span>
-                <span>Maximum</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          <Button 
-            className="w-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 h-11"
-            onClick={() => {}}
-          >
-            <Shuffle className="w-5 h-5 mr-2" />
-            Generate Board
-          </Button>
-          <div className="grid grid-cols-2 gap-3">
-            <Button 
-              variant="outline" 
-              className="border-cyan-500/30 text-cyan-300 h-11"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Export
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-cyan-500/30 text-cyan-300 h-11"
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              Import
-            </Button>
-          </div>
+        {/* Desktop sidebar */}
+        <div className="hidden lg:block">
+          <GeneratorSettings
+            selectedTypes={selectedTypes}
+            difficultyLevels={difficultyLevels}
+            onTypeToggle={handleTypeToggle}
+            onDifficultyChange={handleDifficultyChange}
+            typography={typography}
+          />
         </div>
       </div>
 
       {/* Template Library */}
       <div className="space-y-4">
-        <Tabs defaultValue={activeTemplateTab} onValueChange={setActiveTemplateTab}>
-          <TabsList className="bg-gray-700/50 border border-cyan-500/30">
-            <TabsTrigger 
-              value="library"
-              className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-            >
-              <Library className="w-4 h-4 mr-2" />
-              Library
-            </TabsTrigger>
-            <TabsTrigger 
-              value="community"
-              className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-            >
-              <Globe className="w-4 h-4 mr-2" />
-              Community
-            </TabsTrigger>
-            <TabsTrigger 
-              value="favorites"
-              className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-            >
-              <Star className="w-4 h-4 mr-2" />
-              Favorites
-            </TabsTrigger>
-            <TabsTrigger 
-              value="personal"
-              className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-            >
-              <BookMarked className="w-4 h-4 mr-2" />
-              Personal
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue={activeTemplateTab} onValueChange={setActiveTemplateTab}
+          className="w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-start 
+            sm:items-center gap-4 sm:gap-2 mb-4">
+            <TabsList className="bg-gray-700/50 border border-cyan-500/30 w-full sm:w-auto">
+              <TabsTrigger 
+                value="library"
+                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+              >
+                <Library className="w-4 h-4 mr-2" />
+                Library
+              </TabsTrigger>
+              <TabsTrigger 
+                value="community"
+                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Community
+              </TabsTrigger>
+              <TabsTrigger 
+                value="favorites"
+                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Favorites
+              </TabsTrigger>
+              <TabsTrigger 
+                value="personal"
+                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+              >
+                <BookMarked className="w-4 h-4 mr-2" />
+                Personal
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="ghost" size="sm" 
+                className="text-cyan-300 flex-1 sm:flex-none">
+                <Plus className="w-4 h-4 mr-2" />
+                New Template
+              </Button>
+              <Button variant="ghost" size="sm" 
+                className="text-cyan-300 flex-1 sm:flex-none">
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </Button>
+            </div>
+          </div>
 
           <TabsContent value="library">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="text-cyan-300">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
-                <span className="text-sm text-cyan-300">
-                  {filteredTemplates.length} templates
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="text-cyan-300">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Template
-                </Button>
-                <Button variant="ghost" size="sm" className="text-cyan-300">
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview
-                </Button>
-              </div>
-            </div>
-
-            <ScrollArea className="h-[500px] rounded-md border border-cyan-500/20 bg-gray-900/50">
-              <div className="p-4 grid grid-cols-2 gap-4">
+            <ScrollArea className="h-[calc(100vh-300px)] lg:h-[600px] rounded-md 
+              border border-cyan-500/20 bg-gray-900/50">
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredTemplates.map((template: CellTemplate) => (
                   <div
                     key={template.id}
                     className="p-4 rounded-lg border border-cyan-500/20 bg-gray-800/50 
-                      hover:border-cyan-500/40 transition-colors cursor-pointer group"
+                      hover:border-cyan-500/40 hover:scale-[1.02] hover:shadow-lg
+                      transition-all duration-200 cursor-pointer group
+                      backdrop-blur-sm relative overflow-hidden"
                     onClick={() => onApplyTemplate(template)}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -311,7 +237,7 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
                         <Star className="w-4 h-4 text-cyan-300" />
                       </Button>
                     </div>
-                    <p className="text-sm text-cyan-100 mb-2">{template.text}</p>
+                    <p className="text-sm text-cyan-100 mb-2 line-clamp-3">{template.text}</p>
                     <div className="flex flex-wrap gap-1">
                       {template.tags.map((tag: string) => (
                         <span

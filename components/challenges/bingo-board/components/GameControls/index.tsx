@@ -4,9 +4,6 @@ import {
   Clock, 
   Users, 
   Settings, 
-  Pause, 
-  Play, 
-  RotateCcw,
   ChevronDown 
 } from 'lucide-react'
 import { PlayerManagement } from './PlayerManagement'
@@ -18,8 +15,8 @@ import {
   CollapsibleTrigger, 
   CollapsibleContent 
 } from '@/components/ui/collapsible'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
 interface GameControlsProps {
   players: Player[]
@@ -65,6 +62,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   lockout,
   winConditions,
   isOwner,
+  onStartBoard,
   ...props
 }) => {
   const [sectionsOpen, setSectionsOpen] = useState({
@@ -72,6 +70,10 @@ export const GameControls: React.FC<GameControlsProps> = ({
     settings: true
   })
 
+  const { isCollapsed, getResponsiveSpacing } = useResponsiveLayout()
+  const spacing = getResponsiveSpacing(16)
+
+  // Props objects for child components
   const playerManagementProps = {
     players,
     teamNames,
@@ -107,7 +109,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
     onTeamModeToggle: props.onTeamModeToggle,
     onLockoutToggle: props.onLockoutToggle,
     onWinConditionsChange: props.onWinConditionsChange,
-    onStartBoard: props.onStartBoard,
+    onStartBoard,
     onResetBoard: props.onResetBoard,
   }
 
@@ -117,11 +119,15 @@ export const GameControls: React.FC<GameControlsProps> = ({
       description="Manage players, settings, and game rules"
       delay={0.4}
       direction="right"
-      contentClassName="flex flex-col gap-3 overflow-y-auto"
+      contentClassName={cn(
+        "flex flex-col",
+        isCollapsed ? "gap-2" : "gap-3",
+        "overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent"
+      )}
       fullHeight
       variant="compact"
     >
-      <div className="grid grid-cols-1 auto-rows-min gap-3 min-h-0">
+      <div className="grid grid-cols-1 auto-rows-min" style={{ gap: spacing.gap }}>
         {/* Timer Section - Always visible */}
         <BingoSection 
           title="Timer" 
@@ -132,8 +138,12 @@ export const GameControls: React.FC<GameControlsProps> = ({
           <TimerControls {...timerControlsProps} />
         </BingoSection>
 
-        {/* Players Section - Open by default */}
-        <Collapsible defaultOpen={true} open={sectionsOpen.players} onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, players: open }))}>
+        {/* Players Section - Collapsible */}
+        <Collapsible 
+          defaultOpen={true} 
+          open={sectionsOpen.players} 
+          onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, players: open }))}
+        >
           <CollapsibleTrigger className="w-full">
             <BingoSection 
               title="Players" 
@@ -153,16 +163,19 @@ export const GameControls: React.FC<GameControlsProps> = ({
               </div>
             </BingoSection>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 overflow-hidden transition-all duration-300 ease-in-out">
-            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20 
-              transform-gpu transition-transform duration-300">
+          <CollapsibleContent className="mt-2">
+            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20">
               <PlayerManagement {...playerManagementProps} />
             </div>
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Settings Section - Open by default */}
-        <Collapsible defaultOpen={true} open={sectionsOpen.settings} onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, settings: open }))}>
+        {/* Settings Section - Collapsible */}
+        <Collapsible 
+          defaultOpen={true} 
+          open={sectionsOpen.settings} 
+          onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, settings: open }))}
+        >
           <CollapsibleTrigger className="w-full">
             <BingoSection 
               title="Settings" 
@@ -182,49 +195,12 @@ export const GameControls: React.FC<GameControlsProps> = ({
               </div>
             </BingoSection>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 overflow-hidden transition-all duration-300 ease-in-out">
-            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20 
-              transform-gpu transition-transform duration-300">
+          <CollapsibleContent className="mt-2">
+            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20">
               <GameSettings {...gameSettingsProps} />
             </div>
           </CollapsibleContent>
         </Collapsible>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            onClick={props.onStartBoard}
-            disabled={!isOwner}
-            className={cn(
-              "h-10",
-              isTimerRunning
-                ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-                : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-cyan-500/30",
-              "border"
-            )}
-          >
-            {isTimerRunning ? (
-              <>
-                <Pause className="mr-2 h-4 w-4" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Play className="mr-2 h-4 w-4" />
-                Start
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={props.onResetBoard}
-            disabled={!isOwner}
-            variant="outline"
-            className="h-10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-        </div>
       </div>
     </BingoLayout>
   )

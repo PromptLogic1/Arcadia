@@ -12,6 +12,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { BingoContainer } from './components/layout/BingoLayout'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Play, Wand2, BarChart2 } from 'lucide-react'
+import { BoardGenerator, type CellTemplate } from './components/Board/BoardGenerator'
 
 const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   board,
@@ -50,7 +53,6 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     removePlayer,
     updateTeamName,
     updateTeamColor,
-    toggleTeamMode,
   } = usePlayerManagement()
 
   // Reference to useTimer hook
@@ -160,71 +162,117 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   return (
     <ErrorBoundary>
       <BingoContainer>
-        <div className="flex-[3] min-w-0">
-          <Board
-            boardState={boardState}
-            boardSize={boardSize}
-            players={players}
-            currentPlayer={currentPlayer}
-            winner={winner}
-            isOwner={true}
-            isGameStarted={isTimerRunning}
-            lockoutMode={lockout}
-            onCellChange={handleCellChange}
-            onCellClick={handleCellClick}
-            onReset={resetBoard}
-          />
-          {hasUnsavedChanges && !isAuthenticated && (
-            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <p className="text-yellow-400 text-sm">
-                Log in to save your changes
-                <Button
-                  onClick={() => router.push('/auth/login')}
-                  variant="link"
-                  className="text-yellow-400 hover:text-yellow-300 underline ml-2"
+        <div className="flex-1 min-h-0 flex flex-col">
+          <Tabs defaultValue="play" className="flex-1 flex flex-col min-h-0">
+            <div className="flex-shrink-0 mb-4">
+              <TabsList className="w-full bg-gray-800/50 border border-cyan-500/20 p-1">
+                <TabsTrigger 
+                  value="play"
+                  className="flex-1 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
                 >
-                  Login now
-                </Button>
-              </p>
+                  <Play className="h-4 w-4 mr-2" />
+                  Play Mode
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="generator"
+                  className="flex-1 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+                >
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generator
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="stats"
+                  className="flex-1 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+                >
+                  <BarChart2 className="h-4 w-4 mr-2" />
+                  Statistics
+                </TabsTrigger>
+              </TabsList>
             </div>
-          )}
-        </div>
-        <div className="lg:flex-[1.5] lg:min-w-[400px] lg:max-w-[500px]">
-          <GameControls
-            players={players}
-            teamNames={teamNames}
-            teamColors={teamColors}
-            teamMode={teamMode}
-            time={time}
-            isTimerRunning={isTimerRunning}
-            boardSize={boardSize}
-            soundEnabled={soundEnabled}
-            lockout={lockout}
-            winConditions={winConditions}
-            isOwner={true} // Allow all controls for guests
-            onUpdatePlayer={updatePlayerInfo}
-            onAddPlayer={addPlayer}
-            onRemovePlayer={removePlayer}
-            onUpdateTeamName={updateTeamName}
-            onUpdateTeamColor={updateTeamColor}
-            onTimeChange={(timeString) => setTime(parseInt(timeString))}
-            onTimerToggle={handleTimerToggle}
-            onBoardSizeChange={setBoardSize}
-            onSoundToggle={setSoundEnabled}
-            onTeamModeToggle={(enabled) => {
-              setTeamMode(enabled)
-              toggleTeamMode(enabled)
-            }}
-            onLockoutToggle={setLockout}
-            onWinConditionsChange={setWinConditions}
-            onStartBoard={() => {
-              if (handleAuthenticatedAction('start the board')) {
-                setIsTimerRunning(true)
-              }
-            }}
-            onResetBoard={resetBoard}
-            formatTime={formatTime}
-          />
+
+            <TabsContent value="play" className="flex-1 min-h-0 m-0">
+              <div className="grid lg:grid-cols-[1fr,320px] gap-4 h-full">
+                {/* Main Board Area */}
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-cyan-300">
+                      {board.name || 'Bingo Board'}
+                    </h2>
+                    <span className="text-sm text-cyan-400/60">
+                      {boardSize}×{boardSize}
+                    </span>
+                  </div>
+                  <Board
+                    boardState={boardState}
+                    boardSize={boardSize}
+                    players={players}
+                    currentPlayer={currentPlayer}
+                    winner={winner}
+                    isOwner={true}
+                    isGameStarted={isTimerRunning}
+                    lockoutMode={lockout}
+                    onCellChange={handleCellChange}
+                    onCellClick={handleCellClick}
+                    onReset={resetBoard}
+                  />
+                </div>
+
+                {/* Game Controls - Fixed width sidebar */}
+                <div className="w-full lg:w-[320px] h-full">
+                  <GameControls
+                    players={players}
+                    teamNames={teamNames}
+                    teamColors={teamColors}
+                    teamMode={teamMode}
+                    time={time}
+                    isTimerRunning={isTimerRunning}
+                    boardSize={boardSize}
+                    soundEnabled={soundEnabled}
+                    lockout={lockout}
+                    winConditions={winConditions}
+                    isOwner={true}
+                    onUpdatePlayer={updatePlayerInfo}
+                    onAddPlayer={addPlayer}
+                    onRemovePlayer={removePlayer}
+                    onUpdateTeamName={updateTeamName}
+                    onUpdateTeamColor={updateTeamColor}
+                    onTimeChange={(timeString) => setTime(parseInt(timeString))}
+                    onTimerToggle={handleTimerToggle}
+                    onBoardSizeChange={setBoardSize}
+                    onSoundToggle={setSoundEnabled}
+                    onTeamModeToggle={setTeamMode}
+                    onLockoutToggle={setLockout}
+                    onWinConditionsChange={setWinConditions}
+                    onStartBoard={() => {
+                      if (handleAuthenticatedAction('start the board')) {
+                        setIsTimerRunning(true)
+                      }
+                    }}
+                    onResetBoard={resetBoard}
+                    formatTime={formatTime}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="generator" className="flex-1 min-h-0 m-0">
+              <BoardGenerator
+                onApplyTemplate={(template: CellTemplate) => {
+                  const index = parseInt(template.id) - 1
+                  if (!isNaN(index) && index >= 0 && index < boardSize * boardSize) {
+                    handleCellChange(index, template.text)
+                  }
+                }}
+                onPreview={() => {
+                  // Preview logic
+                }}
+              />
+            </TabsContent>
+
+            <TabsContent value="stats" className="flex-1 min-h-0 m-0">
+              {/* Statistics content */}
+            </TabsContent>
+          </Tabs>
         </div>
       </BingoContainer>
     </ErrorBoundary>

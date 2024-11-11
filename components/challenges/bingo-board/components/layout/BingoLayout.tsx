@@ -102,31 +102,34 @@ export const BingoSection: React.FC<{
     "flex flex-col min-h-0 rounded-lg",
     "bg-gray-800/50 border border-cyan-500/20",
     "transition-all duration-200 hover:border-cyan-500/30 hover:shadow-md hover:shadow-cyan-500/5",
-    variant === 'compact' ? "p-2 sm:p-3" : "p-3 sm:p-4",
+    variant === 'compact' ? "p-2 sm:p-3" : "p-3 sm:p-4 lg:p-6",
     className
   )}>
     {title && (
       <h3 className={cn(
         "font-semibold text-cyan-400 flex items-center justify-between",
-        variant === 'compact' ? "text-sm mb-2" : "text-base mb-3"
+        variant === 'compact' ? "text-sm sm:text-base mb-2" : "text-base sm:text-lg mb-3",
+        "tracking-wide leading-relaxed"
       )}>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           {icon && (
             <span className={cn(
-              "mr-2 p-1.5 rounded-md bg-cyan-500/10",
-              "transition-colors duration-200 group-hover:bg-cyan-500/20",
-              variant === 'compact' ? "text-xs" : "text-sm"
+              "rounded-md bg-cyan-500/10",
+              "transition-colors duration-200",
+              variant === 'compact' ? "p-1 sm:p-1.5" : "p-1.5 sm:p-2",
+              variant === 'compact' ? "text-xs sm:text-sm" : "text-sm sm:text-base"
             )}>
               {icon}
             </span>
           )}
-          {title}
+          <span className="truncate">{title}</span>
         </div>
       </h3>
     )}
     <div className={cn(
       "flex-1 min-h-0",
-      collapsible ? "overflow-hidden transition-all duration-300" : "overflow-auto"
+      collapsible ? "overflow-hidden transition-all duration-300" : "overflow-auto",
+      "scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent"
     )}>
       {children}
     </div>
@@ -147,13 +150,13 @@ export const BingoGrid: React.FC<{
       'grid bg-gray-800/80 rounded-lg',
       'border border-cyan-500/20 shadow-inner',
       'p-1 sm:p-2 md:p-3',
-      'w-full h-full',
+      'w-full aspect-square',
+      'overflow-hidden',
       className
     )}
     style={{
       gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
       gap: 'clamp(0.25rem, 1vw, 0.5rem)',
-      aspectRatio: '1 / 1',
     }}
   >
     {children}
@@ -170,10 +173,17 @@ export const BingoContainer: React.FC<{
   <div className={cn(
     "w-full min-h-0 h-full",
     "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900",
-    "p-2 sm:p-4 md:p-6",
+    "p-2 sm:p-4 lg:p-6",
+    "overflow-x-hidden",
     className
   )}>
-    <div className="grid lg:grid-cols-[1fr,400px] gap-3 sm:gap-4 h-full max-w-[1800px] mx-auto">
+    <div className={cn(
+      "h-full mx-auto",
+      "max-w-[100%] sm:max-w-[640px] md:max-w-[768px]",
+      "lg:max-w-[1024px] xl:max-w-[1280px] 2xl:max-w-[1536px]",
+      "px-2 sm:px-4 lg:px-6",
+      "flex flex-col"
+    )}>
       {children}
     </div>
   </div>
