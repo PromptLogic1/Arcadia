@@ -10,11 +10,6 @@ import { PlayerManagement } from './PlayerManagement'
 import { TimerControls } from './TimerControls'
 import { GameSettings } from './GameSettings'
 import type { Player } from '../shared/types'
-import { 
-  Collapsible, 
-  CollapsibleTrigger, 
-  CollapsibleContent 
-} from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
@@ -113,6 +108,61 @@ export const GameControls: React.FC<GameControlsProps> = ({
     onResetBoard: props.onResetBoard,
   }
 
+  const CollapsibleSection = ({ 
+    id, 
+    title, 
+    icon, 
+    children, 
+    summary 
+  }: { 
+    id: 'players' | 'settings'
+    title: string
+    icon: React.ReactNode
+    children: React.ReactNode
+    summary: string
+  }) => (
+    <div className="relative">
+      <button
+        onClick={() => setSectionsOpen(prev => ({ ...prev, [id]: !prev[id] }))}
+        className="w-full text-left focus:outline-none"
+      >
+        <BingoSection 
+          title={title} 
+          icon={icon}
+          variant="compact"
+          className={cn(
+            "bg-gradient-to-br from-gray-800/80 to-gray-800/40",
+            "hover:bg-gray-800/60 transition-colors duration-200"
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-cyan-300">{summary}</span>
+            <ChevronDown 
+              className={cn(
+                "h-4 w-4 text-cyan-400 transform transition-transform duration-200",
+                sectionsOpen[id] && "rotate-180"
+              )} 
+            />
+          </div>
+        </BingoSection>
+      </button>
+      <div 
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200",
+          sectionsOpen[id] ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="pt-2">
+            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20">
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <BingoLayout
       title="Game Controls"
@@ -128,7 +178,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
       variant="compact"
     >
       <div className="grid grid-cols-1 auto-rows-min" style={{ gap: spacing.gap }}>
-        {/* Timer Section - Always visible */}
+        {/* Timer Section */}
         <BingoSection 
           title="Timer" 
           icon={<Clock className="h-4 w-4" />}
@@ -138,69 +188,25 @@ export const GameControls: React.FC<GameControlsProps> = ({
           <TimerControls {...timerControlsProps} />
         </BingoSection>
 
-        {/* Players Section - Collapsible */}
-        <Collapsible 
-          defaultOpen={true} 
-          open={sectionsOpen.players} 
-          onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, players: open }))}
+        {/* Players Section */}
+        <CollapsibleSection
+          id="players"
+          title="Players"
+          icon={<Users className="h-4 w-4" />}
+          summary={`${players.length} Players`}
         >
-          <CollapsibleTrigger className="w-full">
-            <BingoSection 
-              title="Players" 
-              icon={<Users className="h-4 w-4" />}
-              variant="compact"
-              className={cn(
-                "bg-gradient-to-br from-gray-800/80 to-gray-800/40",
-                "hover:bg-gray-800/60 transition-colors duration-200"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-cyan-300">{players.length} Players</span>
-                <ChevronDown className={cn(
-                  "h-4 w-4 text-cyan-400 transition-transform duration-200",
-                  sectionsOpen.players && "rotate-180"
-                )} />
-              </div>
-            </BingoSection>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2">
-            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20">
-              <PlayerManagement {...playerManagementProps} />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          <PlayerManagement {...playerManagementProps} />
+        </CollapsibleSection>
 
-        {/* Settings Section - Collapsible */}
-        <Collapsible 
-          defaultOpen={true} 
-          open={sectionsOpen.settings} 
-          onOpenChange={(open) => setSectionsOpen(prev => ({ ...prev, settings: open }))}
+        {/* Settings Section */}
+        <CollapsibleSection
+          id="settings"
+          title="Settings"
+          icon={<Settings className="h-4 w-4" />}
+          summary="Game Configuration"
         >
-          <CollapsibleTrigger className="w-full">
-            <BingoSection 
-              title="Settings" 
-              icon={<Settings className="h-4 w-4" />}
-              variant="compact"
-              className={cn(
-                "bg-gradient-to-br from-gray-800/80 to-gray-800/40",
-                "hover:bg-gray-800/60 transition-colors duration-200"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-cyan-300">Game Configuration</span>
-                <ChevronDown className={cn(
-                  "h-4 w-4 text-cyan-400 transition-transform duration-200",
-                  sectionsOpen.settings && "rotate-180"
-                )} />
-              </div>
-            </BingoSection>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2">
-            <div className="p-3 bg-gray-800/50 rounded-lg border border-cyan-500/20">
-              <GameSettings {...gameSettingsProps} />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          <GameSettings {...gameSettingsProps} />
+        </CollapsibleSection>
       </div>
     </BingoLayout>
   )
