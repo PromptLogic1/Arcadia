@@ -16,10 +16,19 @@ export interface PasswordRequirements {
   length: boolean
 }
 
+export type AuthErrorCode = 
+  | 'VERIFICATION_PENDING'
+  | 'WRONG_PASSWORD'
+  | 'USER_EXISTS'
+  | 'NETWORK_ERROR'
+  | 'INVALID_USERNAME'
+  | 'TOO_MANY_ATTEMPTS'
+  | 'INVALID_EMAIL_DOMAIN'
+
 export class AuthError extends Error {
   constructor(
     message: string,
-    public readonly code?: 'VERIFICATION_PENDING' | 'WRONG_PASSWORD' | 'USER_EXISTS' | 'NETWORK_ERROR'
+    public readonly code?: AuthErrorCode
   ) {
     super(message)
     this.name = 'AuthError'
@@ -30,6 +39,9 @@ type NetworkOperation<T> = () => Promise<T>
 
 class SupabaseAuth {
   private supabase = createClientComponentClient<Database>()
+  private failedAttempts = new Map<string, { count: number, lastAttempt: number }>()
+  private readonly MAX_ATTEMPTS = 5
+  private readonly LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutes
 
   private async handleNetworkError<T>(
     operation: NetworkOperation<T>,
@@ -97,9 +109,44 @@ class SupabaseAuth {
     })
   }
 
+  private validateUsername(username: string): void {
+    const validUsernameRegex = /^[a-zA-Z0-9_-]+$/
+    if (!validUsernameRegex.test(username)) {
+      throw new AuthError(
+        'Username can only contain letters, numbers, underscores, and hyphens.',
+        'INVALID_USERNAME'
+      )
+    }
+  }
+
   public async signUp(credentials: SignUpCredentials): Promise<{ isExisting?: boolean }> {
     return this.handleNetworkError<{ isExisting?: boolean }>(async () => {
       try {
+        this.validateUsername(credentials.username)
+        // First check if email exists
+        const { data: { user: existingEmailUser } } = await this.supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        })
+
+        if (existingEmailUser) {
+          // Email exists, check if username matches
+          const { data: userData } = await this.supabase
+            .from('users')
+            .select('username')
+            .eq('auth_id', existingEmailUser.id)
+            .single()
+
+          if (userData?.username !== credentials.username) {
+            throw new AuthError(
+              'This email is already registered with a different username.',
+              'USER_EXISTS'
+            )
+          }
+          
+          return { isExisting: true }
+        }
+
         // First check if username exists
         const { data: existingUserData } = await this.supabase
           .from('users')
@@ -246,6 +293,31 @@ class SupabaseAuth {
 
       // Clear all auth data
       await this.signOut()
+    })
+  }
+
+  private checkFailedAttempts(identifier: string): void {
+    const attempts = this.failedAttempts.get(identifier)
+    if (attempts) {
+      const timeSinceLastAttempt = Date.now() - attempts.lastAttempt
+      if (timeSinceLastAttempt < this.LOCKOUT_DURATION && attempts.count >= this.MAX_ATTEMPTS) {
+        const remainingLockout = Math.ceil((this.LOCKOUT_DURATION - timeSinceLastAttempt) / 60000)
+        throw new AuthError(
+          `Too many failed attempts. Please try again in ${remainingLockout} minutes.`,
+          'TOO_MANY_ATTEMPTS'
+        )
+      }
+      if (timeSinceLastAttempt >= this.LOCKOUT_DURATION) {
+        this.failedAttempts.delete(identifier)
+      }
+    }
+  }
+
+  private recordFailedAttempt(identifier: string): void {
+    const attempts = this.failedAttempts.get(identifier) || { count: 0, lastAttempt: 0 }
+    this.failedAttempts.set(identifier, {
+      count: attempts.count + 1,
+      lastAttempt: Date.now()
     })
   }
 }

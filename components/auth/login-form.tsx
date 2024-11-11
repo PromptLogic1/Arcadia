@@ -10,12 +10,78 @@ import { Info, Github, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { Database } from '@/types/database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+async function checkEmailExists(email: string, supabase: SupabaseClient<Database>): Promise<boolean> {
+  const { data } = await supabase
+    .from('users')
+    .select('email')
+    .eq('email', email)
+    .single()
+  return !!data
+}
+
+function getErrorMessage(error: Error, context?: { emailExists?: boolean } ): { 
+  message: string; 
+  type: 'error' | 'warning' | 'info' 
+} {
+  const errorMessage = error.message.toLowerCase()
+  
+  // Invalid login credentials with context
+  if (errorMessage.includes('invalid login credentials')) {
+    if (context?.emailExists) {
+      return {
+        message: 'Incorrect password. Please try again.',
+        type: 'error'
+      }
+    } else {
+      return {
+        message: 'No account found with this email address.',
+        type: 'error'
+      }
+    }
+  }
+  
+  // Other specific errors
+  if (errorMessage.includes('email not confirmed')) {
+    return {
+      message: 'Please verify your email address before signing in.',
+      type: 'warning'
+    }
+  }
+
+  if (errorMessage.includes('invalid email')) {
+    return {
+      message: 'Please enter a valid email address.',
+      type: 'error'
+    }
+  }
+
+  if (errorMessage.includes('rate limit')) {
+    return {
+      message: 'Too many login attempts. Please try again later.',
+      type: 'warning'
+    }
+  }
+
+  if (errorMessage.includes('network')) {
+    return {
+      message: 'Network error. Please check your connection and try again.',
+      type: 'warning'
+    }
+  }
+
+  return {
+    message: 'An unexpected error occurred. Please try again.',
+    type: 'error'
+  }
+}
 
 export function LogInForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
+  const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
   const router = useRouter()
   const supabase = createClientComponentClient<Database>()
 
@@ -29,7 +95,7 @@ export function LogInForm() {
 
   // Save email when it changes
   const handleEmailChange = (value: string) => {
-    setError(null)
+    setErrorInfo(null)
     setEmail(value)
     localStorage.setItem('loginEmail', value)
   }
@@ -48,31 +114,50 @@ export function LogInForm() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setLoading(true)
+    setErrorInfo(null)
+    setStatus('loading')
 
+    let emailExists = false
     try {
+      try {
+        // First check if email exists
+        emailExists = await checkEmailExists(email, supabase)
+      } catch (error) {
+        console.error('Error checking email:', error)
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       if (data.user) {
         if (!data.user.email_confirmed_at) {
-          throw new Error('Please verify your email before signing in')
+          setErrorInfo({
+            message: 'Please verify your email before signing in. Need a new verification email?',
+            type: 'warning'
+          })
+          setStatus('idle')
+          return
         }
         
-        // Clear saved data on successful login
         clearSavedData()
+        setStatus('success')
         router.push('/')
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during sign in')
-    } finally {
-      setLoading(false)
+      const error = err as Error
+      setErrorInfo(getErrorMessage(error, { emailExists }))
+      setStatus('idle')
+      // Only clear password if email exists (wrong password case)
+      if (emailExists) {
+        setPassword('')
+      }
     }
   }
 
@@ -113,12 +198,52 @@ export function LogInForm() {
       <div className="space-y-6">
         {/* Email Login Form */}
         <form onSubmit={handleEmailLogin} className="space-y-6">
-          {error && (
-            <div className="p-3 rounded-lg bg-gray-800/50 border border-cyan-500/20 flex items-start gap-2">
-              <Info className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-gray-300">
-                {error}
-              </p>
+          {errorInfo && (
+            <div className={cn(
+              "p-3 rounded-lg flex items-start gap-2",
+              {
+                'bg-red-500/10 border-red-500/20': errorInfo.type === 'error',
+                'bg-yellow-500/10 border-yellow-500/20': errorInfo.type === 'warning',
+                'bg-blue-500/10 border-blue-500/20': errorInfo.type === 'info'
+              }
+            )}>
+              <Info className={cn(
+                "w-5 h-5 flex-shrink-0 mt-0.5",
+                {
+                  'text-red-400': errorInfo.type === 'error',
+                  'text-yellow-400': errorInfo.type === 'warning',
+                  'text-blue-400': errorInfo.type === 'info'
+                }
+              )} />
+              <div className="space-y-2">
+                <p className={cn(
+                  "text-sm",
+                  {
+                    'text-red-400': errorInfo.type === 'error',
+                    'text-yellow-400': errorInfo.type === 'warning',
+                    'text-blue-400': errorInfo.type === 'info'
+                  }
+                )}>
+                  {errorInfo.message}
+                </p>
+                {errorInfo.type === 'warning' && errorInfo.message.includes('verify') && (
+                  <button
+                    type="button"
+                    onClick={() => {/* Add resend verification email logic */}}
+                    className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
+                  >
+                    Resend verification email
+                  </button>
+                )}
+                {errorInfo.type === 'error' && errorInfo.message.includes('password') && (
+                  <Link
+                    href="/auth/reset-password"
+                    className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200 block"
+                  >
+                    Reset your password
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 
@@ -131,10 +256,10 @@ export function LogInForm() {
               onChange={(e) => handleEmailChange(e.target.value)}
               className={cn(
                 "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-                error?.toLowerCase().includes('email') && "border-red-500/50 focus:border-red-500"
+                errorInfo?.message?.toLowerCase().includes('email') && "border-red-500/50 focus:border-red-500"
               )}
               placeholder="Enter your email"
-              disabled={loading}
+              disabled={status === 'loading'}
             />
           </div>
 
@@ -147,25 +272,25 @@ export function LogInForm() {
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
                 "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-                error?.toLowerCase().includes('password') && "border-red-500/50 focus:border-red-500"
+                errorInfo?.message?.toLowerCase().includes('password') && "border-red-500/50 focus:border-red-500"
               )}
               placeholder="Enter your password"
-              disabled={loading}
+              disabled={status === 'loading'}
             />
           </div>
 
           <Button
             type="submit"
-            disabled={loading || !!error}
+            disabled={status === 'loading'}
             className={cn(
               "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
               "text-white font-medium py-2 rounded-full",
               "hover:opacity-90 transition-all duration-200",
               "shadow-lg shadow-cyan-500/25",
-              (loading || !!error) && "opacity-50 cursor-not-allowed"
+              status === 'loading' && "opacity-50 cursor-not-allowed"
             )}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {status === 'loading' ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 

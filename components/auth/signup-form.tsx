@@ -154,6 +154,8 @@ export function SignUpForm() {
               text: 'Incorrect password. Please try again or reset your password.',
               type: 'error'
             })
+            setPassword('')
+            setConfirmPassword('')
             break
             
           case 'USER_EXISTS':
@@ -161,7 +163,6 @@ export function SignUpForm() {
               text: error.message,
               type: 'error'
             })
-            // Optional: Clear password fields
             setPassword('')
             setConfirmPassword('')
             break
@@ -178,7 +179,8 @@ export function SignUpForm() {
           type: 'error'
         })
       }
-      setStatus('error')
+      // Reset status to idle instead of error
+      setStatus('idle')
     }
   }
 
