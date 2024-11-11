@@ -5,10 +5,17 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info, Github, Mail, Check, X } from 'lucide-react'
+import { Info, Github, Mail, Check, X, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { supabaseAuth } from '@/lib/supabase_lib/supabase-auth'
+import { supabaseAuth, AuthError } from '@/lib/supabase_lib/supabase-auth'
+
+type SignUpStatus = 'idle' | 'loading' | 'success' | 'error' | 'verification_pending'
+
+interface SignUpMessage {
+  text: string
+  type: 'success' | 'error' | 'info'
+}
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -25,6 +32,9 @@ export function SignUpForm() {
     special: false,
     length: false,
   })
+  const [status, setStatus] = useState<SignUpStatus>('idle')
+  const [message, setMessage] = useState<SignUpMessage | null>(null)
+  const [redirectTimer, setRedirectTimer] = useState<number | null>(null)
 
   const router = useRouter()
 
@@ -87,47 +97,88 @@ export function SignUpForm() {
     }
   }
 
+  // Handle redirect countdown
+  useEffect(() => {
+    if (status === 'success' && redirectTimer !== null) {
+      const timer = setTimeout(() => {
+        if (redirectTimer > 1) {
+          setRedirectTimer(redirectTimer - 1)
+        } else {
+          router.push('/user/user-page')
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [redirectTimer, status, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setLoading(true)
+    setMessage(null)
+    setStatus('loading')
 
     try {
-      // Validate form
       validateForm()
 
-      // Attempt signup with retry logic
-      let retryCount = 0
-      const maxRetries = 3
-      
-      while (retryCount < maxRetries) {
-        try {
-          await supabaseAuth.signUp({
-            email,
-            password,
-            username
-          })
-          
-          // Clear saved data on success
-          localStorage.removeItem('signupForm')
-          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
-          return
-          
-        } catch (err) {
-          if (err instanceof Error && err.message.includes('network') && retryCount < maxRetries - 1) {
-            retryCount++
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)) // Exponential backoff
-            continue
-          }
-          throw err
-        }
+      const result = await supabaseAuth.signUp({
+        email,
+        password,
+        username
+      })
+
+      if (result.isExisting) {
+        setStatus('success')
+        setMessage({
+          text: 'Account already exists! Logging you in...',
+          type: 'success'
+        })
+        setRedirectTimer(3)
+        return
       }
+
+      // If we get here, user needs to verify email
+      setStatus('verification_pending')
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
 
     } catch (error) {
       console.error('Signup error:', error)
-      setError(error instanceof Error ? error.message : 'An unexpected error occurred')
-    } finally {
-      setLoading(false)
+      
+      if (error instanceof AuthError) {
+        switch (error.code) {
+          case 'VERIFICATION_PENDING':
+            setStatus('verification_pending')
+            router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+            return
+            
+          case 'WRONG_PASSWORD':
+            setMessage({
+              text: 'Incorrect password. Please try again or reset your password.',
+              type: 'error'
+            })
+            break
+            
+          case 'USER_EXISTS':
+            setMessage({
+              text: error.message,
+              type: 'error'
+            })
+            // Optional: Clear password fields
+            setPassword('')
+            setConfirmPassword('')
+            break
+            
+          default:
+            setMessage({
+              text: error.message,
+              type: 'error'
+            })
+        }
+      } else {
+        setMessage({
+          text: 'An unexpected error occurred. Please try again.',
+          type: 'error'
+        })
+      }
+      setStatus('error')
     }
   }
 
@@ -261,18 +312,47 @@ export function SignUpForm() {
           />
         </div>
 
+        {message && (
+          <div className={cn(
+            "p-4 rounded-lg flex items-start gap-2",
+            {
+              'bg-green-500/10 border border-green-500/20 text-green-400': message.type === 'success',
+              'bg-red-500/10 border border-red-500/20 text-red-400': message.type === 'error',
+              'bg-blue-500/10 border border-blue-500/20 text-blue-400': message.type === 'info'
+            }
+          )}>
+            {message.type === 'success' && <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />}
+            {message.type === 'error' && <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />}
+            {message.type === 'info' && <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />}
+            <div>
+              <p className="text-sm">{message.text}</p>
+              {redirectTimer !== null && (
+                <p className="text-sm mt-1">Redirecting in {redirectTimer} seconds...</p>
+              )}
+              {message.type === 'error' && message.text.includes('password') && (
+                <Link 
+                  href="/auth/reset-password" 
+                  className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200 mt-2 block"
+                >
+                  Reset Password
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
         <Button
           type="submit"
-          disabled={loading}
+          disabled={status === 'loading'}
           className={cn(
             "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
             "text-white font-medium py-2 rounded-full",
             "hover:opacity-90 transition-all duration-200",
             "shadow-lg shadow-cyan-500/25",
-            loading && "opacity-50 cursor-not-allowed"
+            status === 'loading' && "opacity-50 cursor-not-allowed"
           )}
         >
-          {loading ? 'Creating account...' : 'Sign Up'}
+          {status === 'loading' ? 'Processing...' : 'Sign Up'}
         </Button>
       </form>
 

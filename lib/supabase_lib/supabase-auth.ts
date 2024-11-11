@@ -17,7 +17,10 @@ export interface PasswordRequirements {
 }
 
 export class AuthError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    public readonly code?: 'VERIFICATION_PENDING' | 'WRONG_PASSWORD' | 'USER_EXISTS' | 'NETWORK_ERROR'
+  ) {
     super(message)
     this.name = 'AuthError'
   }
@@ -57,9 +60,9 @@ class SupabaseAuth {
     console.error('Auth signup error:', error)
     switch (error.message) {
       case 'User already registered':
-        throw new AuthError('An account with this email already exists')
+        throw new AuthError('An account with this email already exists', 'USER_EXISTS')
       case 'Password should be at least 6 characters':
-        throw new AuthError('Password must be at least 6 characters')
+        throw new AuthError('Password must be at least 6 characters', 'WRONG_PASSWORD')
       default:
         throw new AuthError(error.message || 'An error occurred during signup')
     }
@@ -94,10 +97,37 @@ class SupabaseAuth {
     })
   }
 
-  public async signUp(credentials: SignUpCredentials): Promise<void> {
-    return this.handleNetworkError<void>(async () => {
+  public async signUp(credentials: SignUpCredentials): Promise<{ isExisting?: boolean }> {
+    return this.handleNetworkError<{ isExisting?: boolean }>(async () => {
       try {
-        const { error } = await this.supabase.auth.signUp({
+        // First check if username exists
+        const { data: existingUserData } = await this.supabase
+          .from('users')
+          .select('auth_id')
+          .eq('username', credentials.username)
+          .single()
+
+        if (existingUserData?.auth_id) {
+          // Try to sign in with provided credentials to check if password matches
+          const { error: signInError } = await this.supabase.auth.signInWithPassword({
+            email: credentials.email,
+            password: credentials.password,
+          })
+
+          if (signInError) {
+            // Password doesn't match the existing username
+            throw new AuthError(
+              'This username already exists. If this is your account, please use the correct password.',
+              'USER_EXISTS'
+            )
+          }
+
+          // If no error, password matches
+          return { isExisting: true }
+        }
+
+        // If username doesn't exist, proceed with normal signup flow
+        const { error: signUpError } = await this.supabase.auth.signUp({
           email: credentials.email,
           password: credentials.password,
           options: {
@@ -111,15 +141,19 @@ class SupabaseAuth {
           }
         })
 
-        if (error) {
-          this.handleSignUpError(error)
+        if (signUpError) {
+          this.handleSignUpError(signUpError)
         }
+
+        // If we get here, user needs to verify email
+        throw new AuthError('Please verify your email address', 'VERIFICATION_PENDING')
+
       } catch (error) {
         if (error instanceof AuthError) {
           throw error
         }
         console.error('Signup error:', error)
-        throw new AuthError('Failed to complete signup process')
+        throw new AuthError('Failed to complete signup process', 'NETWORK_ERROR')
       }
     })
   }
@@ -134,6 +168,84 @@ class SupabaseAuth {
       if (error) {
         throw new AuthError(error.message)
       }
+    })
+  }
+
+  public async signOut(): Promise<void> {
+    return this.handleNetworkError<void>(async () => {
+      const { error } = await this.supabase.auth.signOut()
+      
+      if (error) {
+        throw new AuthError(error.message)
+      }
+
+      // Clear all auth-related data from localStorage
+      const keysToRemove = [
+        'loginEmail',
+        'signupForm',
+        'supabase.auth.token',
+        'supabase.auth.refreshToken',
+        // Add any other auth-related keys you might have
+      ]
+
+      keysToRemove.forEach(key => {
+        try {
+          localStorage.removeItem(key)
+        } catch (e) {
+          console.warn(`Failed to remove ${key} from localStorage:`, e)
+        }
+      })
+
+      // Clear any auth-related cookies
+      document.cookie.split(';').forEach(cookieString => {
+        if (cookieString) {
+          const [rawName] = cookieString.split('=')
+          if (rawName) {
+            const name = rawName.trim()
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+          }
+        }
+      })
+
+      // Optional: Clear sessionStorage if you use it
+      try {
+        sessionStorage.clear()
+      } catch (e) {
+        console.warn('Failed to clear sessionStorage:', e)
+      }
+    })
+  }
+
+  public async deleteAccount(): Promise<void> {
+    return this.handleNetworkError<void>(async () => {
+      // First get the current user
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser()
+      
+      if (userError || !user) {
+        throw new AuthError('Failed to get current user')
+      }
+
+      // Delete the user's profile data first (if you have a users table)
+      const { error: profileError } = await this.supabase
+        .from('users')
+        .delete()
+        .eq('auth_id', user.id)
+
+      if (profileError) {
+        throw new AuthError('Failed to delete user profile')
+      }
+
+      // Delete the user's auth account
+      const { error: deleteError } = await this.supabase.auth.admin.deleteUser(
+        user.id
+      )
+
+      if (deleteError) {
+        throw new AuthError('Failed to delete user account')
+      }
+
+      // Clear all auth data
+      await this.signOut()
     })
   }
 }
