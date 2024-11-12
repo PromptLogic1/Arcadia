@@ -1,8 +1,9 @@
 import { renderHook, act } from '@testing-library/react'
 import { useGameState } from '@/components/challenges/bingo-board/hooks/useGameState'
-import { useSession } from '@/components/challenges/bingo-board/hooks/useSession'
 import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
 
 // Get the mock Supabase client
 const mockSupabase = jest.mocked(createClientComponentClient())
@@ -16,6 +17,25 @@ const mockBoardCell: BoardCell = {
   cellId: '1'
 }
 
+// Define types for mock query builder
+type SupabaseFrom = ReturnType<SupabaseClient<Database>['from']>
+
+interface MockQueryBuilder {
+  select: jest.Mock
+  eq: jest.Mock
+  single: jest.Mock<Promise<PostgrestSingleResponse<Database['public']['Tables']['bingo_sessions']['Row']>>>
+  update: jest.Mock
+  url?: string
+  headers?: Record<string, string>
+}
+
+interface GameStateDB {
+  currentState: BoardCell[]
+  version: number
+  lastUpdate: string
+  current_player: number
+}
+
 describe('End-to-End Session Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -23,48 +43,74 @@ describe('End-to-End Session Flow', () => {
 
   it('should handle complete session lifecycle', async () => {
     // Setup initial game state
-    const initialState = {
+    const initialState: GameStateDB = {
       currentState: [mockBoardCell],
-      currentPlayer: 1,
       version: 1,
-      lastUpdate: new Date().toISOString()
+      lastUpdate: new Date().toISOString(),
+      current_player: 1
     }
 
-    // Mock Supabase responses
-    const mockQueryBuilder = {
+    let currentGameState = { ...initialState }
+
+    // Mock Supabase responses with proper typing
+    const mockQueryBuilder: MockQueryBuilder = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: initialState }),
-      update: jest.fn().mockImplementation(async () => ({
-        data: {
-          ...initialState,
-          currentState: [{ ...mockBoardCell, isMarked: true }]
+      single: jest.fn()
+        .mockImplementationOnce(() => Promise.resolve({ data: initialState, error: null }))
+        .mockImplementation(() => Promise.resolve({ 
+          data: currentGameState, 
+          error: null 
+        })),
+      update: jest.fn().mockImplementation((updates) => {
+        // Update the current game state with the marked cell
+        currentGameState = {
+          ...currentGameState,
+          ...updates,
+          version: currentGameState.version + 1,
+          lastUpdate: new Date().toISOString(),
+          currentState: updates.currentState || currentGameState.currentState
         }
-      }))
+
+        return {
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ 
+            data: currentGameState,
+            error: null 
+          })
+        }
+      })
     }
 
-    mockSupabase.from.mockImplementation(() => mockQueryBuilder as any)
+    mockSupabase.from.mockImplementation(() => mockQueryBuilder as unknown as SupabaseFrom)
 
     // Initialize game state
-    const { result: gameResult } = renderHook(() => useGameState({
+    const { result, rerender } = renderHook(() => useGameState({
       sessionId: 'test-session',
-      currentState: initialState
+      currentState: {
+        ...initialState,
+        currentPlayer: initialState.current_player
+      }
     }))
 
-    // Ensure hook returns are properly typed
-    type GameStateHook = ReturnType<typeof useGameState>
-    const gameState = gameResult.current as GameStateHook
-
     await act(async () => {
-      await gameState.updateGameState([{
+      await result.current.updateGameState([{
         index: 0,
         cell: { ...mockBoardCell, isMarked: true }
       }])
     })
 
-    const currentCell = gameState.gameState?.currentState[0]
+    // Force a re-render to ensure state is updated
+    rerender()
+
+    console.log('Current game state:', currentGameState)
+    console.log('Hook game state:', result.current.gameState)
+
+    const currentCell = result.current.gameState?.currentState[0]
     if (currentCell) {
       expect(currentCell.isMarked).toBe(true)
+    } else {
+      fail('Current cell is undefined')
     }
   })
 
@@ -76,35 +122,42 @@ describe('End-to-End Session Flow', () => {
     // Setup initial states for both players
     const initialState = {
       currentState: Array(2).fill(mockBoardCell),
-      currentPlayer: 1,
       version: 1,
-      lastUpdate: new Date().toISOString()
+      lastUpdate: new Date().toISOString(),
+      current_player: 1
     }
 
-    // Mock Supabase responses
-    const mockQueryBuilder = {
+    // Mock Supabase responses with proper typing
+    const mockQueryBuilder: MockQueryBuilder = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: initialState }),
-      update: jest.fn().mockImplementation(async (updates: any) => ({
-        data: {
-          ...initialState,
-          ...updates
-        }
+      single: jest.fn().mockResolvedValue({ data: initialState, error: null }),
+      update: jest.fn().mockImplementation((updates: Partial<typeof initialState>) => ({
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { ...initialState, ...updates },
+          error: null
+        })
       }))
     }
 
-    mockSupabase.from.mockImplementation(() => mockQueryBuilder as any)
+    mockSupabase.from.mockImplementation(() => mockQueryBuilder as unknown as SupabaseFrom)
 
     // Initialize game states for both players
     const { result: player1 } = renderHook(() => useGameState({
       sessionId: 'test-session',
-      currentState: initialState
+      currentState: {
+        ...initialState,
+        currentPlayer: initialState.current_player
+      }
     }))
 
     const { result: player2 } = renderHook(() => useGameState({
       sessionId: 'test-session',
-      currentState: initialState
+      currentState: {
+        ...initialState,
+        currentPlayer: initialState.current_player
+      }
     }))
 
     // Ensure hook returns are properly typed
@@ -128,4 +181,4 @@ describe('End-to-End Session Flow', () => {
     // Add assertions for multi-player state
     expect(mockQueryBuilder.update).toHaveBeenCalledTimes(2)
   })
-}) 
+})

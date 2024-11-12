@@ -1,53 +1,31 @@
 {
-  "timestamp": "2024-11-12T15:56:44.606Z",
-  "totalTests": 5,
-  "passedTests": 1,
-  "failedTests": 4,
+  "timestamp": "2024-11-12T17:52:37.652Z",
+  "totalTests": 3,
+  "passedTests": 3,
+  "failedTests": 0,
   "pendingTests": 0,
-  "duration": 1279,
+  "duration": 1202,
   "testResults": [
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should initialize with empty queue",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\session\\concurrentJoin.test.ts",
+      "testName": "Concurrent Join Request System should process multiple join requests in FIFO order",
       "status": "passed",
-      "duration": 13,
+      "duration": 4,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should add entries to queue",
-      "status": "failed",
-      "duration": 41,
-      "errorMessages": [
-        "TypeError: Cannot read properties of undefined (reading 'data')\n    at data (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:32:15)\n    at call (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)"
-      ]
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\session\\concurrentJoin.test.ts",
+      "testName": "Concurrent Join Request System should handle color conflicts correctly",
+      "status": "passed",
+      "duration": 9,
+      "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should process queue in order",
-      "status": "failed",
-      "duration": 24,
-      "errorMessages": [
-        "TypeError: supabase.from(...).select(...).eq is not a function\n    at eq (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:67:10)\n    at call (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at _next (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at new Promise (<anonymous>)\n    at Object.processQueue (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at processQueue (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:86:28)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at _next (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at new Promise (<anonymous>)\n    at C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1\n    at C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\dist\\act-compat.js:48:24\n    at act (C:\\Dev\\Arcadia\\node_modules\\react\\cjs\\react.development.js:2512:16)\n    at C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\dist\\act-compat.js:47:25\n    at _callee5$ (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:85:14)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at _next (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at new Promise (<anonymous>)\n    at Object.<anonymous> (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Promise.then.completed (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at _runTest (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should handle queue conflicts",
-      "status": "failed",
-      "duration": 6,
-      "errorMessages": [
-        "TypeError: Cannot read properties of undefined (reading 'data')\n    at data (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:32:15)\n    at call (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should clean up processed entries",
-      "status": "failed",
-      "duration": 12,
-      "errorMessages": [
-        "TypeError: supabase.from(...).delete(...).eq is not a function\n    at eq (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:88:10)\n    at call (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at _next (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at new Promise (<anonymous>)\n    at Object.cleanupQueue (C:\\Dev\\Arcadia\\components\\challenges\\bingo-board\\hooks\\useSessionQueue.ts:2:1)\n    at cleanupQueue (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:139:28)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at _next (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at new Promise (<anonymous>)\n    at C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1\n    at C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\dist\\act-compat.js:48:24\n    at act (C:\\Dev\\Arcadia\\node_modules\\react\\cjs\\react.development.js:2512:16)\n    at C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\dist\\act-compat.js:47:25\n    at _callee9$ (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:138:14)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at _next (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at new Promise (<anonymous>)\n    at Object.<anonymous> (C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts:2:1)\n    at Promise.then.completed (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at _runTest (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)"
-      ]
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\session\\concurrentJoin.test.ts",
+      "testName": "Concurrent Join Request System should balance team assignments",
+      "status": "passed",
+      "duration": 2,
+      "errorMessages": []
     }
   ]
 }

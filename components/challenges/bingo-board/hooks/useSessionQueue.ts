@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
 import type { QueueEntry } from '../components/shared/types'
+import type { PostgrestError } from '@supabase/supabase-js'
 
 type DatabaseQueueEntry = Database['public']['Tables']['bingo_session_queue']['Row'] & {
   error?: string
@@ -46,7 +47,10 @@ export const useSessionQueue = (_sessionId: string) => {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        const errorMessage = (error as PostgrestError).message || 'Failed to add to queue'
+        throw new Error(errorMessage)
+      }
       if (entry) {
         setQueueEntries(prev => [...prev, mapToQueueEntry(entry)])
       }
