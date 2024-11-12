@@ -26,6 +26,7 @@ export const useSession = (boardId: string) => {
         .select(`
           *,
           players:bingo_session_players(
+            session_id,
             user_id,
             player_name,
             color,
@@ -46,10 +47,11 @@ export const useSession = (boardId: string) => {
           currentState: sessions.current_state,
           winnerId: sessions.winner_id,
           players: sessions.players.map(player => ({
+            id: `${player.user_id}-${player.session_id}`,
             name: player.player_name,
             color: player.color,
             team: player.team ?? 0,
-            hoverColor: player.color.replace('500', '600') // Simple hover color generation
+            hoverColor: player.color
           }))
         })
       }
@@ -66,6 +68,17 @@ export const useSession = (boardId: string) => {
     team?: number
   ) => {
     try {
+      const { data: existingSessions } = await supabase
+        .from('bingo_sessions')
+        .select('id')
+        .eq('board_id', boardId)
+        .eq('status', 'active')
+        .single()
+
+      if (existingSessions?.id) {
+        throw new Error('An active session already exists for this board')
+      }
+
       const response = await fetch('/api/bingo/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,7 +91,8 @@ export const useSession = (boardId: string) => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create session')
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to create session')
       }
 
       const data = await response.json()
@@ -88,7 +102,7 @@ export const useSession = (boardId: string) => {
       setError(err instanceof Error ? err.message : 'Failed to create session')
       throw err
     }
-  }, [boardId, fetchSession])
+  }, [boardId, supabase, fetchSession])
 
   const joinSession = useCallback(async (
     sessionId: string,
@@ -97,6 +111,15 @@ export const useSession = (boardId: string) => {
     team?: number
   ) => {
     try {
+      const { data: players } = await supabase
+        .from('bingo_session_players')
+        .select('user_id')
+        .eq('session_id', sessionId)
+
+      if (players && players.length >= 8) {
+        throw new Error('Session is full')
+      }
+
       const response = await fetch('/api/bingo/sessions/players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,7 +132,8 @@ export const useSession = (boardId: string) => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to join session')
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to join session')
       }
 
       await fetchSession()
@@ -117,7 +141,7 @@ export const useSession = (boardId: string) => {
       setError(err instanceof Error ? err.message : 'Failed to join session')
       throw err
     }
-  }, [fetchSession])
+  }, [supabase, fetchSession])
 
   const updateSessionState = useCallback(async (
     currentState: BoardCell[],

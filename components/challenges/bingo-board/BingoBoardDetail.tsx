@@ -14,8 +14,8 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Play, Wand2, BarChart2 } from 'lucide-react'
-import { BoardGenerator, type CellTemplate } from './components/Board/BoardGenerator'
 import { useBingoBoard } from './hooks/useBingoBoard'
+import { BoardGenerator } from './components/Board/BoardGenerator'
 
 // Add timeLimit to board settings type
 interface BoardSettings {
@@ -47,6 +47,16 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
   const supabase = createClientComponentClient()
+
+  // Helper function for generating empty cells
+  const generateEmptyCell = useCallback((text: string = ''): BoardCell => ({
+    text,
+    colors: [],
+    completedBy: [],
+    blocked: false,
+    isMarked: false,
+    cellId: crypto.randomUUID() // Generate unique ID for each cell
+  }), [])
 
   // Reference to useBingoGame hook with modified handlers
   const {
@@ -90,19 +100,15 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
   // Initialize board state
   useEffect(() => {
     try {
-      const initialBoardState = generateBoard().map(cell => ({
-        text: cell.text || 'Click to edit...',
-        colors: [] as string[],
-        completedBy: [] as string[],
-        blocked: false // Add required blocked property
-      }))
+      const size = board?.size ?? initialBoard.size
+      const initialBoardState = Array(size * size).fill(null).map(() => generateEmptyCell())
       
       setBoardState(initialBoardState)
     } catch (error) {
       console.error('Error initializing board:', error)
       setError(error instanceof Error ? error : new Error('Failed to initialize board'))
     }
-  }, [generateBoard, setBoardState])
+  }, [generateBoard, setBoardState, board?.size, initialBoard.size, generateEmptyCell])
 
   // Check authentication status
   useEffect(() => {
@@ -146,10 +152,13 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
       if (!currentCell) return
 
       newState[index] = {
+        ...currentCell,
         text: updates.text ?? currentCell.text,
         colors: updates.colors ?? currentCell.colors,
         completedBy: updates.completedBy ?? currentCell.completedBy,
-        blocked: updates.blocked ?? currentCell.blocked
+        blocked: updates.blocked ?? currentCell.blocked,
+        isMarked: updates.isMarked ?? currentCell.isMarked,
+        cellId: currentCell.cellId
       }
     }
 
@@ -186,6 +195,26 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
       settings
     })
   }, [board, updateBoardSettings])
+
+  // Add missing handlers
+  const handleStartBoard = () => {
+    if (handleAuthenticatedAction('start the board')) {
+      setIsTimerRunning(true)
+    }
+  }
+
+  const handleApplyTemplate = (template: { text: string }) => {
+    if (!boardState.length) return
+
+    const newBoardState = [...boardState]
+    const emptyCell = newBoardState.findIndex(cell => !cell.text)
+    
+    if (emptyCell !== -1) {
+      newBoardState[emptyCell] = generateEmptyCell(template.text)
+      
+      setBoardState(newBoardState)
+    }
+  }
 
   if (error) {
     return (
@@ -238,17 +267,8 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
             </div>
 
             <TabsContent value="play" className="flex-1 min-h-0 m-0">
-              <div className="grid lg:grid-cols-[1fr,320px] gap-4 h-full">
-                {/* Main Board Area */}
-                <div className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-cyan-300">
-                      {board?.title || 'Bingo Board'}
-                    </h2>
-                    <span className="text-sm text-cyan-400/60">
-                      {boardSize}×{boardSize}
-                    </span>
-                  </div>
+              <div className="flex flex-col lg:flex-row gap-6 h-full">
+                <div className="flex-1 min-h-0">
                   <Board
                     boardState={boardState}
                     boardSize={boardSize}
@@ -264,7 +284,6 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
                   />
                 </div>
 
-                {/* Game Controls - Fixed width sidebar */}
                 <div className="w-full lg:w-[320px] h-full">
                   <GameControls
                     boardId={boardId}
@@ -322,11 +341,7 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
                         winConditions: conditions
                       })
                     }}
-                    onStartBoard={() => {
-                      if (handleAuthenticatedAction('start the board')) {
-                        setIsTimerRunning(true)
-                      }
-                    }}
+                    onStartBoard={handleStartBoard}
                     onResetBoard={resetBoard}
                     formatTime={formatTime}
                   />
@@ -336,15 +351,7 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
 
             <TabsContent value="generator" className="flex-1 min-h-0 m-0">
               <BoardGenerator
-                onApplyTemplate={(template: CellTemplate) => {
-                  const index = parseInt(template.id) - 1
-                  if (!isNaN(index) && index >= 0 && index < boardSize * boardSize) {
-                    handleCellChange(index, template.text)
-                  }
-                }}
-                onPreview={() => {
-                  // Preview logic
-                }}
+                onApplyTemplate={handleApplyTemplate}
               />
             </TabsContent>
 

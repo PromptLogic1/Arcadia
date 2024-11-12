@@ -181,6 +181,23 @@ export interface Database {
         Insert: Omit<Tables['bingo_session_players']['Row'], 'created_at' | 'updated_at'>
         Update: Partial<Omit<Tables['bingo_session_players']['Row'], 'created_at' | 'updated_at'>>
       }
+      bingo_session_queue: {
+        Row: {
+          id: string
+          session_id: string
+          user_id: string
+          player_name: string
+          color: string
+          team: number | null
+          requested_at: string
+          status: 'pending' | 'approved' | 'rejected'
+          processed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['bingo_session_queue']['Row'], 'id' | 'created_at' | 'updated_at' | 'processed_at'>
+        Update: Partial<Tables['bingo_session_queue']['Row']>
+      }
     }
     Views: {
       [_ in never]: never

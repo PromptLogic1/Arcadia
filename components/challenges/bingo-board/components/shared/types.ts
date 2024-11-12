@@ -20,6 +20,7 @@ export interface ColorOption {
 }
 
 export interface Player {
+  id: string
   name: string
   color: string
   hoverColor: string
@@ -28,9 +29,11 @@ export interface Player {
 
 export interface BoardCell {
   text: string
-  colors: string[]  // Die Farben der Spieler, die diese Zelle markiert haben
-  completedBy: string[]  // Die IDs/Colors der Spieler, die diese Zelle abgeschlossen haben
+  colors: string[]
+  completedBy: string[]
   blocked: boolean
+  isMarked: boolean
+  cellId: string
 }
 
 export interface WinConditions {

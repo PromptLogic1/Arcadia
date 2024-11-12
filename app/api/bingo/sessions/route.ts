@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
+import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
 
 const rateLimiter = new RateLimiter()
 
@@ -36,15 +37,53 @@ export async function POST(request: Request) {
     const body = await request.json() as CreateSessionRequest
     const { boardId, playerName, color, team } = body
 
-    // First, create the session
+    // Check if board exists and is published
+    const { data: board, error: boardError } = await supabase
+      .from('bingo_boards')
+      .select('id, status')
+      .eq('id', boardId)
+      .single()
+
+    if (boardError || !board) {
+      return NextResponse.json(
+        { error: 'Board not found' },
+        { status: 404 }
+      )
+    }
+
+    if (board.status !== 'published') {
+      return NextResponse.json(
+        { error: 'Board is not published' },
+        { status: 400 }
+      )
+    }
+
+    // Check for existing active session
+    const { data: existingSession } = await supabase
+      .from('bingo_sessions')
+      .select('id')
+      .eq('board_id', boardId)
+      .eq('status', 'active')
+      .single()
+
+    if (existingSession) {
+      return NextResponse.json(
+        { error: 'An active session already exists for this board' },
+        { status: 409 }
+      )
+    }
+
+    const now = new Date().toISOString()
+
+    // Create new session
     const { data: session, error: sessionError } = await supabase
       .from('bingo_sessions')
       .insert({
         board_id: boardId,
-        current_state: [],
+        current_state: [] as BoardCell[],
         status: 'active',
         winner_id: null,
-        started_at: new Date().toISOString(),
+        started_at: now,
         ended_at: null
       })
       .select()
@@ -52,7 +91,7 @@ export async function POST(request: Request) {
 
     if (sessionError) throw sessionError
 
-    // Then, add the creator as the first player
+    // Add creator as first player
     const { data: player, error: playerError } = await supabase
       .from('bingo_session_players')
       .insert({
@@ -61,7 +100,7 @@ export async function POST(request: Request) {
         player_name: playerName,
         color,
         team: team ?? null,
-        joined_at: new Date().toISOString()
+        joined_at: now
       })
       .select()
       .single()
@@ -73,6 +112,81 @@ export async function POST(request: Request) {
     console.error('Error creating bingo session:', error)
     return NextResponse.json(
       { error: 'Failed to create bingo session' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { sessionId, currentState, winnerId, status } = body
+
+    // Verify user has permission to update session
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('bingo_sessions')
+      .select(`
+        id,
+        board_id,
+        bingo_boards!inner(creator_id)
+      `)
+      .eq('id', sessionId)
+      .single()
+
+    if (sessionError || !sessionData) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      )
+    }
+
+    // Only board creator or session players can update session
+    const { data: isPlayer } = await supabase
+      .from('bingo_session_players')
+      .select('user_id')
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id)
+      .single()
+
+    const isCreator = sessionData.bingo_boards[0]?.creator_id === user.id
+
+    if (!isPlayer && !isCreator) {
+      return NextResponse.json(
+        { error: 'Unauthorized to update session' },
+        { status: 403 }
+      )
+    }
+
+    // Update session
+    const { data, error } = await supabase
+      .from('bingo_sessions')
+      .update({
+        current_state: currentState,
+        winner_id: winnerId,
+        status,
+        ended_at: status === 'completed' ? new Date().toISOString() : null
+      })
+      .eq('id', sessionId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Error updating bingo session:', error)
+    return NextResponse.json(
+      { error: 'Failed to update bingo session' },
       { status: 500 }
     )
   }
@@ -115,45 +229,6 @@ export async function GET(request: Request) {
     console.error('Error fetching bingo sessions:', error)
     return NextResponse.json(
       { error: 'Failed to fetch bingo sessions' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const { sessionId, currentState, winnerId, status } = body
-
-    const { data, error } = await supabase
-      .from('bingo_sessions')
-      .update({
-        current_state: currentState,
-        winner_id: winnerId,
-        status,
-        ended_at: status === 'completed' ? new Date().toISOString() : null
-      })
-      .eq('id', sessionId)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('Error updating bingo session:', error)
-    return NextResponse.json(
-      { error: 'Failed to update bingo session' },
       { status: 500 }
     )
   }

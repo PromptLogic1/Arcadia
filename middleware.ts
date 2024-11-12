@@ -1,6 +1,6 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { Request } from 'next/server'
 
 // Define paths that require authentication
 const protectedPaths = [
@@ -13,7 +13,7 @@ export async function middleware(req: Request) {
   const supabase = createMiddlewareClient({ req, res })
 
   // Refresh session if expired
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   // Get the pathname of the request
   const pathname = req.url
@@ -37,4 +37,18 @@ export async function middleware(req: Request) {
   }
 
   return res
+}
+
+// Specify which paths middleware should run on
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
 }
