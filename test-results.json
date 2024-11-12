@@ -1,0 +1,52 @@
+{
+  "timestamp": "2024-11-12T15:16:34.541Z",
+  "totalTests": 6,
+  "passedTests": 6,
+  "failedTests": 0,
+  "pendingTests": 0,
+  "duration": 1881,
+  "testResults": [
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
+      "testName": "useSession Hook should initialize with loading state",
+      "status": "passed",
+      "duration": 25,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
+      "testName": "useSession Hook should fetch session data on mount",
+      "status": "passed",
+      "duration": 3,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
+      "testName": "useSession Hook should handle session creation",
+      "status": "passed",
+      "duration": 116,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
+      "testName": "useSession Hook should handle session state updates",
+      "status": "passed",
+      "duration": 76,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
+      "testName": "useSession Hook should handle session completion",
+      "status": "passed",
+      "duration": 78,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
+      "testName": "useSession Hook should clean up subscriptions on unmount",
+      "status": "passed",
+      "duration": 15,
+      "errorMessages": []
+    }
+  ]
+}

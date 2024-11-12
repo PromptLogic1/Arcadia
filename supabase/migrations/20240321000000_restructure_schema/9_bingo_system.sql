@@ -34,7 +34,7 @@ CREATE TABLE bingo_boards (
     CONSTRAINT title_length CHECK (char_length(title) BETWEEN 3 AND 50)
 ) INHERITS (base_table);
 
--- Create the sessions table with version column
+-- Create the sessions table with additional columns
 CREATE TABLE bingo_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     board_id UUID NOT NULL REFERENCES bingo_boards(id) ON DELETE CASCADE,
@@ -43,8 +43,11 @@ CREATE TABLE bingo_sessions (
     winner_id UUID REFERENCES users(id),
     started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     ended_at TIMESTAMP WITH TIME ZONE,
+    current_player INTEGER DEFAULT 1 NOT NULL,
     version INTEGER DEFAULT 0 NOT NULL,
-    CONSTRAINT valid_version CHECK (version >= 0)
+    last_update TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    CONSTRAINT valid_version CHECK (version >= 0),
+    CONSTRAINT valid_current_player CHECK (current_player >= 1)
 ) INHERITS (base_table);
 
 -- Create the session players table

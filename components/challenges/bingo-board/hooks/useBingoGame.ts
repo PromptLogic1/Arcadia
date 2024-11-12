@@ -186,11 +186,13 @@ export const useBingoGame = (initialSize: number) => {
   }, [boardState, boardSize, winConditions, getPlayerCounts, determineWinnerByMajority])
 
   const generateBoard = useCallback(() => 
-    Array.from({ length: boardSize * boardSize }, () => ({
+    Array.from({ length: boardSize * boardSize }, (_, i) => ({
       text: wowChallenges[Math.floor(Math.random() * wowChallenges.length)] || '',
       colors: [],
       completedBy: [],
-      blocked: false
+      blocked: false,
+      isMarked: false,
+      cellId: i.toString()
     }))
   , [boardSize])
 
@@ -237,10 +239,13 @@ export const useBingoGame = (initialSize: number) => {
       if (!currentCell) return prevState
 
       newState[index] = {
+        ...currentCell,
         text: updates.text ?? currentCell.text,
         colors: updates.colors ?? currentCell.colors,
         completedBy: updates.completedBy ?? currentCell.completedBy,
-        blocked: updates.blocked ?? currentCell.blocked
+        blocked: updates.blocked ?? currentCell.blocked,
+        isMarked: updates.isMarked ?? currentCell.isMarked,
+        cellId: currentCell.cellId
       }
       return newState
     })
@@ -253,6 +258,26 @@ export const useBingoGame = (initialSize: number) => {
       isBlockingMode: false,
       playerWithBlock: null,
       earnedFromCell: null
+    })
+  }, [])
+
+  const updateBoardState = useCallback((index: number, updates: Partial<BoardCell>) => {
+    setBoardState(prevState => {
+      const newState = [...prevState]
+      const currentCell = newState[index]
+      if (!currentCell) return prevState
+
+      newState[index] = {
+        ...currentCell,
+        ...updates,
+        text: updates.text ?? currentCell.text,
+        colors: updates.colors ?? currentCell.colors,
+        completedBy: updates.completedBy ?? currentCell.completedBy,
+        blocked: updates.blocked ?? currentCell.blocked,
+        isMarked: updates.isMarked ?? currentCell.isMarked,
+        cellId: currentCell.cellId
+      }
+      return newState
     })
   }, [])
 
@@ -274,5 +299,6 @@ export const useBingoGame = (initialSize: number) => {
     checkWinningCondition,
     blockingState,
     cancelBlocking,
+    updateBoardState,
   }
 }

@@ -1,6 +1,5 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import type { Reporter, Test, TestResult, AggregatedResult, Config } from '@jest/reporters'
+const fs = require('fs')
+const path = require('path')
 
 interface TestResultData {
   filePath: string
@@ -28,11 +27,11 @@ interface TestRunResult {
   coverage?: CoverageData
 }
 
-class CustomReporter implements Reporter {
+class CustomReporter {
   private resultFile: string
   private startTime: number
 
-  constructor(_globalConfig: Config.GlobalConfig) {
+  constructor(_globalConfig: unknown) {
     this.resultFile = path.join(process.cwd(), 'test-results.json')
     this.startTime = Date.now()
     // Clear existing results file
@@ -44,9 +43,17 @@ class CustomReporter implements Reporter {
   }
 
   onTestResult(
-    _test: Test,
-    testResult: TestResult,
-    _aggregatedResult: AggregatedResult
+    _test: unknown,
+    testResult: { 
+      testFilePath: string
+      testResults: Array<{
+        fullName: string
+        status: string
+        duration: number | null
+        failureMessages: string[]
+      }>
+    },
+    _aggregatedResult: unknown
   ): void {
     const results = testResult.testResults.map(result => ({
       filePath: testResult.testFilePath,
@@ -61,7 +68,20 @@ class CustomReporter implements Reporter {
 
   onRunComplete(
     _contexts: Set<unknown>,
-    results: AggregatedResult
+    results: {
+      numTotalTests: number
+      numPassedTests: number
+      numFailedTests: number
+      numPendingTests: number
+      coverageMap?: {
+        getCoverageSummary: () => {
+          statements: { pct: number }
+          branches: { pct: number }
+          functions: { pct: number }
+          lines: { pct: number }
+        }
+      }
+    }
   ): void | Promise<void> {
     const duration = Date.now() - this.startTime
 
@@ -100,7 +120,16 @@ class CustomReporter implements Reporter {
     }
   }
 
-  private getCoverageData(results: AggregatedResult): CoverageData | undefined {
+  private getCoverageData(results: {
+    coverageMap?: {
+      getCoverageSummary: () => {
+        statements: { pct: number }
+        branches: { pct: number }
+        functions: { pct: number }
+        lines: { pct: number }
+      }
+    }
+  }): CoverageData | undefined {
     if (!results.coverageMap) return undefined
 
     const coverage = results.coverageMap.getCoverageSummary()
@@ -117,4 +146,4 @@ class CustomReporter implements Reporter {
   }
 }
 
-export default CustomReporter
+module.exports = CustomReporter

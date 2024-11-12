@@ -81,7 +81,7 @@ describe('usePlayerManagement Hook', () => {
     expect(result.current.teamColors[1]).toBe('#0000ff')
   })
 
-  it('should handle player limit', () => {
+  it('should enforce player limit', () => {
     const { result } = renderHook(() => usePlayerManagement())
 
     act(() => {
@@ -91,6 +91,8 @@ describe('usePlayerManagement Hook', () => {
       }
     })
 
-    expect(result.current.players).toHaveLength(8)
+    // Should be limited to 4 players
+    expect(result.current.players).toHaveLength(4)
+    expect(result.current.players.length).toBeLessThanOrEqual(4)
   })
 }) 
