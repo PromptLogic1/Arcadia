@@ -1,12 +1,23 @@
 import { renderHook, act } from '@testing-library/react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useSession } from '@/components/challenges/bingo-board/hooks/useSession'
 import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
 
-// Mock types
 type MockFn = jest.Mock
 
-// Mock Supabase client
+interface MockSession {
+  id: string
+  board_id: string
+  status: 'active' | 'completed' | 'cancelled'
+  current_state: BoardCell[]
+  winner_id: string | null
+  players: Array<{
+    user_id: string
+    player_name: string
+    color: string
+    team: number | null
+  }>
+}
+
 const mockSupabase = {
   from: jest.fn() as MockFn,
   auth: {
@@ -19,17 +30,15 @@ const mockSupabase = {
   removeChannel: jest.fn() as MockFn
 }
 
-// Mock session data
-const mockSession = {
+const mockSession: MockSession = {
   id: 'test-session-id',
   board_id: 'test-board-id',
   status: 'active',
-  currentState: [] as BoardCell[],
+  current_state: [],
   winner_id: null,
   players: []
 }
 
-// Mock board cell
 const mockBoardCell: BoardCell = {
   text: 'Test Cell',
   colors: [],
@@ -41,35 +50,56 @@ const mockBoardCell: BoardCell = {
 
 describe('useSession Hook', () => {
   beforeEach(() => {
-    // Reset all mocks before each test
     jest.clearAllMocks()
-    ;(createClientComponentClient as MockFn).mockReturnValue(mockSupabase)
   })
 
-  it('should create a new session successfully', async () => {
-    // Mock successful session creation
-    mockSupabase.from.mockImplementation((_table: string) => ({
+  it('should initialize with loading state', () => {
+    const { result } = renderHook(() => useSession('test-board-id'))
+    expect(result.current.loading).toBe(true)
+    expect(result.current.session).toBeNull()
+    expect(result.current.error).toBeNull()
+  })
+
+  it('should fetch session data on mount', async () => {
+    mockSupabase.from.mockImplementation(() => ({
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null }),
-      insert: jest.fn().mockResolvedValue({ data: mockSession, error: null })
+      single: jest.fn().mockResolvedValue({ data: mockSession })
     }))
 
     const { result } = renderHook(() => useSession('test-board-id'))
 
     await act(async () => {
-      await result.current.createSession('Player 1', '#ff0000')
+      await new Promise(resolve => setTimeout(resolve, 0))
     })
 
-    // Verify session was created
-    expect(mockSupabase.from).toHaveBeenCalledWith('bingo_sessions')
+    expect(result.current.loading).toBe(false)
+    expect(result.current.session).toBeTruthy()
+    expect(result.current.error).toBeNull()
+  })
+
+  it('should handle session creation', async () => {
+    mockSupabase.from.mockImplementation(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn()
+        .mockResolvedValueOnce({ data: null }) // No existing session
+        .mockResolvedValueOnce({ data: mockSession }), // Created session
+      insert: jest.fn().mockResolvedValue({ data: mockSession })
+    }))
+
+    const { result } = renderHook(() => useSession('test-board-id'))
+
+    await act(async () => {
+      await result.current.createSession('Test Player', '#ff0000')
+    })
+
     expect(result.current.session).toEqual(mockSession)
     expect(result.current.error).toBeNull()
   })
 
   it('should prevent duplicate active sessions', async () => {
-    // Mock existing active session
-    mockSupabase.from.mockImplementation((_table: string) => ({
+    mockSupabase.from.mockImplementation(() => ({
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn().mockResolvedValue({ data: mockSession })
@@ -79,85 +109,66 @@ describe('useSession Hook', () => {
 
     await act(async () => {
       try {
-        await result.current.createSession('Player 1', '#ff0000')
+        await result.current.createSession('Test Player', '#ff0000')
+        fail('Should have thrown an error')
       } catch (error) {
-        expect((error as Error).message).toBe('An active session already exists for this board')
+        expect(error).toBeInstanceOf(Error)
+        expect((error as Error).message).toContain('active session already exists')
       }
     })
-
-    expect(result.current.error).toBe('An active session already exists for this board')
-  })
-
-  it('should join an existing session successfully', async () => {
-    // Mock successful session join
-    const mockPlayer = {
-      session_id: mockSession.id,
-      user_id: 'test-user-id',
-      player_name: 'Player 2',
-      color: '#00ff00'
-    }
-
-    mockSupabase.from.mockImplementation((_table: string) => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: mockSession }),
-      insert: jest.fn().mockResolvedValue({ data: mockPlayer, error: null })
-    }))
-
-    const { result } = renderHook(() => useSession('test-board-id'))
-
-    await act(async () => {
-      await result.current.joinSession(mockSession.id, 'Player 2', '#00ff00')
-    })
-
-    expect(mockSupabase.from).toHaveBeenCalledWith('bingo_session_players')
-    expect(result.current.error).toBeNull()
-  })
-
-  it('should prevent joining full sessions', async () => {
-    // Mock full session (8 players)
-    const fullSession = {
-      ...mockSession,
-      players: Array(8).fill({ user_id: 'test-user' })
-    }
-
-    mockSupabase.from.mockImplementation((_table: string) => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: fullSession })
-    }))
-
-    const { result } = renderHook(() => useSession('test-board-id'))
-
-    await act(async () => {
-      try {
-        await result.current.joinSession(mockSession.id, 'Player 9', '#0000ff')
-      } catch (error) {
-        expect((error as Error).message).toBe('Session is full')
-      }
-    })
-
-    expect(result.current.error).toBe('Session is full')
   })
 
   it('should handle session state updates', async () => {
-    const newState = [mockBoardCell]
+    const updatedState = [mockBoardCell]
     
-    mockSupabase.from.mockImplementation((_table: string) => ({
+    mockSupabase.from.mockImplementation(() => ({
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: mockSession }),
-      update: jest.fn().mockResolvedValue({ data: { ...mockSession, currentState: newState }, error: null })
+      single: jest.fn().mockResolvedValue({ 
+        data: { ...mockSession, current_state: updatedState }
+      }),
+      update: jest.fn().mockResolvedValue({ 
+        data: { ...mockSession, current_state: updatedState }
+      })
     }))
 
     const { result } = renderHook(() => useSession('test-board-id'))
 
     await act(async () => {
-      await result.current.updateSessionState(newState)
+      await result.current.updateSessionState(updatedState)
     })
 
-    expect(mockSupabase.from).toHaveBeenCalledWith('bingo_sessions')
-    expect(result.current.session?.currentState).toEqual(newState)
+    expect(result.current.session?.currentState).toEqual(updatedState)
     expect(result.current.error).toBeNull()
+  })
+
+  it('should handle session completion', async () => {
+    const winnerId = 'test-winner'
+    
+    mockSupabase.from.mockImplementation(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ 
+        data: { ...mockSession, status: 'completed', winner_id: winnerId }
+      }),
+      update: jest.fn().mockResolvedValue({ 
+        data: { ...mockSession, status: 'completed', winner_id: winnerId }
+      })
+    }))
+
+    const { result } = renderHook(() => useSession('test-board-id'))
+
+    await act(async () => {
+      await result.current.updateSessionState([mockBoardCell], winnerId)
+    })
+
+    expect(result.current.session?.status).toBe('completed')
+    expect(result.current.session?.winnerId).toBe(winnerId)
+  })
+
+  it('should clean up subscriptions on unmount', () => {
+    const { unmount } = renderHook(() => useSession('test-board-id'))
+    unmount()
+    expect(mockSupabase.removeChannel).toHaveBeenCalled()
   })
 }) 

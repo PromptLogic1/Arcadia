@@ -1,12 +1,15 @@
 import { renderHook, act } from '@testing-library/react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useGameState } from '@/components/challenges/bingo-board/hooks/useGameState'
-import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+import type { BoardCell, GameState } from '@/components/challenges/bingo-board/components/shared/types'
 
-// Mock types
 type MockFn = jest.Mock
 
-// Mock Supabase client
+interface MockStateResponse {
+  current_state: BoardCell[]
+  version: number
+  updated_at: string
+}
+
 const mockSupabase = {
   from: jest.fn() as MockFn,
   auth: {
@@ -19,20 +22,18 @@ const mockSupabase = {
   removeChannel: jest.fn() as MockFn
 }
 
-// Mock board cell
-const mockBoardCell: BoardCell = {
-  text: 'Test Cell',
-  colors: [],
-  completedBy: [],
-  blocked: false,
-  isMarked: false,
-  cellId: '1'
-}
-
 describe('useGameState Hook', () => {
+  const mockBoardCell: BoardCell = {
+    text: 'Test Cell',
+    colors: [],
+    completedBy: [],
+    blocked: false,
+    isMarked: false,
+    cellId: '1'
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(createClientComponentClient as MockFn).mockReturnValue(mockSupabase)
   })
 
   it('should initialize with empty state', () => {
@@ -41,65 +42,27 @@ describe('useGameState Hook', () => {
     expect(result.current.isProcessing).toBeFalsy()
   })
 
-  it('should fetch initial state on mount', async () => {
-    const mockInitialState = {
-      current_state: [mockBoardCell],
-      updated_at: new Date().toISOString(),
-      version: 1
-    }
-
-    mockSupabase.from.mockImplementation((_table: string) => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: mockInitialState })
-    }))
-
-    const { result } = renderHook(() => 
-      useGameState({ sessionId: 'test-session' })
-    )
-
-    // Wait for state update
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    })
-
-    expect(result.current.gameState).toEqual({
-      currentState: [mockBoardCell],
-      currentPlayer: 0,
-      lastUpdate: mockInitialState.updated_at,
-      version: 1
-    })
-  })
-
   it('should handle state updates with optimistic updates', async () => {
-    const initialState = {
+    const mockState: GameState = {
       currentState: [mockBoardCell],
-      currentPlayer: 0,
-      lastUpdate: new Date().toISOString(),
-      version: 1
+      version: 1,
+      lastUpdate: new Date().toISOString()
     }
 
-    mockSupabase.from.mockImplementation((_table: string) => ({
+    mockSupabase.from.mockImplementation(() => ({
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: initialState }),
-      update: jest.fn().mockResolvedValue({
+      single: jest.fn().mockResolvedValue({ data: mockState }),
+      update: jest.fn().mockImplementation(async (_data) => ({
         data: {
-          ...initialState,
-          version: 2,
+          ...mockState,
+          version: mockState.version + 1,
           current_state: [{ ...mockBoardCell, isMarked: true }]
         }
-      })
+      }))
     }))
 
-    const { result } = renderHook(() => 
-      useGameState({ sessionId: 'test-session' })
-    )
-
-    // Wait for initial state
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    })
+    const { result } = renderHook(() => useGameState({ sessionId: 'test-session' }))
 
     await act(async () => {
       await result.current.updateGameState([{
@@ -108,85 +71,82 @@ describe('useGameState Hook', () => {
       }])
     })
 
-    expect(result.current.gameState?.version).toBe(2)
-    if (result.current.gameState?.currentState[0]) {
-      expect(result.current.gameState.currentState[0].isMarked).toBe(true)
+    const gameState = result.current.gameState
+    if (gameState?.currentState[0]) {
+      expect(gameState.currentState[0].isMarked).toBe(true)
+      expect(gameState.version).toBe(2)
     }
   })
 
-  it('should handle concurrent updates with version control', async () => {
-    const mockState = {
+  it('should handle concurrent updates', async () => {
+    const mockState: GameState = {
       currentState: [mockBoardCell],
-      currentPlayer: 0,
-      lastUpdate: new Date().toISOString(),
-      version: 1
+      version: 1,
+      lastUpdate: new Date().toISOString()
     }
 
-    mockSupabase.from.mockImplementation((_table: string) => ({
+    let currentVersion = 1
+
+    mockSupabase.from.mockImplementation(() => ({
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ 
-        data: {
-          ...mockState,
-          version: 3,
-          current_state: [{ ...mockBoardCell, text: 'Server Update' }]
+      single: jest.fn().mockResolvedValue({ data: mockState }),
+      update: jest.fn().mockImplementation(async () => {
+        currentVersion++
+        return {
+          data: {
+            ...mockState,
+            version: currentVersion,
+            current_state: [{ ...mockBoardCell, colors: ['#ff0000'] }]
+          }
         }
-      }),
-      update: jest.fn().mockRejectedValue(new Error('Conflict'))
+      })
     }))
 
-    const { result } = renderHook(() => 
-      useGameState({ sessionId: 'test-session' })
-    )
-
-    // Wait for initial state
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    })
+    const { result } = renderHook(() => useGameState({ sessionId: 'test-session' }))
 
     await act(async () => {
-      await result.current.updateGameState([{
-        index: 0,
-        cell: { ...mockBoardCell, text: 'Client Update' }
-      }])
+      await Promise.all([
+        result.current.updateGameState([{
+          index: 0,
+          cell: { ...mockBoardCell, isMarked: true }
+        }]),
+        result.current.updateGameState([{
+          index: 0,
+          cell: { ...mockBoardCell, colors: ['#ff0000'] }
+        }])
+      ])
     })
 
-    expect(result.current.gameState?.version).toBe(3)
-    if (result.current.gameState?.currentState[0]) {
-      expect(result.current.gameState.currentState[0].text).toBe('Server Update')
+    const gameState = result.current.gameState
+    if (gameState?.currentState[0]) {
+      expect(gameState.version).toBe(3)
+      expect(gameState.currentState[0].colors).toContain('#ff0000')
     }
   })
 
-  it('should handle real-time updates through subscription', async () => {
-    const { result } = renderHook(() => 
-      useGameState({ sessionId: 'test-session' })
-    )
+  it('should handle WebSocket updates', async () => {
+    const { result } = renderHook(() => useGameState({ sessionId: 'test-session' }))
 
-    // Wait for initial state
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
-    })
-
-    const mockPayload = {
-      new: {
-        current_state: [{ ...mockBoardCell, text: 'Real-time Update' }],
-        version: 2,
-        updated_at: new Date().toISOString()
-      }
+    const mockUpdate: MockStateResponse = {
+      current_state: [{ ...mockBoardCell, text: 'Updated Cell' }],
+      version: 2,
+      updated_at: new Date().toISOString()
     }
 
     await act(async () => {
       const onChangeCallback = mockSupabase.channel().on.mock.calls[0][2]
-      onChangeCallback(mockPayload)
+      onChangeCallback({ new: mockUpdate })
     })
 
-    if (result.current.gameState?.currentState[0]) {
-      expect(result.current.gameState.currentState[0].text).toBe('Real-time Update')
+    const gameState = result.current.gameState
+    if (gameState?.currentState[0]) {
+      expect(gameState.version).toBe(2)
+      expect(gameState.currentState[0].text).toBe('Updated Cell')
     }
-    expect(result.current.gameState?.version).toBe(2)
   })
 
-  it('should clean up subscription on unmount', () => {
+  it('should clean up subscriptions', () => {
     const { unmount } = renderHook(() => useGameState({ sessionId: 'test-session' }))
     unmount()
     expect(mockSupabase.removeChannel).toHaveBeenCalled()

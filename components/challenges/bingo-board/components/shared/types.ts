@@ -77,3 +77,20 @@ export interface BoardCardProps {
 export function isSet(value: Set<string> | string[]): value is Set<string> {
   return value instanceof Set
 }
+
+export interface GameState {
+  currentState: BoardCell[]
+  version: number
+  lastUpdate: string
+}
+
+export interface QueueEntry {
+  id: string
+  sessionId: string
+  userId: string
+  playerName: string
+  color: string
+  status: 'pending' | 'approved' | 'rejected'
+  requestedAt: string
+  error?: string
+}
