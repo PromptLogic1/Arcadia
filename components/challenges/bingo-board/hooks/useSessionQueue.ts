@@ -55,7 +55,9 @@ export const useSessionQueue = (_sessionId: string) => {
         setQueueEntries(prev => [...prev, mapToQueueEntry(entry)])
       }
     } catch (error) {
-      console.error('Error adding to queue:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error adding to queue:', error)
+      }
       throw error
     } finally {
       setIsProcessing(false)
@@ -76,7 +78,9 @@ export const useSessionQueue = (_sessionId: string) => {
         setQueueEntries(entries.map(mapToQueueEntry))
       }
     } catch (error) {
-      console.error('Error processing queue:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error processing queue:', error)
+      }
       throw error
     } finally {
       setIsProcessing(false)
@@ -94,7 +98,9 @@ export const useSessionQueue = (_sessionId: string) => {
 
       await processQueue() // Refresh queue entries
     } catch (error) {
-      console.error('Error cleaning up queue:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error cleaning up queue:', error)
+      }
       throw error
     } finally {
       setIsProcessing(false)

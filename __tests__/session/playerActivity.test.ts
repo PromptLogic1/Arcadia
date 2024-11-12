@@ -2,46 +2,73 @@ import { renderHook, act } from '@testing-library/react'
 import { useSession } from '@/components/challenges/bingo-board/hooks/useSession'
 import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
 
-// Mock types
-type MockFn = jest.Mock
+// Define types for channel events
+interface ChannelEvent {
+  event: 'disconnect' | 'reconnect' | 'presence'
+  session: string
+}
 
-// Mock Supabase client
+// Mock session state
+const mockSessionState = {
+  id: 'test-session',
+  status: 'active',
+  current_state: [],
+  players: [],
+  version: 1,
+  last_update: new Date().toISOString(),
+  last_active_at: new Date().toISOString()
+}
+
+// Create mock query builder with proper state tracking
+const createMockQueryBuilder = (initialState = mockSessionState) => {
+  let currentState = { ...initialState }
+  
+  const queryBuilder = {
+    update: jest.fn().mockImplementation((data) => {
+      currentState = { ...currentState, ...data }
+      return queryBuilder
+    }),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn().mockImplementation(() => 
+      Promise.resolve({ data: currentState, error: null })
+    )
+  }
+  return { queryBuilder, getCurrentState: () => currentState }
+}
+
 const mockSupabase = {
-  from: jest.fn() as MockFn,
+  from: jest.fn(),
   auth: {
-    getUser: jest.fn() as MockFn
+    getUser: jest.fn().mockResolvedValue({ 
+      data: { user: { id: 'test-user' } }, 
+      error: null 
+    })
   },
   channel: jest.fn(() => ({
-    on: jest.fn().mockReturnThis() as MockFn,
-    subscribe: jest.fn() as MockFn
-  })) as MockFn,
-  removeChannel: jest.fn() as MockFn
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn().mockImplementation((callback) => {
+      mockSupabase._subscriptionCallback = callback
+      return { unsubscribe: jest.fn() }
+    })
+  })),
+  removeChannel: jest.fn(),
+  _subscriptionCallback: null as null | ((payload: ChannelEvent) => void)
 }
+
+jest.mock('@supabase/auth-helpers-nextjs', () => ({
+  createClientComponentClient: () => mockSupabase
+}))
 
 describe('Player Activity System', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockSupabase._subscriptionCallback = null
   })
 
   it('should track player connections', async () => {
-    const connectionLog: Array<{
-      playerId: string,
-      status: 'connected' | 'disconnected',
-      timestamp: string
-    }> = []
-
-    mockSupabase.from.mockImplementation(() => ({
-      update: jest.fn().mockImplementation(async (data) => {
-        connectionLog.push({
-          playerId: data.user_id,
-          status: 'connected',
-          timestamp: new Date().toISOString()
-        })
-        return { data, error: null }
-      }),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis()
-    }))
+    const { queryBuilder, getCurrentState } = createMockQueryBuilder()
+    mockSupabase.from.mockReturnValue(queryBuilder)
 
     const { result } = renderHook(() => useSession('test-board-id'))
 
@@ -49,106 +76,73 @@ describe('Player Activity System', () => {
       await result.current.joinSession('test-session', 'Player 1', '#ff0000')
     })
 
-    const firstLog = connectionLog[0]
-    if (firstLog) {
-      expect(firstLog.status).toBe('connected')
-      expect(firstLog.playerId).toBeTruthy()
-    }
+    expect(queryBuilder.update).toHaveBeenCalled()
+    expect(getCurrentState().status).toBe('active')
   })
 
   it('should handle disconnections gracefully', async () => {
-    const disconnectionHandled = jest.fn()
-    let lastActiveTimestamp: string | null = null
-
-    mockSupabase.from.mockImplementation(() => ({
-      update: jest.fn().mockImplementation(async (data) => {
-        if (data.status === 'disconnected') {
-          disconnectionHandled()
-          lastActiveTimestamp = data.last_active_at
-        }
-        return { data, error: null }
-      }),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis()
-    }))
+    const { queryBuilder, getCurrentState } = createMockQueryBuilder()
+    mockSupabase.from.mockReturnValue(queryBuilder)
 
     const { result, unmount } = renderHook(() => useSession('test-board-id'))
 
     await act(async () => {
       await result.current.joinSession('test-session', 'Player 1', '#ff0000')
+      if (mockSupabase._subscriptionCallback) {
+        mockSupabase._subscriptionCallback({ 
+          event: 'disconnect', 
+          session: 'test-session' 
+        })
+      }
+      unmount()
     })
 
-    unmount() // Simulate disconnection
-
-    expect(disconnectionHandled).toHaveBeenCalled()
-    expect(lastActiveTimestamp).toBeTruthy()
+    expect(getCurrentState().status).toBe('disconnected')
+    expect(getCurrentState().last_active_at).toBeTruthy()
   })
 
   it('should handle reconnection process', async () => {
-    const stateSync = jest.fn()
-    const reconnectionLog: Array<{
-      playerId: string,
-      timestamp: string,
-      syncedState: boolean
-    }> = []
-
-    mockSupabase.from.mockImplementation(() => ({
-      update: jest.fn().mockImplementation(async (data) => {
-        if (data.status === 'connected') {
-          reconnectionLog.push({
-            playerId: data.user_id,
-            timestamp: new Date().toISOString(),
-            syncedState: true
-          })
-          stateSync()
-        }
-        return { data, error: null }
-      }),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis()
-    }))
+    const { queryBuilder, getCurrentState } = createMockQueryBuilder()
+    mockSupabase.from.mockReturnValue(queryBuilder)
 
     const { result, rerender } = renderHook(() => useSession('test-board-id'))
 
     await act(async () => {
       await result.current.joinSession('test-session', 'Player 1', '#ff0000')
+      if (mockSupabase._subscriptionCallback) {
+        mockSupabase._subscriptionCallback({ 
+          event: 'reconnect', 
+          session: 'test-session' 
+        })
+      }
+      rerender()
     })
 
-    // Simulate reconnection
-    rerender()
-
-    expect(stateSync).toHaveBeenCalled()
-    const firstReconnection = reconnectionLog[0]
-    if (firstReconnection) {
-      expect(firstReconnection.syncedState).toBe(true)
-    }
+    expect(getCurrentState().status).toBe('connected')
   })
 
   it('should update last_active timestamp', async () => {
-    const activityTimestamps: string[] = []
-
-    mockSupabase.from.mockImplementation(() => ({
-      update: jest.fn().mockImplementation(async (data) => {
-        if (data.last_active_at) {
-          activityTimestamps.push(data.last_active_at)
-        }
-        return { data, error: null }
-      }),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis()
-    }))
+    const { queryBuilder, getCurrentState } = createMockQueryBuilder()
+    mockSupabase.from.mockReturnValue(queryBuilder)
 
     const { result } = renderHook(() => useSession('test-board-id'))
+
+    const timestamps: string[] = []
 
     await act(async () => {
       // Simulate multiple actions
       await result.current.joinSession('test-session', 'Player 1', '#ff0000')
+      timestamps.push(getCurrentState().last_active_at)
+      
       await result.current.updateSessionState([{ text: 'Update 1' } as BoardCell])
+      timestamps.push(getCurrentState().last_active_at)
+      
       await result.current.updateSessionState([{ text: 'Update 2' } as BoardCell])
+      timestamps.push(getCurrentState().last_active_at)
     })
 
-    expect(activityTimestamps.length).toBeGreaterThan(1)
-    activityTimestamps.reduce((prev, curr) => {
+    expect(timestamps.length).toBeGreaterThan(1)
+    timestamps.reduce((prev, curr) => {
       const prevDate = new Date(prev).getTime()
       const currDate = new Date(curr).getTime()
       expect(currDate).toBeGreaterThanOrEqual(prevDate)

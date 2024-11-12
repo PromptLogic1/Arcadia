@@ -1,21 +1,52 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
-import type { BoardCell, Player } from '../components/shared/types'
+import type { BoardCell } from '../components/shared/types'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+
+// Define the session status type to match database constraints
+type DatabaseSessionStatus = 'active' | 'completed' | 'cancelled'
+type UISessionStatus = 'disconnected' | 'connected'
+type SessionStatus = DatabaseSessionStatus | UISessionStatus
+
+interface SessionPlayer {
+  id: string
+  name: string
+  color: string
+  team: number
+  hoverColor: string
+}
 
 interface SessionState {
   id: string
   boardId: string
-  status: 'active' | 'completed' | 'cancelled'
+  status: SessionStatus
   currentState: BoardCell[]
-  winnerId: string | null
-  players: Player[]
+  players: SessionPlayer[]
+  version: number
+  lastUpdate: string
+  lastActiveAt?: string
+  winnerId?: string | null
+  startedAt?: string
+  endedAt?: string | null
+}
+
+// Define the database session type
+type DatabaseSession = Database['public']['Tables']['bingo_sessions']['Row'] & {
+  players: Array<{
+    session_id: string
+    user_id: string
+    player_name: string
+    color: string
+    team: number | null
+  }>
 }
 
 export const useSession = (boardId: string) => {
   const [session, setSession] = useState<SessionState | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [_channel, setChannel] = useState<RealtimeChannel | null>(null)
   
   const supabase = createClientComponentClient<Database>()
 
@@ -40,19 +71,25 @@ export const useSession = (boardId: string) => {
       if (sessionError) throw sessionError
 
       if (sessions) {
+        const dbSession = sessions as DatabaseSession
         setSession({
-          id: sessions.id,
-          boardId: sessions.board_id,
-          status: sessions.status,
-          currentState: sessions.current_state,
-          winnerId: sessions.winner_id,
-          players: sessions.players.map(player => ({
+          id: dbSession.id,
+          boardId: dbSession.board_id,
+          status: dbSession.status,
+          currentState: dbSession.current_state,
+          players: dbSession.players.map(player => ({
             id: `${player.user_id}-${player.session_id}`,
             name: player.player_name,
             color: player.color,
             team: player.team ?? 0,
             hoverColor: player.color
-          }))
+          })),
+          version: 1,
+          lastUpdate: dbSession.updated_at,
+          lastActiveAt: dbSession.updated_at,
+          winnerId: dbSession.winner_id,
+          startedAt: dbSession.started_at,
+          endedAt: dbSession.ended_at
         })
       }
     } catch (err) {
@@ -68,17 +105,6 @@ export const useSession = (boardId: string) => {
     team?: number
   ) => {
     try {
-      const { data: existingSessions } = await supabase
-        .from('bingo_sessions')
-        .select('id')
-        .eq('board_id', boardId)
-        .eq('status', 'active')
-        .single()
-
-      if (existingSessions?.id) {
-        throw new Error('An active session already exists for this board')
-      }
-
       const response = await fetch('/api/bingo/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,48 +121,45 @@ export const useSession = (boardId: string) => {
         throw new Error(error.message || 'Failed to create session')
       }
 
-      const data = await response.json()
       await fetchSession()
-      return data
+      return await response.json()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create session')
       throw err
     }
-  }, [boardId, supabase, fetchSession])
+  }, [boardId, fetchSession])
 
-  const joinSession = useCallback(async (
-    sessionId: string,
-    playerName: string,
-    color: string,
-    team?: number
-  ) => {
+  const joinSession = useCallback(async (_sessionId: string, _playerName: string, _color: string) => {
     try {
-      const { data: players } = await supabase
-        .from('bingo_session_players')
-        .select('user_id')
-        .eq('session_id', sessionId)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
 
-      if (players && players.length >= 8) {
-        throw new Error('Session is full')
-      }
-
-      const response = await fetch('/api/bingo/sessions/players', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          playerName,
-          color,
-          team
+      const { data, error } = await supabase
+        .from('bingo_sessions')
+        .update({
+          status: 'active' as DatabaseSessionStatus,
+          updated_at: new Date().toISOString()
         })
-      })
+        .eq('id', _sessionId)
+        .single()
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Failed to join session')
-      }
+      if (error) throw error
+
+      // Add player to session
+      await supabase
+        .from('bingo_session_players')
+        .insert({
+          session_id: _sessionId,
+          user_id: user.id,
+          player_name: _playerName,
+          color: _color,
+          team: 1,
+          joined_at: new Date().toISOString()
+        })
+        .single()
 
       await fetchSession()
+      return data
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join session')
       throw err
@@ -157,7 +180,7 @@ export const useSession = (boardId: string) => {
           sessionId: session.id,
           currentState,
           winnerId,
-          status: winnerId ? 'completed' : 'active'
+          status: winnerId ? 'completed' as const : 'active' as const
         })
       })
 
@@ -165,52 +188,39 @@ export const useSession = (boardId: string) => {
         throw new Error('Failed to update session')
       }
 
-      await fetchSession()
+      const updatedSession = await response.json()
+      setSession(prev => prev ? {
+        ...prev,
+        ...updatedSession,
+        currentState,
+        status: winnerId ? 'completed' : prev.status,
+        winnerId
+      } : null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update session')
       throw err
     }
-  }, [session, fetchSession])
+  }, [session])
 
-  // Set up real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel(`session_${boardId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_sessions',
-          filter: `board_id=eq.${boardId}`
-        },
-        () => {
-          fetchSession()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_session_players',
-          filter: `session_id=eq.${session?.id}`
-        },
-        () => {
-          fetchSession()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [boardId, session?.id, supabase, fetchSession])
-
-  // Initial fetch
   useEffect(() => {
     fetchSession()
-  }, [fetchSession])
+
+    // Set up realtime subscription
+    const newChannel = supabase.channel(`session:${boardId}`)
+    newChannel
+      .on('presence', { event: 'sync' }, () => {
+        fetchSession()
+      })
+      .subscribe()
+
+    setChannel(newChannel)
+
+    return () => {
+      if (newChannel) {
+        supabase.removeChannel(newChannel)
+      }
+    }
+  }, [boardId, supabase, fetchSession])
 
   return {
     session,
@@ -218,6 +228,7 @@ export const useSession = (boardId: string) => {
     error,
     createSession,
     joinSession,
-    updateSessionState
+    updateSessionState,
+    fetchSession
   }
 } 

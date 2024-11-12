@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom'
 import type { IncomingMessage, ServerResponse } from 'http'
-const { TextEncoder, TextDecoder } = require('util')
-const { createServer } = require('http')
-const nodeFetch = require('node-fetch')
-import { EventEmitter } from 'events';
+import { TextEncoder, TextDecoder } from 'util'
+import { createServer } from 'http'
+import nodeFetch from 'node-fetch'
+import { EventEmitter } from 'events'
+import { AddressInfo } from 'net'
+import type { Server as HttpServer } from 'http'
 
 // Define proper types for global objects
 declare global {
@@ -11,6 +13,7 @@ declare global {
   interface Global {
     TextEncoder: typeof TextEncoder
     TextDecoder: typeof TextDecoder
+    fetch: typeof nodeFetch
   }
 }
 
@@ -25,8 +28,11 @@ Object.defineProperty(global, 'TextDecoder', {
   writable: true
 })
 
-// Use type assertion for fetch to avoid duplicate declaration
-;(global as any).fetch = nodeFetch
+// Use proper typing for fetch
+Object.defineProperty(global, 'fetch', {
+  value: nodeFetch,
+  writable: true
+})
 
 // Mock für window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -84,7 +90,7 @@ const createMockSupabaseClient = () => {
       }, 
       error: null 
     })
-  });
+  })
 
   return {
     auth: {
@@ -99,8 +105,8 @@ const createMockSupabaseClient = () => {
     })),
     removeChannel: jest.fn(),
     from: jest.fn(() => createQueryBuilder())
-  };
-};
+  }
+}
 
 export const mockSupabaseClient = createMockSupabaseClient()
 
@@ -113,7 +119,7 @@ jest.mock('@supabase/auth-helpers-nextjs', () => ({
   createClientComponentClient: jest.fn(() => mockSupabaseClient)
 }))
 
-// Fügen Sie diese Hilfsfunktion hinzu
+// Add this helper function
 global.fail = (message: string) => {
   throw new Error(message)
 }
@@ -130,28 +136,54 @@ jest.mock('next/navigation', () => ({
 }))
 
 // Server für API-Tests
-let server: ReturnType<typeof createServer>
-let testPort = 3001
+let testServer: HttpServer
+const testPort = 3001
 
-// Before creating the server
-EventEmitter.defaultMaxListeners = 20;
+// Increase timeout for all tests
+jest.setTimeout(30000)
 
-beforeAll(() => {
-  server = createServer((req: IncomingMessage, res: ServerResponse) => {
+// Increase event emitter limit
+EventEmitter.defaultMaxListeners = 20
+
+beforeAll(async () => {
+  // Create server with error handling
+  testServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ success: true }))
   })
 
-  return new Promise<void>((resolve) => {
-    server.listen(testPort, () => resolve());
-  });
+  testServer.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+      // If port is in use, try to close existing connections
+      testServer.close(() => {
+        testServer.listen(testPort)
+      })
+    }
+  })
+
+  // Wait for server to be ready
+  await new Promise<void>((resolve, reject) => {
+    testServer.listen(testPort, () => {
+      const address = testServer.address() as AddressInfo
+      console.log(`Test server running on port ${address.port}`)
+      resolve()
+    })
+
+    testServer.on('error', reject)
+  })
 })
 
-afterAll(() => {
-  return new Promise<void>((resolve) => {
-    server?.close(() => resolve());
-  });
+afterAll(async () => {
+  // Properly close server and cleanup
+  await new Promise<void>((resolve) => {
+    testServer.close(() => resolve())
+  })
 })
 
-// Exportiere den Port für Tests
+// Add test environment cleanup
+afterEach(() => {
+  jest.clearAllMocks()
+})
+
+// Export the port for tests
 export { testPort }

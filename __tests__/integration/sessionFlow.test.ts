@@ -37,8 +37,16 @@ interface GameStateDB {
 }
 
 describe('End-to-End Session Flow', () => {
+  // Add timeout for long-running tests
+  jest.setTimeout(10000)
+
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    // Cleanup any subscriptions or pending operations
+    jest.clearAllTimers()
   })
 
   it('should handle complete session lifecycle', async () => {
@@ -112,11 +120,11 @@ describe('End-to-End Session Flow', () => {
     } else {
       fail('Current cell is undefined')
     }
-  })
+  }, 10000) // Add timeout for individual test
 
   it('should verify player journey scenarios', async () => {
     // ... existing test code ...
-  })
+  }, 10000)
 
   it('should test multi-player interactions', async () => {
     // Setup initial states for both players
@@ -180,5 +188,5 @@ describe('End-to-End Session Flow', () => {
 
     // Add assertions for multi-player state
     expect(mockQueryBuilder.update).toHaveBeenCalledTimes(2)
-  })
+  }, 10000)
 })

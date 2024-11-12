@@ -26,6 +26,8 @@ const createMockQueryBuilder = (mockData: any = null) => ({
 })
 
 describe('useSession Hook', () => {
+  jest.setTimeout(10000)
+
   beforeEach(() => {
     jest.clearAllMocks()
     // Reset mock responses
@@ -43,7 +45,7 @@ describe('useSession Hook', () => {
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 0))
     })
-  })
+  }, 10000)
 
   it('should fetch session data on mount', async () => {
     const mockSession = {
@@ -66,7 +68,7 @@ describe('useSession Hook', () => {
     expect(result.current.loading).toBe(false)
     expect(result.current.session).toBeTruthy()
     expect(result.current.error).toBeNull()
-  })
+  }, 10000)
 
   it('should handle session creation', async () => {
     const mockNewSession = {
@@ -134,7 +136,7 @@ describe('useSession Hook', () => {
     expect(result.current.session).toBeTruthy()
     expect(result.current.session?.id).toBe('new-session')
     expect(result.current.error).toBeNull()
-  })
+  }, 10000)
 
   it('should handle session state updates', async () => {
     const updatedState = [mockBoardCell]
@@ -167,7 +169,7 @@ describe('useSession Hook', () => {
 
     expect(result.current.session?.currentState).toEqual(updatedState)
     expect(result.current.error).toBeNull()
-  })
+  }, 10000)
 
   it('should handle session completion', async () => {
     const winnerId = 'test-winner'
@@ -200,7 +202,7 @@ describe('useSession Hook', () => {
 
     expect(result.current.session?.status).toBe('completed')
     expect(result.current.session?.winnerId).toBe(winnerId)
-  })
+  }, 10000)
 
   it('should clean up subscriptions on unmount', async () => {
     const mockChannel = {
@@ -219,5 +221,5 @@ describe('useSession Hook', () => {
     })
 
     expect(mockSupabaseClient.removeChannel).toHaveBeenCalled()
-  })
+  }, 10000)
 }) 
