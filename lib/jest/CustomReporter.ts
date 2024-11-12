@@ -1,5 +1,5 @@
-const fs = require('fs')
-const path = require('path')
+import fs from 'fs'
+import path from 'path'
 
 interface TestResultData {
   filePath: string
@@ -146,4 +146,4 @@ class CustomReporter {
   }
 }
 
-module.exports = CustomReporter
+export default CustomReporter

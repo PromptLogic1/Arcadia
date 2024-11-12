@@ -36,7 +36,6 @@ type BingoSessionResponse = Database['public']['Tables']['bingo_sessions']['Row'
 
 export function useGameState({ sessionId, currentState: initialState }: UseGameStateProps): GameStateHookReturn {
   const [gameState, setGameState] = useState<GameState | null>(initialState || null)
-  const [pendingUpdates, setPendingUpdates] = useState<{[key: string]: BoardCell}>({})
   const [isProcessing, setIsProcessing] = useState(false)
   const supabase = createClientComponentClient<Database>()
 
@@ -118,7 +117,6 @@ export function useGameState({ sessionId, currentState: initialState }: UseGameS
           lastUpdate: typedData.last_update ?? newState.lastUpdate
         })
       }
-      setPendingUpdates({})
     } catch (error) {
       console.error('Failed to update game state:', error)
     } finally {
