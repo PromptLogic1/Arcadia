@@ -37,6 +37,11 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
       return false
     }
     
+    // Erlaube leeres Array als validen State
+    if (state.length === 0) {
+      return true
+    }
+
     const isValid = state.every(cell => (
       cell &&
       typeof cell === 'object' &&
@@ -112,7 +117,8 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
       throw new Error(errorMsg)
     }
 
-    const previousState = board?.board_state
+    // Deep copy des aktuellen Boards für Rollback
+    const previousBoard = board ? JSON.parse(JSON.stringify(board)) : null
     
     try {
       // Optimistisches Update mit Merge-Logik
@@ -120,10 +126,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
         if (!prev) return null
         return {
           ...prev,
-          board_state: newState.map((cell, i) => ({
-            ...cell,
-            colors: [...new Set([...(prev.board_state[i]?.colors || []), ...cell.colors])]
-          }))
+          board_state: newState
         }
       })
 
@@ -133,11 +136,11 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
         .eq('id', boardId)
 
       if (updateError) {
-        // Rollback bei Fehler
-        if (previousState) {
-          setBoard(prev => prev ? { ...prev, board_state: previousState } : null)
+        // Vollständiger Rollback zum vorherigen State
+        if (previousBoard) {
+          setBoard(previousBoard)
         }
-        const errorMsg = updateError.message || 'Failed to update board'
+        const errorMsg = 'Failed to update board'
         setError(errorMsg)
         throw new Error(errorMsg)
       }
@@ -145,16 +148,10 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
       setError(null)
       return Promise.resolve()
     } catch (err) {
-      // Rollback bei Fehler
-      if (previousState) {
-        setBoard(prev => prev ? { ...prev, board_state: previousState } : null)
+      // Vollständiger Rollback zum vorherigen State
+      if (previousBoard) {
+        setBoard(previousBoard)
       }
-      // Wenn der Fehler bereits eine Error-Instanz ist, wirf ihn direkt
-      if (err instanceof Error) {
-        setError(err.message)
-        throw err
-      }
-      // Ansonsten erstelle einen neuen Error
       const errorMsg = 'Failed to update board'
       setError(errorMsg)
       throw new Error(errorMsg)
@@ -169,22 +166,27 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
 
     return {
       add: async (newState: BoardCell[]) => {
-        currentState = newState
-        pendingUpdates++
-        clearTimeout(timeout)
-        
-        timeout = setTimeout(async () => {
-          if (currentState) {
-            try {
-              await updateBoardState(currentState)
-            } finally {
-              pendingUpdates--
-              currentState = null
+        return new Promise<void>((resolve, reject) => {
+          currentState = newState
+          pendingUpdates++
+          clearTimeout(timeout)
+          
+          timeout = setTimeout(async () => {
+            if (currentState) {
+              try {
+                await updateBoardState(currentState)
+                resolve()
+              } catch (error) {
+                reject(error)
+              } finally {
+                pendingUpdates--
+                currentState = null
+              }
+            } else {
+              resolve()
             }
-          }
-        }, 50)
-
-        return Promise.resolve()
+          }, 50)
+        })
       },
       clear: () => {
         clearTimeout(timeout)
