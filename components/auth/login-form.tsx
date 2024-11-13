@@ -115,6 +115,34 @@ export function LogInForm() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorInfo(null)
+
+    // Validate required fields
+    if (!email.trim()) {
+      setErrorInfo({
+        message: 'Please enter your email address',
+        type: 'error'
+      })
+      return
+    }
+
+    if (!password.trim()) {
+      setErrorInfo({
+        message: 'Please enter your password',
+        type: 'error'
+      })
+      return
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setErrorInfo({
+        message: 'Please enter a valid email address',
+        type: 'error'
+      })
+      return
+    }
+
     setStatus('loading')
 
     let emailExists = false
@@ -215,7 +243,7 @@ export function LogInForm() {
                   'text-blue-400': errorInfo.type === 'info'
                 }
               )} />
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <p className={cn(
                   "text-sm",
                   {
@@ -237,10 +265,10 @@ export function LogInForm() {
                 )}
                 {errorInfo.type === 'error' && errorInfo.message.includes('password') && (
                   <Link
-                    href="/auth/reset-password"
-                    className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200 block"
+                    href="/auth/forgot-password"
+                    className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
                   >
-                    Reset your password
+                    Forgot your password?
                   </Link>
                 )}
               </div>
@@ -248,7 +276,9 @@ export function LogInForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <div className="flex justify-start">
+              <Label htmlFor="email">Email address</Label>
+            </div>
             <Input
               id="email"
               type="email"
@@ -264,14 +294,8 @@ export function LogInForm() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-start">
               <Label htmlFor="password">Password</Label>
-              <Link 
-                href="/auth/forgot-password" 
-                className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-              >
-                Forgot password?
-              </Link>
             </div>
             <Input
               id="password"
@@ -300,6 +324,15 @@ export function LogInForm() {
           >
             {status === 'loading' ? 'Signing in...' : 'Sign In'}
           </Button>
+
+          <div className="text-center">
+            <Link 
+              href="/auth/forgot-password" 
+              className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </form>
 
         {/* Divider */}
