@@ -60,8 +60,10 @@ export function ResetPasswordForm() {
       if (error) throw error
 
       setStatus('success')
+      // Redirect to home page after successful password reset
       setTimeout(() => {
-        router.push('/auth/login')
+        router.push('/')
+        router.refresh()
       }, 2000)
     } catch (error) {
       console.error('Reset password error:', error)
@@ -93,7 +95,7 @@ export function ResetPasswordForm() {
           <div className="p-3 rounded-lg bg-green-500/10 border-green-500/20 flex items-start gap-2">
             <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-green-400">
-              Password successfully reset. Redirecting to login...
+              Password successfully reset. Redirecting to home page...
             </p>
           </div>
         )}

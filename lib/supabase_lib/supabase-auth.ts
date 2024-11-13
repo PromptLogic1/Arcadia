@@ -95,7 +95,7 @@ class SupabaseAuth {
       const { error } = await this.supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/verify-email/callback`,
           queryParams: provider === 'google' ? {
             access_type: 'offline',
             prompt: 'consent',
@@ -184,7 +184,7 @@ class SupabaseAuth {
               avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
               pendingProfile: true
             },
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/auth/verify-email/callback`
           }
         })
 
