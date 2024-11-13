@@ -50,16 +50,41 @@ describe('useBingoGame Hook', () => {
       expect(result.current.boardState).not.toEqual(initialState)
       expect(result.current.winner).toBeNull()
     })
+
+    it('SOLL Gewinnbedingungen korrekt initialisieren', () => {
+      const { result } = renderHook(() => useBingoGame(5))
+      
+      expect(result.current.winConditions).toEqual({
+        line: true,
+        majority: false
+      })
+    })
+
+    it('SOLL alle Spieler-States korrekt verwalten', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+      
+      act(() => {
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(1, { colors: [player2.color] })
+      })
+
+      const cell0 = result.current.boardState[0]
+      const cell1 = result.current.boardState[1]
+      
+      expect(cell0?.colors).toContain(player1.color)
+      expect(cell1?.colors).toContain(player2.color)
+    })
   })
 
   describe('Team-Modus', () => {
-    it('SOLL Team-basierte Siege korrekt erkennen', () => {
+    it('SOLL Team-basierte Siege korrekt erkennen', async () => {
       const { result } = renderHook(() => useBingoGame(3))
       const player1 = createTestPlayer(1, 0)
       const player2 = createTestPlayer(2, 0)
 
-      act(() => {
-        // Beide Spieler vom selben Team markieren Zellen
+      await act(async () => {
         result.current.handleCellClick(0, { colors: [player1.color] })
         result.current.handleCellClick(1, { colors: [player2.color] })
         result.current.handleCellClick(2, { colors: [player1.color] })
@@ -68,12 +93,12 @@ describe('useBingoGame Hook', () => {
       expect(result.current.checkWinningCondition([player1, player2])).toBe(true)
     })
 
-    it('SOLL Team-Mehrheiten korrekt berechnen', () => {
+    it('SOLL Team-Mehrheiten korrekt berechnen', async () => {
       const { result } = renderHook(() => useBingoGame(3))
       const team1Player = createTestPlayer(1, 0)
       const team2Player = createTestPlayer(3, 1)
 
-      act(() => {
+      await act(async () => {
         result.current.setWinConditions({ line: false, majority: true })
         // Team 1 markiert mehr Felder
         for (let i = 0; i < 5; i++) {
@@ -83,9 +108,18 @@ describe('useBingoGame Hook', () => {
         for (let i = 5; i < 7; i++) {
           result.current.handleCellClick(i, { colors: [team2Player.color] })
         }
+        
+        // Warten auf State-Updates
+        await new Promise(resolve => setTimeout(resolve, 0))
       })
 
-      expect(result.current.checkWinningCondition([team1Player, team2Player], true)).toBe(true)
+      const hasWon = await act(async () => {
+        const winningCondition = result.current.checkWinningCondition([team1Player, team2Player], true)
+        await new Promise(resolve => setTimeout(resolve, 0))
+        return winningCondition
+      })
+
+      expect(hasWon).toBe(true)
       expect(result.current.winner).toBe(0) // Team 1 gewinnt
     })
   })
@@ -281,6 +315,232 @@ describe('useBingoGame Hook', () => {
       })
 
       expect(result.current.winner).toBe(-1) // Unentschieden
+    })
+
+    it('SOLL mit vollständig gefüllten Boards umgehen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+      
+      act(() => {
+        // Board vollständig füllen
+        for (let i = 0; i < 9; i++) {
+          result.current.handleCellClick(i, { 
+            colors: [player.color],
+            isMarked: true 
+          })
+        }
+      })
+
+      expect(result.current.boardState.every(cell => cell.isMarked)).toBe(true)
+      expect(result.current.checkWinningCondition([player])).toBe(true)
+    })
+
+    it('SOLL mit gleichzeitigen Gewinnbedingungen umgehen', async () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+      
+      await act(async () => {
+        // Horizontale und vertikale Linie gleichzeitig
+        result.current.handleCellClick(0, { colors: [player.color] })
+        result.current.handleCellClick(1, { colors: [player.color] })
+        result.current.handleCellClick(2, { colors: [player.color] })
+        result.current.handleCellClick(3, { colors: [player.color] })
+        result.current.handleCellClick(6, { colors: [player.color] })
+        
+        // Warten auf State-Updates
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      const hasWon = await act(async () => {
+        const winningCondition = result.current.checkWinningCondition([player])
+        await new Promise(resolve => setTimeout(resolve, 0))
+        return winningCondition
+      })
+
+      expect(hasWon).toBe(true)
+      expect(result.current.winner).toBe(0)
+    })
+
+    it('SOLL mit leeren Boards umgehen können', () => {
+      const { result } = renderHook(() => useBingoGame(0))
+      
+      // Prüfe, ob ein Minimum-Board (1x1) erstellt wird
+      expect(result.current.boardState.length).toBeGreaterThan(0)
+      expect(result.current.boardSize).toBeGreaterThan(0)
+      
+      act(() => {
+        // Versuche Aktionen auf dem minimalen Board
+        result.current.handleCellClick(0, { colors: ['red'] })
+      })
+      
+      // Prüfe, ob das Board funktionsfähig bleibt
+      expect(result.current.boardState[0]?.colors).toContain('red')
+    })
+
+    it('SOLL mit Spieler-Disconnects umgehen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+      
+      act(() => {
+        // Spieler 1 markiert Zellen
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(1, { colors: [player1.color] })
+        
+        // Simuliere Disconnect von Spieler 1
+        result.current.checkWinningCondition([player2]) // Nur noch Spieler 2 aktiv
+      })
+      
+      // Spiel sollte weiterlaufen
+      expect(result.current.boardState[0]?.colors).toContain(player1.color)
+      expect(result.current.winner).toBeNull()
+    })
+
+    it('SOLL Memory-Leaks vermeiden', () => {
+      const { result, unmount } = renderHook(() => useBingoGame(5))
+      const player = createTestPlayer(1, 0)
+      
+      // Fülle das Board mit vielen Aktionen
+      act(() => {
+        for (let i = 0; i < 25; i++) {
+          result.current.handleCellClick(i, { 
+            colors: [player.color],
+            completedBy: [player.id],
+            text: 'Test'.repeat(10)
+          })
+        }
+      })
+      
+      // Messe Speicherverbrauch vor Unmount
+      const heapBefore = process.memoryUsage().heapUsed
+      
+      // Unmount und Cleanup
+      unmount()
+      
+      // Messe Speicherverbrauch nach Unmount
+      const heapAfter = process.memoryUsage().heapUsed
+      
+      // Erwarte keinen signifikanten Speicherzuwachs
+      expect(heapAfter - heapBefore).toBeLessThan(1024 * 1024) // Max 1MB Differenz
+    })
+  })
+
+  describe('Zell-Management', () => {
+    it('SOLL Zell-Updates atomar durchführen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const updates = { colors: ['red'], isMarked: true }
+      
+      act(() => {
+        result.current.handleCellClick(0, updates)
+      })
+
+      const cell = result.current.boardState[0]
+      expect(cell?.colors).toEqual(['red'])
+      expect(cell?.isMarked).toBe(true)
+    })
+
+    it('SOLL Zell-Farben und completedBy Arrays korrekt verwalten', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+      
+      act(() => {
+        result.current.handleCellClick(0, { 
+          colors: [player.color],
+          completedBy: [player.id]
+        })
+      })
+
+      const cell = result.current.boardState[0]
+      expect(cell?.colors).toContain(player.color)
+      expect(cell?.completedBy).toContain(player.id)
+    })
+
+    it('SOLL isMarked und blocked States korrekt tracken', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      
+      act(() => {
+        result.current.updateBoardState(0, { 
+          isMarked: true,
+          blocked: true 
+        })
+      })
+
+      const cell = result.current.boardState[0]
+      expect(cell?.isMarked).toBe(true)
+      expect(cell?.blocked).toBe(true)
+    })
+  })
+
+  describe('Fehlerbehandlung', () => {
+    it('SOLL regelwidrige Aktionen verhindern', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      
+      act(() => {
+        result.current.updateBoardState(0, { blocked: true })
+        result.current.handleCellClick(0, { isMarked: true })
+      })
+
+      const cell = result.current.boardState[0]
+      expect(cell?.isMarked).toBe(false)
+    })
+
+    it('SOLL Konflikte zwischen Spieleraktionen auflösen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+      
+      act(() => {
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(0, { colors: [player2.color] })
+      })
+
+      const cell = result.current.boardState[0]
+      expect(cell?.colors).toEqual([player2.color])
+    })
+
+    it('SOLL Fehler beim Zell-Update protokollieren', () => {
+      const consoleSpy = jest.spyOn(console, 'error')
+      const { result } = renderHook(() => useBingoGame(3))
+      
+      act(() => {
+        // Ungültiges Update erzwingen
+        result.current.handleCellClick(-1, { colors: ['red'] })
+      })
+
+      expect(consoleSpy).toHaveBeenCalled()
+      consoleSpy.mockRestore()
+    })
+
+    it('SOLL bei kritischen Fehlern das Spiel pausieren', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const initialState = [...result.current.boardState]
+      
+      act(() => {
+        // Simuliere kritischen Fehler durch korrupten State
+        result.current.setBoardState([])
+      })
+
+      // Prüfe, ob das Spiel in einen sicheren Zustand zurückgesetzt wurde
+      expect(result.current.boardState.length).toBe(9)
+      expect(result.current.boardState).not.toEqual(initialState)
+      expect(result.current.winner).toBeNull()
+    })
+
+    it('SOLL bei Inkonsistenzen den letzten validen State wiederherstellen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const validState = [...result.current.boardState]
+      
+      act(() => {
+        // Erzeuge inkonsistenten State
+        const corruptState = validState.map(cell => ({ ...cell }))
+        corruptState[0] = {} as BoardCell // Ungültige Zelle
+        result.current.setBoardState(corruptState)
+      })
+
+      // Prüfe, ob der letzte valide State wiederhergestellt wurde
+      expect(result.current.boardState[0]).toHaveProperty('text')
+      expect(result.current.boardState[0]).toHaveProperty('colors')
+      expect(result.current.boardState[0]).toHaveProperty('completedBy')
     })
   })
 }) 
