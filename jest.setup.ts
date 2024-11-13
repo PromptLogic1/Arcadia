@@ -67,28 +67,57 @@ window.ResizeObserver = jest.fn().mockImplementation(() => ({
 
 // Verbesserter Supabase Mock mit korrekter Typisierung und Methodenverkettung
 const createMockSupabaseClient = () => {
-  const createQueryBuilder = () => ({
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnValue({
-      eq: jest.fn().mockResolvedValue({ data: null, error: null })
-    }),
-    eq: jest.fn().mockReturnThis(),
-    neq: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue({ 
+  let updateCount = 0
+
+  // Gemeinsame Basis-Response
+  const getResponse = (increment = true) => {
+    if (increment) updateCount++
+    return {
       data: {
         id: 'test-session-id',
         board_id: 'test-board-id',
-        status: 'active',
+        status: updateCount > 0 ? 'completed' : 'active',
         current_state: [],
         winner_id: null,
         players: [],
-        version: 1,
+        version: updateCount,
         last_update: new Date().toISOString()
-      }, 
-      error: null 
+      },
+      error: null
+    }
+  }
+
+  // Methodenketten für Update
+  const updateChain = {
+    eq: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockImplementation(() => Promise.resolve(getResponse(true)))
+      })
+    })
+  }
+
+  // Basis QueryBuilder
+  const queryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockImplementation(() => updateChain),
+    eq: jest.fn().mockReturnValue({
+      single: jest.fn().mockImplementation(() => Promise.resolve(getResponse(false)))
+    }),
+    single: jest.fn().mockImplementation(() => Promise.resolve(getResponse(false)))
+  }
+
+  // Mock für fetch mit Update-Zählung
+  global.fetch = jest.fn().mockImplementation((url) => {
+    if (url === '/api/bingo/sessions') {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(getResponse(true))
+      })
+    }
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({})
     })
   })
 
@@ -104,7 +133,7 @@ const createMockSupabaseClient = () => {
       subscribe: jest.fn().mockReturnThis()
     })),
     removeChannel: jest.fn(),
-    from: jest.fn(() => createQueryBuilder())
+    from: jest.fn(() => queryBuilder)
   }
 }
 

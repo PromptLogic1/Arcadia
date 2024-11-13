@@ -200,105 +200,41 @@ As an administrator, I want to:
 - [x] View all analytics (verified in RLS policies)
 - [x] Manage database schema (verified in migrations)
 
-## 🧪 Unit Tests Required
+## 🎮 Session History System
+As a game participant, I want to:
 
-### Session Management Tests
-- [x] Concurrent Join Requests:
-  - [x] Test queue system for multiple simultaneous joins
-  - [x] Verify FIFO processing of join requests
-  - [x] Test color conflict resolution
-  - [x] Test team assignment balancing
+### State Changes
+- [x] See my moves recorded with timestamps
+- [x] Track version history of the board
+- [x] View state changes in real-time
+- [x] Receive notifications of other players' moves
 
-### State Synchronization Tests
-- [x] Real-time Updates:
-  - [x] Test WebSocket connection handling
-  - [x] Verify state merge conflicts resolution
-  - [x] Test optimistic updates rollback
-  - [x] Verify version control system
+### Win Conditions
+- [x] Have win conditions automatically detected
+- [x] See winning moves highlighted
+- [x] Get notifications when game is won
+- [x] View game completion statistics
 
-### Session History Tests
-- [x] State Change Tracking:
-  - [x] Test state change recording
-  - [x] Verify action logging
-  - [x] Test win condition detection
-  - [x] Verify session completion handling
+### Player Actions
+- [x] See a log of all player actions
+- [x] Track metadata for each move
+- [x] View player-specific statistics
+- [x] Access historical game data
 
-### Player Activity Tests
-- [x] Connection Management:
-  - [x] Test player connection tracking
-  - [x] Verify disconnection handling
-  - [x] Test reconnection process
-  - [x] Verify last_active timestamp updates
+### Session Management
+- [x] Have sessions properly completed
+- [x] See final game state preserved
+- [x] Access session replay functionality
+- [x] Export session data
 
-### Database Constraint Tests
-- [x] Foreign Key Tests:
-  - [x] Test cascade deletions
-  - [x] Verify referential integrity
-  - [x] Test orphaned record prevention
+### Data Synchronization
+- [x] Have moves synchronized across players
+- [x] Handle concurrent updates properly
+- [x] Resolve conflicts automatically
+- [x] Maintain consistent game state
 
-- [x] Unique Constraint Tests:
-  - [x] Test duplicate player prevention
-  - [x] Verify color uniqueness per session
-  - [x] Test team number validation
-
-- [x] Check Constraints:
-  - [x] Test board size validation
-  - [x] Verify game status values
-  - [x] Test player count limits
-
-### RLS Policy Tests
-- [x] Session Access Tests:
-  - [x] Test view permissions for different roles
-  - [x] Verify update permission restrictions
-  - [x] Test delete permission boundaries
-
-- [x] Player Management Tests:
-  - [x] Test join session policy enforcement
-  - [x] Verify player info update restrictions
-  - [x] Test leave session permissions
-
-### Error Handling Tests
-- [x] Session Error Tests:
-  - [x] Test invalid state handling
-  - [x] Verify concurrent access error handling
-  - [x] Test permission violation responses
-
-- [x] Player Error Tests:
-  - [x] Test invalid data validation
-  - [x] Verify duplicate registration handling
-  - [x] Test team conflict resolution
-
-### Integration Tests
-- [x] End-to-End Flow Tests:
-  - [x] Test complete session lifecycle:
-    - [x] Session creation
-    - [x] Player joining
-    - [x] Game play
-    - [x] Session completion
-  - [x] Verify player journey scenarios:
-    - [x] Join session
-    - [x] Update player info
-    - [x] Game interactions
-    - [x] Leave session
-  - [x] Test multi-player interactions:
-    - [x] Concurrent actions
-    - [x] State synchronization
-    - [x] Version control
-    - [x] Interaction order
-
-### Performance Tests
-- [x] Load Testing:
-  - [x] Test concurrent session handling
-  - [x] Verify real-time update performance
-  - [x] Test queue system under load
-
-### Security Tests
-- [x] Authentication Tests:
-  - [x] Test token validation
-  - [x] Verify permission checks
-  - [x] Test role-based access
-
-- [x] Data Protection Tests:
-  - [x] Test data isolation between sessions
-  - [x] Verify secure state updates
-  - [x] Test private data access controls
+### Testing Requirements
+- [x] Unit tests for state changes
+- [x] Integration tests for win conditions
+- [x] Performance tests for synchronization
+- [x] End-to-end session tests

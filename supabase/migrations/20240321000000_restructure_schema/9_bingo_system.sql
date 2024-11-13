@@ -78,4 +78,52 @@ CREATE INDEX idx_bingo_boards_game ON bingo_boards(game_type);
 CREATE INDEX idx_bingo_boards_status ON bingo_boards(status);
 CREATE INDEX idx_bingo_sessions_board ON bingo_sessions(board_id);
 CREATE INDEX idx_bingo_sessions_status ON bingo_sessions(status);
-CREATE INDEX idx_bingo_session_players_session ON bingo_session_players(session_id); 
+CREATE INDEX idx_bingo_session_players_session ON bingo_session_players(session_id);
+
+-- Board Access Policies
+ALTER TABLE bingo_boards ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public boards are viewable by everyone"
+  ON bingo_boards FOR SELECT
+  USING (is_public = true);
+
+CREATE POLICY "Private boards are only viewable by creator"
+  ON bingo_boards FOR SELECT
+  USING (creator_id = auth.uid() OR is_public = true);
+
+-- Session Management Policies
+ALTER TABLE bingo_sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Sessions can be updated by creator only"
+  ON bingo_sessions FOR UPDATE
+  USING (board_id IN (
+    SELECT id FROM bingo_boards WHERE creator_id = auth.uid()
+  ));
+
+CREATE POLICY "Sessions can be viewed by participants"
+  ON bingo_sessions FOR SELECT
+  USING (id IN (
+    SELECT session_id FROM bingo_session_players WHERE user_id = auth.uid()
+  ));
+
+-- Player Management Policies
+ALTER TABLE bingo_session_players ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Players can only update their own info"
+  ON bingo_session_players FOR UPDATE
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Players can only join active sessions with space"
+  ON bingo_session_players FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM bingo_sessions s
+      WHERE s.id = session_id 
+      AND s.status = 'active'
+      AND (
+        SELECT COUNT(*) FROM bingo_session_players 
+        WHERE session_id = s.id
+      ) < 8
+    )
+  );
+  

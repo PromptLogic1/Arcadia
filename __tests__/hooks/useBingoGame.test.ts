@@ -1,0 +1,286 @@
+import { renderHook, act } from '@testing-library/react'
+import { useBingoGame } from '@/components/challenges/bingo-board/hooks/useBingoGame'
+import type { Player, BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+
+describe('useBingoGame Hook', () => {
+  const createTestPlayer = (id: number, team: number): Player => ({
+    id: `player-${id}`,
+    name: `Test Player ${id}`,
+    color: `color-${id}`,
+    hoverColor: `hover-${id}`,
+    team
+  })
+
+  describe('Spielzustand Initialisierung', () => {
+    it('SOLL Board korrekt initialisieren', () => {
+      const { result } = renderHook(() => useBingoGame(5))
+
+      expect(result.current.boardState.length).toBe(25)
+      expect(result.current.winner).toBeNull()
+      expect(result.current.boardSize).toBe(5)
+      expect(result.current.winConditions).toEqual({
+        line: true,
+        majority: false
+      })
+    })
+
+    it('SOLL Zellen mit korrekter Struktur initialisieren', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+
+      result.current.boardState.forEach(cell => {
+        expect(cell).toHaveProperty('text')
+        expect(cell.text.length).toBeLessThanOrEqual(50)
+        expect(cell).toHaveProperty('colors', [])
+        expect(cell).toHaveProperty('completedBy', [])
+        expect(cell).toHaveProperty('blocked', false)
+        expect(cell).toHaveProperty('isMarked', false)
+        expect(cell).toHaveProperty('cellId')
+      })
+    })
+
+    it('SOLL Board-State bei Reset zurücksetzen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const initialState = [...result.current.boardState]
+
+      act(() => {
+        result.current.handleCellClick(0, { colors: ['red'] })
+        result.current.resetBoard()
+      })
+
+      expect(result.current.boardState).not.toEqual(initialState)
+      expect(result.current.winner).toBeNull()
+    })
+  })
+
+  describe('Team-Modus', () => {
+    it('SOLL Team-basierte Siege korrekt erkennen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 0)
+
+      act(() => {
+        // Beide Spieler vom selben Team markieren Zellen
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(1, { colors: [player2.color] })
+        result.current.handleCellClick(2, { colors: [player1.color] })
+      })
+
+      expect(result.current.checkWinningCondition([player1, player2])).toBe(true)
+    })
+
+    it('SOLL Team-Mehrheiten korrekt berechnen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const team1Player = createTestPlayer(1, 0)
+      const team2Player = createTestPlayer(3, 1)
+
+      act(() => {
+        result.current.setWinConditions({ line: false, majority: true })
+        // Team 1 markiert mehr Felder
+        for (let i = 0; i < 5; i++) {
+          result.current.handleCellClick(i, { colors: [team1Player.color] })
+        }
+        // Team 2 markiert weniger Felder
+        for (let i = 5; i < 7; i++) {
+          result.current.handleCellClick(i, { colors: [team2Player.color] })
+        }
+      })
+
+      expect(result.current.checkWinningCondition([team1Player, team2Player], true)).toBe(true)
+      expect(result.current.winner).toBe(0) // Team 1 gewinnt
+    })
+  })
+
+  describe('Regelkonformität', () => {
+    it('SOLL blockierte Zellen vor Updates schützen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      
+      act(() => {
+        result.current.updateBoardState(0, { blocked: true })
+        result.current.handleCellClick(0, { colors: ['red'] })
+      })
+
+      const blockedCell = result.current.boardState[0]
+      expect(blockedCell?.colors).toEqual([])
+    })
+
+    it('SOLL ungültige Spielzüge ablehnen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      
+      act(() => {
+        // Versuch, eine nicht existierende Zelle zu aktualisieren
+        result.current.handleCellClick(9, { colors: ['red'] })
+      })
+
+      expect(result.current.boardState.length).toBe(9) // 3x3 Board
+    })
+  })
+
+  describe('State Validierung', () => {
+    it('SOLL korrupte Board-States erkennen und behandeln', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const corruptState = [null, undefined, {}] as unknown as BoardCell[]
+      
+      act(() => {
+        result.current.setBoardState(corruptState)
+      })
+
+      expect(result.current.boardState.length).toBe(9) // Auto-Korrektur
+      result.current.boardState.forEach(cell => {
+        expect(cell).toHaveProperty('text')
+        expect(cell).toHaveProperty('colors')
+      })
+    })
+
+    it('SOLL Typ-Sicherheit bei Updates gewährleisten', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const invalidUpdate = {
+        colors: 'not-an-array' as unknown as string[],
+        completedBy: 'not-an-array' as unknown as string[]
+      }
+      
+      act(() => {
+        result.current.handleCellClick(0, invalidUpdate)
+      })
+
+      const updatedCell = result.current.boardState[0]
+      expect(Array.isArray(updatedCell?.colors)).toBe(true)
+      expect(Array.isArray(updatedCell?.completedBy)).toBe(true)
+    })
+  })
+
+  describe('Performance', () => {
+    it('SOLL State-Updates effizient durchführen', () => {
+      const { result } = renderHook(() => useBingoGame(5))
+      const updates: { index: number, cell: Partial<BoardCell> }[] = []
+      
+      // Viele Updates vorbereiten
+      for (let i = 0; i < 25; i++) {
+        updates.push({
+          index: i,
+          cell: { colors: ['red'], isMarked: true }
+        })
+      }
+
+      const startTime = performance.now()
+      act(() => {
+        updates.forEach(update => {
+          result.current.handleCellClick(update.index, update.cell)
+        })
+      })
+      const endTime = performance.now()
+
+      expect(endTime - startTime).toBeLessThan(100) // max 100ms für 25 Updates
+    })
+  })
+
+  describe('Gewinnbedingungen', () => {
+    it('SOLL horizontale Gewinnlinie erkennen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+
+      act(() => {
+        for (let i = 0; i < 3; i++) {
+          result.current.handleCellClick(i, { colors: [player.color] })
+        }
+      })
+
+      expect(result.current.checkWinningCondition([player])).toBe(true)
+      expect(result.current.winner).toBe(0)
+    })
+
+    it('SOLL vertikale Gewinnlinie erkennen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+
+      act(() => {
+        for (let i = 0; i < 3; i++) {
+          result.current.handleCellClick(i * 3, { colors: [player.color] })
+        }
+      })
+
+      expect(result.current.checkWinningCondition([player])).toBe(true)
+    })
+
+    it('SOLL diagonale Gewinnlinie erkennen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+
+      act(() => {
+        for (let i = 0; i < 3; i++) {
+          result.current.handleCellClick(i * 4, { colors: [player.color] })
+        }
+      })
+
+      expect(result.current.checkWinningCondition([player])).toBe(true)
+    })
+
+    it('SOLL Mehrheitssieg korrekt berechnen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player = createTestPlayer(1, 0)
+
+      act(() => {
+        result.current.setWinConditions({ line: false, majority: true })
+        // 5 von 9 Feldern markieren
+        for (let i = 0; i < 5; i++) {
+          result.current.handleCellClick(i, { colors: [player.color] })
+        }
+      })
+
+      expect(result.current.checkWinningCondition([player], true)).toBe(true)
+    })
+  })
+
+  describe('Spiellogik', () => {
+    it('SOLL Blocking-Mechanismus korrekt implementieren', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      
+      act(() => {
+        result.current.updateBoardState(0, { blocked: true })
+      })
+
+      const blockedCell = result.current.boardState[0]
+      expect(blockedCell?.blocked).toBe(true)
+    })
+
+    it('SOLL Zell-Text auf 50 Zeichen begrenzen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const longText = 'a'.repeat(60)
+
+      act(() => {
+        result.current.handleCellChange(0, longText)
+      })
+
+      const updatedCell = result.current.boardState[0]
+      expect(updatedCell?.text.length).toBeLessThanOrEqual(50)
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('SOLL mit großen Boards performant umgehen', () => {
+      const { result } = renderHook(() => useBingoGame(10))
+      expect(result.current.boardState.length).toBe(100)
+      
+      const startTime = performance.now()
+      act(() => {
+        result.current.checkWinningCondition([createTestPlayer(1, 0)])
+      })
+      const endTime = performance.now()
+      
+      expect(endTime - startTime).toBeLessThan(100) // max 100ms
+    })
+
+    it('SOLL Unentschieden erkennen', () => {
+      const { result } = renderHook(() => useBingoGame(3))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+
+      act(() => {
+        // Gleichstand simulieren
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(1, { colors: [player2.color] })
+      })
+
+      expect(result.current.winner).toBe(-1) // Unentschieden
+    })
+  })
+}) 

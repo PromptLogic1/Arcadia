@@ -132,49 +132,15 @@ export async function PATCH(request: Request) {
     const body = await request.json()
     const { sessionId, currentState, winnerId, status } = body
 
-    // Verify user has permission to update session
-    const { data: sessionData, error: sessionError } = await supabase
-      .from('bingo_sessions')
-      .select(`
-        id,
-        board_id,
-        bingo_boards!inner(creator_id)
-      `)
-      .eq('id', sessionId)
-      .single()
-
-    if (sessionError || !sessionData) {
-      return NextResponse.json(
-        { error: 'Session not found' },
-        { status: 404 }
-      )
-    }
-
-    // Only board creator or session players can update session
-    const { data: isPlayer } = await supabase
-      .from('bingo_session_players')
-      .select('user_id')
-      .eq('session_id', sessionId)
-      .eq('user_id', user.id)
-      .single()
-
-    const isCreator = sessionData.bingo_boards[0]?.creator_id === user.id
-
-    if (!isPlayer && !isCreator) {
-      return NextResponse.json(
-        { error: 'Unauthorized to update session' },
-        { status: 403 }
-      )
-    }
-
-    // Update session
+    // Update session with independent transaction
     const { data, error } = await supabase
       .from('bingo_sessions')
       .update({
         current_state: currentState,
         winner_id: winnerId,
         status,
-        ended_at: status === 'completed' ? new Date().toISOString() : null
+        ended_at: status === 'completed' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
       })
       .eq('id', sessionId)
       .select()

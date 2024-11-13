@@ -3,6 +3,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { BoardCell } from '../components/shared/types'
 import type { Database } from '@/types/database.types'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { useSession } from './useSession'
 
 export interface UseGameStateProps {
   sessionId: string
@@ -19,24 +20,11 @@ export interface GameState {
 export interface GameStateHookReturn {
   gameState: GameState | null
   updateGameState: (updates: { index: number; cell: Partial<BoardCell> }[]) => Promise<void>
-  isProcessing: boolean
-}
-
-type BingoSession = Database['public']['Tables']['bingo_sessions']['Update'] & {
-  current_player?: number
-  version?: number
-  last_update?: string
-}
-
-type BingoSessionResponse = Database['public']['Tables']['bingo_sessions']['Row'] & {
-  current_player?: number
-  version?: number
-  last_update?: string
 }
 
 export function useGameState({ sessionId, currentState: initialState }: UseGameStateProps): GameStateHookReturn {
   const [gameState, setGameState] = useState<GameState | null>(initialState || null)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const { updateSessionState } = useSession(sessionId)
   const supabase = createClientComponentClient<Database>()
 
   // Realtime subscription setup
@@ -47,14 +35,15 @@ export function useGameState({ sessionId, currentState: initialState }: UseGameS
         schema: 'public',
         table: 'bingo_sessions',
         filter: `id=eq.${sessionId}`
-      }, (payload: RealtimePostgresChangesPayload<BingoSessionResponse>) => {
-        if (payload.new && 'current_state' in payload.new && payload.new.current_state) {
-          setGameState({
-            currentState: payload.new.current_state,
-            currentPlayer: payload.new.current_player ?? 1,
-            version: payload.new.version ?? 1,
-            lastUpdate: payload.new.last_update ?? new Date().toISOString()
-          })
+      }, (payload: RealtimePostgresChangesPayload<Database['public']['Tables']['bingo_sessions']['Row']>) => {
+        const newData = payload.new as Database['public']['Tables']['bingo_sessions']['Row']
+        if (newData && newData.current_state) {
+          setGameState(prev => ({
+            currentState: newData.current_state,
+            currentPlayer: 1,
+            version: (prev?.version || 0) + 1,
+            lastUpdate: newData.updated_at
+          }))
         }
       })
       .subscribe()
@@ -65,68 +54,57 @@ export function useGameState({ sessionId, currentState: initialState }: UseGameS
   }, [sessionId, supabase])
 
   const updateGameState = useCallback(async (updates: { index: number; cell: Partial<BoardCell> }[]) => {
-    if (!gameState || isProcessing) return
+    if (!gameState) return
 
-    setIsProcessing(true)
     try {
-      // Apply updates to current state
-      const newState = {
-        ...gameState,
-        currentState: [...gameState.currentState],
-        version: gameState.version + 1,
-        lastUpdate: new Date().toISOString()
-      }
+      // Separate Updates für jeden Spieler
+      const updatePromises = updates.map(async ({ index, cell }) => {
+        const newState = {
+          ...gameState,
+          currentState: [...gameState.currentState],
+          version: gameState.version + 1,
+          lastUpdate: new Date().toISOString()
+        }
 
-      updates.forEach(({ index, cell }) => {
         const currentCell = newState.currentState[index]
         if (!currentCell) return
 
+        // Update einzelne Zelle mit korrekter Typisierung
         newState.currentState[index] = {
           ...currentCell,
-          ...cell,
+          colors: currentCell.colors,
+          completedBy: currentCell.completedBy,
+          blocked: currentCell.blocked,
           text: cell.text ?? currentCell.text,
           cellId: cell.cellId ?? currentCell.cellId,
           isMarked: cell.isMarked ?? currentCell.isMarked
         }
+
+        // Server-Update für diese spezifische Änderung
+        const response = await updateSessionState(newState.currentState)
+        
+        // Lokales Update für diese Änderung
+        setGameState({
+          currentState: newState.currentState,
+          currentPlayer: gameState.currentPlayer,
+          version: newState.version,
+          lastUpdate: newState.lastUpdate
+        })
+
+        return response
       })
 
-      // Convert to database format
-      const dbUpdate: BingoSession = {
-        current_state: newState.currentState,
-        current_player: newState.currentPlayer,
-        version: newState.version,
-        last_update: newState.lastUpdate
-      }
+      // Warte auf alle Updates
+      await Promise.all(updatePromises)
 
-      // Update database
-      const { data, error } = await supabase
-        .from('bingo_sessions')
-        .update(dbUpdate)
-        .eq('id', sessionId)
-        .single()
-
-      if (error) throw error
-
-      // Update local state
-      if (data) {
-        const typedData = data as BingoSessionResponse
-        setGameState({
-          currentState: typedData.current_state,
-          currentPlayer: typedData.current_player ?? gameState.currentPlayer,
-          version: typedData.version ?? gameState.version + 1,
-          lastUpdate: typedData.last_update ?? newState.lastUpdate
-        })
-      }
     } catch (error) {
       console.error('Failed to update game state:', error)
-    } finally {
-      setIsProcessing(false)
+      throw error
     }
-  }, [gameState, isProcessing, sessionId, supabase])
+  }, [gameState, updateSessionState])
 
   return {
     gameState,
-    updateGameState,
-    isProcessing
+    updateGameState
   }
-} 
+}

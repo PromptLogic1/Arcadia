@@ -1,229 +1,173 @@
 {
-  "timestamp": "2024-11-12T18:09:30.790Z",
-  "totalTests": 25,
-  "passedTests": 3,
-  "failedTests": 22,
+  "timestamp": "2024-11-13T11:27:31.224Z",
+  "totalTests": 23,
+  "passedTests": 22,
+  "failedTests": 1,
   "pendingTests": 0,
-  "duration": 6774,
+  "duration": 2895,
   "testResults": [
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useGameState.test.ts",
-      "testName": "useGameState Hook should handle concurrent updates",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Board Initialisierung SOLL initial loading state setzen",
       "status": "passed",
-      "duration": 136,
+      "duration": 174,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useGameState.test.ts",
-      "testName": "useGameState Hook should handle real-time updates",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Board Initialisierung SOLL Supabase-Verbindung nur einmal aufbauen",
+      "status": "passed",
+      "duration": 13,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Board Initialisierung SOLL Board-Daten mit Creator-Info laden",
+      "status": "passed",
+      "duration": 16,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Daten Fetching SOLL Board-Daten mit Creator-Info laden",
+      "status": "passed",
+      "duration": 15,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Board State Management SOLL optimistische Updates durchführen",
+      "status": "passed",
+      "duration": 15,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Realtime Subscriptions SOLL Echtzeit-Updates empfangen und verarbeiten",
+      "status": "passed",
+      "duration": 2,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Realtime Subscriptions SOLL bei Channel-Disconnects automatisch reconnecten",
+      "status": "passed",
+      "duration": 2,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Realtime Subscriptions SOLL empfangene Updates korrekt in den State integrieren",
+      "status": "passed",
+      "duration": 4,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Realtime Subscriptions Concurrent Updates SOLL Konflikte nach Last-Write-Wins auflösen",
+      "status": "passed",
+      "duration": 224,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Grundfunktionalität Realtime Subscriptions Concurrent Updates SOLL lokale Änderungen mit Server-Updates mergen",
+      "status": "passed",
+      "duration": 78,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Netzwerkfehler SOLL Fetch-Fehler korrekt behandeln",
+      "status": "passed",
+      "duration": 62,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Netzwerkfehler SOLL Update-Fehler korrekt behandeln",
+      "status": "failed",
+      "duration": 17,
+      "errorMessages": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Failed to update board\"\u001b[39m\nReceived: \u001b[31m\"Should have thrown an error\"\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:423:35)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)"
+      ]
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Netzwerkfehler SOLL bei Verbindungsabbrüchen retry-Logik implementieren",
+      "status": "passed",
+      "duration": 308,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Netzwerkfehler SOLL bei kritischen Fehlern die Session beenden",
+      "status": "passed",
+      "duration": 1,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Datenvalidierung SOLL ungültige Board-States erkennen",
+      "status": "passed",
+      "duration": 13,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Datenvalidierung SOLL korrupte Daten erkennen und bereinigen",
+      "status": "passed",
+      "duration": 108,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Datenvalidierung SOLL eingehende Board-Daten auf Vollständigkeit prüfen",
+      "status": "passed",
+      "duration": 14,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Fehlerbehandlung Datenvalidierung SOLL Type-Safety über die gesamte Datenverarbeitung gewährleisten",
+      "status": "passed",
+      "duration": 14,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Edge Cases Performance SOLL große Datenmengen effizient verarbeiten",
       "status": "passed",
       "duration": 61,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useGameState.test.ts",
-      "testName": "useGameState Hook should clean up subscriptions",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Edge Cases Performance SOLL Netzwerk-Requests bündeln",
       "status": "passed",
-      "duration": 63,
+      "duration": 186,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\integration\\sessionFlow.test.ts",
-      "testName": "End-to-End Session Flow should handle complete session lifecycle",
-      "status": "failed",
-      "duration": 6,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Edge Cases Performance SOLL unnötige Re-Renders vermeiden",
+      "status": "passed",
+      "duration": 31,
+      "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\integration\\sessionFlow.test.ts",
-      "testName": "End-to-End Session Flow should verify player journey scenarios",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Edge Cases Performance SOLL Speicherverbrauch optimieren",
+      "status": "passed",
+      "duration": 9,
+      "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\integration\\sessionFlow.test.ts",
-      "testName": "End-to-End Session Flow should test multi-player interactions",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
-      "testName": "useSession Hook should initialize with loading state",
-      "status": "failed",
-      "duration": 5,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
-      "testName": "useSession Hook should fetch session data on mount",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
-      "testName": "useSession Hook should handle session creation",
-      "status": "failed",
-      "duration": 1,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
-      "testName": "useSession Hook should handle session state updates",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
-      "testName": "useSession Hook should handle session completion",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSession.test.ts",
-      "testName": "useSession Hook should clean up subscriptions on unmount",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should initialize with empty queue",
-      "status": "failed",
-      "duration": 5,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should add entries to queue",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should process queue in order",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should handle queue conflicts",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useSessionQueue.test.ts",
-      "testName": "useSessionQueue Hook should clean up processed entries",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should initialize with default players",
-      "status": "failed",
-      "duration": 4,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should add players up to limit",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should update player information",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should remove players correctly",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should handle team management",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should update team names",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should update team colors",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\usePlayerManagement.test.ts",
-      "testName": "usePlayerManagement Hook should enforce player limit",
-      "status": "failed",
-      "duration": 0,
-      "errorMessages": [
-        "Error: thrown: \"Exceeded timeout of 5000 ms for a hook.\nAdd a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.\"\n    at Object.beforeAll (C:\\Dev\\Arcadia\\jest.setup.ts:139:1)\n    at Runtime._execModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1439:24)\n    at Runtime._loadModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:1022:12)\n    at Runtime.requireModule (C:\\Dev\\Arcadia\\node_modules\\jest-runtime\\build\\index.js:882:12)\n    at jestAdapter (C:\\Dev\\Arcadia\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:70:15)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at runTestInternal (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\runTest.js:444:34)\n    at Object.worker (C:\\Dev\\Arcadia\\node_modules\\jest-runner\\build\\testWorker.js:106:12)"
-      ]
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard Hook Edge Cases SOLL die Konsistenz des Board-States garantieren",
+      "status": "passed",
+      "duration": 2,
+      "errorMessages": []
     }
   ]
 }

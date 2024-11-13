@@ -134,19 +134,18 @@ export const useSession = (boardId: string) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
+      const { data: sessionData, error: updateError } = await supabase
         .from('bingo_sessions')
         .update({
           status: 'active' as DatabaseSessionStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', _sessionId)
-        .single()
+        .select()
 
-      if (error) throw error
+      if (updateError) throw updateError
 
-      // Add player to session
-      await supabase
+      const { error: playerError } = await supabase
         .from('bingo_session_players')
         .insert({
           session_id: _sessionId,
@@ -156,20 +155,18 @@ export const useSession = (boardId: string) => {
           team: 1,
           joined_at: new Date().toISOString()
         })
-        .single()
+
+      if (playerError) throw playerError
 
       await fetchSession()
-      return data
+      return sessionData
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join session')
       throw err
     }
   }, [supabase, fetchSession])
 
-  const updateSessionState = useCallback(async (
-    currentState: BoardCell[],
-    winnerId?: string | null
-  ) => {
+  const updateSessionState = useCallback(async (currentState: BoardCell[]) => {
     if (!session) return
 
     try {
@@ -179,8 +176,8 @@ export const useSession = (boardId: string) => {
         body: JSON.stringify({
           sessionId: session.id,
           currentState,
-          winnerId,
-          status: winnerId ? 'completed' as const : 'active' as const
+          status: 'active',
+          isIndependentUpdate: true
         })
       })
 
@@ -188,17 +185,10 @@ export const useSession = (boardId: string) => {
         throw new Error('Failed to update session')
       }
 
-      const updatedSession = await response.json()
-      setSession(prev => prev ? {
-        ...prev,
-        ...updatedSession,
-        currentState,
-        status: winnerId ? 'completed' : prev.status,
-        winnerId
-      } : null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update session')
-      throw err
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to update session state:', error)
+      throw error
     }
   }, [session])
 
