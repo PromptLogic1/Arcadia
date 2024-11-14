@@ -2,7 +2,6 @@
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     auth_id UUID UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     full_name TEXT,
     avatar_url TEXT,
