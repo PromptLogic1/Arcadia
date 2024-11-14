@@ -302,29 +302,24 @@ export function SignUpForm() {
           )}
         </div>
 
-        {/* Password fields with similar error handling */}
-        <div className="space-y-2 relative">
+        {/* Password fields with requirements box */}
+        <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => handleInputChange(setPassword, e.target.value, 'password')}
-            onFocus={() => setIsPasswordFocused(true)}
-            onBlur={() => setIsPasswordFocused(false)}
-            className={cn(
-              "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              validationErrors.password && "border-red-500/50 focus:border-red-500"
-            )}
-            placeholder="Create a password"
-            disabled={loading}
-          />
-          {validationErrors.password && (
-            <p className="text-sm text-red-400 mt-1">{validationErrors.password}</p>
-          )}
-          
-          {isPasswordFocused && (
-            <div className="absolute left-full top-0 ml-4 w-72 bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2 backdrop-blur-sm">
+          <div className="space-y-4">
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => handleInputChange(setPassword, e.target.value, 'password')}
+              className={cn(
+                "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
+                validationErrors.password && "border-red-500/50 focus:border-red-500"
+              )}
+              placeholder="Create a password"
+              disabled={loading}
+            />
+            
+            <div className="w-full bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2">
               <p className="text-sm font-medium text-gray-300 mb-3">
                 Password Requirements:
               </p>
@@ -347,7 +342,10 @@ export function SignUpForm() {
                 </div>
               ))}
             </div>
-          )}
+            {validationErrors.password && (
+              <p className="text-sm text-red-400 mt-1">{validationErrors.password}</p>
+            )}
+          </div>
         </div>
 
         {/* Confirm Password field */}

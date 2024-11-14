@@ -5,9 +5,10 @@ import type { Tables } from '@/types/database.types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info, X } from 'lucide-react'
+import { Info, X, Check } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cn } from '@/lib/utils'
+import { Session } from '@supabase/supabase-js'
 
 interface GeneralSettingsProps {
   userId: string
@@ -29,11 +30,20 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
   const [displayName, setDisplayName] = useState('')
   
   // Password states
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordChecks, setPasswordChecks] = useState({
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+    length: false,
+  })
 
   const supabase = createClientComponentClient()
+  const session = supabase.auth.getSession()
 
   // Load auth user data on component mount
   useEffect(() => {
@@ -59,6 +69,17 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
 
     loadAuthUserData()
   }, [supabase.auth])
+
+  // Add effect to check password requirements
+  useEffect(() => {
+    setPasswordChecks({
+      uppercase: /[A-Z]/.test(newPassword),
+      lowercase: /[a-z]/.test(newPassword),
+      number: /[0-9]/.test(newPassword),
+      special: /[^A-Za-z0-9]/.test(newPassword),
+      length: newPassword.length >= 8,
+    })
+  }, [newPassword])
 
   const resetEmailForm = () => {
     setIsChangingEmail(false)
@@ -110,6 +131,14 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
     }
   }
 
+  const resetPasswordForm = () => {
+    setIsChangingPassword(false)
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setMessage(null)
+  }
+
   const handlePasswordUpdate = async () => {
     setMessage(null)
     
@@ -120,9 +149,16 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
 
       setIsSaving(true)
 
-      // Verify current password
+      // Get current user's email from auth
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user?.email) {
+        throw new Error('Unable to verify current user')
+      }
+
+      // Verify current password using auth email
       const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: userData.email,
+        email: user.email,
         password: currentPassword,
       })
 
@@ -141,10 +177,11 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
         type: 'success'
       })
 
-      // Clear password fields
+      // Reset form but keep message visible
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      setIsChangingPassword(false)
       
       onSettingsUpdate?.()
     } catch (error) {
@@ -272,10 +309,31 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
       </div>
 
       {/* Password Section */}
-      <div className="border-t border-gray-700/50 pt-6">
-        <h3 className="text-lg font-medium mb-4">Change Password</h3>
-        
-        <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <Label>Password</Label>
+          <p className="text-gray-400 text-sm mt-1">Update your account password</p>
+        </div>
+        {!isChangingPassword && (
+          <Button
+            onClick={() => setIsChangingPassword(true)}
+            variant="outline"
+            className="border-cyan-500/20 hover:bg-cyan-500/10"
+          >
+            Change Password
+          </Button>
+        )}
+      </div>
+
+      {isChangingPassword && (
+        <div className="space-y-4 bg-gray-800/30 p-4 rounded-lg relative">
+          <button
+            onClick={resetPasswordForm}
+            className="absolute top-2 right-2 p-1 hover:bg-gray-700/50 rounded-full"
+          >
+            <X className="w-4 h-4 text-gray-400" />
+          </button>
+
           <div className="space-y-2">
             <Label htmlFor="current-password">Current Password</Label>
             <Input
@@ -290,14 +348,40 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
 
           <div className="space-y-2">
             <Label htmlFor="new-password">New Password</Label>
-            <Input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="bg-gray-700/50 border-cyan-500/20"
-              placeholder="Enter new password"
-            />
+            <div className="space-y-4">
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-gray-700/50 border-cyan-500/20"
+                placeholder="Enter new password"
+              />
+              
+              <div className="w-full bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2">
+                <p className="text-sm font-medium text-gray-300 mb-3">
+                  Password Requirements:
+                </p>
+                {[
+                  { label: 'Uppercase letter', check: passwordChecks.uppercase },
+                  { label: 'Lowercase letter', check: passwordChecks.lowercase },
+                  { label: 'Number', check: passwordChecks.number },
+                  { label: 'Special character', check: passwordChecks.special },
+                  { label: '8 characters or more', check: passwordChecks.length },
+                ].map(({ label, check }) => (
+                  <div 
+                    key={label} 
+                    className={cn(
+                      "flex items-center gap-2 text-sm",
+                      check ? "text-green-400" : "text-gray-400"
+                    )}
+                  >
+                    {check ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -312,7 +396,15 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
             />
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              onClick={resetPasswordForm}
+              variant="outline"
+              className="border-cyan-500/20"
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handlePasswordUpdate}
               disabled={isSaving || !currentPassword || !newPassword || !confirmPassword}
@@ -322,7 +414,7 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
             </Button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 } 
