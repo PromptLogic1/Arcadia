@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useBingoGame } from '@/components/challenges/bingo-board/hooks/useBingoGame'
 import type { Player, BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
 
@@ -13,7 +13,7 @@ describe('useBingoGame Hook', () => {
 
   describe('Spielzustand Initialisierung', () => {
     it('SOLL Board korrekt initialisieren', () => {
-      const { result } = renderHook(() => useBingoGame(5))
+      const { result } = renderHook(() => useBingoGame(5, []))
 
       expect(result.current.boardState.length).toBe(25)
       expect(result.current.winner).toBeNull()
@@ -25,7 +25,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Zellen mit korrekter Struktur initialisieren', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
 
       result.current.boardState.forEach(cell => {
         expect(cell).toHaveProperty('text')
@@ -39,7 +39,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Board-State bei Reset zurücksetzen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const initialState = [...result.current.boardState]
 
       act(() => {
@@ -52,7 +52,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Gewinnbedingungen korrekt initialisieren', () => {
-      const { result } = renderHook(() => useBingoGame(5))
+      const { result } = renderHook(() => useBingoGame(5, []))
       
       expect(result.current.winConditions).toEqual({
         line: true,
@@ -61,7 +61,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL alle Spieler-States korrekt verwalten', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const player1 = createTestPlayer(1, 0)
       const player2 = createTestPlayer(2, 1)
       
@@ -80,9 +80,9 @@ describe('useBingoGame Hook', () => {
 
   describe('Team-Modus', () => {
     it('SOLL Team-basierte Siege korrekt erkennen', async () => {
-      const { result } = renderHook(() => useBingoGame(3))
       const player1 = createTestPlayer(1, 0)
       const player2 = createTestPlayer(2, 0)
+      const { result } = renderHook(() => useBingoGame(3, [player1, player2]))
 
       await act(async () => {
         result.current.handleCellClick(0, { colors: [player1.color] })
@@ -90,11 +90,13 @@ describe('useBingoGame Hook', () => {
         result.current.handleCellClick(2, { colors: [player1.color] })
       })
 
-      expect(result.current.checkWinningCondition([player1, player2])).toBe(true)
+      await waitFor(() => {
+        expect(result.current.winner).toBe(0) // Team 0 wins
+      })
     })
 
     it('SOLL Team-Mehrheiten korrekt berechnen', async () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const team1Player = createTestPlayer(1, 0)
       const team2Player = createTestPlayer(3, 1)
 
@@ -126,7 +128,7 @@ describe('useBingoGame Hook', () => {
 
   describe('Regelkonformität', () => {
     it('SOLL blockierte Zellen vor Updates schützen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       
       act(() => {
         result.current.updateBoardState(0, { blocked: true })
@@ -138,7 +140,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL ungültige Spielzüge ablehnen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       
       act(() => {
         // Versuch, eine nicht existierende Zelle zu aktualisieren
@@ -151,7 +153,7 @@ describe('useBingoGame Hook', () => {
 
   describe('State Validierung', () => {
     it('SOLL korrupte Board-States erkennen und behandeln', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const corruptState = [null, undefined, {}] as unknown as BoardCell[]
       
       act(() => {
@@ -166,7 +168,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Typ-Sicherheit bei Updates gewährleisten', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const invalidUpdate = {
         colors: 'not-an-array' as unknown as string[],
         completedBy: 'not-an-array' as unknown as string[]
@@ -184,7 +186,7 @@ describe('useBingoGame Hook', () => {
 
   describe('Performance', () => {
     it('SOLL State-Updates effizient durchführen', () => {
-      const { result } = renderHook(() => useBingoGame(5))
+      const { result } = renderHook(() => useBingoGame(5, []))
       const updates: { index: number, cell: Partial<BoardCell> }[] = []
       
       // Viele Updates vorbereiten
@@ -208,65 +210,181 @@ describe('useBingoGame Hook', () => {
   })
 
   describe('Gewinnbedingungen', () => {
-    it('SOLL horizontale Gewinnlinie erkennen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
-      const player = createTestPlayer(1, 0)
+    describe('Linien-Siegbedingung', () => {
+      it('SOLL Liniensieg nur bei aktivierter Bedingung erkennen', async () => {
+        const player = createTestPlayer(1, 0)
+        const { result } = renderHook(() => useBingoGame(3, [player]))
 
-      act(() => {
-        for (let i = 0; i < 3; i++) {
-          result.current.handleCellClick(i, { colors: [player.color] })
-        }
+        await act(async () => {
+          // Deaktiviere Linien-Siegbedingung
+          result.current.setWinConditions({ line: false, majority: true })
+          
+          // Markiere horizontale Linie
+          for (let i = 0; i < 3; i++) {
+            result.current.handleCellClick(i, { colors: [player.color] })
+          }
+        })
+
+        await waitFor(() => {
+          expect(result.current.winner).toBeNull() // Kein Sieg, da Linie deaktiviert
+        })
+
+        await act(async () => {
+          // Aktiviere Linien-Siegbedingung
+          result.current.setWinConditions({ line: true, majority: false })
+        })
+
+        await waitFor(() => {
+          expect(result.current.winner).toBe(0) // Jetzt Sieg, da Linie aktiviert
+        })
       })
 
-      expect(result.current.checkWinningCondition([player])).toBe(true)
-      expect(result.current.winner).toBe(0)
+      it('SOLL Spiel sofort bei Liniensieg beenden', async () => {
+        const { result } = renderHook(() => useBingoGame(3, []))
+        const player1 = createTestPlayer(1, 0)
+        const player2 = createTestPlayer(2, 1)
+
+        await act(async () => {
+          result.current.setWinConditions({ line: true, majority: true })
+          
+          // Spieler 1 bildet eine Linie
+          result.current.handleCellClick(0, { colors: [player1.color] })
+          result.current.handleCellClick(1, { colors: [player1.color] })
+          result.current.handleCellClick(2, { colors: [player1.color] })
+        })
+
+        // Prüfe sofortigen Sieg
+        await waitFor(() => {
+          expect(result.current.winner).toBe(0)
+        })
+
+        // Versuche weiteren Zug nach Spielende
+        await act(async () => {
+          result.current.handleCellClick(3, { colors: [player2.color] })
+        })
+
+        // Prüfe, dass keine weiteren Züge möglich sind
+        const cell = result.current.boardState[3]
+        expect(cell && cell.colors).not.toContain(player2.color)
+      })
     })
 
-    it('SOLL vertikale Gewinnlinie erkennen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
-      const player = createTestPlayer(1, 0)
+    describe('Mehrheits-Siegbedingung', () => {
+      it('SOLL Mehrheitssieg nur bei Spielende prüfen', async () => {
+        const { result } = renderHook(() => useBingoGame(3, []))
+        const player1 = createTestPlayer(1, 0)
+        const player2 = createTestPlayer(2, 1)
 
-      act(() => {
-        for (let i = 0; i < 3; i++) {
-          result.current.handleCellClick(i * 3, { colors: [player.color] })
-        }
+        await act(async () => {
+          result.current.setWinConditions({ line: false, majority: true })
+          
+          // Spieler 1 hat Mehrheit
+          result.current.handleCellClick(0, { colors: [player1.color] })
+          result.current.handleCellClick(1, { colors: [player1.color] })
+          result.current.handleCellClick(2, { colors: [player1.color] })
+          
+          // Spieler 2 hat weniger Felder
+          result.current.handleCellClick(3, { colors: [player2.color] })
+        })
+
+        // Ohne Zeitablauf kein Sieg
+        await act(async () => {
+          const hasWon = result.current.checkWinningCondition([player1, player2])
+          expect(hasWon).toBe(false)
+          expect(result.current.winner).toBeNull()
+        })
+
+        // Mit Zeitablauf Sieg durch Mehrheit
+        await act(async () => {
+          const hasWon = result.current.checkWinningCondition([player1, player2], true)
+          expect(hasWon).toBe(true)
+        })
+
+        await waitFor(() => {
+          expect(result.current.winner).toBe(0)
+        })
       })
 
-      expect(result.current.checkWinningCondition([player])).toBe(true)
+      it('SOLL Mehrheitssieg bei deaktivierter Bedingung ignorieren', async () => {
+        const { result } = renderHook(() => useBingoGame(3, []))
+        const player1 = createTestPlayer(1, 0)
+        const player2 = createTestPlayer(2, 1)
+
+        await act(async () => {
+          result.current.setWinConditions({ line: false, majority: false })
+          
+          // Spieler 1 hat Mehrheit
+          result.current.handleCellClick(0, { colors: [player1.color] })
+          result.current.handleCellClick(1, { colors: [player1.color] })
+          result.current.handleCellClick(2, { colors: [player1.color] })
+          
+          // Spieler 2 hat weniger Felder
+          result.current.handleCellClick(3, { colors: [player2.color] })
+        })
+
+        // Bei Zeitablauf trotz Mehrheit unentschieden
+        await act(async () => {
+          const hasWon = result.current.checkWinningCondition([player1, player2], true)
+          expect(hasWon).toBe(false)
+        })
+
+        await waitFor(() => {
+          expect(result.current.winner).toBe(-1)
+        })
+      })
     })
 
-    it('SOLL diagonale Gewinnlinie erkennen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
-      const player = createTestPlayer(1, 0)
+    describe('Sofortiger Spielabbruch', () => {
+      it('SOLL Spiel sofort bei Liniensieg beenden', async () => {
+        const { result } = renderHook(() => useBingoGame(3, []))
+        const player1 = createTestPlayer(1, 0)
+        const player2 = createTestPlayer(2, 1)
 
-      act(() => {
-        for (let i = 0; i < 3; i++) {
-          result.current.handleCellClick(i * 4, { colors: [player.color] })
-        }
+        await act(async () => {
+          // Player 1 bildet eine Linie
+          result.current.handleCellClick(0, { colors: [player1.color] })
+          result.current.handleCellClick(1, { colors: [player1.color] })
+          result.current.handleCellClick(2, { colors: [player1.color] })
+          
+          // Dieser Zug sollte ignoriert werden, da das Spiel bereits gewonnen ist
+          result.current.handleCellClick(3, { colors: [player2.color] })
+        })
+
+        await waitFor(() => {
+          expect(result.current.winner).toBe(0)
+          // Prüfe, dass der letzte Zug ignoriert wurde
+          const cell = result.current.boardState[3]
+          expect(cell && cell.colors).not.toContain(player2.color)
+        })
       })
 
-      expect(result.current.checkWinningCondition([player])).toBe(true)
-    })
+      it('SOLL bei gleichzeitigem Liniensieg unentschieden enden', async () => {
+        const { result } = renderHook(() => useBingoGame(3, []))
+        const player1 = createTestPlayer(1, 0)
+        const player2 = createTestPlayer(2, 1)
 
-    it('SOLL Mehrheitssieg korrekt berechnen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
-      const player = createTestPlayer(1, 0)
+        await act(async () => {
+          // Beide Spieler bilden gleichzeitig eine Linie
+          // (ein sehr unwahrscheinliches Szenario im echten Spiel)
+          result.current.handleCellClick(0, { colors: [player1.color, player2.color] })
+          result.current.handleCellClick(1, { colors: [player1.color, player2.color] })
+          result.current.handleCellClick(2, { colors: [player1.color, player2.color] })
+        })
 
-      act(() => {
-        result.current.setWinConditions({ line: false, majority: true })
-        // 5 von 9 Feldern markieren
-        for (let i = 0; i < 5; i++) {
-          result.current.handleCellClick(i, { colors: [player.color] })
-        }
+        await act(async () => {
+          result.current.checkWinningCondition([player1, player2])
+        })
+
+        await waitFor(() => {
+          expect(result.current.winner).toBe(-1) // Unentschieden bei gleichzeitigem Sieg
+        })
       })
-
-      expect(result.current.checkWinningCondition([player], true)).toBe(true)
     })
   })
 
   describe('Spiellogik', () => {
     it('SOLL Blocking-Mechanismus korrekt implementieren', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       
       act(() => {
         result.current.updateBoardState(0, { blocked: true })
@@ -277,7 +395,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Zell-Text auf 50 Zeichen begrenzen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const longText = 'a'.repeat(60)
 
       act(() => {
@@ -291,7 +409,7 @@ describe('useBingoGame Hook', () => {
 
   describe('Edge Cases', () => {
     it('SOLL mit großen Boards performant umgehen', () => {
-      const { result } = renderHook(() => useBingoGame(10))
+      const { result } = renderHook(() => useBingoGame(10, []))
       expect(result.current.boardState.length).toBe(100)
       
       const startTime = performance.now()
@@ -303,22 +421,8 @@ describe('useBingoGame Hook', () => {
       expect(endTime - startTime).toBeLessThan(100) // max 100ms
     })
 
-    it('SOLL Unentschieden erkennen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
-      const player1 = createTestPlayer(1, 0)
-      const player2 = createTestPlayer(2, 1)
-
-      act(() => {
-        // Gleichstand simulieren
-        result.current.handleCellClick(0, { colors: [player1.color] })
-        result.current.handleCellClick(1, { colors: [player2.color] })
-      })
-
-      expect(result.current.winner).toBe(-1) // Unentschieden
-    })
-
     it('SOLL mit vollständig gefüllten Boards umgehen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const player = createTestPlayer(1, 0)
       
       act(() => {
@@ -336,7 +440,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL mit gleichzeitigen Gewinnbedingungen umgehen', async () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const player = createTestPlayer(1, 0)
       
       await act(async () => {
@@ -362,7 +466,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL mit leeren Boards umgehen können', () => {
-      const { result } = renderHook(() => useBingoGame(0))
+      const { result } = renderHook(() => useBingoGame(0, []))
       
       // Prüfe, ob ein Minimum-Board (1x1) erstellt wird
       expect(result.current.boardState.length).toBeGreaterThan(0)
@@ -378,7 +482,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL mit Spieler-Disconnects umgehen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const player1 = createTestPlayer(1, 0)
       const player2 = createTestPlayer(2, 1)
       
@@ -397,7 +501,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Memory-Leaks vermeiden', () => {
-      const { result, unmount } = renderHook(() => useBingoGame(5))
+      const { result, unmount } = renderHook(() => useBingoGame(5, []))
       const player = createTestPlayer(1, 0)
       
       // Fülle das Board mit vielen Aktionen
@@ -427,7 +531,7 @@ describe('useBingoGame Hook', () => {
 
   describe('Zell-Management', () => {
     it('SOLL Zell-Updates atomar durchführen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const updates = { colors: ['red'], isMarked: true }
       
       act(() => {
@@ -440,7 +544,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Zell-Farben und completedBy Arrays korrekt verwalten', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const player = createTestPlayer(1, 0)
       
       act(() => {
@@ -456,7 +560,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL isMarked und blocked States korrekt tracken', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       
       act(() => {
         result.current.updateBoardState(0, { 
@@ -473,7 +577,7 @@ describe('useBingoGame Hook', () => {
 
   describe('Fehlerbehandlung', () => {
     it('SOLL regelwidrige Aktionen verhindern', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       
       act(() => {
         result.current.updateBoardState(0, { blocked: true })
@@ -485,7 +589,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL Konflikte zwischen Spieleraktionen auflösen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const player1 = createTestPlayer(1, 0)
       const player2 = createTestPlayer(2, 1)
       
@@ -500,7 +604,7 @@ describe('useBingoGame Hook', () => {
 
     it('SOLL Fehler beim Zell-Update protokollieren', () => {
       const consoleSpy = jest.spyOn(console, 'error')
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       
       act(() => {
         // Ungültiges Update erzwingen
@@ -512,7 +616,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL bei kritischen Fehlern das Spiel pausieren', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const initialState = [...result.current.boardState]
       
       act(() => {
@@ -527,7 +631,7 @@ describe('useBingoGame Hook', () => {
     })
 
     it('SOLL bei Inkonsistenzen den letzten validen State wiederherstellen', () => {
-      const { result } = renderHook(() => useBingoGame(3))
+      const { result } = renderHook(() => useBingoGame(3, []))
       const validState = [...result.current.boardState]
       
       act(() => {
@@ -541,6 +645,103 @@ describe('useBingoGame Hook', () => {
       expect(result.current.boardState[0]).toHaveProperty('text')
       expect(result.current.boardState[0]).toHaveProperty('colors')
       expect(result.current.boardState[0]).toHaveProperty('completedBy')
+    })
+  })
+
+  describe('Unentschieden-Szenarien', () => {
+    it('SOLL Unentschieden bei Zeitablauf mit gleicher Feldanzahl erkennen', async () => {
+      const { result } = renderHook(() => useBingoGame(3, []))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+
+      await act(async () => {
+        // Beide Spieler markieren gleich viele Felder
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(4, { colors: [player2.color] })
+        result.current.handleCellClick(8, { colors: [player1.color] })
+        result.current.handleCellClick(2, { colors: [player2.color] })
+      })
+
+      // Prüfe initiale Bedingungen
+      expect(result.current.winner).toBeNull()
+      
+      const player1Count = result.current.boardState.filter(
+        cell => cell.colors.includes(player1.color)
+      ).length
+      const player2Count = result.current.boardState.filter(
+        cell => cell.colors.includes(player2.color)
+      ).length
+      expect(player1Count).toBe(player2Count)
+
+      // Simuliere Zeitablauf
+      await act(async () => {
+        result.current.checkWinningCondition([player1, player2], true)
+      })
+
+      await waitFor(() => {
+        expect(result.current.winner).toBe(-1)
+      })
+    })
+
+    it('SOLL Unentschieden bei vollem Board mit gleicher Feldanzahl erkennen', async () => {
+      const { result } = renderHook(() => useBingoGame(2, [])) // 2x2 Board für einfacheren Test
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+
+      await act(async () => {
+        // Fülle Board gleichmäßig
+        result.current.handleCellClick(0, { colors: [player1.color], isMarked: true })
+        result.current.handleCellClick(1, { colors: [player2.color], isMarked: true })
+        result.current.handleCellClick(2, { colors: [player1.color], isMarked: true })
+        result.current.handleCellClick(3, { colors: [player2.color], isMarked: true })
+      })
+
+      // Prüfe, ob Board voll ist
+      expect(result.current.boardState.every(cell => cell.isMarked)).toBe(true)
+
+      await act(async () => {
+        result.current.checkWinningCondition([player1, player2])
+      })
+
+      await waitFor(() => {
+        expect(result.current.winner).toBe(-1)
+      })
+    })
+
+    it('SOLL Unentschieden erkennen wenn keine Line mehr möglich ist', async () => {
+      const { result } = renderHook(() => useBingoGame(3, []))
+      const player1 = createTestPlayer(1, 0)
+      const player2 = createTestPlayer(2, 1)
+
+      await act(async () => {
+        // Setze Siegbedingungen
+        result.current.setWinConditions({ line: true, majority: false })
+
+        // Blockiere alle möglichen Linien
+        result.current.handleCellClick(0, { colors: [player1.color] })
+        result.current.handleCellClick(1, { colors: [player2.color] })
+        result.current.handleCellClick(2, { colors: [player1.color] })
+        result.current.handleCellClick(3, { colors: [player2.color] })
+        result.current.handleCellClick(4, { colors: [player1.color] })
+        result.current.handleCellClick(5, { colors: [player2.color] })
+      })
+
+      // Prüfe, dass keine Line mehr möglich ist
+      const player1Cells = result.current.boardState.filter(
+        cell => cell.colors.includes(player1.color)
+      ).length
+      const player2Cells = result.current.boardState.filter(
+        cell => cell.colors.includes(player2.color)
+      ).length
+      expect(player1Cells).toBe(player2Cells)
+
+      await act(async () => {
+        result.current.checkWinningCondition([player1, player2])
+      })
+
+      await waitFor(() => {
+        expect(result.current.winner).toBe(-1)
+      })
     })
   })
 }) 

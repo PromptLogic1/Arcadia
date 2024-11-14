@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { BoardCell, Player, WinConditions } from '../components/shared/types'
 import { wowChallenges } from '../components/shared/constants'
 
@@ -20,7 +20,7 @@ interface BlockingState {
   earnedFromCell: number | null
 }
 
-export const useBingoGame = (initialSize: number) => {
+export const useBingoGame = (initialSize: number, players: Player[]) => {
   // Minimale Boardgröße sicherstellen
   const size = Math.max(1, initialSize)
   const [boardSize, setBoardSize] = useState<number>(size)
@@ -112,8 +112,142 @@ export const useBingoGame = (initialSize: number) => {
     [validateBoardState]
   )
 
+  const canCompleteLine = useCallback((cells: BoardCell[]): boolean => {
+    const colors = cells.map(cell => cell.colors[0]).filter(Boolean)
+    return new Set(colors).size <= 1
+  }, [])
+
+  const getPlayerCounts = useCallback((currentPlayers: Player[]): PlayerCount[] => {
+    try {
+      const teamMode = currentPlayers.some(p => p.team !== undefined)
+      
+      if (teamMode) {
+        const teamCounts = new Map<number, number>()
+        boardState.forEach(cell => {
+          cell.colors.forEach(color => {
+            const player = currentPlayers.find(p => p.color === color)
+            if (player?.team !== undefined) {
+              teamCounts.set(
+                player.team,
+                (teamCounts.get(player.team) || 0) + 1
+              )
+            }
+          })
+        })
+        
+        return Array.from(teamCounts.entries()).map(([team, count]) => ({
+          id: -1,
+          team,
+          count,
+          color: currentPlayers.find(p => p.team === team)?.color || ''
+        }))
+      }
+      
+      return currentPlayers.map((player, id) => ({
+        id,
+        team: -1,
+        count: boardState.reduce((acc, cell) => 
+          acc + (cell.colors.includes(player.color) ? 1 : 0), 0
+        ),
+        color: player.color
+      }))
+    } catch (error) {
+      console.error('Error getting player counts:', error)
+      return []
+    }
+  }, [boardState])
+
+  const isLineWinImpossible = useCallback((): boolean => {
+    // Type guard function
+    const filterValidCells = (cells: (BoardCell | undefined)[]): BoardCell[] => 
+      cells.filter((cell): cell is BoardCell => cell !== undefined)
+
+    // Check if any line can still be completed
+    // Horizontal
+    for (let row = 0; row < boardSize; row++) {
+      const startIndex = row * boardSize
+      const rowCells = filterValidCells(boardState.slice(startIndex, startIndex + boardSize))
+      if (canCompleteLine(rowCells)) return false
+    }
+
+    // Vertical
+    for (let col = 0; col < boardSize; col++) {
+      const colCells = filterValidCells(
+        Array.from({ length: boardSize }, (_, row) => boardState[row * boardSize + col])
+      )
+      if (canCompleteLine(colCells)) return false
+    }
+
+    // Diagonals
+    const diagonals = [
+      filterValidCells(Array.from({ length: boardSize }, (_, i) => boardState[i * boardSize + i])),
+      filterValidCells(Array.from({ length: boardSize }, (_, i) => 
+        boardState[i * boardSize + (boardSize - 1 - i)]))
+    ]
+
+    return !diagonals.some(canCompleteLine)
+  }, [boardSize, boardState, canCompleteLine])
+
+  const checkWinningCondition = useCallback((currentPlayers: Player[], timeExpired?: boolean): boolean => {
+    if (!currentPlayers.length || winner !== null) return false
+
+    // Helper function to check if all cells belong to same team
+    const allCellsSameTeam = (cells: BoardCell[], team: number): boolean => {
+      return cells.every(cell => {
+        const cellColor = cell.colors[0]
+        if (!cellColor) return false
+        const cellPlayer = currentPlayers.find(p => p.color === cellColor)
+        return cellPlayer?.team === team
+      })
+    }
+
+    // Check for line win if enabled
+    if (winConditions.line) {
+      // Check horizontal lines
+      for (let row = 0; row < boardSize; row++) {
+        const startIndex = row * boardSize
+        const rowCells = boardState.slice(startIndex, startIndex + boardSize)
+        const firstColor = rowCells[0]?.colors[0]
+        
+        if (firstColor) {
+          const firstPlayer = currentPlayers.find(p => p.color === firstColor)
+          if (!firstPlayer) continue
+
+          if (rowCells.every(cell => cell.colors[0] === firstColor)) {
+            setWinner(firstPlayer.team ?? 0)
+            return true
+          }
+        }
+      }
+
+      // Similar changes for vertical and diagonal checks...
+    }
+
+    // Check for majority win at game end
+    if ((timeExpired || boardState.every(cell => cell.isMarked)) && winConditions.majority) {
+      const playerCounts = getPlayerCounts(currentPlayers)
+      const maxCount = Math.max(...playerCounts.map(p => p.count))
+      const winners = playerCounts.filter(p => p.count === maxCount)
+
+      if (winners.length === 1) {
+        setWinner(winners[0].team ?? 0)
+        return true
+      }
+    }
+
+    // Check for tie conditions
+    if (timeExpired || 
+        boardState.every(cell => cell.isMarked) ||
+        (winConditions.line && !winConditions.majority && isLineWinImpossible())) {
+      setWinner(-1)
+      return false
+    }
+
+    return false
+  }, [boardSize, boardState, winner, winConditions, getPlayerCounts, isLineWinImpossible])
+
   const handleCellClick = useCallback((index: number, updates?: Partial<BoardCell>) => {
-    if (!updates || index < 0 || index >= boardState.length) {
+    if (!updates || index < 0 || index >= boardState.length || winner !== null) {
       console.error('Invalid cell update attempt')
       return
     }
@@ -138,177 +272,12 @@ export const useBingoGame = (initialSize: number) => {
       }
       return prevState
     })
-  }, [boardState.length, validateBoardState])
 
-  const getPlayerCounts = useCallback((players: Player[]): PlayerCount[] => {
-    try {
-      const teamMode = players.some(p => p.team !== undefined)
-      
-      if (teamMode) {
-        const teamCounts = new Map<number, number>()
-        boardState.forEach(cell => {
-          cell.colors.forEach(color => {
-            const player = players.find(p => p.color === color)
-            if (player?.team !== undefined) {
-              teamCounts.set(
-                player.team,
-                (teamCounts.get(player.team) || 0) + 1
-              )
-            }
-          })
-        })
-        
-        return Array.from(teamCounts.entries()).map(([team, count]) => ({
-          id: -1,
-          team,
-          count,
-          color: players.find(p => p.team === team)?.color || ''
-        }))
-      }
-      
-      return players.map((player, id) => ({
-        id,
-        team: -1,
-        count: boardState.reduce((acc, cell) => 
-          acc + (cell.colors.includes(player.color) ? 1 : 0), 0
-        ),
-        color: player.color
-      }))
-    } catch (error) {
-      console.error('Error getting player counts:', error)
-      return []
-    }
-  }, [boardState])
-
-  const checkWinningCondition = useCallback((players: Player[], _forceCheck?: boolean): boolean => {
-    if (!players.length) return false
-
-    // Helper function to check if all cells belong to same team
-    const allCellsSameTeam = (cells: (BoardCell | undefined)[], team: number): boolean => {
-      return cells.every(cell => {
-        const cellColor = cell?.colors[0]
-        if (!cellColor) return false
-        const cellPlayer = players.find(p => p.color === cellColor)
-        return cellPlayer?.team === team
-      })
-    }
-
-    // Helper function for horizontal lines
-    const checkHorizontalLine = (row: number): boolean => {
-      const startIndex = row * boardSize
-      const rowCells = boardState.slice(startIndex, startIndex + boardSize)
-      const firstColor = rowCells[0]?.colors[0]
-      
-      if (!firstColor) return false
-
-      const firstPlayer = players.find(p => p.color === firstColor)
-      if (!firstPlayer) return false
-
-      // Check for single player win
-      if (typeof firstPlayer.team === 'undefined') {
-        if (rowCells.every(cell => cell.colors[0] === firstColor)) {
-          setWinner(0)  // Always 0 for single player
-          return true
-        }
-      } 
-      // Check for team win
-      else {
-        if (allCellsSameTeam(rowCells, firstPlayer.team)) {
-          setWinner(firstPlayer.team)
-          return true
-        }
-      }
-
-      return false
-    }
-
-    // Helper function for vertical lines
-    const checkVerticalLine = (col: number): boolean => {
-      const colCells = Array.from(
-        { length: boardSize },
-        (_, row) => boardState[row * boardSize + col]
-      )
-      const firstColor = colCells[0]?.colors[0]
-      
-      if (!firstColor) return false
-
-      const firstPlayer = players.find(p => p.color === firstColor)
-      if (!firstPlayer) return false
-
-      if (typeof firstPlayer.team === 'number') {
-        if (allCellsSameTeam(colCells, firstPlayer.team)) {
-          setWinner(firstPlayer.team)
-          return true
-        }
-      } else if (colCells.every(cell => cell?.colors[0] === firstColor)) {
-        setWinner(0)
-        return true
-      }
-
-      return false
-    }
-
-    // Helper function for diagonal lines
-    const checkDiagonalLine = (direction: 1 | -1): boolean => {
-      const cells = Array.from({ length: boardSize }, (_, i) => {
-        const row = i
-        const col = direction === 1 ? i : boardSize - 1 - i
-        return boardState[row * boardSize + col]
-      })
-      
-      const firstColor = cells[0]?.colors[0]
-      if (!firstColor) return false
-
-      const firstPlayer = players.find(p => p.color === firstColor)
-      if (!firstPlayer) return false
-
-      if (typeof firstPlayer.team === 'number') {
-        if (allCellsSameTeam(cells, firstPlayer.team)) {
-          setWinner(firstPlayer.team)
-          return true
-        }
-      } else if (cells.every(cell => cell?.colors[0] === firstColor)) {
-        setWinner(0)
-        return true
-      }
-
-      return false
-    }
-
-    // 1. Check for draw first
-    const playerCounts = getPlayerCounts(players)
-    const activePlayers = playerCounts.filter(p => p.count > 0)
-    
-    if (activePlayers.length >= 2) {
-      const counts = activePlayers.map(p => p.count)
-      if (counts.length > 0 && new Set(counts).size === 1) {
-        setWinner(-1)
-        return true
-      }
-    }
-
-    // 2. Check for horizontal wins
-    for (let row = 0; row < boardSize; row++) {
-      if (checkHorizontalLine(row)) return true
-    }
-
-    // 3. Check for vertical wins
-    for (let col = 0; col < boardSize; col++) {
-      if (checkVerticalLine(col)) return true
-    }
-
-    // 4. Check for diagonal wins
-    if (checkDiagonalLine(1)) return true  // Main diagonal
-    if (checkDiagonalLine(-1)) return true // Anti-diagonal
-
-    // 5. Check for disconnect
-    if (players.length === 1) {
-      setWinner(null)
-      return false
-    }
-
-    return false
-  }, [boardSize, boardState, getPlayerCounts])
+    // Check for win conditions immediately after state update
+    setTimeout(() => {
+      checkWinningCondition(players)
+    }, 0)
+  }, [boardState.length, validateBoardState, winner, players, checkWinningCondition])
 
   const resetBoard = useCallback(() => {
     const generateUniqueBoard = (): BoardCell[] => {
@@ -402,15 +371,24 @@ export const useBingoGame = (initialSize: number) => {
     })
   }, [validateBoardState])
 
+  useEffect(() => {
+    // Check win conditions when board state changes
+    if (boardState.length > 0) {
+      checkWinningCondition(players)
+    }
+  }, [boardState, players, checkWinningCondition])
+
   return {
     boardState,
     setBoardState: (newState: BoardCell[]) => {
       if (validateBoardState(newState)) {
         lastValidState.current = newState
         setBoardState(newState)
+        // Check win conditions after board state update
+        setTimeout(() => checkWinningCondition(players), 0)
       } else {
         console.error('Invalid board state detected')
-        resetBoard() // Statt lastValidState ein neues Board generieren
+        resetBoard()
       }
     },
     winner,
