@@ -83,7 +83,7 @@ export function LogInForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
   const router = useRouter()
-  const supabase = createClientComponentClient<Database>()
+  const supabase = createClientComponentClient()
 
   // Load saved email on component mount
   useEffect(() => {
@@ -93,24 +93,15 @@ export function LogInForm() {
     }
   }, [])
 
-  // Save email when it changes
   const handleEmailChange = (value: string) => {
     setErrorInfo(null)
     setEmail(value)
     localStorage.setItem('loginEmail', value)
   }
 
-  // Clear saved data on successful login or unmount
   const clearSavedData = () => {
     localStorage.removeItem('loginEmail')
   }
-
-  useEffect(() => {
-    return () => {
-      // Optional: clear data when component unmounts
-      clearSavedData()
-    }
-  }, [])
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,14 +111,6 @@ export function LogInForm() {
     if (!email.trim()) {
       setErrorInfo({
         message: 'Please enter your email address',
-        type: 'error'
-      })
-      return
-    }
-
-    if (!password.trim()) {
-      setErrorInfo({
-        message: 'Please enter your password',
         type: 'error'
       })
       return
@@ -143,49 +126,57 @@ export function LogInForm() {
       return
     }
 
+    if (!password.trim()) {
+      setErrorInfo({
+        message: 'Please enter your password',
+        type: 'error'
+      })
+      return
+    }
+
     setStatus('loading')
 
-    let emailExists = false
     try {
-      try {
-        // First check if email exists
-        emailExists = await checkEmailExists(email, supabase)
-      } catch (error) {
-        console.error('Error checking email:', error)
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
-        throw error
+        // Handle specific error cases
+        if (error.message.toLowerCase().includes('invalid login credentials')) {
+          setErrorInfo({
+            message: 'Incorrect email or password',
+            type: 'error'
+          })
+        } else if (error.message.toLowerCase().includes('email not confirmed')) {
+          setErrorInfo({
+            message: 'Please verify your email before signing in',
+            type: 'warning'
+          })
+        } else {
+          setErrorInfo({
+            message: error.message,
+            type: 'error'
+          })
+        }
+        setStatus('idle')
+        return
       }
 
       if (data.user) {
-        if (!data.user.email_confirmed_at) {
-          setErrorInfo({
-            message: 'Please verify your email before signing in. Need a new verification email?',
-            type: 'warning'
-          })
-          setStatus('idle')
-          return
-        }
-        
         clearSavedData()
         setStatus('success')
         router.push('/')
         router.refresh()
       }
-    } catch (err) {
-      const error = err as Error
-      setErrorInfo(getErrorMessage(error, { emailExists }))
+    } catch (error) {
+      console.error('Login error:', error)
+      setErrorInfo({
+        message: 'An unexpected error occurred. Please try again.',
+        type: 'error'
+      })
       setStatus('idle')
-      // Only clear password if email exists (wrong password case)
-      if (emailExists) {
-        setPassword('')
-      }
     }
   }
 
