@@ -27,6 +27,9 @@ export interface Database {
           last_login_at: string | null
           created_at: string
           updated_at: string
+          profile_visibility: 'public' | 'friends' | 'private'
+          achievements_visibility: 'public' | 'friends' | 'private'
+          submissions_visibility: 'public' | 'friends' | 'private'
         }
         Insert: Omit<Tables['users']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Tables['users']['Insert']>

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import type { Tables } from '@/types/database.types'
-import UserPage from './user/user-page'
+import UserPage from '@/components/user/profile/user-page'
 
 interface UserProfileProps {
   userData?: Tables['users']['Row']

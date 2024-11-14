@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 import { Settings, User, Bell, Shield, Palette } from 'lucide-react'
 import { GeneralSettings } from './user/settings/general-settings'
-import { ProfileSettings } from './user/settings/profile-settings'
 import { ComingSoon } from './user/settings/coming-soon'
 
 interface UserSettingsProps {
@@ -68,14 +67,6 @@ export default function UserSettings({ userId, userData }: UserSettingsProps) {
               >
                 {activeTab === 'general' && (
                   <GeneralSettings
-                    userId={userId}
-                    userData={userData}
-                    onSettingsUpdate={handleSettingsUpdate}
-                  />
-                )}
-
-                {activeTab === 'profile' && (
-                  <ProfileSettings
                     userId={userId}
                     userData={userData}
                     onSettingsUpdate={handleSettingsUpdate}

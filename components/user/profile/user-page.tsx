@@ -4,18 +4,21 @@ import { useState } from 'react'
 import type { Tables } from '@/types/database.types'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Trophy, GamepadIcon, Star, Clock, Calendar, MapPin } from 'lucide-react'
+import { Trophy, GamepadIcon, Star, Clock, Calendar, UserCircle } from 'lucide-react'
 import NeonBorder from '@/components/ui/NeonBorder'
 import NeonText from '@/components/ui/NeonText'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { Pencil } from 'lucide-react'
+import { countries } from '@/lib/data/countries'
 
 interface UserPageProps {
   userData?: Tables['users']['Row']
 }
 
 export default function UserPage({ userData }: UserPageProps) {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('achievements')
 
   if (!userData) {
     return (
@@ -37,9 +40,9 @@ export default function UserPage({ userData }: UserPageProps) {
       color: 'from-yellow-500 to-orange-500'
     },
     { 
-      icon: MapPin, 
-      label: 'Location', 
-      value: [userData.city, userData.region, userData.land].filter(Boolean).join(', ') || 'Not set',
+      icon: UserCircle, 
+      label: 'Role', 
+      value: userData.role.charAt(0).toUpperCase() + userData.role.slice(1) || 'Member',
       color: 'from-cyan-500 to-blue-500'
     },
     { 
@@ -63,8 +66,9 @@ export default function UserPage({ userData }: UserPageProps) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row items-center gap-8"
+          className="flex flex-col md:flex-row items-start gap-8"
         >
+          {/* Left side - Avatar */}
           <NeonBorder color="cyan" className="rounded-full p-1">
             <div className="relative w-32 h-32 rounded-full overflow-hidden">
               <Image
@@ -77,19 +81,65 @@ export default function UserPage({ userData }: UserPageProps) {
             </div>
           </NeonBorder>
 
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-4xl font-bold mb-2">
-              <NeonText>{userData.username}</NeonText>
-            </h1>
-            <h2 className="text-2xl text-cyan-400 mb-4">{userData.full_name}</h2>
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-              <span className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full text-white">
-                {userData.role || 'Member'}
-              </span>
+          {/* Right side - User Info */}
+          <div className="flex-1 space-y-4">
+            {/* Top row - Name and Edit Button */}
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold">
+                  <NeonText>{userData.username}</NeonText>
+                </h1>
+                <h2 className="text-2xl text-cyan-400">{userData.full_name}</h2>
+              </div>
+              <Link href={`/user/user-page/edit`} className="mt-4 md:mt-0">
+                <Button 
+                  className="w-full md:w-auto bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white hover:opacity-90 transition-all duration-200 flex items-center gap-2"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Edit Profile
+                </Button>
+              </Link>
             </div>
+
+            {/* Middle row - Location */}
+            {userData.land && (
+              <div className="flex items-center gap-2 text-lg">
+                <span className="text-2xl">
+                  {countries.find(c => c.code === userData.land)?.flag}
+                </span>
+                <span className="text-gray-300">
+                  {[
+                    countries.find(c => c.code === userData.land)?.name,
+                    userData.region,
+                    userData.city
+                  ].filter(Boolean).join(', ')}
+                </span>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
+
+      {/* Bio Section */}
+      {userData.bio && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <Card className="bg-gray-800/50 border-cyan-500/20">
+            <CardContent className="p-6">
+              <h3 className="text-2xl font-bold mb-4">
+                <NeonText>About Me</NeonText>
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
+                {userData.bio}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -113,10 +163,10 @@ export default function UserPage({ userData }: UserPageProps) {
         ))}
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs - Now only shows achievements and submissions */}
       <div className="flex justify-center mb-8">
         <div className="bg-gray-800/50 p-1 rounded-lg backdrop-blur-sm">
-          {['overview', 'achievements', 'submissions'].map((tab) => (
+          {['achievements', 'submissions'].map((tab) => (
             <Button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -132,26 +182,9 @@ export default function UserPage({ userData }: UserPageProps) {
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content - Only achievements and submissions */}
       <Card className="bg-gray-800/50 border-cyan-500/20">
         <CardContent className="p-6">
-          {activeTab === 'overview' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-8"
-            >
-              <div>
-                <h3 className="text-2xl font-bold mb-4">
-                  <NeonText>About Me</NeonText>
-                </h3>
-                <p className="text-gray-300 leading-relaxed">
-                  {userData.bio || 'No bio provided yet.'}
-                </p>
-              </div>
-            </motion.div>
-          )}
-
           {activeTab === 'achievements' && (
             <motion.div
               initial={{ opacity: 0 }}
