@@ -191,16 +191,6 @@ export const useBingoGame = (initialSize: number, players: Player[]) => {
   const checkWinningCondition = useCallback((currentPlayers: Player[], timeExpired?: boolean): boolean => {
     if (!currentPlayers.length || winner !== null) return false
 
-    // Helper function to check if all cells belong to same team
-    const allCellsSameTeam = (cells: BoardCell[], team: number): boolean => {
-      return cells.every(cell => {
-        const cellColor = cell.colors[0]
-        if (!cellColor) return false
-        const cellPlayer = currentPlayers.find(p => p.color === cellColor)
-        return cellPlayer?.team === team
-      })
-    }
-
     // Check for line win if enabled
     if (winConditions.line) {
       // Check horizontal lines
@@ -230,8 +220,11 @@ export const useBingoGame = (initialSize: number, players: Player[]) => {
       const winners = playerCounts.filter(p => p.count === maxCount)
 
       if (winners.length === 1) {
-        setWinner(winners[0].team ?? 0)
-        return true
+        const winner = winners[0]
+        if (winner) {
+          setWinner(winner.team ?? 0)
+          return true
+        }
       }
     }
 
