@@ -60,7 +60,6 @@ export async function GET(request: Request) {
     if (!existingUser) {
       const newUser = {
         auth_id: user.id,
-        email: user.email,
         username,
         full_name: metadata.full_name as string | null,
         avatar_url: metadata.avatar_url as string | null || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`,

@@ -15,7 +15,6 @@ export interface Database {
         Row: {
           id: string
           auth_id: string
-          email: string
           username: string
           full_name: string | null
           avatar_url: string | null
