@@ -184,7 +184,7 @@ class SupabaseAuth {
               avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
               pendingProfile: true
             },
-            emailRedirectTo: `${window.location.origin}/auth/verify-email/callback`
+            emailRedirectTo: `${window.location.origin}/auth/verify-email/loading`
           }
         })
 
