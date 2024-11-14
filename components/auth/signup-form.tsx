@@ -17,6 +17,15 @@ interface SignUpMessage {
   type: 'success' | 'error' | 'info'
 }
 
+// Add validation types
+interface ValidationErrors {
+  username?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  general?: string;
+}
+
 export function SignUpForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,6 +45,9 @@ export function SignUpForm() {
   const [message, setMessage] = useState<SignUpMessage | null>(null)
   const [redirectTimer, setRedirectTimer] = useState<number | null>(null)
 
+  // Add validation state
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
+
   const router = useRouter()
 
   // Load saved form data on component mount
@@ -53,7 +65,48 @@ export function SignUpForm() {
     }
   }, [])
 
-  // Save form data when it changes
+  // Add field validation functions
+  const validateUsername = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return 'Username is required'
+    }
+    if (value.length < 3) {
+      return 'Username must be at least 3 characters long'
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+      return 'Username can only contain letters, numbers, underscores, and hyphens'
+    }
+  }
+
+  const validateEmail = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return 'Email is required'
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address'
+    }
+  }
+
+  const validatePassword = (value: string): string | undefined => {
+    if (!value) {
+      return 'Password is required'
+    }
+    if (!Object.values(passwordChecks).every(check => check)) {
+      return 'Password does not meet all requirements'
+    }
+  }
+
+  const validateConfirmPassword = (value: string): string | undefined => {
+    if (!value) {
+      return 'Please confirm your password'
+    }
+    if (value !== password) {
+      return 'Passwords do not match'
+    }
+  }
+
+  // Update handleInputChange to include validation
   const handleInputChange = (
     setter: (value: string) => void,
     value: string,
@@ -61,6 +114,7 @@ export function SignUpForm() {
   ) => {
     setError(null)
     setter(value)
+    setValidationErrors(prev => ({ ...prev, [field]: undefined }))
 
     // Only save non-sensitive data to localStorage
     if (field === 'email' || field === 'username') {
@@ -82,19 +136,17 @@ export function SignUpForm() {
     }
   }
 
-  const validateForm = () => {
-    if (!email || !password || !confirmPassword || !username) {
-      throw new Error('Please fill in all fields')
+  // Update validateForm to use new validation functions
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {
+      username: validateUsername(username),
+      email: validateEmail(email),
+      password: validatePassword(password),
+      confirmPassword: validateConfirmPassword(confirmPassword)
     }
-    if (password !== confirmPassword) {
-      throw new Error('Passwords do not match')
-    }
-    if (username.length < 3) {
-      throw new Error('Username must be at least 3 characters long')
-    }
-    if (!Object.values(passwordChecks).every(check => check)) {
-      throw new Error('Password does not meet all requirements')
-    }
+
+    setValidationErrors(errors)
+    return !Object.values(errors).some(error => error !== undefined)
   }
 
   // Handle redirect countdown
@@ -111,21 +163,26 @@ export function SignUpForm() {
     }
   }, [redirectTimer, status, router])
 
+  // Update handleSubmit to use new validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage(null)
+    
+    // Validate form before proceeding
+    if (!validateForm()) {
+      return
+    }
+
     setStatus('loading')
 
     try {
-      validateForm()
-
       const result = await supabaseAuth.signUp({
         email,
         password,
         username
       })
 
-      if (result.isExisting) {
+      if (result) {
         setStatus('success')
         setMessage({
           text: 'Account already exists! Logging you in...',
@@ -149,37 +206,25 @@ export function SignUpForm() {
             router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
             return
             
-          case 'WRONG_PASSWORD':
-            setMessage({
-              text: 'Incorrect password. Please try again or reset your password.',
-              type: 'error'
-            })
-            setPassword('')
-            setConfirmPassword('')
-            break
-            
           case 'USER_EXISTS':
-            setMessage({
-              text: error.message,
-              type: 'error'
-            })
-            setPassword('')
-            setConfirmPassword('')
+            setValidationErrors(prev => ({
+              ...prev,
+              email: 'An account with this email already exists'
+            }))
             break
             
           default:
-            setMessage({
-              text: error.message,
-              type: 'error'
-            })
+            setValidationErrors(prev => ({
+              ...prev,
+              general: error.message
+            }))
         }
       } else {
-        setMessage({
-          text: 'An unexpected error occurred. Please try again.',
-          type: 'error'
-        })
+        setValidationErrors(prev => ({
+          ...prev,
+          general: 'An unexpected error occurred. Please try again.'
+        }))
       }
-      // Reset status to idle instead of error
       setStatus('idle')
     }
   }
@@ -210,14 +255,13 @@ export function SignUpForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="p-3 rounded-lg bg-gray-800/50 border border-cyan-500/20 flex items-start gap-2">
-            <Info className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-300">{error}</p>
+        {validationErrors.general && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{validationErrors.general}</p>
           </div>
         )}
 
-        {/* Form fields remain the same... */}
         {/* Username field */}
         <div className="space-y-2">
           <Label htmlFor="username">Username</Label>
@@ -228,11 +272,14 @@ export function SignUpForm() {
             onChange={(e) => handleInputChange(setUsername, e.target.value, 'username')}
             className={cn(
               "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              error?.toLowerCase().includes('username') && "border-red-500/50 focus:border-red-500"
+              validationErrors.username && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Choose a username"
             disabled={loading}
           />
+          {validationErrors.username && (
+            <p className="text-sm text-red-400 mt-1">{validationErrors.username}</p>
+          )}
         </div>
 
         {/* Email field */}
@@ -245,14 +292,17 @@ export function SignUpForm() {
             onChange={(e) => handleInputChange(setEmail, e.target.value, 'email')}
             className={cn(
               "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              error?.toLowerCase().includes('email') && "border-red-500/50 focus:border-red-500"
+              validationErrors.email && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Enter your email"
             disabled={loading}
           />
+          {validationErrors.email && (
+            <p className="text-sm text-red-400 mt-1">{validationErrors.email}</p>
+          )}
         </div>
 
-        {/* Password field with requirements checklist */}
+        {/* Password fields with similar error handling */}
         <div className="space-y-2 relative">
           <Label htmlFor="password">Password</Label>
           <Input
@@ -264,11 +314,14 @@ export function SignUpForm() {
             onBlur={() => setIsPasswordFocused(false)}
             className={cn(
               "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              error?.toLowerCase().includes('password') && "border-red-500/50 focus:border-red-500"
+              validationErrors.password && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Create a password"
             disabled={loading}
           />
+          {validationErrors.password && (
+            <p className="text-sm text-red-400 mt-1">{validationErrors.password}</p>
+          )}
           
           {isPasswordFocused && (
             <div className="absolute left-full top-0 ml-4 w-72 bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2 backdrop-blur-sm">
@@ -307,11 +360,14 @@ export function SignUpForm() {
             onChange={(e) => handleInputChange(setConfirmPassword, e.target.value, 'confirmPassword')}
             className={cn(
               "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              error?.includes('match') && "border-red-500/50 focus:border-red-500"
+              validationErrors.confirmPassword && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Confirm your password"
             disabled={loading}
           />
+          {validationErrors.confirmPassword && (
+            <p className="text-sm text-red-400 mt-1">{validationErrors.confirmPassword}</p>
+          )}
         </div>
 
         {message && (

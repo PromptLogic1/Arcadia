@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Tables } from '@/types/database.types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,12 +21,12 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
   
   // Email states
   const [isChangingEmail, setIsChangingEmail] = useState(false)
-  const [currentEmail, setCurrentEmail] = useState(userData.email)
+  const [currentEmail, setCurrentEmail] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [confirmEmail, setConfirmEmail] = useState('')
   
-  // Username state
-  const [username, setUsername] = useState(userData.username)
+  // Display name state (read-only)
+  const [displayName, setDisplayName] = useState('')
   
   // Password states
   const [currentPassword, setCurrentPassword] = useState('')
@@ -34,6 +34,31 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const supabase = createClientComponentClient()
+
+  // Load auth user data on component mount
+  useEffect(() => {
+    async function loadAuthUserData() {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      if (error) {
+        console.error('Error loading auth user:', error)
+        return
+      }
+
+      if (user) {
+        setCurrentEmail(user.email || '')
+        // For OAuth users, the display name might be in different places
+        setDisplayName(
+          user.user_metadata?.full_name || // Google OAuth
+          user.user_metadata?.name || // GitHub OAuth
+          user.user_metadata?.display_name || // Custom field
+          ''
+        )
+      }
+    }
+
+    loadAuthUserData()
+  }, [supabase.auth])
 
   const resetEmailForm = () => {
     setIsChangingEmail(false)
@@ -78,40 +103,6 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
       console.error('Email update error:', error)
       setMessage({
         text: error instanceof Error ? error.message : 'An error occurred while updating email',
-        type: 'error'
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleUsernameUpdate = async () => {
-    setMessage(null)
-    
-    try {
-      if (username === userData.username) {
-        throw new Error('New username must be different from current username')
-      }
-
-      setIsSaving(true)
-
-      const { error: profileError } = await supabase
-        .from('users')
-        .update({ username })
-        .eq('id', userId)
-
-      if (profileError) throw profileError
-
-      setMessage({
-        text: 'Username updated successfully!',
-        type: 'success'
-      })
-      
-      onSettingsUpdate?.()
-    } catch (error) {
-      console.error('Username update error:', error)
-      setMessage({
-        text: error instanceof Error ? error.message : 'An error occurred while updating username',
         type: 'error'
       })
     } finally {
@@ -199,6 +190,15 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
         </div>
       )}
 
+      {/* Display Name Section (Read-only) */}
+      <div className="space-y-2">
+        <Label>Username</Label>
+        <p className="text-gray-400 text-sm mt-1">
+          {displayName || 'No display name set'}
+          {!displayName && ' (Set via OAuth provider)'}
+        </p>
+      </div>
+
       {/* Email Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -269,26 +269,6 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
             </div>
           </div>
         )}
-      </div>
-
-      {/* Username Section */}
-      <div className="space-y-2 pt-6 border-t border-gray-700/50">
-        <Label htmlFor="username">Username</Label>
-        <div className="flex gap-2">
-          <Input
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="bg-gray-700/50 border-cyan-500/20"
-          />
-          <Button
-            onClick={handleUsernameUpdate}
-            disabled={isSaving || username === userData.username}
-            className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white whitespace-nowrap"
-          >
-            {isSaving ? 'Saving...' : 'Update Username'}
-          </Button>
-        </div>
       </div>
 
       {/* Password Section */}

@@ -141,3 +141,35 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Create the function that adds a new entry to the users table after verification
+CREATE OR REPLACE FUNCTION public.add_user_after_verification()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Only proceed if email is confirmed and user doesn't already exist
+  IF NEW.email_confirmed_at IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.users WHERE auth_id = NEW.id
+  ) THEN
+    INSERT INTO public.users (
+      auth_id,
+      username,
+      role,
+      is_active
+    ) 
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+      'user',
+      true
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Ensure the trigger exists
+DROP TRIGGER IF EXISTS trigger_add_user_after_verification ON auth.users;
+CREATE TRIGGER trigger_add_user_after_verification
+AFTER UPDATE OF email_confirmed_at ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.add_user_after_verification();
