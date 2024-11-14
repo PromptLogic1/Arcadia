@@ -20,10 +20,10 @@ export interface Database {
           avatar_url: string | null
           role: 'user' | 'moderator' | 'admin'
           experience_points: number
-          preferred_language: 'javascript' | 'typescript' | 'python' | 'java' | 'cpp' | 'rust' | null
-          github_username: string | null
+          land: string | null
+          region: string | null
+          city: string | null
           bio: string | null
-          is_active: boolean
           last_login_at: string | null
           created_at: string
           updated_at: string

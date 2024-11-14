@@ -7,10 +7,10 @@ CREATE TABLE users (
     avatar_url TEXT,
     role user_role DEFAULT 'user' NOT NULL,
     experience_points INTEGER DEFAULT 0 NOT NULL,
-    preferred_language programming_language,
-    github_username TEXT,
+    land text,
+    region text,
+    city text,
     bio TEXT,
-    is_active BOOLEAN DEFAULT true NOT NULL,
     last_login_at TIMESTAMP WITH TIME ZONE,
     CONSTRAINT username_length CHECK (char_length(username) >= 3)
 ) INHERITS (base_table);

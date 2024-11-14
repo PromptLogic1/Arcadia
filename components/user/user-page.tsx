@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { Tables } from '@/types/database.types'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { Trophy, GamepadIcon, Star, Clock, Calendar, Github, Mail } from 'lucide-react'
+import { Trophy, GamepadIcon, Star, Clock, Calendar, MapPin } from 'lucide-react'
 import NeonBorder from '@/components/ui/NeonBorder'
 import NeonText from '@/components/ui/NeonText'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,9 +37,9 @@ export default function UserPage({ userData }: UserPageProps) {
       color: 'from-yellow-500 to-orange-500'
     },
     { 
-      icon: GamepadIcon, 
-      label: 'Preferred Language', 
-      value: userData.preferred_language || 'Not set',
+      icon: MapPin, 
+      label: 'Location', 
+      value: [userData.city, userData.region, userData.land].filter(Boolean).join(', ') || 'Not set',
       color: 'from-cyan-500 to-blue-500'
     },
     { 
@@ -86,17 +86,6 @@ export default function UserPage({ userData }: UserPageProps) {
               <span className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full text-white">
                 {userData.role || 'Member'}
               </span>
-              {userData.github_username && (
-                <a
-                  href={`https://github.com/${userData.github_username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-gray-800 rounded-full text-gray-300 hover:text-white flex items-center gap-2"
-                >
-                  <Github size={16} />
-                  {userData.github_username}
-                </a>
-              )}
             </div>
           </div>
         </motion.div>
@@ -159,31 +148,6 @@ export default function UserPage({ userData }: UserPageProps) {
                 <p className="text-gray-300 leading-relaxed">
                   {userData.bio || 'No bio provided yet.'}
                 </p>
-              </div>
-              
-              <div>
-                <h3 className="text-2xl font-bold mb-4">
-                  <NeonText>Contact Information</NeonText>
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 text-gray-300">
-                    <Mail className="h-5 w-5 text-cyan-400" />
-                    {userData.email}
-                  </div>
-                  {userData.github_username && (
-                    <div className="flex items-center gap-3 text-gray-300">
-                      <Github className="h-5 w-5 text-cyan-400" />
-                      <a 
-                        href={`https://github.com/${userData.github_username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-cyan-400 transition-colors"
-                      >
-                        github.com/{userData.github_username}
-                      </a>
-                    </div>
-                  )}
-                </div>
               </div>
             </motion.div>
           )}
