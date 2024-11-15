@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { BoardCell, Player, WinConditions } from '../components/shared/types'
-import { wowChallenges } from '../components/shared/constants'
+import type { BoardCell, Player, WinConditions } from '../types/types'
+import { wowChallenges } from '../types/constants'
 
 interface _WinningLine {
   type: 'horizontal' | 'vertical' | 'diagonal'

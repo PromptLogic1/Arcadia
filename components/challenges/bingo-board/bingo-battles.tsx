@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
 import { BoardCard } from './components/cards/BoardCard'
-import { GAMES, type Game, type Board, isSet } from './components/shared/types'
+import { GAMES, type Game, type Board, isSet } from './types/types'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import BingoBoardDetail from './BingoBoardDetail'

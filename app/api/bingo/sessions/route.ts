@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
-import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
 
 const rateLimiter = new RateLimiter()
 

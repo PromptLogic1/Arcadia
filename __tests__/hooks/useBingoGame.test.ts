@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useBingoGame } from '@/components/challenges/bingo-board/hooks/useBingoGame'
-import type { Player, BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+import type { Player, BoardCell } from '@/components/challenges/bingo-board/types/types'
 
 describe('useBingoGame Hook', () => {
   const createTestPlayer = (id: number, team: number): Player => ({

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
-import type { QueueEntry } from '../components/shared/types'
+import type { QueueEntry } from '../types/types'
 import type { PostgrestError } from '@supabase/supabase-js'
 
 type DatabaseQueueEntry = Database['public']['Tables']['bingo_session_queue']['Row'] & {

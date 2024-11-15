@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Shuffle, Download, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { FluidTypography } from '../../hooks/useResponsiveLayout'
+import type { FluidTypography } from '../../hooks/useLayout'
 
 interface GeneratorSettingsProps {
   selectedTypes: Set<string>

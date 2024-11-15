@@ -1,393 +1,693 @@
 import { renderHook, act } from '@testing-library/react'
 import { useTimer } from '@/components/challenges/bingo-board/hooks/useTimer'
+import type { TimerStats } from '@/components/challenges/bingo-board/hooks/useTimer'
+import { TIMER_CONSTANTS } from '@/components/challenges/bingo-board/types/timer.constants'
 
-describe('useTimer Hook', () => {
+describe('useTimer', () => {
   beforeEach(() => {
     jest.useFakeTimers()
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => setTimeout(cb, 16))
   })
 
   afterEach(() => {
-    jest.clearAllTimers()
     jest.useRealTimers()
+    jest.restoreAllMocks()
   })
 
-  describe('Grundfunktionalität', () => {
-    describe('Timer Initialisierung', () => {
-      it('SOLL mit initialTime korrekt initialisieren', () => {
-        const onTimeEnd = jest.fn()
-        const { result } = renderHook(() => useTimer(60, onTimeEnd))
-
-        expect(result.current.time).toBe(60)
-        expect(result.current.isTimerRunning).toBe(false)
-        expect(typeof result.current.formatTime).toBe('function')
-      })
-
-      it('SOLL negative Zeitwerte auf 0 setzen', () => {
-        const { result } = renderHook(() => useTimer(-10, jest.fn()))
-        expect(result.current.time).toBe(0)
-      })
+  describe('initialization', () => {
+    it('should initialize with given time', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+      
+      expect(result.current.time).toBe(300)
+      expect(result.current.isTimerRunning).toBe(false)
+      expect(result.current.isPaused).toBe(false)
     })
 
-    describe('Timer Steuerung', () => {
-      it('SOLL Timer korrekt starten und stoppen', () => {
-        const { result } = renderHook(() => useTimer(60, jest.fn()))
-
-        act(() => {
-          result.current.setIsTimerRunning(true)
-        })
-        expect(result.current.isTimerRunning).toBe(true)
-        
-        act(() => {
-          jest.advanceTimersByTime(1000)
-        })
-        expect(result.current.time).toBe(59)
-
-        act(() => {
-          result.current.setIsTimerRunning(false)
-        })
-        
-        act(() => {
-          jest.advanceTimersByTime(1000)
-        })
-        expect(result.current.time).toBe(59)
-      })
-
-      it('SOLL Timer von letzter Position fortsetzen', () => {
-        const { result } = renderHook(() => useTimer(60, jest.fn()))
-
-        // Start und 2 Sekunden laufen
-        act(() => {
-          result.current.setIsTimerRunning(true)
-          jest.advanceTimersByTime(2000)
-        })
-        expect(result.current.time).toBe(58)
-
-        // Stoppen
-        act(() => {
-          result.current.setIsTimerRunning(false)
-        })
-
-        // Wieder starten und prüfen ob von 58 weiterläuft
-        act(() => {
-          result.current.setIsTimerRunning(true)
-          jest.advanceTimersByTime(1000)
-        })
-        expect(result.current.time).toBe(57)
-      })
-
-      it('SOLL onTimeEnd aufrufen und stoppen bei time === 0', () => {
-        const onTimeEnd = jest.fn()
-        const { result } = renderHook(() => useTimer(2, onTimeEnd))
-
-        act(() => {
-          result.current.setIsTimerRunning(true)
-          jest.advanceTimersByTime(2000)
-        })
-
-        expect(onTimeEnd).toHaveBeenCalled()
-        expect(result.current.isTimerRunning).toBe(false)
-        expect(result.current.time).toBe(0)
-      })
+    it('should prevent negative initial time', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: -100 }))
+      expect(result.current.time).toBe(0)
     })
 
-    describe('Zeit Formatierung', () => {
-      it('SOLL Zeit korrekt im Format HH:MM:SS formatieren', () => {
-        const { result } = renderHook(() => useTimer(3665, jest.fn()))
-        
-        expect(result.current.formatTime(3665)).toBe('01:01:05')
-        expect(result.current.formatTime(45)).toBe('00:00:45')
-        expect(result.current.formatTime(3600)).toBe('01:00:00')
-      })
-
-      it('SOLL führende Nullen hinzufügen', () => {
-        const { result } = renderHook(() => useTimer(0, jest.fn()))
-        
-        expect(result.current.formatTime(9)).toBe('00:00:09')
-        expect(result.current.formatTime(90)).toBe('00:01:30')
-        expect(result.current.formatTime(599)).toBe('00:09:59')
-      })
+    it('should initialize with clean timer stats', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+      
+      const expectedStats: TimerStats = {
+        totalDrift: 0,
+        maxDrift: 0,
+        driftCorrections: 0,
+        averageDrift: 0,
+        lastCorrectionTime: 0,
+        averageTickTime: 0,
+        missedTicks: 0
+      }
+      
+      expect(result.current.timerStats).toEqual(expectedStats)
     })
   })
 
-  describe('Fehlerbehandlung', () => {
-    it('SOLL nicht-numerische Eingaben ablehnen', () => {
-      const { result } = renderHook(() => useTimer(60, jest.fn()))
-      
-      act(() => {
-        // @ts-expect-error - Absichtlich falschen Typ testen
-        result.current.setTime('invalid')
-      })
-      
-      expect(result.current.time).toBe(60)
-    })
+  describe('timer controls', () => {
+    it('should start and stop timer', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
 
-    it('SOLL mehrfache Start/Stop-Aufrufe korrekt behandeln', () => {
-      const { result } = renderHook(() => useTimer(60, jest.fn()))
-      
       act(() => {
         result.current.setIsTimerRunning(true)
-        result.current.setIsTimerRunning(true)
-        jest.advanceTimersByTime(1000)
       })
-      
-      expect(result.current.time).toBe(59)
-      
+      expect(result.current.isTimerRunning).toBe(true)
+
       act(() => {
         result.current.setIsTimerRunning(false)
-        result.current.setIsTimerRunning(false)
-        jest.advanceTimersByTime(1000)
       })
-      
-      expect(result.current.time).toBe(59)
+      expect(result.current.isTimerRunning).toBe(false)
+    })
+
+    it('should pause and resume timer', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      // Start timer
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Pause timer
+      act(() => {
+        result.current.pauseTimer()
+      })
+      expect(result.current.isPaused).toBe(true)
+      expect(result.current.isTimerRunning).toBe(false)
+
+      // Resume timer
+      act(() => {
+        result.current.resumeTimer()
+      })
+      expect(result.current.isPaused).toBe(false)
+      expect(result.current.isTimerRunning).toBe(true)
+    })
+
+    it('should reset timer', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      // Modify timer state
+      act(() => {
+        result.current.setTime(150)
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Reset timer
+      act(() => {
+        result.current.resetTimer()
+      })
+
+      expect(result.current.time).toBe(300)
+      expect(result.current.isTimerRunning).toBe(false)
+      expect(result.current.isPaused).toBe(false)
+      expect(result.current.timerStats).toEqual({
+        totalDrift: 0,
+        maxDrift: 0,
+        driftCorrections: 0,
+        averageDrift: 0,
+        lastCorrectionTime: 0,
+        averageTickTime: 0,
+        missedTicks: 0
+      })
     })
   })
 
-  describe('Edge Cases', () => {
-    it('SOLL mit sehr großen Zeitwerten umgehen', () => {
-      const { result } = renderHook(() => useTimer(100000, jest.fn()))
-      expect(result.current.formatTime(100000)).toBe('27:46:40')
+  describe('time tracking', () => {
+    it('should count down when running', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Advance timer by 1 second
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(result.current.time).toBe(299)
     })
 
-    it('SOLL mit 0 als initialTime korrekt umgehen', () => {
+    it('should stop at zero', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 1 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Advance timer past zero
+      act(() => {
+        jest.advanceTimersByTime(2000)
+      })
+
+      expect(result.current.time).toBe(0)
+      expect(result.current.isTimerRunning).toBe(false)
+    })
+
+    it('should maintain time when paused', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Run for 1 second
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      // Pause timer
+      act(() => {
+        result.current.pauseTimer()
+      })
+
+      // Try to advance time while paused
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(result.current.time).toBe(299)
+    })
+  })
+
+  describe('drift compensation', () => {
+    it('should detect and correct large time drifts', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate a large time jump
+      act(() => {
+        jest.advanceTimersByTime(10000) // 10 seconds
+      })
+
+      expect(result.current.timerStats.driftCorrections).toBeGreaterThan(0)
+    })
+
+    it('should track maximum drift', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate multiple drifts
+      for (let i = 0; i < 3; i++) {
+        act(() => {
+          jest.advanceTimersByTime(1100) // 1.1 seconds
+        })
+      }
+
+      expect(result.current.timerStats.maxDrift).toBeGreaterThan(0)
+    })
+
+    it('should accumulate total drift', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate multiple small drifts
+      for (let i = 0; i < 5; i++) {
+        act(() => {
+          jest.advanceTimersByTime(1050) // 1.05 seconds
+        })
+      }
+
+      expect(result.current.timerStats.totalDrift).toBeGreaterThan(0)
+    })
+
+    it('should calculate average drift correctly', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate consistent drift
+      for (let i = 0; i < 5; i++) {
+        act(() => {
+          jest.advanceTimersByTime(1100) // Consistent 100ms drift
+        })
+      }
+
+      expect(result.current.timerStats.averageDrift).toBeGreaterThan(0)
+      expect(result.current.timerStats.averageDrift).toBeLessThanOrEqual(
+        result.current.timerStats.maxDrift
+      )
+    })
+
+    it('should track missed ticks', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate a large jump that should cause missed ticks
+      act(() => {
+        jest.advanceTimersByTime(3000) // 3 seconds
+      })
+
+      expect(result.current.timerStats.missedTicks).toBeGreaterThan(0)
+    })
+  })
+
+  describe('time formatting', () => {
+    it('should format time correctly', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 3661 })) // 1h 1m 1s
+
+      expect(result.current.formatTime(3661)).toBe('01:01:01')
+      expect(result.current.formatTime(60)).toBe('00:01:00')
+      expect(result.current.formatTime(0)).toBe('00:00:00')
+    })
+  })
+
+  describe('error handling', () => {
+    it('should handle timer update errors gracefully', () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      // Simuliere Error mit ungültigem Zeitwert
+      act(() => {
+        // Explizite Typisierung für den ungültigen Wert
+        const invalidTime: number = undefined as unknown as number
+        result.current.setTime(invalidTime)
+        result.current.setIsTimerRunning(true)
+      })
+
+      expect(result.current.isTimerRunning).toBe(false)
+      expect(consoleErrorSpy).toHaveBeenCalled()
+
+      consoleErrorSpy.mockRestore()
+    })
+  })
+
+  describe('callback handling', () => {
+    it('should call onTimeEnd when timer reaches zero', () => {
       const onTimeEnd = jest.fn()
-      const { result } = renderHook(() => useTimer(0, onTimeEnd))
-      
+      const { result } = renderHook(() => useTimer({ 
+        initialTime: 1,
+        onTimeEnd 
+      }))
+
       act(() => {
         result.current.setIsTimerRunning(true)
       })
-      
+
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
       expect(onTimeEnd).toHaveBeenCalled()
-      expect(result.current.isTimerRunning).toBe(false)
-    })
-
-    it('SOLL bei schnellen Start/Stop-Wechseln stabil bleiben', () => {
-      const { result } = renderHook(() => useTimer(60, jest.fn()))
-      
-      act(() => {
-        for(let i = 0; i < 10; i++) {
-          result.current.setIsTimerRunning(true)
-          result.current.setIsTimerRunning(false)
-        }
-        jest.advanceTimersByTime(1000)
-      })
-      
-      expect(result.current.time).toBe(60)
     })
   })
 
-  describe('Performance', () => {
-    it('SOLL keine unnötigen Re-Renders verursachen', () => {
-      let renderCount = 0
-      const { result } = renderHook(() => {
-        renderCount++
-        return useTimer(60, jest.fn())
-      })
+  describe('session synchronization', () => {
+    it('should call onSessionTimerEnd when timer reaches zero', () => {
+      const onSessionTimerEnd = jest.fn()
+      const { result } = renderHook(() => useTimer({ 
+        initialTime: 1,
+        onSessionTimerEnd
+      }))
 
-      const initialRenderCount = renderCount
-      
       act(() => {
         result.current.setIsTimerRunning(true)
+      })
+
+      act(() => {
         jest.advanceTimersByTime(1000)
       })
 
-      expect(renderCount - initialRenderCount).toBeLessThanOrEqual(2)
+      expect(onSessionTimerEnd).toHaveBeenCalled()
     })
   })
 
-  describe('Ressourcen Management', () => {
-    it('SOLL Timer-Interval beim Unmount aufräumen', () => {
-      const { unmount } = renderHook(() => useTimer(60, jest.fn()))
-      
-      act(() => {
-        unmount()
-      })
-      
-      expect(jest.getTimerCount()).toBe(0)
+  describe('browser refresh persistence', () => {
+    // Mock für sessionStorage
+    const sessionStorageMock = (() => {
+      let store: { [key: string]: string } = {}
+      return {
+        getItem: jest.fn((key: string) => store[key]),
+        setItem: jest.fn((key: string, value: string) => {
+          store[key] = value
+        }),
+        removeItem: jest.fn((key: string) => {
+          delete store[key]
+        }),
+        clear: jest.fn(() => {
+          store = {}
+        })
+      }
+    })()
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock })
+      sessionStorageMock.clear()
     })
 
-    it('SOLL keine Memory-Leaks verursachen', () => {
-      const { result, unmount } = renderHook(() => useTimer(60, jest.fn()))
-      const initialMemory = process.memoryUsage().heapUsed
-      
-      // Timer mehrfach starten/stoppen
+    it('should save timer state before unload', () => {
+      const { result, unmount } = renderHook(() => useTimer({ initialTime: 300 }))
+
       act(() => {
-        for (let i = 0; i < 100; i++) {
-          result.current.setIsTimerRunning(true)
-          result.current.setIsTimerRunning(false)
-        }
+        result.current.setTime(150)
+        result.current.setIsTimerRunning(true)
       })
-      
+
+      // Simuliere beforeunload
+      act(() => {
+        window.dispatchEvent(new Event('beforeunload'))
+      })
+
+      expect(sessionStorageMock.setItem).toHaveBeenCalledWith(
+        'timerState',
+        expect.stringContaining('"time":150')
+      )
+
       unmount()
-      const finalMemory = process.memoryUsage().heapUsed
-      expect(finalMemory - initialMemory).toBeLessThan(1000000) // max 1MB Differenz
     })
 
-    it('SOLL CPU-Last minimal halten', () => {
-      const { result } = renderHook(() => useTimer(60, jest.fn()))
-      let renderCount = 0
-      
-      act(() => {
-        result.current.setIsTimerRunning(true)
-        // Simuliere 10 Sekunden Laufzeit
-        for (let i = 0; i < 10; i++) {
-          renderCount++
-          jest.advanceTimersByTime(1000)
-        }
-      })
-      
-      expect(renderCount).toBeLessThanOrEqual(10) // Max ein Render pro Sekunde
-    })
-  })
+    it('should load saved timer state on mount', () => {
+      const savedState = {
+        time: 150,
+        isRunning: true,
+        isPaused: false,
+        pausedTime: null
+      }
 
-  describe('Gleichzeitige Timer', () => {
-    it('SOLL mit mehreren Timern performant umgehen', () => {
-      const timers = Array(10).fill(null).map(() => 
-        renderHook(() => useTimer(60, jest.fn()))
-      )
-      
-      act(() => {
-        timers.forEach(timer => {
-          timer.result.current.setIsTimerRunning(true)
-        })
-        jest.advanceTimersByTime(1000)
-      })
-      
-      timers.forEach(timer => {
-        expect(timer.result.current.time).toBe(59)
-      })
-      
-      timers.forEach(timer => timer.unmount())
-      expect(jest.getTimerCount()).toBe(0)
-    })
-  })
+      sessionStorageMock.getItem.mockReturnValue(JSON.stringify(savedState))
 
-  describe('Fehlerbehandlung', () => {
-    it('SOLL bei ungültigen Eingaben Fehler werfen', () => {
-      const { result } = renderHook(() => useTimer(60, jest.fn()))
-      
-      expect(() => {
-        act(() => {
-          // @ts-expect-error - Absichtlich ungültiger Wert
-          result.current.setTime(null)
-        })
-      }).toThrow()
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      expect(result.current.time).toBe(150)
+      expect(result.current.isTimerRunning).toBe(true)
     })
 
-    it('SOLL bei Fehlern den Timer stoppen', () => {
-      const onTimeEnd = jest.fn().mockImplementation(() => {
-        throw new Error('Test Error')
-      })
-      const { result } = renderHook(() => useTimer(1, onTimeEnd))
-      
-      act(() => {
-        result.current.setIsTimerRunning(true)
-        jest.advanceTimersByTime(1000)
-      })
-      
+    it('should handle invalid saved state gracefully', () => {
+      sessionStorageMock.getItem.mockReturnValue('invalid json')
+
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      expect(result.current.time).toBe(300) // Sollte initialTime verwenden
       expect(result.current.isTimerRunning).toBe(false)
     })
-  })
 
-  describe('Edge Cases', () => {
-    it('SOLL mit extrem großen Zeitwerten umgehen', () => {
-      const { result } = renderHook(() => useTimer(Number.MAX_SAFE_INTEGER, jest.fn()))
-      expect(() => result.current.formatTime(Number.MAX_SAFE_INTEGER)).not.toThrow()
-    })
-
-    it('SOLL mit Floating Point Werten umgehen', () => {
-      const { result } = renderHook(() => useTimer(60.5, jest.fn()))
-      expect(result.current.time).toBe(60) // Sollte auf ganze Sekunden runden
-    })
-  })
-
-  describe('Performance Optimierung', () => {
-    it('SOLL Render-Zyklen optimieren', () => {
-      const renderLog: number[] = []
-      const { result } = renderHook(() => {
-        renderLog.push(Date.now())
-        return useTimer(60, jest.fn())
-      })
-      
-      act(() => {
-        result.current.setIsTimerRunning(true)
-        // Simuliere schnelle State-Updates
-        for (let i = 0; i < 10; i++) {
-          result.current.setTime(50 - i)
-        }
-        jest.advanceTimersByTime(100)
-      })
-      
-      // Prüfe Abstand zwischen Renders
-      renderLog.reduce((prevTime, currentTime) => {
-        const interval = currentTime - prevTime
-        expect(interval).toBeGreaterThanOrEqual(16) // Min. 16ms zwischen Renders (60fps)
-        return currentTime
-      })
-    })
-
-    it('SOLL CPU-Last über längere Zeiträume minimal halten', () => {
-      const renderLog: number[] = []
-      const { result } = renderHook(() => {
-        renderLog.push(Date.now())
-        return useTimer(3600, jest.fn()) // 1 Stunde Timer
-      })
+    it('should remove timer state when reaching zero', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 1 }))
 
       act(() => {
         result.current.setIsTimerRunning(true)
-        // Simuliere 1 Minute Laufzeit
-        for (let i = 0; i < 60; i++) {
-          jest.advanceTimersByTime(1000)
-        }
       })
 
-      // Prüfe durchschnittliche Zeit zwischen Updates
-      if (renderLog.length < 2) {
-        throw new Error('Nicht genügend Render-Events für Performance-Test')
-      }
-
-      const totalUpdates = renderLog.length - 1
-      const firstRender = renderLog[0]
-      const lastRender = renderLog[renderLog.length - 1]
-      
-      if (firstRender === undefined || lastRender === undefined) {
-        throw new Error('Render-Log enthält ungültige Einträge')
-      }
-
-      const totalTime = lastRender - firstRender
-      const avgUpdateTime = totalTime / totalUpdates
-
-      expect(avgUpdateTime).toBeGreaterThanOrEqual(16) // Min. 16ms zwischen Updates
-      expect(totalUpdates).toBeLessThanOrEqual(60) // Max. 1 Update pro Sekunde
-    })
-
-    it('SOLL mit mehreren Timer-Instanzen effizient umgehen', () => {
-      const timers = Array(5).fill(null).map((_, i) => 
-        renderHook(() => useTimer(60 + i, jest.fn()))
-      )
-
-      const startTime = performance.now()
-
       act(() => {
-        timers.forEach(timer => {
-          timer.result.current.setIsTimerRunning(true)
-        })
         jest.advanceTimersByTime(1000)
       })
 
-      const endTime = performance.now()
-      const processingTime = endTime - startTime
-
-      // Prüfe ob alle Timer korrekt aktualisiert wurden
-      timers.forEach((timer, i) => {
-        expect(timer.result.current.time).toBe(59 + i)
-      })
-
-      // Prüfe Performance
-      expect(processingTime).toBeLessThan(50) // Max. 50ms für 5 Timer-Updates
-
-      // Cleanup
-      timers.forEach(timer => timer.unmount())
-      expect(jest.getTimerCount()).toBe(0)
+      expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('timerState')
     })
   })
-}) 
+
+  describe('timer events', () => {
+    beforeEach(() => {
+      jest.spyOn(window, 'dispatchEvent')
+    })
+
+    it('should emit start event when timer starts', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'timerEvent',
+          detail: expect.objectContaining({
+            type: 'start',
+            isRunning: true,
+            isPaused: false
+          })
+        })
+      )
+    })
+
+    it('should emit pause event when timer is paused', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+        result.current.pauseTimer()
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'timerEvent',
+          detail: expect.objectContaining({
+            type: 'pause',
+            isRunning: false,
+            isPaused: true
+          })
+        })
+      )
+    })
+
+    it('should emit resume event when timer is resumed', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+        result.current.pauseTimer()
+        result.current.resumeTimer()
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'timerEvent',
+          detail: expect.objectContaining({
+            type: 'resume',
+            isRunning: true,
+            isPaused: false
+          })
+        })
+      )
+    })
+
+    it('should emit reset event when timer is reset', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setTime(150)
+        result.current.resetTimer()
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'timerEvent',
+          detail: expect.objectContaining({
+            type: 'reset',
+            time: 300,
+            isRunning: false,
+            isPaused: false
+          })
+        })
+      )
+    })
+
+    it('should emit tick events while running', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Advance timer and check for tick events
+      act(() => {
+        jest.advanceTimersByTime(1000)
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'timerEvent',
+          detail: expect.objectContaining({
+            type: 'tick',
+            time: 299
+          })
+        })
+      )
+    })
+
+    it('should include timer stats in events', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'timerEvent',
+          detail: expect.objectContaining({
+            stats: expect.objectContaining({
+              totalDrift: 0,
+              maxDrift: 0,
+              driftCorrections: 0
+            })
+          })
+        })
+      )
+    })
+
+    it('should emit events with correct event names', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: TIMER_CONSTANTS.EVENTS.TIMER_EVENT
+        })
+      )
+
+      expect(window.dispatchEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: TIMER_CONSTANTS.EVENTS.TIMER_UPDATE
+        })
+      )
+    })
+
+    it('should respect MAX_TICK_HISTORY limit', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate many ticks
+      for (let i = 0; i < TIMER_CONSTANTS.MAX_TICK_HISTORY + 10; i++) {
+        act(() => {
+          jest.advanceTimersByTime(TIMER_CONSTANTS.TICK_INTERVAL)
+        })
+      }
+
+      // Check last event stats
+      const dispatchCalls = (window.dispatchEvent as jest.Mock).mock.calls
+      const lastEvent = dispatchCalls[dispatchCalls.length - 1].arguments[0]
+      
+      expect(lastEvent.detail.stats.averageTickTime).toBeDefined()
+    })
+
+    it('should use correct time constants', () => {
+      const { result } = renderHook(() => useTimer({ 
+        initialTime: TIMER_CONSTANTS.DEFAULT_TIME 
+      }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Advance by performance check interval
+      act(() => {
+        jest.advanceTimersByTime(TIMER_CONSTANTS.PERFORMANCE_CHECK_INTERVAL)
+      })
+
+      expect(result.current.time).toBe(
+        TIMER_CONSTANTS.DEFAULT_TIME - 
+        TIMER_CONSTANTS.PERFORMANCE_CHECK_INTERVAL / TIMER_CONSTANTS.TICK_INTERVAL
+      )
+    })
+  })
+
+  describe('storage persistence', () => {
+    const sessionStorageMock = (() => {
+      let store: { [key: string]: string } = {}
+      return {
+        getItem: jest.fn((key: string) => store[key]),
+        setItem: jest.fn((key: string, value: string) => {
+          store[key] = value
+        }),
+        removeItem: jest.fn((key: string) => {
+          delete store[key]
+        }),
+        clear: jest.fn(() => {
+          store = {}
+        })
+      }
+    })()
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock })
+      sessionStorageMock.clear()
+    })
+
+    it('should use correct storage key', () => {
+      const { result, unmount } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setTime(150)
+      })
+
+      unmount()
+
+      expect(sessionStorageMock.setItem).toHaveBeenCalledWith(
+        TIMER_CONSTANTS.STORAGE_KEY,
+        expect.any(String)
+      )
+    })
+
+    it('should respect MIN_TIME and MAX_TIME limits', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: -100 }))
+      expect(result.current.time).toBe(TIMER_CONSTANTS.MIN_TIME)
+
+      act(() => {
+        result.current.setTime(TIMER_CONSTANTS.MAX_TIME + 100)
+      })
+      expect(result.current.time).toBe(TIMER_CONSTANTS.MAX_TIME)
+    })
+  })
+
+  describe('drift compensation', () => {
+    it('should respect MAX_DRIFT_THRESHOLD', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      // Simulate drift just below threshold
+      act(() => {
+        jest.advanceTimersByTime(TIMER_CONSTANTS.MAX_DRIFT_THRESHOLD - 100)
+      })
+
+      const initialDriftCorrections = result.current.timerStats.driftCorrections
+
+      // Simulate drift above threshold
+      act(() => {
+        jest.advanceTimersByTime(TIMER_CONSTANTS.MAX_DRIFT_THRESHOLD + 100)
+      })
+
+      expect(result.current.timerStats.driftCorrections)
+        .toBeGreaterThan(initialDriftCorrections)
+    })
+
+    it('should update stats at correct intervals', () => {
+      const { result } = renderHook(() => useTimer({ initialTime: 300 }))
+
+      act(() => {
+        result.current.setIsTimerRunning(true)
+      })
+
+      const initialStats = { ...result.current.timerStats }
+
+      act(() => {
+        jest.advanceTimersByTime(TIMER_CONSTANTS.STATS_UPDATE_INTERVAL)
+      })
+
+      expect(result.current.timerStats).not.toEqual(initialStats)
+    })
+  })
+})

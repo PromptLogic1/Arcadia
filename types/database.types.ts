@@ -1,4 +1,4 @@
-import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
 
 export type Json =
   | string
@@ -141,7 +141,7 @@ export interface Database {
               majority: boolean
             }
           }
-          status: 'draft' | 'published' | 'archived'
+          status: 'draft' | 'active' | 'paused' | 'completed' | 'archived'
           game_type: string
           difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
           is_public: boolean
@@ -199,6 +199,40 @@ export interface Database {
         }
         Insert: Omit<Tables['bingo_session_queue']['Row'], 'id' | 'created_at' | 'updated_at' | 'processed_at'>
         Update: Partial<Tables['bingo_session_queue']['Row']>
+      }
+      bingo_session_events: {
+        Row: {
+          id: string
+          board_id: string
+          event_type: string
+          player_id?: string
+          data: unknown
+          timestamp: number
+          version?: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          board_id: string
+          event_type: string
+          player_id?: string
+          data: unknown
+          timestamp: number
+          version?: number
+        }
+        Update: Partial<Omit<Tables['bingo_session_events']['Row'], 'id' | 'created_at' | 'updated_at'>>
+      }
+      bingo_session_cells: {
+        Row: {
+          id: string
+          board_id: string
+          cell_data: BoardCell
+          version: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Tables['bingo_session_cells']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Tables['bingo_session_cells']['Row']>
       }
     }
     Views: {

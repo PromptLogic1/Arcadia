@@ -13,8 +13,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { GeneratorSettings } from './GeneratorSettings'
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { GeneratorSettings } from './GeneratorControls'
+import { useLayout } from '../../hooks/useLayout'
 
 // Export the interface
 export interface CellTemplate {
@@ -79,7 +79,7 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
     extreme: 1
   })
   const [activeTemplateTab, setActiveTemplateTab] = useState('library')
-  const { isCollapsed, getFluidTypography, getResponsiveSpacing } = useResponsiveLayout()
+  const { isCollapsed, getFluidTypography, getResponsiveSpacing } = useLayout()
   const typography = getFluidTypography(14, 16)
   const spacing = getResponsiveSpacing(16)
 

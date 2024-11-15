@@ -2,7 +2,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
-import type { BoardCell } from '@/components/challenges/bingo-board/components/shared/types'
+import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
 import { RateLimiter } from '@/lib/rate-limiter'
 
 const rateLimiter = new RateLimiter()

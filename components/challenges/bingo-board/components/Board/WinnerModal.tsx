@@ -2,7 +2,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Crown, Star, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { Player } from '../shared/types'
+import type { Player } from '../../types/types'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 import { cn } from '@/lib/utils'
 

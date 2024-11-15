@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import type { Board } from '@/components/challenges/bingo-board/components/shared/types'
+import type { Board } from '@/components/challenges/bingo-board/types/types'
 
 // Mock data for initial boards
 const initialBoards: Board[] = [

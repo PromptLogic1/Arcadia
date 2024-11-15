@@ -7,7 +7,7 @@ import { GameControls } from './components/GameControls'
 import { useBingoGame } from './hooks/useBingoGame'
 import { usePlayerManagement } from './hooks/usePlayerManagement'
 import { useTimer } from './hooks/useTimer'
-import type { BingoBoardDetailProps, BoardCell } from './components/shared/types'
+import type { BingoBoardDetailProps, BoardCell } from './types/types'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { BingoContainer } from './components/layout/BingoLayout'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Play, Wand2, BarChart2 } from 'lucide-react'
 import { useBingoBoard } from './hooks/useBingoBoard'
-import { BoardGenerator } from './components/Board/BoardGenerator'
+import { BoardGenerator } from './components/Generator/GeneratorPanel'
 
 // Add timeLimit to board settings type
 interface BoardSettings {

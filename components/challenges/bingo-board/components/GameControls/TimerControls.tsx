@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Play, Pause } from 'lucide-react'
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { useLayout } from '../../hooks/useLayout'
 
 interface TimerControlsProps {
   time: number
@@ -39,7 +39,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   const [minutes, setMinutes] = useState(Math.floor((time % 3600) / 60))
   const [seconds, setSeconds] = useState(time % 60)
 
-  const { getResponsiveSpacing } = useResponsiveLayout()
+  const { getResponsiveSpacing } = useLayout()
   const spacing = getResponsiveSpacing(16)
 
   const handleTimeSubmit = () => {

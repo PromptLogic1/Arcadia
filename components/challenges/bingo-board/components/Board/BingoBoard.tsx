@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Copy } from 'lucide-react'
 import { BingoCell } from './BingoCell'
 import { WinnerModal } from './WinnerModal'
-import type { BoardCell, Player } from '../shared/types'
+import type { BoardCell, Player } from '../../types/types'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
-import { useResponsive } from '../../hooks/useResponsive'
+import { useResponsive } from '../../hooks/useLayout'
 import { cn } from '@/lib/utils'
 
 interface BoardProps {

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useSession } from '../../hooks/useSession'
 import { ColorPicker } from '@/components/ui/color-picker'
-import { playerColors } from '../shared/constants'
+import { playerColors } from '../../types/constants'
 
 interface PlayerManagementProps {
   boardId: string

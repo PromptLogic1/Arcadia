@@ -12,8 +12,8 @@ import {
   BookmarkCheck,
   Copy 
 } from 'lucide-react'
-import { isSet } from "../shared/types"
-import type { Board } from "../shared/types"
+import { isSet } from "../../types/types"
+import type { Board } from "../../types/types"
 import { cn } from "@/lib/utils"
 import { 
   Tooltip,

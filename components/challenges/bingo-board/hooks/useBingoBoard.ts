@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
-import type { BoardCell } from '../components/shared/types'
+import type { BoardCell } from '../types/types'
 
 interface UseBingoBoardProps {
   boardId: string

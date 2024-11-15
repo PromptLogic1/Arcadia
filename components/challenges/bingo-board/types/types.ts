@@ -34,6 +34,14 @@ export interface BoardCell {
   blocked: boolean
   isMarked: boolean
   cellId: string
+  version?: number
+  lastUpdated?: number
+  lastModifiedBy?: string
+  conflictResolution?: {
+    timestamp: number
+    resolvedBy: string
+    originalValue: string
+  }
 }
 
 export interface WinConditions {

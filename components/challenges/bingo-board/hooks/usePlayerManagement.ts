@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
-import type { Player } from '../components/shared/types'
-import { colorPalette } from '../components/shared/constants'
+import type { Player } from '../types/types'
+import { colorPalette } from '../types/constants'
 
 interface UsePlayerManagement {
   players: Player[]

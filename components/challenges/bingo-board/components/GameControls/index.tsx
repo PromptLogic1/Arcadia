@@ -9,7 +9,7 @@ import {
 import { PlayerManagement } from './PlayerManagement'
 import { TimerControls } from './TimerControls'
 import { GameSettings } from './GameSettings'
-import type { Player } from '../shared/types'
+import type { Player } from '../../types/types'
 import { cn } from '@/lib/utils'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 
