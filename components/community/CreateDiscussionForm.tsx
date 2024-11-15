@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from "react"
 import { DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -5,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DialogWrapper } from "./shared/DialogWrapper"
 import { FilterGroup } from "./shared/FilterGroup"
-import type { Discussion } from "./types"
+import type { Discussion } from "./types/types"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 

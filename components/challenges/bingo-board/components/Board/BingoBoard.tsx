@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import { BingoGrid } from '../layout/BingoLayout'
 import { Button } from '@/components/ui/button'

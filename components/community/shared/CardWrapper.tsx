@@ -1,7 +1,9 @@
+'use client'
+
 import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
-import type { CardWrapperProps } from '../types'
+import type { CardWrapperProps } from '../types/types'
 
 export const CardWrapper = memo<CardWrapperProps>(({
   children,

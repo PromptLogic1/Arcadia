@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { Lock, Volume2, VolumeX, Play, Pause, RotateCcw, Save, Trophy } from 'lucide-react'
 import { Label } from '@/components/ui/label'

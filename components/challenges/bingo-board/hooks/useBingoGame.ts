@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { BoardCell, Player, WinConditions } from '../types/types'
 import { wowChallenges } from '../types/constants'

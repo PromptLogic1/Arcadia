@@ -1,5 +1,7 @@
+'use client'
+
 import { useState, useCallback } from 'react'
-import type { Event } from '../types'
+import type { Event } from '../types/types'
 import { MOCK_EVENTS } from '../shared/constants'
 
 export const useEvents = () => {

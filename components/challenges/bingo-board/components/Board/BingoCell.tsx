@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useRef, useEffect, useCallback } from 'react'
 import type { BoardCell, Player } from '../../types/types'
 import { cn } from '@/lib/utils'

@@ -1,6 +1,8 @@
+'use client'
+
 import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Discussion, Comment } from '../types'
+import type { Discussion, Comment } from '../types/types'
 import type { Database } from '@/types/database.types'
 
 interface UseDiscussionsReturn {

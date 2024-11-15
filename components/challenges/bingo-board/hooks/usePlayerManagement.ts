@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useCallback, useMemo } from 'react'
 import type { Player } from '../types/types'
 import { colorPalette } from '../types/constants'

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/toggle-group"
 import { NeonButton } from '@/components/ui/NeonButton'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import type { Discussion, Event, Comment } from './community/types'
+import type { Discussion, Event, Comment } from './community/types/types'
 import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from './community/shared/constants'
 import { SearchInput } from './community/shared/SearchInput'
 import { useVirtualizer } from '@tanstack/react-virtual'

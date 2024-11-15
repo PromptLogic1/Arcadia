@@ -1,10 +1,12 @@
+'use client'
+
 import React, { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Trophy, Calendar, ChevronDown, MapPin, Star, Bell, Share2 } from "lucide-react"
 import { CardWrapper } from "./shared/CardWrapper"
-import type { Event } from "./types"
+import type { Event } from "./types/types"
 import { Button } from "@/components/ui/button"
 import { format } from 'date-fns'
 

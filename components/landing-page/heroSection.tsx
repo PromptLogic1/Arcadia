@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'

@@ -1,6 +1,8 @@
+'use client'
+
 import { useState, useMemo, useCallback, useTransition } from 'react'
-import type { Discussion, Event } from '../types'
-import { useDebounce } from '@/hooks/useDebounce'
+import type { Discussion, Event } from '../types/types'
+import { useDebounce } from 'hooks/useDebounce'
 
 interface UseSearchReturn<T> {
   filteredItems: T[]

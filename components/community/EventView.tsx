@@ -1,3 +1,5 @@
+'use client'
+
 import React from "react"
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
@@ -5,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Users, Trophy, Calendar, MapPin } from "lucide-react"
 import { DialogWrapper } from "./shared/DialogWrapper"
-import type { Event } from "./types"
+import type { Event } from "./types/types"
 
 interface EventViewProps {
   event: Event

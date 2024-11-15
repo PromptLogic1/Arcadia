@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { BingoGrid } from '../layout/BingoLayout'
 import type { BoardCell } from '../../types/types'

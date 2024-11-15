@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { debounce } from '../utils/layout.utils'
 import { LAYOUT_CONSTANTS, type Breakpoint } from '../types/layout.constants'

@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useCallback, useMemo } from 'react'
 import { BoardGeneratorService } from '../services/board-generator.service'
 import { BalanceService } from '../services/balance.service'

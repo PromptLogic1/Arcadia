@@ -1,4 +1,4 @@
-// components/landing-page/FeaturedGamesCarousel.tsx
+'use client'
 
 import React, { useState, useEffect, useCallback, memo } from 'react'
 import useEmblaCarousel from 'embla-carousel-react'

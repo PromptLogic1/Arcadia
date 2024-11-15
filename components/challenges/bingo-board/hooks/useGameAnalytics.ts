@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Player } from '../types/types'
 import type {
