@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Crown, Star, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Player } from '../../types/types'
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { useLayout } from '../../hooks/useLayout'
 import { cn } from '@/lib/utils'
 
 interface WinnerModalProps {
@@ -17,7 +17,7 @@ export const WinnerModal: React.FC<WinnerModalProps> = ({
   players,
   onReset,
 }) => {
-  const { getFluidTypography, getResponsiveSpacing } = useResponsiveLayout()
+  const { getFluidTypography, getResponsiveSpacing } = useLayout()
   const typography = getFluidTypography(16, 24)
   const spacing = getResponsiveSpacing(16)
 

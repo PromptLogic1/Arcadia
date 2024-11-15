@@ -72,7 +72,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: spacing.gap }}>
+    <div className="flex flex-col space-y-4">
       <div className="bg-gray-800/90 rounded-lg p-3 border border-cyan-500/30">
         <div className="flex items-center justify-center gap-3">
           <TooltipProvider>

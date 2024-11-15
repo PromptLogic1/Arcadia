@@ -5,8 +5,7 @@ import { Copy } from 'lucide-react'
 import { BingoCell } from './BingoCell'
 import { WinnerModal } from './WinnerModal'
 import type { BoardCell, Player } from '../../types/types'
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
-import { useResponsive } from '../../hooks/useLayout'
+import { useLayout } from '../../hooks/useLayout' 
 import { cn } from '@/lib/utils'
 
 interface BoardProps {
@@ -40,11 +39,9 @@ const Board = React.memo<BoardProps>(({
   const [boardId] = useState('')
   const [showBoardId] = useState(false)
 
-  const { getGridLayout, getCellTypography } = useResponsiveLayout()
-  const { isMobile, breakpoint } = useResponsive()
-
-  const gridStyles = getGridLayout(boardSize, isMobile)
-  const typography = getCellTypography(breakpoint)
+  const { getGridLayout, getFluidTypography } = useLayout()
+  const gridStyles = getGridLayout(boardSize, false)
+  const typography = getFluidTypography(16, 14) // Changed string values to numbers
 
   const copyBoardIdToClipboard = async () => {
     try {

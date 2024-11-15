@@ -21,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger 
 } from "@/components/ui/tooltip"
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { useLayout } from '../../hooks/useLayout'
 
 interface BoardCardProps {
   board: Board
@@ -40,7 +40,7 @@ export const BoardCard: React.FC<BoardCardProps> = ({
   onSelect,
   onSaveAsCopy,
 }) => {
-  const { getFluidTypography, getResponsiveSpacing } = useResponsiveLayout()
+  const { getFluidTypography, getResponsiveSpacing } = useLayout()
   const typography = getFluidTypography(14, 16)
   const spacing = getResponsiveSpacing(16)
 

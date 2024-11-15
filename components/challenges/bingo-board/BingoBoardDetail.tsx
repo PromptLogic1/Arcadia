@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Play, Wand2, BarChart2 } from 'lucide-react'
 import { useBingoBoard } from './hooks/useBingoBoard'
 import { BoardGenerator } from './components/Generator/GeneratorPanel'
+import { useGameAnalytics } from './hooks/useGameAnalytics'
 
 // Add timeLimit to board settings type
 interface BoardSettings {
@@ -58,22 +59,7 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     cellId: crypto.randomUUID() // Generate unique ID for each cell
   }), [])
 
-  // Reference to useBingoGame hook with modified handlers
-  const {
-    boardState,
-    setBoardState,
-    winner,
-    boardSize,
-    setBoardSize,
-    winConditions,
-    setWinConditions,
-    resetBoard,
-    handleCellChange: baseHandleCellChange,
-    checkWinningCondition,
-    generateBoard,
-  } = useBingoGame(board?.size ?? initialBoard.size)
-
-  // Reference to usePlayerManagement hook
+  // Move usePlayerManagement hook before useBingoGame
   const {
     players,
     teamNames,
@@ -86,16 +72,40 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
     updateTeamColor,
   } = usePlayerManagement()
 
-  // Reference to useTimer hook with proper type checking
+  // Now we can use players in useBingoGame
+  const {
+    boardState,
+    setBoardState,
+    winner,
+    boardSize,
+    setBoardSize,
+    winConditions,
+    setWinConditions,
+    resetBoard,
+    handleCellChange: baseHandleCellChange,
+    checkWinningCondition,
+    generateBoard,
+  } = useBingoGame(board?.size ?? initialBoard.size, players)
+
+  // Fix useTimer call by providing proper props
   const {
     isTimerRunning,
     setIsTimerRunning,
     formatTime,
     setTime,
-  } = useTimer(
-    (board?.settings as BoardSettings)?.timeLimit ?? 0, 
-    () => checkWinningCondition(players, true)
-  )
+  } = useTimer({
+    initialTime: (board?.settings as BoardSettings)?.timeLimit ?? 0,
+    onTimeEnd: () => checkWinningCondition(players, true)
+  })
+
+  const {
+    gameStats,
+    updateStats,
+    trackMove,
+    recordWinner,
+    measurePerformance,
+    resetStats
+  } = useGameAnalytics()
 
   // Initialize board state
   useEffect(() => {
@@ -151,6 +161,13 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
       const currentCell = newState[index]
       if (!currentCell) return
 
+      // Track the move before updating state
+      trackMove(
+        players[currentPlayer]?.id || '',
+        updates.colors ? 'mark' : 'unmark',
+        index
+      )
+
       newState[index] = {
         ...currentCell,
         text: updates.text ?? currentCell.text,
@@ -160,9 +177,17 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
         isMarked: updates.isMarked ?? currentCell.isMarked,
         cellId: currentCell.cellId
       }
+
+      // Update analytics after move
+      updateStats(
+        players,
+        getMarkedFieldsCount(newState),
+        getCompletedLinesCount(newState)
+      )
     }
 
     await updateBoardState(newState)
+    measurePerformance()
   }
 
   // Handle actions that require authentication
@@ -214,6 +239,32 @@ const BingoBoardDetail: React.FC<BingoBoardDetailProps> = ({
       
       setBoardState(newBoardState)
     }
+  }
+
+  // Update winner handling
+  useEffect(() => {
+    if (winner !== null && players[winner]) {
+      recordWinner(winner === -1 ? null : players[winner].id)
+    }
+  }, [winner, players, recordWinner])
+
+  // Reset analytics when board resets
+  const _handleReset = useCallback(() => {
+    resetBoard()
+    resetStats()
+  }, [resetBoard, resetStats])
+
+  // Helper functions for analytics
+  const getMarkedFieldsCount = (state: BoardCell[]): Record<string, number> => {
+    return players.reduce((acc, player) => ({
+      ...acc,
+      [player.id]: state.filter(cell => cell.colors.includes(player.color)).length
+    }), {})
+  }
+
+  const getCompletedLinesCount = (_state: BoardCell[]): Record<string, number> => {
+    // Implement line counting logic here
+    return {}
   }
 
   if (error) {

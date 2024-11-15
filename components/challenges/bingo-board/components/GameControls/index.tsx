@@ -11,7 +11,7 @@ import { TimerControls } from './TimerControls'
 import { GameSettings } from './GameSettings'
 import type { Player } from '../../types/types'
 import { cn } from '@/lib/utils'
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { useLayout } from '../../hooks/useLayout'
 
 interface GameControlsProps {
   boardId: string
@@ -67,7 +67,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
     settings: true
   })
 
-  const { isCollapsed, getResponsiveSpacing } = useResponsiveLayout()
+  const { isCollapsed, getResponsiveSpacing } = useLayout()
   const spacing = getResponsiveSpacing(16)
 
   // Props objects for child components

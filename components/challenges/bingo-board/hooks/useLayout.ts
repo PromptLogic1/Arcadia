@@ -2,6 +2,14 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { debounce } from '../utils/layout.utils'
 import { LAYOUT_CONSTANTS, type Breakpoint } from '../types/layout.constants'
 
+// Add export to FluidTypography interface
+export interface FluidTypography {
+  fontSize: string
+  lineHeight: string
+  base: number
+  scale: number
+}
+
 // Layout States
 interface LayoutState {
   breakpoint: 'mobile' | 'tablet' | 'desktop'
@@ -21,12 +29,9 @@ interface LayoutProperties {
     base: number
     vertical: number
     horizontal: number
+    gap: number
   }
-  typography: {
-    base: number
-    scale: number
-    lineHeight: number
-  }
+  typography: FluidTypography
   container: {
     maxWidth: number
     padding: number
@@ -55,6 +60,7 @@ interface UseLayout {
   isMobile: boolean
   isTablet: boolean
   isDesktop: boolean
+  isCollapsed: boolean
 
   // Layout Berechnungen
   getGridLayout: (size: number, isMobile: boolean) => LayoutProperties['grid']
@@ -119,7 +125,10 @@ export const useLayout = (): UseLayout => {
         : LAYOUT_CONSTANTS.SPACING.desktop.vertical,
       horizontal: layoutState.isMobile 
         ? LAYOUT_CONSTANTS.SPACING.mobile.horizontal 
-        : LAYOUT_CONSTANTS.SPACING.desktop.horizontal
+        : LAYOUT_CONSTANTS.SPACING.desktop.horizontal,
+      gap: layoutState.isMobile 
+        ? LAYOUT_CONSTANTS.SPACING.mobile.gap 
+        : LAYOUT_CONSTANTS.SPACING.desktop.gap
     }
 
     layoutCache.set(cacheKey, spacing)
@@ -131,10 +140,17 @@ export const useLayout = (): UseLayout => {
     const cached = layoutCache.get(cacheKey)
     if (cached && isTypographyLayout(cached)) return cached
 
-    const typography = {
+    // Calculate fluid font size
+    const minWidth = LAYOUT_CONSTANTS.BREAKPOINTS.mobile
+    const maxWidth = LAYOUT_CONSTANTS.BREAKPOINTS.desktop
+    const slope = (max - min) / (maxWidth - minWidth)
+    const yAxisIntersection = min - slope * minWidth
+
+    const typography: FluidTypography = {
+      fontSize: `clamp(${min}px, ${yAxisIntersection}px + ${slope * 100}vw, ${max}px)`,
+      lineHeight: '1.5',
       base: layoutState.isMobile ? min : max,
-      scale: (max - min) / 2,
-      lineHeight: 1.5
+      scale: (max - min) / 2
     }
 
     layoutCache.set(cacheKey, typography)
@@ -169,7 +185,8 @@ export const useLayout = (): UseLayout => {
            typeof value === 'object' &&
            'base' in value &&
            'vertical' in value &&
-           'horizontal' in value
+           'horizontal' in value &&
+           'gap' in value
   }
 
   const isTypographyLayout = (value: unknown): value is LayoutProperties['typography'] => {
@@ -177,7 +194,8 @@ export const useLayout = (): UseLayout => {
            typeof value === 'object' &&
            'base' in value &&
            'scale' in value &&
-           'lineHeight' in value
+           'lineHeight' in value &&
+           'fluid' in value
   }
 
   const isContainerLayout = (value: unknown): value is LayoutProperties['container'] => {
@@ -281,6 +299,7 @@ export const useLayout = (): UseLayout => {
     isMobile: layoutState.isMobile,
     isTablet: layoutState.isTablet,
     isDesktop: layoutState.isDesktop,
+    isCollapsed: false,
 
     // Berechnungen
     getGridLayout,

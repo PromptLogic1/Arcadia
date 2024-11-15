@@ -12,11 +12,13 @@ export const LAYOUT_CONSTANTS = {
     scale: 1.5,
     mobile: {
       vertical: 12,
-      horizontal: 12
+      horizontal: 12,
+      gap: 8
     },
     desktop: {
       vertical: 16,
-      horizontal: 16
+      horizontal: 16,
+      gap: 16
     }
   },
 
@@ -76,7 +78,14 @@ export const LAYOUT_CONSTANTS = {
   }
 } as const
 
-// Typen für die Konstanten
+// Types for the constants
 export type Breakpoint = keyof typeof LAYOUT_CONSTANTS.BREAKPOINTS
 export type GridGap = keyof typeof LAYOUT_CONSTANTS.GRID.gap
-export type ContainerPadding = keyof typeof LAYOUT_CONSTANTS.CONTAINER.padding 
+export type ContainerPadding = keyof typeof LAYOUT_CONSTANTS.CONTAINER.padding
+
+// Add type for spacing configuration
+export interface SpacingConfig {
+  vertical: number
+  horizontal: number
+  gap: number
+} 
