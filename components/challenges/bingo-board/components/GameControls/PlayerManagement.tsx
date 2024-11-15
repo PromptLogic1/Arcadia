@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 import { useSession } from '../../hooks/useSession'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { playerColors } from '../../types/constants'
+import type { Player } from '../../types/types'
+import { GAMES } from '../../types/types'
 
 interface PlayerManagementProps {
   boardId: string
@@ -28,29 +30,41 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
   onUpdateTeamName,
   onUpdateTeamColor,
 }) => {
-  const { session, loading, error, createSession, joinSession } = useSession(boardId)
+  const { 
+    players,
+    error,
+    addPlayer,
+    removePlayer,
+    updateCell
+  } = useSession({
+    boardId,
+    _game: GAMES[1],
+    initialPlayers: []
+  })
 
   const handleAddPlayer = async () => {
     try {
-      if (!session) {
-        // Create new session if none exists
-        await createSession(
-          `Player 1`,
-          playerColors[0].color,
-          teamMode ? 0 : undefined
-        )
-      } else if (session.players) {
-        // Join existing session
-        const playerCount = session.players.length
+      if (!players.length) {
+        await addPlayer({
+          id: `player-${Date.now()}`,
+          name: `Player 1`,
+          color: playerColors[0].color,
+          hoverColor: playerColors[0].hoverColor,
+          team: teamMode ? 0 : 0
+        })
+      } else {
+        const playerCount = players.length
         const colorIndex = playerCount % playerColors.length
         const playerColor = playerColors[colorIndex]?.color || playerColors[0].color
+        const playerHoverColor = playerColors[colorIndex]?.hoverColor || playerColors[0].hoverColor
 
-        await joinSession(
-          session.id,
-          `Player ${playerCount + 1}`,
-          playerColor,
-          teamMode ? playerCount % 2 : undefined
-        )
+        await addPlayer({
+          id: `player-${Date.now()}`,
+          name: `Player ${playerCount + 1}`,
+          color: playerColor,
+          hoverColor: playerHoverColor,
+          team: teamMode ? playerCount % 2 : 0
+        })
       }
     } catch (err) {
       console.error('Error adding player:', err)
@@ -58,51 +72,30 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
   }
 
   const handleUpdatePlayer = async (
-    sessionId: string,
+    playerId: string,
     playerName: string,
     color: string,
-    team?: number
+    _team?: number
   ) => {
     try {
-      const response = await fetch('/api/bingo/sessions/players', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          playerName,
-          color,
-          team
-        })
+      await updateCell(playerId, {
+        text: playerName,
+        colors: [color],
+        completedBy: [],
+        blocked: false,
+        isMarked: false,
+        cellId: playerId,
+        lastModifiedBy: playerId,
+        version: Date.now(),
+        lastUpdated: Date.now()
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to update player')
-      }
     } catch (err) {
       console.error('Error updating player:', err)
     }
   }
 
-  const handleRemovePlayer = async (sessionId: string) => {
-    try {
-      const response = await fetch(`/api/bingo/sessions/players?sessionId=${sessionId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to remove player')
-      }
-    } catch (err) {
-      console.error('Error removing player:', err)
-    }
-  }
-
-  if (loading) {
-    return <div className="text-center text-gray-400">Loading players...</div>
-  }
-
   if (error) {
-    return <div className="text-center text-red-400">Error: {error}</div>
+    return <div className="text-center text-red-400">Error: {error.message}</div>
   }
 
   return (
@@ -135,15 +128,15 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
       )}
 
       <div className="space-y-2">
-        {session?.players?.map((player, index) => (
+        {players.map((player: Player, index: number) => (
           <div
-            key={index}
+            key={player.id}
             className="flex items-center gap-2 p-2 rounded-md bg-gray-700/30 border border-cyan-500/20"
           >
             <Input
               value={player.name}
               onChange={(e) => handleUpdatePlayer(
-                session.id,
+                player.id,
                 e.target.value,
                 player.color,
                 teamMode ? index % 2 : undefined
@@ -154,7 +147,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             <ColorPicker
               color={player.color}
               onChange={(color: string) => handleUpdatePlayer(
-                session.id,
+                player.id,
                 player.name,
                 color,
                 teamMode ? index % 2 : undefined
@@ -164,7 +157,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => handleRemovePlayer(session.id)}
+              onClick={() => removePlayer(player.id)}
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -174,7 +167,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
 
       <Button
         onClick={handleAddPlayer}
-        disabled={!isOwner || (session?.players?.length ?? 0) >= 8}
+        disabled={!isOwner || players.length >= 8}
         className={cn(
           "w-full h-8 text-sm",
           "bg-cyan-500/20 hover:bg-cyan-500/30",
