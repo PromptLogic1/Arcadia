@@ -2,10 +2,13 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { GameSettings } from '../types/gamesettings.types'
+import { GAME_SETTINGS, DEFAULT_GAME_SETTINGS } from '../types/gamesettings.constants'
 import type { Database } from '@/types/database.types'
 
-// Event-System Typen
+// Event-System Types
 interface SettingsChangeEventDetail {
+  type: 'change' | 'reset' | 'modeSwitch'
   settings: GameSettings
   source: 'user' | 'system'
   timestamp: number
@@ -19,51 +22,15 @@ declare global {
   }
 }
 
-/**
- * Interface für die Spieleinstellungen
- * @property teamMode - Aktiviert Team-basiertes Spielen
- * @property lockout - Verhindert mehrfache Markierungen der gleichen Zelle
- * @property soundEnabled - Aktiviert Sound-Effekte
- * @property winConditions - Definiert die Siegbedingungen
- * @property timeLimit - Zeitlimit in Sekunden
- */
-interface GameSettings {
-  teamMode: boolean
-  lockout: boolean
-  soundEnabled: boolean
-  winConditions: {
-    line: boolean
-    majority: boolean
-  }
-  timeLimit: number
-}
-
-/**
- * Standard-Einstellungen für ein neues Spiel
- */
-const DEFAULT_SETTINGS: GameSettings = {
-  teamMode: false,
-  lockout: true,
-  soundEnabled: true,
-  winConditions: {
-    line: true,
-    majority: false
-  },
-  timeLimit: 300 // 5 minutes
-}
-
-/**
- * Interface für den useGameSettings Hook
- */
 interface UseGameSettings {
   // States
   settings: GameSettings
   loading: boolean
-  error: string | null
+  error: Error | null
 
   // Core Functions
   updateSettings: (updates: Partial<GameSettings>) => Promise<void>
-  resetSettings: () => void
+  resetSettings: () => Promise<void>
 
   // Toggle Functions
   toggleTeamMode: () => Promise<void>
@@ -75,53 +42,40 @@ interface UseGameSettings {
   updateTimeLimit: (seconds: number) => Promise<void>
 }
 
-/**
- * Hook für die Verwaltung von Spieleinstellungen
- * 
- * @param boardId - Optional. ID des Bingo-Boards für DB-Persistenz
- * @returns UseGameSettings Interface mit allen Funktionen und States
- * 
- * @example
- * ```tsx
- * const { 
- *   settings, 
- *   updateSettings,
- *   toggleTeamMode 
- * } = useGameSettings('board-123')
- * 
- * // Einstellungen aktualisieren
- * await updateSettings({ teamMode: true, lockout: true })
- * 
- * // Team-Modus umschalten
- * await toggleTeamMode()
- * ```
- */
-export const useGameSettings = (boardId?: string): UseGameSettings => {
-  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS)
+export const useGameSettings = (_boardId: string): UseGameSettings => {
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [lastValidSettings, setLastValidSettings] = useState<GameSettings>(DEFAULT_SETTINGS)
+  const [error, setError] = useState<Error | null>(null)
+  const [lastValidSettings, setLastValidSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
 
   const supabase = createClientComponentClient<Database>()
 
-  // Konsistenzprüfung
+  // Error Handling korrigieren
+  const setErrorMessage = useCallback((message: string) => {
+    setError(new Error(message))
+  }, [])
+
+  // Erweiterte Validierung gemäß 3.1 & 3.2
   const validateSettings = useCallback((newSettings: GameSettings): boolean => {
     try {
-      // Mindestens eine Win-Condition muss aktiv sein
+      // Regelkonflikte
+      if (newSettings.teamMode && !newSettings.lockout) {
+        return false // Lockout muss im Team-Modus aktiv sein
+      }
+
+      // Mindestens eine Siegbedingung muss aktiv sein
       if (!newSettings.winConditions.line && !newSettings.winConditions.majority) {
         return false
       }
 
-      // Team-Mode Validierungen
-      if (newSettings.teamMode) {
-        // Lockout muss im Team-Modus aktiv sein
-        if (!newSettings.lockout) {
-          return false
-        }
+      // Spielmodus-Kompatibilität
+      if (newSettings.teamMode && newSettings.boardSize < 4) {
+        return false // Team-Modus braucht mindestens 4x4 Board
       }
 
       // Zeit-Validierung
-      if (newSettings.timeLimit < 60 || newSettings.timeLimit > 3600) {
+      if (newSettings.timeLimit < GAME_SETTINGS.TIME_LIMITS.MIN_TIME || 
+          newSettings.timeLimit > GAME_SETTINGS.TIME_LIMITS.MAX_TIME) {
         return false
       }
 
@@ -132,11 +86,15 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
     }
   }, [])
 
-  // Event-Handling mit verbesserter Typisierung
-  const emitSettingsChange = useCallback((newSettings: GameSettings) => {
+  // Event-Handling mit allen Event-Typen
+  const emitSettingsEvent = useCallback((
+    type: 'change' | 'reset' | 'modeSwitch',
+    newSettings: GameSettings
+  ) => {
     try {
-      const event = new CustomEvent<SettingsChangeEventDetail>('settingsChange', { 
+      const event = new CustomEvent<SettingsChangeEventDetail>('settingsChange', {
         detail: {
+          type,
           settings: newSettings,
           source: 'user',
           timestamp: Date.now()
@@ -145,14 +103,14 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
       })
       window.dispatchEvent(event)
     } catch (error) {
-      console.error('Error emitting settings change:', error)
+      console.error('Error emitting settings event:', error)
     }
   }, [])
 
   // Lade gespeicherte Einstellungen
   useEffect(() => {
     const loadSettings = async () => {
-      if (!boardId) {
+      if (!_boardId) {
         setLoading(false)
         return
       }
@@ -161,7 +119,7 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
         const { data, error: fetchError } = await supabase
           .from('bingo_boards')
           .select('settings')
-          .eq('id', boardId)
+          .eq('id', _boardId)
           .single()
 
         if (fetchError) throw fetchError
@@ -173,34 +131,34 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
         setError(null)
       } catch (err) {
         console.error('Error loading settings:', err)
-        setError('Failed to load settings')
+        setErrorMessage('Failed to load settings')
       } finally {
         setLoading(false)
       }
     }
 
     loadSettings()
-  }, [boardId, supabase])
+  }, [_boardId, supabase, setErrorMessage])
 
   // Speichere Einstellungen in der Datenbank
   const saveSettings = useCallback(async (newSettings: GameSettings) => {
-    if (!boardId) return
+    if (!_boardId) return
 
     try {
       const { error: updateError } = await supabase
         .from('bingo_boards')
         .update({ settings: newSettings })
-        .eq('id', boardId)
+        .eq('id', _boardId)
 
       if (updateError) throw updateError
       
       setError(null)
     } catch (err) {
       console.error('Error saving settings:', err)
-      setError('Failed to save settings')
+      setError(new Error('Failed to save settings'))
       throw err
     }
-  }, [boardId, supabase])
+  }, [_boardId, supabase])
 
   // Erweiterte updateSettings mit Validierung
   const updateSettings = useCallback(async (updates: Partial<GameSettings>) => {
@@ -212,22 +170,22 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
       
       // Validiere neue Einstellungen
       if (!validateSettings(newSettings)) {
-        setError('Invalid settings configuration')
+        setError(new Error('Invalid settings configuration'))
         return
       }
       
       setSettings(newSettings)
       setLastValidSettings(newSettings)
       await saveSettings(newSettings)
-      emitSettingsChange(newSettings)
+      emitSettingsEvent('change', newSettings)
       setError(null)
     } catch (err) {
       console.error('Error updating settings:', err)
-      setError('Failed to update settings')
+      setError(new Error('Failed to update settings'))
       // Rollback zu letzten validen Einstellungen
       setSettings(lastValidSettings)
     }
-  }, [settings, lastValidSettings, saveSettings, validateSettings, emitSettingsChange])
+  }, [settings, lastValidSettings, saveSettings, validateSettings, emitSettingsEvent])
 
   // Event-Listener mit korrekter Typisierung
   useEffect(() => {
@@ -266,13 +224,13 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
       }
     }
 
-    if (!boardId) {
+    if (!_boardId) {
       loadLocalSettings()
     }
 
     // Cleanup-Funktion
     return () => {
-      if (settings !== DEFAULT_SETTINGS) {
+      if (settings !== DEFAULT_GAME_SETTINGS) {
         try {
           localStorage.setItem('lastGameSettings', JSON.stringify(settings))
         } catch (error) {
@@ -280,46 +238,70 @@ export const useGameSettings = (boardId?: string): UseGameSettings => {
         }
       }
     }
-  }, [boardId, settings, validateSettings])
+  }, [_boardId, settings, validateSettings])
 
   // Core Functions
-  const resetSettings = useCallback(() => {
-    setSettings(DEFAULT_SETTINGS)
-    if (boardId) {
-      saveSettings(DEFAULT_SETTINGS).catch(err => {
+  const resetSettings = useCallback(async () => {
+    setSettings(DEFAULT_GAME_SETTINGS)
+    if (_boardId) {
+      saveSettings(DEFAULT_GAME_SETTINGS).catch(err => {
         console.error('Error resetting settings:', err)
-        setError('Failed to reset settings')
+        setError(new Error('Failed to reset settings'))
       })
     }
-  }, [boardId, saveSettings])
+  }, [_boardId, saveSettings])
 
   // Toggle Functions
   const toggleTeamMode = useCallback(async () => {
-    await updateSettings({ teamMode: !settings.teamMode })
-  }, [settings.teamMode, updateSettings])
+    const newSettings = {
+      ...settings,
+      teamMode: !settings.teamMode,
+      lockout: !settings.teamMode // Aktiviere Lockout wenn Team Mode aktiviert wird
+    }
+    await updateSettings(newSettings)
+    emitSettingsEvent('modeSwitch', newSettings)
+  }, [settings, updateSettings, emitSettingsEvent])
 
   const toggleLockout = useCallback(async () => {
-    await updateSettings({ lockout: !settings.lockout })
-  }, [settings.lockout, updateSettings])
+    const newSettings = {
+      ...settings,
+      lockout: !settings.lockout
+    }
+    await updateSettings(newSettings)
+    emitSettingsEvent('change', newSettings)
+  }, [settings, updateSettings, emitSettingsEvent])
 
   const toggleSound = useCallback(async () => {
-    await updateSettings({ soundEnabled: !settings.soundEnabled })
-  }, [settings.soundEnabled, updateSettings])
+    const newSettings = {
+      ...settings,
+      soundEnabled: !settings.soundEnabled
+    }
+    await updateSettings(newSettings)
+    emitSettingsEvent('change', newSettings)
+  }, [settings, updateSettings, emitSettingsEvent])
 
   const toggleWinCondition = useCallback(async (type: keyof GameSettings['winConditions']) => {
-    await updateSettings({
+    const newSettings = {
+      ...settings,
       winConditions: {
         ...settings.winConditions,
         [type]: !settings.winConditions[type]
       }
-    })
-  }, [settings.winConditions, updateSettings])
+    }
+    await updateSettings(newSettings)
+    emitSettingsEvent('change', newSettings)
+  }, [settings, updateSettings, emitSettingsEvent])
 
   // Time Management
   const updateTimeLimit = useCallback(async (seconds: number) => {
-    const validSeconds = Math.max(60, Math.min(3600, seconds)) // 1 min to 1 hour
-    await updateSettings({ timeLimit: validSeconds })
-  }, [updateSettings])
+    const validSeconds = Math.max(GAME_SETTINGS.TIME_LIMITS.MIN_TIME, Math.min(GAME_SETTINGS.TIME_LIMITS.MAX_TIME, seconds))
+    const newSettings = {
+      ...settings,
+      timeLimit: validSeconds
+    }
+    await updateSettings(newSettings)
+    emitSettingsEvent('change', newSettings)
+  }, [settings, updateSettings, emitSettingsEvent])
 
   return {
     // States

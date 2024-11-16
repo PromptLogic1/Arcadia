@@ -4,18 +4,17 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
 import type { BoardCell } from '../types/types'
+import type { UseBingoBoardProps, UseBingoBoardReturn } from '../types/bingoboard.types'
+import { BOARD_CONSTANTS, ERROR_MESSAGES } from '../types/bingoboard.constants'
 
-interface UseBingoBoardProps {
-  boardId: string
-}
-
+type BingoBoardRow = Database['public']['Tables']['bingo_boards']['Row']
 type PostgresChangesPayload = {
   schema: string
   table: string
   commit_timestamp: string
   eventType: 'INSERT' | 'UPDATE' | 'DELETE'
-  new: Database['public']['Tables']['bingo_boards']['Row']
-  old: Database['public']['Tables']['bingo_boards']['Row'] | null
+  new: BingoBoardRow
+  old: BingoBoardRow | null
 }
 
 // Hilfsfunktionen für Validierung und Fehlerbehandlung
@@ -24,10 +23,11 @@ const isTemporaryError = (error: Error) => {
   return temporaryErrors.some(e => error.message.toLowerCase().includes(e))
 }
 
-export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
-  const [board, setBoard] = useState<Database['public']['Tables']['bingo_boards']['Row'] | null>(null)
+export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardReturn => {
+  // States
+  const [board, setBoard] = useState<BingoBoardRow | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
   
   // Singleton Supabase Client
   const supabase = useMemo(() => createClientComponentClient<Database>(), [])
@@ -35,7 +35,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
   // Validierung mit Fehler-Feedback
   const validateBoardState = useCallback((state: unknown): state is BoardCell[] => {
     if (!Array.isArray(state)) {
-      setError('Invalid board state: not an array')
+      setError(new Error(ERROR_MESSAGES.INVALID_BOARD))
       return false
     }
     
@@ -56,15 +56,15 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
     ))
 
     if (!isValid) {
-      setError('Invalid board state: corrupt data')
+      setError(new Error(ERROR_MESSAGES.INVALID_BOARD))
     }
     return isValid
   }, [])
 
   // Fetch board data mit Retry-Logik
   const fetchBoard = useCallback(async (attempt = 1) => {
-    const maxAttempts = 3
-    const retryDelay = 100
+    const maxAttempts = BOARD_CONSTANTS.UPDATE.MAX_RETRIES
+    const retryDelay = BOARD_CONSTANTS.UPDATE.RETRY_DELAY
 
     try {
       const { data, error: fetchError } = await supabase
@@ -81,7 +81,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
 
       if (fetchError) {
         setLoading(false)
-        setError('Network error')
+        setError(new Error(ERROR_MESSAGES.NETWORK_ERROR))
         throw fetchError
       }
 
@@ -91,7 +91,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
           return fetchBoard(attempt + 1)
         }
         setLoading(false)
-        throw new Error('Invalid board data received')
+        throw new Error(ERROR_MESSAGES.INVALID_BOARD)
       }
 
       setBoard(data)
@@ -102,20 +102,16 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
         await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
         return fetchBoard(attempt + 1)
       }
-      setError(err instanceof Error ? err.message : 'Failed to fetch board')
+      setError(err instanceof Error ? err : new Error(ERROR_MESSAGES.SYNC_FAILED))
       setLoading(false)
     }
   }, [boardId, supabase, validateBoardState])
 
-  useEffect(() => {
-    fetchBoard()
-  }, [fetchBoard])
-
   // Update board state mit optimistischem Update und Merge-Logik
   const updateBoardState = useCallback(async (newState: BoardCell[]) => {
     if (!validateBoardState(newState)) {
-      const errorMsg = 'Invalid board state'
-      setError(errorMsg)
+      const errorMsg = ERROR_MESSAGES.INVALID_BOARD
+      setError(new Error(errorMsg))
       throw new Error(errorMsg)
     }
 
@@ -142,8 +138,8 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
         if (previousBoard) {
           setBoard(previousBoard)
         }
-        const errorMsg = 'Failed to update board'
-        setError(errorMsg)
+        const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
+        setError(new Error(errorMsg))
         throw new Error(errorMsg)
       }
 
@@ -154,8 +150,8 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
       if (previousBoard) {
         setBoard(previousBoard)
       }
-      const errorMsg = 'Failed to update board'
-      setError(errorMsg)
+      const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
+      setError(new Error(errorMsg))
       throw new Error(errorMsg)
     }
   }, [board, boardId, supabase, validateBoardState])
@@ -187,7 +183,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
             } else {
               resolve()
             }
-          }, 50)
+          }, BOARD_CONSTANTS.UPDATE.BATCH_DELAY)
         })
       },
       clear: () => {
@@ -208,13 +204,13 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
         .eq('id', boardId)
 
       if (updateError) {
-        const errorMsg = 'Failed to update settings'
-        setError(errorMsg)
+        const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
+        setError(new Error(errorMsg))
         throw new Error(errorMsg)
       }
       return Promise.resolve()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update settings')
+      setError(err instanceof Error ? err : new Error(ERROR_MESSAGES.UPDATE_FAILED))
       return Promise.reject(err)
     }
   }
@@ -222,13 +218,13 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
   // Realtime subscriptions mit Merge-Logik
   useEffect(() => {
     let reconnectAttempts = 0
-    const maxReconnectAttempts = 3
-    const reconnectDelay = 1000
+    const maxReconnectAttempts = BOARD_CONSTANTS.SYNC.RECONNECT_ATTEMPTS
+    const reconnectDelay = BOARD_CONSTANTS.SYNC.RECONNECT_DELAY
 
     const channel = supabase
       .channel(`board_${boardId}`)
       .on<PostgresChangesPayload>(
-        'postgres_changes' as 'system',
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
@@ -236,10 +232,11 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
           filter: `id=eq.${boardId}`
         },
         payload => {
-          if (payload.new && validateBoardState(payload.new.board_state)) {
+          if (payload.eventType === 'UPDATE' && payload.new && validateBoardState(payload.new.board_state)) {
             setBoard(prev => {
               if (!prev) return payload.new
-              return {
+              
+              const updatedBoard: BingoBoardRow = {
                 ...payload.new,
                 board_state: payload.new.board_state.map((cell: BoardCell, i: number) => ({
                   ...cell,
@@ -249,11 +246,13 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps) => {
                   ])]
                 }))
               }
+              
+              return updatedBoard
             })
           }
         }
       )
-      .on('system' as const, 'disconnect', () => {
+      .on('system', 'disconnect', () => {
         const tryReconnect = () => {
           if (reconnectAttempts >= maxReconnectAttempts) return
           reconnectAttempts++

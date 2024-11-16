@@ -1,7 +1,7 @@
 import type { BoardCell, Game } from '../types/types'
 import type { GeneratorSettings } from '../types/generator.types'
 import { GENERATOR_CONFIG } from '../types/generator.constants'
-import type { Tag } from '../types/tag-system.types'
+import type { Tag } from '../types/tagsystem.types'
 import { wowChallenges } from '../types/constants'
 
 interface CardPoolItem extends BoardCell {

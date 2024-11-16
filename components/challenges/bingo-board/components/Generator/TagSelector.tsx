@@ -3,7 +3,7 @@
 import React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { Tag } from '../../types/tag-system.types'
+import type { Tag } from '../../types/tagsystem.types'
 
 interface TagSelectorProps {
   availableTags: Tag[]

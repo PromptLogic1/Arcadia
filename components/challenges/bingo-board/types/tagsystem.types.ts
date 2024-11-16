@@ -39,4 +39,13 @@ export interface TagVote {
   userId: string
   vote: 'up' | 'down'
   timestamp: Date
+}
+
+export interface TagHistory {
+  id: string
+  tagId: string
+  action: 'create' | 'update' | 'delete' | 'vote' | 'verify' | 'archive'
+  changes: Record<string, unknown>
+  performedBy: string
+  timestamp: Date
 } 

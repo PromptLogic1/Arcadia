@@ -17,6 +17,7 @@ import type {
 import type { PresenceState } from '../types/presence.types'
 import { usePresence } from './usePresence'
 import type { SessionCell } from '../types/session.types'
+import { SessionService } from '../services/session.service'
 
 // Session States
 interface SessionState {
@@ -278,11 +279,14 @@ export const useSession = ({
     }
   }, [pauseSession])
 
-  // Then define handleEvent
+  const sessionService = useMemo(() => new SessionService(), [])
+
   const handleEvent = useCallback((event: ImportedSessionEvent | LocalSessionEvent) => {
     try {
-      if ('type' in event) {
-        switch (event.type) {
+      if ('type' in event && sessionService.validateEvent(event)) {
+        const { type } = event
+        
+        switch (type) {
           case 'playerJoin':
           case 'playerLeave':
             handlePlayerEvent(event as PlayerEvent)
@@ -307,7 +311,7 @@ export const useSession = ({
     } catch (error) {
       handleError(error as Error)
     }
-  }, [handleBaseEvent, handleCellUpdate, handleConnectionEvent, handlePlayerEvent, handleStateEvent, handleError])
+  }, [handleBaseEvent, handleCellUpdate, handleConnectionEvent, handlePlayerEvent, handleStateEvent, handleError, sessionService])
 
   // Move recoverState after handleEvent
   const recoverState = useCallback(async () => {

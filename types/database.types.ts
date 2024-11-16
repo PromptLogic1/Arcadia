@@ -91,10 +91,25 @@ export interface Database {
         Row: {
           id: string
           name: string
+          type: 'core' | 'game' | 'community'
+          category: {
+            id: string
+            name: string
+            isRequired: boolean
+            allowMultiple: boolean
+            validForGames: string[]
+          }
+          status: 'active' | 'proposed' | 'verified' | 'archived' | 'suspended'
+          description: string
+          game?: string
           created_at: string
+          updated_at: string
+          usage_count: number
+          votes: number
+          created_by?: string
         }
-        Insert: Omit<Tables['tags']['Row'], 'id' | 'created_at'>
-        Update: Partial<Tables['tags']['Insert']>
+        Insert: Omit<Tables['tags']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Tables['tags']['Row']>
       }
       discussions: {
         Row: {
@@ -233,6 +248,40 @@ export interface Database {
         }
         Insert: Omit<Tables['bingo_session_cells']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Tables['bingo_session_cells']['Row']>
+      }
+      tag_votes: {
+        Row: {
+          id: string
+          tag_id: string
+          user_id: string
+          vote: 'up' | 'down'
+          timestamp: string
+        }
+        Insert: Omit<Tables['tag_votes']['Row'], 'id'>
+        Update: Partial<Tables['tag_votes']['Row']>
+      }
+      tag_reports: {
+        Row: {
+          id: string
+          tag_id: string
+          user_id: string
+          reason: string
+          timestamp: string
+        }
+        Insert: Omit<Tables['tag_reports']['Row'], 'id'>
+        Update: Partial<Tables['tag_reports']['Row']>
+      }
+      tag_history: {
+        Row: {
+          id: string
+          tag_id: string
+          action: 'create' | 'update' | 'delete' | 'vote' | 'verify' | 'archive'
+          changes: Record<string, unknown>
+          performed_by: string
+          created_at: string
+        }
+        Insert: Omit<Tables['tag_history']['Row'], 'id' | 'created_at'>
+        Update: Partial<Tables['tag_history']['Row']>
       }
     }
     Views: {
