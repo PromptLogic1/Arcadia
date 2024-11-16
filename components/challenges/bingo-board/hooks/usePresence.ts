@@ -1,68 +1,77 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { RealtimePresenceState } from '@supabase/supabase-js'
+import type { PresenceState } from '../types/presence.types'
+import { PRESENCE_CONSTANTS } from '../types/presence.constants'
 import type { Database } from '@/types/database.types'
+import type { RealtimePresenceState } from '@supabase/supabase-js'
 
-interface PresenceState {
-  user_id: string
-  online_at: number
-  last_seen_at: number
-  status: 'online' | 'away' | 'offline'
+interface PresenceStateWithRef extends PresenceState {
+  presence_ref: string
 }
 
-// Add type guard
-const isPresenceState = (value: unknown): value is PresenceState => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'user_id' in value &&
-    'online_at' in value &&
-    'last_seen_at' in value &&
-    'status' in value
-  )
-}
-
-// Add updatePresenceState function
-const updatePresenceState = (
-  setPresenceState: React.Dispatch<React.SetStateAction<Record<string, PresenceState>>>,
-  key: string, 
-  presence: PresenceState
-) => {
-  setPresenceState(prev => ({
-    ...prev,
-    [key]: presence
-  }))
-}
+// Helper function to convert presence state
+const convertPresence = (presence: PresenceStateWithRef): PresenceState => ({
+  user_id: presence.user_id,
+  online_at: presence.online_at,
+  last_seen_at: presence.last_seen_at,
+  status: presence.status
+})
 
 export const usePresence = (boardId: string) => {
   const [presenceState, setPresenceState] = useState<Record<string, PresenceState>>({})
   const [error, setError] = useState<Error | null>(null)
   const supabase = createClientComponentClient<Database>()
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
-  // Track user presence
-  const trackPresence = useCallback(async () => {
+  const updatePresence = useCallback(async (status: PresenceState['status']) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !channelRef.current) return
+
+      await channelRef.current.track({
+        user_id: user.id,
+        online_at: Date.now(),
+        last_seen_at: Date.now(),
+        status
+      })
+    } catch (err) {
+      console.error('Error updating presence:', err)
+    }
+  }, [supabase])
+
+  const handleVisibilityChange = useCallback(() => {
+    const status = document.hidden ? PRESENCE_CONSTANTS.STATUS.AWAY : PRESENCE_CONSTANTS.STATUS.ONLINE
+    void updatePresence(status)
+  }, [updatePresence])
+
+  const setupPresence = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const channel = supabase.channel(`presence:${boardId}`)
+      const channel = supabase.channel(`${PRESENCE_CONSTANTS.CHANNEL_PREFIX}${boardId}`)
+      channelRef.current = channel
 
       channel
         .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState<PresenceState>()
-          const typedState = Object.entries(state).reduce((acc, [key, value]) => {
-            if (Array.isArray(value) && value[0] && isPresenceState(value[0])) {
-              acc[key] = value[0]
+          const state = channel.presenceState<PresenceStateWithRef>()
+          const typedState = Object.entries(state as RealtimePresenceState<PresenceStateWithRef>).reduce((acc, [key, value]) => {
+            if (Array.isArray(value) && value[0]) {
+              acc[key] = convertPresence(value[0])
             }
             return acc
           }, {} as Record<string, PresenceState>)
           setPresenceState(typedState)
         })
         .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          if (newPresences[0] && isPresenceState(newPresences[0])) {
-            updatePresenceState(setPresenceState, key, newPresences[0])
+          if (newPresences?.[0]) {
+            const presence = newPresences[0] as PresenceStateWithRef
+            setPresenceState(prev => ({
+              ...prev,
+              [key]: convertPresence(presence)
+            }))
           }
         })
         .on('presence', { event: 'leave' }, ({ key }) => {
@@ -72,61 +81,42 @@ export const usePresence = (boardId: string) => {
             return newState
           })
         })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await channel.track({
-              user_id: user.id,
-              online_at: Date.now(),
-              last_seen_at: Date.now(),
-              status: 'online'
-            })
-          }
-        })
 
-      // Heartbeat to keep presence alive
-      const heartbeat = setInterval(async () => {
-        await channel.track({
-          user_id: user.id,
-          online_at: Date.now(),
-          last_seen_at: Date.now(),
-          status: document.hidden ? 'away' : 'online'
-        })
-      }, 30000)
+      await channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await updatePresence(PRESENCE_CONSTANTS.STATUS.ONLINE)
+        }
+      })
+
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      const heartbeatInterval = setInterval(() => {
+        updatePresence(document.hidden ? PRESENCE_CONSTANTS.STATUS.AWAY : PRESENCE_CONSTANTS.STATUS.ONLINE)
+      }, PRESENCE_CONSTANTS.HEARTBEAT_INTERVAL)
 
       return () => {
-        clearInterval(heartbeat)
+        clearInterval(heartbeatInterval)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
         supabase.removeChannel(channel)
+        channelRef.current = null
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to track presence'))
     }
-  }, [boardId, supabase])
+  }, [boardId, supabase, updatePresence, handleVisibilityChange])
 
-  // Handle visibility change
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      trackPresence()
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [trackPresence])
-
-  // Initial setup
-  useEffect(() => {
-    const cleanup = trackPresence()
+    const cleanup = setupPresence()
     return () => {
       cleanup?.then(fn => fn?.())
     }
-  }, [trackPresence])
+  }, [setupPresence])
 
   return {
     presenceState,
     error,
     getOnlineUsers: useCallback(() => 
-      Object.values(presenceState).filter(p => p.status === 'online'),
+      Object.values(presenceState).filter(p => p.status === PRESENCE_CONSTANTS.STATUS.ONLINE),
     [presenceState])
   }
 } 
