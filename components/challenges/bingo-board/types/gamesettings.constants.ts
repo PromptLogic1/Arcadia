@@ -9,9 +9,9 @@ export const GAME_SETTINGS = {
 
   TIME_LIMITS: {
     MIN_TIME: 60000,    // 1 Minute
-    MAX_TIME: 3600000,  // 1 Stunde
-    DEFAULT_TIME: 300000, // 5 Minuten
-    DEFAULT_TURN_TIME: 30000 // 30 Sekunden
+    MAX_TIME: 3600000,  // 1 Hour
+    DEFAULT_TIME: 300000, // 5 Minutes
+    DEFAULT_TURN_TIME: 30000 // 30 Seconds
   },
 
   BOARD_SETTINGS: {
