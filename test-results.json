@@ -1,75 +1,9 @@
 {
-  "timestamp": "2024-11-16T11:38:53.415Z",
-  "totalTests": 9,
-  "passedTests": 8,
-  "failedTests": 1,
+  "timestamp": "2024-11-16T13:05:09.692Z",
+  "totalTests": 0,
+  "passedTests": 0,
+  "failedTests": 0,
   "pendingTests": 0,
-  "duration": 3684,
-  "testResults": [
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should initialize with loading state",
-      "status": "passed",
-      "duration": 45,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should fetch board data successfully",
-      "status": "passed",
-      "duration": 116,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should handle fetch errors",
-      "status": "failed",
-      "duration": 107,
-      "errorMessages": [
-        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mfalse\u001b[39m\nReceived: \u001b[31mtrue\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:112:36)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should update board state successfully",
-      "status": "passed",
-      "duration": 112,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should handle update errors with rollback",
-      "status": "passed",
-      "duration": 217,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should validate board state correctly",
-      "status": "passed",
-      "duration": 2,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should handle retry logic for failed fetches",
-      "status": "passed",
-      "duration": 1507,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should handle realtime updates correctly",
-      "status": "passed",
-      "duration": 15,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
-      "testName": "useBingoBoard should handle batch updates correctly",
-      "status": "passed",
-      "duration": 109,
-      "errorMessages": []
-    }
-  ]
+  "duration": 1485,
+  "testResults": []
 }

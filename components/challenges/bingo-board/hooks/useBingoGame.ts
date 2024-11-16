@@ -55,6 +55,10 @@ interface UseBingoGameReturn {
   resetBoard: () => void
   handleCellChange: (index: number, value: string) => void
   updateBoardState: (index: number, updates: Partial<BoardCell>) => void
+  setLastMove: (move: LastMove) => void
+  
+  // Marked Fields Management
+  setMarkedFields: (fields: MarkedFields) => void
 }
 
 /**
@@ -77,7 +81,9 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
   const [gameError, setGameError] = useState<GameError | null>(null)
   
   const handleError = useCallback((error: Error) => {
-    console.error('Game error:', error)
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Game error:', error)
+    }
     setGameError({
       type: BINGO_GAME_CONSTANTS.ERROR_TYPES.INVALID_GAME_STATE,
       message: error.message,
@@ -96,7 +102,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
       Math.min(initialSize, BINGO_GAME_CONSTANTS.VALIDATION.MAX_BOARD_SIZE)
     )
   )
-  const [lastMove, setLastMove] = useState<LastMove>(null)
+  const [lastMove, setLastMoveState] = useState<LastMove>(null)
   const [markedFields, setMarkedFields] = useState<MarkedFields>({
     total: 0,
     byPlayer: {}
@@ -183,7 +189,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     try {
       if (!event.move) return
       
-      setLastMove(event.move)
+      setLastMoveState(event.move)
       setMarkedFields(event.markedFields)
       trackMove(event.move.playerId, 'mark', event.move.position)
       
@@ -196,7 +202,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     } catch (error) {
       handleError(error as Error)
     }
-  }, [players, trackMove, updateStats, getCompletedLinesCount, handleError])
+  }, [players, trackMove, updateStats, getCompletedLinesCount, handleError, setLastMoveState])
 
   const emitGameEnd = useCallback((event: GameEndEvent) => {
     try {
@@ -239,13 +245,26 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
 
   // Win Condition Checking
   const checkLineWin = useCallback((cells: BoardCell[]): boolean => {
-    const colors = cells.map(cell => cell.colors[0]).filter(Boolean)
-    return new Set(colors).size <= 1 && colors.length === boardSize
+    if (!cells || cells.length !== boardSize) return false
+    
+    // Get the first marked cell's completedBy player
+    const firstMarkedCell = cells.find(cell => cell.isMarked && cell.completedBy.length > 0)
+    if (!firstMarkedCell) return false
+    
+    const playerId = firstMarkedCell.completedBy[0]
+    if (!playerId) return false
+    
+    // Check if all cells in the line are marked by the same player
+    return cells.every(cell => 
+      cell.isMarked && 
+      cell.completedBy.length > 0 && 
+      cell.completedBy[0] === playerId
+    )
   }, [boardSize])
 
   const checkWinningCondition = useCallback((currentPlayers: Player[], timeExpired?: boolean): boolean => {
     try {
-      measurePerformance() // Track performance before check
+      measurePerformance()
       if (!currentPlayers.length || winner !== null) return false
 
       // Check for line win if enabled
@@ -258,36 +277,74 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
         // Check horizontal
         const currentRow = boardData.rows[row]
         if (currentRow && checkLineWin(currentRow)) {
-          emitGameEnd({
-            winner: lastMove.playerId,
-            reason: 'line',
-            winningLine: currentRow.map((_, i) => row * boardSize + i)
-          })
-          return true
+          const winningPlayerId = currentRow[0]?.completedBy[0]
+          if (winningPlayerId) {
+            const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+            if (winnerIndex !== -1) {
+              setWinner(winnerIndex)
+              emitGameEnd({
+                winner: winningPlayerId,
+                reason: 'line',
+                winningLine: currentRow.map((_, i) => row * boardSize + i)
+              })
+              return true
+            }
+          }
         }
 
         // Check vertical
         const currentCol = boardData.columns[col]
         if (currentCol && checkLineWin(currentCol)) {
-          emitGameEnd({
-            winner: lastMove.playerId,
-            reason: 'line',
-            winningLine: currentCol.map((_, i) => i * boardSize + col)
-          })
-          return true
+          const winningPlayerId = currentCol[0]?.completedBy[0]
+          if (winningPlayerId) {
+            const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+            if (winnerIndex !== -1) {
+              setWinner(winnerIndex)
+              emitGameEnd({
+                winner: winningPlayerId,
+                reason: 'line',
+                winningLine: currentCol.map((_, i) => i * boardSize + col)
+              })
+              return true
+            }
+          }
         }
 
         // Check diagonals
-        if ((row === col || row + col === boardSize - 1)) {
+        if (row === col || row + col === boardSize - 1) {
           const diag1 = boardData.diagonals[0]
           const diag2 = boardData.diagonals[1]
           
-          if ((diag1 && checkLineWin(diag1)) || (diag2 && checkLineWin(diag2))) {
-            emitGameEnd({
-              winner: lastMove.playerId,
-              reason: 'line'
-            })
-            return true
+          if (diag1 && checkLineWin(diag1)) {
+            const winningPlayerId = diag1[0]?.completedBy[0]
+            if (winningPlayerId) {
+              const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+              if (winnerIndex !== -1) {
+                setWinner(winnerIndex)
+                emitGameEnd({
+                  winner: winningPlayerId,
+                  reason: 'line',
+                  winningLine: diag1.map((_, i) => i * (boardSize + 1))
+                })
+                return true
+              }
+            }
+          }
+          
+          if (diag2 && checkLineWin(diag2)) {
+            const winningPlayerId = diag2[0]?.completedBy[0]
+            if (winningPlayerId) {
+              const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+              if (winnerIndex !== -1) {
+                setWinner(winnerIndex)
+                emitGameEnd({
+                  winner: winningPlayerId,
+                  reason: 'line',
+                  winningLine: diag2.map((_, i) => (i + 1) * (boardSize - 1))
+                })
+                return true
+              }
+            }
           }
         }
       }
@@ -301,12 +358,17 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
           .map(([playerId]) => playerId)
 
         if (winners.length === 1 && winners[0]) {
-          emitGameEnd({
-            winner: winners[0],
-            reason: 'majority'
-          })
-          return true
-        } else {
+          const winnerIndex = currentPlayers.findIndex(p => p.id === winners[0])
+          if (winnerIndex !== -1) {
+            setWinner(winnerIndex)
+            emitGameEnd({
+              winner: winners[0],
+              reason: 'majority'
+            })
+            return true
+          }
+        } else if (winners.length > 1 || markedFields.total === boardSize * boardSize) {
+          setWinner(-1)
           emitGameEnd({
             winner: -1,
             reason: 'tie'
@@ -315,20 +377,29 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
         }
       }
 
-      measurePerformance() // Track performance after check
       return false
     } catch (error) {
       handleError(error as Error)
       return false
     }
-  }, [boardSize, lastMove, markedFields, winConditions, winner, emitGameEnd, checkLineWin, measurePerformance, handleError])
+  }, [
+    boardSize,
+    lastMove,
+    markedFields,
+    winConditions,
+    winner,
+    emitGameEnd,
+    checkLineWin,
+    measurePerformance,
+    handleError
+  ])
 
   // Cleanup
   useEffect(() => {
     const cleanup = () => {
       setGamePhase('ended')
       setWinner(null)
-      setLastMove(null)
+      setLastMoveState(null)
       setMarkedFields({ total: 0, byPlayer: {} })
       setGameError(null)
       setBoardState([])
@@ -349,7 +420,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
       // Add delay to ensure all state updates complete
       setTimeout(cleanup, CONSTANTS.CLEANUP_DELAY)
     }
-  }, [gamePhase, measurePerformance])
+  }, [gamePhase, measurePerformance, setLastMoveState])
 
   // Board Management Implementations
   const generateBoard = useCallback(() => {
@@ -375,7 +446,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     generateBoard()
     setGamePhase('active')
     setWinner(null)
-    setLastMove(null)
+    setLastMoveState(null)
     setMarkedFields({ total: 0, byPlayer: {} })
     setGameError(null)
     setCurrentPlayer(0)
@@ -413,6 +484,10 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     }
   }, [measurePerformance, handleError])
 
+  const setLastMove = useCallback((move: LastMove) => {
+    setLastMoveState(move)
+  }, [])
+
   return {
     // States
     boardState,
@@ -443,6 +518,10 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     generateBoard,
     resetBoard,
     handleCellChange,
-    updateBoardState
+    updateBoardState,
+    setLastMove,
+    
+    // Marked Fields Management
+    setMarkedFields
   }
 }

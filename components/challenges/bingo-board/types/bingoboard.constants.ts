@@ -28,9 +28,8 @@ export const BOARD_CONSTANTS = {
 } as const
 
 export const ERROR_MESSAGES = {
-  INVALID_BOARD: 'Invalid board state',
   NETWORK_ERROR: 'Network error',
+  INVALID_BOARD: 'Invalid board state',
   UPDATE_FAILED: 'Failed to update board',
-  SYNC_FAILED: 'Failed to sync with server',
-  VERSION_MISMATCH: 'Version mismatch detected'
+  SYNC_FAILED: 'Failed to sync board state'
 } as const

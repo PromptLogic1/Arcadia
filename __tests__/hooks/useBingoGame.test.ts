@@ -1,275 +1,362 @@
 import '@testing-library/jest-dom'
 import { renderHook, act } from '@testing-library/react'
 import { useBingoGame } from '@/components/challenges/bingo-board/hooks/useBingoGame'
-import { generateMockPlayer, generateMockBoardCell } from '../test-utils'
-import type { Player } from '@/components/challenges/bingo-board/types/types'
-import { useGameAnalytics } from '@/components/challenges/bingo-board/hooks/useGameAnalytics'
-
-// Mock useGameAnalytics hook
-jest.mock('@/components/challenges/bingo-board/hooks/useGameAnalytics', () => ({
-  useGameAnalytics: jest.fn().mockReturnValue({
-    updateStats: jest.fn(),
-    trackMove: jest.fn(),
-    recordWinner: jest.fn(),
-    measurePerformance: jest.fn()
-  })
-}))
+import { generateMockPlayer, generateMockBoardCell } from '../utils/test-utils'
+import { BINGO_GAME_CONSTANTS as _BINGO_GAME_CONSTANTS } from '@/components/challenges/bingo-board/types/bingogame.constants'
+import '../mocks/hooks.mock'
 
 describe('useBingoGame', () => {
-  let mockPlayers: Player[]
+  const getMockPlayers = () => {
+    const player1 = generateMockPlayer({ id: 'player-1' })
+    const player2 = generateMockPlayer({ id: 'player-2', team: 1 })
+    return [player1, player2]
+  }
 
   beforeEach(() => {
-    mockPlayers = [
-      generateMockPlayer({ 
-        id: 'player-1',
-        hoverColor: 'hover:bg-blue-600'
-      }),
-      generateMockPlayer({ 
-        id: 'player-2', 
-        team: 1,
-        hoverColor: 'hover:bg-red-600'
+    jest.clearAllMocks()
+  })
+
+  describe('Initialization', () => {
+    it('should initialize with correct default values', async () => {
+      const { result } = renderHook(() => useBingoGame(3, getMockPlayers()))
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0))
       })
-    ]
-  })
 
-  it('should initialize with correct default values', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-
-    expect(result.current.boardSize).toBe(3)
-    expect(result.current.winner).toBeNull()
-    expect(result.current.gamePhase).toBe('active')
-    expect(result.current.currentPlayer).toBe(0)
-    expect(result.current.winConditions).toEqual({
-      line: true,
-      majority: false
-    })
-  })
-
-  it('should generate board with correct size', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-
-    act(() => {
-      result.current.generateBoard()
-    })
-
-    expect(result.current.boardState.length).toBe(9) // 3x3 board
-    result.current.boardState.forEach(cell => {
-      expect(cell).toHaveProperty('cellId')
-      expect(cell).toHaveProperty('text')
-      expect(cell).toHaveProperty('colors')
-      expect(cell).toHaveProperty('completedBy')
-      expect(cell).toHaveProperty('blocked')
-      expect(cell).toHaveProperty('isMarked')
-    })
-  })
-
-  it('should handle cell changes correctly', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-
-    act(() => {
-      result.current.generateBoard()
-      result.current.handleCellChange(0, 'New Text')
-    })
-
-    const cell = result.current.boardState[0]
-    expect(cell?.text).toBe('New Text')
-  })
-
-  it('should detect horizontal winning condition', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-
-    act(() => {
-      result.current.generateBoard()
-      // Set up winning condition (horizontal line)
-      result.current.setBoardState([
-        ...Array(3).fill(generateMockBoardCell({ colors: ['bg-blue-500'] })),
-        ...Array(6).fill(generateMockBoardCell())
-      ])
-    })
-
-    const hasWinner = result.current.checkWinningCondition(mockPlayers)
-    expect(hasWinner).toBe(true)
-    expect(result.current.winner).not.toBeNull()
-  })
-
-  it('should detect vertical winning condition', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-
-    act(() => {
-      result.current.generateBoard()
-      // Set up winning condition (vertical line)
-      const board = Array(9).fill(null).map((_, i) => 
-        i % 3 === 0 ? generateMockBoardCell({ colors: ['bg-blue-500'] }) : generateMockBoardCell()
-      )
-      result.current.setBoardState(board)
-    })
-
-    const hasWinner = result.current.checkWinningCondition(mockPlayers)
-    expect(hasWinner).toBe(true)
-    expect(result.current.winner).not.toBeNull()
-  })
-
-  it('should handle invalid moves correctly', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-
-    const invalidEvent = {
-      isValid: false,
-      playerId: 'invalid-player',
-      position: 0
-    }
-
-    const isValid = result.current.emitBeforeMove(invalidEvent)
-    expect(isValid).toBe(false)
-    expect(result.current.gameError).toBeTruthy()
-  })
-
-  it('should track moves correctly', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-    const player = mockPlayers[0]
-
-    if (!player) {
-      throw new Error('Mock player not initialized')
-    }
-
-    act(() => {
-      result.current.emitAfterMove({
-        move: {
-          playerId: player.id,
-          position: 0,
-          row: 0,
-          col: 0
-        },
-        markedFields: {
-          total: 1,
-          byPlayer: { [player.id]: 1 }
-        },
-        nextPlayer: player.id
+      expect(result.current.boardSize).toBe(3)
+      expect(result.current.winner).toBeNull()
+      expect(result.current.gamePhase).toBe('active')
+      expect(result.current.currentPlayer).toBe(0)
+      expect(result.current.winConditions).toEqual({
+        line: true,
+        majority: false
       })
     })
 
-    expect(result.current.lastMove).toBeTruthy()
-    expect(result.current.markedFields.total).toBe(1)
+    it('should validate board size constraints', () => {
+      const originalError = console.error;
+      console.error = jest.fn();
+
+      expect(() => {
+        renderHook(() => useBingoGame(2, getMockPlayers()))
+      }).toThrow('Board size must be between 3 and 6')
+
+      expect(() => {
+        renderHook(() => useBingoGame(7, getMockPlayers()))
+      }).toThrow('Board size must be between 3 and 6')
+
+      console.error = originalError;
+    })
   })
 
-  it('should handle board size changes', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
+  describe('Board Management', () => {
+    it('should generate board correctly', async () => {
+      const { result } = renderHook(() => useBingoGame(3, getMockPlayers()))
 
-    act(() => {
-      result.current.setBoardSize(4)
-      result.current.generateBoard()
+      await act(async () => {
+        result.current.generateBoard()
+      })
+
+      expect(result.current.boardState).toHaveLength(9)
+      result.current.boardState.forEach(cell => {
+        expect(cell).toHaveProperty('cellId')
+        expect(cell).toHaveProperty('text')
+        expect(cell).toHaveProperty('colors')
+        expect(cell).toHaveProperty('completedBy')
+      })
     })
 
-    expect(result.current.boardSize).toBe(4)
-    expect(result.current.boardState.length).toBe(16) // 4x4 board
-  })
+    it('should handle cell changes', async () => {
+      const { result } = renderHook(() => useBingoGame(3, getMockPlayers()))
 
-  it('should handle game reset', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
+      await act(async () => {
+        result.current.generateBoard()
+        result.current.handleCellChange(0, 'New Text')
+      })
 
-    act(() => {
-      result.current.generateBoard()
-      result.current.handleCellChange(0, 'Test')
-      result.current.resetBoard()
+      expect(result.current.boardState[0]?.text).toBe('New Text')
     })
 
-    const cell = result.current.boardState[0]
-    expect(cell?.text).toBe('')
-    expect(result.current.winner).toBeNull()
-    expect(result.current.gamePhase).toBe('active')
-    expect(result.current.lastMove).toBeNull()
-  })
+    it('should reset board state', async () => {
+      const { result } = renderHook(() => useBingoGame(3, getMockPlayers()))
 
-  it('should handle diagonal winning condition', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
+      await act(async () => {
+        result.current.generateBoard()
+        result.current.handleCellChange(0, 'Test')
+        result.current.resetBoard()
+      })
 
-    act(() => {
-      result.current.generateBoard()
-      // Set up winning condition (diagonal line)
-      const board = Array(9).fill(null).map((_, i) => 
-        i % 4 === 0 ? generateMockBoardCell({ colors: ['bg-blue-500'] }) : generateMockBoardCell()
-      )
-      result.current.setBoardState(board)
+      expect(result.current.winner).toBeNull()
+      expect(result.current.gamePhase).toBe('active')
+      expect(result.current.lastMove).toBeNull()
+      expect(result.current.boardState[0]?.text).toBe('')
     })
-
-    const hasWinner = result.current.checkWinningCondition(mockPlayers)
-    expect(hasWinner).toBe(true)
-    expect(result.current.winner).not.toBeNull()
   })
 
-  it('should handle majority win condition', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-    const player = mockPlayers[0]
+  describe('Game Logic', () => {
+    it('should detect horizontal winning condition', async () => {
+      const players = getMockPlayers()
+      const firstPlayerId = players[0]?.id
+      if (!firstPlayerId) throw new Error('Player ID is required')
 
-    if (!player) {
-      throw new Error('Mock player not initialized')
-    }
+      const { result } = renderHook(() => useBingoGame(3, players))
 
-    act(() => {
-      result.current.setWinConditions({ line: false, majority: true })
-      result.current.generateBoard()
-      
-      const board = Array(9).fill(null).map((_, i) => 
-        i < 5 ? generateMockBoardCell({ 
-          colors: ['bg-blue-500'],
-          completedBy: [player.id]
-        }) : generateMockBoardCell()
-      )
-      result.current.setBoardState(board)
-    })
-
-    const hasWinner = result.current.checkWinningCondition(mockPlayers, true)
-    expect(hasWinner).toBe(true)
-    expect(result.current.winner).toBe(0)
-  })
-
-  it('should handle tie condition correctly', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-    const [player1, player2] = mockPlayers
-
-    if (!player1 || !player2) {
-      throw new Error('Mock players not initialized')
-    }
-
-    act(() => {
-      result.current.setWinConditions({ line: true, majority: true })
-      result.current.generateBoard()
-      
-      const board = Array(9).fill(null).map((_, i) => 
-        generateMockBoardCell({ 
-          colors: [i % 2 === 0 ? 'bg-blue-500' : 'bg-red-500'],
-          completedBy: [i % 2 === 0 ? player1.id : player2.id]
+      await act(async () => {
+        result.current.generateBoard()
+        // Set up a horizontal winning line
+        const board = Array(9).fill(null).map((_, i) => 
+          i < 3 ? generateMockBoardCell({ 
+            colors: ['bg-blue-500'],
+            completedBy: [firstPlayerId],
+            isMarked: true
+          }) : generateMockBoardCell()
+        )
+        result.current.setBoardState(board)
+        // Set last move to trigger win check
+        result.current.setLastMove({
+          position: 2, // Last cell in the winning line
+          row: 0,     // First row
+          col: 2,     // Last column
+          playerId: firstPlayerId
         })
-      )
-      result.current.setBoardState(board)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      let hasWinner: boolean | undefined
+      await act(async () => {
+        hasWinner = result.current.checkWinningCondition(players)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      expect(hasWinner).toBe(true)
+      expect(result.current.winner).toBe(0)
     })
 
-    const hasWinner = result.current.checkWinningCondition(mockPlayers, true)
-    expect(hasWinner).toBe(false)
-    expect(result.current.winner).toBe(-1)
-  })
+    it('should detect vertical winning condition', async () => {
+      const players = getMockPlayers()
+      const firstPlayerId = players[0]?.id
+      if (!firstPlayerId) throw new Error('Player ID is required')
 
-  it('should validate board size constraints', () => {
-    expect(() => {
-      renderHook(() => useBingoGame(2, mockPlayers)) // Too small
-    }).toThrow()
+      const { result } = renderHook(() => useBingoGame(3, players))
 
-    expect(() => {
-      renderHook(() => useBingoGame(7, mockPlayers)) // Too large
-    }).toThrow()
-  })
+      await act(async () => {
+        result.current.generateBoard()
+        // Set up a vertical winning line
+        const board = Array(9).fill(null).map((_, i) => 
+          i % 3 === 0 ? generateMockBoardCell({ 
+            colors: ['bg-blue-500'],
+            completedBy: [firstPlayerId],
+            isMarked: true
+          }) : generateMockBoardCell()
+        )
+        result.current.setBoardState(board)
+        // Set last move to trigger win check
+        result.current.setLastMove({
+          position: 6, // Last cell in the winning line
+          row: 2,     // Last row
+          col: 0,     // First column
+          playerId: firstPlayerId
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
 
-  it('should handle performance measurement', () => {
-    const { result } = renderHook(() => useBingoGame(3, mockPlayers))
-    const mockMeasurePerformance = jest.mocked(useGameAnalytics).mock.results[0]?.value.measurePerformance
+      let hasWinner: boolean | undefined
+      await act(async () => {
+        hasWinner = result.current.checkWinningCondition(players)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
 
-    act(() => {
-      result.current.generateBoard()
-      for (let i = 0; i < 5; i++) {
-        result.current.handleCellChange(i, `Cell ${i}`)
-      }
+      expect(hasWinner).toBe(true)
+      expect(result.current.winner).toBe(0)
     })
 
-    expect(mockMeasurePerformance).toHaveBeenCalled()
+    it('should detect diagonal winning condition', async () => {
+      const players = getMockPlayers()
+      const firstPlayerId = players[0]?.id
+      if (!firstPlayerId) throw new Error('Player ID is required')
+
+      const { result } = renderHook(() => useBingoGame(3, players))
+
+      await act(async () => {
+        result.current.generateBoard()
+        // Set up a diagonal winning line (top-left to bottom-right)
+        const board = Array(9).fill(null).map((_, i) => 
+          i % 4 === 0 ? generateMockBoardCell({ 
+            colors: ['bg-blue-500'],
+            completedBy: [firstPlayerId],
+            isMarked: true
+          }) : generateMockBoardCell()
+        )
+        result.current.setBoardState(board)
+        // Set last move to trigger win check
+        result.current.setLastMove({
+          position: 8, // Last cell in diagonal
+          row: 2,     // Last row
+          col: 2,     // Last column
+          playerId: firstPlayerId
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      let hasWinner: boolean | undefined
+      await act(async () => {
+        hasWinner = result.current.checkWinningCondition(players)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      expect(hasWinner).toBe(true)
+      expect(result.current.winner).toBe(0)
+    })
+
+    it('should handle majority win condition', async () => {
+      const players = getMockPlayers()
+      const firstPlayerId = players[0]?.id
+      if (!firstPlayerId) throw new Error('Player ID is required')
+
+      const { result } = renderHook(() => useBingoGame(3, players))
+
+      await act(async () => {
+        result.current.generateBoard()
+        // Set up majority win (5 cells marked by player 1)
+        const board = Array(9).fill(null).map((_, i) => 
+          i < 5 ? generateMockBoardCell({ 
+            colors: ['bg-blue-500'],
+            completedBy: [firstPlayerId],
+            isMarked: true
+          }) : generateMockBoardCell()
+        )
+        result.current.setBoardState(board)
+        result.current.setWinConditions({ line: false, majority: true })
+        result.current.setMarkedFields({
+          total: 5,
+          byPlayer: { [firstPlayerId]: 5 }
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      let hasWinner: boolean | undefined
+      await act(async () => {
+        hasWinner = result.current.checkWinningCondition(players, true)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      expect(hasWinner).toBe(true)
+      expect(result.current.winner).toBe(0)
+    })
+
+    it('should handle tie condition', async () => {
+      const players = getMockPlayers()
+      const [player1, player2] = players
+      if (!player1?.id || !player2?.id) throw new Error('Player IDs are required')
+
+      const { result } = renderHook(() => useBingoGame(3, players))
+
+      await act(async () => {
+        result.current.generateBoard()
+        // Set up tie condition (equal number of cells marked by both players)
+        const board = Array(9).fill(null).map((_, i) => 
+          generateMockBoardCell({ 
+            colors: [i % 2 === 0 ? 'bg-blue-500' : 'bg-red-500'],
+            completedBy: [i % 2 === 0 ? player1.id : player2.id],
+            isMarked: true
+          })
+        )
+        result.current.setBoardState(board)
+        result.current.setWinConditions({ line: false, majority: true })
+        result.current.setMarkedFields({
+          total: 9,
+          byPlayer: { 
+            [player1.id]: 4,
+            [player2.id]: 4
+          }
+        })
+        // Set last move to trigger win check
+        result.current.setLastMove({
+          position: 8,
+          row: 2,
+          col: 2,
+          playerId: player2.id
+        })
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      let hasWinner: boolean | undefined
+      await act(async () => {
+        hasWinner = result.current.checkWinningCondition(players, true)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      })
+
+      expect(hasWinner).toBe(false)
+      expect(result.current.winner).toBe(-1)
+    })
+
+    it('should validate moves correctly', async () => {
+      const players = getMockPlayers()
+      const firstPlayerId = players[0]?.id
+      if (!firstPlayerId) throw new Error('Player ID is required')
+
+      const { result } = renderHook(() => useBingoGame(3, players))
+
+      await act(async () => {
+        result.current.generateBoard()
+      })
+
+      const validMove = result.current.emitBeforeMove({
+        position: 0,
+        playerId: firstPlayerId,
+        isValid: true
+      })
+
+      expect(validMove).toBe(true)
+    })
+
+    it('should track moves correctly', async () => {
+      const players = getMockPlayers()
+      const [player1, player2] = players
+      if (!player1?.id || !player2?.id) throw new Error('Player IDs are required')
+
+      const { result } = renderHook(() => useBingoGame(3, players))
+
+      await act(async () => {
+        result.current.generateBoard()
+        result.current.emitAfterMove({
+          move: {
+            playerId: player1.id,
+            position: 0,
+            row: 0,
+            col: 0
+          },
+          markedFields: {
+            total: 1,
+            byPlayer: { [player1.id]: 1 }
+          },
+          nextPlayer: player2.id
+        })
+      })
+
+      expect(result.current.lastMove).toBeTruthy()
+      expect(result.current.markedFields.total).toBe(1)
+    })
+  })
+
+  describe('Error Handling', () => {
+    it('should handle and clear errors', async () => {
+      const { result } = renderHook(() => useBingoGame(3, getMockPlayers()))
+
+      await act(async () => {
+        result.current.handleError(new Error('Test error'))
+      })
+
+      expect(result.current.gameError).toBeTruthy()
+      expect(result.current.gameError?.message).toBe('Test error')
+
+      await act(async () => {
+        result.current.clearError()
+      })
+
+      expect(result.current.gameError).toBeNull()
+    })
   })
 })
 

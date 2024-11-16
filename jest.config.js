@@ -10,10 +10,20 @@ const config = {
   transform: {
     '^.+\\.(t|j)sx?$': ['babel-jest', { 
       presets: [
-        '@babel/preset-env',
+        ['@babel/preset-env', {
+          targets: {
+            node: 'current',
+          },
+        }],
         ['@babel/preset-typescript', { 
           tsconfig: './tsconfig.jest.json' 
+        }],
+        ['@babel/preset-react', {
+          runtime: 'automatic'
         }]
+      ],
+      plugins: [
+        '@babel/plugin-transform-runtime'
       ]
     }]
   },
@@ -44,10 +54,6 @@ const config = {
   testEnvironmentOptions: {
     url: 'http://localhost:3000'
   },
-  reporters: [
-    'default',
-    '<rootDir>/lib/jest/CustomReporter.js'
-  ],
   globals: {
     'ts-jest': {
       tsconfig: './tsconfig.jest.json'

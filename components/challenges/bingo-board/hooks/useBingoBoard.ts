@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useTransition } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
 import type { BoardCell } from '../types/types'
 import type { UseBingoBoardProps, UseBingoBoardReturn } from '../types/bingoboard.types'
 import { BOARD_CONSTANTS, ERROR_MESSAGES } from '../types/bingoboard.constants'
-import { unstable_batchedUpdates } from 'react-dom'
 
 type BingoBoardRow = Database['public']['Tables']['bingo_boards']['Row']
 type PostgresChangesPayload<T> = {
@@ -24,19 +23,53 @@ const isTemporaryError = (error: Error) => {
   return temporaryErrors.some(e => error.message.toLowerCase().includes(e))
 }
 
+type State = {
+  board: BingoBoardRow | null
+  loading: boolean
+  error: Error | null
+}
+
+type Action = 
+  | { type: 'FETCH_START' }
+  | { type: 'FETCH_SUCCESS'; payload: BingoBoardRow }
+  | { type: 'FETCH_ERROR'; payload: Error }
+  | { type: 'UPDATE_BOARD'; payload: BingoBoardRow }
+  | { type: 'UPDATE_ERROR'; payload: Error | null }
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, loading: true, error: null }
+    case 'FETCH_SUCCESS':
+      return { board: action.payload, loading: false, error: null }
+    case 'FETCH_ERROR':
+      return { board: null, loading: false, error: action.payload }
+    case 'UPDATE_BOARD':
+      return { ...state, board: action.payload, error: null }
+    case 'UPDATE_ERROR':
+      return { ...state, error: action.payload }
+    default:
+      return state
+  }
+}
+
+// Add deep clone utility
+const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj))
+
 export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardReturn => {
-  // States
-  const [board, setBoard] = useState<BingoBoardRow | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  
-  // Singleton Supabase Client
+  const [state, dispatch] = useReducer(reducer, {
+    board: null,
+    loading: true,
+    error: null
+  })
+  const [isPending, startTransition] = useTransition()
+
   const supabase = useMemo(() => createClientComponentClient<Database>(), [])
 
   // Validierung mit Fehler-Feedback
   const validateBoardState = useCallback((state: unknown): state is BoardCell[] => {
     if (!Array.isArray(state)) {
-      setError(new Error(ERROR_MESSAGES.INVALID_BOARD))
+      dispatch({ type: 'UPDATE_ERROR', payload: new Error(ERROR_MESSAGES.INVALID_BOARD) })
       return false
     }
     
@@ -57,7 +90,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
     ))
 
     if (!isValid) {
-      setError(new Error(ERROR_MESSAGES.INVALID_BOARD))
+      dispatch({ type: 'UPDATE_ERROR', payload: new Error(ERROR_MESSAGES.INVALID_BOARD) })
     }
     return isValid
   }, [])
@@ -85,9 +118,8 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
           await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
           return fetchBoard(attempt + 1)
         }
-        unstable_batchedUpdates(() => {
-          setLoading(false)
-          setError(new Error(ERROR_MESSAGES.NETWORK_ERROR))
+        startTransition(() => {
+          dispatch({ type: 'FETCH_ERROR', payload: new Error(ERROR_MESSAGES.NETWORK_ERROR) })
         })
         return
       }
@@ -97,26 +129,25 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
           await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
           return fetchBoard(attempt + 1)
         }
-        unstable_batchedUpdates(() => {
-          setLoading(false)
-          setError(new Error(ERROR_MESSAGES.INVALID_BOARD))
+        startTransition(() => {
+          dispatch({ type: 'FETCH_ERROR', payload: new Error(ERROR_MESSAGES.INVALID_BOARD) })
         })
         return
       }
 
-      unstable_batchedUpdates(() => {
-        setBoard(data)
-        setError(null)
-        setLoading(false)
+      startTransition(() => {
+        dispatch({ type: 'FETCH_SUCCESS', payload: data })
       })
     } catch (err) {
       if (attempt < maxAttempts && isTemporaryError(err as Error)) {
         await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
         return fetchBoard(attempt + 1)
       }
-      unstable_batchedUpdates(() => {
-        setLoading(false)
-        setError(err instanceof Error ? err : new Error(ERROR_MESSAGES.SYNC_FAILED))
+      startTransition(() => {
+        dispatch({ 
+          type: 'FETCH_ERROR', 
+          payload: err instanceof Error ? err : new Error(ERROR_MESSAGES.SYNC_FAILED) 
+        })
       })
     }
   }, [boardId, supabase, validateBoardState])
@@ -125,18 +156,21 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
   const updateBoardState = useCallback(async (newState: BoardCell[]) => {
     if (!validateBoardState(newState)) {
       const errorMsg = ERROR_MESSAGES.INVALID_BOARD
-      setError(new Error(errorMsg))
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_ERROR', payload: new Error(errorMsg) })
+      })
       throw new Error(errorMsg)
     }
 
-    const previousBoard = board ? JSON.parse(JSON.stringify(board)) : null
+    const previousBoard = state.board ? deepClone(state.board) : null
     
     try {
-      // Optimistic update
-      setBoard(prev => prev ? {
-        ...prev,
-        board_state: newState
-      } : null)
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_BOARD', payload: {
+          ...state.board!,
+          board_state: newState
+        } as BingoBoardRow })
+      })
 
       const { error: updateError } = await supabase
         .from('bingo_boards')
@@ -145,25 +179,33 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
         .single()
 
       if (updateError) {
-        // Rollback on error
         if (previousBoard) {
-          setBoard(previousBoard)
+          startTransition(() => {
+            dispatch({ type: 'UPDATE_BOARD', payload: previousBoard })
+          })
         }
-        setError(new Error(ERROR_MESSAGES.UPDATE_FAILED))
+        startTransition(() => {
+          dispatch({ type: 'UPDATE_ERROR', payload: new Error(ERROR_MESSAGES.UPDATE_FAILED) })
+        })
         throw updateError
       }
 
-      setError(null)
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_ERROR', payload: null })
+      })
     } catch (err) {
-      // Rollback on any error
       if (previousBoard) {
-        setBoard(previousBoard)
+        startTransition(() => {
+          dispatch({ type: 'UPDATE_BOARD', payload: previousBoard })
+        })
       }
       const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
-      setError(new Error(errorMsg))
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_ERROR', payload: new Error(errorMsg) })
+      })
       throw err
     }
-  }, [board, boardId, supabase, validateBoardState])
+  }, [state.board, boardId, supabase, validateBoardState])
 
   // Initial fetch
   useEffect(() => {
@@ -180,12 +222,12 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
 
       if (updateError) {
         const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
-        setError(new Error(errorMsg))
+        dispatch({ type: 'UPDATE_ERROR', payload: new Error(errorMsg) })
         throw new Error(errorMsg)
       }
       return Promise.resolve()
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(ERROR_MESSAGES.UPDATE_FAILED))
+      dispatch({ type: 'UPDATE_ERROR', payload: err instanceof Error ? err : new Error(ERROR_MESSAGES.UPDATE_FAILED) })
       return Promise.reject(err)
     }
   }
@@ -195,6 +237,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
     let reconnectAttempts = 0
     const maxReconnectAttempts = BOARD_CONSTANTS.SYNC.RECONNECT_ATTEMPTS
     const reconnectDelay = BOARD_CONSTANTS.SYNC.RECONNECT_DELAY
+    const currentBoardState = state.board?.board_state // Capture current board state
 
     const channel = supabase
       .channel(`board_${boardId}`)
@@ -211,27 +254,19 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
             payload.eventType === 'UPDATE' && 
             payload.new
           ) {
-            // First cast to unknown, then to BingoBoardRow
             const updatedBoard = (payload.new as unknown) as BingoBoardRow
             
             if (validateBoardState(updatedBoard.board_state)) {
-              setBoard(prevBoard => {
-                if (!prevBoard) return updatedBoard
-
-                // Create updated board with merged states
-                const mergedBoard: BingoBoardRow = {
-                  ...updatedBoard,
-                  board_state: updatedBoard.board_state.map((cell: BoardCell, i: number) => ({
-                    ...cell,
-                    colors: [...new Set([
-                      ...(prevBoard.board_state[i]?.colors || []),
-                      ...cell.colors
-                    ])]
-                  }))
-                }
-
-                return mergedBoard
-              })
+              dispatch({ type: 'UPDATE_BOARD', payload: {
+                ...updatedBoard,
+                board_state: updatedBoard.board_state.map((cell: BoardCell, i: number) => ({
+                  ...cell,
+                  colors: [...new Set([
+                    ...(currentBoardState?.[i]?.colors || []),
+                    ...cell.colors
+                  ])]
+                }))
+              } })
             }
           }
         }
@@ -259,12 +294,12 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [boardId, supabase, validateBoardState])
+  }, [boardId, supabase, validateBoardState, state.board?.board_state])
 
   return {
-    board,
-    loading,
-    error,
+    board: state.board,
+    loading: state.loading || isPending,
+    error: state.error,
     updateBoardState,
     updateBoardSettings
   }

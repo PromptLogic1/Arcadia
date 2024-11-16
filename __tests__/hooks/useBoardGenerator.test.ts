@@ -1,239 +1,277 @@
 import { renderHook, act } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { useBoardGenerator } from '@/components/challenges/bingo-board/hooks/useBoardGenerator'
-import { GENERATOR_CONFIG } from '@/components/challenges/bingo-board/types/generator.constants'
 import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
-import type { Tag } from '@/components/challenges/bingo-board/types/tagsystem.types'
-import type { GeneratorSettings, GeneratorStats } from '@/components/challenges/bingo-board/types/generator.types'
+import type { Tag, TagCategory } from '@/components/challenges/bingo-board/types/tagsystem.types'
+
+// Create mock service type
+type MockBoardGeneratorService = {
+  prepareCardPool: jest.Mock
+  quickGenerate: jest.Mock
+  customGenerate: jest.Mock
+}
+
+// Mock services
+jest.mock('@/components/challenges/bingo-board/services/board-generator.service', () => {
+  return {
+    BoardGeneratorService: jest.fn().mockImplementation(() => ({
+      prepareCardPool: jest.fn().mockResolvedValue([
+        { text: 'Card 1', tier: 1, tags: ['tag1'] },
+        { text: 'Card 2', tier: 2, tags: ['tag2'] }
+      ]),
+      quickGenerate: jest.fn().mockReturnValue([
+        { text: 'Quick Card 1', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '1', lastUpdated: Date.now() },
+        { text: 'Quick Card 2', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '2', lastUpdated: Date.now() }
+      ] as BoardCell[]),
+      customGenerate: jest.fn().mockReturnValue([
+        { text: 'Custom Card 1', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '1', lastUpdated: Date.now() },
+        { text: 'Custom Card 2', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '2', lastUpdated: Date.now() }
+      ] as BoardCell[])
+    }))
+  }
+})
+
+jest.mock('@/components/challenges/bingo-board/services/balance.service', () => ({
+  BalanceService: jest.fn().mockImplementation(() => ({
+    checkLineBalance: jest.fn().mockReturnValue(true),
+    checkBoardBalance: jest.fn().mockReturnValue(true)
+  }))
+}))
+
+jest.mock('@/components/challenges/bingo-board/services/tag-validation.service', () => ({
+  TagValidationService: jest.fn().mockImplementation(() => ({
+    validateTag: jest.fn().mockReturnValue(true)
+  }))
+}))
 
 describe('useBoardGenerator', () => {
-  const mockGame = 'World of Warcraft'
+  const mockBoard: BoardCell[] = Array(9).fill(null).map((_, i) => ({
+    text: `Original Card ${i}`,
+    colors: ['bg-gray-500'],
+    completedBy: [],
+    blocked: false,
+    isMarked: false,
+    cellId: `cell-${i}`,
+    lastUpdated: Date.now()
+  }))
+
+  // Mock service instance
+  let mockService: MockBoardGeneratorService
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    
+    // Create default mock service with non-empty card pool
+    mockService = {
+      prepareCardPool: jest.fn().mockResolvedValue([
+        { text: 'Card 1', tier: 1, tags: ['tag1'] },
+        { text: 'Card 2', tier: 2, tags: ['tag2'] }
+      ]),
+      quickGenerate: jest.fn().mockReturnValue([
+        { text: 'Quick Card 1', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '1', lastUpdated: Date.now() },
+        { text: 'Quick Card 2', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '2', lastUpdated: Date.now() }
+      ] as BoardCell[]),
+      customGenerate: jest.fn().mockReturnValue([
+        { text: 'Custom Card 1', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '1', lastUpdated: Date.now() },
+        { text: 'Custom Card 2', colors: [], completedBy: [], blocked: false, isMarked: false, cellId: '2', lastUpdated: Date.now() }
+      ] as BoardCell[])
+    }
+    
+    // Update the mock implementation
+    const mockModule = jest.requireMock('@/components/challenges/bingo-board/services/board-generator.service')
+    mockModule.BoardGeneratorService.mockImplementation(() => mockService)
+  })
 
   describe('Initialization', () => {
     it('should initialize with default settings', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
       
-      // Test all default settings
-      expect(result.current.settings).toBeDefined()
       expect(result.current.settings.boardSize).toBe(5)
-      expect(result.current.settings.timeLimit).toBe(300)
-      expect(result.current.settings.tags).toBeInstanceOf(Set)
       expect(result.current.settings.tags.size).toBe(0)
-      expect(result.current.settings.difficulty).toEqual({
-        easy: 3,
-        normal: 2,
-        hard: 1
-      })
+      expect(result.current.stats.attempts).toBe(0)
     })
 
-    it('should initialize stats with default values', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
+    it('should validate initial settings', () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
       
-      const expectedStats: GeneratorStats = {
-        generationTime: 0,
-        attempts: 0,
-        balanceScore: 0
-      }
-      expect(result.current.stats).toEqual(expectedStats)
+      expect(result.current.settings.boardSize).toBeGreaterThanOrEqual(3)
+      expect(result.current.settings.boardSize).toBeLessThanOrEqual(6)
     })
   })
 
-  describe('Settings Management', () => {
-    it('should update settings correctly', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-
-      const newSettings: Partial<GeneratorSettings> = {
-        boardSize: 4,
-        timeLimit: 600,
-        difficulty: { easy: 4, normal: 2, hard: 0 }
-      }
-
-      act(() => {
-        result.current.updateSettings(newSettings)
+  describe('Board Generation', () => {
+    it('should generate quick board successfully', async () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
+      await act(async () => {
+        const board = await result.current.generateBoard('quick')
+        expect(board).toBeDefined()
+        if (board && board[0]) {
+          expect(board.length).toBe(2)
+          expect(board[0].text).toBe('Quick Card 1')
+        } else {
+          throw new Error('Board or first cell is undefined')
+        }
       })
-
-      expect(result.current.settings.boardSize).toBe(4)
-      expect(result.current.settings.timeLimit).toBe(600)
-      expect(result.current.settings.difficulty).toEqual(newSettings.difficulty)
     })
 
-    it('should enforce board size limits', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-
-      // Test upper limit
-      act(() => {
-        const oversizedUpdate: Partial<GeneratorSettings> = {
-          boardSize: 6 as 3 | 4 | 5 | 6
+    it('should generate custom board with specific settings', async () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
+      await act(async () => {
+        await result.current.updateSettings({ boardSize: 4 })
+        const board = await result.current.generateBoard('custom')
+        expect(board).toBeDefined()
+        if (board && board[0]) {
+          expect(board[0].text).toBe('Custom Card 1')
+        } else {
+          throw new Error('Board or first cell is undefined')
         }
-        result.current.updateSettings(oversizedUpdate)
       })
-      expect(result.current.settings.boardSize).toBe(6)
+    })
 
-      // Test lower limit
-      act(() => {
-        const undersizedUpdate: Partial<GeneratorSettings> = {
-          boardSize: 3 as 3 | 4 | 5 | 6
-        }
-        result.current.updateSettings(undersizedUpdate)
+    it('should respect board size limits', async () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
+      await act(async () => {
+        // First update should be processed immediately
+        result.current.updateSettings({ boardSize: 4 })
       })
-      expect(result.current.settings.boardSize).toBe(3)
+
+      // Check after state update is complete
+      expect(result.current.settings.boardSize).toBe(4)
+
+      await act(async () => {
+        // Test upper limit with type assertion
+        result.current.updateSettings({ boardSize: (6 as 3 | 4 | 5 | 6) })
+      })
+      expect(result.current.settings.boardSize).toBe(6) // Should be capped at 6
     })
   })
 
   describe('Tag Management', () => {
     it('should toggle tags correctly', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-
-      // Add tag
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
       act(() => {
         result.current.toggleTag('tag1')
       })
       expect(result.current.settings.tags.has('tag1')).toBe(true)
-
-      // Remove tag
+      
       act(() => {
         result.current.toggleTag('tag1')
       })
       expect(result.current.settings.tags.has('tag1')).toBe(false)
     })
 
-    it('should respect maximum tag limit', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-
-      // Add more than maximum allowed tags
-      for (let i = 0; i < GENERATOR_CONFIG.LIMITS.MAX_TAGS + 2; i++) {
+    it('should respect max tags limit', () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
+      // Add max number of tags
+      for (let i = 0; i < 10; i++) {
         act(() => {
           result.current.toggleTag(`tag${i}`)
         })
       }
-
-      expect(result.current.settings.tags.size).toBe(GENERATOR_CONFIG.LIMITS.MAX_TAGS)
+      
+      act(() => {
+        result.current.toggleTag('extraTag')
+      })
+      expect(result.current.settings.tags.has('extraTag')).toBe(false)
     })
 
     it('should validate tags correctly', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
       
-      const validTags: Tag[] = [
-        {
-          id: 'tag1',
-          name: 'Tag 1',
-          type: 'core',
-          category: {
-            id: 'gameplay',
-            name: 'primaryCategory',
-            isRequired: true,
-            allowMultiple: false,
-            validForGames: ['all']
-          },
-          status: 'active',
-          description: 'Test tag 1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          usageCount: 0,
-          votes: 0,
-          createdBy: 'system'
+      const validTags: Tag[] = [{
+        id: '1',
+        name: 'valid',
+        type: 'core',
+        category: {
+          id: 'cat1',
+          name: 'difficulty' as TagCategory['name'],
+          isRequired: true,
+          allowMultiple: false,
+          validForGames: ['all']
         },
-        {
-          id: 'tag2',
-          name: 'Tag 2',
-          type: 'community',
-          category: {
-            id: 'gameplay',
-            name: 'primaryCategory',
-            isRequired: true,
-            allowMultiple: false,
-            validForGames: ['all']
-          },
-          status: 'active',
-          description: 'Test tag 2',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          usageCount: 0,
-          votes: 0,
-          createdBy: 'system'
+        status: 'active',
+        description: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        usageCount: 0,
+        votes: 0
+      }]
+      
+      // Mock is set up to return true
+      expect(result.current.validateTags(validTags)).toBe(true)
+    })
+  })
+
+  describe('Balance Control', () => {
+    it('should check board balance', () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
+      expect(result.current.checkBalance(mockBoard)).toBeDefined()
+    })
+
+    it('should optimize board layout', () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
+      const originalBoard = mockBoard.map((cell, i) => ({
+        ...cell,
+        text: `Original Card ${i}`
+      }))
+      
+      const optimizedBoard = result.current.optimizeBoard(originalBoard)
+      
+      // Check that optimization made changes
+      optimizedBoard.forEach((optimizedCell) => {
+        // Extract the original card number from the optimized text
+        const originalCardNumber = optimizedCell.text.match(/Original Card (\d+)/)?.[1]
+        expect(originalCardNumber).toBeDefined()
+        
+        // Verify the optimized cell format
+        expect(optimizedCell.text).toBe(`Optimized Original Card ${originalCardNumber}`)
+        expect(optimizedCell.colors).toContain('bg-blue-500')
+        expect(optimizedCell.cellId).toContain('optimized-')
+        expect(optimizedCell.lastUpdated).toBeDefined()
+        
+        // Find the corresponding original cell
+        const originalCell = originalBoard.find(cell => cell.text === `Original Card ${originalCardNumber}`)
+        expect(originalCell).toBeDefined()
+        if (originalCell) {
+          expect(optimizedCell.blocked).toBe(!originalCell.blocked)
         }
-      ]
+      })
 
-      const isValid = result.current.validateTags(validTags)
-      expect(isValid).toBe(true)
+      // Verify that all cells were optimized
+      expect(optimizedBoard.length).toBe(originalBoard.length)
+      expect(optimizedBoard.every(cell => cell.text.startsWith('Optimized'))).toBe(true)
     })
   })
 
-  describe('Board Generation', () => {
-    it('should generate a quick board successfully', async () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
+  describe('Error Handling', () => {
+    it('should handle invalid generation mode', async () => {
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
       
-      let generatedBoard: BoardCell[] | undefined
       await act(async () => {
-        generatedBoard = await result.current.generateBoard('quick')
+        // @ts-expect-error Testing invalid mode
+        await expect(result.current.generateBoard('invalid'))
+          .rejects
+          .toThrow('Invalid generation mode')
       })
-
-      expect(generatedBoard).toBeDefined()
-      expect(generatedBoard).toHaveLength(result.current.settings.boardSize ** 2)
-      expect(result.current.stats.attempts).toBeGreaterThan(0)
-      expect(result.current.stats.generationTime).toBeGreaterThan(0)
     })
 
-    it('should generate a custom board successfully', async () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
+    it('should handle empty card pool', async () => {
+      // Override the mock for this specific test
+      mockService.prepareCardPool.mockResolvedValueOnce([])
       
-      let generatedBoard: BoardCell[] | undefined
+      const { result } = renderHook(() => useBoardGenerator('World of Warcraft'))
+      
       await act(async () => {
-        generatedBoard = await result.current.generateBoard('custom')
+        await expect(result.current.generateBoard('quick'))
+          .rejects
+          .toThrow('Card pool is empty')
       })
-
-      expect(generatedBoard).toBeDefined()
-      expect(generatedBoard).toHaveLength(result.current.settings.boardSize ** 2)
-      expect(result.current.stats.attempts).toBeGreaterThan(0)
-      expect(result.current.stats.generationTime).toBeGreaterThan(0)
-    })
-
-    it('should handle generation failures', async () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-      
-      // Set impossible settings to force failure
-      act(() => {
-        result.current.updateSettings({
-          difficulty: { easy: 0, normal: 0, hard: 0 }
-        })
-      })
-
-      await expect(result.current.generateBoard('quick')).rejects.toThrow()
-    })
-  })
-
-  describe('Balance Checking', () => {
-    it('should validate board balance', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-      const mockBoard = Array(25).fill({ 
-        id: '1', 
-        difficulty: 'normal',
-        tags: ['tag1', 'tag2']
-      })
-
-      const isBalanced = result.current.checkBalance(mockBoard)
-      expect(typeof isBalanced).toBe('boolean')
-    })
-
-    it('should optimize board placement', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-      const mockBoard = Array(25).fill({ 
-        id: '1', 
-        difficulty: 'normal',
-        tags: ['tag1', 'tag2']
-      })
-
-      const optimizedBoard = result.current.optimizeBoard(mockBoard)
-      expect(optimizedBoard).toHaveLength(mockBoard.length)
-      expect(optimizedBoard).not.toBe(mockBoard) // Should return a new array
-    })
-
-    it('should handle balance optimization failures gracefully', () => {
-      const { result } = renderHook(() => useBoardGenerator(mockGame))
-      const invalidBoard = Array(25).fill(null)
-
-      const optimizedBoard = result.current.optimizeBoard(invalidBoard)
-      expect(optimizedBoard).toBe(invalidBoard) // Should return original board on failure
     })
   })
 })

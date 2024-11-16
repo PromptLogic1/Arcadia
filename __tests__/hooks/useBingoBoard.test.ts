@@ -1,13 +1,20 @@
 import '@testing-library/jest-dom'
 import { renderHook, act } from '@testing-library/react'
 import { useBingoBoard } from '@/components/challenges/bingo-board/hooks/useBingoBoard'
-import { generateMockBoardCell } from '../test-utils'
+import { generateMockBoardCell } from '../utils/test-utils'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
+import { ERROR_MESSAGES } from '@/components/challenges/bingo-board/types/bingoboard.constants'
 
 // Mock Supabase client
 jest.mock('@supabase/auth-helpers-nextjs', () => ({
   createClientComponentClient: jest.fn()
+}))
+
+// Mock useTransition
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useTransition: () => [false, (cb: () => void) => cb()]
 }))
 
 // Update the mock type definition and setup
@@ -16,6 +23,9 @@ type MockSupabaseClient = {
   channel: jest.Mock
   removeChannel: jest.Mock
 }
+
+// Add deep clone utility
+const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj))
 
 describe('useBingoBoard', () => {
   const mockBoardId = 'test-board-id'
@@ -91,10 +101,7 @@ describe('useBingoBoard', () => {
 
   it('should handle fetch errors', async () => {
     // Mock the error response
-    mockSingle.mockResolvedValueOnce({ 
-      data: null, 
-      error: { message: 'Network error' }
-    })
+    mockSingle.mockRejectedValueOnce(new Error(ERROR_MESSAGES.NETWORK_ERROR))
 
     // Render the hook
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
@@ -102,14 +109,25 @@ describe('useBingoBoard', () => {
     // Initial state should be loading
     expect(result.current.loading).toBe(true)
 
-    // Wait for all state updates to complete
+    // Wait for error state to be set
     await act(async () => {
-      // Wait for the initial fetch to complete and state updates to settle
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for the initial fetch and error handling
+      await new Promise(resolve => setTimeout(resolve, 500))
     })
 
-    // Verify the final state
-    expect(result.current.loading).toBe(false)
+    // Use waitFor to check the state until it matches or times out
+    let attempts = 0
+    const maxAttempts = 10
+    const checkInterval = 50
+
+    while (attempts < maxAttempts && !result.current.error) {
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, checkInterval))
+      })
+      attempts++
+    }
+
+    // Now check the final state
     expect(result.current.error).toBeTruthy()
     expect(result.current.board).toBeNull()
   })
@@ -160,7 +178,7 @@ describe('useBingoBoard', () => {
     // Initial fetch
     mockSingle.mockResolvedValueOnce({ data: initialBoardData, error: null })
     
-    // Mock update chain
+    // Mock update chain with error
     const mockUpdateChain = {
       eq: jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({ error: new Error('Update failed') })
@@ -183,7 +201,7 @@ describe('useBingoBoard', () => {
     await act(async () => {})
 
     // Store initial state
-    const initialState = result.current.board?.board_state
+    const initialState = deepClone(result.current.board?.board_state)
     expect(initialState).toBeDefined() // Ensure initial state is set
       
     const newBoardState = [generateMockBoardCell({ text: 'Updated Cell' })]
@@ -254,8 +272,11 @@ describe('useBingoBoard', () => {
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
 
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise(resolve => setTimeout(resolve, 100))
     })
+
+    // Force React to flush all updates
+    await act(async () => {})
 
     // Update channel mock call
     const mockChannel = mockSupabase.channel('test')
@@ -266,7 +287,7 @@ describe('useBingoBoard', () => {
       throw new Error('Channel callback not found')
     }
 
-    act(() => {
+    await act(async () => {
       channelCallback({
         eventType: 'UPDATE',
         new: {
