@@ -1,33 +1,82 @@
 import type { Player } from './types'
 import type { BoardCell } from './types'
+import type { Game } from './types'
 
-export interface SessionEvent {
-  id: string
-  board_id: string
-  type: 'start' | 'pause' | 'resume' | 'end' | 'playerJoin' | 'playerLeave' | 'cellUpdate' | 'stateSync' | 'conflict' | 'reconnect' | 'timeout'
-  player_id?: string
-  data?: unknown
-  timestamp: number
-  version?: number
-  created_at?: string
-  updated_at?: string
+export interface UseSessionProps {
+  boardId: string
+  _game: Game
+  initialPlayers?: Player[]
+  onSessionEnd?: () => void
 }
 
+// Base event type
 export interface BaseSessionEvent {
-  type: 'start' | 'pause' | 'resume' | 'end' | 'playerJoin' | 'playerLeave' | 'cellUpdate' | 'stateSync' | 'conflict' | 'reconnect' | 'timeout'
+  type: SessionEventType
   timestamp: number
   playerId?: string
   data?: unknown
   version?: number
+  sessionId: string // Add sessionId to base event
 }
 
-export interface LocalSessionEvent extends BaseSessionEvent {
-  sessionId: string
+// Event type union
+export type SessionEventType = 
+  | 'start' 
+  | 'pause' 
+  | 'resume' 
+  | 'end' 
+  | 'playerJoin' 
+  | 'playerLeave' 
+  | 'cellUpdate' 
+  | 'stateSync' 
+  | 'conflict' 
+  | 'reconnect' 
+  | 'timeout'
+
+// Specific event types
+export interface PlayerEvent extends BaseSessionEvent {
+  type: 'playerJoin' | 'playerLeave'
+  playerId: string
+  playerData: {
+    name: string
+    color: string
+    team?: number
+  }
 }
 
-export interface ImportedSessionEvent extends BaseSessionEvent {
+export interface CellUpdateEvent extends BaseSessionEvent {
+  type: 'cellUpdate'
+  cellId: string
+  playerId: string
+  updates: Partial<BoardCell>
+  previousState?: Partial<BoardCell>
+}
+
+export interface StateEvent extends BaseSessionEvent {
+  type: 'stateSync' | 'conflict'
+  state: BoardCell[]
+  source: 'server' | 'client'
+  conflictResolution?: {
+    winner: 'server' | 'client'
+    reason: string
+  }
+}
+
+export interface ConnectionEvent extends BaseSessionEvent {
+  type: 'reconnect' | 'timeout'
+  attempt?: number
+  success?: boolean
+  error?: string
+}
+
+export interface SessionEvent {
   id: string
   board_id: string
+  type: SessionEventType
+  player_id?: string
+  data?: unknown
+  timestamp: number
+  version?: number
   created_at?: string
   updated_at?: string
 }
@@ -59,15 +108,15 @@ export interface SessionBoard {
   updated_at?: string
 }
 
-export interface UseSession {
-  // Core States
-  board: BoardCell[] | null
-  loading: boolean
-  error: Error | null
+export interface UseSessionReturn {
+  // Session States
+  isActive: boolean
+  isPaused: boolean
+  isFinished: boolean
   
   // Player Management
   players: Player[]
-  updateSessionPlayers?: (players: Player[]) => Promise<void>
+  currentPlayer: Player | null
   
   // Session Controls
   startSession: () => Promise<void>
@@ -76,6 +125,7 @@ export interface UseSession {
   endSession: () => Promise<void>
   
   // Game State
+  board: BoardCell[]
   updateCell: (cellId: string, updates: Partial<BoardCell>) => Promise<void>
   
   // Stats & Info
@@ -86,6 +136,7 @@ export interface UseSession {
   // Presence
   onlineUsers: Player[]
   stateVersion: number
-  reconnect: () => void
+  reconnect: () => Promise<void>
+  error: Error | null
   clearError: () => void
 } 

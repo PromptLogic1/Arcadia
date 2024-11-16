@@ -165,6 +165,7 @@ export interface Database {
           bookmarked_count: number
           created_at: string
           updated_at: string
+          version?: number
         }
         Insert: Omit<Tables['bingo_boards']['Row'], 'id' | 'votes' | 'bookmarked_count' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Tables['bingo_boards']['Row'], 'id' | 'created_at' | 'updated_at'>>

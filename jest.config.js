@@ -58,6 +58,10 @@ const config = {
     'ts-jest': {
       tsconfig: './tsconfig.jest.json'
     }
+  },
+  fakeTimers: {
+    enableGlobally: true,
+    legacyFakeTimers: false
   }
 }
 
