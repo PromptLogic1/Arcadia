@@ -24,3 +24,5 @@ export const PLAYER_CONSTANTS = {
     TEAM_UPDATE: 'teamUpdate'
   }
 } as const
+
+export type TeamSizeLimits = typeof PLAYER_CONSTANTS.LIMITS

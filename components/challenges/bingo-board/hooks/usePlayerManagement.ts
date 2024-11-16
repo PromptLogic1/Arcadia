@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { Player } from '../types/types'
-import type { PlayerValidationResult, UsePlayerManagement, PlayerEvent } from '../types/playermanagement.types'
+import type { UsePlayerManagement, PlayerEvent } from '../types/playermanagement.types'
 import { PLAYER_CONSTANTS } from '../types/playermanagement.constants'
 import { colorPalette } from '../types/constants'
 import { useSession } from './useSession'
@@ -11,48 +11,21 @@ import { useGameSettings } from './useGameSettings'
 import { usePresence } from './usePresence'
 
 export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
-  // States bleiben gleich, aber nutzen jetzt die Konstanten
+  // States
   const [players, setPlayers] = useState<Player[]>([])
   const [teamNames, setTeamNames] = useState<[string, string]>(PLAYER_CONSTANTS.TEAMS.DEFAULT_NAMES)
   const [teamColors, setTeamColors] = useState<[string, string]>(PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS)
-  const [currentPlayer, setCurrentPlayer] = useState<number>(0)
+  const [_currentPlayer, _setCurrentPlayer] = useState<number>(0)
 
   // Hook Integration
-  const { updateStats, trackMove } = useGameAnalytics()
+  const { updateStats: _updateStats, trackMove } = useGameAnalytics()
   const { settings } = useGameSettings(boardId)
-  const { updateSessionPlayers } = useSession({ 
+  const session = useSession({ 
     boardId, 
     _game: 'All Games', 
     initialPlayers: players 
   }) as { updateSessionPlayers?: (players: Player[]) => Promise<void> }
   const { presenceState } = usePresence(boardId)
-
-  // Validierungsfunktion in useRef für Dependency-Stabilität
-  const validatePlayerRef = useRef((name: string, team: number): PlayerValidationResult => {
-    const errors: string[] = []
-
-    if (name.length > PLAYER_CONSTANTS.LIMITS.MAX_NAME_LENGTH) {
-      errors.push(`Name cannot exceed ${PLAYER_CONSTANTS.LIMITS.MAX_NAME_LENGTH} characters`)
-    }
-
-    const teamSize = players.filter(p => p.team === team).length
-    if (teamSize >= PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE) {
-      errors.push(`Team ${team + 1} is already full`)
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    }
-  })
-
-  // getTeamSizes als stabile Referenz
-  const getTeamSizes = useCallback((currentPlayers: Player[]): Record<number, number> => {
-    return currentPlayers.reduce((acc, p) => {
-      acc[p.team] = (acc[p.team] || 0) + 1
-      return acc
-    }, {} as Record<number, number>)
-  }, [])
 
   // Event Emitter
   const emitPlayerEvent = useCallback((event: PlayerEvent) => {
@@ -63,7 +36,6 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
       })
       window.dispatchEvent(customEvent)
       
-      // Analytics tracking
       if (event.type === 'teamChange') {
         trackMove(event.playerId, 'team_switch', event.newTeam)
       }
@@ -72,44 +44,37 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
     }
   }, [trackMove])
 
-  // Sync mit Online Status
-  useEffect(() => {
-    const onlinePlayers = Object.values(presenceState).map(presence => presence.user_id)
-    setPlayers(prev => prev.map(player => ({
-      ...player,
-      isOnline: onlinePlayers.includes(player.id)
-    })))
-  }, [presenceState])
+  // Helper Functions
+  const getTeamSizes = useCallback((currentPlayers: Player[]): Record<number, number> => {
+    return currentPlayers.reduce((acc, p) => {
+      acc[p.team] = (acc[p.team] || 0) + 1
+      return acc
+    }, {} as Record<number, number>)
+  }, [])
 
-  // Sync mit Session - Dependencies korrigiert
-  useEffect(() => {
-    const syncPlayers = async () => {
-      if (players.length > 0 && updateSessionPlayers) {
-        try {
-          await updateSessionPlayers(players)
-        } catch (error) {
-          console.error('Failed to sync players with session:', error)
-        }
-      }
-    }
-    
-    syncPlayers()
-  }, [players, updateSessionPlayers])
+  const checkTeamSize = useCallback((team: number, currentPlayers: Player[]): boolean => {
+    const teamSizes = getTeamSizes(currentPlayers)
+    return (teamSizes[team] || 0) < PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE
+  }, [getTeamSizes])
 
-  // Team Mode Sync - Dependencies korrigiert
-  useEffect(() => {
-    if (!settings.teamMode && players.some(p => p.team !== 0)) {
-      const defaultColor = colorPalette[0]?.color || 'bg-cyan-500'
-      setPlayers(prev => prev.map(player => ({
-        ...player,
-        team: 0,
-        color: defaultColor
-      })))
-    }
-  }, [settings.teamMode, players])
-
+  // Core Functions
   const addPlayer = useCallback((): void => {
+    // First check total player limit
     if (players.length >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) return
+
+    const teamSizes = getTeamSizes(players)
+    const team0Count = teamSizes[0] || 0
+    const team1Count = teamSizes[1] || 0
+
+    // Check if either team has room
+    const team0HasRoom = team0Count < PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE
+    const team1HasRoom = team1Count < PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE
+
+    // If no team has room, don't add player
+    if (!team0HasRoom && !team1HasRoom) return
+
+    // Determine initial team based on available space and balance
+    const initialTeam = !team1HasRoom || (team0HasRoom && team0Count <= team1Count) ? 0 : 1
 
     const paletteItem = colorPalette[players.length % colorPalette.length]
     if (!paletteItem) return
@@ -119,51 +84,19 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
       name: `Player ${players.length + 1}`,
       color: paletteItem.color,
       hoverColor: paletteItem.hoverColor,
-      team: players.length % PLAYER_CONSTANTS.TEAMS.MAX_TEAMS
+      team: initialTeam
     }
 
-    const validation = validatePlayerRef.current(newPlayer.name, newPlayer.team)
-    if (!validation.isValid) return
-
-    setPlayers(prev => {
-      const teamSizes = getTeamSizes(prev)
-      const team0Size = teamSizes[0] ?? 0
-      const team1Size = teamSizes[1] ?? 0
-      
-      if (Math.abs(team0Size - team1Size) > PLAYER_CONSTANTS.VALIDATION.MAX_TEAM_SIZE_DIFFERENCE) {
-        newPlayer.team = team0Size > team1Size ? 1 : 0
-      }
-      
-      const newPlayers = [...prev, newPlayer]
-      
-      emitPlayerEvent({
-        type: PLAYER_CONSTANTS.EVENTS.PLAYER_JOIN,
-        player: newPlayer
-      })
-      
-      updateStats(newPlayers, {}, {})
-      
-      return newPlayers
+    setPlayers(prev => [...prev, newPlayer])
+    emitPlayerEvent({
+      type: PLAYER_CONSTANTS.EVENTS.PLAYER_JOIN,
+      player: newPlayer
     })
-  }, [
-    players.length, 
-    getTeamSizes, 
-    emitPlayerEvent, 
-    updateStats
-  ])
+  }, [players, getTeamSizes, emitPlayerEvent])
 
   const removePlayer = useCallback((index: number): void => {
-    setPlayers(prev => {
-      const newPlayers = prev.filter((_, i) => i !== index)
-      
-      // Aktualisiere currentPlayer wenn nötig
-      if (currentPlayer >= newPlayers.length) {
-        setCurrentPlayer(0)
-      }
-      
-      return newPlayers
-    })
-  }, [currentPlayer])
+    setPlayers(prev => prev.filter((_, i) => i !== index))
+  }, [])
 
   const updatePlayerInfo = useCallback((
     index: number, 
@@ -176,50 +109,38 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
       const currentPlayer = newPlayers[index]
       
       if (currentPlayer) {
-        // Validiere Name
         const validName = name.trim() || currentPlayer.name
-        
-        // Prüfe auf Namens-Duplikate
-        const isDuplicate = newPlayers.some((p, i) => 
-          i !== index && p.name === validName
-        )
+        const isDuplicate = newPlayers.some((p, i) => i !== index && p.name === validName)
         
         newPlayers[index] = {
           ...currentPlayer,
           name: isDuplicate ? `${validName} (${index + 1})` : validName,
           color,
-          ...(team !== undefined && { team })
+          ...(team !== undefined && checkTeamSize(team, newPlayers) && { team })
         }
       }
       
       return newPlayers
     })
-  }, [])
+  }, [checkTeamSize])
 
   const switchTeam = useCallback((playerId: string, newTeam: number): void => {
     if (!settings.teamMode) return
 
     setPlayers(prev => {
-      const playerIndex = prev.findIndex(p => p.id === playerId)
-      if (playerIndex === -1) return prev
+      if (!checkTeamSize(newTeam, prev)) return prev
 
-      const player = prev[playerIndex]
-      if (!player) return prev
-
-      const teamSizes = getTeamSizes(prev)
-      if ((teamSizes[newTeam] || 0) >= PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE) return prev
-
-      const newColor = teamColors[newTeam]
-      if (!newColor) return prev
-
-      const newPlayers = [...prev]
-      newPlayers[playerIndex] = {
-        id: player.id,
-        name: player.name,
-        color: newColor,
-        hoverColor: player.hoverColor,
-        team: newTeam
-      }
+      const newPlayers = prev.map(player => {
+        if (player.id === playerId) {
+          const newColor = teamColors[newTeam]
+          return {
+            ...player,
+            team: newTeam,
+            color: newColor || player.color
+          }
+        }
+        return player
+      })
 
       emitPlayerEvent({
         type: PLAYER_CONSTANTS.EVENTS.TEAM_CHANGE,
@@ -229,91 +150,86 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
 
       return newPlayers
     })
-  }, [
-    teamColors, 
-    settings.teamMode, 
-    emitPlayerEvent, 
-    getTeamSizes
-  ])
-
-  // 2.2 Team-Management
-  const updateTeamName = useCallback((index: number, name: string): void => {
-    setTeamNames(prev => {
-      const newNames = [...prev] as [string, string]
-      newNames[index] = name
-      return newNames
-    })
-  }, [])
-
-  const updateTeamColor = useCallback((index: number, color: string): void => {
-    setTeamColors(prev => {
-      const newColors = [...prev] as [string, string]
-      newColors[index] = color
-      return newColors
-    })
-    
-    // Update alle Spieler im Team mit der neuen Farbe
-    setPlayers(prev =>
-      prev.map(player =>
-        player.team === index
-          ? { ...player, color }
-          : player
-      )
-    )
-  }, [])
+  }, [settings.teamMode, teamColors, emitPlayerEvent, checkTeamSize])
 
   const balanceTeams = useCallback((): void => {
     setPlayers(prev => {
-      const teamSizes = getTeamSizes(prev)
-      const team0Size = teamSizes[0] ?? 0
-      const team1Size = teamSizes[1] ?? 0
-
-      if (Math.abs(team0Size - team1Size) <= 1) {
-        return prev // Teams sind bereits ausbalanciert
+      // First, ensure we don't exceed max players per team
+      const maxPlayersPerTeam = PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE
+      
+      // Sort players by ID to ensure consistent balancing
+      const allPlayers = [...prev].sort((a, b) => a.id.localeCompare(b.id))
+      
+      // Split players into teams while respecting max size
+      const team0Players = []
+      const team1Players = []
+      
+      for (const player of allPlayers) {
+        if (team0Players.length < maxPlayersPerTeam && 
+            (team1Players.length >= maxPlayersPerTeam || team0Players.length <= team1Players.length)) {
+          team0Players.push({ ...player, team: 0, color: teamColors[0] || player.color })
+        } else if (team1Players.length < maxPlayersPerTeam) {
+          team1Players.push({ ...player, team: 1, color: teamColors[1] || player.color })
+        }
+        // If both teams are full, player is not assigned
       }
 
-      const biggerTeam = team0Size > team1Size ? 0 : 1
-      const smallerTeam = biggerTeam === 0 ? 1 : 0
-      const diff = Math.floor(Math.abs(team0Size - team1Size) / 2)
-
-      const smallerTeamColor = teamColors[smallerTeam]
-      if (!smallerTeamColor) return prev
-
-      return prev.map((player, index) => {
-        if (player.team === biggerTeam && index < diff) {
-          return {
-            ...player,
-            team: smallerTeam,
-            color: smallerTeamColor
-          }
-        }
-        return player
-      })
+      // Combine teams
+      return [...team0Players, ...team1Players]
     })
-  }, [teamColors, getTeamSizes])
+  }, [teamColors])
 
-  // 3. Validierung
-  const validateTeamSize = useCallback((): boolean => {
-    const teamSizes = players.reduce((acc, p) => {
-      acc[p.team] = (acc[p.team] || 0) + 1
-      return acc
-    }, {} as Record<number, number>)
+  // Sync with session
+  useEffect(() => {
+    if (session.updateSessionPlayers) {
+      session.updateSessionPlayers(players).catch(console.error)
+    }
+  }, [players, session])
 
-    return Math.abs((teamSizes[0] || 0) - (teamSizes[1] || 0)) <= 1
-  }, [players])
+  // Sync with presence
+  useEffect(() => {
+    const onlinePlayers = Object.values(presenceState).map(presence => presence.user_id)
+    setPlayers(prev => prev.map(player => ({
+      ...player,
+      isOnline: onlinePlayers.includes(player.id)
+    })))
+  }, [presenceState])
 
   return {
     players,
     teamNames,
     teamColors,
-    currentPlayer,
+    currentPlayer: _currentPlayer,
     addPlayer,
     removePlayer,
     updatePlayerInfo,
     switchTeam,
-    updateTeamName,
-    updateTeamColor,
+    updateTeamName: useCallback((index: number, name: string) => {
+      setTeamNames(prev => {
+        const newNames = [...prev] as [string, string]
+        newNames[index] = name
+        return newNames
+      })
+    }, []),
+    updateTeamColor: useCallback((index: number, color: string) => {
+      setTeamColors(prev => {
+        const newColors = [...prev] as [string, string]
+        newColors[index] = color
+        return newColors
+      })
+      
+      setPlayers(prev =>
+        prev.map(player =>
+          player.team === index
+            ? { ...player, color }
+            : player
+        )
+      )
+    }, []),
     balanceTeams,
-    validateTeamSize
+    validateTeamSize: useCallback(() => {
+      const teamSizes = getTeamSizes(players)
+      return Math.abs((teamSizes[0] || 0) - (teamSizes[1] || 0)) <= 1
+    }, [players, getTeamSizes])
   }
 }
