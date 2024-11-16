@@ -67,7 +67,7 @@ export interface UseSession {
   
   // Player Management
   players: Player[]
-  updateSessionPlayers: (players: Player[]) => Promise<void>
+  updateSessionPlayers?: (players: Player[]) => Promise<void>
   
   // Session Controls
   startSession: () => Promise<void>

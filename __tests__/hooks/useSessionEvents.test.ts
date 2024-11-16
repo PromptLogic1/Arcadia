@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom'
 import { renderHook, act } from '@testing-library/react'
 import { useSession } from '@/components/challenges/bingo-board/hooks/useSession'
 import type { SessionEvent } from '@/components/challenges/bingo-board/types/events'
@@ -298,5 +299,150 @@ describe('useSession Event Handling', () => {
     // Should keep newer state
     expect(_result.current.board?.[0]?.text).toBe('New Version')
     expect(_result.current.stateVersion).toBe(2)
+  })
+
+  it('should handle malformed events gracefully', async () => {
+    const { result: _result } = renderHook(() => useSession({ 
+      boardId: mockBoardId,
+      _game: 'World of Warcraft'
+    }))
+
+    const malformedEvent = {
+      type: 'unknown',
+      timestamp: Date.now(),
+      sessionId: mockBoardId
+    }
+
+    await act(async () => {
+      const broadcastHandler = mockChannel.on.mock.calls.find(
+        call => call[1].event === '*'
+      )[2]
+      broadcastHandler({ payload: malformedEvent })
+    })
+
+    // Should not crash and maintain state
+    expect(_result.current.error).toBeNull()
+  })
+
+  it('should handle concurrent events correctly', async () => {
+    const { result: _result } = renderHook(() => useSession({ 
+      boardId: mockBoardId,
+      _game: 'World of Warcraft'
+    }))
+
+    const events = [
+      {
+        type: 'cellUpdate' as const,
+        timestamp: Date.now(),
+        sessionId: mockBoardId,
+        cellId: 'cell-1',
+        playerId: 'player-1',
+        updates: { isMarked: true }
+      },
+      {
+        type: 'cellUpdate' as const,
+        timestamp: Date.now() + 1,
+        sessionId: mockBoardId,
+        cellId: 'cell-1',
+        playerId: 'player-2',
+        updates: { isMarked: false }
+      }
+    ]
+
+    await act(async () => {
+      const broadcastHandler = mockChannel.on.mock.calls.find(
+        call => call[1].event === '*'
+      )[2]
+      
+      // Send events almost simultaneously
+      events.forEach(event => broadcastHandler({ payload: event }))
+    })
+
+    // Last event should win
+    expect(_result.current.board?.[0]?.isMarked).toBe(false)
+  })
+
+  it('should handle version conflicts correctly', async () => {
+    const { result: _result } = renderHook(() => useSession({ 
+      boardId: mockBoardId,
+      _game: 'World of Warcraft'
+    }))
+
+    const events = [
+      {
+        type: 'stateSync' as const,
+        timestamp: Date.now(),
+        sessionId: mockBoardId,
+        state: [{ cellId: 'cell-1', version: 2 }],
+        version: 2
+      },
+      {
+        type: 'stateSync' as const,
+        timestamp: Date.now() - 1000, // Older timestamp
+        sessionId: mockBoardId,
+        state: [{ cellId: 'cell-1', version: 1 }],
+        version: 1
+      }
+    ]
+
+    await act(async () => {
+      const broadcastHandler = mockChannel.on.mock.calls.find(
+        call => call[1].event === '*'
+      )[2]
+      
+      events.forEach(event => broadcastHandler({ payload: event }))
+    })
+
+    // Higher version should be kept
+    expect(_result.current.stateVersion).toBe(2)
+  })
+
+  it('should handle reconnection with state recovery', async () => {
+    const { result: _result } = renderHook(() => useSession({ 
+      boardId: mockBoardId,
+      _game: 'World of Warcraft'
+    }))
+
+    const mockState = [{
+      text: 'Test Cell',
+      colors: [],
+      completedBy: [],
+      blocked: false,
+      isMarked: true,
+      cellId: 'cell-1',
+      version: 1
+    }]
+
+    mockSupabase.from().select().mockResolvedValueOnce({
+      data: { board_state: mockState },
+      error: null
+    })
+
+    await act(async () => {
+      await _result.current.reconnect()
+    })
+
+    expect(_result.current.board?.[0]?.isMarked).toBe(true)
+  })
+
+  it('should handle multiple reconnection attempts', async () => {
+    const { result: _result } = renderHook(() => useSession({ 
+      boardId: mockBoardId,
+      _game: 'World of Warcraft'
+    }))
+
+    // Mock first attempt failing, second succeeding
+    mockSupabase.from().select()
+      .mockRejectedValueOnce(new Error('Connection failed'))
+      .mockResolvedValueOnce({
+        data: { board_state: [] },
+        error: null
+      })
+
+    await act(async () => {
+      await _result.current.reconnect()
+    })
+
+    expect(mockSupabase.from().select).toHaveBeenCalledTimes(2)
   })
 }) 

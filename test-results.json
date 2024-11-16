@@ -1,279 +1,75 @@
 {
-  "timestamp": "2024-11-14T17:33:42.841Z",
-  "totalTests": 37,
-  "passedTests": 32,
-  "failedTests": 5,
+  "timestamp": "2024-11-16T11:38:53.415Z",
+  "totalTests": 9,
+  "passedTests": 8,
+  "failedTests": 1,
   "pendingTests": 0,
-  "duration": 6479,
+  "duration": 3684,
   "testResults": [
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spielzustand Initialisierung SOLL Board korrekt initialisieren",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should initialize with loading state",
       "status": "passed",
-      "duration": 12,
+      "duration": 45,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spielzustand Initialisierung SOLL Zellen mit korrekter Struktur initialisieren",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should fetch board data successfully",
       "status": "passed",
-      "duration": 8,
+      "duration": 116,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spielzustand Initialisierung SOLL Board-State bei Reset zurücksetzen",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should handle fetch errors",
+      "status": "failed",
+      "duration": 107,
+      "errorMessages": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mfalse\u001b[39m\nReceived: \u001b[31mtrue\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:112:36)\n    at call (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at Generator.tryCatch (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at Generator._invoke [as next] (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)\n    at asyncGeneratorStep (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts:2:1)"
+      ]
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should update board state successfully",
       "status": "passed",
-      "duration": 3,
+      "duration": 112,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spielzustand Initialisierung SOLL Gewinnbedingungen korrekt initialisieren",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should handle update errors with rollback",
+      "status": "passed",
+      "duration": 217,
+      "errorMessages": []
+    },
+    {
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should validate board state correctly",
       "status": "passed",
       "duration": 2,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spielzustand Initialisierung SOLL alle Spieler-States korrekt verwalten",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should handle retry logic for failed fetches",
       "status": "passed",
-      "duration": 3,
+      "duration": 1507,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Team-Modus SOLL Team-basierte Siege korrekt erkennen",
-      "status": "failed",
-      "duration": 1014,
-      "errorMessages": [
-        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31mnull\u001b[39m\n\nIgnored nodes: comments, script, style\n\u001b[36m<html>\u001b[39m\n  \u001b[36m<head />\u001b[39m\n  \u001b[36m<body>\u001b[39m\n    \u001b[36m<div />\u001b[39m\n  \u001b[36m</body>\u001b[39m\n\u001b[36m</html>\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts:94:39)\n    at runWithExpensiveErrorDiagnosticsDisabled (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\config.js:47:12)\n    at checkCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:124:77)\n    at checkRealTimersCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:118:16)\n    at Timeout.task [as _onTimeout] (C:\\Dev\\Arcadia\\node_modules\\jsdom\\lib\\jsdom\\browser\\Window.js:520:19)\n    at listOnTimeout (node:internal/timers:581:17)\n    at processTimers (node:internal/timers:519:7)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Team-Modus SOLL Team-Mehrheiten korrekt berechnen",
-      "status": "passed",
-      "duration": 8,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Regelkonformität SOLL blockierte Zellen vor Updates schützen",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Regelkonformität SOLL ungültige Spielzüge ablehnen",
-      "status": "passed",
-      "duration": 18,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook State Validierung SOLL korrupte Board-States erkennen und behandeln",
-      "status": "passed",
-      "duration": 10,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook State Validierung SOLL Typ-Sicherheit bei Updates gewährleisten",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Performance SOLL State-Updates effizient durchführen",
-      "status": "passed",
-      "duration": 2,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Gewinnbedingungen Linien-Siegbedingung SOLL Liniensieg nur bei aktivierter Bedingung erkennen",
-      "status": "passed",
-      "duration": 24,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Gewinnbedingungen Linien-Siegbedingung SOLL Spiel sofort bei Liniensieg beenden",
-      "status": "failed",
-      "duration": 1007,
-      "errorMessages": [
-        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31mnull\u001b[39m\n\nIgnored nodes: comments, script, style\n\u001b[36m<html>\u001b[39m\n  \u001b[36m<head />\u001b[39m\n  \u001b[36m<body>\u001b[39m\n    \u001b[36m<div />\u001b[39m\n  \u001b[36m</body>\u001b[39m\n\u001b[36m</html>\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts:258:41)\n    at runWithExpensiveErrorDiagnosticsDisabled (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\config.js:47:12)\n    at checkCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:124:77)\n    at checkRealTimersCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:118:16)\n    at Timeout.task [as _onTimeout] (C:\\Dev\\Arcadia\\node_modules\\jsdom\\lib\\jsdom\\browser\\Window.js:520:19)\n    at listOnTimeout (node:internal/timers:581:17)\n    at processTimers (node:internal/timers:519:7)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Gewinnbedingungen Mehrheits-Siegbedingung SOLL Mehrheitssieg nur bei Spielende prüfen",
-      "status": "passed",
-      "duration": 4,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Gewinnbedingungen Mehrheits-Siegbedingung SOLL Mehrheitssieg bei deaktivierter Bedingung ignorieren",
-      "status": "passed",
-      "duration": 6,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Gewinnbedingungen Sofortiger Spielabbruch SOLL Spiel sofort bei Liniensieg beenden",
-      "status": "failed",
-      "duration": 1006,
-      "errorMessages": [
-        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31mnull\u001b[39m\n\nIgnored nodes: comments, script, style\n\u001b[36m<html>\u001b[39m\n  \u001b[36m<head />\u001b[39m\n  \u001b[36m<body>\u001b[39m\n    \u001b[36m<div />\u001b[39m\n  \u001b[36m</body>\u001b[39m\n\u001b[36m</html>\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts:354:41)\n    at runWithExpensiveErrorDiagnosticsDisabled (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\config.js:47:12)\n    at checkCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:124:77)\n    at checkRealTimersCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:118:16)\n    at Timeout.task [as _onTimeout] (C:\\Dev\\Arcadia\\node_modules\\jsdom\\lib\\jsdom\\browser\\Window.js:520:19)\n    at listOnTimeout (node:internal/timers:581:17)\n    at processTimers (node:internal/timers:519:7)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Gewinnbedingungen Sofortiger Spielabbruch SOLL bei gleichzeitigem Liniensieg unentschieden enden",
-      "status": "failed",
-      "duration": 1005,
-      "errorMessages": [
-        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m-1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\nIgnored nodes: comments, script, style\n\u001b[36m<html>\u001b[39m\n  \u001b[36m<head />\u001b[39m\n  \u001b[36m<body>\u001b[39m\n    \u001b[36m<div />\u001b[39m\n  \u001b[36m</body>\u001b[39m\n\u001b[36m</html>\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts:379:41)\n    at runWithExpensiveErrorDiagnosticsDisabled (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\config.js:47:12)\n    at checkCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:124:77)\n    at checkRealTimersCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:118:16)\n    at Timeout.task [as _onTimeout] (C:\\Dev\\Arcadia\\node_modules\\jsdom\\lib\\jsdom\\browser\\Window.js:520:19)\n    at listOnTimeout (node:internal/timers:581:17)\n    at processTimers (node:internal/timers:519:7)"
-      ]
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spiellogik SOLL Blocking-Mechanismus korrekt implementieren",
-      "status": "passed",
-      "duration": 0,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Spiellogik SOLL Zell-Text auf 50 Zeichen begrenzen",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Edge Cases SOLL mit großen Boards performant umgehen",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Edge Cases SOLL mit vollständig gefüllten Boards umgehen",
-      "status": "passed",
-      "duration": 14,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Edge Cases SOLL mit gleichzeitigen Gewinnbedingungen umgehen",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should handle realtime updates correctly",
       "status": "passed",
       "duration": 15,
       "errorMessages": []
     },
     {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Edge Cases SOLL mit leeren Boards umgehen können",
+      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoBoard.test.ts",
+      "testName": "useBingoBoard should handle batch updates correctly",
       "status": "passed",
-      "duration": 1,
+      "duration": 109,
       "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Edge Cases SOLL mit Spieler-Disconnects umgehen",
-      "status": "passed",
-      "duration": 2,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Edge Cases SOLL Memory-Leaks vermeiden",
-      "status": "passed",
-      "duration": 2,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Zell-Management SOLL Zell-Updates atomar durchführen",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Zell-Management SOLL Zell-Farben und completedBy Arrays korrekt verwalten",
-      "status": "passed",
-      "duration": 0,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Zell-Management SOLL isMarked und blocked States korrekt tracken",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Fehlerbehandlung SOLL regelwidrige Aktionen verhindern",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Fehlerbehandlung SOLL Konflikte zwischen Spieleraktionen auflösen",
-      "status": "passed",
-      "duration": 1,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Fehlerbehandlung SOLL Fehler beim Zell-Update protokollieren",
-      "status": "passed",
-      "duration": 7,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Fehlerbehandlung SOLL bei kritischen Fehlern das Spiel pausieren",
-      "status": "passed",
-      "duration": 7,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Fehlerbehandlung SOLL bei Inkonsistenzen den letzten validen State wiederherstellen",
-      "status": "passed",
-      "duration": 8,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Unentschieden-Szenarien SOLL Unentschieden bei Zeitablauf mit gleicher Feldanzahl erkennen",
-      "status": "passed",
-      "duration": 13,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Unentschieden-Szenarien SOLL Unentschieden bei vollem Board mit gleicher Feldanzahl erkennen",
-      "status": "passed",
-      "duration": 3,
-      "errorMessages": []
-    },
-    {
-      "filePath": "C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts",
-      "testName": "useBingoGame Hook Unentschieden-Szenarien SOLL Unentschieden erkennen wenn keine Line mehr möglich ist",
-      "status": "failed",
-      "duration": 1007,
-      "errorMessages": [
-        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m-1\u001b[39m\nReceived: \u001b[31mnull\u001b[39m\n\nIgnored nodes: comments, script, style\n\u001b[36m<html>\u001b[39m\n  \u001b[36m<head />\u001b[39m\n  \u001b[36m<body>\u001b[39m\n    \u001b[36m<div />\u001b[39m\n  \u001b[36m</body>\u001b[39m\n\u001b[36m</html>\u001b[39m\n    at toBe (C:\\Dev\\Arcadia\\__tests__\\hooks\\useBingoGame.test.ts:743:39)\n    at runWithExpensiveErrorDiagnosticsDisabled (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\config.js:47:12)\n    at checkCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:124:77)\n    at checkRealTimersCallback (C:\\Dev\\Arcadia\\node_modules\\@testing-library\\react\\node_modules\\@testing-library\\dom\\dist\\wait-for.js:118:16)\n    at Timeout.task [as _onTimeout] (C:\\Dev\\Arcadia\\node_modules\\jsdom\\lib\\jsdom\\browser\\Window.js:520:19)\n    at listOnTimeout (node:internal/timers:581:17)\n    at processTimers (node:internal/timers:519:7)"
-      ]
     }
   ]
 }

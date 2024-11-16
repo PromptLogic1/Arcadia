@@ -6,15 +6,16 @@ import type { Database } from '@/types/database.types'
 import type { BoardCell } from '../types/types'
 import type { UseBingoBoardProps, UseBingoBoardReturn } from '../types/bingoboard.types'
 import { BOARD_CONSTANTS, ERROR_MESSAGES } from '../types/bingoboard.constants'
+import { unstable_batchedUpdates } from 'react-dom'
 
 type BingoBoardRow = Database['public']['Tables']['bingo_boards']['Row']
-type PostgresChangesPayload = {
+type PostgresChangesPayload<T> = {
   schema: string
   table: string
   commit_timestamp: string
   eventType: 'INSERT' | 'UPDATE' | 'DELETE'
-  new: BingoBoardRow
-  old: BingoBoardRow | null
+  new: T
+  old: T | null
 }
 
 // Hilfsfunktionen für Validierung und Fehlerbehandlung
@@ -80,9 +81,15 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
         .single()
 
       if (fetchError) {
-        setLoading(false)
-        setError(new Error(ERROR_MESSAGES.NETWORK_ERROR))
-        throw fetchError
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
+          return fetchBoard(attempt + 1)
+        }
+        unstable_batchedUpdates(() => {
+          setLoading(false)
+          setError(new Error(ERROR_MESSAGES.NETWORK_ERROR))
+        })
+        return
       }
 
       if (!data || !validateBoardState(data.board_state)) {
@@ -90,20 +97,27 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
           await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
           return fetchBoard(attempt + 1)
         }
-        setLoading(false)
-        throw new Error(ERROR_MESSAGES.INVALID_BOARD)
+        unstable_batchedUpdates(() => {
+          setLoading(false)
+          setError(new Error(ERROR_MESSAGES.INVALID_BOARD))
+        })
+        return
       }
 
-      setBoard(data)
-      setError(null)
-      setLoading(false)
+      unstable_batchedUpdates(() => {
+        setBoard(data)
+        setError(null)
+        setLoading(false)
+      })
     } catch (err) {
       if (attempt < maxAttempts && isTemporaryError(err as Error)) {
         await new Promise(resolve => setTimeout(resolve, retryDelay * attempt))
         return fetchBoard(attempt + 1)
       }
-      setError(err instanceof Error ? err : new Error(ERROR_MESSAGES.SYNC_FAILED))
-      setLoading(false)
+      unstable_batchedUpdates(() => {
+        setLoading(false)
+        setError(err instanceof Error ? err : new Error(ERROR_MESSAGES.SYNC_FAILED))
+      })
     }
   }, [boardId, supabase, validateBoardState])
 
@@ -115,85 +129,46 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
       throw new Error(errorMsg)
     }
 
-    // Deep copy des aktuellen Boards für Rollback
     const previousBoard = board ? JSON.parse(JSON.stringify(board)) : null
     
     try {
-      // Optimistisches Update mit Merge-Logik
-      setBoard(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          board_state: newState
-        }
-      })
+      // Optimistic update
+      setBoard(prev => prev ? {
+        ...prev,
+        board_state: newState
+      } : null)
 
       const { error: updateError } = await supabase
         .from('bingo_boards')
         .update({ board_state: newState })
         .eq('id', boardId)
+        .single()
 
       if (updateError) {
-        // Vollständiger Rollback zum vorherigen State
+        // Rollback on error
         if (previousBoard) {
           setBoard(previousBoard)
         }
-        const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
-        setError(new Error(errorMsg))
-        throw new Error(errorMsg)
+        setError(new Error(ERROR_MESSAGES.UPDATE_FAILED))
+        throw updateError
       }
 
       setError(null)
-      return Promise.resolve()
     } catch (err) {
-      // Vollständiger Rollback zum vorherigen State
+      // Rollback on any error
       if (previousBoard) {
         setBoard(previousBoard)
       }
       const errorMsg = ERROR_MESSAGES.UPDATE_FAILED
       setError(new Error(errorMsg))
-      throw new Error(errorMsg)
+      throw err
     }
   }, [board, boardId, supabase, validateBoardState])
 
-  // Request Bundling für Updates
-  const updateQueue = useMemo(() => {
-    let timeout: NodeJS.Timeout
-    let currentState: BoardCell[] | null = null
-    let pendingUpdates = 0
-
-    return {
-      add: async (newState: BoardCell[]) => {
-        return new Promise<void>((resolve, reject) => {
-          currentState = newState
-          pendingUpdates++
-          clearTimeout(timeout)
-          
-          timeout = setTimeout(async () => {
-            if (currentState) {
-              try {
-                await updateBoardState(currentState)
-                resolve()
-              } catch (error) {
-                reject(error)
-              } finally {
-                pendingUpdates--
-                currentState = null
-              }
-            } else {
-              resolve()
-            }
-          }, BOARD_CONSTANTS.UPDATE.BATCH_DELAY)
-        })
-      },
-      clear: () => {
-        clearTimeout(timeout)
-        currentState = null
-        pendingUpdates = 0
-      },
-      getPendingUpdates: () => pendingUpdates
-    }
-  }, [updateBoardState])
+  // Initial fetch
+  useEffect(() => {
+    fetchBoard()
+  }, [fetchBoard])
 
   // Update board settings
   const updateBoardSettings = async (settings: Partial<Database['public']['Tables']['bingo_boards']['Row']>) => {
@@ -223,7 +198,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
 
     const channel = supabase
       .channel(`board_${boardId}`)
-      .on<PostgresChangesPayload>(
+      .on<PostgresChangesPayload<BingoBoardRow>>(
         'postgres_changes',
         {
           event: '*',
@@ -232,23 +207,32 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
           filter: `id=eq.${boardId}`
         },
         payload => {
-          if (payload.eventType === 'UPDATE' && payload.new && validateBoardState(payload.new.board_state)) {
-            setBoard(prev => {
-              if (!prev) return payload.new
-              
-              const updatedBoard: BingoBoardRow = {
-                ...payload.new,
-                board_state: payload.new.board_state.map((cell: BoardCell, i: number) => ({
-                  ...cell,
-                  colors: [...new Set([
-                    ...(prev.board_state[i]?.colors || []),
-                    ...cell.colors
-                  ])]
-                }))
-              }
-              
-              return updatedBoard
-            })
+          if (
+            payload.eventType === 'UPDATE' && 
+            payload.new
+          ) {
+            // First cast to unknown, then to BingoBoardRow
+            const updatedBoard = (payload.new as unknown) as BingoBoardRow
+            
+            if (validateBoardState(updatedBoard.board_state)) {
+              setBoard(prevBoard => {
+                if (!prevBoard) return updatedBoard
+
+                // Create updated board with merged states
+                const mergedBoard: BingoBoardRow = {
+                  ...updatedBoard,
+                  board_state: updatedBoard.board_state.map((cell: BoardCell, i: number) => ({
+                    ...cell,
+                    colors: [...new Set([
+                      ...(prevBoard.board_state[i]?.colors || []),
+                      ...cell.colors
+                    ])]
+                  }))
+                }
+
+                return mergedBoard
+              })
+            }
           }
         }
       )
@@ -273,16 +257,15 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
       .subscribe()
 
     return () => {
-      updateQueue.clear()
       supabase.removeChannel(channel)
     }
-  }, [boardId, supabase, updateQueue, validateBoardState])
+  }, [boardId, supabase, validateBoardState])
 
   return {
     board,
     loading,
     error,
-    updateBoardState: updateQueue.add,
+    updateBoardState,
     updateBoardSettings
   }
 } 

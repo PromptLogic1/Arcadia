@@ -8,8 +8,8 @@ export interface QueueEntry {
   color: string
   status: 'pending' | 'approved' | 'rejected'
   requestedAt: string
-  position?: number
-  error?: string
+  position: number
+  priority?: 'high' | 'normal' | 'low'
 }
 
 export interface QueueEvent {
@@ -34,4 +34,8 @@ export interface UseSessionQueue {
   checkQueueStatus: () => Promise<boolean>
   validateQueueSize: () => boolean
   cleanupQueue: () => Promise<void>
+
+  // Additional Operations
+  reconnect: () => Promise<void>
+  updateQueueEntry: (entryId: string, updates: Partial<QueueEntry>) => Promise<void>
 }

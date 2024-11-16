@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import { usePresence } from '@/components/challenges/bingo-board/hooks/usePresence'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { PresenceState } from '@/components/challenges/bingo-board/types/presence.types'
@@ -9,22 +10,29 @@ jest.mock('@supabase/auth-helpers-nextjs', () => ({
 }))
 
 describe('usePresence', () => {
-  const mockChannel = {
-    on: jest.fn().mockReturnThis(),
-    subscribe: jest.fn(),
-    track: jest.fn(),
-    presenceState: jest.fn()
+  const mockUser = {
+    id: 'test-user-id',
+    email: 'test@example.com'
+  }
+
+  const mockPresenceState: PresenceState = {
+    user_id: mockUser.id,
+    online_at: Date.now(),
+    last_seen_at: Date.now(),
+    status: 'online'
   }
 
   const mockSupabase = {
-    channel: jest.fn().mockReturnValue(mockChannel),
-    removeChannel: jest.fn(),
     auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: 'test-user' } },
-        error: null
-      })
-    }
+      getUser: jest.fn().mockResolvedValue({ data: { user: mockUser }, error: null })
+    },
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockImplementation(cb => cb('SUBSCRIBED')),
+      track: jest.fn(),
+      unsubscribe: jest.fn()
+    })),
+    removeChannel: jest.fn()
   }
 
   beforeEach(() => {
@@ -32,155 +40,189 @@ describe('usePresence', () => {
     ;(createClientComponentClient as jest.Mock).mockReturnValue(mockSupabase)
   })
 
-  it('should initialize presence tracking', async () => {
-    const { result } = renderHook(() => usePresence('test-board'))
+  it('should initialize with empty presence state', () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+    expect(_result.current.presenceState).toEqual({})
+    expect(_result.current.error).toBeNull()
+  })
+
+  it('should track user presence on mount', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
 
     expect(mockSupabase.channel).toHaveBeenCalledWith('presence:test-board')
-    expect(mockChannel.on).toHaveBeenCalledTimes(3) // sync, join, leave
-    expect(mockChannel.subscribe).toHaveBeenCalled()
-    expect(result.current.error).toBeNull()
-  })
-
-  it('should update presence state on sync', async () => {
-    const mockPresence: PresenceState = {
-      user_id: 'user-1',
-      online_at: Date.now(),
-      last_seen_at: Date.now(),
+    expect(mockSupabase.channel().track).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: mockUser.id,
       status: 'online'
-    }
-
-    const mockState = {
-      'user-1': [mockPresence]
-    }
-
-    mockChannel.presenceState.mockReturnValue(mockState)
-
-    const { result } = renderHook(() => usePresence('test-board'))
-
-    // Simulate presence sync
-    await act(async () => {
-      const syncHandler = mockChannel.on.mock.calls.find(
-        call => call[1].event === 'sync'
-      )[2]
-      syncHandler()
-    })
-
-    expect(result.current.presenceState['user-1']).toEqual(mockPresence)
-  })
-
-  it('should handle join events', async () => {
-    const mockPresence: PresenceState = {
-      user_id: 'user-1',
-      online_at: Date.now(),
-      last_seen_at: Date.now(),
-      status: 'online'
-    }
-
-    const { result } = renderHook(() => usePresence('test-board'))
-
-    // Simulate join event
-    await act(async () => {
-      const joinHandler = mockChannel.on.mock.calls.find(
-        call => call[1].event === 'join'
-      )[2]
-      joinHandler({ key: 'user-1', newPresences: [mockPresence] })
-    })
-
-    expect(result.current.presenceState['user-1']).toEqual(mockPresence)
-  })
-
-  it('should handle leave events', async () => {
-    const mockPresence: PresenceState = {
-      user_id: 'user-1',
-      online_at: Date.now(),
-      last_seen_at: Date.now(),
-      status: 'online'
-    }
-
-    const { result } = renderHook(() => usePresence('test-board'))
-
-    // First add a presence
-    await act(async () => {
-      const joinHandler = mockChannel.on.mock.calls.find(
-        call => call[1].event === 'join'
-      )[2]
-      joinHandler({ key: 'user-1', newPresences: [mockPresence] })
-    })
-
-    // Then simulate leave event
-    await act(async () => {
-      const leaveHandler = mockChannel.on.mock.calls.find(
-        call => call[1].event === 'leave'
-      )[2]
-      leaveHandler({ key: 'user-1' })
-    })
-
-    expect(result.current.presenceState['user-1']).toBeUndefined()
-  })
-
-  it('should handle visibility change', async () => {
-    renderHook(() => usePresence('test-board'))
-
-    // Simulate visibility change
-    await act(async () => {
-      document.dispatchEvent(new Event('visibilitychange'))
-    })
-
-    expect(mockChannel.track).toHaveBeenCalled()
-    expect(mockChannel.track).toHaveBeenCalledWith(expect.objectContaining({
-      status: expect.any(String)
     }))
   })
 
-  it('should handle errors gracefully', async () => {
-    mockSupabase.auth.getUser.mockRejectedValueOnce(new Error('Auth error'))
+  it('should handle presence sync events', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
 
-    const { result } = renderHook(() => usePresence('test-board'))
+    const channel = mockSupabase.channel()
+    const syncCallback = channel.on.mock.calls.find(
+      call => call[0] === 'presence' && call[1].event === 'sync'
+    )?.[2]
 
-    expect(result.current.error).toBeInstanceOf(Error)
-    expect(result.current.error?.message).toBe('Failed to track presence')
+    if (!syncCallback) throw new Error('Sync callback not found')
+
+    act(() => {
+      syncCallback({
+        [mockUser.id]: [mockPresenceState]
+      })
+    })
+
+    expect(_result.current.presenceState[mockUser.id]).toEqual(mockPresenceState)
   })
 
-  it('should return online users correctly', async () => {
-    const mockPresences = {
-      'user-1': [{
-        user_id: 'user-1',
-        online_at: Date.now(),
-        last_seen_at: Date.now(),
+  it('should handle presence join events', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+
+    const channel = mockSupabase.channel()
+    const joinCallback = channel.on.mock.calls.find(
+      call => call[0] === 'presence' && call[1].event === 'join'
+    )?.[2]
+
+    if (!joinCallback) throw new Error('Join callback not found')
+
+    act(() => {
+      joinCallback({
+        key: mockUser.id,
+        newPresences: [mockPresenceState]
+      })
+    })
+
+    expect(_result.current.presenceState[mockUser.id]).toEqual(mockPresenceState)
+  })
+
+  it('should handle presence leave events', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+
+    // First add a presence
+    act(() => {
+      const newState = { ..._result.current.presenceState }
+      newState[mockUser.id] = mockPresenceState
+      _result.current.presenceState = newState
+    })
+
+    const channel = mockSupabase.channel()
+    const leaveCallback = channel.on.mock.calls.find(
+      call => call[0] === 'presence' && call[1].event === 'leave'
+    )?.[2]
+
+    if (!leaveCallback) throw new Error('Leave callback not found')
+
+    act(() => {
+      leaveCallback({
+        key: mockUser.id
+      })
+    })
+
+    expect(_result.current.presenceState[mockUser.id]).toBeUndefined()
+  })
+
+  it('should get online users correctly', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+
+    act(() => {
+      const newState = { ..._result.current.presenceState }
+      newState[mockUser.id] = {
+        ...mockPresenceState,
         status: 'online'
-      }],
-      'user-2': [{
-        user_id: 'user-2',
-        online_at: Date.now(),
-        last_seen_at: Date.now(),
-        status: 'away'
-      }]
-    }
-
-    mockChannel.presenceState.mockReturnValue(mockPresences)
-
-    const { result } = renderHook(() => usePresence('test-board'))
-
-    // Simulate presence sync
-    await act(async () => {
-      const syncHandler = mockChannel.on.mock.calls.find(
-        call => call[1].event === 'sync'
-      )[2]
-      syncHandler()
+      }
+      newState['offline-user'] = {
+        ...mockPresenceState,
+        user_id: 'offline-user',
+        status: 'offline'
+      }
+      _result.current.presenceState = newState
     })
 
-    const onlineUsers = result.current.getOnlineUsers()
+    const onlineUsers = _result.current.getOnlineUsers()
+    const onlineUser = onlineUsers[0]
     expect(onlineUsers).toHaveLength(1)
-    expect(onlineUsers[0]?.user_id).toBe('user-1')
+    expect(onlineUser?.user_id).toBe(mockUser.id)
   })
 
-  it('should cleanup on unmount', async () => {
-    const { unmount } = renderHook(() => usePresence('test-board'))
+  it('should handle heartbeat updates', async () => {
+    jest.useFakeTimers()
+    const { result: _result } = renderHook(() => usePresence('test-board'))
 
     await act(async () => {
-      unmount()
+      jest.advanceTimersByTime(30000) // Advance by heartbeat interval
     })
 
-    expect(mockSupabase.removeChannel).toHaveBeenCalled()
+    expect(mockSupabase.channel().track).toHaveBeenCalledWith(
+      expect.objectContaining({
+        last_seen_at: expect.any(Number)
+      })
+    )
+
+    jest.useRealTimers()
   })
-}) 
+
+  it('should handle visibility change to hidden', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+
+    await act(async () => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(mockSupabase.channel().track).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'away'
+      })
+    )
+  })
+
+  it('should handle visibility change to visible', async () => {
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+
+    await act(async () => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => false
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(mockSupabase.channel().track).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'online'
+      })
+    )
+  })
+
+  it('should handle authentication errors', async () => {
+    mockSupabase.auth.getUser.mockRejectedValueOnce(new Error('Auth error'))
+    
+    const { result: _result } = renderHook(() => usePresence('test-board'))
+    
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+
+    expect(_result.current.error?.message).toBe('Auth error')
+  })
+
+  it('should cleanup on unmount', () => {
+    const { unmount } = renderHook(() => usePresence('test-board'))
+    
+    unmount()
+    
+    expect(mockSupabase.removeChannel).toHaveBeenCalled()
+    expect(document.removeEventListener).toHaveBeenCalledWith(
+      'visibilitychange',
+      expect.any(Function)
+    )
+  })
+})
+

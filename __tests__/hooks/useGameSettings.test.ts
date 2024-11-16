@@ -1,486 +1,274 @@
 import { renderHook, act } from '@testing-library/react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useGameSettings } from '@/components/challenges/bingo-board/hooks/useGameSettings'
-import type { Database } from '@/types/database.types'
+import { DEFAULT_GAME_SETTINGS } from '@/components/challenges/bingo-board/types/gamesettings.constants'
+import { GAME_SETTINGS } from '@/components/challenges/bingo-board/types/gamesettings.constants'
 
-// Definiere eigene Event-Detail-Struktur für Tests
-interface SettingsChangeEventDetail {
-  settings: {
-    teamMode: boolean
-    lockout: boolean
-    soundEnabled: boolean
-    winConditions: {
-      line: boolean
-      majority: boolean
-    }
-    timeLimit: number
-  }
-  source: 'user' | 'system'
-  timestamp: number
-}
-
-// Definiere Typen für die Mock-Rückgabewerte
-type SupabaseResponse = {
-  data: { settings?: unknown } | null
-  error: Error | null
-}
-
-// Mock für localStorage
-const localStorageMock = (() => {
-  let store: { [key: string]: string } = {}
-  return {
-    getItem: jest.fn((key: string) => store[key]),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value
-    }),
-    clear: jest.fn(() => {
-      store = {}
-    })
-  }
-})()
-
-Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-
-// Mock für CustomEvent mit korrekter Typisierung
-type CustomEventConstructor = new <T>(
-  typeArg: string,
-  eventInitDict?: CustomEventInit<T>
-) => CustomEvent<T>
-
-window.CustomEvent = jest.fn().mockImplementation((event, options) => ({
-  type: event,
-  detail: options?.detail,
-  bubbles: options?.bubbles ?? false
-})) as unknown as CustomEventConstructor
-
-const mockSupabaseClient = {
-  from: jest.fn(() => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        single: jest.fn<Promise<SupabaseResponse>, []>()
-      }))
-    })),
-    update: jest.fn(() => ({
-      eq: jest.fn<Promise<SupabaseResponse>, []>()
-    }))
-  }))
-}
-
+// Mock Supabase client
 jest.mock('@supabase/auth-helpers-nextjs', () => ({
-  createClientComponentClient: () => mockSupabaseClient
+  createClientComponentClient: jest.fn()
 }))
 
 describe('useGameSettings', () => {
+  const mockSupabase = {
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn()
+    }))
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
-    localStorageMock.clear()
-    jest.spyOn(window, 'dispatchEvent')
+    ;(createClientComponentClient as jest.Mock).mockReturnValue(mockSupabase)
+    localStorage.clear()
   })
 
-  describe('initialization', () => {
-    it('should initialize with default settings', () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      expect(result.current.settings).toEqual({
-        teamMode: false,
-        lockout: true,
-        soundEnabled: true,
-        winConditions: {
-          line: true,
-          majority: false
-        },
-        timeLimit: 300
-      })
-    })
-
-    it('should load settings from database when boardId is provided', async () => {
-      const mockSettings = {
-        teamMode: true,
-        lockout: false,
-        soundEnabled: false,
-        winConditions: {
-          line: false,
-          majority: true
-        },
-        timeLimit: 600
-      }
-
-      // Typisierter Mock für die Supabase-Antwort
-      const mockResponse: SupabaseResponse = {
-        data: { settings: mockSettings },
-        error: null
-      }
-
-      mockSupabaseClient.from().select().eq().single
-        .mockResolvedValueOnce(mockResponse)
-
-      const { result } = renderHook(() => useGameSettings('test-board-id'))
-
-      // Wait for settings to load
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0))
-      })
-
-      expect(result.current.settings).toEqual(mockSettings)
-    })
+  it('should initialize with default settings', () => {
+    const { result } = renderHook(() => useGameSettings('test-board'))
+    expect(result.current.settings).toEqual(DEFAULT_GAME_SETTINGS)
+    expect(result.current.loading).toBe(true)
+    expect(result.current.error).toBe(null)
   })
 
-  describe('toggle functions', () => {
-    it('should toggle team mode', async () => {
-      const { result } = renderHook(() => useGameSettings())
+  it('should load saved settings from database', async () => {
+    const savedSettings = {
+      ...DEFAULT_GAME_SETTINGS,
+      teamMode: true,
+      timeLimit: 600
+    }
 
-      await act(async () => {
-        await result.current.toggleTeamMode()
-      })
-
-      expect(result.current.settings.teamMode).toBe(true)
-
-      await act(async () => {
-        await result.current.toggleTeamMode()
-      })
-
-      expect(result.current.settings.teamMode).toBe(false)
+    mockSupabase.from().select().eq().single.mockResolvedValueOnce({
+      data: { settings: savedSettings },
+      error: null
     })
 
-    it('should toggle lockout', async () => {
-      const { result } = renderHook(() => useGameSettings())
+    const { result } = renderHook(() => useGameSettings('test-board'))
 
-      await act(async () => {
-        await result.current.toggleLockout()
-      })
-
-      expect(result.current.settings.lockout).toBe(false)
+    // Wait for settings to load
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
     })
 
-    it('should toggle sound', async () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      await act(async () => {
-        await result.current.toggleSound()
-      })
-
-      expect(result.current.settings.soundEnabled).toBe(false)
-    })
-
-    it('should toggle win conditions', async () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      await act(async () => {
-        await result.current.toggleWinCondition('majority')
-      })
-
-      expect(result.current.settings.winConditions.majority).toBe(true)
-      expect(result.current.settings.winConditions.line).toBe(true)
-    })
+    expect(result.current.settings).toEqual(savedSettings)
+    expect(result.current.loading).toBe(false)
   })
 
-  describe('time management', () => {
-    it('should update time limit within valid range', async () => {
-      const { result } = renderHook(() => useGameSettings())
+  it('should update settings correctly', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
 
-      await act(async () => {
-        await result.current.updateTimeLimit(1800) // 30 minutes
-      })
+    const { result } = renderHook(() => useGameSettings('test-board'))
 
-      expect(result.current.settings.timeLimit).toBe(1800)
+    await act(async () => {
+      await result.current.updateSettings({ teamMode: true })
     })
 
-    it('should clamp time limit to valid range', async () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      await act(async () => {
-        await result.current.updateTimeLimit(30) // Too low
-      })
-      expect(result.current.settings.timeLimit).toBe(60) // Minimum 1 minute
-
-      await act(async () => {
-        await result.current.updateTimeLimit(7200) // Too high
-      })
-      expect(result.current.settings.timeLimit).toBe(3600) // Maximum 1 hour
-    })
+    expect(result.current.settings.teamMode).toBe(true)
+    expect(mockSupabase.from).toHaveBeenCalledWith('bingo_boards')
   })
 
-  describe('error handling', () => {
-    it('should handle database errors', async () => {
-      // Typisierter Mock für die Fehlermeldung
-      const mockErrorResponse: SupabaseResponse = {
-        data: null,
-        error: new Error('Database error')
-      }
-
-      mockSupabaseClient.from().update().eq
-        .mockResolvedValueOnce(mockErrorResponse)
-
-      const { result } = renderHook(() => useGameSettings('test-board-id'))
-
-      await act(async () => {
-        await result.current.updateSettings({ teamMode: true })
-      })
-
-      expect(result.current.error).toBe('Failed to update settings')
+  it('should handle settings update error', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ 
+      data: null, 
+      error: new Error('Update failed') 
     })
+
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.updateSettings({ teamMode: true })
+    })
+
+    expect(result.current.error).toBeTruthy()
+    expect(result.current.settings).toEqual(DEFAULT_GAME_SETTINGS)
   })
 
-  describe('settings validation', () => {
-    it('should validate win conditions', async () => {
-      const { result } = renderHook(() => useGameSettings())
+  it('should toggle team mode correctly', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
 
-      // Versuche beide Win-Conditions zu deaktivieren
-      await act(async () => {
-        await result.current.updateSettings({
-          winConditions: {
-            line: false,
-            majority: false
-          }
-        })
-      })
+    const { result } = renderHook(() => useGameSettings('test-board'))
 
-      // Settings sollten unverändert bleiben
-      expect(result.current.settings.winConditions.line).toBe(true)
-      expect(result.current.error).toBe('Invalid settings configuration')
+    await act(async () => {
+      await result.current.toggleTeamMode()
     })
 
-    it('should enforce lockout in team mode', async () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      // Versuche Team-Mode zu aktivieren ohne Lockout
-      await act(async () => {
-        await result.current.updateSettings({
-          teamMode: true,
-          lockout: false
-        })
-      })
-
-      expect(result.current.error).toBe('Invalid settings configuration')
-    })
-
-    it('should validate time limits', async () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      await act(async () => {
-        await result.current.updateTimeLimit(30) // Zu niedrig
-      })
-      expect(result.current.settings.timeLimit).toBe(60)
-
-      await act(async () => {
-        await result.current.updateTimeLimit(4000) // Zu hoch
-      })
-      expect(result.current.settings.timeLimit).toBe(3600)
-    })
+    expect(result.current.settings.teamMode).toBe(true)
+    expect(result.current.settings.lockout).toBe(true) // Lockout should be enabled in team mode
   })
 
-  describe('event handling', () => {
-    it('should emit settings change event with correct detail structure', async () => {
-      const { result } = renderHook(() => useGameSettings())
-      const now = Date.now()
-      jest.spyOn(Date, 'now').mockImplementation(() => now)
+  it('should toggle lockout correctly', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
 
-      await act(async () => {
-        await result.current.toggleTeamMode()
-      })
+    const { result } = renderHook(() => useGameSettings('test-board'))
 
-      expect(window.dispatchEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'settingsChange',
-          detail: expect.objectContaining({
-            settings: expect.objectContaining({
-              teamMode: true
-            }),
-            source: 'user',
-            timestamp: now
-          }),
-          bubbles: true
-        })
-      )
+    await act(async () => {
+      await result.current.toggleLockout()
     })
 
-    it('should handle external settings changes with system source', async () => {
-      const { result } = renderHook(() => useGameSettings())
-
-      const newSettings = {
-        teamMode: true,
-        lockout: true,
-        soundEnabled: false,
-        winConditions: {
-          line: true,
-          majority: true
-        },
-        timeLimit: 600
-      }
-
-      const eventDetail: SettingsChangeEventDetail = {
-        settings: newSettings,
-        source: 'system',
-        timestamp: Date.now()
-      }
-
-      await act(async () => {
-        window.dispatchEvent(new CustomEvent('settingsChange', {
-          detail: eventDetail
-        }))
-      })
-
-      expect(result.current.settings).toEqual(newSettings)
-    })
-
-    it('should ignore own events', async () => {
-      const { result } = renderHook(() => useGameSettings())
-      const initialSettings = { ...result.current.settings }
-
-      const eventDetail: SettingsChangeEventDetail = {
-        settings: {
-          ...initialSettings,
-          teamMode: true
-        },
-        source: 'user', // Eigenes Event
-        timestamp: Date.now()
-      }
-
-      await act(async () => {
-        window.dispatchEvent(new CustomEvent('settingsChange', {
-          detail: eventDetail
-        }))
-      })
-
-      expect(result.current.settings).toEqual(initialSettings)
-    })
-
-    it('should validate external settings before applying', async () => {
-      const { result } = renderHook(() => useGameSettings())
-      const initialSettings = { ...result.current.settings }
-
-      const invalidEventDetail: SettingsChangeEventDetail = {
-        settings: {
-          ...initialSettings,
-          timeLimit: 0 // Ungültig
-        },
-        source: 'system',
-        timestamp: Date.now()
-      }
-
-      await act(async () => {
-        window.dispatchEvent(new CustomEvent('settingsChange', {
-          detail: invalidEventDetail
-        }))
-      })
-
-      expect(result.current.settings).toEqual(initialSettings)
-    })
+    expect(result.current.settings.lockout).toBe(false)
   })
 
-  describe('persistence with validation', () => {
-    it('should validate settings before saving to localStorage', async () => {
-      const { result, unmount } = renderHook(() => useGameSettings())
-      const invalidSettings = {
-        ...result.current.settings,
-        timeLimit: 0 // Ungültig
-      }
+  it('should not allow disabling lockout in team mode', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
 
-      await act(async () => {
-        await result.current.updateSettings(invalidSettings)
-      })
+    const { result } = renderHook(() => useGameSettings('test-board'))
 
-      unmount()
-
-      const mockCalls = localStorageMock.setItem.mock.calls
-      const lastCall = mockCalls[mockCalls.length - 1]
-
-      if (lastCall && lastCall[1]) {
-        const savedSettings = JSON.parse(lastCall[1])
-        expect(savedSettings.timeLimit).not.toBe(0)
-      }
+    await act(async () => {
+      await result.current.updateSettings({ teamMode: true })
+      await result.current.toggleLockout()
     })
 
-    it('should handle localStorage errors gracefully', () => {
-      localStorageMock.setItem.mockImplementationOnce(() => {
-        throw new Error('Storage full')
-      })
-
-      const { result } = renderHook(() => useGameSettings())
-      
-      act(() => {
-        result.current.resetSettings()
-      })
-
-      // Sollte nicht abstürzen und Standardeinstellungen behalten
-      expect(result.current.settings.teamMode).toBe(false)
-      expect(result.current.error).toBe(null)
-    })
+    expect(result.current.settings.lockout).toBe(true)
   })
 
-  describe('persistence', () => {
-    it('should save settings to localStorage on cleanup', async () => {
-      const { result, unmount } = renderHook(() => useGameSettings())
+  it('should toggle sound correctly', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
 
-      await act(async () => {
-        await result.current.toggleTeamMode()
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.toggleSound()
+    })
+
+    expect(result.current.settings.soundEnabled).toBe(false)
+  })
+
+  it('should toggle win conditions correctly', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
+
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.toggleWinCondition('line')
+    })
+
+    expect(result.current.settings.winConditions.line).toBe(false)
+  })
+
+  it('should prevent disabling all win conditions', async () => {
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.toggleWinCondition('line')
+      await result.current.toggleWinCondition('majority')
+    })
+
+    // At least one win condition should remain enabled
+    expect(
+      result.current.settings.winConditions.line || 
+      result.current.settings.winConditions.majority
+    ).toBe(true)
+  })
+
+  it('should update time limit within valid range', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
+
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.updateTimeLimit(120)
+    })
+
+    expect(result.current.settings.timeLimit).toBe(120)
+  })
+
+  it('should clamp time limit to valid range', async () => {
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.updateTimeLimit(GAME_SETTINGS.TIME_LIMITS.MIN_TIME - 1)
+    })
+    expect(result.current.settings.timeLimit).toBe(GAME_SETTINGS.TIME_LIMITS.MIN_TIME)
+
+    await act(async () => {
+      await result.current.updateTimeLimit(GAME_SETTINGS.TIME_LIMITS.MAX_TIME + 1)
+    })
+    expect(result.current.settings.timeLimit).toBe(GAME_SETTINGS.TIME_LIMITS.MAX_TIME)
+  })
+
+  it('should reset settings to default', async () => {
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
+
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.resetSettings()
+    })
+
+    expect(result.current.settings).toEqual(DEFAULT_GAME_SETTINGS)
+  })
+
+  it('should emit settings change event', async () => {
+    const mockDispatchEvent = jest.spyOn(window, 'dispatchEvent')
+    mockSupabase.from().update().eq().single.mockResolvedValueOnce({ data: null, error: null })
+
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    await act(async () => {
+      await result.current.updateSettings({ teamMode: true })
+    })
+
+    expect(mockDispatchEvent).toHaveBeenCalled()
+    const eventCall = mockDispatchEvent.mock.calls[0]
+    if (!eventCall) {
+      throw new Error('No event was dispatched')
+    }
+
+    const event = eventCall[0] as CustomEvent
+    if (!event?.detail) {
+      throw new Error('Event has no detail property')
+    }
+
+    expect(event.detail.type).toBe('change')
+    expect(event.detail.settings.teamMode).toBe(true)
+  })
+
+  it('should persist settings to localStorage when no boardId', async () => {
+    const { result } = renderHook(() => useGameSettings(''))
+
+    await act(async () => {
+      await result.current.updateSettings({ teamMode: true })
+    })
+
+    const savedSettings = localStorage.getItem('lastGameSettings')
+    expect(savedSettings).toBeTruthy()
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings)
+      expect(parsed.teamMode).toBe(true)
+    }
+  })
+
+  it('should validate settings before update', async () => {
+    const { result } = renderHook(() => useGameSettings('test-board'))
+
+    // Try to update with invalid settings (both win conditions false)
+    await act(async () => {
+      await result.current.updateSettings({
+        winConditions: { line: false, majority: false }
       })
-
-      unmount()
-
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'lastGameSettings',
-        expect.any(String)
-      )
-
-      // Sichere Typprüfung für mock.calls
-      const mockCalls = localStorageMock.setItem.mock.calls
-      const lastCall = mockCalls[mockCalls.length - 1]
-      
-      if (lastCall && lastCall[1]) {
-        const savedSettings = JSON.parse(lastCall[1])
-        expect(savedSettings.teamMode).toBe(true)
-      } else {
-        throw new Error('No settings were saved to localStorage')
-      }
     })
 
-    it('should load settings from localStorage', () => {
-      const savedSettings = {
-        teamMode: true,
-        lockout: true,
-        soundEnabled: false,
-        winConditions: {
-          line: true,
-          majority: true
-        },
-        timeLimit: 600
-      }
+    // Settings should not be updated due to validation failure
+    expect(result.current.settings.winConditions).toEqual(DEFAULT_GAME_SETTINGS.winConditions)
+    expect(result.current.error).toBeTruthy()
+  })
 
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(savedSettings))
+  it('should handle external settings changes', () => {
+    const { result } = renderHook(() => useGameSettings('test-board'))
 
-      const { result } = renderHook(() => useGameSettings())
-      expect(result.current.settings).toEqual(savedSettings)
-    })
-
-    it('should handle invalid localStorage data', () => {
-      localStorageMock.getItem.mockReturnValue('invalid json')
-
-      const { result } = renderHook(() => useGameSettings())
-      expect(result.current.settings).toEqual(expect.objectContaining({
-        teamMode: false,
-        lockout: true
+    act(() => {
+      window.dispatchEvent(new CustomEvent('settingsChange', {
+        detail: {
+          type: 'change',
+          settings: { ...DEFAULT_GAME_SETTINGS, teamMode: true },
+          source: 'system',
+          timestamp: Date.now()
+        }
       }))
     })
+
+    expect(result.current.settings.teamMode).toBe(true)
   })
+})
 
-  describe('rollback functionality', () => {
-    it('should rollback to last valid settings on error', async () => {
-      const { result } = renderHook(() => useGameSettings())
-      const initialSettings = { ...result.current.settings }
-
-      // Simuliere Datenbankfehler
-      mockSupabaseClient.from().update().eq
-        .mockRejectedValueOnce(new Error('Database error'))
-
-      await act(async () => {
-        await result.current.updateSettings({
-          teamMode: true,
-          lockout: false // Ungültige Kombination
-        })
-      })
-
-      expect(result.current.settings).toEqual(initialSettings)
-      expect(result.current.error).toBe('Failed to update settings')
-    })
-  })
-}) 

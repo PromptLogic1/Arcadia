@@ -1,404 +1,448 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import type { BoardCell, Player, WinConditions } from '../types/types'
-import { wowChallenges } from '../types/constants'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import type { BoardCell, Player } from '../types/types'
+import type { 
+  GamePhase, 
+  LastMove, 
+  MarkedFields, 
+  GameError,
+  BeforeMoveEvent,
+  AfterMoveEvent,
+  GameEndEvent
+} from '../types/bingogame.types'
+import { BINGO_GAME_CONSTANTS } from '../types/bingogame.constants'
+import { useGameAnalytics } from './useGameAnalytics'
+import { useSession } from './useSession'
 
-interface _WinningLine {
-  type: 'horizontal' | 'vertical' | 'diagonal'
-  index: number
-}
+// Add constants
+const CONSTANTS = {
+  CLEANUP_DELAY: 300, // ms
+  MIN_PLAYERS: 2,
+  MAX_BOARD_SIZE: 6,
+  PERFORMANCE_CHECK_INTERVAL: 1000, // ms
+  MAX_RETRIES: 3,
+  MIN_BOARD_SIZE: 3
+} as const
 
-interface PlayerCount {
-  id: number
-  team: number
-  count: number
-  color: string
-}
-
-interface BlockingState {
-  isBlockingMode: boolean
-  playerWithBlock: number | null
-  earnedFromCell: number | null
-}
-
-export const useBingoGame = (initialSize: number, players: Player[]) => {
-  // Minimale Boardgröße sicherstellen
-  const size = Math.max(1, initialSize)
-  const [boardSize, setBoardSize] = useState<number>(size)
+// Add return type interface
+interface UseBingoGameReturn {
+  // States
+  boardState: BoardCell[]
+  gamePhase: GamePhase
+  winner: number | null
+  currentPlayer: number
+  lastMove: LastMove
+  markedFields: MarkedFields
+  gameError: GameError | null
   
-  // Letzten validen State für Wiederherstellung speichern
-  const lastValidState = useRef<BoardCell[]>([])
+  // Settings
+  boardSize: number
+  setBoardSize: (size: number) => void
+  winConditions: { line: boolean; majority: boolean }
+  setWinConditions: (conditions: { line: boolean; majority: boolean }) => void
+  
+  // Actions & Error Handling
+  setBoardState: (state: BoardCell[]) => void
+  checkWinningCondition: (players: Player[], timeExpired?: boolean) => boolean
+  emitBeforeMove: (event: BeforeMoveEvent) => boolean
+  emitAfterMove: (event: AfterMoveEvent) => void
+  handleError: (error: Error) => void
+  clearError: () => void
+  
+  // Board Management
+  generateBoard: () => void
+  resetBoard: () => void
+  handleCellChange: (index: number, value: string) => void
+  updateBoardState: (index: number, updates: Partial<BoardCell>) => void
+}
 
-  const generateBoard = useCallback(() => {
-    // Sicherstellen, dass wowChallenges nicht undefined ist
-    const challenges = wowChallenges || []
-    const randomChallenge = () => {
-      if (challenges.length === 0) return ''
-      const challenge = challenges[Math.floor(Math.random() * challenges.length)]
-      return challenge ? challenge.slice(0, 50) : ''
+/**
+ * Hook for managing bingo game state and logic
+ * @param initialSize - Initial board size (3-6)
+ * @param players - Array of active players
+ * @returns Game state and control functions
+ */
+export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGameReturn => {
+  // Validate inputs
+  if (players.length < CONSTANTS.MIN_PLAYERS) {
+    throw new Error(`Minimum ${CONSTANTS.MIN_PLAYERS} players required`)
+  }
+
+  if (initialSize < CONSTANTS.MIN_BOARD_SIZE || initialSize > CONSTANTS.MAX_BOARD_SIZE) {
+    throw new Error(`Board size must be between ${CONSTANTS.MIN_BOARD_SIZE} and ${CONSTANTS.MAX_BOARD_SIZE}`)
+  }
+
+  // Move handleError declaration to the top
+  const [gameError, setGameError] = useState<GameError | null>(null)
+  
+  const handleError = useCallback((error: Error) => {
+    console.error('Game error:', error)
+    setGameError({
+      type: BINGO_GAME_CONSTANTS.ERROR_TYPES.INVALID_GAME_STATE,
+      message: error.message,
+      recoverable: true
+    })
+  }, [])
+
+  // Core States
+  const [boardState, setBoardState] = useState<BoardCell[]>([])
+  const [gamePhase, setGamePhase] = useState<GamePhase>('active')
+  const [winner, setWinner] = useState<number | null>(null)
+  const [currentPlayer, setCurrentPlayer] = useState<number>(0)
+  const [boardSize, setBoardSize] = useState<number>(
+    Math.max(
+      BINGO_GAME_CONSTANTS.VALIDATION.MIN_BOARD_SIZE,
+      Math.min(initialSize, BINGO_GAME_CONSTANTS.VALIDATION.MAX_BOARD_SIZE)
+    )
+  )
+  const [lastMove, setLastMove] = useState<LastMove>(null)
+  const [markedFields, setMarkedFields] = useState<MarkedFields>({
+    total: 0,
+    byPlayer: {}
+  })
+  const [winConditions, setWinConditions] = useState({
+    line: true,
+    majority: false
+  })
+
+  // Services & External Hooks
+  const { updateStats, trackMove, recordWinner, measurePerformance } = useGameAnalytics()
+  const session = useSession({ boardId: '', _game: 'All Games', initialPlayers: [] })
+  
+  // Remove unused sessionService
+  // const sessionService = useMemo(() => new SessionService(), [])
+
+  // Helper Functions
+  const getCompletedLinesCount = useCallback((): Record<string, number> => {
+    const boardData = boardDataRef.current
+    if (!boardData) return {}
+
+    const completedLines: Record<string, number> = {}
+    players.forEach(player => {
+      if (!player.id) return
+      completedLines[player.id] = 0
+      
+      // Check rows
+      boardData.rows.forEach(row => {
+        if (row?.every(cell => cell?.colors?.includes(player.color))) {
+          completedLines[player.id] = (completedLines[player.id] || 0) + 1
+        }
+      })
+      
+      // Check columns
+      boardData.columns.forEach(col => {
+        if (col?.every(cell => cell?.colors?.includes(player.color))) {
+          completedLines[player.id] = (completedLines[player.id] || 0) + 1
+        }
+      })
+      
+      // Check diagonals
+      boardData.diagonals.forEach(diag => {
+        if (diag?.every(cell => cell?.colors?.includes(player.color))) {
+          completedLines[player.id] = (completedLines[player.id] || 0) + 1
+        }
+      })
+    })
+
+    return completedLines
+  }, [players])
+
+  // Refs for optimization
+  const boardDataRef = useRef<{
+    rows: BoardCell[][]
+    columns: BoardCell[][]
+    diagonals: BoardCell[][]
+  }>()
+
+  // Event Emitters
+  const emitBeforeMove = useCallback((event: BeforeMoveEvent) => {
+    try {
+      if (gamePhase !== 'active') return false
+      if (winner !== null) return false
+      
+      const isValid = event.isValid && 
+        players[currentPlayer]?.id === event.playerId
+
+      if (!isValid) {
+        setGameError({
+          type: BINGO_GAME_CONSTANTS.ERROR_TYPES.INVALID_MOVE,
+          message: 'Invalid move attempt',
+          recoverable: true
+        })
+      }
+
+      return isValid
+    } catch (error) {
+      handleError(error as Error)
+      return false
     }
+  }, [gamePhase, winner, players, currentPlayer, handleError])
 
-    return Array.from({ length: boardSize * boardSize }, (_, i) => ({
-      text: randomChallenge(),
-      colors: [],
-      completedBy: [],
-      blocked: false,
-      isMarked: false,
-      cellId: i.toString()
-    }))
+  const emitAfterMove = useCallback((event: AfterMoveEvent) => {
+    try {
+      if (!event.move) return
+      
+      setLastMove(event.move)
+      setMarkedFields(event.markedFields)
+      trackMove(event.move.playerId, 'mark', event.move.position)
+      
+      // Update analytics
+      updateStats(
+        players,
+        event.markedFields.byPlayer,
+        getCompletedLinesCount()
+      )
+    } catch (error) {
+      handleError(error as Error)
+    }
+  }, [players, trackMove, updateStats, getCompletedLinesCount, handleError])
+
+  const emitGameEnd = useCallback((event: GameEndEvent) => {
+    try {
+      setGamePhase('ended')
+      setWinner(event.winner === -1 ? -1 : players.findIndex(p => p.id === event.winner))
+      recordWinner(event.winner === -1 ? null : event.winner)
+      
+      // Update session if available
+      if (session && 'updateSessionState' in session && 
+          typeof session.updateSessionState === 'function') {
+        session.updateSessionState({
+          status: 'completed',
+          winner_id: event.winner === -1 ? null : event.winner
+        })
+      }
+    } catch (error) {
+      handleError(error as Error)
+    }
+  }, [players, recordWinner, session, handleError])
+
+  // Board Data Structure Optimization
+  useEffect(() => {
+    boardDataRef.current = {
+      rows: Array(boardSize).fill(null).map((_, row) => 
+        boardState.slice(row * boardSize, (row + 1) * boardSize)
+      ),
+      columns: Array(boardSize).fill(null).map((_, col) => 
+        boardState.filter((_, index) => index % boardSize === col)
+      ),
+      diagonals: [
+        boardState.filter((_, index) => index % (boardSize + 1) === 0),
+        boardState.filter((_, index) => 
+          index > 0 && 
+          index < boardSize * boardSize - 1 && 
+          index % (boardSize - 1) === 0
+        )
+      ]
+    }
+  }, [boardState, boardSize, handleError])
+
+  // Win Condition Checking
+  const checkLineWin = useCallback((cells: BoardCell[]): boolean => {
+    const colors = cells.map(cell => cell.colors[0]).filter(Boolean)
+    return new Set(colors).size <= 1 && colors.length === boardSize
   }, [boardSize])
 
-  const [boardState, setBoardState] = useState<BoardCell[]>(() => {
-    const initial = generateBoard()
-    lastValidState.current = initial
-    return initial
-  })
-
-  const [winner, setWinner] = useState<number | null>(null)
-  const [winConditions, setWinConditions] = useState<WinConditions>({
-    line: true,
-    majority: false,
-  })
-  const [blockingState, setBlockingState] = useState<BlockingState>({
-    isBlockingMode: false,
-    playerWithBlock: null,
-    earnedFromCell: null
-  })
-
-  const validateCell = useCallback((cell: BoardCell): boolean => {
-    return (
-      typeof cell === 'object' &&
-      cell !== null &&
-      'text' in cell &&
-      'colors' in cell &&
-      'completedBy' in cell &&
-      'blocked' in cell &&
-      'isMarked' in cell &&
-      'cellId' in cell &&
-      Array.isArray(cell.colors) &&
-      Array.isArray(cell.completedBy)
-    )
-  }, [])
-
-  const validateBoardState = useCallback((state: BoardCell[]): boolean => {
-    return (
-      Array.isArray(state) &&
-      state.length === boardSize * boardSize &&
-      state.every(validateCell)
-    )
-  }, [boardSize, validateCell])
-
-  const handleCellChange = useCallback(
-    (index: number, value: string): void => {
-      try {
-        setBoardState(prevBoard => {
-          const newBoard = [...prevBoard]
-          if (!newBoard[index]) return prevBoard
-
-          newBoard[index] = {
-            ...newBoard[index],
-            text: value.slice(0, 50)
-          }
-          
-          if (validateBoardState(newBoard)) {
-            lastValidState.current = newBoard
-            return newBoard
-          }
-          return prevBoard
-        })
-      } catch (error) {
-        console.error('Error changing cell:', error)
-      }
-    },
-    [validateBoardState]
-  )
-
-  const canCompleteLine = useCallback((cells: BoardCell[]): boolean => {
-    const colors = cells.map(cell => cell.colors[0]).filter(Boolean)
-    return new Set(colors).size <= 1
-  }, [])
-
-  const getPlayerCounts = useCallback((currentPlayers: Player[]): PlayerCount[] => {
-    try {
-      const teamMode = currentPlayers.some(p => p.team !== undefined)
-      
-      if (teamMode) {
-        const teamCounts = new Map<number, number>()
-        boardState.forEach(cell => {
-          cell.colors.forEach(color => {
-            const player = currentPlayers.find(p => p.color === color)
-            if (player?.team !== undefined) {
-              teamCounts.set(
-                player.team,
-                (teamCounts.get(player.team) || 0) + 1
-              )
-            }
-          })
-        })
-        
-        return Array.from(teamCounts.entries()).map(([team, count]) => ({
-          id: -1,
-          team,
-          count,
-          color: currentPlayers.find(p => p.team === team)?.color || ''
-        }))
-      }
-      
-      return currentPlayers.map((player, id) => ({
-        id,
-        team: -1,
-        count: boardState.reduce((acc, cell) => 
-          acc + (cell.colors.includes(player.color) ? 1 : 0), 0
-        ),
-        color: player.color
-      }))
-    } catch (error) {
-      console.error('Error getting player counts:', error)
-      return []
-    }
-  }, [boardState])
-
-  const isLineWinImpossible = useCallback((): boolean => {
-    // Type guard function
-    const filterValidCells = (cells: (BoardCell | undefined)[]): BoardCell[] => 
-      cells.filter((cell): cell is BoardCell => cell !== undefined)
-
-    // Check if any line can still be completed
-    // Horizontal
-    for (let row = 0; row < boardSize; row++) {
-      const startIndex = row * boardSize
-      const rowCells = filterValidCells(boardState.slice(startIndex, startIndex + boardSize))
-      if (canCompleteLine(rowCells)) return false
-    }
-
-    // Vertical
-    for (let col = 0; col < boardSize; col++) {
-      const colCells = filterValidCells(
-        Array.from({ length: boardSize }, (_, row) => boardState[row * boardSize + col])
-      )
-      if (canCompleteLine(colCells)) return false
-    }
-
-    // Diagonals
-    const diagonals = [
-      filterValidCells(Array.from({ length: boardSize }, (_, i) => boardState[i * boardSize + i])),
-      filterValidCells(Array.from({ length: boardSize }, (_, i) => 
-        boardState[i * boardSize + (boardSize - 1 - i)]))
-    ]
-
-    return !diagonals.some(canCompleteLine)
-  }, [boardSize, boardState, canCompleteLine])
-
   const checkWinningCondition = useCallback((currentPlayers: Player[], timeExpired?: boolean): boolean => {
-    if (!currentPlayers.length || winner !== null) return false
+    try {
+      measurePerformance() // Track performance before check
+      if (!currentPlayers.length || winner !== null) return false
 
-    // Check for line win if enabled
-    if (winConditions.line) {
-      // Check horizontal lines
-      for (let row = 0; row < boardSize; row++) {
-        const startIndex = row * boardSize
-        const rowCells = boardState.slice(startIndex, startIndex + boardSize)
-        const firstColor = rowCells[0]?.colors[0]
+      // Check for line win if enabled
+      if (winConditions.line && lastMove) {
+        const { row, col } = lastMove
+        const boardData = boardDataRef.current
         
-        if (firstColor) {
-          const firstPlayer = currentPlayers.find(p => p.color === firstColor)
-          if (!firstPlayer) continue
+        if (!boardData) return false
 
-          if (rowCells.every(cell => cell.colors[0] === firstColor)) {
-            setWinner(firstPlayer.team ?? 0)
+        // Check horizontal
+        const currentRow = boardData.rows[row]
+        if (currentRow && checkLineWin(currentRow)) {
+          emitGameEnd({
+            winner: lastMove.playerId,
+            reason: 'line',
+            winningLine: currentRow.map((_, i) => row * boardSize + i)
+          })
+          return true
+        }
+
+        // Check vertical
+        const currentCol = boardData.columns[col]
+        if (currentCol && checkLineWin(currentCol)) {
+          emitGameEnd({
+            winner: lastMove.playerId,
+            reason: 'line',
+            winningLine: currentCol.map((_, i) => i * boardSize + col)
+          })
+          return true
+        }
+
+        // Check diagonals
+        if ((row === col || row + col === boardSize - 1)) {
+          const diag1 = boardData.diagonals[0]
+          const diag2 = boardData.diagonals[1]
+          
+          if ((diag1 && checkLineWin(diag1)) || (diag2 && checkLineWin(diag2))) {
+            emitGameEnd({
+              winner: lastMove.playerId,
+              reason: 'line'
+            })
             return true
           }
         }
       }
 
-      // Similar changes for vertical and diagonal checks...
-    }
+      // Check for majority win or tie
+      if ((timeExpired || markedFields.total === boardSize * boardSize) && 
+          winConditions.majority) {
+        const maxMarked = Math.max(...Object.values(markedFields.byPlayer))
+        const winners = Object.entries(markedFields.byPlayer)
+          .filter(([_, count]) => count === maxMarked)
+          .map(([playerId]) => playerId)
 
-    // Check for majority win at game end
-    if ((timeExpired || boardState.every(cell => cell.isMarked)) && winConditions.majority) {
-      const playerCounts = getPlayerCounts(currentPlayers)
-      const maxCount = Math.max(...playerCounts.map(p => p.count))
-      const winners = playerCounts.filter(p => p.count === maxCount)
-
-      if (winners.length === 1) {
-        const winner = winners[0]
-        if (winner) {
-          setWinner(winner.team ?? 0)
+        if (winners.length === 1 && winners[0]) {
+          emitGameEnd({
+            winner: winners[0],
+            reason: 'majority'
+          })
           return true
+        } else {
+          emitGameEnd({
+            winner: -1,
+            reason: 'tie'
+          })
+          return false
         }
       }
-    }
 
-    // Check for tie conditions
-    if (timeExpired || 
-        boardState.every(cell => cell.isMarked) ||
-        (winConditions.line && !winConditions.majority && isLineWinImpossible())) {
-      setWinner(-1)
+      measurePerformance() // Track performance after check
+      return false
+    } catch (error) {
+      handleError(error as Error)
       return false
     }
+  }, [boardSize, lastMove, markedFields, winConditions, winner, emitGameEnd, checkLineWin, measurePerformance, handleError])
 
-    return false
-  }, [boardSize, boardState, winner, winConditions, getPlayerCounts, isLineWinImpossible])
-
-  const handleCellClick = useCallback((index: number, updates?: Partial<BoardCell>) => {
-    if (!updates || index < 0 || index >= boardState.length || winner !== null) {
-      console.error('Invalid cell update attempt')
-      return
+  // Cleanup
+  useEffect(() => {
+    const cleanup = () => {
+      setGamePhase('ended')
+      setWinner(null)
+      setLastMove(null)
+      setMarkedFields({ total: 0, byPlayer: {} })
+      setGameError(null)
+      setBoardState([])
+      setCurrentPlayer(0)
+      boardDataRef.current = undefined
+      measurePerformance() // Track final performance
     }
 
-    setBoardState(prevState => {
-      const newState = [...prevState]
-      const currentCell = newState[index]
-      
-      if (!currentCell || currentCell.blocked) return prevState
-
-      newState[index] = {
-        ...currentCell,
-        colors: updates.colors || currentCell.colors,
-        completedBy: updates.completedBy || currentCell.completedBy,
-        isMarked: updates.isMarked ?? currentCell.isMarked,
-        blocked: updates.blocked ?? currentCell.blocked
+    // Add performance check interval
+    const performanceInterval = setInterval(() => {
+      if (gamePhase === 'active') {
+        measurePerformance()
       }
+    }, CONSTANTS.PERFORMANCE_CHECK_INTERVAL)
 
-      if (validateBoardState(newState)) {
-        lastValidState.current = newState
-        return newState
-      }
-      return prevState
-    })
+    return () => {
+      clearInterval(performanceInterval)
+      // Add delay to ensure all state updates complete
+      setTimeout(cleanup, CONSTANTS.CLEANUP_DELAY)
+    }
+  }, [gamePhase, measurePerformance])
 
-    // Check for win conditions immediately after state update
-    setTimeout(() => {
-      checkWinningCondition(players)
-    }, 0)
-  }, [boardState.length, validateBoardState, winner, players, checkWinningCondition])
-
-  const resetBoard = useCallback(() => {
-    const generateUniqueBoard = (): BoardCell[] => {
-      const timestamp = Date.now()
-      const uniqueId = Math.random().toString(36).substring(7)
-      const usedTexts = new Set<string>()
-      const usedIds = new Set<string>()
-      
-      const board = generateBoard().map((cell, index) => {
-        // Garantiere einzigartige Texte und IDs
-        const uniqueText = `${cell.text}_${timestamp}_${uniqueId}_${Math.random()}`
-        const uniqueCellId = `${index}_${timestamp}_${uniqueId}_${Math.random()}`
-        
-        if (usedTexts.has(uniqueText) || usedIds.has(uniqueCellId)) {
-          const recursiveBoard = generateUniqueBoard()
-          return recursiveBoard[index] || {
-            text: `New Cell ${index}_${Date.now()}_${Math.random()}`,
-            cellId: `${index}_${Date.now()}_${Math.random()}`,
-            colors: [],
-            completedBy: [],
-            blocked: false,
-            isMarked: false
-          }
-        }
-        
-        usedTexts.add(uniqueText)
-        usedIds.add(uniqueCellId)
-        
-        return {
-          text: uniqueText.slice(0, 50),
-          cellId: uniqueCellId,
+  // Board Management Implementations
+  const generateBoard = useCallback(() => {
+    try {
+      const newBoard: BoardCell[] = Array(boardSize * boardSize)
+        .fill(null)
+        .map((_, index) => ({
+          text: '',
           colors: [],
           completedBy: [],
           blocked: false,
-          isMarked: false
-        }
-      })
-
-      // Strikte Validierung der Einzigartigkeit
-      if (lastValidState.current.length > 0) {
-        const isDifferent = board.every((currentCell, i) => {
-          if (!currentCell) return false
-          const lastCell = lastValidState.current[i]
-          return !lastCell || (
-            currentCell.text !== lastCell.text &&
-            currentCell.cellId !== lastCell.cellId &&
-            JSON.stringify(currentCell) !== JSON.stringify(lastCell)
-          )
-        })
-        
-        if (!isDifferent) {
-          return generateUniqueBoard() // Rekursiv neues Board generieren
-        }
-      }
-
-      return board as BoardCell[]
-    }
-
-    try {
-      const newBoard = generateUniqueBoard()
-      if (validateBoardState(newBoard)) {
-        setBoardState(newBoard)
-        lastValidState.current = newBoard
-        setWinner(null)
-      } else {
-        throw new Error('Invalid board generated')
-      }
+          isMarked: false,
+          cellId: `cell-${index}-${Date.now()}`
+        }))
+      setBoardState(newBoard)
+      measurePerformance() // Track performance after generation
     } catch (error) {
-      console.error('Error resetting board:', error)
-      const fallbackBoard = generateUniqueBoard()
-      setBoardState(fallbackBoard)
-      lastValidState.current = fallbackBoard
+      handleError(error as Error)
     }
-  }, [generateBoard, validateBoardState])
+  }, [boardSize, measurePerformance, handleError])
+
+  const resetBoard = useCallback(() => {
+    generateBoard()
+    setGamePhase('active')
+    setWinner(null)
+    setLastMove(null)
+    setMarkedFields({ total: 0, byPlayer: {} })
+    setGameError(null)
+    setCurrentPlayer(0)
+  }, [generateBoard])
+
+  const handleCellChange = useCallback((index: number, value: string) => {
+    setBoardState(prev => {
+      const newState = [...prev]
+      if (newState[index]) {
+        newState[index] = {
+          ...newState[index],
+          text: value
+        }
+      }
+      return newState
+    })
+  }, [])
 
   const updateBoardState = useCallback((index: number, updates: Partial<BoardCell>) => {
-    setBoardState(prevState => {
-      const newState = [...prevState]
-      if (!newState[index]) return prevState
-
-      newState[index] = {
-        ...newState[index],
-        ...updates
-      }
-
-      if (validateBoardState(newState)) {
-        lastValidState.current = newState
+    try {
+      setBoardState(prev => {
+        const newState = [...prev]
+        if (newState[index]) {
+          newState[index] = {
+            ...newState[index],
+            ...updates,
+            lastUpdated: Date.now()
+          }
+        }
+        measurePerformance() // Track performance after state update
         return newState
-      }
-      return lastValidState.current
-    })
-  }, [validateBoardState])
-
-  useEffect(() => {
-    // Check win conditions when board state changes
-    if (boardState.length > 0) {
-      checkWinningCondition(players)
+      })
+    } catch (error) {
+      handleError(error as Error)
     }
-  }, [boardState, players, checkWinningCondition])
+  }, [measurePerformance, handleError])
 
   return {
+    // States
     boardState,
-    setBoardState: (newState: BoardCell[]) => {
-      if (validateBoardState(newState)) {
-        lastValidState.current = newState
-        setBoardState(newState)
-        // Check win conditions after board state update
-        setTimeout(() => checkWinningCondition(players), 0)
-      } else {
-        console.error('Invalid board state detected')
-        resetBoard()
-      }
-    },
+    gamePhase,
     winner,
-    setWinner,
+    currentPlayer,
+    lastMove,
+    markedFields,
+    gameError,
+    
+    // Settings
     boardSize,
     setBoardSize,
     winConditions,
     setWinConditions,
-    blockingState,
-    setBlockingState,
+    
+    // Actions
+    setBoardState,
+    checkWinningCondition,
+    emitBeforeMove,
+    emitAfterMove,
+    
+    // Error Handling
+    handleError,
+    clearError: () => setGameError(null),
+    
+    // Board Management
     generateBoard,
     resetBoard,
     handleCellChange,
-    handleCellClick,
-    checkWinningCondition,
-    updateBoardState,
+    updateBoardState
   }
 }

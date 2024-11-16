@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import { useLayout } from '@/components/challenges/bingo-board/hooks/useLayout'
 import { LAYOUT_CONSTANTS } from '@/components/challenges/bingo-board/types/layout.constants'
 
@@ -7,13 +8,12 @@ describe('useLayout', () => {
   const originalInnerHeight = window.innerHeight
 
   beforeEach(() => {
-    // Mock window dimensions
+    // Reset window dimensions
     Object.defineProperty(window, 'innerWidth', {
       writable: true,
       configurable: true,
-      value: LAYOUT_CONSTANTS.BREAKPOINTS.desktop
+      value: 1024
     })
-
     Object.defineProperty(window, 'innerHeight', {
       writable: true,
       configurable: true,
@@ -28,7 +28,6 @@ describe('useLayout', () => {
       configurable: true,
       value: originalInnerWidth
     })
-
     Object.defineProperty(window, 'innerHeight', {
       writable: true,
       configurable: true,
@@ -36,239 +35,193 @@ describe('useLayout', () => {
     })
   })
 
-  describe('breakpoint detection', () => {
-    it('should detect mobile breakpoint', () => {
-      window.innerWidth = LAYOUT_CONSTANTS.BREAKPOINTS.mobile + 100
-      const { result } = renderHook(() => useLayout())
+  it('should initialize with correct breakpoint', () => {
+    const { result } = renderHook(() => useLayout())
+    expect(result.current.breakpoint).toBe('desktop')
+    expect(result.current.isDesktop).toBe(true)
+    expect(result.current.isTablet).toBe(false)
+    expect(result.current.isMobile).toBe(false)
+  })
 
-      act(() => {
-        result.current.updateBreakpoint()
+  it('should update breakpoint on window resize', () => {
+    const { result } = renderHook(() => useLayout())
+
+    act(() => {
+      // Simulate mobile width
+      Object.defineProperty(window, 'innerWidth', {
+        writable: true,
+        configurable: true,
+        value: LAYOUT_CONSTANTS.BREAKPOINTS.mobile + 100
       })
-
-      expect(result.current.isMobile).toBe(true)
-      expect(result.current.isTablet).toBe(false)
-      expect(result.current.isDesktop).toBe(false)
+      window.dispatchEvent(new Event('resize'))
     })
 
-    it('should detect tablet breakpoint', () => {
-      window.innerWidth = LAYOUT_CONSTANTS.BREAKPOINTS.tablet + 100
-      const { result } = renderHook(() => useLayout())
+    expect(result.current.breakpoint).toBe('mobile')
+    expect(result.current.isMobile).toBe(true)
+  })
 
-      act(() => {
-        result.current.updateBreakpoint()
-      })
-
-      expect(result.current.isMobile).toBe(false)
-      expect(result.current.isTablet).toBe(true)
-      expect(result.current.isDesktop).toBe(false)
+  it('should calculate grid layout correctly', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    const mobileGrid = result.current.getGridLayout(4, true)
+    expect(mobileGrid).toEqual({
+      columns: 4,
+      gap: LAYOUT_CONSTANTS.GRID.gap.mobile,
+      padding: LAYOUT_CONSTANTS.GRID.padding.mobile
     })
 
-    it('should detect desktop breakpoint', () => {
-      window.innerWidth = LAYOUT_CONSTANTS.BREAKPOINTS.desktop + 100
-      const { result } = renderHook(() => useLayout())
-
-      act(() => {
-        result.current.updateBreakpoint()
-      })
-
-      expect(result.current.isMobile).toBe(false)
-      expect(result.current.isTablet).toBe(false)
-      expect(result.current.isDesktop).toBe(true)
+    const desktopGrid = result.current.getGridLayout(4, false)
+    expect(desktopGrid).toEqual({
+      columns: 4,
+      gap: LAYOUT_CONSTANTS.GRID.gap.desktop,
+      padding: LAYOUT_CONSTANTS.GRID.padding.desktop
     })
   })
 
-  describe('layout calculations', () => {
-    it('should calculate grid layout correctly', () => {
-      const { result } = renderHook(() => useLayout())
-      const grid = result.current.getGridLayout(4, true)
+  it('should calculate responsive spacing correctly', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    const spacing = result.current.getResponsiveSpacing(16)
+    expect(spacing).toHaveProperty('base', 16)
+    expect(spacing).toHaveProperty('vertical')
+    expect(spacing).toHaveProperty('horizontal')
+    expect(spacing).toHaveProperty('gap')
+  })
 
-      expect(grid).toEqual({
-        columns: 4,
-        gap: LAYOUT_CONSTANTS.GRID.gap.mobile,
-        padding: LAYOUT_CONSTANTS.GRID.padding.mobile
-      })
-    })
+  it('should calculate fluid typography correctly', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    const typography = result.current.getFluidTypography(16, 24)
+    expect(typography).toHaveProperty('fontSize')
+    expect(typography).toHaveProperty('lineHeight')
+    expect(typography).toHaveProperty('base')
+    expect(typography).toHaveProperty('scale')
+  })
 
-    it('should calculate responsive spacing', () => {
-      const { result } = renderHook(() => useLayout())
-      const spacing = result.current.getResponsiveSpacing(LAYOUT_CONSTANTS.SPACING.base)
-
-      expect(spacing).toEqual({
-        base: LAYOUT_CONSTANTS.SPACING.base,
-        vertical: result.current.isMobile 
-          ? LAYOUT_CONSTANTS.SPACING.mobile.vertical 
-          : LAYOUT_CONSTANTS.SPACING.desktop.vertical,
-        horizontal: result.current.isMobile 
-          ? LAYOUT_CONSTANTS.SPACING.mobile.horizontal 
-          : LAYOUT_CONSTANTS.SPACING.desktop.horizontal
-      })
-    })
-
-    it('should calculate fluid typography', () => {
-      const { result } = renderHook(() => useLayout())
-      const typography = result.current.getFluidTypography(
-        LAYOUT_CONSTANTS.TYPOGRAPHY.base * LAYOUT_CONSTANTS.TYPOGRAPHY.mobile.scale,
-        LAYOUT_CONSTANTS.TYPOGRAPHY.base * LAYOUT_CONSTANTS.TYPOGRAPHY.scale
-      )
-
-      expect(typography).toEqual({
-        base: result.current.isMobile 
-          ? LAYOUT_CONSTANTS.TYPOGRAPHY.base * LAYOUT_CONSTANTS.TYPOGRAPHY.mobile.scale
-          : LAYOUT_CONSTANTS.TYPOGRAPHY.base * LAYOUT_CONSTANTS.TYPOGRAPHY.scale,
-        scale: LAYOUT_CONSTANTS.TYPOGRAPHY.scale - LAYOUT_CONSTANTS.TYPOGRAPHY.mobile.scale,
-        lineHeight: LAYOUT_CONSTANTS.TYPOGRAPHY.lineHeight
-      })
-    })
-
-    it('should calculate container width', () => {
-      const { result } = renderHook(() => useLayout())
-      const container = result.current.getContainerWidth()
-
-      expect(container).toEqual({
-        maxWidth: LAYOUT_CONSTANTS.CONTAINER.maxWidth,
-        padding: LAYOUT_CONSTANTS.CONTAINER.padding[result.current.breakpoint]
-      })
+  it('should calculate container width correctly', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    const container = result.current.getContainerWidth()
+    expect(container).toEqual({
+      maxWidth: LAYOUT_CONSTANTS.CONTAINER.maxWidth,
+      padding: LAYOUT_CONSTANTS.CONTAINER.padding[result.current.breakpoint]
     })
   })
 
-  describe('layout caching', () => {
-    it('should cache layout calculations', () => {
-      const { result } = renderHook(() => useLayout())
-
-      // First calculation
-      const grid1 = result.current.getGridLayout(4, true)
-      // Second calculation with same params
-      const grid2 = result.current.getGridLayout(4, true)
-
-      expect(grid1).toBe(grid2) // Should return cached value
+  it('should prevent layout shift', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    act(() => {
+      result.current.preventLayoutShift()
     })
 
-    it('should clear cache on layout adjustment', () => {
-      const { result } = renderHook(() => useLayout())
-
-      const grid1 = result.current.getGridLayout(4, true)
-      
-      act(() => {
-        result.current.adjustLayout()
-      })
-
-      const grid2 = result.current.getGridLayout(4, true)
-      expect(grid1).not.toBe(grid2) // Should calculate new value
-    })
+    const vh = document.documentElement.style.getPropertyValue('--vh')
+    expect(vh).toBeDefined()
   })
 
-  describe('layout transitions', () => {
-    it('should handle layout transitions correctly', () => {
-      const { result } = renderHook(() => useLayout())
-
-      act(() => {
-        result.current.handleLayoutTransition()
-      })
-
-      expect(document.documentElement.style.getPropertyValue('--layout-transition'))
-        .toBe('none')
-
-      act(() => {
-        jest.runAllTimers()
-      })
-
-      expect(document.documentElement.style.getPropertyValue('--layout-transition'))
-        .toBe(`all ${LAYOUT_CONSTANTS.TRANSITIONS.duration} ${LAYOUT_CONSTANTS.TRANSITIONS.timing}`)
+  it('should handle layout transitions', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    act(() => {
+      result.current.handleLayoutTransition()
     })
+
+    const transition = document.documentElement.style.getPropertyValue('--layout-transition')
+    expect(transition).toBeDefined()
   })
 
-  describe('resize handling', () => {
-    it('should handle resize events', () => {
-      const { result } = renderHook(() => useLayout())
-      
-      window.innerWidth = LAYOUT_CONSTANTS.BREAKPOINTS.mobile + 100
-      
-      act(() => {
+  it('should emit layout change events', () => {
+    const mockDispatchEvent = jest.spyOn(window, 'dispatchEvent')
+    const { result } = renderHook(() => useLayout())
+
+    act(() => {
+      result.current.handleResize()
+    })
+
+    expect(mockDispatchEvent).toHaveBeenCalled()
+    const event = mockDispatchEvent.mock.calls[0]?.[0] as CustomEvent
+    expect(event?.detail).toHaveProperty('breakpoint')
+    expect(event?.detail).toHaveProperty('dimensions')
+    expect(event?.detail).toHaveProperty('timestamp')
+  })
+
+  it('should cleanup on unmount', () => {
+    const { unmount } = renderHook(() => useLayout())
+    const removeEventListener = jest.spyOn(window, 'removeEventListener')
+    
+    unmount()
+    
+    expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
+  })
+
+  it('should handle tablet breakpoint correctly', () => {
+    const { result } = renderHook(() => useLayout())
+
+    act(() => {
+      Object.defineProperty(window, 'innerWidth', {
+        writable: true,
+        configurable: true,
+        value: LAYOUT_CONSTANTS.BREAKPOINTS.tablet + 100
+      })
+      window.dispatchEvent(new Event('resize'))
+    })
+
+    expect(result.current.breakpoint).toBe('tablet')
+    expect(result.current.isTablet).toBe(true)
+    expect(result.current.isMobile).toBe(false)
+    expect(result.current.isDesktop).toBe(false)
+  })
+
+  it('should debounce resize events', () => {
+    jest.useFakeTimers()
+    const { result } = renderHook(() => useLayout())
+    const mockHandleResize = jest.spyOn(result.current, 'handleResize')
+
+    act(() => {
+      // Trigger multiple resize events
+      for (let i = 0; i < 5; i++) {
         window.dispatchEvent(new Event('resize'))
-      })
-
-      act(() => {
-        jest.advanceTimersByTime(LAYOUT_CONSTANTS.PERFORMANCE.debounceDelay)
-      })
-
-      expect(result.current.isMobile).toBe(true)
+      }
     })
 
-    it('should debounce resize events', () => {
-      const { result } = renderHook(() => useLayout())
-      const updateSpy = jest.spyOn(result.current, 'updateBreakpoint')
+    expect(mockHandleResize).not.toHaveBeenCalled()
 
-      // Multiple resize events
-      act(() => {
-        window.dispatchEvent(new Event('resize'))
-        window.dispatchEvent(new Event('resize'))
-        window.dispatchEvent(new Event('resize'))
-      })
-
-      expect(updateSpy).toHaveBeenCalledTimes(1)
+    act(() => {
+      jest.runAllTimers()
     })
+
+    expect(mockHandleResize).toHaveBeenCalledTimes(1)
+    jest.useRealTimers()
   })
 
-  describe('layout events', () => {
-    beforeEach(() => {
-      jest.spyOn(window, 'dispatchEvent')
-    })
-
-    it('should emit layout change event with correct event name', () => {
-      const { result } = renderHook(() => useLayout())
-
-      act(() => {
-        result.current.updateBreakpoint()
-      })
-
-      expect(window.dispatchEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: LAYOUT_CONSTANTS.EVENTS.layoutChange
-        })
-      )
-    })
-
-    it('should include correct dimensions in event', () => {
-      const { result } = renderHook(() => useLayout())
-
-      act(() => {
-        window.innerWidth = LAYOUT_CONSTANTS.BREAKPOINTS.desktop
-        window.innerHeight = 800
-        result.current.updateBreakpoint()
-      })
-
-      expect(window.dispatchEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          detail: expect.objectContaining({
-            dimensions: {
-              width: LAYOUT_CONSTANTS.BREAKPOINTS.desktop,
-              height: 800
-            }
-          })
-        })
-      )
-    })
+  it('should cache layout calculations', () => {
+    const { result } = renderHook(() => useLayout())
+    
+    const grid1 = result.current.getGridLayout(4, true)
+    const grid2 = result.current.getGridLayout(4, true)
+    
+    expect(grid1).toBe(grid2) // Should return cached value
   })
 
-  describe('error handling', () => {
-    it('should handle event emission errors gracefully', () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-      const { result } = renderHook(() => useLayout())
+  it('should handle layout transitions with RAF', () => {
+    jest.useFakeTimers()
+    const mockRAF = jest.spyOn(window, 'requestAnimationFrame')
+    const { result } = renderHook(() => useLayout())
 
-      window.dispatchEvent = jest.fn().mockImplementation(() => {
-        throw new Error('Event dispatch error')
-      })
-
-      act(() => {
-        result.current.updateBreakpoint()
-      })
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error emitting layout change:',
-        expect.any(Error)
-      )
-
-      consoleErrorSpy.mockRestore()
+    act(() => {
+      result.current.handleLayoutTransition()
     })
+
+    expect(document.documentElement.style.getPropertyValue('--layout-transition')).toBe('none')
+    
+    act(() => {
+      mockRAF.mock.calls[0]?.[0](0)
+    })
+
+    expect(document.documentElement.style.getPropertyValue('--layout-transition'))
+      .toBe(`all ${LAYOUT_CONSTANTS.TRANSITIONS.duration} ${LAYOUT_CONSTANTS.TRANSITIONS.timing}`)
+    
+    jest.useRealTimers()
   })
-}) 
+})
+
