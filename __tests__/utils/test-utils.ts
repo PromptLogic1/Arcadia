@@ -27,9 +27,9 @@ export const generateMockBoardCell = (overrides?: Partial<BoardCell>): BoardCell
     ...overrides
 })
 
-export const generateMockPlayer = (overrides?: Partial<Player>): Player => ({
-    id: 'test-player',
-    name: 'Test Player',
+export const generateMockPlayer = (overrides: Partial<Player> = {}): Player => ({
+    id: `player-${Math.random().toString(36).substr(2, 9)}`,
+    name: `Test Player ${Math.random().toString(36).substr(2, 4)}`,
     color: 'bg-blue-500',
     hoverColor: 'hover:bg-blue-600',
     team: 0,

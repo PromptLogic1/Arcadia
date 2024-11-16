@@ -12,16 +12,23 @@ import type {
 } from '../types/analytics.types'
 import { ANALYTICS_CONSTANTS, EVENT_TYPES, PERFORMANCE_METRICS } from '../types/analytics.constants'
 
+const DEFAULT_PERFORMANCE_METRICS = {
+  [PERFORMANCE_METRICS.PAGE_LOAD]: 0,
+  [PERFORMANCE_METRICS.TIME_TO_INTERACTIVE]: 0,
+  [PERFORMANCE_METRICS.FRAME_TIME]: 0,
+  [PERFORMANCE_METRICS.UPDATE_TIME]: 0
+}
+
 export const useGameAnalytics = () => {
   // Core States
   const [gameStats, setGameStats] = useState<GameStats>({
     moves: 0,
     duration: 0,
     winningPlayer: null,
-    startTime: null,
+    startTime: Date.now(),
     endTime: null,
     playerStats: {},
-    performanceMetrics: {}
+    performanceMetrics: { ...DEFAULT_PERFORMANCE_METRICS }
   })
 
   // Performance tracking refs
@@ -40,9 +47,18 @@ export const useGameAnalytics = () => {
       eventQueue.current = eventQueue.current.slice(-ANALYTICS_CONSTANTS.EVENTS.BATCH_SIZE)
     }
     eventQueue.current.push(event)
+
+    // Emit event
+    const customEvent = new CustomEvent(event.type, {
+      detail: {
+        ...event,
+        timestamp: Date.now()
+      }
+    })
+    window.dispatchEvent(customEvent)
   }, [])
 
-  // 2.1 Statistik-Erfassung
+  // Stats update
   const updateStats = useCallback((
     players: Player[],
     markedFields: Record<string, number>,
@@ -53,14 +69,6 @@ export const useGameAnalytics = () => {
       const lastMoveTime = moveTimestamps.current[moveTimestamps.current.length - 1] || now
       const moveTime = now - lastMoveTime
 
-      // Limit history length
-      if (moveTimestamps.current.length >= ANALYTICS_CONSTANTS.PERFORMANCE.MAX_HISTORY_LENGTH) {
-        moveTimestamps.current = moveTimestamps.current.slice(
-          -ANALYTICS_CONSTANTS.PERFORMANCE.MAX_HISTORY_LENGTH
-        )
-      }
-
-      // Update player stats
       const updatedPlayerStats = players.reduce((stats, player) => ({
         ...stats,
         [player.id]: {
@@ -73,7 +81,6 @@ export const useGameAnalytics = () => {
 
       moveTimestamps.current.push(now)
 
-      // Track move event
       trackEvent({
         type: EVENT_TYPES.MOVE,
         timestamp: now,
@@ -119,36 +126,32 @@ export const useGameAnalytics = () => {
         !patterns.current.commonMoves.includes(movePattern)) {
       patterns.current.commonMoves.push(movePattern)
     }
-  }, [])
 
-  const recordWinner = useCallback((playerId: string | null) => {
-    setGameStats(prev => {
-      const endTime = Date.now()
-      
-      // Record winning strategy if pattern is significant
-      if (playerId) {
-        const playerTendencies = patterns.current.playerTendencies[playerId] || []
-        if (playerTendencies.length >= ANALYTICS_CONSTANTS.ANALYSIS.MIN_MOVES_FOR_PATTERN) {
-          patterns.current.winningStrategies.push(playerTendencies.join('>'))
-        }
-      }
-
-      // Track win event
-      trackEvent({
-        type: EVENT_TYPES.WIN,
-        timestamp: endTime,
-        playerId: playerId || undefined, // Convert null to undefined
-        data: { duration: prev.startTime ? endTime - prev.startTime : 0 }
-      })
-
-      return {
-        ...prev,
-        winningPlayer: playerId,
-        endTime,
-        duration: prev.startTime ? endTime - prev.startTime : prev.duration
-      }
+    trackEvent({
+      type: EVENT_TYPES.MOVE,
+      timestamp: Date.now(),
+      playerId,
+      data: { moveType, position }
     })
   }, [trackEvent])
+
+  const recordWinner = useCallback((playerId: string | null) => {
+    const now = Date.now()
+    setGameStats(prev => ({
+      ...prev,
+      winningPlayer: playerId,
+      endTime: now
+    }))
+
+    if (playerId !== null) {
+      trackEvent({
+        type: EVENT_TYPES.WIN,
+        timestamp: now,
+        playerId,
+        data: { duration: now - (gameStats.startTime || now) }
+      })
+    }
+  }, [gameStats.startTime, trackEvent])
 
   // 2.2 Analyse
   const calculateStats = useCallback((): GameAnalysis => {
@@ -196,21 +199,43 @@ export const useGameAnalytics = () => {
 
   // Performance monitoring
   const measurePerformance = useCallback(() => {
-    const now = performance.now()
+    const now = Date.now()
+    const frameTime = performanceMarks.current.frameTime 
+      ? (now - performanceMarks.current.frameTime) / Math.max(1, gameStats.moves)
+      : 0
     
     setGameStats(prev => ({
       ...prev,
       performanceMetrics: {
         ...prev.performanceMetrics,
         [PERFORMANCE_METRICS.UPDATE_TIME]: now,
-        [PERFORMANCE_METRICS.FRAME_TIME]: performanceMarks.current.frameTime 
-          ? (now - performanceMarks.current.frameTime) / gameStats.moves 
-          : 0
+        [PERFORMANCE_METRICS.FRAME_TIME]: frameTime
       }
     }))
 
     performanceMarks.current.frameTime = now
   }, [gameStats.moves])
+
+  // Reset functionality
+  const resetStats = useCallback(() => {
+    setGameStats({
+      moves: 0,
+      duration: 0,
+      winningPlayer: null,
+      startTime: Date.now(),
+      endTime: null,
+      playerStats: {},
+      performanceMetrics: { ...DEFAULT_PERFORMANCE_METRICS }
+    })
+    moveTimestamps.current = []
+    performanceMarks.current = {}
+    eventQueue.current = []
+    patterns.current = {
+      commonMoves: [],
+      winningStrategies: [],
+      playerTendencies: {}
+    }
+  }, [])
 
   // Cleanup and initialization
   useEffect(() => {
@@ -219,8 +244,9 @@ export const useGameAnalytics = () => {
       ...prev,
       startTime,
       performanceMetrics: {
-        [PERFORMANCE_METRICS.PAGE_LOAD]: performance.now(),
-        [PERFORMANCE_METRICS.TIME_TO_INTERACTIVE]: Date.now() - startTime
+        ...DEFAULT_PERFORMANCE_METRICS,
+        [PERFORMANCE_METRICS.PAGE_LOAD]: 0,
+        [PERFORMANCE_METRICS.TIME_TO_INTERACTIVE]: 0
       }
     }))
 
@@ -252,24 +278,6 @@ export const useGameAnalytics = () => {
     measurePerformance,
     calculateStats,
     generateReport,
-    resetStats: useCallback(() => {
-      setGameStats({
-        moves: 0,
-        duration: 0,
-        winningPlayer: null,
-        startTime: Date.now(),
-        endTime: null,
-        playerStats: {},
-        performanceMetrics: {}
-      })
-      moveTimestamps.current = []
-      performanceMarks.current = {}
-      eventQueue.current = []
-      patterns.current = {
-        commonMoves: [],
-        winningStrategies: [],
-        playerTendencies: {}
-      }
-    }, [])
+    resetStats
   }
 }
