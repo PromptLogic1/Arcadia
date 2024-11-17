@@ -12,6 +12,10 @@ export interface QueueEntry {
   priority?: 'high' | 'normal' | 'low'
 }
 
+export interface QueueEntryWithError extends QueueEntry {
+  error?: string
+}
+
 export interface QueueEvent {
   type: 'queueJoin' | 'queueLeave' | 'queueUpdate' | 'queueError'
   entry: QueueEntry
@@ -19,23 +23,17 @@ export interface QueueEvent {
 }
 
 export interface UseSessionQueue {
-  // States
   queueEntries: QueueEntry[]
   isProcessing: boolean
   error: Error | null
-
-  // Queue Operations
   addToQueue: (player: Pick<Player, 'name' | 'color'>) => Promise<void>
   removeFromQueue: (entryId: string) => Promise<void>
   processQueue: () => Promise<void>
   updateQueuePosition: (entryId: string, newPosition: number) => Promise<void>
-
-  // Status Management
   checkQueueStatus: () => Promise<boolean>
   validateQueueSize: () => boolean
   cleanupQueue: () => Promise<void>
-
-  // Additional Operations
   reconnect: () => Promise<void>
-  updateQueueEntry: (entryId: string, updates: Partial<QueueEntry>) => Promise<void>
+  updateQueueEntry: (entryId: string, updates: Partial<QueueEntryWithError>) => Promise<void>
+  setQueueEntriesForTesting?: (entries: QueueEntry[]) => void
 }
