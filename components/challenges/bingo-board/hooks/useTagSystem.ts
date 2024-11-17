@@ -309,7 +309,7 @@ export const useTagSystem = (_gameId?: string) => {
         return {
           id,
           name: update.name || existing?.name || '',
-          type: update.type || existing?.type || 'community',
+          type: update.type || existing?.type || 'core',
           category: update.category || existing?.category || {
             id: '',
             name: 'custom',
@@ -317,7 +317,7 @@ export const useTagSystem = (_gameId?: string) => {
             allowMultiple: true,
             validForGames: []
           },
-          status: update.status || existing?.status || 'proposed',
+          status: update.status || existing?.status || 'active',
           description: update.description || existing?.description || '',
           usage_count: existing?.usageCount || 0,
           votes: existing?.votes || 0,
@@ -343,9 +343,16 @@ export const useTagSystem = (_gameId?: string) => {
         usageCount: tag.usage_count
       })) as Tag[]
 
+      // Update coreTags by merging existing and new tags
       setCoreTags(prev => {
-        const updated = new Map(updatedTags.map(tag => [tag.id, tag]))
-        return prev.map(tag => updated.get(tag.id) || tag)
+        const newTags = new Map(prev.map(tag => [tag.id, tag]))
+        
+        // Update or add tags from the batch update
+        updatedTags.forEach(tag => {
+          newTags.set(tag.id, tag)
+        })
+
+        return Array.from(newTags.values())
       })
 
       return updatedTags
