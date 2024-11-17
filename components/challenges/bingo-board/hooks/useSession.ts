@@ -344,20 +344,26 @@ export const useSession = ({
     }
   }, [supabase])
 
-  // Add timeout handling
+  // Add/update the timeout effect
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: NodeJS.Timeout | null = null;
 
     if (sessionState.isActive && !sessionState.isPaused) {
       timeoutId = setTimeout(() => {
-        pauseSession()
-      }, 5 * 60 * 1000) // 5 minutes
+        setSessionState(prev => ({
+          ...prev,
+          isPaused: true
+        }));
+        pauseSession();
+      }, 5 * 60 * 1000); // 5 minutes
     }
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId)
-    }
-  }, [sessionState.isActive, sessionState.isPaused, pauseSession])
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [sessionState.isActive, sessionState.isPaused, pauseSession]);
 
   return {
     // Session States
