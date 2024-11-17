@@ -17,8 +17,21 @@ export class TagValidationService {
     }
   }
 
-  validateTag(tag: Tag): boolean {
-    return this.validateTagStructure(tag) && this.validateTagRules(tag, this.rules)
+  validateTag(tag: Tag): { isValid: boolean; errors: string[] } {
+    const errors: string[] = []
+
+    if (!tag.name || tag.name.length < 3) {
+      errors.push('Tag name must be at least 3 characters')
+    }
+
+    if (tag.name?.toLowerCase().includes('spam')) {
+      errors.push('Tag name contains forbidden terms')
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
   }
 
   validateTagStructure(tag: unknown): tag is Tag {

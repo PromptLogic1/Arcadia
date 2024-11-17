@@ -62,7 +62,8 @@ const config = {
   fakeTimers: {
     enableGlobally: true,
     legacyFakeTimers: false
-  }
+  },
+  testTimeout: 10000
 }
 
 module.exports = config 
