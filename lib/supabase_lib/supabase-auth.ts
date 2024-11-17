@@ -90,16 +90,17 @@ class SupabaseAuth {
     }
   }
 
-  public async signInWithOAuth(provider: 'github' | 'google'): Promise<void> {
+  public async signInWithOAuth(provider: 'google'): Promise<void> {
     return this.handleNetworkError<void>(async () => {
       const { error } = await this.supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/verify-email/callback`,
-          queryParams: provider === 'google' ? {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          } : undefined
+            scope: 'openid email profile'
+          }
         }
       })
 

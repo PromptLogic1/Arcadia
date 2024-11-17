@@ -145,24 +145,68 @@ $$ LANGUAGE plpgsql;
 -- Create the function that adds a new entry to the users table after verification
 CREATE OR REPLACE FUNCTION public.add_user_after_verification()
 RETURNS TRIGGER AS $$
+DECLARE
+  _username TEXT;
+  _base_username TEXT;
+  _counter INTEGER := 0;
 BEGIN
-  -- Only proceed if email is confirmed and user doesn't already exist
-  IF NEW.email_confirmed_at IS NOT NULL AND NOT EXISTS (
+  -- First try to get the display name from OAuth
+  _base_username := COALESCE(
+    NEW.raw_app_meta_data->>'display_name',  -- First priority: display name from auth.users
+    NEW.raw_user_meta_data->>'name',         -- Fallback 1: name from OAuth
+    NEW.raw_user_meta_data->>'full_name',    -- Fallback 2: full name from OAuth
+    split_part(NEW.email, '@', 1)            -- Last resort: email prefix
+  );
+
+  -- Clean up the username
+  -- Convert to lowercase and replace spaces with underscores
+  _base_username := LOWER(REPLACE(_base_username, ' ', '_'));
+  -- Remove any special characters
+  _base_username := regexp_replace(_base_username, '[^a-zA-Z0-9_-]', '', 'g');
+  
+  -- Ensure minimum length
+  IF length(_base_username) < 3 THEN
+    _base_username := _base_username || 'user';
+  END IF;
+
+  -- Try to find an available username
+  _username := _base_username;
+  WHILE EXISTS (
+    SELECT 1 FROM public.users WHERE username = _username
+  ) LOOP
+    _counter := _counter + 1;
+    _username := _base_username || _counter::text;
+  END LOOP;
+
+  -- Only insert if user doesn't exist
+  IF NOT EXISTS (
     SELECT 1 FROM public.users WHERE auth_id = NEW.id
   ) THEN
     INSERT INTO public.users (
       auth_id,
       username,
-      role,
-      is_active
+      full_name,
+      avatar_url,
+      role
     ) 
     VALUES (
       NEW.id,
-      COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-      'user',
-      true
+      _username,
+      COALESCE(
+        NEW.raw_app_meta_data->>'display_name',  -- Use display name as full name too
+        NEW.raw_user_meta_data->>'name',
+        NEW.raw_user_meta_data->>'full_name',
+        split_part(NEW.email, '@', 1)
+      ),
+      COALESCE(
+        NEW.raw_user_meta_data->>'avatar_url',
+        NEW.raw_user_meta_data->>'picture',
+        'https://ui-avatars.com/api/?name=' || _username
+      ),
+      'user'
     );
   END IF;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

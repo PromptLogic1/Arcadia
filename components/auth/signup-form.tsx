@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info, Github, Mail, Check, X, AlertCircle } from 'lucide-react'
+import { Info, Mail, Check, X, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { supabaseAuth, AuthError } from '@/lib/supabase_lib/supabase-auth'
@@ -229,7 +229,7 @@ export function SignUpForm() {
     }
   }
 
-  const handleOAuthLogin = async (provider: 'github' | 'google') => {
+  const handleOAuthLogin = async (provider: 'google') => {
     setError(null)
     setLoading(true)
 
@@ -422,14 +422,6 @@ export function SignUpForm() {
       </div>
 
       <div className="space-y-4">
-        <Button 
-          variant="outline" 
-          onClick={() => handleOAuthLogin('github')}
-          className="w-full flex items-center justify-center gap-2"
-        >
-          <Github className="w-5 h-5" />
-          Continue with GitHub
-        </Button>
         <Button 
           variant="outline" 
           onClick={() => handleOAuthLogin('google')}

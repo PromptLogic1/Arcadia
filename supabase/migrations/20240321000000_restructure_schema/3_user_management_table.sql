@@ -12,6 +12,9 @@ CREATE TABLE users (
     city text,
     bio TEXT,
     last_login_at TIMESTAMP WITH TIME ZONE,
+    profile_visibility TEXT DEFAULT 'public' NOT NULL,
+    achievements_visibility TEXT DEFAULT 'public' NOT NULL,
+    submissions_visibility TEXT DEFAULT 'public' NOT NULL,
     CONSTRAINT username_length CHECK (char_length(username) >= 3)
 ) INHERITS (base_table);
 
