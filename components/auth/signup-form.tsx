@@ -21,7 +21,7 @@ interface SignUpMessage {
 interface ValidationErrors {
   username?: string;
   email?: string;
-  password?: string;
+  password?: string | React.ReactNode;
   confirmPassword?: string;
   general?: string;
 }
@@ -182,7 +182,40 @@ export function SignUpForm() {
         username
       })
 
-      if (result) {
+      if (result.isExisting) {
+        if (result.wrongPassword) {
+          // Existing verified account with wrong password
+          setValidationErrors(prev => ({
+            ...prev,
+            email: 'Account with this E-Mail already exists, but password was incorrect',
+            password: (
+              <span className="text-sm">
+                Did you forget your password?{' '}
+                <Link 
+                  href={`/auth/forgot-password?email=${encodeURIComponent(email)}`} 
+                  className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
+                >
+                  Reset it here
+                </Link>
+              </span>
+            ) as React.ReactNode
+          }))
+          setStatus('idle')
+          return
+        }
+
+        if (result.needsVerification) {
+          // Account exists but needs verification
+          setStatus('verification_pending')
+          setMessage({
+            text: 'This account needs verification. We\'ve sent a new verification email.',
+            type: 'info'
+          })
+          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+          return
+        }
+
+        // Account exists and login successful
         setStatus('success')
         setMessage({
           text: 'Account already exists! Logging you in...',
@@ -192,9 +225,21 @@ export function SignUpForm() {
         return
       }
 
-      // If we get here, user needs to verify email
-      setStatus('verification_pending')
-      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+      // New signup
+      if (result.needsVerification) {
+        setStatus('verification_pending')
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+        return
+      }
+
+      if (result.isBanned) {
+        setValidationErrors(prev => ({
+          ...prev,
+          email: 'This account has been restricted. Please contact support for assistance.'
+        }))
+        setStatus('idle')
+        return
+      }
 
     } catch (error) {
       console.error('Signup error:', error)
@@ -206,10 +251,17 @@ export function SignUpForm() {
             router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
             return
             
-          case 'USER_EXISTS':
+          case 'EMAIL_EXISTS':
             setValidationErrors(prev => ({
               ...prev,
-              email: 'An account with this email already exists'
+              email: 'Account with this E-Mail already exists'
+            }))
+            break
+            
+          case 'INVALID_USERNAME':
+            setValidationErrors(prev => ({
+              ...prev,
+              username: 'Username can only contain letters, numbers, underscores, and hyphens'
             }))
             break
             
@@ -343,7 +395,9 @@ export function SignUpForm() {
               ))}
             </div>
             {validationErrors.password && (
-              <p className="text-sm text-red-400 mt-1">{validationErrors.password}</p>
+              <div className="text-sm text-red-400 mt-1">
+                {validationErrors.password}
+              </div>
             )}
           </div>
         </div>

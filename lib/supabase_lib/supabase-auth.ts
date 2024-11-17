@@ -19,11 +19,12 @@ export interface PasswordRequirements {
 export type AuthErrorCode = 
   | 'VERIFICATION_PENDING'
   | 'WRONG_PASSWORD'
-  | 'USER_EXISTS'
+  | 'EMAIL_EXISTS'
   | 'NETWORK_ERROR'
   | 'INVALID_USERNAME'
   | 'TOO_MANY_ATTEMPTS'
   | 'INVALID_EMAIL_DOMAIN'
+  | 'USER_BANNED'
 
 export class AuthError extends Error {
   constructor(
@@ -72,7 +73,7 @@ class SupabaseAuth {
     console.error('Auth signup error:', error)
     switch (error.message) {
       case 'User already registered':
-        throw new AuthError('An account with this email already exists', 'USER_EXISTS')
+        throw new AuthError('E-Mail Account already exists', 'EMAIL_EXISTS')
       case 'Password should be at least 6 characters':
         throw new AuthError('Password must be at least 6 characters', 'WRONG_PASSWORD')
       default:
@@ -95,7 +96,7 @@ class SupabaseAuth {
       const { error } = await this.supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth/oauth-success`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -120,81 +121,52 @@ class SupabaseAuth {
     }
   }
 
-  public async signUp(credentials: SignUpCredentials): Promise<{ isExisting?: boolean }> {
-    return this.handleNetworkError<{ isExisting?: boolean }>(async () => {
+  public async signUp(credentials: SignUpCredentials): Promise<{ 
+    isExisting?: boolean;
+    needsVerification?: boolean;
+    wrongPassword?: boolean;
+    isBanned?: boolean;
+  }> {
+    return this.handleNetworkError(async () => {
       try {
-        this.validateUsername(credentials.username)
-        // First check if email exists
-        const { data: { user: existingEmailUser } } = await this.supabase.auth.signInWithPassword({
-          email: credentials.email,
-          password: credentials.password,
-        })
-
-        if (existingEmailUser) {
-          // Email exists, check if username matches
-          const { data: userData } = await this.supabase
-            .from('users')
-            .select('username')
-            .eq('auth_id', existingEmailUser.id)
-            .single()
-
-          if (userData?.username !== credentials.username) {
-            throw new AuthError(
-              'This email is already registered with a different username.',
-              'USER_EXISTS'
-            )
-          }
-          
-          return { isExisting: true }
-        }
-
-        // First check if username exists
-        const { data: existingUserData } = await this.supabase
-          .from('users')
-          .select('auth_id')
-          .eq('username', credentials.username)
-          .single()
-
-        if (existingUserData?.auth_id) {
-          // Try to sign in with provided credentials to check if password matches
-          const { error: signInError } = await this.supabase.auth.signInWithPassword({
+        // Try to sign in first to check user status
+        const { data: signInData, error: signInError } = 
+          await this.supabase.auth.signInWithPassword({
             email: credentials.email,
             password: credentials.password,
           })
 
-          if (signInError) {
-            // Password doesn't match the existing username
-            throw new AuthError(
-              'This username already exists. If this is your account, please use the correct password.',
-              'USER_EXISTS'
-            )
-          }
-
-          // If no error, password matches
+        // If sign in successful, user exists and password is correct
+        if (signInData.user) {
           return { isExisting: true }
         }
 
-        // If username doesn't exist, proceed with normal signup flow
-        const { error: signUpError } = await this.supabase.auth.signUp({
-          email: credentials.email,
-          password: credentials.password,
-          options: {
-            data: {
-              username: credentials.username,
-              full_name: credentials.username,
-              avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
-              pendingProfile: true
-            },
-            emailRedirectTo: `${window.location.origin}/`
-          }
-        })
+        // Handle different error cases
+        if (signInError) {
+          const errorMessage = signInError.message.toLowerCase()
+          
+          switch (errorMessage) {
+            case 'user not confirmed':
+              // Resend verification email
+              await this.supabase.auth.resend({
+                type: 'signup',
+                email: credentials.email,
+              })
+              return { 
+                isExisting: true, 
+                needsVerification: true 
+              }
 
-        if (signUpError) {
-          this.handleSignUpError(signUpError)
+            case 'user is banned':
+              return { 
+                isExisting: true, 
+                isBanned: true 
+              }
+          }
         }
 
-        // If we get here, user needs to verify email
-        throw new AuthError('Please verify your email address', 'VERIFICATION_PENDING')
+        // If no error and no user data, proceed with new signup
+        return this.handleNewSignup(credentials)
 
       } catch (error) {
         if (error instanceof AuthError) {
@@ -204,6 +176,29 @@ class SupabaseAuth {
         throw new AuthError('Failed to complete signup process', 'NETWORK_ERROR')
       }
     })
+  }
+
+  // Helper method to handle new user signup
+  private async handleNewSignup(credentials: SignUpCredentials) {
+    const { error: signUpError } = await this.supabase.auth.signUp({
+      email: credentials.email,
+      password: credentials.password,
+      options: {
+        data: {
+          username: credentials.username,
+          full_name: credentials.username,
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
+          pendingProfile: true
+        },
+        emailRedirectTo: `${window.location.origin}/auth/oauth-success`
+      }
+    })
+
+    if (signUpError) {
+      this.handleSignUpError(signUpError)
+    }
+
+    return { needsVerification: true }
   }
 
   public async resendVerificationEmail(email: string): Promise<void> {

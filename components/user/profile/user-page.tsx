@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Tables } from '@/types/database.types'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -14,11 +15,36 @@ import { Pencil } from 'lucide-react'
 import { countries } from '@/lib/data/countries'
 
 interface UserPageProps {
-  userData?: Tables['users']['Row']
+  userData: Tables['users']['Row']
 }
 
 export default function UserPage({ userData }: UserPageProps) {
   const [activeTab, setActiveTab] = useState('achievements')
+  const [lastSignIn, setLastSignIn] = useState<string | null>(null)
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const getLastSignIn = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      if (error) {
+        console.error('Error fetching auth user:', error)
+        return
+      }
+
+      if (user?.last_sign_in_at) {
+        const date = new Date(user.last_sign_in_at)
+        // Format the date to only show date without time
+        setLastSignIn(date.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }))
+      }
+    }
+
+    getLastSignIn()
+  }, [supabase.auth])
 
   if (!userData) {
     return (
@@ -53,8 +79,8 @@ export default function UserPage({ userData }: UserPageProps) {
     },
     { 
       icon: Clock, 
-      label: 'Last Active', 
-      value: userData.last_login_at ? new Date(userData.last_login_at).toLocaleDateString() : 'Never',
+      label: 'Last Sign In',
+      value: lastSignIn || 'Never',
       color: 'from-purple-500 to-pink-500'
     },
   ]
