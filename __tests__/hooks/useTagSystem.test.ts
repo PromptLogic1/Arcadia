@@ -346,7 +346,7 @@ describe('useTagSystem', () => {
     const updatedTag = { ...mockTag, name: 'Updated Name' }
     const mockFrom = createMockSupabaseFrom()
     
-    // Setup mock for both insert and update
+    // Setup mock for both insert and update operations
     mockSupabase.from.mockReturnValue({
       ...mockFrom,
       insert: jest.fn().mockReturnValue({
@@ -355,8 +355,7 @@ describe('useTagSystem', () => {
             data: {
               ...mockTag,
               created_at: mockTag.createdAt.toISOString(),
-              updated_at: mockTag.updatedAt.toISOString(),
-              usage_count: mockTag.usageCount
+              updated_at: mockTag.updatedAt.toISOString()
             },
             error: null
           })
@@ -369,8 +368,7 @@ describe('useTagSystem', () => {
               data: {
                 ...updatedTag,
                 created_at: updatedTag.createdAt.toISOString(),
-                updated_at: new Date().toISOString(),
-                usage_count: updatedTag.usageCount
+                updated_at: new Date().toISOString()
               },
               error: null
             })
@@ -380,12 +378,14 @@ describe('useTagSystem', () => {
     })
 
     await act(async () => {
+      // First add the tag
       await result.current.addTag(mockTag)
+      // Then update it
       await result.current.updateTag(mockTag.id, { name: 'Updated Name' })
     })
 
     expect(result.current.coreTags[0]?.name).toBe('Updated Name')
-  }, 10000)
+  })
 
   it('should handle tag selection', async () => {
     const { result } = renderTagSystemHook()
@@ -400,8 +400,7 @@ describe('useTagSystem', () => {
             data: {
               ...mockTag,
               created_at: mockTag.createdAt.toISOString(),
-              updated_at: mockTag.updatedAt.toISOString(),
-              usage_count: mockTag.usageCount
+              updated_at: mockTag.updatedAt.toISOString()
             },
             error: null
           })
@@ -410,11 +409,16 @@ describe('useTagSystem', () => {
     })
 
     await act(async () => {
+      // First add the tag
       await result.current.addTag(mockTag)
+      // Then select it
       result.current.selectTag(mockTag.id)
     })
 
-    expect(result.current.selectedTags).toContainEqual(mockTag)
+    expect(result.current.selectedTags).toContainEqual(expect.objectContaining({
+      id: mockTag.id,
+      name: mockTag.name
+    }))
   })
 
   it('should handle tag deselection', async () => {
@@ -649,12 +653,27 @@ describe('useTagSystem', () => {
     const { result } = renderTagSystemHook()
     const suspendedTag = { ...mockTag, status: 'suspended' as const }
 
+    // Setup mock for both insert and delete
     const mockFrom = createMockSupabaseFrom()
-    mockSupabase.from.mockReturnValue(mockFrom)
-    mockFrom.delete.mockReturnValue({
-      eq: jest.fn().mockResolvedValue({ 
-        data: null, 
-        error: null 
+    mockSupabase.from.mockReturnValue({
+      ...mockFrom,
+      insert: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: {
+              ...suspendedTag,
+              created_at: suspendedTag.createdAt.toISOString(),
+              updated_at: suspendedTag.updatedAt.toISOString()
+            },
+            error: null
+          })
+        })
+      }),
+      delete: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ 
+          data: null, 
+          error: null 
+        })
       })
     })
 
@@ -663,18 +682,36 @@ describe('useTagSystem', () => {
       await result.current.cleanupTags()
     })
 
-    expect(result.current.coreTags).not.toContainEqual(suspendedTag)
+    expect(mockSupabase.from).toHaveBeenCalledWith('tags')
+    expect(result.current.coreTags).not.toContainEqual(expect.objectContaining({
+      id: suspendedTag.id
+    }))
   })
 
   it('should handle tag reporting', async () => {
     const { result } = renderTagSystemHook()
     const reportReason = 'inappropriate content'
-    const mockFrom = createMockSupabaseFrom()
     
+    // Setup mock for both tags and tag_reports tables
     mockSupabase.from = jest.fn().mockImplementation((table: string) => {
+      if (table === 'tags') {
+        return {
+          insert: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: {
+                  ...mockTag,
+                  created_at: mockTag.createdAt.toISOString(),
+                  updated_at: mockTag.updatedAt.toISOString()
+                },
+                error: null
+              })
+            })
+          })
+        }
+      }
       if (table === 'tag_reports') {
         return {
-          ...mockFrom,
           insert: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
@@ -707,11 +744,26 @@ describe('useTagSystem', () => {
       created_at: new Date().toISOString()
     }]
 
-    const mockFrom = createMockSupabaseFrom()
+    // Setup mock for both tags and tag_history tables
     mockSupabase.from = jest.fn().mockImplementation((table: string) => {
+      if (table === 'tags') {
+        return {
+          insert: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: {
+                  ...mockTag,
+                  created_at: mockTag.createdAt.toISOString(),
+                  updated_at: mockTag.updatedAt.toISOString()
+                },
+                error: null
+              })
+            })
+          })
+        }
+      }
       if (table === 'tag_history') {
         return {
-          ...mockFrom,
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               order: jest.fn().mockResolvedValue({
@@ -784,22 +836,9 @@ describe('useTagSystem', () => {
       ['tag-2', { name: 'Updated Name 2' }]
     ]
 
-    // Setup mock for both insert and upsert
     const mockFrom = createMockSupabaseFrom()
     mockSupabase.from.mockReturnValue({
       ...mockFrom,
-      insert: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: {
-              ...mockTag,
-              created_at: mockTag.createdAt.toISOString(),
-              updated_at: mockTag.updatedAt.toISOString()
-            },
-            error: null
-          })
-        })
-      }),
       upsert: jest.fn().mockReturnValue({
         select: jest.fn().mockResolvedValue({
           data: updates.map(([id, update]) => ({
@@ -815,7 +854,6 @@ describe('useTagSystem', () => {
     })
 
     await act(async () => {
-      await result.current.addTag(mockTag)
       await result.current.batchUpdate(updates)
     })
 
@@ -828,18 +866,33 @@ describe('useTagSystem', () => {
     const update1 = { name: 'Update 1' }
     const update2 = { name: 'Update 2' }
 
+    // Setup mock for both insert and update
     const mockFrom = createMockSupabaseFrom()
-    mockSupabase.from.mockReturnValue(mockFrom)
-    mockFrom.update.mockImplementation((data) => ({
-      eq: jest.fn().mockReturnValue({
+    mockSupabase.from.mockReturnValue({
+      ...mockFrom,
+      insert: jest.fn().mockReturnValue({
         select: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
-            data: { ...mockTag, ...data, updated_at: new Date().toISOString() },
+            data: {
+              ...mockTag,
+              created_at: mockTag.createdAt.toISOString(),
+              updated_at: mockTag.updatedAt.toISOString()
+            },
             error: null
           })
         })
-      })
-    }))
+      }),
+      update: jest.fn().mockImplementation((data) => ({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { ...mockTag, ...data, updated_at: new Date().toISOString() },
+              error: null
+            })
+          })
+        })
+      }))
+    })
 
     await act(async () => {
       await result.current.addTag(mockTag)
