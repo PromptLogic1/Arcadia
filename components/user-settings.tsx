@@ -18,10 +18,7 @@ export default function UserSettings({ userId, userData }: UserSettingsProps) {
 
   const tabs = [
     { id: 'general', label: 'General', icon: Settings },
-    { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'privacy', label: 'Privacy', icon: Shield },
-    { id: 'appearance', label: 'Appearance', icon: Palette },
   ]
 
   const handleSettingsUpdate = () => {
@@ -73,7 +70,7 @@ export default function UserSettings({ userId, userData }: UserSettingsProps) {
                   />
                 )}
 
-                {(activeTab === 'notifications' || activeTab === 'privacy' || activeTab === 'appearance') && (
+                {(activeTab === 'notifications') && (
                   <ComingSoon
                     icon={tabs.find(tab => tab.id === activeTab)?.icon!}
                     title={tabs.find(tab => tab.id === activeTab)?.label!}
