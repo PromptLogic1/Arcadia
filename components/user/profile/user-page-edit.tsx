@@ -18,6 +18,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Trophy, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { countries } from '@/lib/data/countries'
 
 interface UserPageEditProps {
   userId: string
@@ -227,12 +228,37 @@ export default function UserPageEdit({ userId, userData }: UserPageEditProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="land">Country</Label>
-                  <Input
-                    id="land"
+                  <Select
                     value={land}
-                    onChange={(e) => setLand(e.target.value)}
-                    className="bg-gray-700/50 border-cyan-500/20"
-                  />
+                    onValueChange={setLand}
+                  >
+                    <SelectTrigger className="bg-gray-700/50 border-cyan-500/20">
+                      <SelectValue placeholder="Select your country">
+                        {land ? (
+                          <div className="flex items-center gap-2">
+                            <span>{countries.find(c => c.code === land)?.flag}</span>
+                            <span>{countries.find(c => c.code === land)?.name}</span>
+                          </div>
+                        ) : (
+                          "Select your country"
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] bg-gray-800 border-cyan-500/20">
+                      {countries.map((country) => (
+                        <SelectItem 
+                          key={country.code} 
+                          value={country.code}
+                          className="text-white hover:bg-cyan-500/10 focus:bg-cyan-500/10 focus:text-white"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{country.flag}</span>
+                            <span>{country.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

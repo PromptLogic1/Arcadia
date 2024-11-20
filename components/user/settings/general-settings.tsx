@@ -42,6 +42,11 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
     length: false,
   })
 
+  // Add username states
+  const [isChangingUsername, setIsChangingUsername] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
+  const [usernameError, setUsernameError] = useState<string | null>(null)
+
   const supabase = createClientComponentClient()
   const session = supabase.auth.getSession()
 
@@ -81,6 +86,25 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
     })
   }, [newPassword])
 
+  // Username validation function
+  const validateUsername = (username: string): boolean => {
+    const validUsernameRegex = /^[a-zA-Z0-9_-]+$/
+    if (!validUsernameRegex.test(username)) {
+      setUsernameError('Username can only contain letters, numbers, underscores, and hyphens')
+      return false
+    }
+    if (username.length < 3) {
+      setUsernameError('Username must be at least 3 characters long')
+      return false
+    }
+    if (username.length > 20) {
+      setUsernameError('Username must be less than 20 characters')
+      return false
+    }
+    setUsernameError(null)
+    return true
+  }
+
   const resetEmailForm = () => {
     setIsChangingEmail(false)
     setNewEmail('')
@@ -110,8 +134,8 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
       if (updateError) throw updateError
 
       setMessage({
-        text: 'Verification email sent! Please check your inbox to confirm your new email address.',
-        type: 'success'
+        text: 'Please check both your current email address and your new email address. You need to confirm the change in both emails to complete the update.',
+        type: 'info'
       })
 
       // Reset form but keep message visible
@@ -195,6 +219,78 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
     }
   }
 
+  const resetUsernameForm = () => {
+    setIsChangingUsername(false)
+    setNewUsername('')
+    setUsernameError(null)
+    setMessage(null)
+  }
+
+  const handleUsernameUpdate = async () => {
+    setMessage(null)
+    
+    try {
+      if (!validateUsername(newUsername)) {
+        return
+      }
+
+      if (newUsername === userData.username) {
+        setUsernameError('New username must be different from current username')
+        return
+      }
+
+      setIsSaving(true)
+
+      // Update username directly using auth_id instead of id
+      const { data, error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          username: newUsername,
+          updated_at: new Date().toISOString()
+        })
+        .eq('auth_id', userData.auth_id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('Error updating username:', updateError)
+        if (updateError.code === '23505') {
+          setUsernameError('Username is already taken')
+          return
+        }
+        throw updateError
+      }
+
+      // Update local state with the new data
+      userData.username = data.username
+      
+      setMessage({
+        text: 'Username updated successfully!',
+        type: 'success'
+      })
+
+      setNewUsername('')
+      setIsChangingUsername(false)
+      
+      // Call the parent's update function if provided
+      if (onSettingsUpdate) {
+        onSettingsUpdate()
+      }
+    } catch (error) {
+      console.error('Username update error:', error)
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An error occurred while updating username. Please check if you have permission to update your profile.'
+      
+      setMessage({
+        text: errorMessage,
+        type: 'error'
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {message && (
@@ -229,7 +325,7 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
 
       {/* Display Name Section (Read-only) */}
       <div className="space-y-2">
-        <Label>Username</Label>
+        <Label>Account Username</Label>
         <p className="text-gray-400 text-sm mt-1">
           {displayName || 'No display name set'}
           {!displayName && ' (Set via OAuth provider)'}
@@ -240,7 +336,7 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <Label>Current Email Address</Label>
+            <Label>Email Address</Label>
             <p className="text-gray-400 text-sm mt-1">{currentEmail}</p>
           </div>
           {!isChangingEmail && (
@@ -302,6 +398,74 @@ export function GeneralSettings({ userId, userData, onSettingsUpdate }: GeneralS
                 className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
               >
                 {isSaving ? 'Saving...' : 'Update Email'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Username Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <Label>Username</Label>
+            <p className="text-gray-400 text-sm mt-1">{userData.username}</p>
+          </div>
+          {!isChangingUsername && (
+            <Button
+              onClick={() => setIsChangingUsername(true)}
+              variant="outline"
+              className="border-cyan-500/20 hover:bg-cyan-500/10"
+            >
+              Change Username
+            </Button>
+          )}
+        </div>
+
+        {isChangingUsername && (
+          <div className="space-y-4 bg-gray-800/30 p-4 rounded-lg relative">
+            <button
+              onClick={resetUsernameForm}
+              className="absolute top-2 right-2 p-1 hover:bg-gray-700/50 rounded-full"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-username">New Username</Label>
+              <Input
+                id="new-username"
+                value={newUsername}
+                onChange={(e) => {
+                  setNewUsername(e.target.value)
+                  validateUsername(e.target.value)
+                }}
+                className={cn(
+                  "bg-gray-700/50 border-cyan-500/20",
+                  usernameError && "border-red-500/50 focus:border-red-500"
+                )}
+                placeholder="Enter new username"
+              />
+              {usernameError && (
+                <p className="text-sm text-red-400 mt-1">{usernameError}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={resetUsernameForm}
+                variant="outline"
+                className="border-cyan-500/20"
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUsernameUpdate}
+                disabled={isSaving || !newUsername || !!usernameError}
+                className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white"
+              >
+                {isSaving ? 'Saving...' : 'Update Username'}
               </Button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,10 +12,18 @@ import Link from 'next/link'
 import type { Database } from '@/types/database.types'
 
 export function ForgotPasswordForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [error, setError] = useState<string | null>(null)
   const supabase = createClientComponentClient<Database>()
+
+  useEffect(() => {
+    const emailFromUrl = searchParams.get('email')
+    if (emailFromUrl) {
+      setEmail(emailFromUrl)
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

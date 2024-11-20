@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info, Github, Mail } from 'lucide-react'
+import { Info, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { Database } from '@/types/database.types'
@@ -180,21 +180,11 @@ export function LogInForm() {
     }
   }
 
-  const handleGithubLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-        scopes: 'read:user user:email'
-      }
-    })
-  }
-
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo: `${location.origin}/`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent'
@@ -338,14 +328,6 @@ export function LogInForm() {
 
         {/* OAuth Buttons */}
         <div className="space-y-4">
-          <Button 
-            variant="outline" 
-            onClick={handleGithubLogin}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            <Github className="w-5 h-5" />
-            Continue with GitHub
-          </Button>
           <Button 
             variant="outline" 
             onClick={handleGoogleLogin}

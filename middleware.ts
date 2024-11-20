@@ -4,8 +4,14 @@ import type { Request } from 'next/server'
 
 // Define paths that require authentication
 const protectedPaths = [
-  '/user/user-page',
-  '/user/settings'
+  '/user/*'
+]
+
+// Define paths that are public but require special handling
+const authPaths = [
+  '/login',
+  '/signup',
+  '/auth/oauth-success'
 ]
 
 export async function middleware(req: Request) {
@@ -18,8 +24,16 @@ export async function middleware(req: Request) {
   // Get the pathname of the request
   const pathname = req.url
 
-  // Check if the path is public
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
+  // Check if the path is protected
+  const isProtectedPath = protectedPaths.some(path => {
+    if (path.endsWith('/*')) {
+      // For wildcard paths, check if the pathname starts with the base path
+      const basePath = path.slice(0, -2) // Remove '/*'
+      return pathname.startsWith(basePath)
+    }
+    // For exact paths, check for exact match
+    return pathname === path
+  })
 
   // Handle authentication states
   if (!session && isProtectedPath) {
@@ -37,18 +51,4 @@ export async function middleware(req: Request) {
   }
 
   return res
-}
-
-// Specify which paths middleware should run on
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
-  ],
 }
