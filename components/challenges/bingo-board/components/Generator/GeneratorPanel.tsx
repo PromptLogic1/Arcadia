@@ -1,271 +1,184 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { 
-  BookMarked,
-  Library,
-  Globe,
-  Star,
-  Plus,
-  Eye,
-  ChevronDown
-} from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Wand2, Save, Trash2 } from 'lucide-react'
+import { DifficultySelector } from './DifficultySelector'
+import { TagSelector } from './TagSelector'
+import { GeneratorControls } from './GeneratorControls'
+import { useGameState } from '../../hooks/useGameState'
+import { useBoardGenerator } from '../../hooks/useBoardGenerator'
 import { cn } from '@/lib/utils'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { GeneratorSettings } from './GeneratorControls'
-import { useLayout } from '../../hooks/useLayout'
-
-// Export the interface
-export interface CellTemplate {
-  id: string
-  text: string
-  type: 'pvp' | 'pve' | 'quest' | 'achievement'
-  difficulty: 'normal' | 'hard' | 'extreme'
-  tags: string[]
-  source: 'official' | 'community' | 'personal'
-  favorited?: boolean
-}
+import type { Template } from '../../types/generator.types'
 
 interface BoardGeneratorProps {
-  onApplyTemplate: (template: CellTemplate) => void
-  onPreview?: () => void
+  onApplyTemplate: (template: Template) => void
 }
 
-// Beispiel-Templates als Konstante
-const EXAMPLE_TEMPLATES: CellTemplate[] = [
-  {
-    id: '1',
-    text: 'Defeat a World Boss',
-    type: 'pve',
-    difficulty: 'hard',
-    tags: ['combat', 'group'],
-    source: 'official'
-  },
-  {
-    id: '2',
-    text: 'Win a Battleground',
-    type: 'pvp',
-    difficulty: 'normal',
-    tags: ['combat', 'pvp'],
-    source: 'official'
-  },
-  {
-    id: '3',
-    text: 'Complete a Daily Quest',
-    type: 'quest',
-    difficulty: 'normal',
-    tags: ['daily', 'solo'],
-    source: 'official'
-  },
-  {
-    id: '4',
-    text: 'Earn a Rare Achievement',
-    type: 'achievement',
-    difficulty: 'extreme',
-    tags: ['rare', 'challenge'],
-    source: 'official'
-  }
-]
-
 export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
-  onApplyTemplate,
-  onPreview: _onPreview
+  onApplyTemplate
 }) => {
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set(['pve', 'pvp']))
-  const [difficultyLevels, setDifficultyLevels] = useState({
-    normal: 3,
-    hard: 2,
-    extreme: 1
-  })
-  const [activeTemplateTab, setActiveTemplateTab] = useState('library')
-  const { isCollapsed, getFluidTypography, getResponsiveSpacing } = useLayout()
-  const typography = getFluidTypography(14, 16)
-  const spacing = getResponsiveSpacing(16)
+  const { settings } = useGameState()
+  const [customText, setCustomText] = useState('')
+  
+  // Use the correct game type
+  const _boardGenerator = useBoardGenerator('All Games')
 
-  // Filtere Templates basierend auf ausgewählten Typen
-  const filteredTemplates = EXAMPLE_TEMPLATES.filter(template => 
-    selectedTypes.has(template.type)
-  )
+  // Create local state for generator settings
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+  const [generatedTemplates, setGeneratedTemplates] = useState<Template[]>([])
 
-  const handleTypeToggle = (type: string) => {
-    setSelectedTypes(prev => {
-      const newTypes = new Set(prev)
-      if (newTypes.has(type)) {
-        if (newTypes.size > 1) { // Ensure at least one type remains selected
-          newTypes.delete(type)
-        }
-      } else {
-        newTypes.add(type)
-      }
-      return newTypes
-    })
-  }
+  // Handle template generation
+  const handleGenerate = useCallback(async () => {
+    try {
+      // Generate templates locally for now
+      const newTemplates: Template[] = Array(Math.pow(settings.boardSize, 2))
+        .fill(null)
+        .map((_, i) => ({
+          id: `template-${Date.now()}-${i}`,
+          text: `Generated Template ${i + 1}`,
+          tags: selectedTags,
+          difficulty,
+          source: 'generated',
+          createdAt: new Date().toISOString()
+        }))
+      setGeneratedTemplates(newTemplates)
+    } catch (error) {
+      console.error('Failed to generate templates:', error)
+    }
+  }, [selectedTags, difficulty, settings.boardSize])
 
-  const handleDifficultyChange = (diff: string, newValue: number[]) => {
-    setDifficultyLevels(prev => ({
-      ...prev,
-      [diff]: newValue[0]
-    }))
-  }
+  // Handle custom template addition
+  const handleAddCustomTemplate = useCallback(() => {
+    if (!customText.trim()) return
+
+    const newTemplate: Template = {
+      id: `custom-${Date.now()}`,
+      text: customText.trim(),
+      tags: selectedTags,
+      difficulty,
+      source: 'custom',
+      createdAt: new Date().toISOString()
+    }
+
+    setGeneratedTemplates(prev => [...prev, newTemplate])
+    setCustomText('')
+  }, [customText, selectedTags, difficulty])
 
   return (
-    <div className={cn(
-      "grid gap-4 bg-gray-800/50 rounded-lg border border-cyan-500/20",
-      isCollapsed 
-        ? "grid-cols-1 p-4" 
-        : "grid-cols-[320px,1fr] gap-6 p-6"
-    )}>
-      
-      {/* Left Sidebar */}
-      <div className="space-y-4" style={{ gap: spacing.gap }}>
-        <Collapsible defaultOpen className="lg:hidden">
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 
-            bg-gray-700/50 rounded-lg border border-cyan-500/20 text-cyan-300">
-            <span className="font-semibold">Generator Settings</span>
-            <ChevronDown className="w-4 h-4 transition-transform duration-200 
-              data-[state=open]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <GeneratorSettings
-              selectedTypes={selectedTypes}
-              difficultyLevels={difficultyLevels}
-              onTypeToggle={handleTypeToggle}
-              onDifficultyChange={handleDifficultyChange}
-              typography={typography}
-            />
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Desktop sidebar */}
-        <div className="hidden lg:block">
-          <GeneratorSettings
-            selectedTypes={selectedTypes}
-            difficultyLevels={difficultyLevels}
-            onTypeToggle={handleTypeToggle}
-            onDifficultyChange={handleDifficultyChange}
-            typography={typography}
+    <div className="space-y-6">
+      {/* Generator Controls */}
+      <Card className="bg-gray-800/95 backdrop-blur-sm border-cyan-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-cyan-400">
+            Board Generator
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tag Selection */}
+          <TagSelector
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
           />
-        </div>
-      </div>
 
-      {/* Template Library */}
-      <div className="space-y-4">
-        <Tabs defaultValue={activeTemplateTab} onValueChange={setActiveTemplateTab}
-          className="w-full">
-          <div className="flex flex-col sm:flex-row justify-between items-start 
-            sm:items-center gap-4 sm:gap-2 mb-4">
-            <TabsList className="bg-gray-700/50 border border-cyan-500/30 w-full sm:w-auto">
-              <TabsTrigger 
-                value="library"
-                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-              >
-                <Library className="w-4 h-4 mr-2" />
-                Library
-              </TabsTrigger>
-              <TabsTrigger 
-                value="community"
-                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-              >
-                <Globe className="w-4 h-4 mr-2" />
-                Community
-              </TabsTrigger>
-              <TabsTrigger 
-                value="favorites"
-                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-              >
-                <Star className="w-4 h-4 mr-2" />
-                Favorites
-              </TabsTrigger>
-              <TabsTrigger 
-                value="personal"
-                className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
-              >
-                <BookMarked className="w-4 h-4 mr-2" />
-                Personal
-              </TabsTrigger>
-            </TabsList>
-            
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="ghost" size="sm" 
-                className="text-cyan-300 flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 mr-2" />
-                New Template
-              </Button>
-              <Button variant="ghost" size="sm" 
-                className="text-cyan-300 flex-1 sm:flex-none">
-                <Eye className="w-4 h-4 mr-2" />
-                Preview
-              </Button>
-            </div>
+          {/* Difficulty Selection */}
+          <DifficultySelector
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+          />
+
+          {/* Custom Template Input */}
+          <div className="flex gap-2">
+            <Input
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              placeholder="Add custom template..."
+              className="flex-1"
+            />
+            <Button
+              onClick={handleAddCustomTemplate}
+              disabled={!customText.trim()}
+              variant="outline"
+              size="icon"
+            >
+              <Save className="h-4 w-4" />
+            </Button>
           </div>
 
-          <TabsContent value="library">
-            <ScrollArea className="h-[calc(100vh-300px)] lg:h-[600px] rounded-md 
-              border border-cyan-500/20 bg-gray-900/50">
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredTemplates.map((template: CellTemplate) => (
-                  <div
-                    key={template.id}
-                    className="p-4 rounded-lg border border-cyan-500/20 bg-gray-800/50 
-                      hover:border-cyan-500/40 hover:scale-[1.02] hover:shadow-lg
-                      transition-all duration-200 cursor-pointer group
-                      backdrop-blur-sm relative overflow-hidden"
-                    onClick={() => onApplyTemplate(template)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={cn(
-                        "text-xs px-2 py-1 rounded-full",
-                        {
-                          'bg-red-500/20 text-red-400': template.type === 'pvp',
-                          'bg-green-500/20 text-green-400': template.type === 'pve',
-                          'bg-blue-500/20 text-blue-400': template.type === 'quest',
-                          'bg-purple-500/20 text-purple-400': template.type === 'achievement',
-                        }
-                      )}>
-                        {template.type.toUpperCase()}
-                      </span>
+          {/* Generator Controls */}
+          <GeneratorControls
+            onGenerate={handleGenerate}
+            disabled={selectedTags.length === 0}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Generated Templates */}
+      <Card className="bg-gray-800/95 backdrop-blur-sm border-cyan-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-cyan-400">
+            Generated Templates
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {generatedTemplates.map((template: Template) => (
+              <div
+                key={template.id}
+                className={cn(
+                  "p-4 rounded-lg",
+                  "bg-gray-700/50",
+                  "border border-cyan-500/20",
+                  "hover:border-cyan-500/40",
+                  "transition-colors duration-200",
+                  "group"
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-gray-300 flex-1">
+                    {template.text}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => onApplyTemplate(template)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                    </Button>
+                    {template.source === 'custom' && (
                       <Button
+                        onClick={() => setGeneratedTemplates(prev => 
+                          prev.filter(t => t.id !== template.id)
+                        )}
                         variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          // Toggle favorite
-                        }}
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Star className="w-4 h-4 text-cyan-300" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </div>
-                    <p className="text-sm text-cyan-100 mb-2 line-clamp-3">{template.text}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {template.tags.map((tag: string) => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+                    )}
                   </div>
-                ))}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {template.tags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </ScrollArea>
-          </TabsContent>
-          <TabsContent value="community">
-            {/* ... Community Content ... */}
-          </TabsContent>
-          <TabsContent value="favorites">
-            {/* ... Favorites Content ... */}
-          </TabsContent>
-          <TabsContent value="personal">
-            {/* ... Personal Content ... */}
-          </TabsContent>
-        </Tabs>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 } 

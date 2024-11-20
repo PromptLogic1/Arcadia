@@ -334,29 +334,35 @@ export const useTimer = ({
 
   // Browser-Refresh Persistenz mit konstanten Storage-Keys
   useEffect(() => {
-    const loadSavedState = () => {
+    // Load saved state only on mount
+    const savedState = sessionStorage.getItem(TIMER_CONSTANTS.STORAGE_KEY)
+    if (savedState) {
       try {
-        const savedState = sessionStorage.getItem(TIMER_CONSTANTS.STORAGE_KEY)
-        if (savedState) {
-          const parsed = JSON.parse(savedState) as TimerState
-          if (parsed.time > TIMER_CONSTANTS.MIN_TIME) {
-            setTimerState(parsed)
-            lastTick.current = Date.now()
-            startTime.current = Date.now()
-            initialStartTime.current = Date.now()
-          }
+        const parsed = JSON.parse(savedState) as TimerState
+        if (parsed.time > TIMER_CONSTANTS.MIN_TIME) {
+          setTimerState(parsed)
+          lastTick.current = Date.now()
+          startTime.current = Date.now()
+          initialStartTime.current = Date.now()
         }
       } catch (error) {
         console.error('Error loading timer state:', error)
       }
     }
+  }, []) // Only run on mount
 
-    loadSavedState()
-
+  // Separate effect for handling beforeunload
+  useEffect(() => {
     const saveState = () => {
       try {
         if (timerState.time > TIMER_CONSTANTS.MIN_TIME) {
-          sessionStorage.setItem(TIMER_CONSTANTS.STORAGE_KEY, JSON.stringify(timerState))
+          const stateToSave = {
+            time: timerState.time,
+            isRunning: timerState.isRunning,
+            isPaused: timerState.isPaused,
+            pausedTime: timerState.pausedTime
+          }
+          sessionStorage.setItem(TIMER_CONSTANTS.STORAGE_KEY, JSON.stringify(stateToSave))
         } else {
           sessionStorage.removeItem(TIMER_CONSTANTS.STORAGE_KEY)
         }
@@ -370,7 +376,7 @@ export const useTimer = ({
       window.removeEventListener('beforeunload', saveState)
       saveState()
     }
-  }, [timerState])
+  }, [timerState.time, timerState.isRunning, timerState.isPaused, timerState.pausedTime])
 
   // Timer-Controls mit Event-Emission erweitern
   const setIsTimerRunning = useCallback((isRunning: boolean) => {

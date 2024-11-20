@@ -15,9 +15,11 @@ export interface GameSettings {
   
   // Time Settings
   timeLimit: number
-  turnTimeLimit?: number
+  turnTimeLimit: number
   
   // Board Settings
   boardSize: number
   difficulty: 'easy' | 'medium' | 'hard'
-} 
+}
+
+export interface BoardSettings extends GameSettings {} 

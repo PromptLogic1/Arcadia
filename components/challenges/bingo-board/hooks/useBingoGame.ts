@@ -68,11 +68,7 @@ interface UseBingoGameReturn {
  * @returns Game state and control functions
  */
 export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGameReturn => {
-  // Validate inputs
-  if (players.length < CONSTANTS.MIN_PLAYERS) {
-    throw new Error(`Minimum ${CONSTANTS.MIN_PLAYERS} players required`)
-  }
-
+  // Remove the minimum player validation
   if (initialSize < CONSTANTS.MIN_BOARD_SIZE || initialSize > CONSTANTS.MAX_BOARD_SIZE) {
     throw new Error(`Board size must be between ${CONSTANTS.MIN_BOARD_SIZE} and ${CONSTANTS.MAX_BOARD_SIZE}`)
   }

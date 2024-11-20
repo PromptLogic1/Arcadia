@@ -2,124 +2,63 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Crown, Star, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { Player } from '../../types/types'
-import { useLayout } from '../../hooks/useLayout'
+import { Trophy, RotateCcw } from 'lucide-react'
+import { useGameState } from '../../hooks/useGameState'
 import { cn } from '@/lib/utils'
 
-interface WinnerModalProps {
-  winner: number | null
-  players: Player[]
-  onReset: () => void
-}
+export const WinnerModal: React.FC = () => {
+  const {
+    winner,
+    players,
+    resetGame,
+    isRunning
+  } = useGameState()
 
-export const WinnerModal: React.FC<WinnerModalProps> = ({
-  winner,
-  players,
-  onReset,
-}) => {
-  const { getFluidTypography, getResponsiveSpacing } = useLayout()
-  const typography = getFluidTypography(16, 24)
-  const spacing = getResponsiveSpacing(16)
+  if (winner === null || isRunning) return null
 
-  if (winner === null) return null
-
-  const winnerName = winner !== null && winner >= 0 && players[winner] 
-    ? players[winner].name 
-    : 'Unknown Player'
+  const winningPlayer = players[winner]
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50"
-        aria-modal="true"
-        role="dialog"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className={cn(
+          "fixed inset-0 z-50",
+          "flex items-center justify-center",
+          "bg-gray-900/80 backdrop-blur-sm"
+        )}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: "spring", duration: 0.5 }}
-          className="relative w-full max-w-md mx-4"
-          style={{ gap: spacing.gap }}
+          initial={{ y: 20 }}
+          animate={{ y: 0 }}
+          className={cn(
+            "bg-gray-800 rounded-lg",
+            "border border-cyan-500/20",
+            "p-6 max-w-md w-full mx-4",
+            "text-center"
+          )}
         >
-          <div className="bg-gray-800/95 rounded-xl border-2 border-cyan-500/30 shadow-xl overflow-hidden">
-            {/* Header */}
-            <div className="relative px-6 pt-6 pb-4 text-center">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className={cn(
-                  "bg-cyan-500/20 rounded-full p-4 border-2 border-cyan-500/30",
-                  "transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20"
-                )}>
-                  {winner === -1 ? (
-                    <Star className="w-8 h-8 text-yellow-400" />
-                  ) : (
-                    <Crown className="w-8 h-8 text-yellow-400" />
-                  )}
-                </div>
-              </div>
-              
-              <h2 className={cn(
-                "mt-6 font-bold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400",
-                "bg-clip-text text-transparent transition-all duration-300"
-              )} style={typography}>
-                {winner === -1 ? "Time's up!" : `${winnerName} Wins!`}
-              </h2>
-              
-              <p className="mt-2 text-cyan-200 text-sm">
-                {winner === -1
-                  ? 'The game has ended in a tie!'
-                  : `Congratulations to ${winnerName} for winning the Bingo Battle!`}
-              </p>
-            </div>
-
-            {/* Winner Display */}
-            {winner !== -1 && winner !== null && players[winner] && (
-              <div className="px-6 py-4 bg-gray-800/50 border-y border-cyan-500/20">
-                <div className="flex items-center justify-center gap-4">
-                  <div 
-                    className={cn(
-                      `w-16 h-16 ${players[winner].color} rounded-full`,
-                      "flex items-center justify-center text-2xl font-bold",
-                      "shadow-lg shadow-cyan-500/10 border-2 border-cyan-500/30",
-                      "transition-all duration-300 hover:scale-105"
-                    )}
-                  >
-                    {players[winner].name.charAt(0)}
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-lg font-semibold text-cyan-300">
-                      {players[winner].name}
-                    </h3>
-                    <p className="text-sm text-cyan-400/60">
-                      Winner
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <Trophy className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-cyan-400 mb-2">
+            Congratulations!
+          </h2>
+          <p className="text-lg text-gray-300 mb-6">
+            {winningPlayer?.name || 'Unknown Player'} wins!
+          </p>
+          <Button
+            onClick={resetGame}
+            className={cn(
+              "bg-cyan-500/10 hover:bg-cyan-500/20",
+              "text-cyan-400 hover:text-cyan-300",
+              "border border-cyan-500/30"
             )}
-
-            {/* Actions */}
-            <div className="px-6 py-4 flex justify-center">
-              <Button
-                onClick={onReset}
-                className={cn(
-                  "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400",
-                  "border border-cyan-500/30 transition-all duration-200",
-                  "hover:shadow-lg hover:shadow-cyan-500/10",
-                  "hover:scale-105"
-                )}
-                size="lg"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Play Again
-              </Button>
-            </div>
-          </div>
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Play Again
+          </Button>
         </motion.div>
       </motion.div>
     </AnimatePresence>

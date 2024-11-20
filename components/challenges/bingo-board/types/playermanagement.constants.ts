@@ -1,7 +1,7 @@
 export const PLAYER_CONSTANTS = {
   LIMITS: {
-    MAX_PLAYERS: 8,
-    MAX_TEAM_SIZE: 4,
+    MAX_PLAYERS: 4,
+    MAX_TEAM_SIZE: 2,
     MIN_TEAM_SIZE: 1,
     MAX_NAME_LENGTH: 20
   },

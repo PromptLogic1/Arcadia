@@ -13,12 +13,11 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }))
 
-// Mock requestAnimationFrame
+// Mock requestAnimationFrame and cancelAnimationFrame
 global.requestAnimationFrame = (callback: FrameRequestCallback): number => {
   return setTimeout(() => callback(Date.now()), 0) as unknown as number
 }
 
-// Mock cancelAnimationFrame
 global.cancelAnimationFrame = (id: number): void => {
   clearTimeout(id)
 }

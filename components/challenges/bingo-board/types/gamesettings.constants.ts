@@ -34,10 +34,13 @@ export const GAME_SETTINGS = {
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   // Game Rules
-  teamMode: GAME_SETTINGS.DEFAULTS.TEAM_MODE,
-  lockout: GAME_SETTINGS.DEFAULTS.LOCKOUT,
-  soundEnabled: GAME_SETTINGS.DEFAULTS.SOUND_ENABLED,
-  winConditions: GAME_SETTINGS.DEFAULTS.WIN_CONDITIONS,
+  teamMode: false,
+  lockout: true,
+  soundEnabled: true,
+  winConditions: {
+    line: true,
+    majority: false
+  },
   
   // Player Settings
   maxPlayerLimit: GAME_SETTINGS.PLAYER_LIMITS.MAX_PLAYER_LIMIT,

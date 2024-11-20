@@ -1,15 +1,15 @@
-import type { Player } from './types'
-
 export interface QueueEntry {
   id: string
-  sessionId: string
-  userId: string
-  playerName: string
+  session_id: string
+  user_id: string
+  player_name: string
   color: string
+  team: number | null
+  requested_at: string
   status: 'pending' | 'approved' | 'rejected'
-  requestedAt: string
-  position: number
-  priority?: 'high' | 'normal' | 'low'
+  processed_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface QueueEntryWithError extends QueueEntry {
@@ -26,14 +26,10 @@ export interface UseSessionQueue {
   queueEntries: QueueEntry[]
   isProcessing: boolean
   error: Error | null
-  addToQueue: (player: Pick<Player, 'name' | 'color'>) => Promise<void>
+  updateQueueEntry: (entryId: string, updates: Partial<QueueEntry>) => Promise<void>
   removeFromQueue: (entryId: string) => Promise<void>
-  processQueue: () => Promise<void>
-  updateQueuePosition: (entryId: string, newPosition: number) => Promise<void>
-  checkQueueStatus: () => Promise<boolean>
-  validateQueueSize: () => boolean
   cleanupQueue: () => Promise<void>
-  reconnect: () => Promise<void>
-  updateQueueEntry: (entryId: string, updates: Partial<QueueEntryWithError>) => Promise<void>
-  setQueueEntriesForTesting?: (entries: QueueEntry[]) => void
+  addToQueue: (player: { name: string; color: string; team?: number }) => Promise<void>
+  processQueue: () => Promise<void>
+  checkQueueStatus: () => Promise<boolean>
 }

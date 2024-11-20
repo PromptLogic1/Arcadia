@@ -51,6 +51,10 @@ export const usePresence = (boardId: string) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current)
+      }
+
       const channel = supabase.channel(`${PRESENCE_CONSTANTS.CHANNEL_PREFIX}${boardId}`)
       channelRef.current = channel
 

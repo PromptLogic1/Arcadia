@@ -1,6 +1,6 @@
 export const BINGO_GAME_CONSTANTS = {
   VALIDATION: {
-    MIN_PLAYERS: 2,
+    MIN_PLAYERS: 1,
     MAX_PLAYERS: 8,
     MIN_BOARD_SIZE: 3,
     MAX_BOARD_SIZE: 6

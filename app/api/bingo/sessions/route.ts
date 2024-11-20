@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (board.status !== 'published') {
+    if (board.status !== 'draft') {
       return NextResponse.json(
         { error: 'Board is not published' },
         { status: 400 }

@@ -25,6 +25,7 @@ export interface Player {
   color: string
   hoverColor: string
   team: number
+  avatarUrl?: string
 }
 
 export interface BoardCell {

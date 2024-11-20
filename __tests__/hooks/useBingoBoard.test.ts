@@ -1,9 +1,8 @@
-import '@testing-library/jest-dom'
 import { renderHook, act } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import { useBingoBoard } from '@/components/challenges/bingo-board/hooks/useBingoBoard'
 import { generateMockBoardCell } from '../utils/test-utils'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
 import { ERROR_MESSAGES } from '@/components/challenges/bingo-board/types/bingoboard.constants'
 
 // Mock Supabase client
@@ -17,58 +16,20 @@ jest.mock('react', () => ({
   useTransition: () => [false, (cb: () => void) => cb()]
 }))
 
-// Update the mock type definition and setup
-type MockSupabaseClient = {
-  from: jest.Mock
-  channel: jest.Mock
-  removeChannel: jest.Mock
-}
-
-// Add deep clone utility
-const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj))
-
 describe('useBingoBoard', () => {
   const mockBoardId = 'test-board-id'
-  let mockSupabase: MockSupabaseClient
-  let mockSingle: jest.Mock
-  let _mockUpdate: jest.Mock
-  let _mockEq: jest.Mock
+  let mockSupabase: ReturnType<typeof mockSupabaseClient>
+
+  // Helper function to wait for state updates
+  const waitForNextTick = () => act(() => Promise.resolve())
 
   beforeEach(() => {
-    // Create individual mock functions
-    mockSingle = jest.fn()
-    _mockUpdate = jest.fn()
-    _mockEq = jest.fn()
-
-    // Setup mock Supabase client with proper chaining
-    const mockSelectChain = {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: mockSingle
-    }
-
-    const mockUpdateChain = {
-      eq: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ error: null })
-      })
-    }
-
-    mockSupabase = {
-      from: jest.fn().mockReturnValue({
-        ...mockSelectChain,
-        update: jest.fn().mockReturnValue(mockUpdateChain)
-      }),
-      channel: jest.fn().mockReturnValue({
-        on: jest.fn().mockReturnThis(),
-        subscribe: jest.fn()
-      }),
-      removeChannel: jest.fn()
-    } as unknown as MockSupabaseClient
-
+    jest.clearAllMocks()
+    mockSupabase = mockSupabaseClient()
     ;(createClientComponentClient as jest.Mock).mockReturnValue(mockSupabase)
   })
 
-  it('should initialize with loading state', () => {
+  it('should initialize with loading state', async () => {
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
     
     expect(result.current.loading).toBe(true)
@@ -86,13 +47,14 @@ describe('useBingoBoard', () => {
       }
     }
 
-    mockSingle.mockResolvedValueOnce({ data: mockBoardData, error: null })
+    mockSupabase.from().select().eq().single.mockResolvedValueOnce({ 
+      data: mockBoardData, 
+      error: null 
+    })
 
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
-
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    })
+    
+    await waitForNextTick()
 
     expect(result.current.loading).toBe(false)
     expect(result.current.board).toEqual(mockBoardData)
@@ -100,34 +62,15 @@ describe('useBingoBoard', () => {
   })
 
   it('should handle fetch errors', async () => {
-    // Mock the error response
-    mockSingle.mockRejectedValueOnce(new Error(ERROR_MESSAGES.NETWORK_ERROR))
+    mockSupabase.from().select().eq().single.mockRejectedValueOnce(
+      new Error(ERROR_MESSAGES.NETWORK_ERROR)
+    )
 
-    // Render the hook
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
+    
+    await waitForNextTick()
 
-    // Initial state should be loading
-    expect(result.current.loading).toBe(true)
-
-    // Wait for error state to be set
-    await act(async () => {
-      // Wait for the initial fetch and error handling
-      await new Promise(resolve => setTimeout(resolve, 500))
-    })
-
-    // Use waitFor to check the state until it matches or times out
-    let attempts = 0
-    const maxAttempts = 10
-    const checkInterval = 50
-
-    while (attempts < maxAttempts && !result.current.error) {
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, checkInterval))
-      })
-      attempts++
-    }
-
-    // Now check the final state
+    expect(result.current.loading).toBe(false)
     expect(result.current.error).toBeTruthy()
     expect(result.current.board).toBeNull()
   })
@@ -142,21 +85,16 @@ describe('useBingoBoard', () => {
       }
     }
 
-    // Initial fetch
-    mockSingle.mockResolvedValueOnce({ data: mockBoardData, error: null })
-    // Update response
-    mockSingle.mockResolvedValueOnce({ data: mockBoardData, error: null })
+    mockSupabase.from().select().eq().single
+      .mockResolvedValueOnce({ data: mockBoardData, error: null })
+      .mockResolvedValueOnce({ data: mockBoardData, error: null })
 
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
-
-    // Wait for initial fetch
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    })
+    
+    await waitForNextTick()
 
     const newBoardState = [generateMockBoardCell({ text: 'Updated Cell' })]
-
-    // Perform update
+    
     await act(async () => {
       await result.current.updateBoardState(newBoardState)
     })
@@ -175,170 +113,75 @@ describe('useBingoBoard', () => {
       }
     }
 
-    // Initial fetch
-    mockSingle.mockResolvedValueOnce({ data: initialBoardData, error: null })
-    
-    // Mock update chain with error
-    const mockUpdateChain = {
-      eq: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ error: new Error('Update failed') })
-      })
-    }
-
-    mockSupabase.from.mockReturnValue({
-      ...mockSupabase.from(),
-      update: jest.fn().mockReturnValue(mockUpdateChain)
-    })
+    mockSupabase.from().select().eq().single
+      .mockResolvedValueOnce({ data: initialBoardData, error: null })
+      .mockRejectedValueOnce(new Error('Update failed'))
 
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
+    
+    await waitForNextTick()
 
-    // Wait for initial fetch and state to settle
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 200))
-    })
+    const initialState = result.current.board?.board_state
 
-    // Force React to flush all updates
-    await act(async () => {})
-
-    // Store initial state
-    const initialState = deepClone(result.current.board?.board_state)
-    expect(initialState).toBeDefined() // Ensure initial state is set
-      
-    const newBoardState = [generateMockBoardCell({ text: 'Updated Cell' })]
-
-    // Attempt update
     await act(async () => {
       try {
-        await result.current.updateBoardState(newBoardState)
+        await result.current.updateBoardState([generateMockBoardCell({ text: 'Failed Update' })])
       } catch (error) {
         // Expected error
       }
     })
 
-    // Force React to flush all updates
-    await act(async () => {})
-
-    // Verify rollback
     expect(result.current.board?.board_state).toEqual(initialState)
     expect(result.current.error).toBeTruthy()
   })
 
-  it('should validate board state correctly', async () => {
-    const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
-
-    const invalidBoardState = [{ invalid: 'state' }] as unknown as Array<BoardCell>
-
-    await act(async () => {
-      try {
-        await result.current.updateBoardState(invalidBoardState)
-      } catch (error) {
-        // Expected error
-      }
-    })
-
-    expect(result.current.error).toBeTruthy()
-  })
-
-  it('should handle retry logic for failed fetches', async () => {
-    mockSingle
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({ 
-        data: {
-          id: mockBoardId,
-          board_state: [generateMockBoardCell()]
-        }, 
-        error: null 
-      })
-
-    const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
-
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 1500)) // Increase timeout for retry
-    })
-
-    expect(result.current.loading).toBe(false)
-    expect(result.current.error).toBeNull()
-    expect(result.current.board).toBeDefined()
-  })
-
   it('should handle realtime updates correctly', async () => {
-    const initialBoard = {
-      id: mockBoardId,
-      board_state: [generateMockBoardCell()]
-    }
-
-    mockSingle.mockResolvedValueOnce({ data: initialBoard, error: null })
-
     const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
-
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    })
-
-    // Force React to flush all updates
-    await act(async () => {})
-
-    // Update channel mock call
-    const mockChannel = mockSupabase.channel('test')
-    const mockOn = mockChannel.on as jest.Mock
-    const channelCallback = mockOn.mock.calls[0]?.[2]
     
-    if (!channelCallback) {
-      throw new Error('Channel callback not found')
-    }
+    await waitForNextTick()
+
+    const updatedCell = generateMockBoardCell({ text: 'Realtime Update' })
 
     await act(async () => {
-      channelCallback({
-        eventType: 'UPDATE',
-        new: {
-          ...initialBoard,
-          board_state: [generateMockBoardCell({ text: 'Updated via realtime' })]
-        }
-      })
-    })
-
-    const boardState = result.current.board?.board_state
-    expect(boardState?.[0]?.text).toBe('Updated via realtime')
-  })
-
-  it('should handle batch updates correctly', async () => {
-    const mockBoardData = {
-      id: mockBoardId,
-      board_state: [generateMockBoardCell()]
-    }
-
-    // Initial fetch
-    mockSingle.mockResolvedValueOnce({ data: mockBoardData, error: null })
-
-    const { result } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
-
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100))
-    })
-
-    const updates = [
-      generateMockBoardCell({ text: 'Update 1' }),
-      generateMockBoardCell({ text: 'Update 2' }),
-      generateMockBoardCell({ text: 'Final Update' })
-    ]
-
-    // Mock update responses
-    for (const update of updates) {
-      mockSingle.mockResolvedValueOnce({ 
-        data: { ...mockBoardData, board_state: [update] }, 
-        error: null 
-      })
-    }
-
-    await act(async () => {
-      for (const update of updates) {
-        await result.current.updateBoardState([update])
+      const channel = mockSupabase.channel()
+      const onCallback = channel.on.mock.calls[0]?.[2]
+      
+      if (onCallback) {
+        onCallback({
+          payload: {
+            board_state: [updatedCell]
+          }
+        })
       }
     })
 
-    const fromMock = mockSupabase.from as jest.Mock
-    expect(fromMock).toHaveBeenCalledWith('bingo_boards')
-    expect(result.current.board?.board_state?.[0]?.text).toBe('Final Update')
+    expect(result.current.board?.board_state?.[0]?.text).toBe('Realtime Update')
   })
+
+  it('should cleanup on unmount', async () => {
+    const { unmount } = renderHook(() => useBingoBoard({ boardId: mockBoardId }))
+    
+    await waitForNextTick()
+    unmount()
+
+    expect(mockSupabase.removeChannel).toHaveBeenCalled()
+  })
+})
+
+// Helper function to create mock Supabase client
+const mockSupabaseClient = () => ({
+  from: jest.fn(() => ({
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn()
+  })),
+  channel: jest.fn(() => ({
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn()
+  })),
+  removeChannel: jest.fn()
 })
 

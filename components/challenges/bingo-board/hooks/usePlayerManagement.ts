@@ -2,17 +2,49 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import type { Player } from '../types/types'
-import type { UsePlayerManagement, PlayerEvent } from '../types/playermanagement.types'
+import type { PlayerEvent } from '../types/playermanagement.types'
 import { PLAYER_CONSTANTS } from '../types/playermanagement.constants'
-import { colorPalette } from '../types/constants'
 import { useSession } from './useSession'
 import { useGameAnalytics } from './useGameAnalytics'
 import { useGameSettings } from './useGameSettings'
 import { usePresence } from './usePresence'
 
-export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
+export interface UsePlayerManagementReturn {
+  players: Player[]
+  teamNames: [string, string]
+  teamColors: [string, string]
+  currentPlayer: number
+  addPlayer: () => void
+  removePlayer: (index: number) => void
+  updatePlayerInfo: (index: number, name: string, color: string, team?: number) => void
+  switchTeam: (playerId: string, newTeam: number) => void
+  updateTeamName: (index: number, name: string) => void
+  updateTeamColor: (index: number, color: string) => void
+  balanceTeams: () => void
+  validateTeamSize: () => boolean
+}
+
+export const usePlayerManagement = (boardId: string): UsePlayerManagementReturn => {
   // States
-  const [players, setPlayers] = useState<Player[]>([])
+  const [players, setPlayers] = useState<Player[]>(() => {
+    // Initialize with 2 players by default
+    return [
+      {
+        id: `player-${Date.now()}`,
+        name: 'Player 1',
+        color: PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0],
+        hoverColor: `hover:${PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0].replace('bg-', '')}`,
+        team: 0
+      },
+      {
+        id: `player-${Date.now() + 1}`,
+        name: 'Player 2',
+        color: PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[1],
+        hoverColor: `hover:${PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[1].replace('bg-', '')}`,
+        team: 1
+      }
+    ]
+  })
   const [teamNames, setTeamNames] = useState<[string, string]>(PLAYER_CONSTANTS.TEAMS.DEFAULT_NAMES)
   const [teamColors, setTeamColors] = useState<[string, string]>(PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS)
   const [_currentPlayer, _setCurrentPlayer] = useState<number>(0)
@@ -58,33 +90,21 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
   }, [getTeamSizes])
 
   // Core Functions
-  const addPlayer = useCallback((): void => {
-    // First check total player limit
-    if (players.length >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) return
+  const addPlayer = useCallback(() => {
+    if (players.length >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
+      return
+    }
 
-    const teamSizes = getTeamSizes(players)
-    const team0Count = teamSizes[0] || 0
-    const team1Count = teamSizes[1] || 0
-
-    // Check if either team has room
-    const team0HasRoom = team0Count < PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE
-    const team1HasRoom = team1Count < PLAYER_CONSTANTS.LIMITS.MAX_TEAM_SIZE
-
-    // If no team has room, don't add player
-    if (!team0HasRoom && !team1HasRoom) return
-
-    // Determine initial team based on available space and balance
-    const initialTeam = !team1HasRoom || (team0HasRoom && team0Count <= team1Count) ? 0 : 1
-
-    const paletteItem = colorPalette[players.length % colorPalette.length]
-    if (!paletteItem) return
-
+    const playerCount = players.length
+    const colorIndex = playerCount % PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS.length
+    const defaultColor = PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[colorIndex] || PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0]
+    
     const newPlayer: Player = {
-      id: `player-${players.length + 1}`,
-      name: `Player ${players.length + 1}`,
-      color: paletteItem.color,
-      hoverColor: paletteItem.hoverColor,
-      team: initialTeam
+      id: `player-${Date.now()}`,
+      name: `Player ${playerCount + 1}`,
+      color: defaultColor,
+      hoverColor: `hover:${defaultColor.replace('bg-', '')}`,
+      team: settings.teamMode ? playerCount % 2 : 0
     }
 
     setPlayers(prev => [...prev, newPlayer])
@@ -92,7 +112,7 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
       type: PLAYER_CONSTANTS.EVENTS.PLAYER_JOIN,
       player: newPlayer
     })
-  }, [players, getTeamSizes, emitPlayerEvent])
+  }, [players.length, settings.teamMode, emitPlayerEvent])
 
   const removePlayer = useCallback((index: number): void => {
     setPlayers(prev => prev.filter((_, i) => i !== index))
@@ -194,6 +214,20 @@ export const usePlayerManagement = (boardId: string): UsePlayerManagement => {
       isOnline: onlinePlayers.includes(player.id)
     })))
   }, [presenceState])
+
+  // Initialize with default state if needed
+  useEffect(() => {
+    if (players.length === 0) {
+      const defaultPlayer = {
+        id: `player-${Date.now()}`,
+        name: 'Player 1',
+        color: PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0],
+        hoverColor: 'hover:bg-cyan-600',
+        team: 0
+      }
+      setPlayers([defaultPlayer])
+    }
+  }, [players.length])
 
   return {
     players,

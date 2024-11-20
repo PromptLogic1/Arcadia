@@ -1,188 +1,341 @@
 'use client'
 
-import React from 'react'
-import { Plus, Minus, Users } from 'lucide-react'
+import React, { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
+import { UserPlus, UserMinus, User, Users2, Crown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useSession } from '../../hooks/useSession'
-import { ColorPicker } from '@/components/ui/color-picker'
-import { playerColors } from '../../types/constants'
 import type { Player } from '../../types/types'
-import { GAMES } from '../../types/types'
+import { PLAYER_CONSTANTS } from '../../types/playermanagement.constants'
+import { useSession } from '../../hooks/useSession'
+import { useSessionQueue } from '../../hooks/useSessionQueue'
 
 interface PlayerManagementProps {
-  boardId: string
   isOwner: boolean
+  players: Player[]
   teamMode: boolean
-  teamNames: [string, string]
-  teamColors: [string, string]
-  onUpdateTeamName: (index: number, name: string) => void
-  onUpdateTeamColor: (index: number, color: string) => void
+  onPlayersChange: (players: Player[]) => void
+  sessionId?: string
 }
 
 export const PlayerManagement: React.FC<PlayerManagementProps> = ({
-  boardId,
   isOwner,
+  players,
   teamMode,
-  teamNames,
-  teamColors,
-  onUpdateTeamName,
-  onUpdateTeamColor,
+  onPlayersChange,
+  sessionId = '',
 }) => {
-  const { 
-    players,
-    error,
-    addPlayer,
-    removePlayer,
-    updateCell
-  } = useSession({
-    boardId,
-    _game: GAMES[1],
-    initialPlayers: []
-  })
+  // States
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [showQueueDialog, setShowQueueDialog] = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
 
-  const handleAddPlayer = async () => {
-    try {
-      if (!players.length) {
-        await addPlayer({
-          id: `player-${Date.now()}`,
-          name: `Player 1`,
-          color: playerColors[0].color,
-          hoverColor: playerColors[0].hoverColor,
-          team: teamMode ? 0 : 0
-        })
-      } else {
-        const playerCount = players.length
-        const colorIndex = playerCount % playerColors.length
-        const playerColor = playerColors[colorIndex]?.color || playerColors[0].color
-        const playerHoverColor = playerColors[colorIndex]?.hoverColor || playerColors[0].hoverColor
+  // Hooks
+  const session = useSession({ boardId: sessionId, _game: 'All Games', initialPlayers: players })
+  const queue = useSessionQueue(sessionId)
 
-        await addPlayer({
-          id: `player-${Date.now()}`,
-          name: `Player ${playerCount + 1}`,
-          color: playerColor,
-          hoverColor: playerHoverColor,
-          team: teamMode ? playerCount % 2 : 0
-        })
-      }
-    } catch (err) {
-      console.error('Error adding player:', err)
-    }
-  }
+  // Generate invite link
+  const generateInviteLink = useCallback(() => {
+    const link = `${window.location.origin}/join/${sessionId}`
+    setInviteLink(link)
+    setShowInviteDialog(true)
+  }, [sessionId])
 
-  const handleUpdatePlayer = async (
-    playerId: string,
-    playerName: string,
-    color: string,
-    _team?: number
-  ) => {
-    try {
-      await updateCell(playerId, {
-        text: playerName,
-        colors: [color],
-        completedBy: [],
-        blocked: false,
-        isMarked: false,
-        cellId: playerId,
-        lastModifiedBy: playerId,
-        version: Date.now(),
-        lastUpdated: Date.now()
-      })
-    } catch (err) {
-      console.error('Error updating player:', err)
-    }
-  }
-
-  if (error) {
-    return <div className="text-center text-red-400">Error: {error.message}</div>
-  }
+  // Copy invite link
+  const copyInviteLink = useCallback(() => {
+    navigator.clipboard.writeText(inviteLink)
+  }, [inviteLink])
 
   return (
-    <div className="space-y-3">
-      {teamMode && (
-        <div className="grid grid-cols-2 gap-2">
-          {[0, 1].map((teamIndex) => (
-            <div
-              key={teamIndex}
-              className="space-y-2 p-2 rounded-md bg-gray-700/30 border border-cyan-500/20"
-            >
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-cyan-400" />
-                <Input
-                  value={teamNames[teamIndex]}
-                  onChange={(e) => onUpdateTeamName(teamIndex, e.target.value)}
-                  className="h-7 text-sm bg-transparent"
-                  placeholder={`Team ${teamIndex + 1}`}
-                  disabled={!isOwner}
-                />
-              </div>
-              <ColorPicker
-                color={teamColors[teamIndex] || playerColors[0].color}
-                onChange={(color: string) => onUpdateTeamColor(teamIndex, color)}
-                disabled={!isOwner}
-              />
-            </div>
-          ))}
+    <div className="space-y-4">
+      {/* Header with Player Count and Actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-400">
+            Players ({players.length}/{PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS})
+          </span>
+          {teamMode && (
+            <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">
+              Team Mode
+            </Badge>
+          )}
         </div>
-      )}
+        {isOwner && (
+          <div className="flex gap-2">
+            <Button
+              onClick={generateInviteLink}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 px-3",
+                "bg-cyan-500/10 hover:bg-cyan-500/20",
+                "border-cyan-500/20 hover:border-cyan-500/40",
+                "text-cyan-400"
+              )}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Players
+            </Button>
+            <Button
+              onClick={() => setShowQueueDialog(true)}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 px-3",
+                "bg-cyan-500/10 hover:bg-cyan-500/20",
+                "border-cyan-500/20 hover:border-cyan-500/40",
+                "text-cyan-400"
+              )}
+            >
+              <Users2 className="h-4 w-4 mr-2" />
+              View Queue ({queue.queueEntries.length})
+            </Button>
+          </div>
+        )}
+      </div>
 
-      <div className="space-y-2">
-        {players.map((player: Player, index: number) => (
+      {/* Player List */}
+      <div className="grid grid-cols-1 gap-3">
+        {players.map((player, index) => (
           <div
             key={player.id}
-            className="flex items-center gap-2 p-2 rounded-md bg-gray-700/30 border border-cyan-500/20"
+            className={cn(
+              "flex flex-col gap-2 p-3",
+              "bg-gray-900/50 rounded-lg",
+              "border border-cyan-500/20",
+              "transition-all duration-200",
+              "hover:border-cyan-500/30",
+              "group"
+            )}
           >
-            <Input
-              value={player.name}
-              onChange={(e) => handleUpdatePlayer(
-                player.id,
-                e.target.value,
-                player.color,
-                teamMode ? index % 2 : undefined
+            {/* Player Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {index === 0 && (
+                  <Crown className="h-4 w-4 text-yellow-400" />
+                )}
+                <span className={cn(
+                  "text-xs font-medium",
+                  player.color.replace('bg-', 'text-')
+                )}>
+                  Player {index + 1}
+                </span>
+              </div>
+              {isOwner && index !== 0 && (
+                <Button
+                  onClick={() => onPlayersChange(players.filter(p => p.id !== player.id))}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-6 w-6 p-0",
+                    "opacity-0 group-hover:opacity-100",
+                    "hover:bg-red-500/10 hover:text-red-400",
+                    "transition-all duration-200"
+                  )}
+                >
+                  <UserMinus className="h-3 w-3" />
+                </Button>
               )}
-              className="h-7 text-sm bg-transparent"
-              placeholder={`Player ${index + 1}`}
-            />
-            <ColorPicker
-              color={player.color}
-              onChange={(color: string) => handleUpdatePlayer(
-                player.id,
-                player.name,
-                color,
-                teamMode ? index % 2 : undefined
-              )}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => removePlayer(player.id)}
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
+            </div>
+
+            {/* Player Info */}
+            <div className="flex items-center gap-3">
+              <Avatar 
+                className={cn(
+                  "h-8 w-8 border-2 shrink-0",
+                  "transition-colors duration-200"
+                )}
+                style={{ 
+                  borderColor: `rgb(var(--${player.color.replace('bg-', '')}))` 
+                }}
+              >
+                <AvatarImage src={player.avatarUrl} alt={player.name} />
+                <AvatarFallback className="bg-gray-900/50">
+                  <User className="h-4 w-4 text-gray-400" />
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="flex-1 flex items-center gap-2">
+                <Input
+                  value={player.name}
+                  onChange={(e) => {
+                    const newPlayers = [...players]
+                    newPlayers[index] = { ...player, name: e.target.value }
+                    onPlayersChange(newPlayers)
+                  }}
+                  disabled={!isOwner && player.id !== session.currentPlayer?.id}
+                  className={cn(
+                    "h-8 text-sm bg-gray-800/50",
+                    "border-gray-700/50 focus:border-cyan-500/50",
+                    "transition-colors duration-200"
+                  )}
+                  maxLength={20}
+                />
+
+                {/* Color Selection */}
+                <Select
+                  value={player.color}
+                  onValueChange={(color) => {
+                    const newPlayers = [...players]
+                    newPlayers[index] = { 
+                      ...player, 
+                      color,
+                      hoverColor: `hover:${color.replace('bg-', '')}`
+                    }
+                    onPlayersChange(newPlayers)
+                  }}
+                  disabled={!isOwner && player.id !== session.currentPlayer?.id}
+                >
+                  <SelectTrigger className={cn(
+                    "w-[100px] h-8",
+                    "bg-gray-800/50 border-gray-700/50",
+                    "focus:border-cyan-500/50",
+                    "transition-colors duration-200"
+                  )}>
+                    <div className={cn(
+                      "w-4 h-4 rounded-full",
+                      player.color
+                    )} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS.map((color) => (
+                      <SelectItem
+                        key={color}
+                        value={color}
+                        className={cn(
+                          "flex items-center gap-2",
+                          "cursor-pointer",
+                          "hover:bg-gray-800/50",
+                          "transition-colors duration-200"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-4 h-4 rounded-full",
+                          color
+                        )} />
+                        <span>{color.split('-')[1]}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Team Selection for Team Mode */}
+            {teamMode && (
+              <Select
+                value={player.team.toString()}
+                onValueChange={(team) => {
+                  const newPlayers = [...players]
+                  newPlayers[index] = { ...player, team: parseInt(team) }
+                  onPlayersChange(newPlayers)
+                }}
+                disabled={!isOwner && player.id !== session.currentPlayer?.id}
+              >
+                <SelectTrigger className={cn(
+                  "h-8",
+                  "bg-gray-800/50 border-gray-700/50",
+                  "focus:border-cyan-500/50",
+                  "transition-colors duration-200"
+                )}>
+                  <span className="text-xs">Team {player.team + 1}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Team 1</SelectItem>
+                  <SelectItem value="1">Team 2</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         ))}
       </div>
 
-      <Button
-        onClick={handleAddPlayer}
-        disabled={!isOwner || players.length >= 8}
-        className={cn(
-          "w-full h-8 text-sm",
-          "bg-cyan-500/20 hover:bg-cyan-500/30",
-          "border border-cyan-500/30 text-cyan-400"
-        )}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Player
-      </Button>
+      {/* Invite Dialog */}
+      <AlertDialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invite Players</AlertDialogTitle>
+            <AlertDialogDescription>
+              Share this link with players you want to invite:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-2">
+            <Input value={inviteLink} readOnly />
+            <Button onClick={copyInviteLink}>Copy</Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      {!isOwner && (
-        <p className="text-xs text-gray-400 text-center">
-          Only the board owner can manage players
-        </p>
-      )}
+      {/* Queue Dialog */}
+      <AlertDialog open={showQueueDialog} onOpenChange={setShowQueueDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Player Queue</AlertDialogTitle>
+            <AlertDialogDescription>
+              Players waiting to join:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            {queue.queueEntries.map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
+              >
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span>{entry.player_name}</span>
+                </div>
+                {isOwner && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => queue.updateQueueEntry(entry.id, { status: 'approved' })}
+                      size="sm"
+                      variant="default"
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      onClick={() => queue.updateQueueEntry(entry.id, { status: 'rejected' })}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {queue.queueEntries.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">
+                No players in queue
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

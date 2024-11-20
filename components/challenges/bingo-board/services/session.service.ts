@@ -1,7 +1,13 @@
-import type { BaseSessionEvent, LocalSessionEvent } from '../types/session.types'
+import type { BaseSessionEvent, SessionEvent } from '../types/session.types'
 import type { Player } from '../types/types'
 
 export class SessionService {
+  private boardId: string
+
+  constructor(boardId: string) {
+    this.boardId = boardId
+  }
+
   validateEvent(event: BaseSessionEvent): boolean {
     return (
       typeof event.type === 'string' &&
@@ -15,21 +21,23 @@ export class SessionService {
     type: BaseSessionEvent['type'],
     playerId?: string,
     data?: unknown
-  ): LocalSessionEvent {
+  ): SessionEvent {
     return {
+      id: crypto.randomUUID(),
+      board_id: this.boardId,
       type,
       timestamp: Date.now(),
-      playerId,
+      player_id: playerId,
       data,
-      sessionId: crypto.randomUUID()
+      version: Date.now()
     }
   }
 
-  handlePlayerSync(players: Player[]): LocalSessionEvent {
+  handlePlayerSync(players: Player[]): SessionEvent {
     return this.createEvent('playerJoin', undefined, { players })
   }
 
-  handleStateSync(state: unknown): LocalSessionEvent {
+  handleStateSync(state: unknown): SessionEvent {
     return this.createEvent('stateSync', undefined, { state })
   }
 } 

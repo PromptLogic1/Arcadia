@@ -19,7 +19,19 @@ const DEFAULT_PERFORMANCE_METRICS = {
   [PERFORMANCE_METRICS.UPDATE_TIME]: 0
 }
 
-export const useGameAnalytics = () => {
+interface UseGameAnalyticsReturn {
+  gameStats: GameStats
+  _gameStats: GameStats
+  updateStats: (players: Player[], markedFields: Record<string, number>, completedLines: Record<string, number>) => void
+  trackMove: (playerId: string, moveType: string, position: number) => void
+  recordWinner: (playerId: string | null) => void
+  measurePerformance: () => void
+  calculateStats: () => GameAnalysis
+  generateReport: () => GameReport
+  resetStats: () => void
+}
+
+export const useGameAnalytics = (): UseGameAnalyticsReturn => {
   // Core States
   const [gameStats, setGameStats] = useState<GameStats>({
     moves: 0,
@@ -272,6 +284,7 @@ export const useGameAnalytics = () => {
 
   return {
     gameStats,
+    _gameStats: gameStats,
     updateStats,
     trackMove,
     recordWinner,

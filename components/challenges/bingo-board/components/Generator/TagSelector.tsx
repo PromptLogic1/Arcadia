@@ -1,51 +1,107 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useCallback } from 'react'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import type { Tag } from '../../types/tagsystem.types'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Tags, X, Plus } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface TagSelectorProps {
-  availableTags: Tag[]
-  selectedTags: Set<string>
-  onTagToggle: (tagId: string) => void
+  selectedTags: string[]
+  onTagsChange: (tags: string[]) => void
   maxTags?: number
 }
 
 export const TagSelector: React.FC<TagSelectorProps> = ({
-  availableTags,
   selectedTags,
-  onTagToggle,
-  maxTags = 10
+  onTagsChange,
+  maxTags = 5
 }) => {
+  const [inputValue, setInputValue] = useState('')
+
+  const handleAddTag = useCallback(() => {
+    if (!inputValue.trim() || selectedTags.length >= maxTags) return
+
+    const newTag = inputValue.trim().toLowerCase()
+    if (!selectedTags.includes(newTag)) {
+      onTagsChange([...selectedTags, newTag])
+    }
+    setInputValue('')
+  }, [inputValue, selectedTags, maxTags, onTagsChange])
+
+  const handleRemoveTag = useCallback((tagToRemove: string) => {
+    onTagsChange(selectedTags.filter(tag => tag !== tagToRemove))
+  }, [selectedTags, onTagsChange])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddTag()
+    } else if (e.key === 'Backspace' && !inputValue && selectedTags.length > 0) {
+      const lastTag = selectedTags[selectedTags.length - 1]
+      if (lastTag) {
+        handleRemoveTag(lastTag)
+      }
+    }
+  }, [inputValue, selectedTags, handleAddTag, handleRemoveTag])
+
   return (
-    <ScrollArea className="h-[200px] w-full rounded-md border p-4">
-      <div className="flex flex-wrap gap-2">
-        {availableTags.map(tag => (
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2 text-sm font-medium text-cyan-400">
+        <Tags className="h-4 w-4" />
+        Tags ({selectedTags.length}/{maxTags})
+      </Label>
+
+      <div className="flex flex-wrap gap-2 p-2 min-h-[2.5rem] bg-gray-800/50 rounded-lg border border-cyan-500/20">
+        {selectedTags.map(tag => (
           <Badge
-            key={tag.id}
-            variant={selectedTags.has(tag.id) ? "default" : "outline"}
-            className={`
-              cursor-pointer transition-all
-              ${selectedTags.has(tag.id) 
-                ? 'bg-cyan-500 hover:bg-cyan-600' 
-                : 'hover:border-cyan-500'
-              }
-              ${selectedTags.size >= maxTags && !selectedTags.has(tag.id)
-                ? 'opacity-50 cursor-not-allowed'
-                : ''
-              }
-            `}
-            onClick={() => {
-              if (selectedTags.size < maxTags || selectedTags.has(tag.id)) {
-                onTagToggle(tag.id)
-              }
-            }}
+            key={tag}
+            variant="secondary"
+            className={cn(
+              "bg-cyan-500/10 text-cyan-300",
+              "hover:bg-cyan-500/20",
+              "transition-colors duration-200"
+            )}
           >
-            {tag.name}
+            {tag}
+            <Button
+              onClick={() => handleRemoveTag(tag)}
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4 ml-1 hover:bg-transparent"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           </Badge>
         ))}
       </div>
-    </ScrollArea>
+
+      <div className="flex gap-2">
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Add tags..."
+          className="flex-1"
+          disabled={selectedTags.length >= maxTags}
+        />
+        <Button
+          onClick={handleAddTag}
+          disabled={!inputValue.trim() || selectedTags.length >= maxTags}
+          variant="outline"
+          size="icon"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {selectedTags.length >= maxTags && (
+        <p className="text-xs text-amber-400">
+          Maximum number of tags reached
+        </p>
+      )}
+    </div>
   )
 } 

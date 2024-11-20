@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { Lock, Volume2, VolumeX, Play, Pause, RotateCcw, Save, Trophy } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -12,228 +11,179 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Lock, Trophy, Play, Pause, RotateCcw, Grid3x3, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useLayout } from '../../hooks/useLayout'
+import type { GameSettings as GameSettingsType } from '../../types/gamesettings.types'
 
-export interface GameSettingsProps {
-  boardSize: number
-  soundEnabled: boolean
-  teamMode: boolean
-  lockout: boolean
-  winConditions: {
-    line: boolean
-    majority: boolean
-  }
+interface GameSettingsProps {
   isOwner: boolean
-  isTimerRunning: boolean
-  onBoardSizeChange: (size: number) => void
-  onSoundToggle: (enabled: boolean) => void
-  onTeamModeToggle: (enabled: boolean) => void
-  onLockoutToggle: (enabled: boolean) => void
-  onWinConditionsChange: (conditions: { line: boolean; majority: boolean }) => void
-  onStartBoard: () => void
-  onResetBoard: () => void
-  onTimerToggle: () => void
+  isRunning: boolean
+  settings: GameSettingsType
+  onSettingsChange: (settings: Partial<GameSettingsType>) => void
+  onStartGame: () => void
+  onResetGame: () => void
 }
 
 export const GameSettings: React.FC<GameSettingsProps> = ({
-  boardSize,
-  soundEnabled,
-  teamMode,
-  lockout,
-  winConditions,
   isOwner,
-  isTimerRunning,
-  onBoardSizeChange,
-  onSoundToggle,
-  onTeamModeToggle,
-  onLockoutToggle,
-  onWinConditionsChange,
-  onStartBoard,
-  onResetBoard,
-  onTimerToggle,
+  isRunning,
+  settings,
+  onSettingsChange,
+  onStartGame,
+  onResetGame
 }) => {
-  const { getResponsiveSpacing } = useLayout()
-  const spacing = getResponsiveSpacing(16)
-
-  const handleWinConditionChange = (type: 'line' | 'majority') => {
-    onWinConditionsChange({
-      ...winConditions,
-      [type]: !winConditions[type]
-    })
-  }
-
-  const handleStartPause = () => {
-    if (!isOwner) return
-    
-    if (isTimerRunning) {
-      onTimerToggle()
-    } else {
-      onStartBoard()
-    }
-  }
-
   return (
-    <div className="space-y-3" style={{ gap: spacing.gap }}>
-      <div className="grid grid-cols-2 gap-2">
-        <Select
-          value={boardSize.toString()}
-          onValueChange={(value) => onBoardSizeChange(Number(value))}
-          disabled={!isOwner || isTimerRunning}
-        >
-          <SelectTrigger 
-            className={cn(
-              "w-full h-8 text-sm",
-              "bg-gray-700/50 border-cyan-500/30 text-cyan-100",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
+    <div className="space-y-3">
+      {/* Core Settings */}
+      <div className="grid gap-2">
+        {/* Board Size & Sound */}
+        <div className="flex items-center gap-2">
+          <Select
+            value={settings.boardSize.toString()}
+            onValueChange={(value) => onSettingsChange({ boardSize: parseInt(value) })}
+            disabled={!isOwner || isRunning}
           >
-            <SelectValue placeholder={`${boardSize}x${boardSize}`} />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-cyan-500/30">
-            {[3, 4, 5, 6].map((size) => (
-              <SelectItem 
-                key={size} 
-                value={size.toString()} 
-                className="text-cyan-100 hover:bg-cyan-500/20"
-              >
-                {size}x{size} Board
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <SelectTrigger className="flex-1 h-9 bg-gray-900/50">
+              <Grid3x3 className="h-4 w-4 text-cyan-400 mr-2" />
+              <SelectValue placeholder="Board Size" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border border-cyan-500/20">
+              {[3, 4, 5, 6].map((size) => (
+                <SelectItem 
+                  key={size} 
+                  value={size.toString()}
+                  className="hover:bg-cyan-500/10 focus:bg-cyan-500/20"
+                >
+                  {size}x{size} Board
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-700/50 rounded-md border border-cyan-500/30">
-          {soundEnabled ? (
+          <div className="flex items-center gap-2 px-3 h-9 bg-gray-900/50 rounded-md">
             <Volume2 className="h-4 w-4 text-cyan-400" />
-          ) : (
-            <VolumeX className="h-4 w-4 text-cyan-400" />
-          )}
-          <Switch
-            checked={soundEnabled}
-            onCheckedChange={onSoundToggle}
-            disabled={!isOwner || isTimerRunning}
-            className="data-[state=checked]:bg-cyan-500"
-          />
-        </div>
-      </div>
-
-      <Separator className="bg-cyan-500/20" />
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between p-2 bg-gray-700/50 rounded-md border border-cyan-500/30">
-          <Label className="text-sm text-cyan-200">Team Mode</Label>
-          <Switch
-            checked={teamMode}
-            onCheckedChange={onTeamModeToggle}
-            disabled={!isOwner || isTimerRunning}
-            className="data-[state=checked]:bg-cyan-500"
-          />
-        </div>
-
-        <div className="flex items-center justify-between p-2 bg-gray-700/50 rounded-md border border-cyan-500/30">
-          <div className="flex items-center gap-2">
-            <Lock className="h-4 w-4 text-cyan-400" />
-            <Label className="text-sm text-cyan-200">Lockout</Label>
-          </div>
-          <Switch
-            checked={lockout}
-            onCheckedChange={onLockoutToggle}
-            disabled={!isOwner || isTimerRunning}
-            className="data-[state=checked]:bg-cyan-500"
-          />
-        </div>
-      </div>
-
-      <div className="p-2 bg-gray-700/50 rounded-md border border-cyan-500/30">
-        <div className="flex items-center mb-2">
-          <Trophy className="h-4 w-4 text-cyan-400 mr-2" />
-          <Label className="text-sm text-cyan-200">Win Conditions</Label>
-        </div>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-2">
             <Switch
-              checked={winConditions.line}
-              onCheckedChange={() => handleWinConditionChange('line')}
-              disabled={!isOwner || isTimerRunning}
-              className="data-[state=checked]:bg-cyan-500"
+              checked={settings.soundEnabled}
+              onCheckedChange={(checked) => onSettingsChange({ soundEnabled: checked })}
+              disabled={!isOwner}
             />
-            <Label className="text-xs text-cyan-200">Line</Label>
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Game Mode Settings */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center justify-between px-3 h-9 bg-gray-900/50 rounded-md">
+            <Label className="text-sm text-cyan-200">Team Mode</Label>
             <Switch
-              checked={winConditions.majority}
-              onCheckedChange={() => handleWinConditionChange('majority')}
-              disabled={!isOwner || isTimerRunning}
-              className="data-[state=checked]:bg-cyan-500"
+              checked={settings.teamMode}
+              onCheckedChange={(checked) => onSettingsChange({ teamMode: checked })}
+              disabled={!isOwner || isRunning}
             />
-            <Label className="text-xs text-cyan-200">Majority</Label>
           </div>
+
+          <div className="flex-1 flex items-center justify-between px-3 h-9 bg-gray-900/50 rounded-md">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-cyan-400" />
+              <Label className="text-sm text-cyan-200">Lockout</Label>
+            </div>
+            <Switch
+              checked={settings.lockout}
+              onCheckedChange={(checked) => onSettingsChange({ lockout: checked })}
+              disabled={!isOwner || isRunning || settings.teamMode}
+            />
+          </div>
+        </div>
+
+        {/* Win Conditions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => !isRunning && isOwner && onSettingsChange({ 
+              winConditions: { ...settings.winConditions, line: !settings.winConditions.line } 
+            })}
+            className={cn(
+              "flex-1 flex items-center justify-between px-3 h-9",
+              "rounded-md transition-all duration-200",
+              "hover:bg-gray-700/30",
+              "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
+              settings.winConditions.line
+                ? "bg-cyan-500/10"
+                : "bg-gray-900/50"
+            )}
+            disabled={!isOwner || isRunning}
+          >
+            <span className="text-sm text-cyan-200">Line Victory</span>
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              settings.winConditions.line
+                ? "bg-cyan-400"
+                : "bg-gray-600"
+            )} />
+          </button>
+
+          <button
+            onClick={() => !isRunning && isOwner && onSettingsChange({ 
+              winConditions: { ...settings.winConditions, majority: !settings.winConditions.majority } 
+            })}
+            className={cn(
+              "flex-1 flex items-center justify-between px-3 h-9",
+              "rounded-md transition-all duration-200",
+              "hover:bg-gray-700/30",
+              "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
+              settings.winConditions.majority
+                ? "bg-cyan-500/10"
+                : "bg-gray-900/50"
+            )}
+            disabled={!isOwner || isRunning}
+          >
+            <span className="text-sm text-cyan-200">Majority Rule</span>
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              settings.winConditions.majority
+                ? "bg-cyan-400"
+                : "bg-gray-600"
+            )} />
+          </button>
         </div>
       </div>
 
-      <Separator className="bg-cyan-500/20" />
-
+      {/* Control Buttons */}
       <div className="grid grid-cols-2 gap-2">
         <Button
-          onClick={onResetBoard}
-          disabled={!isOwner || isTimerRunning}
+          onClick={onResetGame}
+          disabled={!isOwner || isRunning}
           variant="outline"
-          className="h-8 text-sm border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+          className={cn(
+            "h-9",
+            "bg-gray-900/50 hover:bg-gray-800",
+            "border-cyan-500/20 hover:border-cyan-500/40"
+          )}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           Reset
         </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className="h-8 text-sm bg-transparent border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
-                onClick={() => {}}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Coming soon!</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      <Button
-        onClick={handleStartPause}
-        disabled={!isOwner}
-        className={cn(
-          "w-full h-10 text-base font-medium",
-          "border transition-all duration-200",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          isTimerRunning
-            ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-            : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"
-        )}
-      >
-        <div className="flex items-center justify-center gap-2">
-          {isTimerRunning ? (
+        <Button
+          onClick={onStartGame}
+          disabled={!isOwner}
+          className={cn(
+            "h-9",
+            isRunning
+              ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
+              : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
+          )}
+        >
+          {isRunning ? (
             <>
-              <Pause className="h-5 w-5" />
-              <span>Pause Board</span>
+              <Pause className="mr-2 h-4 w-4" />
+              Pause
             </>
           ) : (
             <>
-              <Play className="h-5 w-5" />
-              <span>Start Board</span>
+              <Play className="mr-2 h-4 w-4" />
+              Start
             </>
           )}
-        </div>
-      </Button>
-
-      {!isOwner && (
-        <p className="text-xs text-gray-400 text-center">
-          Only the board owner can start or pause the game
-        </p>
-      )}
+        </Button>
+      </div>
     </div>
   )
 }
