@@ -2,10 +2,10 @@
 
 import React from 'react'
 import type { Tables } from '@/types/database.types'
-import { UserPage } from '@/components/user/user-page'
+import UserPage from '@/components/user/user-page'
 
 interface UserProfileProps {
-  userData?: Tables['users']['Row']
+  userData: Tables['users']['Row'] | null
 }
 
 export default function UserProfile({ userData }: UserProfileProps) {
@@ -19,7 +19,7 @@ export default function UserProfile({ userData }: UserProfileProps) {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <UserPage userData={userData} />
+      <UserPage />
     </div>
   )
 }

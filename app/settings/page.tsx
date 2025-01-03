@@ -1,28 +1,13 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import UserSettings from './_components/user-settings'
+import { store } from '@/src/store'
 
-export default async function SettingsPage() {
-  const supabase = createServerComponentClient({ cookies })
-  
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+export default function SettingsPage() {
+  const { auth: { user }, user: { profile } } = store.getState()
 
-  if (!session) {
+  if (!user || !profile) {
     redirect('/login')
   }
 
-  const { data: userData } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
-
-  if (!userData) {
-    redirect('/login')
-  }
-
-  return <UserSettings userId={session.user.id} userData={userData} />
+  return <UserSettings userId={user.id} userData={profile} />
 } 

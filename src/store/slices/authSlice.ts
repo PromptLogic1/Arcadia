@@ -1,25 +1,69 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { Tables } from '@/types/database.types';
 
-interface User {
-  id: string;
-  email: string;
-  role: string;
-  username?: string;
-  avatar_url?: string;
+// User States
+export type UserState = 'GUEST' | 'AUTHENTICATED';
+export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
+
+interface AuthUser {
+  id: string; // Auth ID 
+  email: string | null;
+  phone: string | null;
+  display_name?: string;
+  provider?: string;
+  role: 'user' | 'admin' | 'moderator' | 'premium'; // Rolle des Benutzers (Standard: 'user')
 }
 
 interface AuthState {
-  user: User | null;
+  authUser: AuthUser | null; // Normaler Benutzer
+  userRole: UserRole | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  permissions: string[];  // Berechtigungen basierend auf Rolle
 }
 
 const initialState: AuthState = {
-  user: null,
+  authUser: null,
+  userRole: null,
   isAuthenticated: false,
   loading: false,
-  error: null
+  error: null,
+  permissions: []
+};
+
+// Berechtigungen pro Rolle
+const rolePermissions: Record<UserRole, string[]> = {
+  user: [
+    'view_public_content',
+    'create_submissions',
+    'edit_own_profile'
+  ],
+  premium: [
+    'view_public_content',
+    'create_submissions',
+    'edit_own_profile',
+    'access_premium_content',
+    'create_challenges'
+  ],
+  moderator: [
+    'view_public_content',
+    'create_submissions',
+    'edit_own_profile',
+    'moderate_content',
+    'edit_challenges',
+    'manage_users'
+  ],
+  admin: [
+    'view_public_content',
+    'create_submissions',
+    'edit_own_profile',
+    'moderate_content',
+    'edit_challenges',
+    'manage_users',
+    'manage_system',
+    'assign_roles'
+  ]
 };
 
 const authSlice = createSlice({
@@ -32,17 +76,35 @@ const authSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
-    setUser: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
+    setAuthUser: (state, action: PayloadAction<AuthUser>) => {
+      state.authUser = action.payload;
       state.isAuthenticated = true;
       state.error = null;
     },
     clearUser: (state) => {
-      state.user = null;
+      state.authUser = null;
+      state.userRole = null;
       state.isAuthenticated = false;
+      state.permissions = [];
     },
   },
 });
 
-export const { setLoading, setError, setUser, clearUser } = authSlice.actions;
+// Selektoren für einfachen Zugriff auf States und Berechtigungen
+export const selectUserState = (state: { auth: AuthState }) => state.auth.userState;
+export const selectUserRole = (state: { auth: AuthState }) => state.auth.userRole;
+export const selectPermissions = (state: { auth: AuthState }) => state.auth.permissions;
+export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
+
+// Helper-Funktion zur Berechtigungsprüfung
+export const hasPermission = (state: { auth: AuthState }, permission: string) => 
+  state.auth.permissions.includes(permission);
+
+export const { 
+  setLoading, 
+  setError, 
+  setAuthUser,
+  clearUser 
+} = authSlice.actions;
+
 export default authSlice.reducer;

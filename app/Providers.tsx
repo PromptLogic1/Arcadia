@@ -4,14 +4,18 @@ import { Provider } from 'react-redux'
 import { store } from '@/src/store'
 import { ThemeProvider } from './_components/ThemeProvider'
 import { useEffect } from 'react'
-import { authService } from '@/lib/supabase_lib/supabase-auth'
+import { authService } from '@/src/store/services/auth-service'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    authService.initializeAuth()
-    const unsubscribe = authService.setupAuthListener()
+    // Initialize app state
+    authService.initializeApp()
+    
+    // Setup auth listener
+    const { data: { subscription } } = authService.setupAuthListener()
+    
     return () => {
-      unsubscribe()
+      subscription.unsubscribe()
     }
   }, [])
 

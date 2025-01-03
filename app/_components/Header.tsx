@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { User } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/src/store'
 
 // NeonText Component for Gradient Text
 const NeonText = ({
@@ -64,6 +66,7 @@ const Header: React.FC = () => {
   const pathname = usePathname() ?? ''
   const [user, setUser] = useState<User | null>(null)
   const supabase = createClientComponentClient<Database>()
+  const userProfile = useSelector((state: RootState) => state.user.profile)
 
   useEffect(() => {
     const getUser = async () => {
@@ -254,7 +257,7 @@ const Header: React.FC = () => {
                   forceMount
                 >
                   <DropdownMenuItem asChild>
-                    <Link href="/user" className="flex items-center w-full">
+                    <Link href={`/user/${userProfile?.id}`} className="flex items-center w-full">
                       Profile
                     </Link>
                   </DropdownMenuItem>
@@ -357,7 +360,7 @@ const Header: React.FC = () => {
               {user ? (
                 <>
                   <Link
-                    href="/user/user-page"
+                    href={`/user/${userProfile?.id}`}
                     className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >

@@ -1,22 +1,27 @@
 'use client'
 
 import { useSelector } from 'react-redux'
-import { selectIsAuthenticated, selectUserRole, selectUserId } from '@/src/store/selectors/authSelectors'
+import { RootState } from '@/src/store'
+import { withAuth } from '@/lib/auth/withAuth'
 
-export function UserPage() {
-  const isAuthenticated = useSelector(selectIsAuthenticated)
-  const userRole = useSelector(selectUserRole)
-  const userId = useSelector(selectUserId)
-
-  if (!isAuthenticated) {
-    return <div>Please log in to view this page</div>
-  }
-
+function UserPage() {
+  const profile = useSelector((state: RootState) => state.user.profile)
+  
   return (
-    <div>
-      <h1>User Profile</h1>
-      <p>Role: {userRole}</p>
-      <p>ID: {userId}</p>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Profile</h1>
+      <div className="grid gap-4">
+        <div>
+          <h2 className="font-semibold">Username</h2>
+          <p>{profile?.username}</p>
+        </div>
+        <div>
+          <h2 className="font-semibold">Full Name</h2>
+          <p>{profile?.full_name}</p>
+        </div>
+      </div>
     </div>
   )
 }
+
+export default withAuth(UserPage)

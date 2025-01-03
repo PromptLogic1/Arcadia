@@ -1,29 +1,36 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { store } from '@/src/store'
-import { setUser, clearUser, setLoading, setError } from '@/src/store/slices/authSlice'
+import { setAuthUser, clearUser, setLoading, setError } from '@/src/store/slices/authSlice'
 import { clearProfile } from '@/src/store/slices/userSlice'
+import { userService } from '@/src/store/services/user-service'
+import type { Database } from '@/types/database.types'
 
 class AuthService {
-  private supabase = createClientComponentClient()
+  private supabase = createClientComponentClient<Database>()
 
   async initializeAuth() {
     try {
       store.dispatch(setLoading(true))
+      const { data: { user }, error } = await this.supabase.auth.getUser()
       
-      const { data: { session } } = await this.supabase.auth.getSession()
-      
-      if (session?.user) {
-        const { id, email, user_metadata } = session.user
-        store.dispatch(setUser({
-          id,
-          email: email || '',
-          role: user_metadata?.role || 'user',
-          username: user_metadata?.username,
-          avatar_url: user_metadata?.avatar_url
+      if (error) throw error
+
+      if (user) {
+        // Set auth user data
+        store.dispatch(setAuthUser({
+          id: user.id,
+          email: user.email ?? null,
+          phone: user.phone ?? null,
+          display_name: user.user_metadata?.display_name ?? undefined,
+          provider: user.app_metadata?.provider ?? undefined,
+          role: (user.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
         }))
+
+        
       }
     } catch (error) {
       store.dispatch(setError((error as Error).message))
+      store.dispatch(clearUser())
     } finally {
       store.dispatch(setLoading(false))
     }
@@ -40,16 +47,9 @@ class AuthService {
   }
 
   setupAuthListener() {
-    const { data: { subscription } } = this.supabase.auth.onAuthStateChange(async (event, session) => {
+    return this.supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        const { id, email, user_metadata } = session.user
-        store.dispatch(setUser({
-          id,
-          email: email || '',
-          role: user_metadata?.role || 'user',
-          username: user_metadata?.username,
-          avatar_url: user_metadata?.avatar_url
-        }))
+        await this.initializeAuth() // Reuse initialization logic
       }
       
       if (event === 'SIGNED_OUT') {
@@ -57,8 +57,6 @@ class AuthService {
         store.dispatch(clearProfile())
       }
     })
-
-    return () => subscription.unsubscribe()
   }
 }
 
