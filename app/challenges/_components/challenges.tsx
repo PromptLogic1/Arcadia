@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo } from 'react'
 import { Trophy, Grid, Zap, Puzzle } from 'lucide-react'
-import { ChallengesTabs, type Challenge } from './challenges/ChallengesTabs'
-import BingoBattles from './challenges/bingo-board/bingo-battles'
+import { ChallengesTabs, type Challenge } from '../../../components/challenges/ChallengesTabs'
+import BingoBattles from '../../../components/challenges/bingo-board/bingo-battles'
 
 const CHALLENGES: Challenge[] = [
   {

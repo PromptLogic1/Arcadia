@@ -1,10 +1,10 @@
 import { type Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { ThemeProvider } from '@/components/ThemeProvider'
-import './globals.css'
-import  Header  from '@/components/Header'
-import  Footer  from '@/components/Footer'
+import { ThemeProvider } from './_components/ThemeProvider'
+import  Header  from './_components/Header'
+import  Footer  from './_components/Footer'
 import ScrollToTop from '@/components/ui/ScrollToTop'
+import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 

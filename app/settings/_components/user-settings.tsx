@@ -5,8 +5,8 @@ import type { Tables } from '@/types/database.types'
 import { Card, CardContent } from '@/components/ui/card'
 import { motion } from 'framer-motion'
 import { Settings, User, Bell, Shield, Palette } from 'lucide-react'
-import { GeneralSettings } from './user/settings/general-settings'
-import { ComingSoon } from './user/settings/coming-soon'
+import { GeneralSettings } from '../../../components/settings/general-settings'
+import { ComingSoon } from '../../../components/settings/coming-soon'
 
 interface UserSettingsProps {
   userId: string

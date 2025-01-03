@@ -18,24 +18,24 @@ import {
   ToggleGroupItem
 } from "@/components/ui/toggle-group"
 import { NeonButton } from '@/components/ui/NeonButton'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
-import type { Discussion, Event, Comment } from './community/types/types'
-import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from './community/shared/constants'
-import { SearchInput } from './community/shared/SearchInput'
+import { ErrorBoundary } from '@/app/_components/ErrorBoundary'
+import type { Discussion, Event, Comment } from '@/components/community/types/types'
+import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from '@/components/community/shared/constants'
+import { SearchInput } from '@/components/community/shared/SearchInput'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
 // Dynamic imports for better code splitting
-const DiscussionCard = dynamic(() => import('./community/DiscussionCard'), {
+const DiscussionCard = dynamic(() => import('@/components/community/DiscussionCard'), {
   loading: () => <Skeleton className="h-40 w-full" />,
   ssr: false
 })
 
-const EventCard = dynamic(() => import('./community/EventCard'), {
+const EventCard = dynamic(() => import('@/components/community/EventCard'), {
   loading: () => <Skeleton className="h-40 w-full" />,
   ssr: false
 })
 
-const CreateDiscussionForm = dynamic(() => import('./community/CreateDiscussionForm'), {
+const CreateDiscussionForm = dynamic(() => import('@/components/community/CreateDiscussionForm'), {
   ssr: false
 })
 

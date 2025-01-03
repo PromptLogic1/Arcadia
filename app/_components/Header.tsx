@@ -254,12 +254,12 @@ const Header: React.FC = () => {
                   forceMount
                 >
                   <DropdownMenuItem asChild>
-                    <Link href="/user/user-page" className="flex items-center w-full">
+                    <Link href="/user" className="flex items-center w-full">
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/user/settings" className="flex items-center w-full">
+                    <Link href="/settings" className="flex items-center w-full">
                       Settings
                     </Link>
                   </DropdownMenuItem>

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import Community from '@/components/community'
+import Community from './_components/community'
 
 // Konfiguration für dynamisches Rendering
 export const dynamic = 'force-dynamic'
