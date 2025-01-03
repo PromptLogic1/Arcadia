@@ -1,9 +1,9 @@
 import { type Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { ThemeProvider } from './_components/ThemeProvider'
-import  Header  from './_components/Header'
-import  Footer  from './_components/Footer'
+import Header from './_components/Header'
+import Footer from './_components/Footer'
 import ScrollToTop from '@/components/ui/ScrollToTop'
+import { Providers } from './Providers'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -21,17 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <Providers>
           <Header />
           <main>{children}</main>
           <Footer />
           <ScrollToTop />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )

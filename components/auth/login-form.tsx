@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { useDispatch } from 'react-redux'
+import { setLoading, setError } from '@/src/store/slices/authSlice'
 
 async function checkEmailExists(email: string, supabase: SupabaseClient<Database>): Promise<boolean> {
   const { data } = await supabase
@@ -84,6 +86,7 @@ export function LogInForm() {
   const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const dispatch = useDispatch()
 
   // Load saved email on component mount
   useEffect(() => {
@@ -105,6 +108,7 @@ export function LogInForm() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    dispatch(setLoading(true))
     setErrorInfo(null)
 
     // Validate required fields
@@ -134,8 +138,6 @@ export function LogInForm() {
       return
     }
 
-    setStatus('loading')
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -143,40 +145,25 @@ export function LogInForm() {
       })
 
       if (error) {
-        // Handle specific error cases
-        if (error.message.toLowerCase().includes('invalid login credentials')) {
-          setErrorInfo({
-            message: 'Incorrect email or password',
-            type: 'error'
-          })
-        } else if (error.message.toLowerCase().includes('email not confirmed')) {
-          setErrorInfo({
-            message: 'Please verify your email before signing in',
-            type: 'warning'
-          })
-        } else {
-          setErrorInfo({
-            message: error.message,
-            type: 'error'
-          })
-        }
-        setStatus('idle')
+        const emailExists = await checkEmailExists(email, supabase)
+        const errorInfo = getErrorMessage(error, { emailExists })
+        setErrorInfo(errorInfo)
+        dispatch(setError(errorInfo.message))
         return
       }
 
       if (data.user) {
         clearSavedData()
-        setStatus('success')
         router.push('/')
         router.refresh()
       }
     } catch (error) {
       console.error('Login error:', error)
-      setErrorInfo({
-        message: 'An unexpected error occurred. Please try again.',
-        type: 'error'
-      })
-      setStatus('idle')
+      const errorInfo = getErrorMessage(error as Error)
+      setErrorInfo(errorInfo)
+      dispatch(setError(errorInfo.message))
+    } finally {
+      dispatch(setLoading(false))
     }
   }
 

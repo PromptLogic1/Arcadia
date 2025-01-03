@@ -1,322 +1,65 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Database } from '@/types/database.types'
-import type { AuthError as SupabaseAuthError } from '@supabase/supabase-js'
+import { store } from '@/src/store'
+import { setUser, clearUser, setLoading, setError } from '@/src/store/slices/authSlice'
+import { clearProfile } from '@/src/store/slices/userSlice'
 
-export interface SignUpCredentials {
-  email: string
-  password: string
-  username: string
-}
+class AuthService {
+  private supabase = createClientComponentClient()
 
-export interface PasswordRequirements {
-  uppercase: boolean
-  lowercase: boolean
-  number: boolean
-  special: boolean
-  length: boolean
-}
-
-export type AuthErrorCode = 
-  | 'VERIFICATION_PENDING'
-  | 'WRONG_PASSWORD'
-  | 'EMAIL_EXISTS'
-  | 'NETWORK_ERROR'
-  | 'INVALID_USERNAME'
-  | 'TOO_MANY_ATTEMPTS'
-  | 'INVALID_EMAIL_DOMAIN'
-  | 'USER_BANNED'
-
-export class AuthError extends Error {
-  constructor(
-    message: string,
-    public readonly code?: AuthErrorCode
-  ) {
-    super(message)
-    this.name = 'AuthError'
-  }
-}
-
-type NetworkOperation<T> = () => Promise<T>
-
-class SupabaseAuth {
-  private supabase = createClientComponentClient<Database>()
-  private failedAttempts = new Map<string, { count: number, lastAttempt: number }>()
-  private readonly MAX_ATTEMPTS = 5
-  private readonly LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutes
-
-  private async handleNetworkError<T>(
-    operation: NetworkOperation<T>,
-    maxRetries = 3
-  ): Promise<T> {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation()
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.message.includes('fetch') || error.message.includes('network')) &&
-          attempt < maxRetries
-        ) {
-          // Wait with exponential backoff before retrying
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
-          continue
-        }
-        throw error
-      }
-    }
-    // This should never be reached due to the throw in the catch block,
-    // but TypeScript needs it for type safety
-    throw new Error('Failed to complete operation after all retries')
-  }
-
-  private handleSignUpError(error: SupabaseAuthError): never {
-    console.error('Auth signup error:', error)
-    switch (error.message) {
-      case 'User already registered':
-        throw new AuthError('E-Mail Account already exists', 'EMAIL_EXISTS')
-      case 'Password should be at least 6 characters':
-        throw new AuthError('Password must be at least 6 characters', 'WRONG_PASSWORD')
-      default:
-        throw new AuthError(error.message || 'An error occurred during signup')
-    }
-  }
-
-  public checkPasswordRequirements(password: string): PasswordRequirements {
-    return {
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-      length: password.length >= 8,
-    }
-  }
-
-  public async signInWithOAuth(provider: 'google'): Promise<void> {
-    return this.handleNetworkError<void>(async () => {
-      const { error } = await this.supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/oauth-success`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: 'openid email profile'
-          }
-        }
-      })
-
-      if (error) {
-        throw new AuthError(error.message)
-      }
-    })
-  }
-
-  private validateUsername(username: string): void {
-    const validUsernameRegex = /^[a-zA-Z0-9_-]+$/
-    if (!validUsernameRegex.test(username)) {
-      throw new AuthError(
-        'Username can only contain letters, numbers, underscores, and hyphens.',
-        'INVALID_USERNAME'
-      )
-    }
-  }
-
-  public async signUp(credentials: SignUpCredentials): Promise<{ 
-    isExisting?: boolean;
-    needsVerification?: boolean;
-    wrongPassword?: boolean;
-    isBanned?: boolean;
-  }> {
-    return this.handleNetworkError(async () => {
-      try {
-        // Try to sign in first to check user status
-        const { data: signInData, error: signInError } = 
-          await this.supabase.auth.signInWithPassword({
-            email: credentials.email,
-            password: credentials.password,
-          })
-
-        // If sign in successful, user exists and password is correct
-        if (signInData.user) {
-          return { isExisting: true }
-        }
-
-        // Handle different error cases
-        if (signInError) {
-          const errorMessage = signInError.message.toLowerCase()
-          
-          switch (errorMessage) {
-            case 'user not confirmed':
-              // Resend verification email
-              await this.supabase.auth.resend({
-                type: 'signup',
-                email: credentials.email,
-              })
-              return { 
-                isExisting: true, 
-                needsVerification: true 
-              }
-
-            case 'user is banned':
-              return { 
-                isExisting: true, 
-                isBanned: true 
-              }
-          }
-        }
-
-        // If no error and no user data, proceed with new signup
-        return this.handleNewSignup(credentials)
-
-      } catch (error) {
-        if (error instanceof AuthError) {
-          throw error
-        }
-        console.error('Signup error:', error)
-        throw new AuthError('Failed to complete signup process', 'NETWORK_ERROR')
-      }
-    })
-  }
-
-  // Helper method to handle new user signup
-  private async handleNewSignup(credentials: SignUpCredentials) {
-    const { error: signUpError } = await this.supabase.auth.signUp({
-      email: credentials.email,
-      password: credentials.password,
-      options: {
-        data: {
-          username: credentials.username,
-          full_name: credentials.username,
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(credentials.username)}`,
-          pendingProfile: true
-        },
-        emailRedirectTo: `${window.location.origin}/auth/oauth-success`
-      }
-    })
-
-    if (signUpError) {
-      this.handleSignUpError(signUpError)
-    }
-
-    return { needsVerification: true }
-  }
-
-  public async resendVerificationEmail(email: string): Promise<void> {
-    return this.handleNetworkError<void>(async () => {
-      const { error } = await this.supabase.auth.resend({
-        type: 'signup',
-        email,
-      })
-
-      if (error) {
-        throw new AuthError(error.message)
-      }
-    })
-  }
-
-  public async signOut(): Promise<void> {
-    return this.handleNetworkError<void>(async () => {
-      const { error } = await this.supabase.auth.signOut()
+  async initializeAuth() {
+    try {
+      store.dispatch(setLoading(true))
       
-      if (error) {
-        throw new AuthError(error.message)
-      }
-
-      // Clear all auth-related data from localStorage
-      const keysToRemove = [
-        'loginEmail',
-        'signupForm',
-        'supabase.auth.token',
-        'supabase.auth.refreshToken',
-        // Add any other auth-related keys you might have
-      ]
-
-      keysToRemove.forEach(key => {
-        try {
-          localStorage.removeItem(key)
-        } catch (e) {
-          console.warn(`Failed to remove ${key} from localStorage:`, e)
-        }
-      })
-
-      // Clear any auth-related cookies
-      document.cookie.split(';').forEach(cookieString => {
-        if (cookieString) {
-          const [rawName] = cookieString.split('=')
-          if (rawName) {
-            const name = rawName.trim()
-            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
-          }
-        }
-      })
-
-      // Optional: Clear sessionStorage if you use it
-      try {
-        sessionStorage.clear()
-      } catch (e) {
-        console.warn('Failed to clear sessionStorage:', e)
-      }
-    })
-  }
-
-  public async deleteAccount(): Promise<void> {
-    return this.handleNetworkError<void>(async () => {
-      // First get the current user
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser()
+      const { data: { session } } = await this.supabase.auth.getSession()
       
-      if (userError || !user) {
-        throw new AuthError('Failed to get current user')
+      if (session?.user) {
+        const { id, email, user_metadata } = session.user
+        store.dispatch(setUser({
+          id,
+          email: email || '',
+          role: user_metadata?.role || 'user',
+          username: user_metadata?.username,
+          avatar_url: user_metadata?.avatar_url
+        }))
       }
-
-      // Delete the user's profile data first (if you have a users table)
-      const { error: profileError } = await this.supabase
-        .from('users')
-        .delete()
-        .eq('auth_id', user.id)
-
-      if (profileError) {
-        throw new AuthError('Failed to delete user profile')
-      }
-
-      // Delete the user's auth account
-      const { error: deleteError } = await this.supabase.auth.admin.deleteUser(
-        user.id
-      )
-
-      if (deleteError) {
-        throw new AuthError('Failed to delete user account')
-      }
-
-      // Clear all auth data
-      await this.signOut()
-    })
-  }
-
-  private checkFailedAttempts(identifier: string): void {
-    const attempts = this.failedAttempts.get(identifier)
-    if (attempts) {
-      const timeSinceLastAttempt = Date.now() - attempts.lastAttempt
-      if (timeSinceLastAttempt < this.LOCKOUT_DURATION && attempts.count >= this.MAX_ATTEMPTS) {
-        const remainingLockout = Math.ceil((this.LOCKOUT_DURATION - timeSinceLastAttempt) / 60000)
-        throw new AuthError(
-          `Too many failed attempts. Please try again in ${remainingLockout} minutes.`,
-          'TOO_MANY_ATTEMPTS'
-        )
-      }
-      if (timeSinceLastAttempt >= this.LOCKOUT_DURATION) {
-        this.failedAttempts.delete(identifier)
-      }
+    } catch (error) {
+      store.dispatch(setError((error as Error).message))
+    } finally {
+      store.dispatch(setLoading(false))
     }
   }
 
-  private recordFailedAttempt(identifier: string): void {
-    const attempts = this.failedAttempts.get(identifier) || { count: 0, lastAttempt: 0 }
-    this.failedAttempts.set(identifier, {
-      count: attempts.count + 1,
-      lastAttempt: Date.now()
+  async signOut() {
+    try {
+      await this.supabase.auth.signOut()
+      store.dispatch(clearUser())
+      store.dispatch(clearProfile())
+    } catch (error) {
+      store.dispatch(setError((error as Error).message))
+    }
+  }
+
+  setupAuthListener() {
+    const { data: { subscription } } = this.supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { id, email, user_metadata } = session.user
+        store.dispatch(setUser({
+          id,
+          email: email || '',
+          role: user_metadata?.role || 'user',
+          username: user_metadata?.username,
+          avatar_url: user_metadata?.avatar_url
+        }))
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        store.dispatch(clearUser())
+        store.dispatch(clearProfile())
+      }
     })
+
+    return () => subscription.unsubscribe()
   }
 }
 
-// Export a singleton instance
-export const supabaseAuth = new SupabaseAuth()
+export const authService = new AuthService()
