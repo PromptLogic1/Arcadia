@@ -22,21 +22,21 @@ const upcomingEvents: ReadonlyArray<Event> = [
     title: 'Arcadia Tournament 2024',
     date: 'June 15, 2024',
     description: 'Join our annual tournament and compete with top gamers worldwide.',
-    imageUrl: '/events/tournament2024.jpg',
+    imageUrl: '/images/events/tournament2024.jpg',
   },
   {
     id: 'stream-marathon',
     title: 'Live Stream Marathon',
     date: 'July 10, 2024',
     description: 'Watch live streams from your favorite gamers and participate in giveaways.',
-    imageUrl: '/events/streammarathon.jpg',
+    imageUrl: '/images/events/streamer1.jpg',
   },
   {
     id: 'dev-meetup',
     title: 'Developer Meetup',
     date: 'August 20, 2024',
     description: 'Meet the developers behind Arcadia and share your feedback.',
-    imageUrl: '/events/developermeetup.jpg',
+    imageUrl: '/images/events/developermeetup.jpg',
   },
 ] as const
 

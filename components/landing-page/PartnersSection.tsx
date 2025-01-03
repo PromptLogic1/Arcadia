@@ -16,26 +16,26 @@ const partners: ReadonlyArray<Partner> = [
   {
     id: 'partner-one',
     name: 'Partner One',
-    logoUrl: '/partners/partner1.png',
-    website: 'https://partnerone.com',
+    logoUrl: '/images/partners/partner1.png',
+    website: '',
   },
   {
     id: 'partner-two',
     name: 'Partner Two',
-    logoUrl: '/partners/partner2.png',
-    website: 'https://partnertwo.com',
+    logoUrl: '/images/partners/partner2.png',
+    website: '',
   },
   {
     id: 'partner-three',
     name: 'Partner Three',
-    logoUrl: '/partners/partner3.png',
-    website: 'https://partnerthree.com',
+    logoUrl: '/images/partners/partner3.png',
+    website: '',
   },
   {
     id: 'partner-four',
     name: 'Partner Four',
-    logoUrl: '/partners/partner4.png',
-    website: 'https://partnerfour.com',
+    logoUrl: '/images/partners/partner4.png',
+    website: '',
   },
 ] as const
 
