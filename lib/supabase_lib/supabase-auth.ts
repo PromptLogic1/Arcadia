@@ -1,8 +1,6 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { store } from '@/src/store'
 import { setAuthUser, clearUser, setLoading, setError } from '@/src/store/slices/authSlice'
-import { clearProfile } from '@/src/store/slices/userSlice'
-import { userService } from '@/src/store/services/user-service'
 import type { Database } from '@/types/database.types'
 
 class AuthService {
@@ -26,7 +24,6 @@ class AuthService {
           role: (user.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
         }))
 
-        
       }
     } catch (error) {
       store.dispatch(setError((error as Error).message))
@@ -40,7 +37,6 @@ class AuthService {
     try {
       await this.supabase.auth.signOut()
       store.dispatch(clearUser())
-      store.dispatch(clearProfile())
     } catch (error) {
       store.dispatch(setError((error as Error).message))
     }
@@ -54,7 +50,6 @@ class AuthService {
       
       if (event === 'SIGNED_OUT') {
         store.dispatch(clearUser())
-        store.dispatch(clearProfile())
       }
     })
   }

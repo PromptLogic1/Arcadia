@@ -1,7 +1,7 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import UserPageEdit from '@/components/user/profile/user-page-edit'
+import UserPageEdit from '@/components/user/user-page-edit'
 import type { Database } from '@/types/database.types'
 
 export default async function EditProfilePage() {

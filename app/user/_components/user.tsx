@@ -19,7 +19,7 @@ export default function UserProfile({ userData }: UserProfileProps) {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <UserPage />
+      <UserPage userData={userData} />
     </div>
   )
 }

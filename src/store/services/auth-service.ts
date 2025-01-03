@@ -1,6 +1,6 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { store } from '@/src/store'
-import { setAuthUser, setDatabaseUser, clearUser, setLoading, setError } from '../slices/authSlice'
+import { setAuthUser, clearUser, setLoading, setError } from '../slices/authSlice'
 import type { Database } from '@/types/database.types'
 
 class AuthService {
@@ -15,25 +15,23 @@ class AuthService {
       if (authError) throw authError
       
       if (user) {
-        store.dispatch(setAuthUser({
-          id: user.id,
-          email: user.email,
-          phone: user.phone,
-          display_name: user.user_metadata?.display_name,
-          provider: user.app_metadata?.provider
-        }))
-
-        const { data: dbUser, error: dbError } = await this.supabase
-          .from('users')
-          .select('*')
-          .eq('auth_id', user.id)
-          .single()
+        const { data: userData, error: dbError } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single();
 
         if (dbError) throw dbError
 
-        if (dbUser) {
-          store.dispatch(setDatabaseUser(dbUser))
-        }
+        store.dispatch(setAuthUser({
+          id: user.id,
+          email: user.email ?? null,
+          phone: user.phone ?? null,
+          display_name: user.user_metadata?.display_name,
+          provider: user.app_metadata?.provider,
+          role: (userData.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
+        }))
+      
       } else {
         store.dispatch(clearUser())
       }

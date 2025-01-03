@@ -32,40 +32,6 @@ const initialState: AuthState = {
   permissions: []
 };
 
-// Berechtigungen pro Rolle
-const rolePermissions: Record<UserRole, string[]> = {
-  user: [
-    'view_public_content',
-    'create_submissions',
-    'edit_own_profile'
-  ],
-  premium: [
-    'view_public_content',
-    'create_submissions',
-    'edit_own_profile',
-    'access_premium_content',
-    'create_challenges'
-  ],
-  moderator: [
-    'view_public_content',
-    'create_submissions',
-    'edit_own_profile',
-    'moderate_content',
-    'edit_challenges',
-    'manage_users'
-  ],
-  admin: [
-    'view_public_content',
-    'create_submissions',
-    'edit_own_profile',
-    'moderate_content',
-    'edit_challenges',
-    'manage_users',
-    'manage_system',
-    'assign_roles'
-  ]
-};
-
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -91,7 +57,6 @@ const authSlice = createSlice({
 });
 
 // Selektoren für einfachen Zugriff auf States und Berechtigungen
-export const selectUserState = (state: { auth: AuthState }) => state.auth.userState;
 export const selectUserRole = (state: { auth: AuthState }) => state.auth.userRole;
 export const selectPermissions = (state: { auth: AuthState }) => state.auth.permissions;
 export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
