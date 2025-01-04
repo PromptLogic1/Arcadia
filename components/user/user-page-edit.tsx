@@ -43,22 +43,14 @@ export default function UserPageEdit() {
     setMessage(null)
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          username,
-          full_name: fullName,
-          bio,
-          land,
-          region,
-          city,
-        })
-        .eq('id', userData.id)
-
-      if (error) throw error
-
-      // Refresh auth state to update the store
-      await authService.initializeApp()
+      await authService.updateUserData(userData.id, {
+        username,
+        full_name: fullName,
+        bio,
+        land,
+        region,
+        city,
+      })
 
       setMessage({
         text: 'Profile updated successfully!',

@@ -14,6 +14,15 @@ interface AuthResponse {
   needsVerification?: boolean;
 }
 
+interface UpdateUserDataParams {
+  username?: string
+  full_name?: string
+  bio?: string
+  land?: string
+  region?: string
+  city?: string
+}
+
 class AuthService {
   private supabase = supabase
 
@@ -283,6 +292,41 @@ class AuthService {
       return userData
     } catch (error) {
       console.error('Error refreshing user data:', error)
+      throw error
+    }
+  }
+
+  async updateUserData(userId: string, updates: UpdateUserDataParams) {
+    try {
+      // Update in Supabase
+      const { data, error } = await this.supabase
+        .from('users')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Update Redux store with the returned data
+      store.dispatch(setUserdata({
+        id: data.id,
+        username: data.username,
+        full_name: data.full_name,
+        avatar_url: data.avatar_url,
+        role: data.role,
+        experience_points: data.experience_points,
+        land: data.land,
+        region: data.region,
+        city: data.city,
+        bio: data.bio,
+        last_login_at: data.last_login_at,
+        created_at: data.created_at
+      }))
+
+      return data
+    } catch (error) {
+      console.error('Error updating user data:', error)
       throw error
     }
   }
