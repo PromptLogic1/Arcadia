@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,75 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Info, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import type { Database } from '@/types/database.types'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { authService } from '@/src/store/services/auth-service'
 import { useDispatch } from 'react-redux'
 import { setLoading, setError } from '@/src/store/slices/authSlice'
-
-async function checkEmailExists(email: string, supabase: SupabaseClient<Database>): Promise<boolean> {
-  const { data } = await supabase
-    .from('users')
-    .select('email')
-    .eq('email', email)
-    .single()
-  return !!data
-}
-
-function getErrorMessage(error: Error, context?: { emailExists?: boolean } ): { 
-  message: string; 
-  type: 'error' | 'warning' | 'info' 
-} {
-  const errorMessage = error.message.toLowerCase()
-  
-  // Invalid login credentials with context
-  if (errorMessage.includes('invalid login credentials')) {
-    if (context?.emailExists) {
-      return {
-        message: 'Incorrect password. Please try again.',
-        type: 'error'
-      }
-    } else {
-      return {
-        message: 'No account found with this email address.',
-        type: 'error'
-      }
-    }
-  }
-  
-  // Other specific errors
-  if (errorMessage.includes('email not confirmed')) {
-    return {
-      message: 'Please verify your email address before signing in.',
-      type: 'warning'
-    }
-  }
-
-  if (errorMessage.includes('invalid email')) {
-    return {
-      message: 'Please enter a valid email address.',
-      type: 'error'
-    }
-  }
-
-  if (errorMessage.includes('rate limit')) {
-    return {
-      message: 'Too many login attempts. Please try again later.',
-      type: 'warning'
-    }
-  }
-
-  if (errorMessage.includes('network')) {
-    return {
-      message: 'Network error. Please check your connection and try again.',
-      type: 'warning'
-    }
-  }
-
-  return {
-    message: 'An unexpected error occurred. Please try again.',
-    type: 'error'
-  }
-}
 
 export function LogInForm() {
   const [email, setEmail] = useState('')
@@ -85,7 +18,6 @@ export function LogInForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const dispatch = useDispatch()
 
   // Load saved email on component mount
@@ -111,73 +43,42 @@ export function LogInForm() {
     dispatch(setLoading(true))
     setErrorInfo(null)
 
-    // Validate required fields
-    if (!email.trim()) {
-      setErrorInfo({
-        message: 'Please enter your email address',
-        type: 'error'
-      })
-      return
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setErrorInfo({
-        message: 'Please enter a valid email address',
-        type: 'error'
-      })
-      return
-    }
-
-    if (!password.trim()) {
-      setErrorInfo({
-        message: 'Please enter your password',
-        type: 'error'
-      })
-      return
-    }
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        const emailExists = await checkEmailExists(email, supabase)
-        const errorInfo = getErrorMessage(error, { emailExists })
-        setErrorInfo(errorInfo)
-        dispatch(setError(errorInfo.message))
+      const result = await authService.signIn({ email, password })
+      
+      if (result.error) {
+        setErrorInfo({
+          message: result.error.message,
+          type: 'error'
+        })
         return
       }
 
-      if (data.user) {
-        clearSavedData()
-        router.push('/')
-        router.refresh()
-      }
+      // Erfolgreicher Login
+      clearSavedData()
+      router.push('/')
+      router.refresh()
     } catch (error) {
       console.error('Login error:', error)
-      const errorInfo = getErrorMessage(error as Error)
-      setErrorInfo(errorInfo)
-      dispatch(setError(errorInfo.message))
+      setErrorInfo({
+        message: (error as Error).message,
+        type: 'error'
+      })
     } finally {
       dispatch(setLoading(false))
     }
   }
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent'
-        }
-      }
-    })
+    try {
+      await authService.signInWithOAuth('google')
+    } catch (error) {
+      console.error('Google login error:', error)
+      setErrorInfo({
+        message: 'Failed to login with Google',
+        type: 'error'
+      })
+    }
   }
 
   return (

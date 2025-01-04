@@ -1,18 +1,14 @@
 import { useSelector } from 'react-redux';
-import { selectUserRole, selectPermissions, hasPermission } from '@/src/store/slices/authSlice';
-import type { RootState } from '@/src/store';
+import { selectIsAuthenticated, selectgetAuthUser, selectgetUserRole } from '@/src/store/slices/authSlice';
 
 export const useAuth = () => {
-  const userRole = useSelector(selectUserRole);
-  const permissions = useSelector(selectPermissions);
-
-  const useCheckPermission = (permission: string) => {
-    return useSelector((state: RootState) => hasPermission(state, permission));
-  };
+  const userRole = useSelector(selectgetUserRole);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const authUser = useSelector(selectgetAuthUser);
 
   return {
     userRole,
-    permissions,
-    checkPermission: useCheckPermission
+    isAuthenticated,
+    authUser
   };
 }; 

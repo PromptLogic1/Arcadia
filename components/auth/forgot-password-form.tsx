@@ -2,46 +2,43 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Info, Mail, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import type { Database } from '@/types/database.types'
+import { authService } from '@/src/store/services/auth-service'
+import { useDispatch } from 'react-redux'
+import { setLoading } from '@/src/store/slices/authSlice'
 
 export function ForgotPasswordForm() {
-  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClientComponentClient<Database>()
-
-  useEffect(() => {
-    const emailFromUrl = searchParams.get('email')
-    if (emailFromUrl) {
-      setEmail(emailFromUrl)
-    }
-  }, [searchParams])
+  const searchParams = useSearchParams()
+  const dispatch = useDispatch()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setStatus('loading')
+    dispatch(setLoading(true))
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      })
+      const result = await authService.resetPasswordForEmail(email)
 
-      if (error) throw error
+      if (result.error) {
+        throw result.error
+      }
 
       setStatus('success')
     } catch (error) {
       console.error('Reset password error:', error)
       setError('An error occurred. Please try again.')
       setStatus('idle')
+    } finally {
+      dispatch(setLoading(false))
     }
   }
 

@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { User } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
+import { authService } from '@/src/store/services/auth-service'
+import { AnalyticsCategory, AnalyticsAction } from '@/types/analytics'
 
 // NeonText Component for Gradient Text
 const NeonText = ({
@@ -113,7 +115,8 @@ const Header: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut()
+      setIsMenuOpen(false) // Close mobile menu if open
+      await authService.signOut()
     } catch (error) {
       console.error('Error signing out:', error)
     }

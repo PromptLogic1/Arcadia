@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Info, Mail, Check, X, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { supabaseAuth, AuthError } from '@/lib/supabase_lib/supabase-auth'
+import { authService } from '@/src/store/services/auth-service'
+import { useDispatch } from 'react-redux'
+import { setLoading } from '@/src/store/slices/authSlice'
 
 type SignUpStatus = 'idle' | 'loading' | 'success' | 'error' | 'verification_pending'
 
@@ -48,6 +50,7 @@ export function SignUpForm() {
   // Add validation state
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
 
+  const dispatch = useDispatch()
   const router = useRouter()
 
   // Load saved form data on component mount
@@ -168,116 +171,44 @@ export function SignUpForm() {
     e.preventDefault()
     setMessage(null)
     
-    // Validate form before proceeding
     if (!validateForm()) {
       return
     }
 
     setStatus('loading')
+    dispatch(setLoading(true))
 
     try {
-      const result = await supabaseAuth.signUp({
+      const result = await authService.signUp({
         email,
         password,
         username
       })
 
-      if (result.isExisting) {
-        if (result.wrongPassword) {
-          // Existing verified account with wrong password
-          setValidationErrors(prev => ({
-            ...prev,
-            email: 'Account with this E-Mail already exists, but password was incorrect',
-            password: (
-              <span className="text-sm">
-                Did you forget your password?{' '}
-                <Link 
-                  href={`/auth/forgot-password?email=${encodeURIComponent(email)}`} 
-                  className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-                >
-                  Reset it here
-                </Link>
-              </span>
-            ) as React.ReactNode
-          }))
-          setStatus('idle')
-          return
-        }
-
-        if (result.needsVerification) {
-          // Account exists but needs verification
-          setStatus('verification_pending')
-          setMessage({
-            text: 'This account needs verification. We\'ve sent a new verification email.',
-            type: 'info'
-          })
-          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
-          return
-        }
-
-        // Account exists and login successful
-        setStatus('success')
-        setMessage({
-          text: 'Account already exists! Logging you in...',
-          type: 'success'
-        })
-        setRedirectTimer(3)
+      if (result.error) {
+        handleSignUpError(result.error)
         return
       }
 
-      // New signup
       if (result.needsVerification) {
         setStatus('verification_pending')
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
         return
       }
 
-      if (result.isBanned) {
-        setValidationErrors(prev => ({
-          ...prev,
-          email: 'This account has been restricted. Please contact support for assistance.'
-        }))
-        setStatus('idle')
-        return
-      }
+      // Erfolgreiche Registrierung
+      setStatus('success')
+      setMessage({
+        text: 'Account created successfully!',
+        type: 'success'
+      })
+      setRedirectTimer(3)
 
     } catch (error) {
       console.error('Signup error:', error)
-      
-      if (error instanceof AuthError) {
-        switch (error.code) {
-          case 'VERIFICATION_PENDING':
-            setStatus('verification_pending')
-            router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
-            return
-            
-          case 'EMAIL_EXISTS':
-            setValidationErrors(prev => ({
-              ...prev,
-              email: 'Account with this E-Mail already exists'
-            }))
-            break
-            
-          case 'INVALID_USERNAME':
-            setValidationErrors(prev => ({
-              ...prev,
-              username: 'Username can only contain letters, numbers, underscores, and hyphens'
-            }))
-            break
-            
-          default:
-            setValidationErrors(prev => ({
-              ...prev,
-              general: error.message
-            }))
-        }
-      } else {
-        setValidationErrors(prev => ({
-          ...prev,
-          general: 'An unexpected error occurred. Please try again.'
-        }))
-      }
-      setStatus('idle')
+      handleSignUpError(error as Error)
+    } finally {
+      dispatch(setLoading(false))
     }
   }
 

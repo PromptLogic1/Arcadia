@@ -14,22 +14,22 @@ export interface Database {
       users: {
         Row: {
           id: string
-          auth_id: string
+          auth_id?: string
           username: string
           full_name: string | null
           avatar_url: string | null
-          role: 'user' | 'moderator' | 'admin'
-          experience_points: number
-          land: string | null
-          region: string | null
-          city: string | null
-          bio: string | null
+          role?: 'user' | 'premium' | 'moderator' | 'admin'
+          experience_points?: number
+          land?: string | null
+          region?: string | null
+          city?: string | null
+          bio?: string | null
           last_login_at: string | null
-          created_at: string
-          updated_at: string
-          profile_visibility: 'public' | 'friends' | 'private'
-          achievements_visibility: 'public' | 'friends' | 'private'
-          submissions_visibility: 'public' | 'friends' | 'private'
+          created_at?: string
+          updated_at?: string
+          profile_visibility?: 'public' | 'friends' | 'private'
+          achievements_visibility?: 'public' | 'friends' | 'private'
+          submissions_visibility?: 'public' | 'friends' | 'private'
         }
         Insert: Omit<Tables['users']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Tables['users']['Insert']>

@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Info, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Database } from '@/types/database.types'
+import { authService } from '@/src/store/services/auth-service'
+import { useDispatch } from 'react-redux'
+import { setLoading } from '@/src/store/slices/authSlice'
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('')
@@ -24,7 +25,7 @@ export function ResetPasswordForm() {
     length: false,
   })
   const router = useRouter()
-  const supabase = createClientComponentClient<Database>()
+  const dispatch = useDispatch()
 
   useEffect(() => {
     // Update password checks when password changes
@@ -41,6 +42,7 @@ export function ResetPasswordForm() {
     e.preventDefault()
     setError(null)
     setStatus('loading')
+    dispatch(setLoading(true))
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -55,9 +57,11 @@ export function ResetPasswordForm() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password })
+      const result = await authService.updatePassword(password)
 
-      if (error) throw error
+      if (result.error) {
+        throw result.error
+      }
 
       setStatus('success')
       // Redirect to home page after successful password reset
@@ -69,6 +73,8 @@ export function ResetPasswordForm() {
       console.error('Reset password error:', error)
       setError('Failed to reset password. Please try again.')
       setStatus('idle')
+    } finally {
+      dispatch(setLoading(false))
     }
   }
 

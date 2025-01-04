@@ -1,8 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { Tables } from '@/types/database.types';
 
 // User States
-export type UserState = 'GUEST' | 'AUTHENTICATED';
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
 
 interface AuthUser {
@@ -11,25 +9,21 @@ interface AuthUser {
   phone: string | null;
   display_name?: string;
   provider?: string;
-  role: 'user' | 'admin' | 'moderator' | 'premium'; // Rolle des Benutzers (Standard: 'user')
+  userRole: 'user' | 'admin' | 'moderator' | 'premium'; // Rolle des Benutzers (Standard: 'user')
 }
 
 interface AuthState {
-  authUser: AuthUser | null; // Normaler Benutzer
-  userRole: UserRole | null;
+  authUser: AuthUser | null; // Auth Benutzer
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-  permissions: string[];  // Berechtigungen basierend auf Rolle
 }
 
 const initialState: AuthState = {
   authUser: null,
-  userRole: null,
   isAuthenticated: false,
   loading: false,
   error: null,
-  permissions: []
 };
 
 const authSlice = createSlice({
@@ -49,21 +43,15 @@ const authSlice = createSlice({
     },
     clearUser: (state) => {
       state.authUser = null;
-      state.userRole = null;
       state.isAuthenticated = false;
-      state.permissions = [];
     },
   },
 });
 
 // Selektoren für einfachen Zugriff auf States und Berechtigungen
-export const selectUserRole = (state: { auth: AuthState }) => state.auth.userRole;
-export const selectPermissions = (state: { auth: AuthState }) => state.auth.permissions;
 export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
-
-// Helper-Funktion zur Berechtigungsprüfung
-export const hasPermission = (state: { auth: AuthState }, permission: string) => 
-  state.auth.permissions.includes(permission);
+export const selectgetAuthUser = (state: { auth: AuthState }) => state.auth.authUser;
+export const selectgetUserRole = (state: { auth: AuthState }) => state.auth.authUser?.userRole;
 
 export const { 
   setLoading, 
