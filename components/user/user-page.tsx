@@ -52,14 +52,8 @@ export default function UserPage({ userData }: UserPageProps) {
     },
     { 
       icon: Clock, 
-      label: 'Last Sign In',
-      value: userData.last_login_at 
-        ? new Date(userData.last_login_at).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })
-        : 'Never',
+      label: 'Last Activity',
+      value: userData.last_login_at ? new Date(userData.last_login_at).toLocaleDateString() : 'Never',
       color: 'from-purple-500 to-pink-500'
     },
   ]

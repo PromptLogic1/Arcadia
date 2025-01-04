@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import { setAuthUser, clearUser, setLoading, setError, setUserdata } from '../slices/authSlice'
-import type { Database } from '@/types/database.types'
 import { serverLog } from '@/lib/logger'
 
 interface SignInCredentials {
@@ -53,13 +52,15 @@ class AuthService {
 
         if (dbError) throw dbError
 
+        console.log(user)
+
         // Update Redux store with user data
         store.dispatch(setAuthUser({
           id: user.id,
           email: user.email ?? null,
           phone: user.phone ?? null,
-          display_name: user.user_metadata?.display_name,
-          provider: user.app_metadata?.provider,
+          auth_username: user.user_metadata?.username ?? null,
+          provider: user.app_metadata?.provider ?? null,
           userRole: (userData?.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
         }))
 
@@ -327,6 +328,19 @@ class AuthService {
       return data
     } catch (error) {
       console.error('Error updating user data:', error)
+      throw error
+    }
+  }
+
+  async updateEmail(newEmail: string): Promise<void> {
+    try {
+      const { error } = await this.supabase.auth.updateUser({
+        email: newEmail
+      })
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error updating email:', error)
       throw error
     }
   }

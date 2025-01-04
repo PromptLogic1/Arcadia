@@ -22,8 +22,8 @@ interface AuthUser {
   id: string; // Auth ID 
   email: string | null;
   phone: string | null;
-  display_name?: string;
-  provider?: string;
+  auth_username: string | null;
+  provider: string | null;
   userRole: UserRole; // Rolle des Benutzers (Standard: 'user')
 }
 
