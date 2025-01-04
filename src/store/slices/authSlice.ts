@@ -3,17 +3,32 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 // User States
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
 
+interface userdata {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  experience_points: number;
+  land: string | null;
+  region: string | null;
+  city: string | null;
+  bio: string | null;
+  last_login_at: string | null;
+  created_at: string;
+}
+
 interface AuthUser {
   id: string; // Auth ID 
   email: string | null;
   phone: string | null;
   display_name?: string;
   provider?: string;
-  userRole: 'user' | 'admin' | 'moderator' | 'premium'; // Rolle des Benutzers (Standard: 'user')
+  userRole: UserRole; // Rolle des Benutzers (Standard: 'user')
 }
 
 interface AuthState {
   authUser: AuthUser | null; // Auth Benutzer
+  userdata: userdata | null; // Userdata Benutzer
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
@@ -21,6 +36,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   authUser: null,
+  userdata: null,
   isAuthenticated: false,
   loading: false,
   error: null,
@@ -41,22 +57,24 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.error = null;
     },
+    setUserdata: (state, action: PayloadAction<userdata>) => {
+      state.userdata = action.payload;
+      state.error = null;
+    },
     clearUser: (state) => {
       state.authUser = null;
+      state.userdata = null;
       state.isAuthenticated = false;
+      state.error = null;
     },
   },
 });
-
-// Selektoren für einfachen Zugriff auf States und Berechtigungen
-export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
-export const selectgetAuthUser = (state: { auth: AuthState }) => state.auth.authUser;
-export const selectgetUserRole = (state: { auth: AuthState }) => state.auth.authUser?.userRole;
 
 export const { 
   setLoading, 
   setError, 
   setAuthUser,
+  setUserdata,
   clearUser 
 } = authSlice.actions;
 

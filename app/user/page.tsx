@@ -1,29 +1,29 @@
+import UserProfile from './_components/user';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/database.types';
-import ProfileWrapper from './_components/profile-wrapper';
-import UserProfile from './_components/user';
 
 export default async function UserProfilePage({ searchParams }: { searchParams: { id?: string } }) {
-  // If we have an ID in the URL, fetch that specific user's profile
-  if (searchParams.id) {
-    const cookieStore = await cookies();
-    const supabase = createServerComponentClient<Database>({ cookies: () => cookieStore });
+  const cookieStore = await cookies();
+  const supabase = createServerComponentClient<Database>({ cookies: () => cookieStore });
 
-    const { data: userData, error } = await supabase
+  let userData = null;
+
+  if (searchParams.id) {
+    // Case 1: SearchParams is provided (View another user's profile)
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', searchParams.id)
       .single();
 
-    if (error || !userData) {
+    if (error || !data) {
       console.error('Error fetching user data:', error);
       return <div>Error loading user profile</div>;
     }
-
-    return <UserProfile userData={userData} />;
+     // Case 2: No SearchParams provided, call own profile. 
+    userData = data; // TODO Here Add the userdata from own profile out of the service 
   }
 
-  // If no ID is provided, use the ProfileWrapper to load the current user's data from Redux
-  return <ProfileWrapper />;
+  return <UserProfile userData={userData} />;
 }

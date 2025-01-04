@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { authService } from '@/src/store/services/auth-service'
 import { useDispatch } from 'react-redux'
 import { setLoading, setError } from '@/src/store/slices/authSlice'
+import { serverLog } from '@/lib/logger'
 
 export function LogInForm() {
   const [email, setEmail] = useState('')
@@ -40,13 +41,22 @@ export function LogInForm() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    dispatch(setLoading(true))
     setErrorInfo(null)
+    dispatch(setLoading(true))
 
     try {
-      const result = await authService.signIn({ email, password })
+      await serverLog('Login form submission', { 
+        email,
+        passwordLength: password.length // Log password length for debugging
+      })
+
+      const result = await authService.signIn({ 
+        email: email.trim(), // Ensure no whitespace
+        password: password.trim() // Ensure no whitespace
+      })
       
       if (result.error) {
+        await serverLog('Login form error', { error: result.error.message })
         setErrorInfo({
           message: result.error.message,
           type: 'error'
@@ -54,14 +64,14 @@ export function LogInForm() {
         return
       }
 
-      // Erfolgreicher Login
+      await serverLog('Login form success - redirecting')
       clearSavedData()
       router.push('/')
       router.refresh()
     } catch (error) {
-      console.error('Login error:', error)
+      await serverLog('Login form unexpected error', { error })
       setErrorInfo({
-        message: (error as Error).message,
+        message: 'An unexpected error occurred',
         type: 'error'
       })
     } finally {

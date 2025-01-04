@@ -31,11 +31,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from "@/lib/utils"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { User } from '@supabase/auth-helpers-nextjs'
-import type { Database } from '@/types/database.types'
+import { useDispatch, useSelector } from 'react-redux'
+import { selectIsAuthenticated, selectUserData } from '@/src/store/selectors/authSelectors'
 import { authService } from '@/src/store/services/auth-service'
-import { AnalyticsCategory, AnalyticsAction } from '@/types/analytics'
 
 // NeonText Component for Gradient Text
 const NeonText = ({
@@ -64,29 +62,12 @@ const Header: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
   const pathname = usePathname() ?? ''
-  const [user, setUser] = useState<User | null>(null)
-  const supabase = createClientComponentClient<Database>()
+  
+  // Replace Supabase with Redux
+  const isAuthenticated = useSelector(selectIsAuthenticated)
+  const userData = useSelector(selectUserData)
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-    }
-
-    getUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      
-      if (_event === 'SIGNED_OUT') {
-        window.location.href = '/'
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase.auth])
-
-  // Handle Scroll to Change Header Style
+  // Handle scroll effect remains the same
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
@@ -114,12 +95,7 @@ const Header: React.FC = () => {
   ], [])
 
   const handleSignOut = async () => {
-    try {
-      setIsMenuOpen(false) // Close mobile menu if open
-      await authService.signOut()
-    } catch (error) {
-      console.error('Error signing out:', error)
-    }
+    await authService.signOut()
   }
 
   return (
@@ -234,10 +210,7 @@ const Header: React.FC = () => {
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* ... other buttons like search and notifications ... */}
-
-            {user ? (
-              // Show User Dropdown when logged in
+            {isAuthenticated && userData ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -246,8 +219,8 @@ const Header: React.FC = () => {
                     aria-label="User menu"
                   >
                     <Avatar className="h-10 w-10 transition-transform duration-200 hover:scale-110">
-                      <AvatarImage src={user.user_metadata.avatar_url || "/images/placeholder-avatar.jpg"} alt="User avatar" />
-                      <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={userData.avatar_url || "/images/placeholder-avatar.jpg"} alt="User avatar" />
+                      <AvatarFallback>{userData.username?.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -275,7 +248,6 @@ const Header: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              // Show Sign In/Up buttons when logged out
               <div className="flex items-center gap-2">
                 <Link href="/auth/login">
                   <Button
@@ -357,7 +329,7 @@ const Header: React.FC = () => {
               >
                 Download
               </Link>
-              {user ? (
+              {isAuthenticated && userData ? (
                 <>
                   <Link
                     href={`/user`}

@@ -1,7 +1,8 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
-import { setAuthUser, clearUser, setLoading, setError } from '../slices/authSlice'
+import { setAuthUser, clearUser, setLoading, setError, setUserdata } from '../slices/authSlice'
 import type { Database } from '@/types/database.types'
+import { serverLog } from '@/lib/logger'
 
 interface SignInCredentials {
   email: string;
@@ -14,7 +15,14 @@ interface AuthResponse {
 }
 
 class AuthService {
-  private supabase = createClientComponentClient<Database>()
+  private supabase = supabase
+
+  constructor() {
+    // Verify Supabase initialization
+    if (!this.supabase.auth) {
+      console.error('Supabase client not properly initialized')
+    }
+  }
 
   async initializeApp() {
     try {
@@ -22,32 +30,47 @@ class AuthService {
       
       const { data: { user }, error: authError } = await this.supabase.auth.getUser()
       
-      if (authError) throw authError
-      
-      if (user) {
+      // If no user or error, just clear the store and return
+      if (!user) {
+        store.dispatch(clearUser())
+        return
+      }
+        // Only fetch user data if we have an authenticated user
         const { data: userData, error: dbError } = await this.supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', user.id)
-        .single();
+          .from('users')
+          .select('*')
+          .eq('auth_id', user.id)
+          .single()
 
         if (dbError) throw dbError
 
+        // Update Redux store with user data
         store.dispatch(setAuthUser({
           id: user.id,
           email: user.email ?? null,
           phone: user.phone ?? null,
           display_name: user.user_metadata?.display_name,
           provider: user.app_metadata?.provider,
-          userRole: (userData.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
+          userRole: (userData?.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
         }))
-      
-      } else {
-        store.dispatch(clearUser())
-      }
+
+        //Update Userdata
+        store.dispatch(setUserdata({
+          id: userData.id,
+          username: userData.username,
+          full_name: userData.full_name,
+          avatar_url: userData.avatar_url,
+          experience_points: userData.experience_points,
+          land: userData.land,
+          region: userData.region,
+          city: userData.city,
+          bio: userData.bio,
+          last_login_at: userData.last_login_at,
+          created_at: userData.created_at
+        }))
+
     } catch (error) {
-      console.error('Initialization error:', error)
-      store.dispatch(setError((error as Error).message))
+      console.error('Auth initialization error:', error)
       store.dispatch(clearUser())
     } finally {
       store.dispatch(setLoading(false))
@@ -62,35 +85,59 @@ class AuthService {
       
       if (event === 'SIGNED_OUT') {
         store.dispatch(clearUser())
+        // No need to redirect here as signOut() handles it
       }
     })
   }
 
   async signIn({ email, password }: SignInCredentials): Promise<AuthResponse> {
     try {
+      store.dispatch(setLoading(true))
+      
+      await serverLog('Login attempt', { 
+        email: email,
+        hasPassword: password
+      })
+
       const { data, error } = await this.supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: email,
+        password: password
       })
 
       if (error) {
-        return { error: new Error(error.message) }
+        await serverLog('Login failed', {
+          error: {
+            message: error.message,
+            status: error.status,
+            name: error.name,
+            details: error
+          }
+        })
+        return { 
+          error: new Error(error.message)
+        }
       }
 
-      if (data?.user) {
-        await this.initializeApp() // Lade Benutzerdaten nach erfolgreichem Login
-        return {}
+      if (!data?.user) {
+        await serverLog('No user data received')
+        return { error: new Error('No user data received') }
       }
 
-      return { error: new Error('Login failed') }
+      await serverLog('Login successful', { userId: data.user.id })
+      await this.initializeApp()
+      
+      return {}
     } catch (error) {
+      await serverLog('Unexpected login error', { error })
       return { error: error as Error }
+    } finally {
+      store.dispatch(setLoading(false))
     }
   }
 
   async signInWithOAuth(provider: 'google'): Promise<AuthResponse> {
     try {
-      const { data, error } = await this.supabase.auth.signInWithOAuth({
+      const { error } = await this.supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/oauth-success`,
@@ -173,6 +220,30 @@ class AuthService {
       return {}
     } catch (error) {
       return { error: error as Error }
+    }
+  }
+
+  async signOut(): Promise<AuthResponse> {
+    try {
+      store.dispatch(setLoading(true))
+      const { error } = await this.supabase.auth.signOut()
+      
+      if (error) {
+        return { error: new Error(error.message) }
+      }
+
+      // Clear the user data from Redux store
+      store.dispatch(clearUser())
+
+      // Let the router handle navigation
+      window.location.href = '/'
+
+      return {}
+    } catch (error) {
+      console.error('Sign out error:', error)
+      return { error: error as Error }
+    } finally {
+      store.dispatch(setLoading(false))
     }
   }
 }
