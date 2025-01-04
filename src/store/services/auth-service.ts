@@ -54,12 +54,13 @@ class AuthService {
           userRole: (userData?.role as 'user' | 'admin' | 'moderator' | 'premium') ?? 'user'
         }))
 
-        //Update Userdata
+        // Update Userdata
         store.dispatch(setUserdata({
           id: userData.id,
           username: userData.username,
           full_name: userData.full_name,
           avatar_url: userData.avatar_url,
+          role: userData.role,
           experience_points: userData.experience_points,
           land: userData.land,
           region: userData.region,
@@ -137,7 +138,7 @@ class AuthService {
 
   async signInWithOAuth(provider: 'google'): Promise<AuthResponse> {
     try {
-      const { error } = await this.supabase.auth.signInWithOAuth({
+      const { data, error } = await this.supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/oauth-success`,

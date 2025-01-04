@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useState } from 'react'
 import type { Tables } from '@/types/database.types'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -20,32 +19,7 @@ interface UserPageProps {
 
 export default function UserPage({ userData }: UserPageProps) {
   const [activeTab, setActiveTab] = useState('achievements')
-  const [lastSignIn, setLastSignIn] = useState<string | null>(null)
-  const supabase = createClientComponentClient()
-
-  useEffect(() => {
-    const getLastSignIn = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser()
-      
-      if (error) {
-        console.error('Error fetching auth user:', error)
-        return
-      }
-
-      if (user?.last_sign_in_at) {
-        const date = new Date(user.last_sign_in_at)
-        // Format the date to only show date without time
-        setLastSignIn(date.toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }))
-      }
-    }
-
-    getLastSignIn()
-  }, [supabase.auth])
-
+  
   if (!userData) {
     return (
       <div className="container mx-auto p-4">
@@ -54,7 +28,6 @@ export default function UserPage({ userData }: UserPageProps) {
     )
   }
 
-  // Generate avatar URL based on username if no avatar_url exists
   const avatarUrl = userData.avatar_url || 
     `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username)}&background=random`
 
@@ -68,19 +41,25 @@ export default function UserPage({ userData }: UserPageProps) {
     { 
       icon: UserCircle, 
       label: 'Role', 
-      value: userData.role.charAt(0).toUpperCase() + userData.role.slice(1) || 'Member',
+      value: userData.role?.charAt(0).toUpperCase() + userData.role?.slice(1) || 'Member',
       color: 'from-cyan-500 to-blue-500'
     },
     { 
       icon: Calendar, 
       label: 'Member Since', 
-      value: new Date(userData.created_at).toLocaleDateString(),
+      value: userData.created_at ? new Date(userData.created_at).toLocaleDateString() : 'Unknown',
       color: 'from-green-500 to-emerald-500'
     },
     { 
       icon: Clock, 
       label: 'Last Sign In',
-      value: lastSignIn || 'Never',
+      value: userData.last_login_at 
+        ? new Date(userData.last_login_at).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        : 'Never',
       color: 'from-purple-500 to-pink-500'
     },
   ]

@@ -13,6 +13,7 @@ interface userdata {
   region: string | null;
   city: string | null;
   bio: string | null;
+  role: UserRole;
   last_login_at: string | null;
   created_at: string;
 }
