@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +15,6 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [error, setError] = useState<string | null>(null)
-  const searchParams = useSearchParams()
   const dispatch = useDispatch()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +47,7 @@ export function ForgotPasswordForm() {
           Reset your password
         </h2>
         <p className="mt-2 text-sm text-gray-400">
-          Enter your email address and we'll send you a link to reset your password
+          Enter your email address and we&apos;ll send you a link to reset your password
         </p>
       </div>
 
@@ -59,7 +57,7 @@ export function ForgotPasswordForm() {
             <Mail className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
             <div className="text-left">
               <p className="text-sm text-green-400">
-                If an account exists with {email}, we've sent you instructions to reset your password.
+                If an account exists with {email}, we&apos;ve sent you instructions to reset your password.
               </p>
               <p className="text-sm text-green-400 mt-2">
                 Please check your email inbox.

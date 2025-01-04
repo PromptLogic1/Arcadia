@@ -247,6 +247,45 @@ class AuthService {
       store.dispatch(setLoading(false))
     }
   }
+
+  async refreshUserData() {
+    try {
+      const { data: { user }, error: authError } = await this.supabase.auth.getUser()
+      
+      if (!user || authError) {
+        throw new Error(authError?.message || 'No user found')
+      }
+
+      const { data: userData, error: dbError } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single()
+
+      if (dbError) throw dbError
+
+      // Update Redux store with user data
+      store.dispatch(setUserdata({
+        id: userData.id,
+        username: userData.username,
+        full_name: userData.full_name,
+        avatar_url: userData.avatar_url,
+        role: userData.role,
+        experience_points: userData.experience_points,
+        land: userData.land,
+        region: userData.region,
+        city: userData.city,
+        bio: userData.bio,
+        last_login_at: userData.last_login_at,
+        created_at: userData.created_at
+      }))
+
+      return userData
+    } catch (error) {
+      console.error('Error refreshing user data:', error)
+      throw error
+    }
+  }
 }
 
 export const authService = new AuthService() 

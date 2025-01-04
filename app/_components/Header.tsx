@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from "@/lib/utils"
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { selectIsAuthenticated, selectUserData } from '@/src/store/selectors/authSelectors'
 import { authService } from '@/src/store/services/auth-service'
 

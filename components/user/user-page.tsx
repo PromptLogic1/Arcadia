@@ -41,7 +41,7 @@ export default function UserPage({ userData }: UserPageProps) {
     { 
       icon: UserCircle, 
       label: 'Role', 
-      value: userData.role?.charAt(0).toUpperCase() + userData.role?.slice(1) || 'Member',
+      value: `${userData.role}`,
       color: 'from-cyan-500 to-blue-500'
     },
     { 
@@ -96,7 +96,7 @@ export default function UserPage({ userData }: UserPageProps) {
                 </h1>
                 <h2 className="text-2xl text-cyan-400">{userData.full_name}</h2>
               </div>
-              <Link href={`/user/user-page/edit`} className="mt-4 md:mt-0">
+              <Link href="/user/edit" className="mt-4 md:mt-0">
                 <Button 
                   className="w-full md:w-auto bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white hover:opacity-90 transition-all duration-200 flex items-center gap-2"
                 >
