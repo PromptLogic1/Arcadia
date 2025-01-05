@@ -2,13 +2,17 @@
 
 import React, { useState, useMemo } from 'react'
 import { Trophy, Grid, Zap, Puzzle } from 'lucide-react'
-import { ChallengesTabs, type Challenge } from '../../../components/challenges/ChallengesTabs'
-import BingoBattles from '../../../components/challenges/bingo-board/bingo-battles'
+import { BingoBoards } from './sections/BingoBoards/BingoBoards'
+import { SpeedRuns } from './sections/Speedruns/SpeedRuns'
+import { AchievementHunt } from './sections/AchievementHunt/AchievementHunt'
+import { PuzzleQuests } from './sections/PuzzleQuests/PuzzleQuests'
+import type { Challenge, ChallengeSection } from './types'
+import { ChallengesTabs } from './ChallengesTabs'
 
 const CHALLENGES: Challenge[] = [
   {
     id: 'bingo',
-    name: 'Bingo Battles',
+    name: 'Bingo Boards',
     description: 'Create and play custom bingo boards',
     icon: Grid,
     details: 'Compete against friends or join global tournaments. Customize your boards, set win conditions, and race against the clock in this exciting twist on classic bingo.',
@@ -36,7 +40,7 @@ const CHALLENGES: Challenge[] = [
     ],
     difficulty: 'Medium to Hard',
     estimatedTime: 'Varies by game',
-    disabled: true,
+    disabled: false,
   },
   {
     id: 'achievements',
@@ -52,10 +56,10 @@ const CHALLENGES: Challenge[] = [
     ],
     difficulty: 'Varies',
     estimatedTime: 'Ongoing',
-    disabled: true,
+    disabled: false,
   },
   {
-    id: 'custom',
+    id: 'puzzles',
     name: 'Puzzle Quests',
     description: 'Solve intricate puzzles and riddles',
     icon: Puzzle,
@@ -68,30 +72,54 @@ const CHALLENGES: Challenge[] = [
     ],
     difficulty: 'Easy to Expert',
     estimatedTime: '5-30 minutes per puzzle',
-    disabled: true,
+    disabled: false,
   },
 ]
+
+const SECTIONS: Record<string, ChallengeSection> = {
+  bingo: {
+    id: 'bingo',
+    component: BingoBoards,
+    path: '/challangehub/bingo-boards'
+  },
+  speedrun: {
+    id: 'speedrun',
+    component: SpeedRuns,
+    path: '/challangehub/speedruns'
+  },
+  achievements: {
+    id: 'achievements',
+    component: AchievementHunt,
+    path: '/challangehub/achievements'
+  },
+  puzzles: {
+    id: 'puzzles',
+    component: PuzzleQuests,
+    path: '/challangehub/puzzle-quests'
+  }
+}
 
 export default function Challenges() {
   const [activeChallenge, setActiveChallenge] = useState<Challenge['id']>('bingo')
 
-  const currentChallenge = useMemo(() => {
-    switch (activeChallenge) {
-      case 'bingo':
-        return <BingoBattles />
-      default:
-        return null
-    }
+  const currentSection = useMemo(() => {
+    const section = SECTIONS[activeChallenge]
+    if (!section) return null
+
+    const SectionComponent = section.component
+    return <SectionComponent />
   }, [activeChallenge])
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <ChallengesTabs
-        challenges={CHALLENGES}
-        activeChallenge={activeChallenge}
-        onChallengeChange={setActiveChallenge}
-      />
-      {currentChallenge}
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100">
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        <ChallengesTabs
+          challenges={CHALLENGES}
+          activeChallenge={activeChallenge}
+          onChallengeChange={setActiveChallenge}
+        />
+        {currentSection}
+      </main>
     </div>
   )
 }

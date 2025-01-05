@@ -7,11 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
-import { BoardCard } from './components/cards/BoardCard'
-import { GAMES, type Game, type Board, isSet } from './types/types'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { BoardCard } from '../../../../../../components/challenges/bingo-board/components/cards/BoardCard'
+import { GAMES, type Game, type Board, isSet } from '../../../../../../components/challenges/bingo-board/types/types'
+import { useAuth } from '@/src/hooks/useAuth';
 import { useRouter } from 'next/navigation'
-import BingoBoardDetail from './BingoBoardDetail'
+import BingoBoardDetail from '@/app/challangehub/_components/sections/BingoBoards/_components/BingoBoardDetail'
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -40,18 +40,8 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
   const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const supabase = createClientComponentClient()
   const router = useRouter()
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setIsAuthenticated(!!session)
-    }
-    checkAuth()
-  }, [supabase.auth])
+  const { isAuthenticated } = useAuth();
 
   // Fetch boards
   useEffect(() => {

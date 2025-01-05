@@ -1,19 +1,19 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { Board } from './components/Board/Board'
+import { Board } from '../../../../../../components/challenges/bingo-board/components/Board/Board'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
-import { GameControls } from './components/GameControls'
+import { GameControls } from '../../../../../../components/challenges/bingo-board/components/GameControls'
 
 // Import contexts and hooks
-import { useGameState } from './hooks/useGameState'
-import { GameProvider } from './context/BingoGameContext'
-import { SessionProvider } from './context/SessionContext'
-import { useSessionContext } from './context/SessionContext'
+import { useGameState } from '../../../../../../components/challenges/bingo-board/hooks/useGameState'
+import { GameProvider } from '../../../../../../components/challenges/bingo-board/context/BingoGameContext'
+import { SessionProvider } from '../../../../../../components/challenges/bingo-board/context/SessionContext'
+import { useSessionContext } from '../../../../../../components/challenges/bingo-board/context/SessionContext'
 
 // Import types
-import type { BingoBoardDetailProps, BoardCell, Player } from './types/types'
-import type { GameSettings } from './types/gamesettings.types'
+import type { BingoBoardDetailProps, BoardCell, Player } from '../../../../../../components/challenges/bingo-board/types/types'
+import type { GameSettings } from '../../../../../../components/challenges/bingo-board/types/gamesettings.types'
 
 // Define a proper interface for the board props
 interface ExtendedBoardProps {

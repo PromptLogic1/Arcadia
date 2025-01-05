@@ -89,7 +89,8 @@ const Header: React.FC = () => {
   // Verbesserte Navigation Items
   const navItems = useMemo<NavItem[]>(() => [
     { href: '/', label: 'Home' },
-    { href: '/challenges', label: 'Challenges' },
+    { href: '/playarea', label: 'Play Area' },
+    { href: '/challangehub', label: 'Challenge Hub' },
     { href: '/community', label: 'Community' },
     { href: '/about', label: 'About' },
   ], [])
