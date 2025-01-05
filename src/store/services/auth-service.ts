@@ -22,6 +22,14 @@ interface UpdateUserDataParams {
   city?: string
 }
 
+interface PasswordChecks {
+  uppercase: boolean;
+  lowercase: boolean;
+  number: boolean;
+  special: boolean;
+  length: boolean;
+}
+
 class AuthService {
   private supabase = supabase
 
@@ -39,7 +47,7 @@ class AuthService {
       const { data: { user }, error: authError } = await this.supabase.auth.getUser()
       
       // If no user or error, just clear the store and return
-      if (!user) {
+      if (!user || authError) {
         store.dispatch(clearUser())
         return
       }
@@ -51,8 +59,6 @@ class AuthService {
           .single()
 
         if (dbError) throw dbError
-
-        console.log(user)
 
         // Update Redux store with user data
         store.dispatch(setAuthUser({
@@ -220,20 +226,6 @@ class AuthService {
     }
   }
 
-  async updatePassword(password: string): Promise<AuthResponse> {
-    try {
-      const { error } = await this.supabase.auth.updateUser({ password })
-
-      if (error) {
-        return { error: new Error(error.message) }
-      }
-
-      return {}
-    } catch (error) {
-      return { error: error as Error }
-    }
-  }
-
   async signOut(): Promise<AuthResponse> {
     try {
       store.dispatch(setLoading(true))
@@ -342,6 +334,51 @@ class AuthService {
     } catch (error) {
       console.error('Error updating email:', error)
       throw error
+    }
+  }
+
+  async updatePassword(password: string): Promise<AuthResponse> {
+    try {
+      // First check if password meets requirements
+      const checks = this.checkPasswordRequirements(password)
+      if (!Object.values(checks).every(Boolean)) {
+        return { 
+          error: new Error('Password does not meet all requirements') 
+        }
+      }
+
+      const { error } = await this.supabase.auth.updateUser({ password })
+
+      if (error) {
+        // Verbesserte Fehlermeldungen
+        switch (error.message) {
+          case 'New password should be different from the old password':
+            return { error: new Error('Your new password must be different from your current password') }
+          case 'Auth session missing!':
+            return { error: new Error('Your session has expired. Please log in again') }
+          default:
+            return { error: new Error(error.message || 'Failed to update password') }
+        }
+      }
+
+      return {}
+    } catch (error) {
+      console.error('Password update error:', error)
+      return { 
+        error: error instanceof Error 
+          ? error 
+          : new Error('An unexpected error occurred while updating your password') 
+      }
+    }
+  }
+
+  checkPasswordRequirements(password: string): PasswordChecks {
+    return {
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[^A-Za-z0-9]/.test(password),
+      length: password.length >= 8,
     }
   }
 }

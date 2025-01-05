@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,26 +17,11 @@ export function ResetPasswordForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [isPasswordFocused, setIsPasswordFocused] = useState(false)
-  const [passwordChecks, setPasswordChecks] = useState({
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-    length: false,
-  })
   const router = useRouter()
   const dispatch = useDispatch()
 
-  useEffect(() => {
-    // Update password checks when password changes
-    setPasswordChecks({
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[^A-Za-z0-9]/.test(password),
-      length: password.length >= 8,
-    })
-  }, [password])
+  // Nutze direkt die authService Funktion für die Passwort-Checks
+  const passwordChecks = authService.checkPasswordRequirements(password)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,19 +29,15 @@ export function ResetPasswordForm() {
     setStatus('loading')
     dispatch(setLoading(true))
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setStatus('idle')
-      return
-    }
-
-    if (!Object.values(passwordChecks).every(Boolean)) {
-      setError('Password does not meet all requirements')
-      setStatus('idle')
-      return
-    }
-
     try {
+      if (password !== confirmPassword) {
+        throw new Error('Passwords do not match')
+      }
+
+      if (!Object.values(passwordChecks).every(Boolean)) {
+        throw new Error('Password does not meet all requirements')
+      }
+
       const result = await authService.updatePassword(password)
 
       if (result.error) {
@@ -71,7 +52,7 @@ export function ResetPasswordForm() {
       }, 2000)
     } catch (error) {
       console.error('Reset password error:', error)
-      setError('Failed to reset password. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to reset password. Please try again.')
       setStatus('idle')
     } finally {
       dispatch(setLoading(false))

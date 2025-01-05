@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,24 +28,9 @@ export function GeneralSettings() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [passwordChecks, setPasswordChecks] = useState({
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-    length: false,
-  })
 
-  // Add effect to check password requirements
-  useEffect(() => {
-    setPasswordChecks({
-      uppercase: /[A-Z]/.test(newPassword),
-      lowercase: /[a-z]/.test(newPassword),
-      number: /[0-9]/.test(newPassword),
-      special: /[^A-Za-z0-9]/.test(newPassword),
-      length: newPassword.length >= 8,
-    })
-  }, [newPassword])
+  // Replace the useEffect with direct usage of authService
+  const passwordChecks = authService.checkPasswordRequirements(newPassword)
 
   // Redirect if not authenticated
   if (!isAuthenticated || !userData) {
@@ -84,16 +69,20 @@ export function GeneralSettings() {
 
       setIsSaving(true)
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        email: newEmail
-      })
-
-      if (updateError) throw updateError
+      await authService.updateEmail(newEmail)
 
       setMessage({
-        text: 'Please check both your old email address and your new email address. You need to confirm the change in both emails to complete the update.',
-        type: 'info'
+        text: 'Email update initiated! Please check both your current and new email addresses for confirmation links. You need to confirm the change in both emails to complete the update.',
+        type: 'success'
       })
+
+      // Show additional info after 3 seconds
+      setTimeout(() => {
+        setMessage({
+          text: 'Tip: If you don\'t see the confirmation emails, please check your spam folder.',
+          type: 'info'
+        })
+      }, 3000)
 
       resetEmailForm()
     } catch (error) {
@@ -118,25 +107,31 @@ export function GeneralSettings() {
       setIsSaving(true)
 
       // Verify current password
-      const { error: verifyError } = await supabase.auth.signInWithPassword({
+      const verifyResult = await authService.signIn({
         email: currentEmail,
         password: currentPassword,
       })
 
-      if (verifyError) {
+      if (verifyResult.error) {
         throw new Error('Current password is incorrect')
       }
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
-      })
+      const updateResult = await authService.updatePassword(newPassword)
 
-      if (updateError) throw updateError
+      if (updateResult.error) throw updateResult.error
 
       setMessage({
-        text: 'Password updated successfully!',
+        text: 'Password updated successfully! Your account is now more secure.',
         type: 'success'
       })
+
+      // Show additional info after 3 seconds
+      setTimeout(() => {
+        setMessage({
+          text: 'Remember to use a strong password and update it regularly.',
+          type: 'info' // Optional: You can keep this for additional info
+        });
+      }, 3000);
 
       resetPasswordForm()
     } catch (error) {
@@ -216,6 +211,21 @@ export function GeneralSettings() {
             >
               <X className="w-4 h-4 text-gray-400" />
             </button>
+
+            <div className="flex items-start p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+              <div className="flex gap-3">
+                <Info className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-medium text-yellow-500">
+                    Important Information
+                  </h4>
+                  <p className="text-sm text-yellow-200/80">
+                    You will need to confirm this change in both your current and new email addresses. 
+                    Please check both inboxes for confirmation links to complete the update.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="new-email">New Email Address</Label>

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { authService } from '@/src/store/services/auth-service'
 import { useDispatch } from 'react-redux'
-import { setLoading } from '@/src/store/slices/authSlice'
+import { setLoading as setGlobalLoading } from '@/src/store/slices/authSlice'
 
 type SignUpStatus = 'idle' | 'loading' | 'success' | 'error' | 'verification_pending'
 
@@ -34,7 +34,7 @@ export function SignUpForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPasswordFocused, setIsPasswordFocused] = useState(false)
   const [passwordChecks, setPasswordChecks] = useState({
     uppercase: false,
@@ -109,7 +109,7 @@ export function SignUpForm() {
     }
   }
 
-  // Update handleInputChange to include validation
+  // Update handleInputChange to use authService
   const handleInputChange = (
     setter: (value: string) => void,
     value: string,
@@ -135,7 +135,7 @@ export function SignUpForm() {
 
     // Update password checks if password field changes
     if (field === 'password') {
-      setPasswordChecks(supabaseAuth.checkPasswordRequirements(value))
+      setPasswordChecks(authService.checkPasswordRequirements(value))
     }
   }
 
@@ -166,7 +166,7 @@ export function SignUpForm() {
     }
   }, [redirectTimer, status, router])
 
-  // Update handleSubmit to use new validation
+  // Update handleSubmit to use authService
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage(null)
@@ -176,7 +176,8 @@ export function SignUpForm() {
     }
 
     setStatus('loading')
-    dispatch(setLoading(true))
+    setIsSubmitting(true)
+    dispatch(setGlobalLoading(true))
 
     try {
       const result = await authService.signUp({
@@ -196,7 +197,6 @@ export function SignUpForm() {
         return
       }
 
-      // Erfolgreiche Registrierung
       setStatus('success')
       setMessage({
         text: 'Account created successfully!',
@@ -208,22 +208,38 @@ export function SignUpForm() {
       console.error('Signup error:', error)
       handleSignUpError(error as Error)
     } finally {
-      dispatch(setLoading(false))
+      setIsSubmitting(false)
+      dispatch(setGlobalLoading(false))
     }
   }
 
+  // Update handleOAuthLogin to use authService
   const handleOAuthLogin = async (provider: 'google') => {
     setError(null)
-    setLoading(true)
+    setIsSubmitting(true)
+    dispatch(setGlobalLoading(true))
 
     try {
-      await supabaseAuth.signInWithOAuth(provider)
+      const result = await authService.signInWithOAuth(provider)
+      if (result.error) {
+        setError('Failed to login with provider. Please try again.')
+      }
     } catch (error) {
       console.error('OAuth error:', error)
       setError('Failed to login with provider. Please try again.')
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
+      dispatch(setGlobalLoading(false))
     }
+  }
+
+  // Add error handling function
+  const handleSignUpError = (error: Error) => {
+    setStatus('error')
+    setMessage({
+      text: error.message || 'An error occurred during sign up',
+      type: 'error'
+    })
   }
 
   return (
@@ -247,7 +263,7 @@ export function SignUpForm() {
 
         {/* Username field */}
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username">Account Name</Label>
           <Input
             id="username"
             type="text"
@@ -257,8 +273,8 @@ export function SignUpForm() {
               "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
               validationErrors.username && "border-red-500/50 focus:border-red-500"
             )}
-            placeholder="Choose a username"
-            disabled={loading}
+            placeholder="This will not be your shown username"
+            disabled={isSubmitting}
           />
           {validationErrors.username && (
             <p className="text-sm text-red-400 mt-1">{validationErrors.username}</p>
@@ -278,7 +294,7 @@ export function SignUpForm() {
               validationErrors.email && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Enter your email"
-            disabled={loading}
+            disabled={isSubmitting}
           />
           {validationErrors.email && (
             <p className="text-sm text-red-400 mt-1">{validationErrors.email}</p>
@@ -299,7 +315,7 @@ export function SignUpForm() {
                 validationErrors.password && "border-red-500/50 focus:border-red-500"
               )}
               placeholder="Create a password"
-              disabled={loading}
+              disabled={isSubmitting}
             />
             
             <div className="w-full bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2">
@@ -346,7 +362,7 @@ export function SignUpForm() {
               validationErrors.confirmPassword && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Confirm your password"
-            disabled={loading}
+            disabled={isSubmitting}
           />
           {validationErrors.confirmPassword && (
             <p className="text-sm text-red-400 mt-1">{validationErrors.confirmPassword}</p>
@@ -384,16 +400,16 @@ export function SignUpForm() {
 
         <Button
           type="submit"
-          disabled={status === 'loading'}
+          disabled={isSubmitting || status === 'loading'}
           className={cn(
             "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
             "text-white font-medium py-2 rounded-full",
             "hover:opacity-90 transition-all duration-200",
             "shadow-lg shadow-cyan-500/25",
-            status === 'loading' && "opacity-50 cursor-not-allowed"
+            (isSubmitting || status === 'loading') && "opacity-50 cursor-not-allowed"
           )}
         >
-          {status === 'loading' ? 'Processing...' : 'Sign Up'}
+          {isSubmitting ? 'Processing...' : 'Sign Up'}
         </Button>
       </form>
 
@@ -410,6 +426,7 @@ export function SignUpForm() {
         <Button 
           variant="outline" 
           onClick={() => handleOAuthLogin('google')}
+          disabled={isSubmitting}
           className="w-full flex items-center justify-center gap-2"
         >
           <Mail className="w-5 h-5" />
