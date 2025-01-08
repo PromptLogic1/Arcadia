@@ -15,6 +15,7 @@ import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
 import type { BingoBoard, Difficulty } from '@/src/store/types/bingoboard.types'
 import { GAMES } from '@/src/store/types/game.types'
+import { BingoBoardDetail } from './BingoBoardDetail'
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -26,7 +27,17 @@ type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS]
 export default function BingoBoardsHub() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const { boards, isLoading, error, createBoard, voteBoard, cloneBoard } = useBingoBoards()
+  const { 
+    boards, 
+    isLoading, 
+    error, 
+    createBoard, 
+    voteBoard, 
+    cloneBoard,
+    selectedBoardId,
+    selectBoard,
+    clearBoard 
+  } = useBingoBoards()
   
   const [filterGame, setFilterGame] = useState<GameCategory>("All Games")
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
@@ -68,12 +79,12 @@ export default function BingoBoardsHub() {
         <BoardCard
           board={board}
           onVote={() => voteBoard(board.id)}
-          onSelect={() => router.push(`/challangehub/boards/${board.id}`)}
+          onSelect={() => selectBoard(board.id)}
           onClone={() => cloneBoard(board.id)}
         />
       </motion.div>
     )
-  }, [router, voteBoard, cloneBoard])
+  }, [voteBoard, cloneBoard, selectBoard])
 
   const handleCreateBoard = useCallback(async (formData: {
     board_title: string
@@ -216,6 +227,13 @@ export default function BingoBoardsHub() {
         onClose={() => setIsCreateFormOpen(false)}
         onSubmit={handleCreateBoard}
       />
+
+      {selectedBoardId && (
+        <BingoBoardDetail 
+          boardId={selectedBoardId} 
+          onClose={clearBoard}
+        />
+      )}
     </div>
   )
 }

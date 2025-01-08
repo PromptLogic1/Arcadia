@@ -8,6 +8,10 @@ import {
   selectBingoBoardError
 } from '../store/selectors'
 import {
+  setSelectedBoard,
+  clearSelectedBoard
+} from '../store/slices/bingoboardSlice'
+import {
   BingoBoard,
   CreateBingoBoardDTO
 } from '../store/types/bingoboard.types'
@@ -17,9 +21,23 @@ export const useBingoBoards = () => {
   
   // Selectors
   const boards = useAppSelector(selectBingoBoards)
-  const selectedBoard = useAppSelector(selectSelectedBoard)
+  const selectedBoardId = useAppSelector(selectSelectedBoard)
   const isLoading = useAppSelector(selectBingoBoardLoading)
   const error = useAppSelector(selectBingoBoardError)
+
+  // Get selected board data
+  const selectedBoard = selectedBoardId 
+    ? boards.find(board => board.id === selectedBoardId)
+    : null
+
+  // Board selection actions
+  const selectBoard = useCallback((boardId: string) => {
+    dispatch(setSelectedBoard(boardId))
+  }, [dispatch])
+
+  const clearBoard = useCallback(() => {
+    dispatch(clearSelectedBoard())
+  }, [dispatch])
 
   // Initialize boards
   const initializeBoards = useCallback(async () => {
@@ -68,8 +86,13 @@ export const useBingoBoards = () => {
     // State
     boards,
     selectedBoard,
+    selectedBoardId,
     isLoading,
     error,
+
+    // Selection actions
+    selectBoard,
+    clearBoard,
 
     // Board operations
     initializeBoards,
