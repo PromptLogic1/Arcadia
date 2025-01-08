@@ -92,7 +92,7 @@ CREATE TYPE card_category AS ENUM (
     'building',
     'escaping',
     'surviving',
-    'winning',
+    'winning'
 );
 
 -- Basis-Tabelle für Timestamps

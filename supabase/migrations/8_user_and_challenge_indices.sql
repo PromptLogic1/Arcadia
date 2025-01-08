@@ -2,7 +2,6 @@
 
 -- User-bezogene Indizes
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_auth_id ON users(auth_id);
 
 -- Challenge-bezogene Indizes
@@ -19,13 +18,6 @@ CREATE INDEX IF NOT EXISTS idx_submissions_challenge ON submissions(challenge_id
 CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
 CREATE INDEX IF NOT EXISTS idx_submissions_created_at ON submissions(created_at DESC);
 
--- Bingo-bezogene Indizes
-CREATE INDEX IF NOT EXISTS idx_bingo_boards_creator ON bingo_boards(creator_id);
-CREATE INDEX IF NOT EXISTS idx_bingo_boards_game ON bingo_boards(game_id);
-CREATE INDEX IF NOT EXISTS idx_bingo_boards_status ON bingo_boards(status);
-CREATE INDEX IF NOT EXISTS idx_bingo_boards_votes ON bingo_boards(votes DESC);
-CREATE INDEX IF NOT EXISTS idx_bingo_boards_created_at ON bingo_boards(created_at DESC);
-
 -- Community-bezogene Indizes
 CREATE INDEX IF NOT EXISTS idx_discussions_author ON discussions(author_id);
 CREATE INDEX IF NOT EXISTS idx_discussions_game ON discussions(game);
@@ -41,8 +33,3 @@ CREATE INDEX IF NOT EXISTS idx_challenges_fts ON challenges USING GIN (
 CREATE INDEX IF NOT EXISTS idx_discussions_fts ON discussions USING GIN (
     to_tsvector('english', title || ' ' || content)
 );
-
--- Tags und Kategorien Indizes
-CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
-CREATE INDEX IF NOT EXISTS idx_tags_type ON tags(type);
-CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);

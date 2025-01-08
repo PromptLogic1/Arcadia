@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
-import { setAuthUser, clearUser, setLoading, setError, setUserdata } from '../slices/authSlice'
+import { setAuthUser, clearUser, setLoading, setUserdata } from '../slices/authSlice'
 import { serverLog } from '@/lib/logger'
 
-interface SignInCredentials {
+export interface SignInCredentials {
   email: string;
   password: string;
 }

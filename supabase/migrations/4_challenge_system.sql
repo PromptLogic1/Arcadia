@@ -4,7 +4,7 @@ CREATE TABLE challenges (
     title TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     description TEXT NOT NULL,
-    difficulty challenge_difficulty NOT NULL,
+    difficulty difficulty NOT NULL,
     status challenge_status DEFAULT 'draft' NOT NULL,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     game_id UUID REFERENCES games(id),

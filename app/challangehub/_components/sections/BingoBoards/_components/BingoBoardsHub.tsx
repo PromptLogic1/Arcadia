@@ -1,17 +1,17 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
-import { BoardCard } from '../../../../../../components/challenges/bingo-board/components/cards/BoardCard'
-import { GAMES, type Game, type Board, isSet } from '../../../../../../components/challenges/bingo-board/types/types'
-import { useAuth } from '@/src/hooks/useAuth';
-import { useRouter } from 'next/navigation'
-import BingoBoardDetail from '@/app/challangehub/_components/sections/BingoBoards/_components/BingoBoardDetail'
+import { BoardCard } from '@/components/challenges/bingo-board/components/cards/BoardCard'
+import { GAMES, type Game, type Board, isSet } from '@/components/challenges/bingo-board/types/types'
+import { useAuth } from '@/src/hooks/useAuth'
+import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -25,23 +25,42 @@ interface BingoBattlesProps {
 }
 
 export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) {
-  // Convert initialBoards votedBy from plain object to Set
-  const processedInitialBoards = initialBoards.map(board => ({
-    ...board,
-    votedBy: new Set(board.votedBy)
-  }))
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const { createBoard, updateBoard, boards: storeBoards } = useBingoBoards()
   
-  // Update state initialization with processed boards
-  const [boards, setBoards] = useState<Board[]>(processedInitialBoards)
+  const [boards, setBoards] = useState<Board[]>(processInitialBoards(initialBoards))
   const [filterGame, setFilterGame] = useState<Game>("All Games")
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [expandedBoardId, setExpandedBoardId] = useState<{ id: number | null, section: string | null }>({ id: null, section: null })
   const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const { isAuthenticated } = useAuth();
+
+  // Board actions
+  const handleCreateBoard = useCallback(async () => {
+    if (!isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
+
+    const boardData = {
+      board_title: `Bingo Board ${boards.length + 1}`,
+      board_size: 5,
+      board_game_type: "World of Warcraft",
+      board_difficulty: 'medium',
+      is_public: true,
+    }
+
+    await createBoard(boardData)
+  }, [boards.length, isAuthenticated, router, createBoard])
+
+  // Update boards when store changes
+  useEffect(() => {
+    if (storeBoards.length > 0) {
+      setBoards(processInitialBoards(storeBoards))
+    }
+  }, [storeBoards])
 
   // Fetch boards
   useEffect(() => {
@@ -75,36 +94,6 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
   }, [boards.length])
 
   // Board actions
-  const createNewBoard = useCallback(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login')
-      return
-    }
-
-    const newBoard: Board = {
-      id: Date.now(),
-      name: `Bingo Board ${boards.length + 1}`,
-      players: 0,
-      size: 5,
-      timeLeft: 300,
-      votes: 0,
-      game: "World of Warcraft",
-      createdAt: new Date(),
-      votedBy: new Set(),
-      bookmarked: false,
-      creator: "NewUser",
-      avatar: "/placeholder.svg?height=32&width=32",
-      winConditions: {
-        line: true,
-        majority: false
-      },
-      difficulty: 'medium',
-      isPublic: true,
-    }
-    setBoards(prevBoards => [newBoard, ...prevBoards])
-    setExpandedBoardId({ id: newBoard.id, section: 'all' })
-  }, [boards.length, isAuthenticated, router])
-
   const voteBoard = useCallback((boardId: number, userId: string) => {
     if (!isAuthenticated) {
       router.push('/auth/login')
@@ -149,16 +138,10 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
     })
   }, [isAuthenticated, router])
 
-  const selectBoard = useCallback((board: Board, section: string) => {
-    console.log('Selecting board:', board.id, 'Section:', section)
-    setExpandedBoardId(current => {
-      const newState = current.id === board.id && current.section === section 
-        ? { id: null, section: null }
-        : { id: board.id, section }
-      console.log('New expanded state:', newState)
-      return newState
-    })
-  }, [])
+  // Update selectBoard to navigate instead of expanding
+  const selectBoard = useCallback((board: Board) => {
+    router.push(`/challangehub/boards/${board.id}`)
+  }, [router])
 
   // Add saveAsCopy function
   const saveAsCopy = useCallback((boardId: number) => {
@@ -204,13 +187,8 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
       })
   }, [boards, filterGame, searchTerm, sortBy])
 
-  // Render board card
+  // Update renderBoardCard to remove expansion logic
   const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => {
-    const debugInfo = () => {
-      console.log('Expanded Board ID:', expandedBoardId, 'Current Board:', board.id, 'Section:', section)
-    }
-    debugInfo()
-
     return (
       <motion.div 
         key={`${section}-${board.id}`} 
@@ -225,29 +203,12 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
           section={section}
           onVote={voteBoard}
           onBookmark={toggleBookmark}
-          onSelect={selectBoard}
+          onSelect={() => selectBoard(board)}
           onSaveAsCopy={saveAsCopy}
         />
-        <AnimatePresence>
-          {expandedBoardId.id === board.id && expandedBoardId.section === section && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-gray-800 border-2 border-t-0 border-cyan-500 rounded-b-lg overflow-hidden"
-            >
-              <BingoBoardDetail
-                board={board}
-                onBookmark={() => toggleBookmark(board.id)}
-                onClose={() => setExpandedBoardId({ id: null, section: null })}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     )
-  }, [expandedBoardId, selectBoard, toggleBookmark, voteBoard, saveAsCopy])
+  }, [selectBoard, toggleBookmark, voteBoard, saveAsCopy])
 
   return (
     <div className="container mx-auto p-6 space-y-8">
@@ -258,16 +219,7 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-          Bingo Battles
-        </h2>
-        <Button 
-          onClick={createNewBoard} 
-          className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create New Board
-        </Button>
+        
       </motion.div>
 
       {/* Filters */}
@@ -350,6 +302,13 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
         className="space-y-4"
       >
         <h3 className="text-2xl font-bold text-cyan-400 mb-4">All Boards</h3>
+        <Button 
+          onClick={handleCreateBoard} 
+          className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Create New Board
+        </Button>
         <div className="grid grid-cols-1 gap-4">
           {sortedAndFilteredBoards.map(board => renderBoardCard(board, 'all'))}
         </div>

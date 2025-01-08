@@ -27,10 +27,29 @@ CREATE TABLE bingoboards (
 CREATE INDEX idx_bingoboards_creator_id ON bingoboards (creator_id);
 CREATE INDEX idx_bingoboards_is_public ON bingoboards (is_public);
 CREATE INDEX idx_bingoboards_deleted_at ON bingoboards (deleted_at);
-CREATE INDEX idx_bingoboards_game ON bingoboards(game_type);
+CREATE INDEX idx_bingoboards_game ON bingoboards(board_game_type);
 CREATE INDEX idx_bingoboards_public_available
    ON bingoboards (is_public) 
    WHERE deleted_at IS NULL;
+
+
+CREATE OR REPLACE FUNCTION prefill_board_layout()
+RETURNS TRIGGER AS $$
+DECLARE
+    total_cells INTEGER;
+BEGIN
+    -- Calculate the total number of cells based on the board_size
+    total_cells := NEW.board_size * NEW.board_size;
+
+    -- Populate the JSONB field with the template ID repeated for each cell
+    NEW.board_layoutbingocards := (
+        SELECT jsonb_agg(12345) -- Replace 12345 with your template ID
+        FROM generate_series(1, total_cells)
+    );
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Enable RLS on bingoboards
 ALTER TABLE bingoboards ENABLE ROW LEVEL SECURITY;

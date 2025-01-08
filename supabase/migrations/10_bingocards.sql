@@ -15,39 +15,38 @@ CREATE TABLE bingocards (
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     generated_by_ai BOOLEAN DEFAULT false NOT NULL,
     -- Constraints
-    CONSTRAINT tags_limit CHECK (jsonb_array_length(tags) <= 5),
+    CONSTRAINT tags_limit CHECK (jsonb_array_length(card_tags) <= 5),
     CONSTRAINT card_content_length CHECK (char_length(card_content) BETWEEN 0 AND 255)
 ) INHERITS (base_table);
 
 -- Add indices
-CREATE INDEX idx_bingoboards_creator_id ON bingoboards (creator_id);
-CREATE INDEX idx_bingoboards_is_public ON bingoboards (is_public);
-CREATE INDEX idx_bingoboards_deleted_at ON bingoboards (deleted_at);
-CREATE INDEX idx_bingoboards_game ON bingoboards(game_type);
-CREATE INDEX idx_bingoboards_public_available
-   ON bingoboards (is_public) 
+CREATE INDEX idx_bingocards_creator_id ON bingocards (creator_id);
+CREATE INDEX idx_bingocards_is_public ON bingocards (is_public);
+CREATE INDEX idx_bingocards_deleted_at ON bingocards (deleted_at);
+CREATE INDEX idx_bingocards_public_available
+   ON bingocards (is_public) 
    WHERE deleted_at IS NULL;
 
--- Enable RLS on bingoboards
-ALTER TABLE bingoboards ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on bingocards
+ALTER TABLE bingocards ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Board is viewable by public"
-  ON bingoboards FOR SELECT
+CREATE POLICY "Card is viewable by public"
+  ON bingocards FOR SELECT
   USING (deleted_at IS NULL AND is_public = true);
 
-CREATE POLICY "Board is viewable by creator"
-  ON bingoboards FOR SELECT
+CREATE POLICY "Card is viewable by creator"
+  ON bingocards FOR SELECT
   USING (
     creator_id = (SELECT id FROM users WHERE auth_id = auth.uid()) 
     AND (is_public = false OR deleted_at IS NOT NULL)
   );
 
-CREATE POLICY "Board is not visible if deleted"
-  ON bingoboards FOR SELECT
+CREATE POLICY "Card is not visible if deleted"
+  ON bingocards FOR SELECT
   USING (deleted_at IS NULL);
 
-CREATE POLICY "Authenticated users can create bingo boards" 
-    ON bingoboards 
+CREATE POLICY "Authenticated users can create Card boards" 
+    ON bingocards 
     FOR INSERT 
     WITH CHECK (
         -- Check that the auth_id matches the creator_id of the users table
@@ -55,12 +54,12 @@ CREATE POLICY "Authenticated users can create bingo boards"
             SELECT 1 
             FROM users 
             WHERE auth_id = auth.uid()  -- Get the auth_id from auth system
-              AND id = creator_id        -- Ensure it matches the creator_id of bingoboards
+              AND id = creator_id        -- Ensure it matches the creator_id of bingocards
         )
     );
 
-CREATE POLICY "Users can update own bingo boards" 
-    ON bingoboards 
+CREATE POLICY "Users can update own bingo cards" 
+    ON bingocards 
     FOR UPDATE 
     USING (
         -- Check if the user attempting to update the board is the creator
@@ -68,6 +67,6 @@ CREATE POLICY "Users can update own bingo boards"
             SELECT 1 
             FROM users 
             WHERE auth_id = auth.uid()  -- Get the auth_id from auth system
-              AND id = creator_id        -- Ensure it matches the creator_id of bingoboards
+              AND id = creator_id        -- Ensure it matches the creator_id of bingocards
         )
     );

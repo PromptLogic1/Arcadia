@@ -1,14 +1,19 @@
 import { configureStore } from '@reduxjs/toolkit';
 import rootReducer from './rootReducer';
-import logger from './middleware/logger'; // Optional: Logging Middleware
+import logger from './middleware/logger';
 
+// Create store instance
 export const store = configureStore({
   reducer: rootReducer,
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(logger),
-});
+  middleware: (getDefaultMiddleware) => 
+    getDefaultMiddleware({
+      serializableCheck: false, // For handling Date objects
+    }).concat(logger),
+})
 
-// Typen für den Store
-export type AppDispatch = typeof store.dispatch;
-export type RootState = ReturnType<typeof store.getState>;
+// Export types
+export type RootState = ReturnType<typeof store.getState>
+export type AppDispatch = typeof store.dispatch
 
-export default store;
+// Export store selectors
+export * from './selectors'

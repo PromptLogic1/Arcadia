@@ -1,16 +1,36 @@
-import { useSelector } from 'react-redux';
-import { selectIsAuthenticated, selectAuthUser, selectUserRole, selectUserData } from '@/src/store/selectors/authSelectors';
+import { useCallback } from 'react'
+import { useAppSelector, useAppDispatch } from '../store/hooks'
+import { authService as services } from '../store/services/auth-service'
+import { 
+  selectIsAuthenticated, 
+  selectAuthUser, 
+  selectUserRole, 
+  selectUserData 
+} from '../store/selectors'
+import { SignInCredentials } from '../store/services/auth-service'
 
-export const useAuth = () => {
-  const userRole = useSelector(selectUserRole);
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-  const authUser = useSelector(selectAuthUser);
-  const userData = useSelector(selectUserData);
+export const useAuth = () => {  
+  // Selectors
+  const isAuthenticated = useAppSelector(selectIsAuthenticated)
+  const authUser = useAppSelector(selectAuthUser)
+  const userRole = useAppSelector(selectUserRole)
+  const userData = useAppSelector(selectUserData)
+
+  // Service methods wrapped in hooks
+  const signIn = useCallback(async (credentials: SignInCredentials) => {
+    return services.signIn(credentials)
+  }, [])
+
+  const signOut = useCallback(async () => {
+    return services.signOut()
+  }, [])
 
   return {
-    userRole,
     isAuthenticated,
     authUser,
-    userData
-  };
-}; 
+    userRole,
+    userData,
+    signIn,
+    signOut,
+  }
+} 
