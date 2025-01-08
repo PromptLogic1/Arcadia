@@ -1,106 +1,84 @@
 import { useCallback } from 'react'
-import { useAppSelector, useAppDispatch } from '../store/hooks'
-import { bingoBoardService as services } from '../store/services/bingoboard-service'
-import { 
-  selectBingoBoards,
+import { useSelector } from 'react-redux'
+import { useAppDispatch } from '@/src/store/hooks'
+import { bingoBoardService } from '@/src/store/services/bingoboard-service'
+import type { BingoBoard, CreateBingoBoardDTO } from '@/src/store/types/bingoboard.types'
+import {
+  selectBoards,
   selectSelectedBoard,
-  selectBingoBoardLoading,
-  selectBingoBoardError
-} from '../store/selectors'
+  selectIsLoading,
+  selectError
+} from '@/src/store/selectors/bingoboardSelectors'
 import {
-  setSelectedBoard,
+  setSelectedBoardId,
   clearSelectedBoard
-} from '../store/slices/bingoboardSlice'
-import {
-  BingoBoard,
-  CreateBingoBoardDTO
-} from '../store/types/bingoboard.types'
+} from '@/src/store/slices/bingoboardSlice'
 
-export const useBingoBoards = () => {
+export function useBingoBoards() {
   const dispatch = useAppDispatch()
   
   // Selectors
-  const boards = useAppSelector(selectBingoBoards)
-  const selectedBoardId = useAppSelector(selectSelectedBoard)
-  const isLoading = useAppSelector(selectBingoBoardLoading)
-  const error = useAppSelector(selectBingoBoardError)
+  const boards = useSelector(selectBoards)
+  const selectedBoard = useSelector(selectSelectedBoard)
+  const isLoading = useSelector(selectIsLoading)
+  const error = useSelector(selectError)
 
-  // Get selected board data
-  const selectedBoard = selectedBoardId 
-    ? boards.find(board => board.id === selectedBoardId)
-    : null
-
-  // Board selection actions
+  // Board selection
   const selectBoard = useCallback((boardId: string) => {
-    dispatch(setSelectedBoard(boardId))
+    dispatch(setSelectedBoardId(boardId))
   }, [dispatch])
 
   const clearBoard = useCallback(() => {
     dispatch(clearSelectedBoard())
   }, [dispatch])
 
-  // Initialize boards
+  // Service methods
   const initializeBoards = useCallback(async () => {
-    return services.initializeBoards()
+    return bingoBoardService.initializeBoards()
   }, [])
 
-  // Get board by ID
-  const getBoardById = useCallback(async (boardId: string): Promise<BingoBoard | null> => {
-    return services.getBoardById(boardId)
-  }, [])
-
-  // Create new board
   const createBoard = useCallback(async (boardData: CreateBingoBoardDTO) => {
-    try {
-      const newBoard = await services.createBoard(boardData)
-      if (!newBoard) {
-        throw new Error('Failed to create board')
-      }
-      return newBoard
-    } catch (error) {
-      throw error
-    }
+    return bingoBoardService.createBoard(boardData)
   }, [])
 
-  // Update board
-  const updateBoard = useCallback(async (boardId: string, updates: BingoBoard) => {
-    return services.updateBoard(boardId, updates)
+  const getBoardById = useCallback(async (boardId: string) => {
+    return bingoBoardService.getBoardById(boardId)
   }, [])
 
-  // Delete board
+  const updateBoard = useCallback(async (boardId: string, updates: Partial<BingoBoard>) => {
+    return bingoBoardService.updateBoard(boardId,  updates as BingoBoard )
+  }, [])
+
   const deleteBoard = useCallback(async (boardId: string) => {
-    return services.deleteBoard(boardId)
+    return bingoBoardService.deleteBoard(boardId)
   }, [])
 
-  // Vote for board
   const voteBoard = useCallback(async (boardId: string) => {
-    return services.voteBoard(boardId)
+    return bingoBoardService.voteBoard(boardId)
   }, [])
 
-  // Clone board
   const cloneBoard = useCallback(async (boardId: string) => {
-    return services.cloneBoard(boardId)
+    return bingoBoardService.cloneBoard(boardId)
   }, [])
 
   return {
     // State
     boards,
     selectedBoard,
-    selectedBoardId,
     isLoading,
     error,
 
-    // Selection actions
+    // Actions
     selectBoard,
     clearBoard,
 
-    // Board operations
+    // Service methods
     initializeBoards,
-    getBoardById,
     createBoard,
+    getBoardById,
     updateBoard,
     deleteBoard,
     voteBoard,
-    cloneBoard,
+    cloneBoard
   }
 } 

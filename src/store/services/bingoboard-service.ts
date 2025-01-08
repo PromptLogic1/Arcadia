@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
-import { setBingoBoards, setSelectedBoard, setLoading, setError } from '../slices/bingoboardSlice'
+import { setBingoBoards, setSelectedBoardId, setLoading, setError } from '../slices/bingoboardSlice'
 import { serverLog } from '@/lib/logger'
 
 class BingoBoardService {
@@ -57,7 +57,7 @@ class BingoBoardService {
       if (error) throw error
 
       if (board) {
-        store.dispatch(setSelectedBoard(board))
+        store.dispatch(setSelectedBoardId(board.id))
       }
 
       return board

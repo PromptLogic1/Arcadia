@@ -161,20 +161,6 @@ export default function BingoBoardsHub() {
         onFilterChange={handleFilterChange}
       />
 
-      {/* Bookmarked Boards */}
-      {bookmarkedBoards.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-2xl font-bold text-cyan-400">My Boards</h3>
-          {bookmarkedBoards.map((board) => (
-            <BoardCard
-              key={board.id}
-              board={board}
-              onClick={() => setSelectedBoardId(board.id)}
-            />
-          ))}
-        </div>
-      )}
-
       {/* All Boards */}
       <div className="space-y-4">
         <h3 className="text-2xl font-bold text-cyan-400">All Boards</h3>
