@@ -10,7 +10,6 @@ import {
   Users, 
   Grid as GridIcon,
   Clock,
-  Copy,
   User
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
@@ -24,12 +23,10 @@ import { BingoBoard } from '@/src/store/types/bingoboard.types'
 
 interface BoardCardProps {
   board: BingoBoard
-  onVote: () => void
-  onSelect: () => void
-  onClone: () => void
+  onClick?: () => void
 }
 
-export function BoardCard({ board, onVote, onSelect, onClone }: BoardCardProps) {
+export function BoardCard({ board, onClick }: BoardCardProps) {
   return (
     <Card 
       className={cn(
@@ -38,7 +35,7 @@ export function BoardCard({ board, onVote, onSelect, onClone }: BoardCardProps) 
         "transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10",
         "cursor-pointer group hover:translate-y-[-2px]"
       )}
-      onClick={onSelect}
+      onClick={onClick}
     >
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 px-5">
         <div className="flex items-center space-x-4 w-full sm:w-auto">
@@ -127,8 +124,9 @@ export function BoardCard({ board, onVote, onSelect, onClone }: BoardCardProps) 
               <TooltipContent>Board size</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
-          <TooltipProvider>
+          
+        </div>
+        <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center group/stat">
@@ -139,47 +137,13 @@ export function BoardCard({ board, onVote, onSelect, onClone }: BoardCardProps) 
                     <ThumbsUp className="h-4 w-4 text-cyan-400/70 group-hover/stat:text-cyan-400" />
                   </div>
                   <span className="text-sm text-cyan-300/70 group-hover/stat:text-cyan-300 ml-2 font-medium">
-                    {board.votes || 0}
+                    {board.votes}
                   </span>
                 </div>
               </TooltipTrigger>
-              <TooltipContent>Votes</TooltipContent>
+              <TooltipContent>Total votes</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </div>
-
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            onClick={(e) => {
-              e.stopPropagation()
-              onVote()
-            }} 
-            size="sm"
-            className={cn(
-              "h-9 px-4 rounded-full transition-all duration-300",
-              "shadow-sm font-medium flex-1 sm:flex-none",
-              "bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 border border-cyan-500/20"
-            )}
-          >
-            <ThumbsUp className="mr-2 h-4 w-4" />
-            Vote
-          </Button>
-
-          <Button
-            onClick={(e) => {
-              e.stopPropagation()
-              onClone()
-            }}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "text-cyan-300/80 hover:text-cyan-300 h-9 w-9 p-0 rounded-full",
-              "bg-cyan-500/5 hover:bg-cyan-500/10 transition-all duration-300"
-            )}
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-        </div>
       </CardContent>
     </Card>
   )

@@ -1,90 +1,106 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useCallback, useState, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Search, PlusCircle } from 'lucide-react'
-import { BoardCard } from './BoardCard'
-import { GameCategory } from '@/src/store/types/game.types'
-import { useAuth } from '@/src/hooks/useAuth'
-import { useBingoBoards } from '@/src/hooks/useBingoBoards'
-import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
-import type { BingoBoard, Difficulty } from '@/src/store/types/bingoboard.types'
-import { GAMES } from '@/src/store/types/game.types'
+import { PlusCircle } from 'lucide-react'
 import { BingoBoardDetail } from './BingoBoardDetail'
-
-const SORT_OPTIONS = {
-  NEWEST: 'newest',
-  VOTES: 'votes',
-} as const
-
-type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS]
+import { useBingoBoards } from '@/src/hooks/useBingoBoards'
+import { useAuth } from '@/src/hooks/useAuth'
+import { useRouter } from 'next/navigation'
+import { Filter } from '@/components/filter/filter'
+import type { FilterType, FilterSelections } from '@/components/filter/types'
+import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
+import { GameCategory, Difficulty, GAMES } from '@/src/store/types/game.types'
+import { BoardCard } from './BoardCard'
+import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
 
 export default function BingoBoardsHub() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
   const { 
     boards, 
-    isLoading, 
-    error, 
-    createBoard, 
-    voteBoard, 
-    cloneBoard,
-    selectedBoardId,
-    selectBoard,
-    clearBoard 
+    createBoard,
+    isLoading,
+    error,
   } = useBingoBoards()
   
-  const [filterGame, setFilterGame] = useState<GameCategory>("All Games")
-  const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
-  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null)
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
 
-  // Filter and sort boards from Redux store
-  const sortedAndFilteredBoards = useMemo(() => {
-    return [...boards]
-      .filter(board => {
-        const matchesFilter = filterGame === "All Games" || board.board_game_type === filterGame
-        const matchesSearch = board.board_title.toLowerCase().includes(searchTerm.toLowerCase())
-        return matchesFilter && matchesSearch
-      })
-      .sort((a, b) => {
-        if (sortBy === SORT_OPTIONS.NEWEST) {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        }
-        return (b.votes || 0) - (a.votes || 0)
-      })
-  }, [boards, filterGame, searchTerm, sortBy])
+  // Convert game categories to filter options format, ensuring unique keys
+  const categoryOptions = [
+    { value: '__all__', label: 'All Games' }, // Use a unique value for "All Games"
+    ...Object.values(GAMES)
+      .filter(game => game !== 'All Games') // Filter out "All Games" from GAMES enum
+      .map(game => ({
+        value: game,
+        label: game
+      }))
+  ]
+
+  // Filter state
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>({
+    category: '__all__', // Update initial value to match the new "All Games" value
+    difficulty: 'all',
+    sort: 'newest',
+    search: ''
+  })
+
+  const handleFilterChange = (type: FilterType, value: string) => {
+    setFilterSelections(prev => ({ ...prev, [type]: value }))
+  }
+
+  // Apply filters to boards
+  const filteredBoards = boards.filter(board => {
+    // Category filter
+    if (filterSelections.category !== '__all__' && board.board_game_type !== filterSelections.category) {
+      return false
+    }
+
+    // Difficulty filter
+    if (filterSelections.difficulty !== 'all' && board.board_difficulty !== filterSelections.difficulty) {
+      return false
+    }
+
+    // Enhanced Search filter
+    if (filterSelections.search) {
+      const searchTerm = filterSelections.search.toLowerCase()
+      const searchableContent = [
+        board.board_title,
+        board.board_description,
+        board.board_game_type,
+        board.board_difficulty,
+        ...(board.board_tags || []),
+        String(board.board_size),
+        String(board.votes || 0)
+      ].map(item => (item || '').toLowerCase())
+
+      // Check if any of the content matches the search term
+      return searchableContent.some(content => content.includes(searchTerm))
+    }
+
+    return true
+  })
+
+  // Sort boards
+  const sortedBoards = [...filteredBoards].sort((a, b) => {
+    switch (filterSelections.sort) {
+      case 'oldest':
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      case 'name_asc':
+        return a.board_title.localeCompare(b.board_title)
+      case 'name_desc':
+        return b.board_title.localeCompare(a.board_title)
+      case 'newest':
+      default:
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    }
+  })
 
   // Get user's bookmarked boards
   const bookmarkedBoards = useMemo(() => {
     return boards.filter(board => board.is_public === false)
   }, [boards])
-
-  // Render board card
-  const renderBoardCard = useCallback((board: BingoBoard, section: 'bookmarked' | 'all') => {
-    return (
-      <motion.div 
-        key={`${section}-${board.id}`} 
-        layout 
-        className="w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-      >
-        <BoardCard
-          board={board}
-          onVote={() => voteBoard(board.id)}
-          onSelect={() => selectBoard(board.id)}
-          onClone={() => cloneBoard(board.id)}
-        />
-      </motion.div>
-    )
-  }, [voteBoard, cloneBoard, selectBoard])
 
   const handleCreateBoard = useCallback(async (formData: {
     board_title: string
@@ -117,100 +133,59 @@ export default function BingoBoardsHub() {
     }
   }, [isAuthenticated, router, createBoard])
 
-  // Rest of the component remains the same...
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="mb-6"
-      >
-        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
-          {/* Game Filter */}
-          <div className="w-full md:w-1/3">
-            <Label htmlFor="filter-game" className="text-cyan-300 mb-2 block">Filter by Game:</Label>
-            <Select value={filterGame} onValueChange={(value: GameCategory) => setFilterGame(value)}>
-              <SelectTrigger className="w-full bg-gray-800 border-cyan-500 text-cyan-100">
-                <SelectValue placeholder="All Games" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-cyan-500">
-                {GAMES.map((game) => (
-                  <SelectItem key={game} value={game} className="text-cyan-100">
-                    {game}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+          Bingo Boards
+        </h1>
+        {isAuthenticated && (
+          <Button
+            onClick={() => setIsCreateFormOpen(true)}
+            className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Board
+          </Button>
+        )}
+      </div>
 
-          {/* Sort */}
-          <div className="w-full md:w-1/3">
-            <Label htmlFor="sort-by" className="text-cyan-300 mb-2 block">Sort by:</Label>
-            <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-              <SelectTrigger className="w-full bg-gray-800 border-cyan-500 text-cyan-100">
-                <SelectValue placeholder="Newest" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-cyan-500">
-                <SelectItem value={SORT_OPTIONS.NEWEST} className="text-cyan-100">Newest</SelectItem>
-                <SelectItem value={SORT_OPTIONS.VOTES} className="text-cyan-100">Most Votes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Search */}
-          <div className="w-full md:w-1/3">
-            <Label htmlFor="search" className="text-cyan-300 mb-2 block">Search:</Label>
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-cyan-500" />
-              <Input
-                id="search"
-                type="text"
-                placeholder="Search boards..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full bg-gray-800 border-cyan-500 text-cyan-100 placeholder-cyan-300"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      <Filter
+        filterOptions={{
+          categories: categoryOptions,
+          difficulties: DIFFICULTY_OPTIONS,
+          sortOptions: DEFAULT_SORT_OPTIONS,
+          enableSearch: true
+        }}
+        selections={filterSelections}
+        onFilterChange={handleFilterChange}
+      />
 
       {/* Bookmarked Boards */}
       {bookmarkedBoards.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mb-8"
-        >
-          <h3 className="text-2xl font-bold text-cyan-400 mb-4">My Boards</h3>
-          <div className="grid grid-cols-1 gap-4">
-            {bookmarkedBoards.map(board => renderBoardCard(board, 'bookmarked'))}
-          </div>
-        </motion.div>
+        <div className="space-y-4">
+          <h3 className="text-2xl font-bold text-cyan-400">My Boards</h3>
+          {bookmarkedBoards.map((board) => (
+            <BoardCard
+              key={board.id}
+              board={board}
+              onClick={() => setSelectedBoardId(board.id)}
+            />
+          ))}
+        </div>
       )}
 
       {/* All Boards */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="space-y-4"
-      >
-        <h3 className="text-2xl font-bold text-cyan-400 mb-4">All Boards</h3>
-        <Button 
-          onClick={() => setIsCreateFormOpen(true)} 
-          className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create New Board
-        </Button>
-        <div className="grid grid-cols-1 gap-4">
-          {sortedAndFilteredBoards.map(board => renderBoardCard(board, 'all'))}
-        </div>
-      </motion.div>
+      <div className="space-y-4">
+        <h3 className="text-2xl font-bold text-cyan-400">All Boards</h3>
+        {sortedBoards.map((board) => (
+          <BoardCard
+            key={board.id}
+            board={board}
+            onClick={() => setSelectedBoardId(board.id)}
+          />
+        ))}
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center min-h-[200px]">
@@ -231,7 +206,7 @@ export default function BingoBoardsHub() {
       {selectedBoardId && (
         <BingoBoardDetail 
           boardId={selectedBoardId} 
-          onClose={clearBoard}
+          onClose={() => setSelectedBoardId(null)}
         />
       )}
     </div>
