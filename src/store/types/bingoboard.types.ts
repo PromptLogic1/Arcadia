@@ -1,3 +1,5 @@
+import { UUID } from "crypto"
+
 export type GameCategory = 
   | 'All Games'
   | 'World of Warcraft'
@@ -31,7 +33,7 @@ export interface BingoBoard {
   board_title: string
   board_description?: string
   board_size: number
-  board_layoutbingocards: BingoBoardCell[] // Now properly typed
+  board_layoutbingocards: UUID[]
   board_tags: string[]
   board_game_type: GameCategory
   board_difficulty: Difficulty
@@ -46,13 +48,6 @@ export interface BingoBoard {
 
 // Add this type for board creation
 export type CreateBingoBoardDTO = Omit<BingoBoard, 'id' | 'creator_id' | 'created_at' | 'updated_at' | 'board_layoutbingocards'> 
-
-export interface BingoBoardCell {
-  id: string
-  text: string
-  category: CardCategory
-  difficulty: Difficulty
-}
 
 // Helper constants for validation
 export const BOARD_SIZE_LIMITS = {

@@ -1,9 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { 
   Dialog,
@@ -12,10 +15,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { ThumbsUp, Copy, ArrowLeft, Save } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ArrowLeft, Save, Settings } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import type { BingoBoard } from '@/src/store/types/bingoboard.types'
+import type { BingoBoard, Difficulty } from '@/src/store/types/bingoboard.types'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface BingoBoardDetailProps {
   boardId: string
@@ -25,113 +36,200 @@ interface BingoBoardDetailProps {
 export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
   const { 
     boards,
-    voteBoard, 
-    cloneBoard, 
     updateBoard 
   } = useBingoBoards()
   
-  // Get board directly from the boards array
   const board = boards.find(b => b.id === boardId)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [formData, setFormData] = useState(board ? {
+    board_title: board.board_title,
+    board_description: board.board_description || '',
+    board_tags: board.board_tags || [],
+    board_difficulty: board.board_difficulty,
+    is_public: board.is_public,
+  } : null)
 
-  const handleVote = async () => {
-    if (!board) return
-    await voteBoard(board.id)
+  const handleSave = async () => {
+    if (!board || !formData) return
+    try {
+      await updateBoard(board.id, {
+        ...board,
+        ...formData
+      })
+    } catch (error) {
+      console.error('Failed to update board:', error)
+    }
   }
 
-  const handleClone = async () => {
-    if (!board) return
-    await cloneBoard(board.id)
-    onClose()
+  // Generate placeholder bingo cards based on board size
+  const generatePlaceholderCards = (size: number) => {
+    const cards = []
+    const totalCards = size * size
+    
+    for (let i = 0; i < totalCards; i++) {
+      cards.push({
+        id: `placeholder-${i}`,
+        text: `Complete Task ${i + 1}`,
+        category: 'Quest',
+        difficulty: 'Medium'
+      })
+    }
+    return cards
   }
+
+  if (!board || !formData) return null
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[875px] bg-gray-900 text-gray-100">
-        {!board ? (
-          <div className="text-red-400 p-4">Board not found</div>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                {board.board_title}
-              </DialogTitle>
-              {board.board_description && (
-                <p className="text-cyan-300/70 mt-2">{board.board_description}</p>
-              )}
-              <div className="flex flex-wrap gap-2 mt-4">
-                <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">
-                  {board.board_game_type}
-                </Badge>
-                <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">
-                  {board.board_size}x{board.board_size}
-                </Badge>
-                <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">
-                  {board.board_difficulty}
-                </Badge>
-                <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">
-                  {board.is_public ? 'Public' : 'Private'}
-                </Badge>
-              </div>
-            </DialogHeader>
+      <DialogContent className="max-w-7xl max-h-[90vh] bg-gray-900 text-gray-100 flex flex-col">
+        <DialogHeader className="flex-none">
+          <DialogTitle className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+            Board Details
+          </DialogTitle>
+        </DialogHeader>
 
-            {/* Board Grid */}
-            <div 
-              className="grid gap-4 p-4" 
-              style={{ 
-                gridTemplateColumns: `repeat(${board.board_size}, minmax(0, 1fr))` 
-              }}
-            >
-              {board.board_layoutbingocards.map((cell, index) => (
-                <Card
-                  key={cell.id || index}
-                  className={cn(
-                    "p-4 bg-gray-800/50 border-cyan-500/20",
-                    "hover:border-cyan-500/40 transition-all duration-300"
-                  )}
-                >
-                  <p className="text-sm text-cyan-300">{cell.text}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {cell.category}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {cell.difficulty}
-                    </Badge>
-                  </div>
-                </Card>
-              ))}
+        {/* Main content with scroll */}
+        <div className="flex-1 overflow-y-auto min-h-0 py-4">
+          <div className="grid grid-cols-[2fr,1fr] gap-6 h-full">
+            {/* Left Section - Bingo Board */}
+            <div className="space-y-6 min-h-0">
+              {/* Bingo Grid */}
+              <div 
+                className="grid gap-4 aspect-square" 
+                style={{ 
+                  gridTemplateColumns: `repeat(${board.board_size}, minmax(0, 1fr))` 
+                }}
+              >
+                {generatePlaceholderCards(board.board_size).map((card, index) => (
+                  <Card
+                    key={card.id}
+                    className={cn(
+                      "relative aspect-square p-4 bg-gray-800/50 border-cyan-500/20",
+                      "hover:border-cyan-500/40 transition-all duration-300",
+                      "cursor-pointer flex flex-col justify-center"
+                    )}
+                  >
+                    <p className="text-sm text-cyan-300 text-center px-2">
+                      {card.text}
+                    </p>
+                    <div className="absolute bottom-0 left-0 right-0 flex justify-between p-2 text-[10px] text-gray-400">
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "text-[10px] px-1.5 py-0.5",
+                          "bg-cyan-500/5 text-cyan-300/70"
+                        )}
+                      >
+                        {card.category}
+                      </Badge>
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "text-[10px] px-1.5 py-0.5",
+                          "bg-cyan-500/5 text-cyan-300/70"
+                        )}
+                      >
+                        {card.difficulty}
+                      </Badge>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
 
-            <DialogFooter className="flex justify-between items-center sm:justify-between">
-              <Button
-                variant="ghost"
-                onClick={onClose}
-                className="text-cyan-300 hover:text-cyan-200"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Close
-              </Button>
-              <div className="flex gap-2">
+            {/* Right Section - Settings */}
+            <div className="border-l border-gray-700 pl-6 min-h-0">
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold text-cyan-300 flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Board Settings
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="board_title">Board Title</Label>
+                    <Input
+                      id="board_title"
+                      value={formData.board_title}
+                      onChange={(e) => setFormData(prev => ({ ...prev!, board_title: e.target.value }))}
+                      className="bg-gray-800/50 border-cyan-500/50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="board_description">Description</Label>
+                    <Textarea
+                      id="board_description"
+                      value={formData.board_description}
+                      onChange={(e) => setFormData(prev => ({ ...prev!, board_description: e.target.value }))}
+                      className="bg-gray-800/50 border-cyan-500/50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="board_tags">Tags (Placeholder)</Label>
+                    <Input
+                      id="board_tags"
+                      value={formData.board_tags.join(', ')}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev!, 
+                        board_tags: e.target.value.split(',').map(tag => tag.trim()) 
+                      }))}
+                      className="bg-gray-800/50 border-cyan-500/50"
+                      placeholder="Enter tags separated by commas"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="board_difficulty">Difficulty</Label>
+                    <Select 
+                      value={formData.board_difficulty}
+                      onValueChange={(value: Difficulty) => 
+                        setFormData(prev => ({ ...prev!, board_difficulty: value }))
+                      }
+                    >
+                      <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-cyan-500">
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="is_public"
+                      checked={formData.is_public}
+                      onCheckedChange={(checked) => 
+                        setFormData(prev => ({ ...prev!, is_public: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="is_public">Make this board public</Label>
+                  </div>
+                </div>
+
                 <Button
-                  onClick={handleVote}
-                  className="bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                  onClick={handleSave}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500"
                 >
-                  <ThumbsUp className="mr-2 h-4 w-4" />
-                  Vote ({board.votes || 0})
-                </Button>
-                <Button
-                  onClick={handleClone}
-                  className="bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Clone
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
                 </Button>
               </div>
-            </DialogFooter>
-          </>
-        )}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="flex-none mt-4 border-t border-gray-800 pt-4">
+          <Button variant="ghost" onClick={onClose}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
