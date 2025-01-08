@@ -105,6 +105,36 @@ class BingoBoardService {
     }
   }
 
+  public validateBoardConstraints(board: Partial<BingoBoard>): { isValid: boolean; error?: string } {
+    // Title constraint: 3-50 characters
+    if (board.board_title) {
+      if (board.board_title.length < 3 || board.board_title.length > 50) {
+        return {
+          isValid: false,
+          error: 'Title must be between 3 and 50 characters'
+        }
+      }
+    }
+
+    // Description constraint: 0-255 characters
+    if (board.board_description && board.board_description.length > 255) {
+      return {
+        isValid: false,
+        error: 'Description cannot exceed 255 characters'
+      }
+    }
+
+    // Tags constraint: maximum 5 tags
+    if (board.board_tags && board.board_tags.length > 5) {
+      return {
+        isValid: false,
+        error: 'Maximum of 5 tags allowed'
+      }
+    }
+
+    return { isValid: true }
+  }
+
   async updateBoard(boardId: string, updates: BingoBoard): Promise<BingoBoard | null> {
     try {
       store.dispatch(setLoading(true))
@@ -122,6 +152,7 @@ class BingoBoardService {
       await this.initializeBoards()
       
       return board
+
     } catch (error) {
       console.error('Error updating board:', error)
       store.dispatch(setError(error instanceof Error ? error.message : 'Failed to update board'))

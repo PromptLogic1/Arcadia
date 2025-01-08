@@ -55,10 +55,7 @@ export function BingoBoards() {
 
   return (
     <div className="space-y-4">
-      <BingoLayout
-        title="Bingo Boards"
-        description="Create and manage your custom bingo boards"
-      >
+      <BingoLayout>
         <BingoBoardsHub />
       </BingoLayout>
     </div>

@@ -13,6 +13,7 @@ import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/ty
 import { GameCategory, Difficulty, GAMES } from '@/src/store/types/game.types'
 import { BoardCard } from './BoardCard'
 import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
+import NeonText from '@/components/ui/NeonText'
 
 export default function BingoBoardsHub() {
   const router = useRouter()
@@ -97,11 +98,6 @@ export default function BingoBoardsHub() {
     }
   })
 
-  // Get user's bookmarked boards
-  const bookmarkedBoards = useMemo(() => {
-    return boards.filter(board => board.is_public === false)
-  }, [boards])
-
   const handleCreateBoard = useCallback(async (formData: {
     board_title: string
     board_description?: string
@@ -135,21 +131,6 @@ export default function BingoBoardsHub() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-          Bingo Boards
-        </h1>
-        {isAuthenticated && (
-          <Button
-            onClick={() => setIsCreateFormOpen(true)}
-            className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Board
-          </Button>
-        )}
-      </div>
-
       <Filter
         filterOptions={{
           categories: categoryOptions,
@@ -161,9 +142,24 @@ export default function BingoBoardsHub() {
         onFilterChange={handleFilterChange}
       />
 
-      {/* All Boards */}
-      <div className="space-y-4">
-        <h3 className="text-2xl font-bold text-cyan-400">All Boards</h3>
+      {/* Header mit Titel und Create Button */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-2xl font-bold">
+          <NeonText>Your Bingo Boards</NeonText>
+        </h3>
+        {isAuthenticated && (
+          <Button
+            onClick={() => setIsCreateFormOpen(true)}
+            className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Board
+          </Button>
+        )}
+      </div>
+
+      {/* Board Grid */}
+      <div className="grid grid-cols-1 gap-4">
         {sortedBoards.map((board) => (
           <BoardCard
             key={board.id}

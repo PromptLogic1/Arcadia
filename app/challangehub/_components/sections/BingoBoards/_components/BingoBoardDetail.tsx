@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -24,20 +23,29 @@ import {
 } from "@/components/ui/select"
 import { ArrowLeft, Save, Settings } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import type { BingoBoard, Difficulty } from '@/src/store/types/bingoboard.types'
+import type { Difficulty } from '@/src/store/types/bingoboard.types'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 import { Checkbox } from "@/components/ui/checkbox"
+import { bingoBoardService } from '@/src/store/services/bingoboard-service'
 
 interface BingoBoardDetailProps {
   boardId: string
   onClose: () => void
 }
 
+type FieldKey = 'title' | 'description' | 'tags';
+
 export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
   const { 
     boards,
     updateBoard 
   } = useBingoBoards()
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    description?: string;
+    tags?: string;
+  }>({})
   
   const board = boards.find(b => b.id === boardId)
   const [formData, setFormData] = useState(board ? {
@@ -50,13 +58,27 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
 
   const handleSave = async () => {
     if (!board || !formData) return
+    setError(null) // Reset any previous errors
+
+    // Validate first
+    const validation = bingoBoardService.validateBoardConstraints({
+      ...board,
+      ...formData
+    })
+
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid board data')
+      return
+    }
+
     try {
       await updateBoard(board.id, {
         ...board,
         ...formData
       })
+      onClose()
     } catch (error) {
-      console.error('Failed to update board:', error)
+      setError('Failed to update board')
     }
   }
 
@@ -76,6 +98,47 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
     return cards
   }
 
+  // Validiere ein einzelnes Feld
+  const validateField = (field: string, value: string | string[] | boolean): string | null => {
+    switch (field) {
+      case 'board_title':
+        if (typeof value === 'string' && (value.length < 3 || value.length > 50)) {
+          return 'Title must be between 3 and 50 characters'
+        }
+        break
+      case 'board_description':
+        if (typeof value === 'string' && value.length > 255) {
+          return 'Description cannot exceed 255 characters'
+        }
+        break
+      case 'board_tags':
+        if (Array.isArray(value) && value.length > 5) {
+          return 'Maximum of 5 tags allowed'
+        }
+        break
+    }
+    return null
+  }
+
+  // Update FormData mit Live-Validierung
+  const updateFormField = (field: string, value: string | string[] | boolean) => {
+    const error = validateField(field, value)
+    
+    setFieldErrors(prev => {
+      const newErrors = { ...prev }
+      const key = field.replace('board_', '') as FieldKey
+      
+      if (error) {
+        newErrors[key] = error
+      } else {
+        delete newErrors[key]
+      }
+      return newErrors
+    })
+    
+    setFormData(prev => ({ ...prev!, [field]: value }))
+  }
+
   if (!board || !formData) return null
 
   return (
@@ -86,6 +149,13 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
             Board Details
           </DialogTitle>
         </DialogHeader>
+
+        {/* Show error message if exists */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3 mb-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
 
         {/* Main content with scroll */}
         <div className="flex-1 overflow-y-auto min-h-0 py-4">
@@ -146,37 +216,76 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="board_title">Board Title</Label>
+                    <Label htmlFor="board_title">
+                      Board Title
+                      <span className="text-xs text-gray-400 ml-2">
+                        ({formData?.board_title.length}/50)
+                      </span>
+                    </Label>
                     <Input
                       id="board_title"
-                      value={formData.board_title}
-                      onChange={(e) => setFormData(prev => ({ ...prev!, board_title: e.target.value }))}
-                      className="bg-gray-800/50 border-cyan-500/50"
+                      value={formData?.board_title}
+                      onChange={(e) => updateFormField('board_title', e.target.value)}
+                      className={cn(
+                        "bg-gray-800/50",
+                        fieldErrors.title 
+                          ? "border-red-500/50 focus:border-red-500/70" 
+                          : "border-cyan-500/50"
+                      )}
                     />
+                    {fieldErrors.title && (
+                      <p className="text-red-400 text-xs mt-1">{fieldErrors.title}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="board_description">Description</Label>
+                    <Label htmlFor="description">
+                      Description
+                      <span className="text-xs text-gray-400 ml-2">
+                        ({formData?.board_description.length}/255)
+                      </span>
+                    </Label>
                     <Textarea
-                      id="board_description"
-                      value={formData.board_description}
-                      onChange={(e) => setFormData(prev => ({ ...prev!, board_description: e.target.value }))}
-                      className="bg-gray-800/50 border-cyan-500/50"
+                      id="description"
+                      value={formData?.board_description}
+                      onChange={(e) => updateFormField('board_description', e.target.value)}
+                      className={cn(
+                        "min-h-[120px]",
+                        "bg-gray-800/50",
+                        "resize-y",
+                        "text-gray-300",
+                        fieldErrors.description 
+                          ? "border-red-500/50 focus:border-red-500/70" 
+                          : "border-cyan-500/20 focus:border-cyan-500/40"
+                      )}
                     />
+                    {fieldErrors.description && (
+                      <p className="text-red-400 text-xs mt-1">{fieldErrors.description}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="board_tags">Tags (Placeholder)</Label>
+                    <Label htmlFor="board_tags">
+                      Tags
+                      <span className="text-xs text-gray-400 ml-2">
+                        ({formData?.board_tags.length}/5)
+                      </span>
+                    </Label>
                     <Input
                       id="board_tags"
-                      value={formData.board_tags.join(', ')}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev!, 
-                        board_tags: e.target.value.split(',').map(tag => tag.trim()) 
-                      }))}
-                      className="bg-gray-800/50 border-cyan-500/50"
+                      value={formData?.board_tags.join(', ')}
+                      onChange={(e) => updateFormField('board_tags', e.target.value.split(',').map(tag => tag.trim()))}
+                      className={cn(
+                        "bg-gray-800/50",
+                        fieldErrors.tags 
+                          ? "border-red-500/50 focus:border-red-500/70" 
+                          : "border-cyan-500/50"
+                      )}
                       placeholder="Enter tags separated by commas"
                     />
+                    {fieldErrors.tags && (
+                      <p className="text-red-400 text-xs mt-1">{fieldErrors.tags}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -214,7 +323,13 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
 
                 <Button
                   onClick={handleSave}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+                  disabled={Object.values(fieldErrors).some(error => error !== undefined)}
+                  className={cn(
+                    "w-full",
+                    Object.values(fieldErrors).some(error => error !== undefined)
+                      ? "bg-gray-500/50 cursor-not-allowed"
+                      : "bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+                  )}
                 >
                   <Save className="mr-2 h-4 w-4" />
                   Save Changes
