@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
@@ -8,10 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Search, PlusCircle } from 'lucide-react'
-import { BoardCard } from '@/components/challenges/bingo-board/components/cards/BoardCard'
-import { GAMES, type Game, type Board, isSet } from '@/components/challenges/bingo-board/types/types'
+import { BoardCard } from './BoardCard'
+import { GameCategory } from '@/src/store/types/game.types'
 import { useAuth } from '@/src/hooks/useAuth'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
+import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
+import type { BingoBoard, Difficulty } from '@/src/store/types/bingoboard.types'
+import { GAMES } from '@/src/store/types/game.types'
 
 const SORT_OPTIONS = {
   NEWEST: 'newest',
@@ -20,175 +23,39 @@ const SORT_OPTIONS = {
 
 type SortOption = typeof SORT_OPTIONS[keyof typeof SORT_OPTIONS]
 
-interface BingoBattlesProps {
-  initialBoards?: Board[]
-}
-
-export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) {
+export default function BingoBoardsHub() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const { createBoard, updateBoard, boards: storeBoards } = useBingoBoards()
+  const { boards, isLoading, error, createBoard, voteBoard, cloneBoard } = useBingoBoards()
   
-  const [boards, setBoards] = useState<Board[]>(processInitialBoards(initialBoards))
-  const [filterGame, setFilterGame] = useState<Game>("All Games")
+  const [filterGame, setFilterGame] = useState<GameCategory>("All Games")
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST)
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [bookmarkedBoards, setBookmarkedBoards] = useState<Board[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
 
-  // Board actions
-  const handleCreateBoard = useCallback(async () => {
-    if (!isAuthenticated) {
-      router.push('/auth/login')
-      return
-    }
-
-    const boardData = {
-      board_title: `Bingo Board ${boards.length + 1}`,
-      board_size: 5,
-      board_game_type: "World of Warcraft",
-      board_difficulty: 'medium',
-      is_public: true,
-    }
-
-    await createBoard(boardData)
-  }, [boards.length, isAuthenticated, router, createBoard])
-
-  // Update boards when store changes
-  useEffect(() => {
-    if (storeBoards.length > 0) {
-      setBoards(processInitialBoards(storeBoards))
-    }
-  }, [storeBoards])
-
-  // Fetch boards
-  useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const response = await fetch('/api/boards')
-        if (!response.ok) {
-          throw new Error('Failed to fetch boards')
-        }
-        const fetchedBoards: Board[] = await response.json()
-        // Convert votedBy to Set for each board
-        const processedBoards = fetchedBoards.map(board => ({
-          ...board,
-          votedBy: new Set(board.votedBy)
-        }))
-        setBoards(processedBoards)
-      } catch (error) {
-        console.error('Failed to fetch boards:', error)
-        setError('Failed to load boards. Please try again later.')
-        setBoards([])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    if (boards.length === 0) {
-      fetchBoards()
-    }
-  }, [boards.length])
-
-  // Board actions
-  const voteBoard = useCallback((boardId: number, userId: string) => {
-    if (!isAuthenticated) {
-      router.push('/auth/login')
-      return
-    }
-    
-    setBoards(prevBoards => prevBoards.map(board => {
-      if (board.id === boardId) {
-        const hasVoted = isSet(board.votedBy) 
-          ? board.votedBy.has(userId)
-          : board.votedBy.includes(userId)
-        
-        const newVotedBy = new Set(board.votedBy)
-        
-        if (hasVoted) {
-          // Remove vote
-          newVotedBy.delete(userId)
-          return { ...board, votes: board.votes - 1, votedBy: newVotedBy }
-        } else {
-          // Add vote
-          newVotedBy.add(userId)
-          return { ...board, votes: board.votes + 1, votedBy: newVotedBy }
-        }
-      }
-      return board
-    }))
-  }, [isAuthenticated, router])
-
-  const toggleBookmark = useCallback((boardId: number) => {
-    if (!isAuthenticated) {
-      router.push('/auth/login')
-      return
-    }
-    
-    setBoards(prevBoards => {
-      const updatedBoards = prevBoards.map(board => 
-        board.id === boardId ? { ...board, bookmarked: !board.bookmarked } : board
-      )
-      const updatedBookmarkedBoards = updatedBoards.filter(board => board.bookmarked)
-      setBookmarkedBoards(updatedBookmarkedBoards)
-      return updatedBoards
-    })
-  }, [isAuthenticated, router])
-
-  // Update selectBoard to navigate instead of expanding
-  const selectBoard = useCallback((board: Board) => {
-    router.push(`/challangehub/boards/${board.id}`)
-  }, [router])
-
-  // Add saveAsCopy function
-  const saveAsCopy = useCallback((boardId: number) => {
-    if (!isAuthenticated) {
-      router.push('/auth/login')
-      return
-    }
-
-    const originalBoard = boards.find(b => b.id === boardId)
-    if (!originalBoard) return
-
-    const newBoard: Board = {
-      ...originalBoard,
-      id: Date.now(),
-      name: `Copy of ${originalBoard.name}`,
-      bookmarked: false,
-      votedBy: new Set(),
-      votes: 0,
-      creator: "CurrentUser", // Should be replaced with actual user
-      clonedFrom: originalBoard.id,
-      isPublic: false,
-    }
-
-    setBoards(prevBoards => [newBoard, ...prevBoards])
-    setBookmarkedBoards(prev => [...prev, newBoard])
-  }, [boards, isAuthenticated, router])
-
-  // Filtered and sorted boards
+  // Filter and sort boards from Redux store
   const sortedAndFilteredBoards = useMemo(() => {
-    return boards
+    return [...boards]
       .filter(board => {
-        const matchesFilter = filterGame === "All Games" || board.game === filterGame
-        const matchesSearch = board.name.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesFilter = filterGame === "All Games" || board.board_game_type === filterGame
+        const matchesSearch = board.board_title.toLowerCase().includes(searchTerm.toLowerCase())
         return matchesFilter && matchesSearch
       })
       .sort((a, b) => {
         if (sortBy === SORT_OPTIONS.NEWEST) {
-          const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
-          const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)
-          return dateB.getTime() - dateA.getTime()
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         }
-        return b.votes - a.votes
+        return (b.votes || 0) - (a.votes || 0)
       })
   }, [boards, filterGame, searchTerm, sortBy])
 
-  // Update renderBoardCard to remove expansion logic
-  const renderBoardCard = useCallback((board: Board, section: 'bookmarked' | 'all') => {
+  // Get user's bookmarked boards
+  const bookmarkedBoards = useMemo(() => {
+    return boards.filter(board => board.is_public === false)
+  }, [boards])
+
+  // Render board card
+  const renderBoardCard = useCallback((board: BingoBoard, section: 'bookmarked' | 'all') => {
     return (
       <motion.div 
         key={`${section}-${board.id}`} 
@@ -200,28 +67,48 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
       >
         <BoardCard
           board={board}
-          section={section}
-          onVote={voteBoard}
-          onBookmark={toggleBookmark}
-          onSelect={() => selectBoard(board)}
-          onSaveAsCopy={saveAsCopy}
+          onVote={() => voteBoard(board.id)}
+          onSelect={() => router.push(`/challangehub/boards/${board.id}`)}
+          onClone={() => cloneBoard(board.id)}
         />
       </motion.div>
     )
-  }, [selectBoard, toggleBookmark, voteBoard, saveAsCopy])
+  }, [router, voteBoard, cloneBoard])
 
+  const handleCreateBoard = useCallback(async (formData: {
+    board_title: string
+    board_description?: string
+    board_size: number
+    board_game_type: GameCategory
+    board_difficulty: Difficulty
+    is_public: boolean
+  }) => {
+    if (!isAuthenticated) {
+      router.push('/auth/login')
+      return
+    }
+
+    try {
+      await createBoard({
+        board_title: formData.board_title,
+        board_description: formData.board_description || '',
+        board_size: formData.board_size,
+        board_game_type: formData.board_game_type,
+        board_difficulty: formData.board_difficulty,
+        board_tags: [],
+        is_public: formData.is_public,
+        votes: 0,
+        generated_by_ai: false,
+      })
+      setIsCreateFormOpen(false)
+    } catch (error) {
+      console.error('Failed to create board:', error)
+    }
+  }, [isAuthenticated, router, createBoard])
+
+  // Rest of the component remains the same...
   return (
     <div className="container mx-auto p-6 space-y-8">
-      {/* Header */}
-      <motion.div
-        className="flex justify-between items-center"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        
-      </motion.div>
-
       {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -233,7 +120,7 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
           {/* Game Filter */}
           <div className="w-full md:w-1/3">
             <Label htmlFor="filter-game" className="text-cyan-300 mb-2 block">Filter by Game:</Label>
-            <Select value={filterGame} onValueChange={(value: Game) => setFilterGame(value)}>
+            <Select value={filterGame} onValueChange={(value: GameCategory) => setFilterGame(value)}>
               <SelectTrigger className="w-full bg-gray-800 border-cyan-500 text-cyan-100">
                 <SelectValue placeholder="All Games" />
               </SelectTrigger>
@@ -303,7 +190,7 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
       >
         <h3 className="text-2xl font-bold text-cyan-400 mb-4">All Boards</h3>
         <Button 
-          onClick={handleCreateBoard} 
+          onClick={() => setIsCreateFormOpen(true)} 
           className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600 text-white"
         >
           <PlusCircle className="mr-2 h-4 w-4" />
@@ -323,6 +210,12 @@ export default function BingoBattles({ initialBoards = [] }: BingoBattlesProps) 
           {error}
         </div>
       ) : null}
+
+      <CreateBoardForm
+        isOpen={isCreateFormOpen}
+        onClose={() => setIsCreateFormOpen(false)}
+        onSubmit={handleCreateBoard}
+      />
     </div>
   )
 }

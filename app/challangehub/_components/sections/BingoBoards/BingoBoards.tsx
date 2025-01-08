@@ -1,15 +1,45 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BingoLayout } from '@/components/challenges/bingo-board/components/layout/BingoLayout'
-import BingoBattles from './_components/BingoBoardsHub'
+import BingoBoardsHub from './_components/BingoBoardsHub'
 import { useAuth } from '@/src/hooks/useAuth'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 export function BingoBoards() {
-  const { userData } = useAuth()
-  const { boards, isLoading, error } = useBingoBoards()
+  const { isAuthenticated } = useAuth()
+  const { isLoading, error, initializeBoards } = useBingoBoards()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      initializeBoards()
+    }
+  }, [isAuthenticated, initializeBoards])
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <h2 className="text-2xl font-bold text-cyan-400">
+          Please log in to view and create Bingo Boards
+        </h2>
+        <div className="flex gap-4">
+          <Button asChild variant="default">
+            <Link href="/auth/login">
+              Log In
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/auth/signup">
+              Sign Up
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return <LoadingSpinner />
@@ -29,7 +59,7 @@ export function BingoBoards() {
         title="Bingo Boards"
         description="Create and manage your custom bingo boards"
       >
-        <BingoBattles initialBoards={boards} />
+        <BingoBoardsHub />
       </BingoLayout>
     </div>
   )

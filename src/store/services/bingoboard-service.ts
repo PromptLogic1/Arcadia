@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
-import type { BingoBoard, CreateBingoBoardDTO, UpdateBingoBoardDTO } from '../types/bingoboard.types'
+import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
 import { setBingoBoards, setSelectedBoard, setLoading, setError } from '../slices/bingoboardSlice'
 import { serverLog } from '@/lib/logger'
 
@@ -105,7 +105,7 @@ class BingoBoardService {
     }
   }
 
-  async updateBoard(boardId: string, updates: UpdateBingoBoardDTO): Promise<BingoBoard | null> {
+  async updateBoard(boardId: string, updates: BingoBoard): Promise<BingoBoard | null> {
     try {
       store.dispatch(setLoading(true))
 

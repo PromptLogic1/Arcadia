@@ -7,7 +7,10 @@ import {
   selectBingoBoardLoading,
   selectBingoBoardError
 } from '../store/selectors'
-import { CreateBingoBoardDTO, UpdateBingoBoardDTO } from '../store/types/bingoboard.types'
+import {
+  BingoBoard,
+  CreateBingoBoardDTO
+} from '../store/types/bingoboard.types'
 
 export const useBingoBoards = () => {
   const dispatch = useAppDispatch()
@@ -18,21 +21,63 @@ export const useBingoBoards = () => {
   const isLoading = useAppSelector(selectBingoBoardLoading)
   const error = useAppSelector(selectBingoBoardError)
 
-  // Service methods wrapped in hooks
-  const createBoard = useCallback(async (boardData: CreateBingoBoardDTO) => {
-    return services.createBoard(boardData)
+  // Initialize boards
+  const initializeBoards = useCallback(async () => {
+    return services.initializeBoards()
   }, [])
 
-  const updateBoard = useCallback(async (boardId: string, updates: UpdateBingoBoardDTO) => {
+  // Get board by ID
+  const getBoardById = useCallback(async (boardId: string): Promise<BingoBoard | null> => {
+    return services.getBoardById(boardId)
+  }, [])
+
+  // Create new board
+  const createBoard = useCallback(async (boardData: CreateBingoBoardDTO) => {
+    try {
+      const newBoard = await services.createBoard(boardData)
+      if (!newBoard) {
+        throw new Error('Failed to create board')
+      }
+      return newBoard
+    } catch (error) {
+      throw error
+    }
+  }, [])
+
+  // Update board
+  const updateBoard = useCallback(async (boardId: string, updates: BingoBoard) => {
     return services.updateBoard(boardId, updates)
   }, [])
 
+  // Delete board
+  const deleteBoard = useCallback(async (boardId: string) => {
+    return services.deleteBoard(boardId)
+  }, [])
+
+  // Vote for board
+  const voteBoard = useCallback(async (boardId: string) => {
+    return services.voteBoard(boardId)
+  }, [])
+
+  // Clone board
+  const cloneBoard = useCallback(async (boardId: string) => {
+    return services.cloneBoard(boardId)
+  }, [])
+
   return {
+    // State
     boards,
     selectedBoard,
     isLoading,
     error,
+
+    // Board operations
+    initializeBoards,
+    getBoardById,
     createBoard,
     updateBoard,
+    deleteBoard,
+    voteBoard,
+    cloneBoard,
   }
 } 

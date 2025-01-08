@@ -1,5 +1,6 @@
 // These match the SQL enums from 2_user_and_challenge_enums.sql
 export type GameCategory = 
+  | 'All Games'
   | 'World of Warcraft'
   | 'Fortnite'
   | 'Minecraft'
@@ -16,3 +17,16 @@ export type Difficulty =
   | 'medium'
   | 'hard'
   | 'expert'
+
+export const GAMES: GameCategory[] = [
+  'All Games',
+  'World of Warcraft',
+  'Fortnite',
+  'Minecraft',
+  'Among Us',
+  'Apex Legends',
+  'League of Legends',
+  'Overwatch',
+  'Call of Duty: Warzone',
+  'Valorant'
+]

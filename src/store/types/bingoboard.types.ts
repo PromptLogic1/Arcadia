@@ -1,4 +1,5 @@
 export type GameCategory = 
+  | 'All Games'
   | 'World of Warcraft'
   | 'Fortnite'
   | 'Minecraft'
@@ -35,35 +36,22 @@ export interface BingoBoard {
   board_game_type: GameCategory
   board_difficulty: Difficulty
   cloned_from?: string
-  votes: number
+  votes?: number
   is_public: boolean
   deleted_at?: string
-  generated_by_ai: boolean
+  generated_by_ai?: boolean
   created_at: string
   updated_at: string
 }
+
+// Add this type for board creation
+export type CreateBingoBoardDTO = Omit<BingoBoard, 'id' | 'creator_id' | 'created_at' | 'updated_at' | 'board_layoutbingocards'> 
 
 export interface BingoBoardCell {
   id: string
   text: string
   category: CardCategory
   difficulty: Difficulty
-}
-
-export interface CreateBingoBoardDTO {
-  board_title: string
-  board_description?: string
-  board_size: number
-  board_game_type: GameCategory
-  board_difficulty: Difficulty
-
-  is_public: boolean
-  board_tags?: string[]
-  generated_by_ai?: boolean
-}
-
-export interface UpdateBingoBoardDTO extends Partial<CreateBingoBoardDTO> {
-  id: string
 }
 
 // Helper constants for validation
@@ -78,4 +66,5 @@ export const TITLE_LENGTH_LIMITS = {
 } as const
 
 export const DESCRIPTION_LENGTH_LIMIT = 255
+export const TITLE_LENGTH_LIMIT = 50
 export const MAX_TAGS = 5 
