@@ -1,31 +1,5 @@
 import { UUID } from "crypto"
-
-export type GameCategory = 
-  | 'All Games'
-  | 'World of Warcraft'
-  | 'Fortnite'
-  | 'Minecraft'
-  | 'Among Us'
-  | 'Apex Legends'
-  | 'League of Legends'
-  | 'Overwatch'
-  | 'Call of Duty: Warzone'
-  | 'Valorant'
-
-export type Difficulty = 
-  | 'beginner'
-  | 'easy'
-  | 'medium'
-  | 'hard'
-  | 'expert'
-
-export type CardCategory = 
-  | 'collecting'
-  | 'killing'
-  | 'building'
-  | 'escaping'
-  | 'surviving'
-  | 'winning'
+import { GameCategory, Difficulty } from "./game.types"
 
 export interface BingoBoard {
   id: string

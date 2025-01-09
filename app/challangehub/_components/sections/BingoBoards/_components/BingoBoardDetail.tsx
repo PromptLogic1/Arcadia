@@ -183,7 +183,6 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
                     </p>
                     <div className="absolute bottom-0 left-0 right-0 flex justify-between p-2 text-[10px] text-gray-400">
                       <Badge 
-                        variant="secondary" 
                         className={cn(
                           "text-[10px] px-1.5 py-0.5",
                           "bg-cyan-500/5 text-cyan-300/70"
@@ -192,7 +191,6 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
                         {card.category}
                       </Badge>
                       <Badge 
-                        variant="secondary" 
                         className={cn(
                           "text-[10px] px-1.5 py-0.5",
                           "bg-cyan-500/5 text-cyan-300/70"
@@ -340,7 +338,10 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardDetailProps) {
         </div>
 
         <DialogFooter className="flex-none mt-4 border-t border-gray-800 pt-4">
-          <Button variant="ghost" onClick={onClose}>
+          <Button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Close
           </Button>

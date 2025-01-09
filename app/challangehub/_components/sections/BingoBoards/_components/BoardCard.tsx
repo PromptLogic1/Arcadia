@@ -116,7 +116,6 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
         </TooltipProvider>
 
         <Badge 
-          variant="secondary" 
           className={cn(
             "px-3 py-1 rounded-full font-medium transition-all duration-300",
             "shadow-sm whitespace-nowrap overflow-hidden text-ellipsis",
@@ -133,7 +132,6 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
         </Badge>
 
         <Badge 
-          variant="secondary" 
           className={cn(
             "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20",
             "group-hover:border-cyan-500/40 group-hover:bg-cyan-500/20",
