@@ -3,7 +3,7 @@
 import { useCallback, useState, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from 'lucide-react'
-import { BingoBoardDetail } from './BingoBoardDetail'
+import { BingoBoardDetail } from '@/src/features/BingoBoards/BingoBoardsEdit/BingoBoardEdit'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 import { useAuth } from '@/src/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -11,7 +11,7 @@ import { Filter } from '@/components/filter/filter'
 import type { FilterType, FilterSelections } from '@/components/filter/types'
 import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
 import { GameCategory, Difficulty, GAMES } from '@/src/store/types/game.types'
-import { BoardCard } from './BoardCard'
+import { BoardCard } from '@/src/features/BingoBoards/BoardCard'
 import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
 import NeonText from '@/components/ui/NeonText'
 

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { ArrowLeft, Save, Settings } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import type { Difficulty } from '@/src/store/types/bingoboard.types'
+import type { Difficulty } from '@/src/store/types/game.types'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 import { Checkbox } from "@/components/ui/checkbox"
 import { bingoBoardService } from '@/src/store/services/bingoboard-service'

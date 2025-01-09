@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react'
 import { Trophy, Grid, Zap, Puzzle } from 'lucide-react'
-import { BingoBoards } from './sections/BingoBoards/BingoBoards'
-import { SpeedRuns } from './sections/Speedruns/SpeedRuns'
-import { AchievementHunt } from './sections/AchievementHunt/AchievementHunt'
-import { PuzzleQuests } from './sections/PuzzleQuests/PuzzleQuests'
+import { BingoBoards } from '@/src/features/BingoBoards/BingoBoards'
+import { SpeedRuns } from '@/src/features/Speedruns/SpeedRuns'
+import { AchievementHunt } from '@/src/features/AchievementHunt/AchievementHunt'
+import { PuzzleQuests } from '@/src/features/PuzzleQuests/PuzzleQuests'
 import { cn } from "@/lib/utils"
 
 export default function Challenges() {

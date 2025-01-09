@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react'
 import { BingoLayout } from '@/components/challenges/bingo-board/components/layout/BingoLayout'
-import BingoBoardsHub from './_components/BingoBoardsHub'
+import BingoBoardsHub from './BingoBoardsHub'
 import { useAuth } from '@/src/hooks/useAuth'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
@@ -26,12 +26,15 @@ export function BingoBoards() {
           Please log in to view and create Bingo Boards
         </h2>
         <div className="flex gap-4">
-          <Button asChild variant="default">
+          <Button 
+            asChild 
+            className="bg-cyan-500 hover:bg-cyan-600 text-white"
+          >
             <Link href="/auth/login">
               Log In
             </Link>
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild className="border border-cyan-500 text-cyan-500 hover:bg-cyan-100">
             <Link href="/auth/signup">
               Sign Up
             </Link>
