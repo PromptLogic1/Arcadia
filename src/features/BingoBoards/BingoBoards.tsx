@@ -1,23 +1,14 @@
 'use client'
 
-import React, { useEffect } from 'react'
 import { BingoLayout } from '@/components/challenges/bingo-board/components/layout/BingoLayout'
 import BingoBoardsHub from './BingoBoardsHub'
-import { useAuth } from '@/src/hooks/useAuth'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { useBingoBoards } from '@/src/hooks/useBingoBoards'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { useBingoBoards } from './hooks/useBingoBoards'
 
 export function BingoBoards() {
-  const { isAuthenticated } = useAuth()
-  const { isLoading, error, initializeBoards } = useBingoBoards()
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      initializeBoards()
-    }
-  }, [isAuthenticated, initializeBoards])
+  const { isAuthenticated, isLoading, error } = useBingoBoards()
 
   if (!isAuthenticated) {
     return (

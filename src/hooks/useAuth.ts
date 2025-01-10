@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useAppSelector, useAppDispatch } from '../store/hooks'
+import { useAppSelector } from '../store/hooks'
 import { authService as services } from '../store/services/auth-service'
 import { 
   selectIsAuthenticated, 

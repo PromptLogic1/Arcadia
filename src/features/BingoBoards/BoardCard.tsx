@@ -2,14 +2,11 @@
 
 import React from 'react'
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
   ThumbsUp, 
-  Users, 
   Grid as GridIcon,
-  Clock,
   User
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
@@ -20,6 +17,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip"
 import { BingoBoard } from '@/src/store/types/bingoboard.types'
+import { DIFFICULTY_STYLES } from '@/src/store/types/game.types'
 
 interface BoardCardProps {
   board: BingoBoard
@@ -45,15 +43,16 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
             "group-hover:ring-cyan-500/40 transition-all duration-300",
             "shadow-lg shadow-cyan-500/5"
           )}>
+            <AvatarImage src={board.creator_id} alt="Creator" />
             <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-fuchsia-500/20 text-cyan-400 font-bold">
               <User className="h-6 w-6" />
             </AvatarFallback>
           </Avatar>
+          
           <div className="min-w-0 flex-1">
             <CardTitle className={cn(
-              "text-2xl font-bold text-transparent bg-clip-text truncate",
-              "bg-gradient-to-r from-cyan-300 to-fuchsia-400",
-              "group-hover:from-cyan-200 group-hover:to-fuchsia-300",
+              "text-2xl font-bold",
+              "text-cyan-300/90 group-hover:text-cyan-300",
               "transition-all duration-300"
             )}>
               {board.board_title}
@@ -73,8 +72,8 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
 
       <CardContent className={cn(
         "flex flex-wrap gap-4 sm:gap-8",
-        "py-4 px-5 border-t border-cyan-500/10",
-        "group-hover:border-cyan-500/20 transition-colors duration-300",
+        "py-4 px-5",
+        "border-t border-cyan-500/20 group-hover:border-cyan-500/30",
         "bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent"
       )}>
         <TooltipProvider>
@@ -116,22 +115,18 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
         </TooltipProvider>
 
         <Badge 
+          variant="outline"
           className={cn(
             "px-3 py-1 rounded-full font-medium transition-all duration-300",
             "shadow-sm whitespace-nowrap overflow-hidden text-ellipsis",
-            {
-              'bg-green-500/10 text-green-300 border border-green-500/20 group-hover:border-green-500/40 group-hover:bg-green-500/20': board.board_difficulty === 'beginner',
-              'bg-blue-500/10 text-blue-300 border border-blue-500/20 group-hover:border-blue-500/40 group-hover:bg-blue-500/20': board.board_difficulty === 'easy',
-              'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20 group-hover:border-yellow-500/40 group-hover:bg-yellow-500/20': board.board_difficulty === 'medium',
-              'bg-orange-500/10 text-orange-300 border border-orange-500/20 group-hover:border-orange-500/40 group-hover:bg-orange-500/20': board.board_difficulty === 'hard',
-              'bg-red-500/10 text-red-300 border border-red-500/20 group-hover:border-red-500/40 group-hover:bg-red-500/20': board.board_difficulty === 'expert',
-            }
+            DIFFICULTY_STYLES[board.board_difficulty]
           )}
         >
           {board.board_difficulty}
         </Badge>
 
         <Badge 
+          variant="outline"
           className={cn(
             "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20",
             "group-hover:border-cyan-500/40 group-hover:bg-cyan-500/20",

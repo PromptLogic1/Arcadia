@@ -24,11 +24,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { 
   TITLE_LENGTH_LIMITS, 
   DESCRIPTION_LENGTH_LIMIT,
-  BOARD_SIZE_LIMITS,
-  GameCategory,
-  Difficulty
+  BOARD_SIZE_LIMITS
 } from '@/src/store/types/bingoboard.types'
+import { Difficulty, GameCategory } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
+import type { CreateBoardFormData } from '@/src/features/BingoBoards/types'
 
 interface FormData {
   board_title: string
@@ -37,6 +37,7 @@ interface FormData {
   board_game_type: GameCategory
   board_difficulty: Difficulty
   is_public: boolean
+  board_tags: string[]
 }
 
 interface FormErrors {
@@ -50,7 +51,7 @@ interface FormErrors {
 interface CreateBoardFormProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: FormData) => Promise<void>
+  onSubmit: (data: CreateBoardFormData) => Promise<void>
 }
 
 const BOARD_SIZES = [3, 4, 5, 6]
@@ -67,7 +68,8 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
     board_size: 5,
     board_game_type: DEFAULT_GAME_TYPE,
     board_difficulty: 'medium',
-    is_public: false
+    is_public: false,
+    board_tags: []
   })
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -117,7 +119,8 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
         board_size: 5,
         board_game_type: DEFAULT_GAME_TYPE,
         board_difficulty: 'medium',
-        is_public: false
+        is_public: false,
+        board_tags: []
       })
       onClose()
     } catch (err) {
