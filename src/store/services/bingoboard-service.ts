@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
+import { BOARD_SIZE_OPTIONS } from '../types/bingoboard.types'
 import { setBingoBoards, setSelectedBoardId, setLoading, setError } from '../slices/bingoboardSlice'
 import { serverLog } from '@/lib/logger'
 
@@ -79,26 +80,55 @@ class BingoBoardService {
         throw new Error('User not authenticated')
       }
 
-      await serverLog('Creating bingo board', { boardData })
+      // Debug log
+      console.log('Input boardData:', boardData)
 
-      const { data: board, error } = await this.supabase
+      const totalCells = boardData.board_size * boardData.board_size
+      const initialBoardLayout = Array(totalCells).fill("")
+
+      // Prepare board data
+      const newBoard = {
+        board_title: boardData.board_title,
+        board_description: boardData.board_description || '',
+        board_size: boardData.board_size,
+        board_game_type: boardData.board_game_type,
+        board_difficulty: boardData.board_difficulty,
+        board_tags: boardData.board_tags || [],
+        is_public: boardData.is_public,
+        creator_id: authState.userdata.id,
+        board_layoutbingocards: initialBoardLayout,
+        votes: 0
+      }
+
+      console.log('Prepared newBoard:', newBoard)
+
+      const { data, error } = await this.supabase
         .from('bingoboards')
-        .insert([{ ...boardData, creator_id: authState.userdata.id }])
+        .insert([newBoard])
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Detailed Supabase error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw new Error(`Database error: ${error.message}`)
+      }
 
-      await serverLog('Bingo board created successfully', { boardId: board.id })
-      
-      // Refresh boards list
+      if (!data) {
+        throw new Error('No board data returned')
+      }
+
       await this.initializeBoards()
-      
-      return board
+      return data
+
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error creating board'
       console.error('Error creating board:', error)
-      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to create board'))
-      await serverLog('Error creating bingo board', { error })
+      store.dispatch(setError(errorMessage))
       return null
     } finally {
       store.dispatch(setLoading(false))
@@ -264,6 +294,20 @@ class BingoBoardService {
       return null
     } finally {
       store.dispatch(setLoading(false))
+    }
+  }
+
+  async updateBoardLayout(boardId: string, cardIds: string[]): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('bingo_boards')
+        .update({ board_layoutbingocards: cardIds })
+        .eq('id', boardId)
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error updating board layout:', error)
+      throw error
     }
   }
 }

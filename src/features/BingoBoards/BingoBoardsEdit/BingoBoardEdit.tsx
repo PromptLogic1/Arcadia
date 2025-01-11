@@ -26,34 +26,24 @@ import { Difficulty, DIFFICULTIES } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import { BingoBoardComponentProps } from '../types'
+import LoadingSpinner from "@/components/ui/loading-spinner"
+import { DEFAULT_CARD_ID } from '@/src/store/types/bingocard.types'
 
-export function BingoBoardDetail({ boardId, onClose }: BingoBoardComponentProps) {
+export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
   const {
     board,
     formData,
     setFormData,
     error,
     fieldErrors,
+    gridCards,
+    isLoadingCards,
+    gridError,
     updateFormField,
     handleSave
   } = useBingoBoardEdit(boardId!)
 
   if (!board || !formData) return null
-
-  const generatePlaceholderCards = (size: number) => {
-    const cards = []
-    const totalCards = size * size
-    
-    for (let i = 0; i < totalCards; i++) {
-      cards.push({
-        id: `placeholder-${i}`,
-        text: `Complete Task ${i + 1}`,
-        category: 'Quest',
-        difficulty: 'Medium'
-      })
-    }
-    return cards
-  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -73,21 +63,40 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardComponentProps)
         <div className="grid grid-cols-2 gap-6">
           {/* Left Section - Bingo Grid */}
           <div className="space-y-4">
-            <div 
-              className="grid gap-4 aspect-square" 
-              style={{ 
-                gridTemplateColumns: `repeat(${board.board_size}, minmax(0, 1fr))` 
-              }}
-            >
-              {generatePlaceholderCards(board.board_size).map((card, index) => (
-                <Card 
-                  key={card.id}
-                  className="bg-gray-800/50 border-cyan-500/20 p-4 aspect-square flex items-center justify-center text-center text-sm hover:border-cyan-500/40 transition-colors cursor-pointer"
-                >
-                  {card.text}
-                </Card>
-              ))}
-            </div>
+            {isLoadingCards ? (
+              <div className="flex items-center justify-center h-full">
+                <LoadingSpinner />
+              </div>
+            ) : gridError ? (
+              <div className="text-red-400">{gridError}</div>
+            ) : (
+              <div 
+                className="grid gap-4 aspect-square" 
+                style={{ 
+                  gridTemplateColumns: `repeat(${board.board_size}, minmax(0, 1fr))` 
+                }}
+              >
+                {Array.from({ length: board.board_size * board.board_size }).map((_, index) => {
+                  const card = gridCards[index]
+                  const isPlaceholder = card?.id === DEFAULT_CARD_ID
+
+                  return (
+                    <Card 
+                      key={card?.id || index}
+                      className={cn(
+                        "bg-gray-800/50 p-4 aspect-square flex items-center justify-center text-center text-sm transition-colors cursor-pointer",
+                        isPlaceholder 
+                          ? "border-gray-600/20 hover:border-gray-600/40 text-gray-400"
+                          : "border-cyan-500/20 hover:border-cyan-500/40 text-gray-100"
+                      )}
+                      onClick={() => {/* Handle card click */}}
+                    >
+                      {card?.card_content || 'Error loading cell'}
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Right Section - Board Settings */}
@@ -233,4 +242,4 @@ export function BingoBoardDetail({ boardId, onClose }: BingoBoardComponentProps)
   )
 }
 
-export default BingoBoardDetail
+export default BingoBoardEdit

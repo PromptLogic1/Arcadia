@@ -4,6 +4,7 @@ import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
 import { setBingoCards, setSelectedCardId, setLoading, setError } from '../slices/bingocardsSlice'
 import { serverLog } from '@/lib/logger'
+import { DEFAULT_CARD_ID } from '../types/bingocard.types'
 
 class BingoCardService {
   private supabase = supabase
@@ -249,6 +250,41 @@ class BingoCardService {
       return []
     } finally {
       store.dispatch(setLoading(false))
+    }
+  }
+
+  async getCardsByIds(cardIds: string[]): Promise<BingoCard[]> {
+    try {
+      // Filter out empty strings before querying
+      const realCardIds = cardIds.filter(id => id !== '')
+      
+      if (realCardIds.length === 0) return []
+
+      console.log('Fetching cards with IDs:', realCardIds) // Debug
+
+      const { data, error } = await this.supabase
+        .from('bingocards')  // Tabellenname korrigiert von 'bingo_cards' zu 'bingocards'
+        .select('*')
+        .in('id', realCardIds)
+        .is('deleted_at', null)
+
+      if (error) {
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw new Error(`Database error: ${error.message}`)
+      }
+
+      console.log('Fetched cards:', data) // Debug
+      return data || []
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching cards'
+      console.error('Error fetching cards:', errorMessage)
+      throw error
     }
   }
 }

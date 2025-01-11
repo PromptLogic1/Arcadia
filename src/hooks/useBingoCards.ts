@@ -71,6 +71,11 @@ export function useBingoCards() {
     return bingoCardService.filterCards(filters)
   }, [])
 
+  const getCardsByIds = useCallback(async (cardIds: string[]) => {
+    if (!cardIds.length) return []
+    return bingoCardService.getCardsByIds(cardIds)
+  }, [])
+
   return {
     // State
     cards,
@@ -90,6 +95,7 @@ export function useBingoCards() {
     deleteCard,
     voteCard,
     getCardsByGameCategory,
-    filterCards
+    filterCards,
+    getCardsByIds
   }
 } 

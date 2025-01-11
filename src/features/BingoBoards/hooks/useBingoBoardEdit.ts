@@ -1,13 +1,20 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
+import { useBingoCards } from '@/src/hooks/useBingoCards'
 import { bingoBoardService } from '@/src/store/services/bingoboard-service'
 import type { BingoBoard } from '@/src/store/types/bingoboard.types'
 import type { Difficulty } from '@/src/store/types/game.types'
+import type { BingoCard } from '@/src/store/types/bingocard.types'
+import { DEFAULT_CARD_ID, DEFAULT_BINGO_CARD } from '@/src/store/types/bingocard.types'
 
 type FieldKey = 'title' | 'description' | 'tags'
 
 export function useBingoBoardEdit(boardId: string) {
   const { boards, updateBoard } = useBingoBoards()
+  const { getCardsByIds } = useBingoCards()
+  const [gridCards, setGridCards] = useState<BingoCard[]>([])
+  const [isLoadingCards, setIsLoadingCards] = useState(false)
+  const [gridError, setGridError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string
@@ -93,14 +100,78 @@ export function useBingoBoardEdit(boardId: string) {
     }
   }, [board, formData, updateBoard])
 
+  const initializeBoardLayout = useCallback(() => {
+    if (!board) return
+    
+    // Wenn kein Layout existiert, erstelle ein neues mit leeren Strings
+    if (!board.board_layoutbingocards || board.board_layoutbingocards.length === 0) {
+      const totalCells = board.board_size * board.board_size
+      const defaultLayout = Array(totalCells).fill('')
+      
+      // Update board layout in database
+      bingoBoardService.updateBoardLayout(board.id, defaultLayout)
+      return defaultLayout
+    }
+    
+    return board.board_layoutbingocards
+  }, [board])
+
+  const loadBingoBoardGrid = useCallback(async () => {
+    if (!board) return
+    
+    setIsLoadingCards(true)
+    setGridError(null)
+
+    try {
+      const layout = initializeBoardLayout()
+      if (!layout) return
+
+      // Identifiziere echte Card IDs (nicht leere Strings)
+      const realCardIds = layout.filter(id => id !== '')
+      
+      // Lade echte Karten wenn vorhanden
+      let realCards: BingoCard[] = []
+      if (realCardIds.length > 0) {
+        realCards = await getCardsByIds(realCardIds)
+      }
+
+      // Erstelle Map mit echten Karten
+      const cardMap = new Map(realCards.map(card => [card.id, card]))
+      
+      // Rekonstruiere das Grid mit Platzhaltern und echten Karten
+      const gridCards = layout.map((id) => {
+        if (id === '') {
+          return { ...DEFAULT_BINGO_CARD }
+        }
+        return cardMap.get(id) || { ...DEFAULT_BINGO_CARD }
+      })
+
+      setGridCards(gridCards)
+    } catch (error) {
+      setGridError('Failed to load bingo cards')
+      console.error('Error loading bingo cards:', error)
+    } finally {
+      setIsLoadingCards(false)
+    }
+  }, [board, getCardsByIds, initializeBoardLayout])
+
+  // Load grid cards when board changes
+  useEffect(() => {
+    loadBingoBoardGrid()
+  }, [loadBingoBoardGrid])
+
   return {
     board,
     formData,
     setFormData,
     error,
     fieldErrors,
+    gridCards,
+    isLoadingCards,
+    gridError,
     validateField,
     updateFormField,
     handleSave,
+    loadBingoBoardGrid,
   }
 } 

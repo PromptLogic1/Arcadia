@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from 'lucide-react'
-import { BingoBoardDetail } from './BingoBoardsEdit/BingoBoardEdit'
+import { BingoBoardEdit } from './BingoBoardsEdit/BingoBoardEdit'
 import { Filter } from '@/components/filter/filter'
 import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
 import { GAMES } from '@/src/store/types/game.types'
@@ -80,7 +80,7 @@ export default function BingoBoardsHub() {
       />
 
       {selectedBoardId && (
-        <BingoBoardDetail 
+        <BingoBoardEdit 
           boardId={selectedBoardId} 
           onClose={() => setSelectedBoardId(null)}
         />

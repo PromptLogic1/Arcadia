@@ -2,7 +2,7 @@ import { UUID } from "crypto"
 import { CardCategory, Difficulty, GameCategory } from "./game.types"
 
 export interface BingoCard {
-  id: UUID
+  id: UUID | ""
   creator_id: string
   card_content: string
   card_explanation?: string
@@ -53,4 +53,23 @@ export const validateCardData = (card: Partial<BingoCard>) => {
   }
 
   return { isValid: true }
+}
+
+// Konstanten für Default/Platzhalter
+export const DEFAULT_CARD_ID = '00000000-0000-0000-0000-000000000000' as UUID
+
+export const DEFAULT_BINGO_CARD: BingoCard = {
+  id: "",
+  creator_id: 'system',
+  card_content: 'Click to add a challenge',
+  card_explanation: 'This is a placeholder cell. Click to add a real challenge.',
+  card_tags: ['placeholder'],
+  card_type: 'collecting',
+  card_difficulty: 'medium',
+  game_category: 'All Games',
+  votes: 0,
+  is_public: false,
+  generated_by_ai: false,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
 } 
