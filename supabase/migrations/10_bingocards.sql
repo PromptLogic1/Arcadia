@@ -1,13 +1,13 @@
--- First, drop existing tables and types if they exist
+-- This snippet creates the bingocards table with the necessary corrections.
+
 DROP TABLE IF EXISTS bingocards CASCADE;
 
--- Create the bingo boards table
 CREATE TABLE bingocards (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     creator_id UUID NOT NULL REFERENCES users(id),
     card_content TEXT NOT NULL,
     card_explanation TEXT,
-    card_tags ARRAY[5] DEFAULT '[]' NOT NULL,
+    card_tags TEXT[] DEFAULT '{}' NOT NULL,
     card_type card_category NOT NULL,
     card_difficulty difficulty DEFAULT 'medium' NOT NULL,
     game_category game_category NOT NULL,
@@ -16,8 +16,8 @@ CREATE TABLE bingocards (
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     generated_by_ai BOOLEAN DEFAULT false NOT NULL,
     -- Constraints
-    CONSTRAINT tags_limit CHECK (jsonb_array_length(card_tags) <= 5),
-    CONSTRAINT card_content_length CHECK (char_length(card_content) BETWEEN 0 AND 50)
+    CONSTRAINT tags_limit CHECK (array_length(card_tags, 1) <= 5),
+    CONSTRAINT card_content_length CHECK (char_length(card_content) BETWEEN 0 AND 50),
     CONSTRAINT card_explanation_length CHECK (char_length(card_explanation) BETWEEN 0 AND 255)
 ) INHERITS (base_table);
 
@@ -51,12 +51,11 @@ CREATE POLICY "Authenticated users can create Card boards"
     ON bingocards 
     FOR INSERT 
     WITH CHECK (
-        -- Check that the auth_id matches the creator_id of the users table
         EXISTS (
             SELECT 1 
             FROM users 
-            WHERE auth_id = auth.uid()  -- Get the auth_id from auth system
-              AND id = creator_id        -- Ensure it matches the creator_id of bingocards
+            WHERE auth_id = auth.uid()  
+              AND id = creator_id        
         )
     );
 
@@ -64,11 +63,10 @@ CREATE POLICY "Users can update own bingo cards"
     ON bingocards 
     FOR UPDATE 
     USING (
-        -- Check if the user attempting to update the board is the creator
         EXISTS (
             SELECT 1 
             FROM users 
-            WHERE auth_id = auth.uid()  -- Get the auth_id from auth system
-              AND id = creator_id        -- Ensure it matches the creator_id of bingocards
+            WHERE auth_id = auth.uid()  
+              AND id = creator_id        
         )
     );

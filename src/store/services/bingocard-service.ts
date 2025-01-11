@@ -81,19 +81,39 @@ class BingoCardService {
         throw new Error('User not authenticated')
       }
 
+      console.log('Creating card with data:', cardData) // Debug log
+
       const { data: card, error } = await this.supabase
         .from('bingocards')
-        .insert([{ ...cardData, creator_id: authState.userdata.id }])
+        .insert([{
+          ...cardData,
+          card_explanation: cardData.card_explanation || '',  // Setze Default-Werte
+          votes: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw error
+      }
 
-      await this.initializeCards()
-      
+      if (!card) {
+        throw new Error('No card data returned after creation')
+      }
+
+      await this.initializeCards() // Aktualisiere die Card-Liste
       return card
+
     } catch (error) {
-      console.error('Error creating card:', error)
+      console.error('Error details:', error) // Detaillierter Error-Log
       store.dispatch(setError(error instanceof Error ? error.message : 'Failed to create card'))
       return null
     } finally {
@@ -329,7 +349,12 @@ class BingoCardService {
         if (id === '') {
           return { ...DEFAULT_BINGO_CARD, id: '' as (UUID | '') }
         }
-        return cardMap.get(id as UUID) || { ...DEFAULT_BINGO_CARD }
+        const foundCard = cardMap.get(id as UUID)
+        if (!foundCard) {
+          console.warn(`Card with ID ${id} not found, using placeholder`)
+          return { ...DEFAULT_BINGO_CARD, id: '' as (UUID | '') }
+        }
+        return foundCard
       })
 
     } catch (error) {

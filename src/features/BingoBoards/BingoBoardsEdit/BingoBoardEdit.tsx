@@ -28,8 +28,13 @@ import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import { BingoBoardComponentProps } from '../types'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import { DEFAULT_CARD_ID } from '@/src/store/types/bingocard.types'
+import { useState } from "react"
+import { BingoCardEditDialog } from "./BingoCardEditDialog"
+import type { BingoCard } from "@/src/store/types/bingocard.types"
 
 export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
+  const [editingCard, setEditingCard] = useState<{ card: BingoCard; index: number } | null>(null)
+  
   const {
     board,
     formData,
@@ -43,6 +48,7 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
     handleSave,
     isGridDirty,
     gridSize,
+    handleCardEdit
   } = useBingoBoardEdit(boardId!)
 
   if (!board || !formData) return null
@@ -82,11 +88,13 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
                   <Card 
                     key={card.id || index}
                     className={cn(
-                      "bg-gray-800/50 p-4 aspect-square",
-                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
+                      "bg-gray-800/50 p-4 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
+                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20",
+                      card.isEdited && "border-yellow-500/20"
                     )}
+                    onDoubleClick={() => setEditingCard({ card, index })}
                   >
-                    {card.card_content}
+                    {card.card_content || "Empty Card"}
                   </Card>
                 ))}
               </div>
@@ -231,6 +239,16 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
             Save Changes
           </Button>
         </DialogFooter>
+
+        {editingCard && (
+          <BingoCardEditDialog
+            card={editingCard.card}
+            index={editingCard.index}
+            isOpen={true}
+            onClose={() => setEditingCard(null)}
+            onSave={handleCardEdit}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

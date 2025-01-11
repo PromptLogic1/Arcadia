@@ -297,16 +297,44 @@ class BingoBoardService {
     }
   }
 
-  async updateBoardLayout(boardId: string, cardIds: string[]): Promise<void> {
+  async updateBoardLayout(boardId: string, layout: string[]): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('bingo_boards')
-        .update({ board_layoutbingocards: cardIds })
-        .eq('id', boardId)
+      console.log('Updating board layout:', { boardId, layout }) // Debug log
 
-      if (error) throw error
+      const { data, error } = await this.supabase
+        .from('bingoboards')
+        .update({
+          board_layoutbingocards: layout,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', boardId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw error
+      }
+
+      if (!data) {
+        throw new Error('No data returned after update')
+      }
+
+      console.log('Board layout updated successfully:', data) // Debug log
+      return true
+
     } catch (error) {
-      console.error('Error updating board layout:', error)
+      console.error('Error updating board layout:', {
+        error,
+        boardId,
+        layoutLength: layout.length,
+        sampleLayout: layout.slice(0, 3) // Zeige die ersten 3 Einträge
+      })
       throw error
     }
   }

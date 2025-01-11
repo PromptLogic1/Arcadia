@@ -1,5 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { BingoCard } from '../types/bingocard.types'
+import { UUID } from 'crypto'
+
+interface GridCard extends BingoCard {
+  isEdited?: boolean      // Optional machen
+  isNew?: boolean         // Optional machen
+  originalId?: UUID      // Bereits optional
+}
 
 interface BingoCardsState {
   cards: BingoCard[]
@@ -7,7 +14,7 @@ interface BingoCardsState {
   isLoading: boolean
   error: string | null
   grid: {
-    cards: BingoCard[]
+    cards: GridCard[]
     size: number | null
     isDirty: boolean
   }
@@ -58,11 +65,32 @@ const bingoCardsSlice = createSlice({
     },
     initializeGrid: (state, action: PayloadAction<{ size: number, cards: BingoCard[] }>) => {
       state.grid.size = action.payload.size
-      state.grid.cards = action.payload.cards
+      state.grid.cards = action.payload.cards.map(card => ({
+        ...card,
+        isEdited: false,
+        isNew: false
+      }))
       state.grid.isDirty = false
     },
-    updateGridCard: (state, action: PayloadAction<{ index: number, card: BingoCard }>) => {
-      state.grid.cards[action.payload.index] = action.payload.card
+    updateGridCard: (state, action: PayloadAction<{ index: number, content: string }>) => {
+      const card = state.grid.cards[action.payload.index]
+      if (!card) return // Early return wenn keine Karte gefunden
+
+      if (card.id === '') {
+        state.grid.cards[action.payload.index] = {
+          ...card,
+          card_content: action.payload.content,
+          isNew: true,
+          isEdited: true
+        }
+      } else {
+        state.grid.cards[action.payload.index] = {
+          ...card,
+          card_content: action.payload.content,
+          isEdited: true,
+          originalId: card.id as UUID
+        }
+      }
       state.grid.isDirty = true
     },
     clearGrid: (state) => {

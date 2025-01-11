@@ -3,7 +3,7 @@ import { CardCategory, Difficulty, GameCategory } from "./game.types"
 
 export interface BingoCard {
   id: UUID | ""
-  creator_id: string
+  creator_id: UUID | "system"
   card_content: string
   card_explanation?: string
   card_tags: string[]
@@ -21,7 +21,7 @@ export interface BingoCard {
 // DTO for creating a new bingo card
 export type CreateBingoCardDTO = Omit<
   BingoCard,
-  'id' | 'creator_id' | 'votes' | 'created_at' | 'updated_at'
+  'id' | 'votes' | 'created_at' | 'updated_at'
 >
 
 // Constants for validation

@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { BingoBoard } from '../types/bingoboard.types'
+import { UUID } from 'crypto'
 
 interface BingoBoardState {
   boards: BingoBoard[]
@@ -39,6 +40,18 @@ const bingoBoardSlice = createSlice({
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload
+    },
+    updateBoardLayoutId: (state, action: PayloadAction<{
+      boardId: UUID,
+      position: number,
+      newCardId: UUID
+    }>) => {
+      const board = state.boards.find(b => b.id === action.payload.boardId)
+      if (board) {
+        const newLayout = [...board.board_layoutbingocards]
+        newLayout[action.payload.position] = action.payload.newCardId
+        board.board_layoutbingocards = newLayout
+      }
     }
   }
 })
@@ -50,7 +63,8 @@ export const {
   addBoard,
   removeBoard,
   setLoading,
-  setError
+  setError,
+  updateBoardLayoutId
 } = bingoBoardSlice.actions
 
 export default bingoBoardSlice.reducer 
