@@ -6,13 +6,19 @@ import type { BingoBoard } from '@/src/store/types/bingoboard.types'
 import type { Difficulty } from '@/src/store/types/game.types'
 import type { BingoCard } from '@/src/store/types/bingocard.types'
 import { DEFAULT_CARD_ID, DEFAULT_BINGO_CARD } from '@/src/store/types/bingocard.types'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '@/src/store/store'
+import { clearGrid } from '@/src/store/slices/bingocardsSlice'
+import { bingoCardService } from '@/src/store/services/bingocard-service'
+import { initializeGrid } from '@/src/store/slices/bingocardsSlice'
 
 type FieldKey = 'title' | 'description' | 'tags'
 
 export function useBingoBoardEdit(boardId: string) {
   const { boards, updateBoard } = useBingoBoards()
   const { getCardsByIds } = useBingoCards()
-  const [gridCards, setGridCards] = useState<BingoCard[]>([])
+  const dispatch = useDispatch()
+  const gridState = useSelector((state: RootState) => state.bingoCards.grid)
   const [isLoadingCards, setIsLoadingCards] = useState(false)
   const [gridError, setGridError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -123,37 +129,25 @@ export function useBingoBoardEdit(boardId: string) {
     setGridError(null)
 
     try {
-      const layout = initializeBoardLayout()
-      if (!layout) return
-
-      // Identifiziere echte Card IDs (nicht leere Strings)
-      const realCardIds = layout.filter(id => id !== '')
-      
-      // Lade echte Karten wenn vorhanden
-      let realCards: BingoCard[] = []
-      if (realCardIds.length > 0) {
-        realCards = await getCardsByIds(realCardIds)
-      }
-
-      // Erstelle Map mit echten Karten
-      const cardMap = new Map(realCards.map(card => [card.id, card]))
-      
-      // Rekonstruiere das Grid mit Platzhaltern und echten Karten
-      const gridCards = layout.map((id) => {
-        if (id === '') {
-          return { ...DEFAULT_BINGO_CARD }
-        }
-        return cardMap.get(id) || { ...DEFAULT_BINGO_CARD }
-      })
-
-      setGridCards(gridCards)
+      const cards = await bingoCardService.initializeGridCards(
+        board.board_layoutbingocards,
+        board.board_size
+      )
+      dispatch(initializeGrid({ size: board.board_size, cards }))
     } catch (error) {
       setGridError('Failed to load bingo cards')
       console.error('Error loading bingo cards:', error)
     } finally {
       setIsLoadingCards(false)
     }
-  }, [board, getCardsByIds, initializeBoardLayout])
+  }, [board, dispatch])
+
+  // Cleanup when unmounting
+  useEffect(() => {
+    return () => {
+      dispatch(clearGrid())
+    }
+  }, [dispatch])
 
   // Load grid cards when board changes
   useEffect(() => {
@@ -166,7 +160,9 @@ export function useBingoBoardEdit(boardId: string) {
     setFormData,
     error,
     fieldErrors,
-    gridCards,
+    gridCards: gridState.cards,
+    isGridDirty: gridState.isDirty,
+    gridSize: gridState.size,
     isLoadingCards,
     gridError,
     validateField,

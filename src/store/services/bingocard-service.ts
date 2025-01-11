@@ -2,9 +2,10 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
-import { setBingoCards, setSelectedCardId, setLoading, setError } from '../slices/bingocardsSlice'
+import { setBingoCards, setSelectedCardId, setLoading, setError, initializeGrid } from '../slices/bingocardsSlice'
 import { serverLog } from '@/lib/logger'
-import { DEFAULT_CARD_ID } from '../types/bingocard.types'
+import { DEFAULT_BINGO_CARD, DEFAULT_CARD_ID } from '../types/bingocard.types'
+import { UUID } from 'crypto'
 
 class BingoCardService {
   private supabase = supabase
@@ -284,6 +285,55 @@ class BingoCardService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching cards'
       console.error('Error fetching cards:', errorMessage)
+      throw error
+    }
+  }
+
+  private validateGridCards(cardIds: string[]): void {
+    // Ignoriere leere Strings bei der Duplikat-Prüfung
+    const realCardIds = cardIds.filter(id => id !== '')
+    
+    // Finde Duplikate
+    const duplicateIds = realCardIds.filter((id, index) => realCardIds.indexOf(id) !== index)
+    
+    if (duplicateIds.length > 0) {
+      throw new Error(`Duplicate cards found in grid: ${duplicateIds.join(', ')}. Each card can only be used once.`)
+    }
+  }
+
+  async initializeGridCards(cardIds: string[], size: number): Promise<BingoCard[]> {
+    try {
+      // Validiere Grid zuerst
+      this.validateGridCards(cardIds)
+
+      // Filter leere IDs und lade echte Karten
+      const realCardIds = cardIds.filter(id => id !== '')
+      let realCards: BingoCard[] = []
+      
+      if (realCardIds.length > 0) {
+        const { data, error } = await this.supabase
+          .from('bingocards')
+          .select('*')
+          .in('id', realCardIds)
+          .is('deleted_at', null)
+
+        if (error) throw error
+        realCards = data || []
+      }
+
+      // Erstelle Map für schnellen Zugriff
+      const cardMap = new Map(realCards.map(card => [card.id, card]))
+
+      // Erstelle finales Array mit Platzhaltern oder echten Karten
+      return cardIds.map(id => {
+        if (id === '') {
+          return { ...DEFAULT_BINGO_CARD, id: '' as (UUID | '') }
+        }
+        return cardMap.get(id as UUID) || { ...DEFAULT_BINGO_CARD }
+      })
+
+    } catch (error) {
+      console.error('Error loading cards:', error)
       throw error
     }
   }

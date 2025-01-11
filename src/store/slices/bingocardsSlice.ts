@@ -6,13 +6,23 @@ interface BingoCardsState {
   selectedCardId: string | null
   isLoading: boolean
   error: string | null
+  grid: {
+    cards: BingoCard[]
+    size: number | null
+    isDirty: boolean
+  }
 }
 
 const initialState: BingoCardsState = {
   cards: [],
   selectedCardId: null,
   isLoading: false,
-  error: null
+  error: null,
+  grid: {
+    cards: [],
+    size: null,
+    isDirty: false
+  }
 }
 
 const bingoCardsSlice = createSlice({
@@ -39,6 +49,24 @@ const bingoCardsSlice = createSlice({
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload
+    },
+    updateCard: (state, action: PayloadAction<{ index: number, card: BingoCard }>) => {
+      state.cards[action.payload.index] = action.payload.card
+    },
+    clearCards: (state) => {
+      state.cards = []
+    },
+    initializeGrid: (state, action: PayloadAction<{ size: number, cards: BingoCard[] }>) => {
+      state.grid.size = action.payload.size
+      state.grid.cards = action.payload.cards
+      state.grid.isDirty = false
+    },
+    updateGridCard: (state, action: PayloadAction<{ index: number, card: BingoCard }>) => {
+      state.grid.cards[action.payload.index] = action.payload.card
+      state.grid.isDirty = true
+    },
+    clearGrid: (state) => {
+      state.grid = initialState.grid
     }
   }
 })
@@ -50,7 +78,12 @@ export const {
   addCard,
   removeCard,
   setLoading,
-  setError
+  setError,
+  updateCard,
+  clearCards,
+  initializeGrid,
+  updateGridCard,
+  clearGrid
 } = bingoCardsSlice.actions
 
 export default bingoCardsSlice.reducer 

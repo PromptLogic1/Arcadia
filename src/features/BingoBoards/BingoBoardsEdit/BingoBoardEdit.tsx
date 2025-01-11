@@ -40,7 +40,9 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
     isLoadingCards,
     gridError,
     updateFormField,
-    handleSave
+    handleSave,
+    isGridDirty,
+    gridSize,
   } = useBingoBoardEdit(boardId!)
 
   if (!board || !formData) return null
@@ -71,30 +73,22 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
               <div className="text-red-400">{gridError}</div>
             ) : (
               <div 
-                className="grid gap-4 aspect-square" 
+                className="grid gap-4" 
                 style={{ 
-                  gridTemplateColumns: `repeat(${board.board_size}, minmax(0, 1fr))` 
+                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
                 }}
               >
-                {Array.from({ length: board.board_size * board.board_size }).map((_, index) => {
-                  const card = gridCards[index]
-                  const isPlaceholder = card?.id === DEFAULT_CARD_ID
-
-                  return (
-                    <Card 
-                      key={card?.id || index}
-                      className={cn(
-                        "bg-gray-800/50 p-4 aspect-square flex items-center justify-center text-center text-sm transition-colors cursor-pointer",
-                        isPlaceholder 
-                          ? "border-gray-600/20 hover:border-gray-600/40 text-gray-400"
-                          : "border-cyan-500/20 hover:border-cyan-500/40 text-gray-100"
-                      )}
-                      onClick={() => {/* Handle card click */}}
-                    >
-                      {card?.card_content || 'Error loading cell'}
-                    </Card>
-                  )
-                })}
+                {gridCards.map((card, index) => (
+                  <Card 
+                    key={card.id || index}
+                    className={cn(
+                      "bg-gray-800/50 p-4 aspect-square",
+                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
+                    )}
+                  >
+                    {card.card_content}
+                  </Card>
+                ))}
               </div>
             )}
           </div>
