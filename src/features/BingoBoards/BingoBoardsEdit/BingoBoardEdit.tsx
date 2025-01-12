@@ -25,6 +25,11 @@ import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
 import { BingoCard } from '../BingoCard'
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
+import { ChevronDown } from "lucide-react"
+import { BingoCardCompact } from "../BingoCardCompact"
+import { Badge } from "@/components/ui/badge"
+import NeonText from "@/components/ui/NeonText"
 
 interface BingoBoardEditProps {
   boardId: string
@@ -89,13 +94,38 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-          Edit BingoBoard
-        </h1>
-        <Button variant="outline" onClick={handleClose}>
-          Back to Boards
-        </Button>
+      <div className="flex flex-col gap-4 mb-8">
+          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+          <NeonText>{formData.board_title}</NeonText>
+          </h1>
+
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-transparent bg-clip-text">Game:</h2>
+              <Badge 
+                variant="outline" 
+                className="bg-gray-800/50 border-cyan-500/50 text-cyan-400"
+             >
+              {currentBoard.board_game_type}
+              </Badge>
+            </div>
+          <div className="flex items-center gap-2"> 
+            <Button variant="outline" onClick={handleClose}>
+              Back to Boards
+            </Button>
+            <Button
+              onClick={handleSaveClick}
+              disabled={Object.values(fieldErrors).some(error => error !== undefined)}
+              className={cn(
+                "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
+                Object.values(fieldErrors).some(error => error !== undefined) && 
+                "opacity-50 cursor-not-allowed"
+              )}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -104,26 +134,30 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
         </div>
       )}
 
-      <div className="grid grid-cols-[300px_1fr] gap-6">
-        <div className="border-r border-gray-700 pr-4">
-          <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-xl font-semibold text-cyan-400">Available Cards</h2>
-          </div>
-          
-          <ScrollArea className="h-[calc(100vh-12rem)]">
-            <div className="space-y-4 pr-4">
+      <div className="flex gap-6">
+        <div className="w-[300px] min-w-[300px] shrink-0">
+          <h2 className="text-lg font-semibold text-cyan-400 mb-3">Available Cards</h2>
+          <ScrollArea className="h-[calc(100vh-12rem)] pr-3">
+            <div className="space-y-2 w-full">
               {isLoadingCards ? (
-                <div className="flex items-center justify-center h-40">
+                <div className="flex items-center justify-center h-20">
                   <LoadingSpinner />
                 </div>
               ) : (
                 cards.map((card) => (
-                  <BingoCard
+                  <BingoCardCompact
                     key={card.id}
                     card={card}
-                    onClick={() => {
-                      // Handle card selection logic here
-                      // You might want to add this card to the grid
+                    onSelect={(selectedCard) => {
+                      // TODO: Implement card selection logic
+                      console.log('Selected card:', selectedCard)
+                    }}
+                    onEdit={(cardToEdit) => {
+                      // Use the same edit logic as grid cards
+                      const index = gridCards.findIndex(c => c.id === cardToEdit.id)
+                      if (index !== -1) {
+                        setEditingCard({ card: cardToEdit, index })
+                      }
                     }}
                   />
                 ))
@@ -132,42 +166,21 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
           </ScrollArea>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-4">
-            {isLoadingCards ? (
-              <div className="flex items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div 
-                className="grid gap-4" 
-                style={{ 
-                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
-                }}
+        <div className="flex-1">
+          <Collapsible className="mb-4">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full flex items-center justify-between p-2 bg-gray-800/50 hover:bg-gray-800/70 transition-colors border border-cyan-500/50 rounded-lg shadow-md"
               >
-                {gridCards.map((card, index) => (
-                  <Card 
-                    key={card.id || index}
-                    className={cn(
-                      "bg-gray-800/50 p-4 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
-                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
-                    )}
-                    onDoubleClick={() => setEditingCard({ card, index })}
-                  >
-                    {card.card_content || "Empty Card"}
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-6 border-l border-gray-700 pl-8">
-            <div className="flex items-center gap-2 mb-6">
-              <Settings className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-xl font-semibold text-cyan-400">Settings</h2>
-            </div>
-
-            <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-cyan-400" />
+                  <span className="text-lg font-semibold text-cyan-400">Settings</span>
+                </div>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 p-4 bg-gray-800/30 rounded-lg mt-2">
               {formData && (
                 <div className="space-y-2 pr-4">
                   <Label htmlFor="board_title">
@@ -275,30 +288,54 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                 />
                 <Label htmlFor="is_public">Make this board public</Label>
               </div>
-            </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <div className="mt-4">
+            {isLoadingCards ? (
+              <div className="flex items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div 
+                className="grid gap-2"
+                style={{ 
+                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
+                }}
+              >
+                {gridCards.map((card, index) => (
+                  <Card 
+                    key={card.id || index}
+                    className={cn(
+                      "bg-gray-800/50 p-2 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
+                      "flex flex-col items-center",
+                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
+                    )}
+                    onClick={() => setEditingCard({ card, index })}
+                  >
+                    {card.id ? (
+                      <>
+                        <div className="w-full text-center text-xs text-cyan-400 border-b border-gray-700 pb-1">
+                          {card.card_difficulty}
+                        </div>
+                        <div className="flex-1 flex items-center justify-center text-center px-1 text-sm">
+                          {card.card_content}
+                        </div>
+                        <div className="w-full text-center text-xs text-gray-400 border-t border-gray-700 pt-1">
+                          {card.card_type}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center text-center text-gray-400">
+                        Click Me for Card Creation
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
-
-      <div className="mt-6 flex justify-end space-x-4 border-t border-gray-800 pt-4">
-        <Button 
-          onClick={handleClose}
-          variant="outline"
-          className="text-gray-400 hover:text-gray-100 hover:bg-gray-800"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSaveClick}
-          disabled={Object.values(fieldErrors).some(error => error !== undefined)}
-          className={cn(
-            "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
-            Object.values(fieldErrors).some(error => error !== undefined) && 
-            "opacity-50 cursor-not-allowed"
-          )}
-        >
-          Save Changes
-        </Button>
       </div>
 
       {editingCard && (
