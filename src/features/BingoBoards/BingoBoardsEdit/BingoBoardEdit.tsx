@@ -24,7 +24,6 @@ import type { BingoCard as BingCardType} from "@/src/store/types/bingocard.types
 import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
-import { BingoCard } from '../BingoCard'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { ChevronDown } from "lucide-react"
@@ -335,15 +334,16 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
           <div className="mt-4">
             {isLoadingCards ? (
-              <div className="flex items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
+              <div className="items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
                 <LoadingSpinner />
               </div>
             ) : (
-              <div 
-                className="grid gap-2"
-                style={{ 
-                  gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`,
-                  gridAutoRows: '1fr'
+              console.log('Current gridSize:', gridSize, 'Type:', typeof gridSize),
+              <div className="flex flex-wrap gap-2 mx-auto p-4 bg-gray-900/30 rounded-lg"
+                style={{
+                  width: `${gridSize * 192
+                  }px`, // 180px card + 10px gap
+                  justifyContent: 'flex-start'
                 }}
               >
                 {gridCards.map((card, index) => (
@@ -351,16 +351,16 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                     key={card.id || index}
                     className={cn(
                       "bg-gray-800/50 p-2 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
-                      "flex flex-col items-center relative",
+                      "relative w-[180px] h-[180px]",
                       card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
                     )}
                     onClick={() => setEditingCard({ card, index })}
                   >
-                    <div className="absolute top-1 left-1 text-[10px] text-gray-500">
+                    <div className="absolute top-1 left-1 text-xs text-gray-500 font-mono z-10 bg-gray-900/50 px-1 rounded">
                       {`${Math.floor(index / gridSize) + 1}-${(index % gridSize) + 1}`}
                     </div>
                     {card.id ? (
-                      <>
+                      <div className="flex flex-col items-center h-full pt-6">
                         <div className="w-full text-center text-xs text-cyan-400 border-b border-gray-700 pb-1">
                           {card.card_difficulty}
                         </div>
@@ -370,13 +370,14 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                         <div className="w-full text-center text-xs text-gray-400 border-t border-gray-700 pt-1">
                           {card.card_type}
                         </div>
-                      </>
+                      </div>
                     ) : (
-                      <div className="flex-1 flex items-center justify-center text-center text-gray-400">
+                      <div className="h-full flex items-center justify-center text-center text-gray-400 pt-6">
                         Click Me for Card Creation
                       </div>
                     )}
                   </Card>
+                  
                 ))}
               </div>
             )}
