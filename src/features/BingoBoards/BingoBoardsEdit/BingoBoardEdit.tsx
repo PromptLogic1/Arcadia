@@ -174,36 +174,39 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       )}
 
       <div className="flex gap-6">
-        <div className="w-[300px] min-w-[300px] shrink-0">
+        <div className="w-[300px] min-w-[300px] shrink-0 relative">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-cyan-400">Available Cards</h2>
+            <h2 className="text-lg font-semibold text-cyan-400 truncate">Available Cards</h2>
             <Button
               onClick={handleCreateNewCard}
               size="sm"
-              className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+              className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 shrink-0 ml-2"
             >
               <Plus className="h-4 w-4 mr-1" />
               New Card
             </Button>
           </div>
-          <ScrollArea className="h-[calc(100vh-12rem)] pr-3">
-            <div className="space-y-2 w-full">
+          
+          <ScrollArea className="min-h-[calc(100vh-12rem)]">
+            <div className="space-y-2 pr-3">
               {isLoadingCards ? (
                 <div className="flex items-center justify-center h-20">
                   <LoadingSpinner />
                 </div>
               ) : (
-                cards.map((card) => (
-                  <BingoCardCompact
-                    key={card.id}
-                    card={card}
-                    onSelect={handleCardSelect}
-                    onEdit={(card) => {
-                      const index = cards.findIndex(c => c.id === card.id)
-                      if (index !== -1) setEditingCard({ card, index })
-                    }}
-                  />
-                ))
+                <div className="space-y-2 w-[300px]">
+                  {cards.map((card) => (
+                    <BingoCardCompact
+                      key={card.id}
+                      card={card}
+                      onSelect={handleCardSelect}
+                      onEdit={(card) => {
+                        const index = cards.findIndex(c => c.id === card.id)
+                        if (index !== -1) setEditingCard({ card, index })
+                      }}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </ScrollArea>
