@@ -10,8 +10,9 @@ import { useSelector } from 'react-redux'
 import { RootState } from '@/src/store/store'
 import { BingoCard } from '@/src/store/types/bingocard.types'
 import { useRouter } from 'next/router'
-import { clearCurrentBoard, setError } from '@/src/store/slices/bingoboardSlice'
+import { clearCurrentBoard, setCurrentBoard, setError } from '@/src/store/slices/bingoboardSlice'
 import { store } from '@/src/store/store'
+import { CreateBingoCardDTO, UpdateBingoCardDTO } from '@/src/store/types/bingocard.types'
 
 interface FormData {
   board_title: string
@@ -57,7 +58,9 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
   const error = useSelector((state: RootState) => state.bingoBoard.error || state.bingoCards.error)
   const cards = useSelector((state: RootState) => state.bingoCards.cards)
 
-  // Initialize formData when currentBoard changes
+  // Add auth state selector
+  const authState = useSelector((state: RootState) => state.auth)
+
   useEffect(() => {
     if (currentBoard) {
       setFormData({
@@ -128,21 +131,101 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     setFormData(prev => prev ? ({ ...prev, [field]: value }) : null)
   }, [validateBingoBoardField])
 
-  const handleCardEdit = (index: number, updates: BingoCard | Partial<BingoCard>) => {
+  // Separate functions for card operations
+  const createNewCard = async (formData: Partial<BingoCard>, index: number) => {
     try {
-      // Ensure updates is a complete BingoCard
-      if (!('id' in updates && 'card_content' in updates)) {
-        throw new Error('Incomplete card data')
+      if (!currentBoard || !authState.userdata?.id) {
+        throw new Error('Board or user not found')
       }
 
-      // Update the gridCards array directly
-      const updatedCards = [...gridCards]
-      updatedCards[index] = updates as BingoCard
+      const createDTO: CreateBingoCardDTO = {
+        card_content: formData.card_content || '',
+        card_explanation: formData.card_explanation,
+        card_type: formData.card_type || 'collecting',
+        card_difficulty: formData.card_difficulty || 'medium',
+        card_tags: formData.card_tags || [],
+        game_category: currentBoard.board_game_type,
+        creator_id: authState.userdata.id,
+        is_public: formData.is_public || false,
+        generated_by_ai: false
+      }
 
-      // Update the state with the new gridCards array
-      bingoCardService.setGridCards(updatedCards)
+      const newCard = await bingoCardService.createCard(createDTO)
+      if (!newCard) throw new Error('Failed to create card')
+
+      // If index is provided (creating directly in grid), update grid
+      if (index >= 0) {
+        const updatedCards = [...gridCards]
+        updatedCards[index] = newCard
+        bingoCardService.setGridCards(updatedCards)
+      }
+    } catch (error) {
+      console.error('Failed to create card:', error)
+    }
+  }
+
+  const updateExistingCard = async (cardId: string | undefined, updates: Partial<BingoCard>, index: number) => {
+    try {
+      if (!cardId) throw new Error('Card ID is required')
+      if (!currentBoard) throw new Error('Board not found')
+
+      const currentCard = gridCards[index]
+      if (!currentCard) throw new Error('Card not found')
+
+      const updateDTO: UpdateBingoCardDTO = {
+        card_content: updates.card_content || currentCard.card_content,
+        card_explanation: updates.card_explanation,
+        card_type: updates.card_type || currentCard.card_type,
+        card_difficulty: updates.card_difficulty || currentCard.card_difficulty,
+        card_tags: updates.card_tags || currentCard.card_tags,
+        game_category: currentBoard.board_game_type,
+        is_public: updates.is_public ?? currentCard.is_public,
+        generated_by_ai: currentCard.generated_by_ai
+      }
+
+      const updatedCard = await bingoCardService.updateCard(cardId, updateDTO)
+      if (!updatedCard) throw new Error('Failed to update card')
+
+      // Update grid if card is in grid
+      if (index >= 0) {
+        const updatedCards = [...gridCards]
+        updatedCards[index] = updatedCard
+        bingoCardService.setGridCards(updatedCards)
+      }
     } catch (error) {
       console.error('Failed to update card:', error)
+    }
+  }
+
+  const placeCardInGrid = (card: BingoCard, index: number) => {
+    try {
+      const updatedCards = [...gridCards]
+      updatedCards[index] = card
+      bingoCardService.setGridCards(updatedCards)
+    } catch (error) {
+      console.error('Failed to place card in grid:', error)
+    }
+  }
+
+  // Main handler that delegates to appropriate function
+  const handleCardEdit = async (index: number, updates: BingoCard | Partial<BingoCard>) => {
+    try {
+      // Case 1: Creating new card (either from button or empty grid spot)
+      if (index === -1 || !('id' in updates)) {
+        await createNewCard(updates, index)
+        return
+      }
+
+      // Case 2: Placing existing card from available cards
+      if ('id' in updates && !updates.card_content) {
+        placeCardInGrid(updates as BingoCard, index)
+        return
+      }
+
+      // Case 3: Updating existing card
+      await updateExistingCard(updates.id, updates, index)
+    } catch (error) {
+      console.error('Failed to handle card edit:', error)
     }
   }
 
@@ -166,50 +249,30 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
 
   // Load board data
   useEffect(() => {
-    const loadBoard = async () => {
+    const initializeBoard = async () => {
       setIsLoadingBoard(true)
       setIsLoadingCards(true)
+
       try {
+        // 1. Load board and initialize cards
         await bingoBoardService.loadBoardForEditing(boardId)
-        setIsLoadingBoard(false)
-        // Add a small delay before loading cards to ensure board is loaded
-        await new Promise(resolve => setTimeout(resolve, 100))
         await bingoCardService.initializeCards()
+        
       } catch (error) {
         store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
       } finally {
+        setIsLoadingBoard(false)
         setIsLoadingCards(false)
       }
     }
-    
-    loadBoard()
-    
+
+    initializeBoard()
+
     return () => {
       store.dispatch(clearCurrentBoard())
       bingoCardService.clearGridCards()
     }
   }, [boardId])
-
-  if (!currentBoard) {
-    return {
-      isLoadingBoard,
-      isLoadingCards,
-      error: 'Board not found',
-      currentBoard: null,
-      formData: null,
-      setFormData,
-      fieldErrors: {},
-      gridCards: [],
-      cards,
-      updateFormField: () => {},
-      handleSave: async () => false,
-      handleCardEdit: async () => {},
-      gridSize: 0,
-      editingCard: null,
-      setEditingCard: () => {},
-      validateBingoCardField: () => null
-    }
-  }
 
   return {
     isLoadingBoard,
@@ -224,7 +287,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     updateFormField,
     handleSave,
     handleCardEdit,
-    gridSize: currentBoard.board_size,
+    gridSize: currentBoard?.board_size || 0,
     editingCard,
     setEditingCard,
     validateBingoCardField

@@ -21,14 +21,17 @@ class BingoCardService {
       store.dispatch(setLoading(true))
       
       const authState = store.getState().auth
-      if (!authState.userdata?.id) {
-        throw new Error('User not authenticated')
+      const currentBoard = store.getState().bingoBoard.currentBoard
+
+      if (!(authState.userdata?.id && currentBoard)) {
+        throw new Error('User not authenticated or board not loaded')
       }
 
       const { data: cards, error } = await this.supabase
         .from('bingocards')
         .select('*')
         .eq('creator_id', authState.userdata.id)
+        .eq('game_category', currentBoard.board_game_type)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
@@ -88,6 +91,7 @@ class BingoCardService {
         .insert([{
           ...cardData,
           card_explanation: cardData.card_explanation || '',  // Setze Default-Werte
+          creator_id: authState.userdata.id,
           votes: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()

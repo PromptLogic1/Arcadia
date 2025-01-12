@@ -1,9 +1,8 @@
 'use client'
 
 import { BingoBoardEdit } from '@/src/features/BingoBoards/BingoBoardsEdit/BingoBoardEdit'
-import { notFound, useRouter } from 'next/navigation'
-import { use, useEffect } from 'react'
-import { bingoBoardService } from '@/src/store/services/bingoboard-service'
+import { useRouter } from 'next/navigation'
+import { use } from "react"
 
 interface BoardEditPageProps {
   params: Promise<{
@@ -15,28 +14,14 @@ export default function BoardEditPage({ params }: BoardEditPageProps) {
   const router = useRouter()
   const resolvedParams = use(params)
 
-  useEffect(() => {
-    const loadBoard = async () => {
-      if (!resolvedParams.boardId) {
-        notFound()
-        return
-      }
-      const board = await bingoBoardService.loadBoardForEditing(resolvedParams.boardId)
-      if (!board) {
-        notFound()
-      }
-    }
-    loadBoard()
-  }, [resolvedParams.boardId])
-
-  const handleSaveSuccess = () => {
-    router.push('/challengehub')
+  if (!resolvedParams.boardId) {
+    return <div className="text-center text-red-500 mt-4">Invalid board ID</div>
   }
 
   return (
     <BingoBoardEdit 
       boardId={resolvedParams.boardId} 
-      onSaveSuccess={handleSaveSuccess}
+      onSaveSuccess={() => router.push('/challengehub')} 
     />
   )
 } 

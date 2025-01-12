@@ -5,6 +5,7 @@ import { useAuth } from '@/src/hooks/useAuth'
 import type { FilterState, CreateBoardFormData } from '../types'
 import type { GameCategory, Difficulty } from '@/src/store/types/game.types'
 import { CreateBingoBoardDTO } from '@/src/store/types/bingoboard.types'
+import { ROUTES } from '@/src/config/routes'
 
 // Hub hook for board management and filtering
 export function useBingoBoardsHub() {
@@ -84,6 +85,10 @@ export function useBingoBoardsHub() {
     })
   }, [boards, filterSelections])
 
+  const handleBoardSelect = (boardId: string) => {
+    router.push(`${ROUTES.CHALLENGE_HUB}/${boardId}/edit`)
+  }
+
   return {
     boards: filteredAndSortedBoards(),
     isCreateFormOpen,
@@ -91,6 +96,7 @@ export function useBingoBoardsHub() {
     handleFilterChange,
     handleCreateBoard,
     setIsCreateFormOpen,
+    handleBoardSelect,
   }
 }
 

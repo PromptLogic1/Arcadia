@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import { setAuthUser, clearUser, setLoading, setUserdata } from '../slices/authSlice'
 import { serverLog } from '@/lib/logger'
+import { UUID } from 'crypto';
 
 export interface SignInCredentials {
   email: string;
@@ -62,7 +63,7 @@ class AuthService {
 
         // Update Redux store with user data
         store.dispatch(setAuthUser({
-          id: user.id,
+          id: user.id as UUID,
           email: user.email ?? null,
           phone: user.phone ?? null,
           auth_username: user.user_metadata?.username ?? null,

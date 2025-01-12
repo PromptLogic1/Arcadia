@@ -1,10 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { UUID } from 'crypto';
 
 // User States
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
 
 interface userdata {
-  id: string;
+  id: UUID;
   username: string;
   full_name: string | null;
   avatar_url: string | null;
@@ -19,7 +20,7 @@ interface userdata {
 }
 
 interface AuthUser {
-  id: string; // Auth ID 
+  id: UUID; // Auth ID 
   email: string | null;
   phone: string | null;
   auth_username: string | null;

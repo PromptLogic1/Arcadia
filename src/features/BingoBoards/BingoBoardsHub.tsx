@@ -20,6 +20,7 @@ export default function BingoBoardsHub() {
     handleFilterChange,
     handleCreateBoard,
     setIsCreateFormOpen,
+    handleBoardSelect,
   } = useBingoBoardsHub()
 
   const router = useRouter()
@@ -34,10 +35,6 @@ export default function BingoBoardsHub() {
         label: game
       }))
   ]
-
-  const handleBoardClick = useCallback((boardId: string) => {
-    router.push(`/challengehub/${boardId}/edit`)
-  }, [router])
 
   return (
     <div className="space-y-6">
@@ -70,7 +67,7 @@ export default function BingoBoardsHub() {
           <BoardCard
             key={board.id}
             board={board}
-            onClick={() => handleBoardClick(board.id)}
+            onClick={() => handleBoardSelect(board.id)}
           />
         ))}
       </div>

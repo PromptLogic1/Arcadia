@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Settings } from 'lucide-react'
+import { Settings, Plus } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Difficulty, DIFFICULTIES } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
@@ -21,6 +21,7 @@ import LoadingSpinner from "@/components/ui/loading-spinner"
 import { useState, useCallback } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
 import type { BingoCard as BingCardType} from "@/src/store/types/bingocard.types"
+import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
 import { BingoCard } from '../BingoCard'
@@ -103,6 +104,16 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     }
   }
 
+  const handleCreateNewCard = () => {
+    setEditingCard({
+      card: {
+        ...DEFAULT_BINGO_CARD,
+        game_category: currentBoard?.board_game_type || 'All Games'
+      },
+      index: -1 // Use -1 to indicate this is a new card
+    })
+  }
+
   if (isLoadingBoard) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -163,7 +174,17 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
       <div className="flex gap-6">
         <div className="w-[300px] min-w-[300px] shrink-0">
-          <h2 className="text-lg font-semibold text-cyan-400 mb-3">Available Cards</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-cyan-400">Available Cards</h2>
+            <Button
+              onClick={handleCreateNewCard}
+              size="sm"
+              className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              New Card
+            </Button>
+          </div>
           <ScrollArea className="h-[calc(100vh-12rem)] pr-3">
             <div className="space-y-2 w-full">
               {isLoadingCards ? (
@@ -321,7 +342,8 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               <div 
                 className="grid gap-2"
                 style={{ 
-                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
+                  gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`,
+                  gridAutoRows: '1fr'
                 }}
               >
                 {gridCards.map((card, index) => (
@@ -329,11 +351,14 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                     key={card.id || index}
                     className={cn(
                       "bg-gray-800/50 p-2 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
-                      "flex flex-col items-center",
+                      "flex flex-col items-center relative",
                       card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
                     )}
                     onClick={() => setEditingCard({ card, index })}
                   >
+                    <div className="absolute top-1 left-1 text-[10px] text-gray-500">
+                      {`${Math.floor(index / gridSize) + 1}-${(index % gridSize) + 1}`}
+                    </div>
                     {card.id ? (
                       <>
                         <div className="w-full text-center text-xs text-cyan-400 border-b border-gray-700 pb-1">

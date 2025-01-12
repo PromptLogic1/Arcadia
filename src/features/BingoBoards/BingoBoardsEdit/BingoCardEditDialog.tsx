@@ -47,7 +47,7 @@ export function BingoCardEditDialog({
     card_difficulty: card.card_difficulty,
     card_type: card.card_type,
     card_tags: card.card_tags || [],
-    is_public: card.is_public
+    is_public: card.is_public || false
   })
   const [fieldErrors, setFieldErrors] = useState<{
     content?: string

@@ -60,7 +60,7 @@ class BingoBoardService {
       if (error) throw error
 
       if (board) {
-        store.dispatch(setCurrentBoard(board))
+        store.dispatch(setCurrentBoard(board as BingoBoard))
       }
 
       return board
@@ -311,34 +311,51 @@ class BingoBoardService {
     return gridCards.map(card => card.id)
   }
 
-  async loadBoardForEditing(boardId: string): Promise<BingoBoard | null> {
+  async loadBoardForEditing(boardId: string): Promise<void> {
     try {
       store.dispatch(setLoading(true))
-      store.dispatch(setError(null)) // Clear any previous errors
+      
+      // 1. Wait for auth to be ready and check auth
+      const waitForAuth = () => new Promise<void>((resolve, reject) => {
+        const checkAuth = () => {
+          const state = store.getState().auth
+          if (!state.loading) {
+            if (state.userdata) {
+              resolve()
+            } else {
+              reject(new Error('User not authenticated'))
+            }
+          } else {
+            setTimeout(checkAuth, 100)
+          }
+        }
+        checkAuth()
+      })
 
-      const { data: board, error } = await this.supabase
-        .from('bingoboards')
-        .select('*')
-        .eq('id', boardId)
-        .single()
+      await waitForAuth()
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
+      // 2. Check if boards are loaded, if not initialize them
+      const state = store.getState()
+      if (state.bingoBoard.boards.length === 0) {
+        await this.initializeBoards()
       }
 
+      // 3. Find board in store
+      const board = store.getState().bingoBoard.boards.find(b => b.id === boardId)
       if (!board) {
         throw new Error('Board not found')
       }
 
+      // 4. Set as current board
       store.dispatch(setCurrentBoard(board))
-      await bingoCardService.initGridCards(board.board_layoutbingocards)
-      return board
 
+      // 5. Load grid cards if layout exists
+      if (board.board_layoutbingocards) {
+        await bingoCardService.initGridCards(board.board_layoutbingocards)
+      }
     } catch (error) {
-      console.error('Error loading board:', error)
       store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
-      return null
+      throw error
     } finally {
       store.dispatch(setLoading(false))
     }

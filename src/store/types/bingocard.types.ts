@@ -10,10 +10,10 @@ export interface BingoCard {
   card_type: CardCategory
   card_difficulty: Difficulty
   game_category: GameCategory
-  votes: number
-  is_public: boolean
+  votes?: number
+  is_public?: boolean
   deleted_at?: string
-  generated_by_ai: boolean
+  generated_by_ai?: boolean
   created_at: string
   updated_at: string
 }
@@ -22,6 +22,12 @@ export interface BingoCard {
 export type CreateBingoCardDTO = Omit<
   BingoCard,
   'id' | 'votes' | 'created_at' | 'updated_at'
+>
+
+// DTO for creating a new bingo card
+export type UpdateBingoCardDTO = Omit<
+  BingoCard,
+  'id' | 'votes' | 'created_at' | 'updated_at' | 'creator_id'
 >
 
 // Constants for validation
