@@ -8,6 +8,7 @@ import type { Difficulty } from '@/src/store/types/game.types'
 import { UUID } from 'crypto'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/src/store/store'
+import { BingoCard } from '@/src/store/types/bingocard.types'
 
 type FieldKey = 'title' | 'description' | 'tags'
 
@@ -33,7 +34,7 @@ export function useBingoBoardEdit(boardId: string) {
   } : null)
 
   // Field validation
-  const validateField = useCallback((field: string, value: string | string[] | boolean): string | null => {
+  const validateBingoBoardField = useCallback((field: string, value: string | string[] | boolean): string | null => {
     switch (field) {
       case 'board_title':
         if (typeof value === 'string' && (value.length < 3 || value.length > 50)) {
@@ -54,8 +55,30 @@ export function useBingoBoardEdit(boardId: string) {
     return null
   }, [])
 
+  // Add new validation function for card fields
+  const validateBingoCardField = useCallback((field: string, value: string | string[] | boolean): string | null => {
+    switch (field) {
+      case 'card_content':
+        if (typeof value === 'string' && (value.length === 0 || value.length > 50)) {
+          return 'Content must be between 1 and 50 characters'
+        }
+        break
+      case 'card_explanation':
+        if (typeof value === 'string' && value.length > 255) {
+          return 'Explanation cannot exceed 255 characters'
+        }
+        break
+      case 'card_tags':
+        if (Array.isArray(value) && value.length > 5) {
+          return 'Maximum of 5 tags allowed'
+        }
+        break
+    }
+    return null
+  }, [])
+
   const updateFormField = useCallback((field: string, value: string | string[] | boolean) => {
-    const error = validateField(field, value)
+    const error = validateBingoBoardField(field, value)
     
     setFieldErrors(prev => {
       const newErrors = { ...prev }
@@ -70,10 +93,10 @@ export function useBingoBoardEdit(boardId: string) {
     })
     
     setFormData(prev => prev ? ({ ...prev, [field]: value }) : null)
-  }, [validateField])
+  }, [validateBingoBoardField])
 
   // Handle card editing
-  const handleCardEdit = useCallback(async (index: number, content: string) => {
+  const handleCardEdit = useCallback(async (index: number, updates: Partial<BingoCard>) => {
     if (!board) return
 
     try {
@@ -84,29 +107,24 @@ export function useBingoBoardEdit(boardId: string) {
       if (currentCard.id === '') {
         // Create new card
         const newCard = await bingoCardService.createCard({
-          card_content: content,
+          ...updates,
           game_category: board.board_game_type,
-          card_difficulty: board.board_difficulty,
           creator_id: board.creator_id as UUID,
-          is_public: board.is_public,
-          card_tags: [],
-          card_type: 'collecting',
-          generated_by_ai: false
+          generated_by_ai: false,
+          is_public: updates.is_public ?? false,
+          card_content: updates.card_content ?? '',
+          card_type: updates.card_type ?? 'collecting',
+          card_difficulty: updates.card_difficulty ?? 'medium',
+          card_tags: updates.card_tags ?? []
         })
 
         if (!newCard) throw new Error('Failed to create card')
-
-        // Update grid cards only
         await bingoCardService.updateGridCards(index, newCard)
 
       } else {
         // Update existing card
-        const updatedCard = await bingoCardService.updateCard(currentCard.id, {
-          card_content: content
-        })
-
+        const updatedCard = await bingoCardService.updateCard(currentCard.id, updates)
         if (updatedCard) {
-          // Update grid cards only
           await bingoCardService.updateGridCards(index, updatedCard)
         }
       }
@@ -155,7 +173,7 @@ export function useBingoBoardEdit(boardId: string) {
     fieldErrors,
     gridCards,
     isLoadingCards,
-    validateField,
+    validateField: validateBingoBoardField,
     updateFormField,
     handleSave,
     handleCardEdit,

@@ -6,7 +6,7 @@ export interface BingoCard {
   creator_id: UUID | "system"
   card_content: string
   card_explanation?: string
-  card_tags: string[]
+  card_tags?: string[]
   card_type: CardCategory
   card_difficulty: Difficulty
   game_category: GameCategory
@@ -61,9 +61,9 @@ export const DEFAULT_CARD_ID = '00000000-0000-0000-0000-000000000000' as UUID
 export const DEFAULT_BINGO_CARD: BingoCard = {
   id: "",
   creator_id: 'system',
-  card_content: 'Click to add a challenge',
-  card_explanation: 'This is a placeholder cell. Click to add a real challenge.',
-  card_tags: ['placeholder'],
+  card_content: '',
+  card_explanation: '',
+  card_tags: [],
   card_type: 'collecting',
   card_difficulty: 'medium',
   game_category: 'All Games',
