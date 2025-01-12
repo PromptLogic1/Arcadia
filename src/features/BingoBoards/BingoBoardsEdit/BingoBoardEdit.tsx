@@ -1,18 +1,10 @@
 'use client'
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -20,41 +12,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ArrowLeft, Save, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { Difficulty, DIFFICULTIES } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
-import { BingoBoardComponentProps } from '../types'
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { DEFAULT_CARD_ID } from '@/src/store/types/bingocard.types'
 import { useState, useCallback } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
 import type { BingoCard } from "@/src/store/types/bingocard.types"
 import { useRouter } from 'next/navigation'
-import { bingoBoardService } from '@/src/store/services/bingoboard-service'
-import { notFound } from "next/navigation"
-import { setError } from "@/src/store/slices/bingoboardSlice"
+import { ROUTES } from '@/src/config/routes'
 
 interface BingoBoardEditProps {
   boardId: string
   onSaveSuccess: () => void
 }
 
+interface FormData {
+  board_title: string
+  board_description: string
+  board_tags: string[]
+  board_difficulty: Difficulty
+  is_public: boolean
+}
+
 export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) {
   const router = useRouter()
   const [editingCard, setEditingCard] = useState<{ card: BingoCard; index: number } | null>(null)
+
   
   const {
-    isLoading,
+    isLoadingBoard,
+    isLoadingCards,
     error,
     currentBoard,
-    board,
     formData,
     setFormData,
     fieldErrors,
     gridCards,
-    isLoadingCards,
     updateFormField,
     handleCardEdit,
     gridSize,
@@ -62,7 +58,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   } = useBingoBoardEdit(boardId)
 
   const handleClose = useCallback(() => {
-    router.push('/challengehub')
+    router.push(ROUTES.CHALLENGE_HUB)
   }, [router])
 
   const handleSaveClick = async () => {
@@ -72,16 +68,20 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     }
   }
 
-  if (isLoading) {
-    return <div>Loading...</div>
+  if (isLoadingBoard) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <LoadingSpinner />
+      </div>
+    )
   }
 
   if (error) {
-    return <div>Error: {error}</div>
+    return <div className="text-red-500">Error: {error}</div>
   }
 
-  if (!currentBoard) {
-    return notFound()
+  if (!currentBoard || !formData) {
+    return null
   }
 
   return (
@@ -105,7 +105,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
         {/* Left Section - Bingo Grid */}
         <div className="space-y-4">
           {isLoadingCards ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
               <LoadingSpinner />
             </div>
           ) : (
@@ -139,28 +139,30 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
           </div>
 
           <div className="space-y-6">
-            <div className="space-y-2 pr-4">
-              <Label htmlFor="board_title">
-                Title
-                <span className="text-xs text-gray-400 ml-2">
-                  ({formData.board_title.length}/50)
-                </span>
-              </Label>
-              <Input
-                id="board_title"
-                value={formData.board_title}
-                onChange={(e) => updateFormField('board_title', e.target.value)}
-                className={cn(
-                  "bg-gray-800/50",
-                  fieldErrors.title 
-                    ? "border-red-500/50 focus:border-red-500/70" 
-                    : "border-cyan-500/50"
+            {formData && (
+              <div className="space-y-2 pr-4">
+                <Label htmlFor="board_title">
+                  Title
+                  <span className="text-xs text-gray-400 ml-2">
+                    ({formData.board_title.length}/50)
+                  </span>
+                </Label>
+                <Input
+                  id="board_title"
+                  value={formData.board_title}
+                  onChange={(e) => updateFormField('board_title', e.target.value)}
+                  className={cn(
+                    "bg-gray-800/50",
+                    fieldErrors.title 
+                      ? "border-red-500/50 focus:border-red-500/70" 
+                      : "border-cyan-500/50"
+                  )}
+                />
+                {fieldErrors.title && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.title}</p>
                 )}
-              />
-              {fieldErrors.title && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.title}</p>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="description">
@@ -214,7 +216,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               <Select 
                 value={formData.board_difficulty}
                 onValueChange={(value: Difficulty) => 
-                  setFormData(prev => ({ ...prev!, board_difficulty: value }))
+                  setFormData((prev: FormData | null) => prev ? ({ ...prev, board_difficulty: value }) : null)
                 }
               >
                 <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
@@ -239,7 +241,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                 id="is_public"
                 checked={formData.is_public}
                 onCheckedChange={(checked) => 
-                  setFormData(prev => ({ ...prev!, is_public: checked as boolean }))
+                  setFormData((prev: FormData | null) => prev ? ({ ...prev, is_public: checked as boolean }) : null)
                 }
               />
               <Label htmlFor="is_public">Make this board public</Label>

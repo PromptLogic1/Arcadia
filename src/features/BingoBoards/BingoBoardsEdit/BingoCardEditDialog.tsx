@@ -55,7 +55,6 @@ export function BingoCardEditDialog({
     tags?: string
   }>({})
   const [isSaving, setIsSaving] = useState(false)
-  const router = useRouter()
 
   const isNewCard = card.id === ""
   const buttonText = isNewCard ? 'Create Card' : 'Update Card'
@@ -110,10 +109,6 @@ export function BingoCardEditDialog({
       setIsSaving(false)
     }
   }
-
-  const handleCancel = useCallback(() => {
-    router.push('/challengehub')
-  }, [router])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -256,7 +251,7 @@ export function BingoCardEditDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
           <Button 

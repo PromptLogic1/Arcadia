@@ -13,19 +13,50 @@ import { useRouter } from 'next/router'
 import { clearCurrentBoard, setError } from '@/src/store/slices/bingoboardSlice'
 import { store } from '@/src/store/store'
 
-type FieldKey = 'title' | 'description' | 'tags'
+interface FormData {
+  board_title: string
+  board_description: string
+  board_tags: string[]
+  board_difficulty: Difficulty
+  is_public: boolean
+}
 
-export function useBingoBoardEdit(boardId: string) {
+interface BoardEditReturn {
+  isLoadingBoard: boolean
+  isLoadingCards: boolean
+  error?: string | null
+  currentBoard: BingoBoard | null
+  formData: FormData | null
+  setFormData: (data: FormData | ((prev: FormData | null) => FormData | null)) => void
+  fieldErrors: Record<string, string>
+  gridCards: BingoCard[]
+  updateFormField: (field: string, value: any) => void
+  handleSave: () => Promise<boolean>
+  handleCardEdit: (index: number, updates: Partial<BingoCard>) => Promise<void>
+  gridSize: number
+  editingCard: { card: BingoCard; index: number } | null
+  setEditingCard: (card: { card: BingoCard; index: number } | null) => void
+  validateBingoCardField: (field: string, value: string | string[] | boolean) => string | null
+}
+
+type FieldKey = 'board_title' | 'board_description' | 'board_tags' | 'board_difficulty' | 'is_public';
+type FieldValue = string | number | boolean | string[];
+
+export function useBingoBoardEdit(boardId: string): BoardEditReturn {
+  // First, declare all state
+  const [isLoadingBoard, setIsLoadingBoard] = useState(true)
+  const [isLoadingCards, setIsLoadingCards] = useState(true)
+  const [formData, setFormData] = useState<FormData | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [editingCard, setEditingCard] = useState<{ card: BingoCard; index: number } | null>(null)
+
+  // Then, get Redux state
   const currentBoard = useSelector((state: RootState) => state.bingoBoard.currentBoard)
   const gridCards = useSelector((state: RootState) => state.bingoCards.gridcards)
-  const isLoading = useSelector((state: RootState) => 
-    state.bingoBoard.isLoading || state.bingoCards.isLoading
-  )
-  const error = useSelector((state: RootState) => 
-    state.bingoBoard.error || state.bingoCards.error
-  )
+  const error = useSelector((state: RootState) => state.bingoBoard.error || state.bingoCards.error)
 
-  // Initialize form data when currentBoard changes
+
+  // Initialize formData when currentBoard changes
   useEffect(() => {
     if (currentBoard) {
       setFormData({
@@ -38,43 +69,7 @@ export function useBingoBoardEdit(boardId: string) {
     }
   }, [currentBoard])
 
-  if (isLoading) {
-    return { isLoading: true }
-  }
-
-  if (!currentBoard) {
-    return { error: 'Board not found' }
-  }
-
-  // Load board data
-  useEffect(() => {
-    bingoBoardService.loadBoardForEditing(boardId)
-    return () => {
-      store.dispatch(clearCurrentBoard())
-      bingoCardService.clearGridCards()
-    }
-  }, [boardId])
-
-  const { boards, updateBoard } = useBingoBoards()
-  const [isLoadingCards, setIsLoadingCards] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<{
-    title?: string
-    description?: string
-    tags?: string
-  }>({})
-
-  const board = boards.find(b => b.id === boardId)
-  
-  const [formData, setFormData] = useState(board ? {
-    board_title: board.board_title,
-    board_description: board.board_description || '',
-    board_tags: board.board_tags || [],
-    board_difficulty: board.board_difficulty,
-    is_public: board.is_public,
-  } : null)
-
-  // Field validation
-  const validateBingoBoardField = useCallback((field: string, value: string | string[] | boolean): string | null => {
+  const validateBingoBoardField = useCallback((field: string, value: FieldValue): string | null => {
     switch (field) {
       case 'board_title':
         if (typeof value === 'string' && (value.length < 3 || value.length > 50)) {
@@ -95,7 +90,6 @@ export function useBingoBoardEdit(boardId: string) {
     return null
   }, [])
 
-  // Add new validation function for card fields
   const validateBingoCardField = useCallback((field: string, value: string | string[] | boolean): string | null => {
     switch (field) {
       case 'card_content':
@@ -117,17 +111,15 @@ export function useBingoBoardEdit(boardId: string) {
     return null
   }, [])
 
-  const updateFormField = useCallback((field: string, value: string | string[] | boolean) => {
+  const updateFormField = useCallback((field: string, value: FieldValue) => {
     const error = validateBingoBoardField(field, value)
     
     setFieldErrors(prev => {
       const newErrors = { ...prev }
-      const key = field.replace('board_', '') as FieldKey
-      
       if (error) {
-        newErrors[key] = error
+        newErrors[field as FieldKey] = error
       } else {
-        delete newErrors[key]
+        delete newErrors[field as FieldKey]
       }
       return newErrors
     })
@@ -135,9 +127,17 @@ export function useBingoBoardEdit(boardId: string) {
     setFormData(prev => prev ? ({ ...prev, [field]: value }) : null)
   }, [validateBingoBoardField])
 
-  // Handle card editing
   const handleCardEdit = useCallback(async (index: number, updates: Partial<BingoCard>) => {
-    if (!board) return
+    if (!currentBoard) return
+
+    // Validate card fields before saving
+    for (const [field, value] of Object.entries(updates)) {
+      const error = validateBingoCardField(field, value as string | string[] | boolean)
+      if (error) {
+        setError(error)
+        return
+      }
+    }
 
     try {
       setIsLoadingCards(true)
@@ -148,8 +148,8 @@ export function useBingoBoardEdit(boardId: string) {
         // Create new card
         const newCard = await bingoCardService.createCard({
           ...updates,
-          game_category: board.board_game_type,
-          creator_id: board.creator_id as UUID,
+          game_category: currentBoard.board_game_type,
+          creator_id: currentBoard.creator_id as UUID,
           generated_by_ai: false,
           is_public: updates.is_public ?? false,
           card_content: updates.card_content ?? '',
@@ -173,14 +173,13 @@ export function useBingoBoardEdit(boardId: string) {
     } finally {
       setIsLoadingCards(false)
     }
-  }, [board, gridCards])
+  }, [currentBoard, gridCards, validateBingoCardField])
 
-  // Save board metadata
   const handleSave = useCallback(async () => {
-    if (!board || !formData) return false
+    if (!currentBoard || !formData) return false
     try {
-      const success = await bingoBoardService.saveBoardChanges(board.id, {
-        ...board,
+      const success = await bingoBoardService.saveBoardChanges(currentBoard.id, {
+        ...currentBoard,
         board_title: formData.board_title,
         board_description: formData.board_description,
         board_tags: formData.board_tags,
@@ -192,20 +191,68 @@ export function useBingoBoardEdit(boardId: string) {
       setError(error instanceof Error ? error.message : 'Failed to update board')
       return false
     }
-  }, [board, formData])
+  }, [currentBoard, formData])
+
+  // Load board data
+  useEffect(() => {
+    const loadBoard = async () => {
+      setIsLoadingBoard(true)
+      setIsLoadingCards(true)
+      try {
+        await bingoBoardService.loadBoardForEditing(boardId)
+        setIsLoadingBoard(false)
+        // Add a small delay before loading cards to ensure board is loaded
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } catch (error) {
+        store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
+      } finally {
+        setIsLoadingCards(false)
+      }
+    }
+    
+    loadBoard()
+    
+    return () => {
+      store.dispatch(clearCurrentBoard())
+      bingoCardService.clearGridCards()
+    }
+  }, [boardId])
+
+  if (!currentBoard) {
+    return {
+      isLoadingBoard,
+      isLoadingCards,
+      error: 'Board not found',
+      currentBoard: null,
+      formData: null,
+      setFormData,
+      fieldErrors: {},
+      gridCards: [],
+      updateFormField: () => {},
+      handleSave: async () => false,
+      handleCardEdit: async () => {},
+      gridSize: 0,
+      editingCard: null,
+      setEditingCard: () => {},
+      validateBingoCardField: () => null
+    }
+  }
 
   return {
-    board,
+    isLoadingBoard,
+    isLoadingCards,
+    error,
+    currentBoard,
     formData,
     setFormData,
-    error,
     fieldErrors,
     gridCards,
-    isLoadingCards,
-    validateField: validateBingoBoardField,
     updateFormField,
     handleSave,
     handleCardEdit,
-    gridSize: board?.board_size || 0
+    gridSize: currentBoard.board_size,
+    editingCard,
+    setEditingCard,
+    validateBingoCardField
   }
 } 
