@@ -2,9 +2,10 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
 import { BOARD_SIZE_OPTIONS } from '../types/bingoboard.types'
-import { setBingoBoards, setSelectedBoardId, setLoading, setError } from '../slices/bingoboardSlice'
+import { setBingoBoards, setLoading, setError, setCurrentBoard } from '../slices/bingoboardSlice'
 import { serverLog } from '@/lib/logger'
 import { UUID } from 'crypto'
+import { bingoCardService } from './bingocard-service'
 
 class BingoBoardService {
   private supabase = supabase
@@ -59,7 +60,7 @@ class BingoBoardService {
       if (error) throw error
 
       if (board) {
-        store.dispatch(setSelectedBoardId(board.id))
+        store.dispatch(setCurrentBoard(board))
       }
 
       return board
@@ -308,6 +309,75 @@ class BingoBoardService {
   private getLayoutFromGridCards(): string[] {
     const gridCards = store.getState().bingoCards.gridcards
     return gridCards.map(card => card.id)
+  }
+
+  async loadBoardForEditing(boardId: string): Promise<BingoBoard | null> {
+    try {
+      store.dispatch(setLoading(true))
+      store.dispatch(setError(null)) // Clear any previous errors
+
+      const { data: board, error } = await this.supabase
+        .from('bingoboards')
+        .select('*')
+        .eq('id', boardId)
+        .single()
+
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+
+      if (!board) {
+        throw new Error('Board not found')
+      }
+
+      store.dispatch(setCurrentBoard(board))
+      await bingoCardService.initGridCards(board.board_layoutbingocards)
+      return board
+
+    } catch (error) {
+      console.error('Error loading board:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
+      return null
+    } finally {
+      store.dispatch(setLoading(false))
+    }
+  }
+
+  async saveBoardChanges(boardId: string, updates: Partial<BingoBoard>): Promise<boolean> {
+    try {
+      store.dispatch(setLoading(true))
+
+      // Get current layout from grid cards
+      const gridCards = store.getState().bingoCards.gridcards
+      const newLayout = gridCards.map(card => card.id)
+
+      const { data: board, error } = await this.supabase
+        .from('bingoboards')
+        .update({
+          ...updates,
+          board_layoutbingocards: newLayout
+        })
+        .eq('id', boardId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      if (board) {
+        store.dispatch(setCurrentBoard(board))
+        await this.initializeBoards() // Refresh board list
+        return true
+      }
+
+      return false
+    } catch (error) {
+      console.error('Error saving board:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to save board'))
+      return false
+    } finally {
+      store.dispatch(setLoading(false))
+    }
   }
 }
 

@@ -12,7 +12,6 @@ export function useBingoBoardsHub() {
   const { isAuthenticated } = useAuth()
   const { boards, createBoard } = useBingoBoards()
   
-  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null)
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const [filterSelections, setFilterSelections] = useState<FilterState>({
     category: '__all__',
@@ -32,8 +31,11 @@ export function useBingoBoardsHub() {
     }
     
     try {
-      await createBoard(formData as CreateBingoBoardDTO)
-      setIsCreateFormOpen(false)
+      const newBoard = await createBoard(formData as CreateBingoBoardDTO)
+      if (newBoard) {
+        setIsCreateFormOpen(false)
+        router.push(`/challengehub/${newBoard.id}/edit`)
+      }
     } catch (error) {
       console.error('Failed to create board:', error)
     }
@@ -84,12 +86,10 @@ export function useBingoBoardsHub() {
 
   return {
     boards: filteredAndSortedBoards(),
-    selectedBoardId,
     isCreateFormOpen,
     filterSelections,
     handleFilterChange,
     handleCreateBoard,
-    setSelectedBoardId,
     setIsCreateFormOpen,
   }
 }

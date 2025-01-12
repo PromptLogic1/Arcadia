@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from 'lucide-react'
-import { BingoBoardEdit } from './BingoBoardsEdit/BingoBoardEdit'
 import { Filter } from '@/components/filter/filter'
 import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
 import { GAMES } from '@/src/store/types/game.types'
@@ -10,21 +9,20 @@ import { BoardCard } from './BoardCard'
 import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
 import NeonText from '@/components/ui/NeonText'
 import { useBingoBoardsHub } from './hooks/useBingoBoardsHub'
-import type { CreateBoardFormData } from './types'
-
-
+import { useRouter } from 'next/navigation'
+import { useCallback } from "react"
 
 export default function BingoBoardsHub() {
   const {
     boards,
-    selectedBoardId,
     isCreateFormOpen,
     filterSelections,
     handleFilterChange,
     handleCreateBoard,
-    setSelectedBoardId,
     setIsCreateFormOpen,
   } = useBingoBoardsHub()
+
+  const router = useRouter()
 
   // Convert game categories to filter options format
   const categoryOptions = [
@@ -36,6 +34,10 @@ export default function BingoBoardsHub() {
         label: game
       }))
   ]
+
+  const handleBoardClick = useCallback((boardId: string) => {
+    router.push(`/challengehub/${boardId}/edit`)
+  }, [router])
 
   return (
     <div className="space-y-6">
@@ -68,7 +70,7 @@ export default function BingoBoardsHub() {
           <BoardCard
             key={board.id}
             board={board}
-            onClick={() => setSelectedBoardId(board.id)}
+            onClick={() => handleBoardClick(board.id)}
           />
         ))}
       </div>
@@ -78,13 +80,6 @@ export default function BingoBoardsHub() {
         onClose={() => setIsCreateFormOpen(false)}
         onSubmit={handleCreateBoard}
       />
-
-      {selectedBoardId && (
-        <BingoBoardEdit 
-          boardId={selectedBoardId} 
-          onClose={() => setSelectedBoardId(null)}
-        />
-      )}
     </div>
   )
 }

@@ -4,14 +4,14 @@ import { UUID } from 'crypto'
 
 interface BingoBoardState {
   boards: BingoBoard[]
-  selectedBoardId: string | null
+  currentBoard: BingoBoard | null
   isLoading: boolean
   error: string | null
 }
 
 const initialState: BingoBoardState = {
   boards: [],
-  selectedBoardId: null,
+  currentBoard: null,
   isLoading: false,
   error: null
 }
@@ -22,12 +22,6 @@ const bingoBoardSlice = createSlice({
   reducers: {
     setBingoBoards: (state, action: PayloadAction<BingoBoard[]>) => {
       state.boards = action.payload
-    },
-    setSelectedBoardId: (state, action: PayloadAction<string>) => {
-      state.selectedBoardId = action.payload
-    },
-    clearSelectedBoard: (state) => {
-      state.selectedBoardId = null
     },
     addBoard: (state, action: PayloadAction<BingoBoard>) => {
       state.boards.push(action.payload)
@@ -52,19 +46,31 @@ const bingoBoardSlice = createSlice({
         newLayout[action.payload.position] = action.payload.newCardId
         board.board_layoutbingocards = newLayout
       }
+    },
+    setCurrentBoard: (state, action: PayloadAction<BingoBoard>) => {
+      state.currentBoard = action.payload
+    },
+    clearCurrentBoard: (state) => {
+      state.currentBoard = null
+    },
+    updateCurrentBoard: (state, action: PayloadAction<Partial<BingoBoard>>) => {
+      if (state.currentBoard) {
+        state.currentBoard = { ...state.currentBoard, ...action.payload }
+      }
     }
   }
 })
 
 export const {
   setBingoBoards,
-  setSelectedBoardId,
-  clearSelectedBoard,
   addBoard,
   removeBoard,
   setLoading,
   setError,
-  updateBoardLayoutId
+  updateBoardLayoutId,
+  setCurrentBoard,
+  clearCurrentBoard,
+  updateCurrentBoard
 } = bingoBoardSlice.actions
 
 export default bingoBoardSlice.reducer 

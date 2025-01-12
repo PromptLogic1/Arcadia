@@ -5,32 +5,19 @@ import { bingoBoardService } from '@/src/store/services/bingoboard-service'
 import type { BingoBoard, CreateBingoBoardDTO } from '@/src/store/types/bingoboard.types'
 import {
   selectBoards,
-  selectSelectedBoard,
+  selectCurrentBoard,
   selectIsLoading,
   selectError
 } from '@/src/store/selectors/bingoboardSelectors'
-import {
-  setSelectedBoardId,
-  clearSelectedBoard
-} from '@/src/store/slices/bingoboardSlice'
 
 export function useBingoBoards() {
   const dispatch = useAppDispatch()
   
   // Selectors
   const boards = useSelector(selectBoards)
-  const selectedBoard = useSelector(selectSelectedBoard)
+  const currentBoard = useSelector(selectCurrentBoard)
   const isLoading = useSelector(selectIsLoading)
   const error = useSelector(selectError)
-
-  // Board selection
-  const selectBoard = useCallback((boardId: string) => {
-    dispatch(setSelectedBoardId(boardId))
-  }, [dispatch])
-
-  const clearBoard = useCallback(() => {
-    dispatch(clearSelectedBoard())
-  }, [dispatch])
 
   // Service methods
   const initializeBoards = useCallback(async () => {
@@ -64,13 +51,9 @@ export function useBingoBoards() {
   return {
     // State
     boards,
-    selectedBoard,
+    currentBoard,
     isLoading,
     error,
-
-    // Actions
-    selectBoard,
-    clearBoard,
 
     // Service methods
     initializeBoards,

@@ -9,13 +9,54 @@ import { UUID } from 'crypto'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/src/store/store'
 import { BingoCard } from '@/src/store/types/bingocard.types'
+import { useRouter } from 'next/router'
+import { clearCurrentBoard, setError } from '@/src/store/slices/bingoboardSlice'
+import { store } from '@/src/store/store'
 
 type FieldKey = 'title' | 'description' | 'tags'
 
 export function useBingoBoardEdit(boardId: string) {
+  const currentBoard = useSelector((state: RootState) => state.bingoBoard.currentBoard)
+  const gridCards = useSelector((state: RootState) => state.bingoCards.gridcards)
+  const isLoading = useSelector((state: RootState) => 
+    state.bingoBoard.isLoading || state.bingoCards.isLoading
+  )
+  const error = useSelector((state: RootState) => 
+    state.bingoBoard.error || state.bingoCards.error
+  )
+
+  // Initialize form data when currentBoard changes
+  useEffect(() => {
+    if (currentBoard) {
+      setFormData({
+        board_title: currentBoard.board_title,
+        board_description: currentBoard.board_description || '',
+        board_tags: currentBoard.board_tags || [],
+        board_difficulty: currentBoard.board_difficulty,
+        is_public: currentBoard.is_public,
+      })
+    }
+  }, [currentBoard])
+
+  if (isLoading) {
+    return { isLoading: true }
+  }
+
+  if (!currentBoard) {
+    return { error: 'Board not found' }
+  }
+
+  // Load board data
+  useEffect(() => {
+    bingoBoardService.loadBoardForEditing(boardId)
+    return () => {
+      store.dispatch(clearCurrentBoard())
+      bingoCardService.clearGridCards()
+    }
+  }, [boardId])
+
   const { boards, updateBoard } = useBingoBoards()
   const [isLoadingCards, setIsLoadingCards] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string
     description?: string
@@ -23,7 +64,6 @@ export function useBingoBoardEdit(boardId: string) {
   }>({})
 
   const board = boards.find(b => b.id === boardId)
-  const gridCards = useSelector((state: RootState) => state.bingoCards.gridcards)
   
   const [formData, setFormData] = useState(board ? {
     board_title: board.board_title,
@@ -119,13 +159,13 @@ export function useBingoBoardEdit(boardId: string) {
         })
 
         if (!newCard) throw new Error('Failed to create card')
-        await bingoCardService.updateGridCards(index, newCard)
+        await bingoCardService.updateGridCard(index, newCard)
 
       } else {
         // Update existing card
         const updatedCard = await bingoCardService.updateCard(currentCard.id, updates)
         if (updatedCard) {
-          await bingoCardService.updateGridCards(index, updatedCard)
+          await bingoCardService.updateGridCard(index, updatedCard)
         }
       }
     } catch (error) {
@@ -138,9 +178,8 @@ export function useBingoBoardEdit(boardId: string) {
   // Save board metadata
   const handleSave = useCallback(async () => {
     if (!board || !formData) return false
-
     try {
-      await updateBoard(board.id, {
+      const success = await bingoBoardService.saveBoardChanges(board.id, {
         ...board,
         board_title: formData.board_title,
         board_description: formData.board_description,
@@ -148,22 +187,12 @@ export function useBingoBoardEdit(boardId: string) {
         board_difficulty: formData.board_difficulty as Difficulty,
         is_public: formData.is_public
       })
-      return true
+      return success
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update board')
       return false
     }
-  }, [board, formData, updateBoard])
-
-  // Initialize grid cards when board changes
-  useEffect(() => {
-    if (board) {
-      bingoCardService.initGridCards(board.board_layoutbingocards)
-      return () => {
-        bingoCardService.clearGridCards()
-      }
-    }
-  }, [board])
+  }, [board, formData])
 
   return {
     board,
