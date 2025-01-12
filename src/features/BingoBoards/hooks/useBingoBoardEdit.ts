@@ -31,9 +31,9 @@ interface BoardEditReturn {
   fieldErrors: Record<string, string>
   gridCards: BingoCard[]
   cards: BingoCard[]
-  updateFormField: (field: string, value: any) => void
+  updateFormField: (field: string, value: FieldValue) => void
   handleSave: () => Promise<boolean>
-  handleCardEdit: (index: number, updates: Partial<BingoCard>) => Promise<void>
+  handleCardEdit: (index: number, updates: BingoCard | Partial<BingoCard>) => void
   gridSize: number
   editingCard: { card: BingoCard; index: number } | null
   setEditingCard: (card: { card: BingoCard; index: number } | null) => void
@@ -128,53 +128,23 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     setFormData(prev => prev ? ({ ...prev, [field]: value }) : null)
   }, [validateBingoBoardField])
 
-  const handleCardEdit = useCallback(async (index: number, updates: Partial<BingoCard>) => {
-    if (!currentBoard) return
-
-    // Validate card fields before saving
-    for (const [field, value] of Object.entries(updates)) {
-      const error = validateBingoCardField(field, value as string | string[] | boolean)
-      if (error) {
-        setError(error)
-        return
-      }
-    }
-
+  const handleCardEdit = (index: number, updates: BingoCard | Partial<BingoCard>) => {
     try {
-      setIsLoadingCards(true)
-      const currentCard = gridCards[index]
-      if (!currentCard) return
-
-      if (currentCard.id === '') {
-        // Create new card
-        const newCard = await bingoCardService.createCard({
-          ...updates,
-          game_category: currentBoard.board_game_type,
-          creator_id: currentBoard.creator_id as UUID,
-          generated_by_ai: false,
-          is_public: updates.is_public ?? false,
-          card_content: updates.card_content ?? '',
-          card_type: updates.card_type ?? 'collecting',
-          card_difficulty: updates.card_difficulty ?? 'medium',
-          card_tags: updates.card_tags ?? []
-        })
-
-        if (!newCard) throw new Error('Failed to create card')
-        await bingoCardService.updateGridCard(index, newCard)
-
-      } else {
-        // Update existing card
-        const updatedCard = await bingoCardService.updateCard(currentCard.id, updates)
-        if (updatedCard) {
-          await bingoCardService.updateGridCard(index, updatedCard)
-        }
+      // Ensure updates is a complete BingoCard
+      if (!('id' in updates && 'card_content' in updates)) {
+        throw new Error('Incomplete card data')
       }
+
+      // Update the gridCards array directly
+      const updatedCards = [...gridCards]
+      updatedCards[index] = updates as BingoCard
+
+      // Update the state with the new gridCards array
+      bingoCardService.setGridCards(updatedCards)
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to save card')
-    } finally {
-      setIsLoadingCards(false)
+      console.error('Failed to update card:', error)
     }
-  }, [currentBoard, gridCards, validateBingoCardField])
+  }
 
   const handleSave = useCallback(async () => {
     if (!currentBoard || !formData) return false

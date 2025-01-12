@@ -28,6 +28,7 @@ export function BingoCardCompact({ card, onSelect, onEdit }: BingoCardCompactPro
       open={isOpen}
       onOpenChange={setIsOpen}
       className="w-full"
+      data-card-id={card.id}
     >
       <CollapsibleTrigger asChild>
         <Card 

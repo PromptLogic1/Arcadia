@@ -30,6 +30,7 @@ import { ChevronDown } from "lucide-react"
 import { BingoCardCompact } from "../BingoCardCompact"
 import { Badge } from "@/components/ui/badge"
 import NeonText from "@/components/ui/NeonText"
+import { GridPositionSelectDialog } from './GridPositionSelectDialog'
 
 interface BingoBoardEditProps {
   boardId: string
@@ -47,6 +48,7 @@ interface FormData {
 export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) {
   const router = useRouter()
   const [editingCard, setEditingCard] = useState<{ card: BingCardType; index: number } | null>(null)
+  const [selectedCard, setSelectedCard] = useState<BingCardType | null>(null)
 
   
   const {
@@ -73,6 +75,31 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     const success = await handleSave()
     if (success) {
       onSaveSuccess()
+    }
+  }
+
+  const handleCardSelect = (card: BingCardType) => {
+    // Check if card is already in grid
+    const isCardInGrid = gridCards.some(gc => gc.id === card.id)
+    if (isCardInGrid) {
+      alert('This card is already in the grid') // Simple alert for feedback
+      return
+    }
+    setSelectedCard(card)
+  }
+
+  const handlePositionSelect = (index: number) => {
+    if (selectedCard) {
+      handleCardEdit(index, selectedCard)
+      setSelectedCard(null)
+      // Find and close the dropdown of the selected card
+      const cardElement = document.querySelector(`[data-card-id="${selectedCard.id}"]`)
+      if (cardElement) {
+        const trigger = cardElement.querySelector('[data-state="open"]')
+        if (trigger instanceof HTMLElement) {
+          trigger.click()
+        }
+      }
     }
   }
 
@@ -148,16 +175,10 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                   <BingoCardCompact
                     key={card.id}
                     card={card}
-                    onSelect={(selectedCard) => {
-                      // TODO: Implement card selection logic
-                      console.log('Selected card:', selectedCard)
-                    }}
-                    onEdit={(cardToEdit) => {
-                      // Use the same edit logic as grid cards
-                      const index = gridCards.findIndex(c => c.id === cardToEdit.id)
-                      if (index !== -1) {
-                        setEditingCard({ card: cardToEdit, index })
-                      }
+                    onSelect={handleCardSelect}
+                    onEdit={(card) => {
+                      const index = gridCards.findIndex(c => c.id === card.id)
+                      if (index !== -1) handleCardEdit(index, card)
                     }}
                   />
                 ))
@@ -345,6 +366,19 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
           isOpen={true}
           onClose={() => setEditingCard(null)}
           onSave={handleCardEdit}
+        />
+      )}
+
+      {selectedCard && (
+        <GridPositionSelectDialog
+          isOpen={true}
+          onClose={() => setSelectedCard(null)}
+          onSelect={handlePositionSelect}
+          gridSize={gridSize}
+          takenPositions={gridCards
+            .map((card, index) => card.id ? index : -1)
+            .filter(index => index !== -1)
+          }
         />
       )}
     </div>

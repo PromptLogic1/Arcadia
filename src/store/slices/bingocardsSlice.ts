@@ -55,6 +55,9 @@ const bingoCardsSlice = createSlice({
     },
     clearBingoGridCards: (state) => {
       state.gridcards = []
+    },
+    setGridCards: (state, action: PayloadAction<BingoCard[]>) => {
+      state.gridcards = action.payload
     }
   }
 })
@@ -70,7 +73,8 @@ export const {
   updateCard,
   clearCards,
   setBingoGridCards,
-  clearBingoGridCards
+  clearBingoGridCards,
+  setGridCards
 } = bingoCardsSlice.actions
 
 export default bingoCardsSlice.reducer 

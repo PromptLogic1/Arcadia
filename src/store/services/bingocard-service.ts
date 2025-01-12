@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
-import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards } from '../slices/bingocardsSlice'
+import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards, setGridCards } from '../slices/bingocardsSlice'
 import { serverLog } from '@/lib/logger'
 import { DEFAULT_BINGO_CARD, DEFAULT_CARD_ID } from '../types/bingocard.types'
 import { UUID } from 'crypto'
@@ -350,6 +350,15 @@ class BingoCardService {
     const updatedGridCards = [...currentGridCards]
     updatedGridCards[index] = card
     store.dispatch(setBingoGridCards(updatedGridCards))
+  }
+
+  setGridCards(cards: BingoCard[]) {
+    try {
+      store.dispatch(setGridCards(cards))
+    } catch (error) {
+      console.error('Failed to set grid cards:', error)
+      throw error
+    }
   }
 }
 
