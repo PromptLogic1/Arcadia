@@ -30,6 +30,7 @@ interface BoardEditReturn {
   setFormData: (data: FormData | ((prev: FormData | null) => FormData | null)) => void
   fieldErrors: Record<string, string>
   gridCards: BingoCard[]
+  cards: BingoCard[]
   updateFormField: (field: string, value: any) => void
   handleSave: () => Promise<boolean>
   handleCardEdit: (index: number, updates: Partial<BingoCard>) => Promise<void>
@@ -54,7 +55,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
   const currentBoard = useSelector((state: RootState) => state.bingoBoard.currentBoard)
   const gridCards = useSelector((state: RootState) => state.bingoCards.gridcards)
   const error = useSelector((state: RootState) => state.bingoBoard.error || state.bingoCards.error)
-
+  const cards = useSelector((state: RootState) => state.bingoCards.cards)
 
   // Initialize formData when currentBoard changes
   useEffect(() => {
@@ -203,6 +204,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
         setIsLoadingBoard(false)
         // Add a small delay before loading cards to ensure board is loaded
         await new Promise(resolve => setTimeout(resolve, 100))
+        await bingoCardService.initializeCards()
       } catch (error) {
         store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
       } finally {
@@ -228,6 +230,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       setFormData,
       fieldErrors: {},
       gridCards: [],
+      cards,
       updateFormField: () => {},
       handleSave: async () => false,
       handleCardEdit: async () => {},
@@ -247,6 +250,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     setFormData,
     fieldErrors,
     gridCards,
+    cards,
     updateFormField,
     handleSave,
     handleCardEdit,

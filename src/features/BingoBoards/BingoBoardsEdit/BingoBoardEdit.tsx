@@ -20,9 +20,11 @@ import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import { useState, useCallback } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
-import type { BingoCard } from "@/src/store/types/bingocard.types"
+import type { BingoCard as BingCardType} from "@/src/store/types/bingocard.types"
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
+import { BingoCard } from '../BingoCard'
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface BingoBoardEditProps {
   boardId: string
@@ -39,7 +41,7 @@ interface FormData {
 
 export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) {
   const router = useRouter()
-  const [editingCard, setEditingCard] = useState<{ card: BingoCard; index: number } | null>(null)
+  const [editingCard, setEditingCard] = useState<{ card: BingCardType; index: number } | null>(null)
 
   
   const {
@@ -55,6 +57,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     handleCardEdit,
     gridSize,
     handleSave,
+    cards,
   } = useBingoBoardEdit(boardId)
 
   const handleClose = useCallback(() => {
@@ -101,156 +104,182 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left Section - Bingo Grid */}
-        <div className="space-y-4">
-          {isLoadingCards ? (
-            <div className="flex items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
-              <LoadingSpinner />
+      <div className="grid grid-cols-[300px_1fr] gap-6">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex items-center gap-2 mb-6">
+            <h2 className="text-xl font-semibold text-cyan-400">Available Cards</h2>
+          </div>
+          
+          <ScrollArea className="h-[calc(100vh-12rem)]">
+            <div className="space-y-4 pr-4">
+              {isLoadingCards ? (
+                <div className="flex items-center justify-center h-40">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                cards.map((card) => (
+                  <BingoCard
+                    key={card.id}
+                    card={card}
+                    onClick={() => {
+                      // Handle card selection logic here
+                      // You might want to add this card to the grid
+                    }}
+                  />
+                ))
+              )}
             </div>
-          ) : (
-            <div 
-              className="grid gap-4" 
-              style={{ 
-                gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
-              }}
-            >
-              {gridCards.map((card, index) => (
-                <Card 
-                  key={card.id || index}
-                  className={cn(
-                    "bg-gray-800/50 p-4 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
-                    card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
-                  )}
-                  onDoubleClick={() => setEditingCard({ card, index })}
-                >
-                  {card.card_content || "Empty Card"}
-                </Card>
-              ))}
-            </div>
-          )}
+          </ScrollArea>
         </div>
 
-        {/* Right Section - Board Settings */}
-        <div className="space-y-6 border-l border-gray-700 pl-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Settings className="h-5 w-5 text-cyan-400" />
-            <h2 className="text-xl font-semibold text-cyan-400">Settings</h2>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {isLoadingCards ? (
+              <div className="flex items-center justify-center min-h-[400px] bg-gray-800/20 rounded-lg">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div 
+                className="grid gap-4" 
+                style={{ 
+                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
+                }}
+              >
+                {gridCards.map((card, index) => (
+                  <Card 
+                    key={card.id || index}
+                    className={cn(
+                      "bg-gray-800/50 p-4 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
+                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
+                    )}
+                    onDoubleClick={() => setEditingCard({ card, index })}
+                  >
+                    {card.card_content || "Empty Card"}
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="space-y-6">
-            {formData && (
-              <div className="space-y-2 pr-4">
-                <Label htmlFor="board_title">
-                  Title
+          <div className="space-y-6 border-l border-gray-700 pl-8">
+            <div className="flex items-center gap-2 mb-6">
+              <Settings className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-xl font-semibold text-cyan-400">Settings</h2>
+            </div>
+
+            <div className="space-y-6">
+              {formData && (
+                <div className="space-y-2 pr-4">
+                  <Label htmlFor="board_title">
+                    Title
+                    <span className="text-xs text-gray-400 ml-2">
+                      ({formData.board_title.length}/50)
+                    </span>
+                  </Label>
+                  <Input
+                    id="board_title"
+                    value={formData.board_title}
+                    onChange={(e) => updateFormField('board_title', e.target.value)}
+                    className={cn(
+                      "bg-gray-800/50",
+                      fieldErrors.title 
+                        ? "border-red-500/50 focus:border-red-500/70" 
+                        : "border-cyan-500/50"
+                    )}
+                  />
+                  {fieldErrors.title && (
+                    <p className="text-red-400 text-xs mt-1">{fieldErrors.title}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  Description
                   <span className="text-xs text-gray-400 ml-2">
-                    ({formData.board_title.length}/50)
+                    ({formData.board_description.length}/255)
+                  </span>
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.board_description}
+                  onChange={(e) => updateFormField('board_description', e.target.value)}
+                  className={cn(
+                    "min-h-[160px] bg-gray-800/50 resize-y text-gray-300",
+                    fieldErrors.description 
+                      ? "border-red-500/50 focus:border-red-500/70" 
+                      : "border-cyan-500/20 focus:border-cyan-500/40"
+                  )}
+                />
+                {fieldErrors.description && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.description}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="board_tags">
+                  Tags
+                  <span className="text-xs text-gray-400 ml-2">
+                    ({formData.board_tags.length}/5)
                   </span>
                 </Label>
                 <Input
-                  id="board_title"
-                  value={formData.board_title}
-                  onChange={(e) => updateFormField('board_title', e.target.value)}
+                  id="board_tags"
+                  value={formData.board_tags.join(', ')}
+                  onChange={(e) => updateFormField('board_tags', e.target.value.split(',').map(tag => tag.trim()))}
                   className={cn(
                     "bg-gray-800/50",
-                    fieldErrors.title 
+                    fieldErrors.tags 
                       ? "border-red-500/50 focus:border-red-500/70" 
                       : "border-cyan-500/50"
                   )}
+                  placeholder="Enter tags separated by commas"
                 />
-                {fieldErrors.title && (
-                  <p className="text-red-400 text-xs mt-1">{fieldErrors.title}</p>
+                {fieldErrors.tags && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.tags}</p>
                 )}
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="description">
-                Description
-                <span className="text-xs text-gray-400 ml-2">
-                  ({formData.board_description.length}/255)
-                </span>
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.board_description}
-                onChange={(e) => updateFormField('board_description', e.target.value)}
-                className={cn(
-                  "min-h-[160px] bg-gray-800/50 resize-y text-gray-300",
-                  fieldErrors.description 
-                    ? "border-red-500/50 focus:border-red-500/70" 
-                    : "border-cyan-500/20 focus:border-cyan-500/40"
-                )}
-              />
-              {fieldErrors.description && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.description}</p>
-              )}
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="board_difficulty">Difficulty</Label>
+                <Select 
+                  value={formData.board_difficulty}
+                  onValueChange={(value: Difficulty) => 
+                    setFormData((prev: FormData | null) => prev ? ({ ...prev, board_difficulty: value }) : null)
+                  }
+                >
+                  <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-cyan-500">
+                    {DIFFICULTIES.map((difficulty) => (
+                      <SelectItem 
+                        key={difficulty} 
+                        value={difficulty}
+                        className="capitalize"
+                      >
+                        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="board_tags">
-                Tags
-                <span className="text-xs text-gray-400 ml-2">
-                  ({formData.board_tags.length}/5)
-                </span>
-              </Label>
-              <Input
-                id="board_tags"
-                value={formData.board_tags.join(', ')}
-                onChange={(e) => updateFormField('board_tags', e.target.value.split(',').map(tag => tag.trim()))}
-                className={cn(
-                  "bg-gray-800/50",
-                  fieldErrors.tags 
-                    ? "border-red-500/50 focus:border-red-500/70" 
-                    : "border-cyan-500/50"
-                )}
-                placeholder="Enter tags separated by commas"
-              />
-              {fieldErrors.tags && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.tags}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="board_difficulty">Difficulty</Label>
-              <Select 
-                value={formData.board_difficulty}
-                onValueChange={(value: Difficulty) => 
-                  setFormData((prev: FormData | null) => prev ? ({ ...prev, board_difficulty: value }) : null)
-                }
-              >
-                <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-cyan-500">
-                  {DIFFICULTIES.map((difficulty) => (
-                    <SelectItem 
-                      key={difficulty} 
-                      value={difficulty}
-                      className="capitalize"
-                    >
-                      {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_public"
-                checked={formData.is_public}
-                onCheckedChange={(checked) => 
-                  setFormData((prev: FormData | null) => prev ? ({ ...prev, is_public: checked as boolean }) : null)
-                }
-              />
-              <Label htmlFor="is_public">Make this board public</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_public"
+                  checked={formData.is_public}
+                  onCheckedChange={(checked) => 
+                    setFormData((prev: FormData | null) => prev ? ({ ...prev, is_public: checked as boolean }) : null)
+                  }
+                />
+                <Label htmlFor="is_public">Make this board public</Label>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer Actions */}
       <div className="mt-6 flex justify-end space-x-4 border-t border-gray-800 pt-4">
         <Button 
           onClick={handleClose}
@@ -272,7 +301,6 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
         </Button>
       </div>
 
-      {/* Card Edit Dialog */}
       {editingCard && (
         <BingoCardEditDialog
           card={editingCard.card}
