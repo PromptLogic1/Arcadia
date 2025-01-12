@@ -61,7 +61,9 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     fieldErrors,
     gridCards,
     updateFormField,
-    handleCardEdit,
+    placeCardInGrid,
+    createNewCard,
+    updateExistingCard,
     gridSize,
     handleSave,
     cards,
@@ -90,7 +92,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
   const handlePositionSelect = (index: number) => {
     if (selectedCard) {
-      handleCardEdit(index, selectedCard)
+      placeCardInGrid(selectedCard, index)
       setSelectedCard(null)
       // Find and close the dropdown of the selected card
       const cardElement = document.querySelector(`[data-card-id="${selectedCard.id}"]`)
@@ -112,7 +114,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       index: -1 // Use -1 to indicate this is a new card
     })
   }
-
+  
   if (isLoadingBoard) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -197,8 +199,8 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                     card={card}
                     onSelect={handleCardSelect}
                     onEdit={(card) => {
-                      const index = gridCards.findIndex(c => c.id === card.id)
-                      if (index !== -1) handleCardEdit(index, card)
+                      const index = cards.findIndex(c => c.id === card.id)
+                      if (index !== -1) setEditingCard({ card, index })
                     }}
                   />
                 ))
@@ -341,8 +343,8 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               console.log('Current gridSize:', gridSize, 'Type:', typeof gridSize),
               <div className="flex flex-wrap gap-2 mx-auto p-4 bg-gray-900/30 rounded-lg"
                 style={{
-                  width: `${gridSize * 192
-                  }px`, // 180px card + 10px gap
+                  width: `${gridSize * 196
+                  }px`, // 180px card + 16px gap
                   justifyContent: 'flex-start'
                 }}
               >
@@ -391,9 +393,15 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
           index={editingCard.index}
           isOpen={true}
           onClose={() => setEditingCard(null)}
-          onSave={handleCardEdit}
+          onSave={(formData, index) => {
+            if (!editingCard.card.id) {
+              createNewCard(formData, index)
+            } else {
+              updateExistingCard(formData, index)
+            }
+          }}
         />
-      )}
+      )} 
 
       {selectedCard && (
         <GridPositionSelectDialog

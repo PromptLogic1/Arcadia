@@ -34,7 +34,9 @@ interface BoardEditReturn {
   cards: BingoCard[]
   updateFormField: (field: string, value: FieldValue) => void
   handleSave: () => Promise<boolean>
-  handleCardEdit: (index: number, updates: BingoCard | Partial<BingoCard>) => void
+  placeCardInGrid: (card: BingoCard, index: number) => void
+  createNewCard: (formData: Partial<BingoCard>, index: number) => Promise<void>
+  updateExistingCard: (updates: Partial<BingoCard>, index: number) => Promise<void>
   gridSize: number
   editingCard: { card: BingoCard; index: number } | null
   setEditingCard: (card: { card: BingoCard; index: number } | null) => void
@@ -132,21 +134,21 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
   }, [validateBingoBoardField])
 
   // Separate functions for card operations
-  const createNewCard = async (formData: Partial<BingoCard>, index: number) => {
+  const createNewCard = async (updates: Partial<BingoCard>, index: number) => {
     try {
       if (!currentBoard || !authState.userdata?.id) {
         throw new Error('Board or user not found')
       }
 
       const createDTO: CreateBingoCardDTO = {
-        card_content: formData.card_content || '',
-        card_explanation: formData.card_explanation,
-        card_type: formData.card_type || 'collecting',
-        card_difficulty: formData.card_difficulty || 'medium',
-        card_tags: formData.card_tags || [],
+        card_content: updates.card_content || '',
+        card_explanation: updates.card_explanation,
+        card_type: updates.card_type || 'collecting',
+        card_difficulty: updates.card_difficulty || 'medium',
+        card_tags: updates.card_tags || [],
         game_category: currentBoard.board_game_type,
         creator_id: authState.userdata.id,
-        is_public: formData.is_public || false,
+        is_public: updates.is_public || false,
         generated_by_ai: false
       }
 
@@ -164,10 +166,10 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     }
   }
 
-  const updateExistingCard = async (cardId: string | undefined, updates: Partial<BingoCard>, index: number) => {
+  const updateExistingCard = async (updates: Partial<BingoCard>, index: number) => {
     try {
-      if (!cardId) throw new Error('Card ID is required')
       if (!currentBoard) throw new Error('Board not found')
+      if (!updates.id) throw new Error('Card ID is required')
 
       const currentCard = gridCards[index]
       if (!currentCard) throw new Error('Card not found')
@@ -183,7 +185,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
         generated_by_ai: currentCard.generated_by_ai
       }
 
-      const updatedCard = await bingoCardService.updateCard(cardId, updateDTO)
+      const updatedCard = await bingoCardService.updateCard(updates.id, updateDTO)
       if (!updatedCard) throw new Error('Failed to update card')
 
       // Update grid if card is in grid
@@ -204,28 +206,6 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       bingoCardService.setGridCards(updatedCards)
     } catch (error) {
       console.error('Failed to place card in grid:', error)
-    }
-  }
-
-  // Main handler that delegates to appropriate function
-  const handleCardEdit = async (index: number, updates: BingoCard | Partial<BingoCard>) => {
-    try {
-      // Case 1: Creating new card (either from button or empty grid spot)
-      if (index === -1 || !('id' in updates)) {
-        await createNewCard(updates, index)
-        return
-      }
-
-      // Case 2: Placing existing card from available cards
-      if ('id' in updates && !updates.card_content) {
-        placeCardInGrid(updates as BingoCard, index)
-        return
-      }
-
-      // Case 3: Updating existing card
-      await updateExistingCard(updates.id, updates, index)
-    } catch (error) {
-      console.error('Failed to handle card edit:', error)
     }
   }
 
@@ -286,7 +266,9 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     cards,
     updateFormField,
     handleSave,
-    handleCardEdit,
+    placeCardInGrid,
+    createNewCard,
+    updateExistingCard,
     gridSize: currentBoard?.board_size || 0,
     editingCard,
     setEditingCard,

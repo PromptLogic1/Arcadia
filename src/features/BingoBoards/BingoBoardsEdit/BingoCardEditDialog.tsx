@@ -22,7 +22,7 @@ interface BingoCardEditDialogProps {
   index: number
   isOpen: boolean
   onClose: () => void
-  onSave: (index: number, updates: Partial<BingoCard>) => void
+  onSave: (updates: Partial<BingoCard>, index: number) => void
 }
 
 interface CardForm {
@@ -98,16 +98,18 @@ export function BingoCardEditDialog({
     setFormData(prev => ({ ...prev, [field]: value }))
   }, [validateField])
 
-  const handleSubmit = async () => {
-    try {
-      setIsSaving(true)
-      await onSave(index, formData)
-      onClose()
-    } catch (error) {
-      console.error('Failed to save card:', error)
-    } finally {
-      setIsSaving(false)
+  const handleSave = () => {
+    if (!formData) return
+    
+    if (!card.id) {
+      onSave(formData, index)
+    } else {
+      onSave({
+        ...formData,
+        id: card.id
+      }, index)
     }
+    onClose()
   }
 
   return (
@@ -255,7 +257,7 @@ export function BingoCardEditDialog({
             Cancel
           </Button>
           <Button 
-            onClick={handleSubmit}
+            onClick={handleSave}
             disabled={isSaving || Object.keys(fieldErrors).length > 0}
             className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
           >
