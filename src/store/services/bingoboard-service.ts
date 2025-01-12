@@ -4,6 +4,7 @@ import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
 import { BOARD_SIZE_OPTIONS } from '../types/bingoboard.types'
 import { setBingoBoards, setSelectedBoardId, setLoading, setError } from '../slices/bingoboardSlice'
 import { serverLog } from '@/lib/logger'
+import { UUID } from 'crypto'
 
 class BingoBoardService {
   private supabase = supabase
@@ -165,13 +166,20 @@ class BingoBoardService {
     return { isValid: true }
   }
 
-  async updateBoard(boardId: string, updates: BingoBoard): Promise<BingoBoard | null> {
+  async updateBoard(boardId: string, updates: Partial<BingoBoard>): Promise<BingoBoard | null> {
     try {
       store.dispatch(setLoading(true))
 
+      // Get current layout from grid cards
+      const newLayout = this.getLayoutFromGridCards()
+
+      // Update board with both layout and other updates
       const { data: board, error } = await this.supabase
         .from('bingoboards')
-        .update(updates)
+        .update({
+          ...updates,
+          board_layoutbingocards: newLayout
+        })
         .eq('id', boardId)
         .select()
         .single()
@@ -297,46 +305,9 @@ class BingoBoardService {
     }
   }
 
-  async updateBoardLayout(boardId: string, layout: string[]): Promise<boolean> {
-    try {
-      console.log('Updating board layout:', { boardId, layout }) // Debug log
-
-      const { data, error } = await this.supabase
-        .from('bingoboards')
-        .update({
-          board_layoutbingocards: layout,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', boardId)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        throw error
-      }
-
-      if (!data) {
-        throw new Error('No data returned after update')
-      }
-
-      console.log('Board layout updated successfully:', data) // Debug log
-      return true
-
-    } catch (error) {
-      console.error('Error updating board layout:', {
-        error,
-        boardId,
-        layoutLength: layout.length,
-        sampleLayout: layout.slice(0, 3) // Zeige die ersten 3 Einträge
-      })
-      throw error
-    }
+  private getLayoutFromGridCards(): string[] {
+    const gridCards = store.getState().bingoCards.gridcards
+    return gridCards.map(card => card.id)
   }
 }
 

@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
-import { setBingoCards, setSelectedCardId, setLoading, setError, initializeGrid } from '../slices/bingocardsSlice'
+import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards } from '../slices/bingocardsSlice'
 import { serverLog } from '@/lib/logger'
 import { DEFAULT_BINGO_CARD, DEFAULT_CARD_ID } from '../types/bingocard.types'
 import { UUID } from 'crypto'
@@ -309,57 +309,76 @@ class BingoCardService {
     }
   }
 
-  private validateGridCards(cardIds: string[]): void {
-    // Ignoriere leere Strings bei der Duplikat-Prüfung
-    const realCardIds = cardIds.filter(id => id !== '')
-    
-    // Finde Duplikate
-    const duplicateIds = realCardIds.filter((id, index) => realCardIds.indexOf(id) !== index)
-    
-    if (duplicateIds.length > 0) {
-      throw new Error(`Duplicate cards found in grid: ${duplicateIds.join(', ')}. Each card can only be used once.`)
-    }
-  }
-
-  async initializeGridCards(cardIds: string[], size: number): Promise<BingoCard[]> {
+  async initGridCards(layoutIds: string[]): Promise<void> {
     try {
-      // Validiere Grid zuerst
-      this.validateGridCards(cardIds)
-
-      // Filter leere IDs und lade echte Karten
-      const realCardIds = cardIds.filter(id => id !== '')
-      let realCards: BingoCard[] = []
+      store.dispatch(setLoading(true))
       
+      // Filter out empty strings to get real card IDs
+      const realCardIds = layoutIds.filter(id => id !== '')
+      
+      let gridCards: BingoCard[] = []
+
+      // If we have real cards, fetch them from supabase
       if (realCardIds.length > 0) {
-        const { data, error } = await this.supabase
+        const { data: cards, error } = await this.supabase
           .from('bingocards')
           .select('*')
           .in('id', realCardIds)
           .is('deleted_at', null)
 
         if (error) throw error
-        realCards = data || []
+
+        // Create a map for quick lookups
+        const cardMap = new Map(cards?.map(card => [card.id, card]) || [])
+
+        // Build the grid cards array in the correct order
+        gridCards = layoutIds.map(id => {
+          if (id === '') {
+            // Return default template for empty slots
+            return { ...DEFAULT_BINGO_CARD }
+          }
+          // Return the actual card or default if not found (shouldn't happen)
+          return cardMap.get(id) || { ...DEFAULT_BINGO_CARD }
+        })
+      } else {
+        // If no real cards, fill with default templates
+        gridCards = layoutIds.map(() => ({ ...DEFAULT_BINGO_CARD }))
       }
 
-      // Erstelle Map für schnellen Zugriff
-      const cardMap = new Map(realCards.map(card => [card.id, card]))
-
-      // Erstelle finales Array mit Platzhaltern oder echten Karten
-      return cardIds.map(id => {
-        if (id === '') {
-          return { ...DEFAULT_BINGO_CARD, id: '' as (UUID | '') }
-        }
-        const foundCard = cardMap.get(id as UUID)
-        if (!foundCard) {
-          console.warn(`Card with ID ${id} not found, using placeholder`)
-          return { ...DEFAULT_BINGO_CARD, id: '' as (UUID | '') }
-        }
-        return foundCard
-      })
+      // Update the gridcards in the store
+      store.dispatch(setBingoGridCards(gridCards))
 
     } catch (error) {
-      console.error('Error loading cards:', error)
-      throw error
+      console.error('Error initializing grid cards:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to initialize grid cards'))
+    } finally {
+      store.dispatch(setLoading(false))
+    }
+  }
+
+  clearGridCards(): void {
+    store.dispatch(clearBingoGridCards())
+  }
+
+  async updateGridCards(
+    index: number,
+    card: BingoCard,
+  ): Promise<void> {
+    try {
+      store.dispatch(setLoading(true))
+
+      // Update gridcards in Redux store only
+      const currentGridCards = store.getState().bingoCards.gridcards
+      const updatedGridCards = [...currentGridCards]
+      updatedGridCards[index] = card
+      
+      store.dispatch(setBingoGridCards(updatedGridCards))
+
+    } catch (error) {
+      console.error('Error updating grid cards:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to update grid cards'))
+    } finally {
+      store.dispatch(setLoading(false))
     }
   }
 }

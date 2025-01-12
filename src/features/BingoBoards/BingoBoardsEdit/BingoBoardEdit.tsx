@@ -43,12 +43,10 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
     fieldErrors,
     gridCards,
     isLoadingCards,
-    gridError,
     updateFormField,
     handleSave,
-    isGridDirty,
-    gridSize,
-    handleCardEdit
+    handleCardEdit,
+    gridSize
   } = useBingoBoardEdit(boardId!)
 
   if (!board || !formData) return null
@@ -75,8 +73,6 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
               <div className="flex items-center justify-center h-full">
                 <LoadingSpinner />
               </div>
-            ) : gridError ? (
-              <div className="text-red-400">{gridError}</div>
             ) : (
               <div 
                 className="grid gap-4" 
@@ -89,8 +85,7 @@ export function BingoBoardEdit({ boardId, onClose }: BingoBoardComponentProps) {
                     key={card.id || index}
                     className={cn(
                       "bg-gray-800/50 p-4 aspect-square cursor-pointer hover:bg-gray-800/70 transition-colors",
-                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20",
-                      card.isEdited && "border-yellow-500/20"
+                      card.id === "" ? "border-gray-600/20" : "border-cyan-500/20"
                     )}
                     onDoubleClick={() => setEditingCard({ card, index })}
                   >
