@@ -12,9 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Settings, Plus } from 'lucide-react'
+import { Settings, Plus, X } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { Difficulty, DIFFICULTIES } from '@/src/store/types/game.types'
+import { Difficulty, DIFFICULTIES, DIFFICULTY_STYLES } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
@@ -472,9 +472,24 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                     <div className="absolute top-1 left-1 text-xs text-gray-500 font-mono z-10 bg-gray-900/50 px-1 rounded">
                       {`${Math.floor(index / gridSize) + 1}-${(index % gridSize) + 1}`}
                     </div>
+                    
+                    {card.id && (
+                      <div className="absolute text-xs text-red-400 font-mono z-10 bg-gray-900/50 hover:bg-red-500/20 px-1 rounded cursor-pointer border border-red-500/20" style={{ top: '0.25rem', right: '0.5rem' }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          bingoCardService.updateGridCard(index, { ...DEFAULT_BINGO_CARD })
+                        }}
+                      >
+                        <X className="h-4 w-4 inline-block" />
+                      </div>
+                    )}
+
                     {card.id ? (
                       <div className="flex flex-col items-center h-full pt-6">
-                        <div className="w-full text-center text-xs text-cyan-400 border-b border-gray-700 pb-1">
+                        <div className={cn(
+                          "w-full text-center text-xs border-b border-gray-700 pb-1",
+                          DIFFICULTY_STYLES[card.card_difficulty as Difficulty]
+                        )}>
                           {card.card_difficulty}
                         </div>
                         <div className="flex-1 flex items-center justify-center text-center px-1 text-sm break-words overflow-break-word" style={{ wordBreak: 'break-word' }}>
@@ -490,7 +505,6 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                       </div>
                     )}
                   </Card>
-                  
                 ))}
               </div>
             )}

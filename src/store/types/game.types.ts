@@ -60,14 +60,14 @@ export type EventStatus = 'upcoming' | 'active' | 'completed' | 'cancelled'
 export type ParticipantStatus = 'registered' | 'confirmed' | 'checked_in' | 'completed'
 
 // Style Constants
-export const DIFFICULTY_STYLES = {
-  'all': 'bg-gray-500/10 text-gray-300 border-gray-500/20 hover:border-gray-500/40 hover:bg-gray-500/20',
-  'beginner': 'bg-green-500/10 text-green-300 border-green-500/20 hover:border-green-500/40 hover:bg-green-500/20',
-  'easy': 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/20',
-  'medium': 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20 hover:border-yellow-500/40 hover:bg-yellow-500/20',
-  'hard': 'bg-orange-500/10 text-orange-300 border-orange-500/20 hover:border-orange-500/40 hover:bg-orange-500/20',
-  'expert': 'bg-red-500/10 text-red-300 border-red-500/20 hover:border-red-500/40 hover:bg-red-500/20'
-} as const
+export const DIFFICULTY_STYLES: Record<Difficulty, string> = {
+  'beginner': 'text-green-400',
+  'easy': 'text-green-400',
+  'medium': 'text-yellow-400',
+  'hard': 'text-orange-400',
+  'expert': 'text-red-400',
+  'all': 'text-gray-400'
+}
 
 // Constants
 export const GAMES: GameCategory[] = [
