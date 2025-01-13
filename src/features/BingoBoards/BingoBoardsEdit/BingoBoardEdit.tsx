@@ -20,7 +20,7 @@ import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import { useState, useCallback, useEffect } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
-import type { BingoCard as BingCardType} from "@/src/store/types/bingocard.types"
+import type { BingoCard } from "@/src/store/types/bingocard.types"
 import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
@@ -40,12 +40,12 @@ import {
 import { bingoCardService } from "@/src/store/services/bingocard-service"
 import { BingoCardPublic } from '../BingoCardPublic'
 import { useSelector } from 'react-redux'
-import { selectPublicCards } from '@/src/store/selectors/bingocardsSelectors'
+import { selectPublicCards, selectIsLoading } from '@/src/store/selectors/bingocardsSelectors'
 import { FilterBingoCards, FilterOptions } from './FilterBingoCards'
 
 interface BingoBoardEditProps {
   boardId: string
-  onSaveSuccess: () => void
+  onSaveSuccess?: () => void
 }
 
 interface FormData {
@@ -58,10 +58,11 @@ interface FormData {
 
 export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) {
   const router = useRouter()
-  const [editingCard, setEditingCard] = useState<{ card: BingCardType; index: number } | null>(null)
-  const [selectedCard, setSelectedCard] = useState<BingCardType | null>(null)
+  const [editingCard, setEditingCard] = useState<{ card: BingoCard; index: number } | null>(null)
+  const [selectedCard, setSelectedCard] = useState<BingoCard | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false)
 
-  
   const {
     isLoadingBoard,
     isLoadingCards,
@@ -81,6 +82,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   } = useBingoBoardEdit(boardId)
 
   const publicCards = useSelector(selectPublicCards)
+  const isLoadingPublicCards = useSelector(selectIsLoading)
   const [activeTab, setActiveTab] = useState('private')
 
   const handleClose = useCallback(() => {
@@ -88,13 +90,20 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   }, [router])
 
   const handleSaveClick = async () => {
-    const success = await handleSave()
-    if (success) {
-      onSaveSuccess()
+    try {
+      setIsSaving(true)
+      const success = await handleSave()
+      if (success) {
+        setShowSaveSuccess(true)
+        setTimeout(() => setShowSaveSuccess(false), 3000)
+        onSaveSuccess?.()
+      }
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const handleCardSelect = (card: BingCardType) => {
+  const handleCardSelect = (card: BingoCard) => {
     // Check if card is already in grid
     const isCardInGrid = gridCards.some(gc => gc.id === card.id)
     if (isCardInGrid) {
@@ -175,14 +184,21 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
             </Button>
             <Button
               onClick={handleSaveClick}
-              disabled={Object.values(fieldErrors).some(error => error !== undefined)}
+              disabled={Object.values(fieldErrors).some(error => error !== undefined) || isSaving}
               className={cn(
                 "bg-gradient-to-r from-cyan-500 to-fuchsia-500",
-                Object.values(fieldErrors).some(error => error !== undefined) && 
+                (Object.values(fieldErrors).some(error => error !== undefined) || isSaving) && 
                 "opacity-50 cursor-not-allowed"
               )}
             >
-              Save Changes
+              {isSaving ? (
+                <div className="flex items-center gap-2">
+                  <LoadingSpinner/>
+                  Saving...
+                </div>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </div>
         </div>
@@ -268,7 +284,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               />
               <ScrollArea className="min-h-[calc(100vh-12rem)]">
                 <div className="space-y-2 pr-3">
-                  {isLoadingCards ? (
+                  {isLoadingPublicCards ? (
                     <div className="flex items-center justify-center h-20">
                       <LoadingSpinner />
                     </div>
@@ -278,12 +294,12 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {publicCards.map((card) => (
+                      {publicCards.map((card: BingoCard) => (
                         <BingoCardPublic
                           key={card.id}
                           card={card}
                           onSelect={handleCardSelect}
-                          onVote={async (card) => {
+                          onVote={async (card: BingoCard) => {
                             await bingoCardService.voteCard(card.id)
                             await bingoCardService.initializePublicCards()
                           }}
@@ -330,7 +346,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                   <Label htmlFor="board_title">
                     Title
                     <span className="text-xs text-gray-400 ml-2">
-                      ({formData.board_title.length}/50)
+                      ({formData?.board_title?.length || 0}/50)
                     </span>
                   </Label>
                   <Input
@@ -354,7 +370,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                 <Label htmlFor="description">
                   Description
                   <span className="text-xs text-gray-400 ml-2">
-                    ({formData.board_description.length}/255)
+                    ({formData?.board_description?.length || 0}/255)
                   </span>
                 </Label>
                 <Textarea
@@ -373,7 +389,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                 <Label htmlFor="board_tags">
                   Tags
                   <span className="text-xs text-gray-400 ml-2">
-                    ({formData.board_tags.length}/5)
+                    ({formData?.board_tags?.length || 0}/5)
                   </span>
                 </Label>
                 <Input
@@ -509,6 +525,12 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
             .filter(index => index !== -1)
           }
         />
+      )}
+
+      {showSaveSuccess && (
+        <div className="fixed bottom-4 right-4 bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-2 rounded-md shadow-lg animate-fade-in">
+          Changes saved successfully!
+        </div>
       )}
     </div>
   )

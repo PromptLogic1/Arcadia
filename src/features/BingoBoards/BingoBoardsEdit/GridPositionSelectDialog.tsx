@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { generateGridPositions, gridPositionToIndex } from "../utils/gridHelpers"
 import { cn } from "@/lib/utils"
@@ -18,44 +18,41 @@ export function GridPositionSelectDialog({
   gridSize,
   takenPositions,
 }: GridPositionSelectDialogProps) {
-  const positions = generateGridPositions(gridSize)
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-900 text-gray-100">
+      <DialogContent className="sm:max-w-md bg-gray-900 border-cyan-500/20">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-cyan-400">
-            Select Grid Position
-          </DialogTitle>
+          <DialogTitle>Select Grid Position</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Choose where to place the card in the grid. 
+            {takenPositions.length > 0 && (
+              <span className="text-cyan-400"> Positions with cyan borders are currently occupied.</span>
+            )}
+          </DialogDescription>
         </DialogHeader>
-
-        <div className="grid gap-2" style={{ 
-          gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` 
-        }}>
-          {positions.map((pos) => {
-            const [rowStr, colStr] = pos.split('-')
-            const row = Number(rowStr)
-            const col = Number(colStr)
-            
-            if (isNaN(row) || isNaN(col)) return null
-            
-            const index = gridPositionToIndex(row, col, gridSize)
-            const isTaken = takenPositions.includes(index)
-
-            return (
-              <Button
-                key={pos}
-                onClick={() => onSelect(index)}
-                disabled={isTaken}
-                className={cn(
-                  "aspect-square p-0 text-sm break-words",
-                  isTaken ? "bg-gray-700" : "bg-cyan-500/20 hover:bg-cyan-500/40"
-                )}
-              >
-                {pos}
-              </Button>
-            )
-          })}
+        <div 
+          className="grid gap-2 p-4"
+          style={{ 
+            gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+            width: 'fit-content',
+            margin: '0 auto'
+          }}
+        >
+          {Array.from({ length: gridSize * gridSize }).map((_, index) => (
+            <Button
+              key={index}
+              onClick={() => onSelect(index)}
+              className={cn(
+                "w-12 h-12 p-0 font-mono text-sm",
+                "bg-gray-800/50 hover:bg-gray-800/70",
+                takenPositions.includes(index)
+                  ? "border-2 border-cyan-500/50"
+                  : "border border-gray-600/20"
+              )}
+            >
+              {`${Math.floor(index / gridSize) + 1}-${(index % gridSize) + 1}`}
+            </Button>
+          ))}
         </div>
       </DialogContent>
     </Dialog>

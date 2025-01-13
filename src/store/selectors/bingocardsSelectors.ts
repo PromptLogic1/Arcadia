@@ -12,8 +12,7 @@ export const selectCards = (state: RootState): BingoCard[] =>
 export const selectSelectedCardId = (state: RootState): string | null => 
   selectBingoCardsState(state).selectedCardId
 
-export const selectIsLoading = (state: RootState): boolean => 
-  selectBingoCardsState(state).isLoading
+export const selectIsLoading = (state: RootState) => state.bingoCards.isLoading
 
 export const selectError = (state: RootState): string | null => 
   selectBingoCardsState(state).error
@@ -30,8 +29,7 @@ export const selectSelectedCard = (state: RootState): BingoCard | null => {
 export const selectCardsByGameCategory = (state: RootState, gameCategory: GameCategory): BingoCard[] => 
   selectCards(state).filter(card => card.game_category === gameCategory)
 
-export const selectPublicCards = (state: RootState): BingoCard[] =>
-  selectCards(state).filter(card => card.is_public)
+export const selectPublicCards = (state: RootState) => state.bingoCards.publiccards
 
 export const selectCardsByType = (state: RootState, cardType: CardCategory): BingoCard[] =>
   selectCards(state).filter(card => card.card_type === cardType)

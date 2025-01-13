@@ -345,8 +345,6 @@ class BingoCardService {
     }
   }
 
-
-
   clearGridCards(): void {
     store.dispatch(clearBingoGridCards())
   }
@@ -355,6 +353,13 @@ class BingoCardService {
     const currentGridCards = store.getState().bingoCards.gridcards
     const updatedGridCards = [...currentGridCards]
     updatedGridCards[index] = card
+    store.dispatch(setBingoGridCards(updatedGridCards))
+  }
+
+  removeGridCard(index: number): void {
+    const currentGridCards = store.getState().bingoCards.gridcards
+    const updatedGridCards = [...currentGridCards]
+    updatedGridCards.splice(index, 1)
     store.dispatch(setBingoGridCards(updatedGridCards))
   }
 
@@ -385,7 +390,7 @@ class BingoCardService {
         .eq('game_category', currentBoard.board_game_type)
         .is('deleted_at', null)
         .order('votes', { ascending: false })
-        .range((page - 1) * 50, page * 50 - 1) // Fetch 50 cards per page
+        .range((page - 1) * 50, page * 50 - 1)
 
       if (error) {
         console.error('Error fetching public cards:', error)
@@ -424,11 +429,11 @@ class BingoCardService {
         .eq('game_category', currentBoard.board_game_type)
         .is('deleted_at', null)
 
-      // Only add filters if they are actually set
-      if (filters.cardType) {
+      // Only add filters if they are set and not 'all'
+      if (filters.cardType && filters.cardType !== 'all') {
         query = query.eq('card_type', filters.cardType)
       }
-      if (filters.difficulty) {
+      if (filters.difficulty && filters.difficulty !== 'all') {
         query = query.eq('card_difficulty', filters.difficulty)
       }
 

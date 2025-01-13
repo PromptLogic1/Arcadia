@@ -9,8 +9,6 @@ import { BoardCard } from './BoardCard'
 import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
 import NeonText from '@/components/ui/NeonText'
 import { useBingoBoardsHub } from './hooks/useBingoBoardsHub'
-import { useRouter } from 'next/navigation'
-import { useCallback } from "react"
 
 export default function BingoBoardsHub() {
   const {
@@ -22,8 +20,6 @@ export default function BingoBoardsHub() {
     setIsCreateFormOpen,
     handleBoardSelect,
   } = useBingoBoardsHub()
-
-  const router = useRouter()
 
   // Convert game categories to filter options format
   const categoryOptions = [

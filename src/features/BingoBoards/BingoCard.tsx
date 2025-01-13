@@ -140,7 +140,7 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
                 onClick={() => onSelect?.(card)}
                 className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
               >
-                Select
+                Use Card
               </Button>
               {card.id && (
                 <Button

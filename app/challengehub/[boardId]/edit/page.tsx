@@ -21,7 +21,10 @@ export default function BoardEditPage({ params }: BoardEditPageProps) {
   return (
     <BingoBoardEdit 
       boardId={resolvedParams.boardId} 
-      onSaveSuccess={() => router.push('/challengehub')} 
+      onSaveSuccess={() => {
+        // Remove or comment out any navigation/redirect logic
+        // Just handle success state if needed
+      }} 
     />
   )
 } 
