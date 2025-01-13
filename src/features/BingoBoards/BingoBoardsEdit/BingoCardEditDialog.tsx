@@ -134,9 +134,10 @@ export function BingoCardEditDialog({
               id="content"
               value={formData.card_content}
               onChange={(e) => updateFormField('card_content', e.target.value)}
-              placeholder="Click to add a challenge"
+              placeholder="Enter card content"
               className={cn(
                 "min-h-[100px] bg-gray-800/50",
+                "break-words",
                 fieldErrors.content ? "border-red-500/20" : "border-cyan-500/20"
               )}
             />
@@ -160,6 +161,7 @@ export function BingoCardEditDialog({
               placeholder="Add an explanation for your challenge"
               className={cn(
                 "min-h-[100px] bg-gray-800/50",
+                "break-words",
                 fieldErrors.explanation ? "border-red-500/20" : "border-cyan-500/20"
               )}
             />

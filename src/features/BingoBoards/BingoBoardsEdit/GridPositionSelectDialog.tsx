@@ -48,7 +48,7 @@ export function GridPositionSelectDialog({
                 onClick={() => onSelect(index)}
                 disabled={isTaken}
                 className={cn(
-                  "aspect-square p-0 text-sm",
+                  "aspect-square p-0 text-sm break-words",
                   isTaken ? "bg-gray-700" : "bg-cyan-500/20 hover:bg-cyan-500/40"
                 )}
               >

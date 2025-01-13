@@ -18,7 +18,7 @@ import { Difficulty, DIFFICULTIES } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
 import type { BingoCard as BingCardType} from "@/src/store/types/bingocard.types"
 import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
@@ -27,10 +27,21 @@ import { ROUTES } from '@/src/config/routes'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { ChevronDown } from "lucide-react"
-import { BingoCardCompact } from "../BingoCardCompact"
+import { BingoCardPreview } from "../BingoCard"
 import { Badge } from "@/components/ui/badge"
 import NeonText from "@/components/ui/NeonText"
 import { GridPositionSelectDialog } from './GridPositionSelectDialog'
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from "@/components/ui/tabs"
+import { bingoCardService } from "@/src/store/services/bingocard-service"
+import { BingoCardPublic } from '../BingoCardPublic'
+import { useSelector } from 'react-redux'
+import { selectPublicCards } from '@/src/store/selectors/bingocardsSelectors'
+import { FilterBingoCards, FilterOptions } from './FilterBingoCards'
 
 interface BingoBoardEditProps {
   boardId: string
@@ -68,6 +79,9 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     handleSave,
     cards,
   } = useBingoBoardEdit(boardId)
+
+  const publicCards = useSelector(selectPublicCards)
+  const [activeTab, setActiveTab] = useState('private')
 
   const handleClose = useCallback(() => {
     router.push(ROUTES.CHALLENGE_HUB)
@@ -114,7 +128,14 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       index: -1 // Use -1 to indicate this is a new card
     })
   }
-  
+
+  const handleTabChange = async (value: string) => {
+    setActiveTab(value)
+    if (value === 'public') {
+      await bingoCardService.initializePublicCards()
+    }
+  }
+
   if (isLoadingBoard) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -133,22 +154,22 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
   return (
     <div className="container mx-auto p-6">
-      <div className="flex flex-col p-2 mb-8">
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r overflow-hidden from-cyan-400 to-fuchsia-500">
-          <NeonText>{formData.board_title}</NeonText>
+      <div className="flex flex-col space-y-4 mb-8">
+        <div className="flex flex-col">
+          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500 break-words" style={{ wordBreak: 'break-word' }}>
+            <NeonText>{formData.board_title}</NeonText>
           </h1>
-
-        <div className="flex items-center justify-between flex-wrap">
-            <div className="flex items-center gap-2 py-2">
-              <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-transparent bg-clip-text">Game:</h2>
-              <Badge 
-                variant="outline" 
-                className="bg-gray-800/50 border-cyan-500/50 text-cyan-400"
-             >
+        </div>
+        <div className="flex items-center flex-wrap justify-between  w-full">
+          <div className="flex items-center gap-4 mb-4">
+            <Badge 
+              variant="outline" 
+              className="bg-gray-800/50 border-cyan-500/50 text-cyan-400"
+            >
               {currentBoard.board_game_type}
-              </Badge>
-            </div>
-          <div className="flex items-center gap-2 py-2">
+            </Badge>
+          </div>
+          <div className="flex justify-center gap-2">
             <Button variant="outline" onClick={handleClose}>
               Back to Boards
             </Button>
@@ -173,43 +194,120 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
         </div>
       )}
 
-      <div className="flex flex-wrap gap-6">
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-cyan-400 truncate">Available Cards</h2>
-            <Button
-              onClick={handleCreateNewCard}
-              size="sm"
-              className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 shrink-0 ml-2"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              New Card
-            </Button>
-          </div>
-          
-          <ScrollArea className="min-h-[calc(100vh-12rem)]">
-            <div className="space-y-2 pr-3">
-              {isLoadingCards ? (
-                <div className="flex items-center justify-center h-20">
-                  <LoadingSpinner />
+      <div className="flex flex-wrap gap-6 justify-center">
+        <div className="flex flex-col" style={{ maxWidth: '310px', minWidth: '310px' }}>
+          <Tabs defaultValue="private" className="w-full" onValueChange={handleTabChange}>
+            <TabsList className="w-full  mb-4 bg-gray-800/50 border border-cyan-500/20">
+              <div className="flex flex-start w-full" style={{ justifyContent: 'space-around' }}>
+                <TabsTrigger 
+                  value="private"
+                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 p-0"
+                >
+                  Private Cards
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="public"
+                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 p-0"
+                >
+                  Public Cards
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="generator"
+                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 p-0"
+                >
+                  Generator
+                </TabsTrigger>
+              </div>
+            </TabsList>
+
+            <TabsContent value="private" className="mt-2">
+              <div className="flex items-center mb-3">
+                <Button
+                  onClick={handleCreateNewCard}
+                  size="sm"
+                  className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 w-full"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  New Card
+                </Button>
+              </div>
+              
+              <ScrollArea className="min-h-[calc(100vh-12rem)]">
+                <div className="space-y-2 pr-3">
+                  {isLoadingCards ? (
+                    <div className="flex items-center justify-center h-20">
+                      <LoadingSpinner />
+                    </div>
+                  ) : (
+                    <div>
+                      {cards.map((card) => (
+                        <BingoCardPreview
+                          key={card.id}
+                          card={card}
+                          onSelect={handleCardSelect}
+                          onEdit={(card) => {
+                            const index = cards.findIndex(c => c.id === card.id)
+                            if (index !== -1) setEditingCard({ card, index })
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div>
-                  {cards.map((card) => (
-                    <BingoCardCompact
-                      key={card.id}
-                      card={card}
-                      onSelect={handleCardSelect}
-                      onEdit={(card) => {
-                        const index = cards.findIndex(c => c.id === card.id)
-                        if (index !== -1) setEditingCard({ card, index })
-                      }}
-                    />
-                  ))}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="public" className="mt-2">
+              <FilterBingoCards 
+                onFilter={async (filters: FilterOptions) => {
+                  await bingoCardService.filterPublicCards(filters)
+                }}
+                onClear={async () => {
+                  await bingoCardService.initializePublicCards()
+                }}
+              />
+              <ScrollArea className="min-h-[calc(100vh-12rem)]">
+                <div className="space-y-2 pr-3">
+                  {isLoadingCards ? (
+                    <div className="flex items-center justify-center h-20">
+                      <LoadingSpinner />
+                    </div>
+                  ) : publicCards.length === 0 ? (
+                    <div className="min-h-[200px] flex items-center justify-center text-gray-400">
+                      No public cards available for this game
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {publicCards.map((card) => (
+                        <BingoCardPublic
+                          key={card.id}
+                          card={card}
+                          onSelect={handleCardSelect}
+                          onVote={async (card) => {
+                            await bingoCardService.voteCard(card.id)
+                            await bingoCardService.initializePublicCards()
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="generator" className="mt-2">
+              <div className="flex items-center mb-3 px-2">
+                <h2 className="text-lg font-semibold text-cyan-400 truncate">AI Generator</h2>
+              </div>
+              <ScrollArea className="min-h-[calc(100vh-12rem)]">
+                <div className="space-y-2 pr-3">
+                  <div className="min-h-[200px] flex items-center justify-center text-gray-400">
+                    AI Generator coming soon...
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="flex-1">
@@ -260,15 +358,11 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                   </span>
                 </Label>
                 <Textarea
-                  id="description"
+                  id="board_description"
                   value={formData.board_description}
                   onChange={(e) => updateFormField('board_description', e.target.value)}
-                  className={cn(
-                    "min-h-[160px] bg-gray-800/50 resize-y text-gray-300",
-                    fieldErrors.description 
-                      ? "border-red-500/50 focus:border-red-500/70" 
-                      : "border-cyan-500/20 focus:border-cyan-500/40"
-                  )}
+                  placeholder="Enter board description"
+                  className="min-h-[100px] bg-gray-800/50 border-cyan-500/20 break-words"
                 />
                 {fieldErrors.description && (
                   <p className="text-red-400 text-xs mt-1">{fieldErrors.description}</p>
@@ -345,6 +439,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
             ) : (
               <div className="flex flex-wrap gap-2 mx-auto p-4 bg-gray-900/30 rounded-lg"
                 style={{
+                  maxWidth: `${gridSize * 196}px`,
                   justifyContent: 'center'
                 }}
               >
@@ -366,7 +461,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                         <div className="w-full text-center text-xs text-cyan-400 border-b border-gray-700 pb-1">
                           {card.card_difficulty}
                         </div>
-                        <div className="flex-1 flex items-center justify-center text-center px-1 text-sm">
+                        <div className="flex-1 flex items-center justify-center text-center px-1 text-sm break-words overflow-break-word" style={{ wordBreak: 'break-word' }}>
                           {card.card_content}
                         </div>
                         <div className="w-full text-center text-xs text-gray-400 border-t border-gray-700 pt-1">

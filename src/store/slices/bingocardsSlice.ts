@@ -4,6 +4,7 @@ import { UUID } from 'crypto'
 
 interface BingoCardsState {
   cards: BingoCard[]
+  publiccards: BingoCard[]
   gridcards: BingoCard[],
   selectedCardId: string | null
   isLoading: boolean
@@ -11,7 +12,8 @@ interface BingoCardsState {
 }
 
 const initialState: BingoCardsState = {
-  cards: [] ,
+  cards: [],
+  publiccards: [],
   gridcards: [],
   selectedCardId: null,
   isLoading: false,
@@ -58,7 +60,13 @@ const bingoCardsSlice = createSlice({
     },
     setGridCards: (state, action: PayloadAction<BingoCard[]>) => {
       state.gridcards = action.payload
-    }
+    },
+    setPublicCards: (state, action: PayloadAction<BingoCard[]>) => {
+      state.publiccards = action.payload
+    },
+    clearPublicCards: (state) => {
+      state.publiccards = []
+    },
   }
 })
 
@@ -74,7 +82,9 @@ export const {
   clearCards,
   setBingoGridCards,
   clearBingoGridCards,
-  setGridCards
+  setGridCards,
+  setPublicCards,
+  clearPublicCards
 } = bingoCardsSlice.actions
 
 export default bingoCardsSlice.reducer 

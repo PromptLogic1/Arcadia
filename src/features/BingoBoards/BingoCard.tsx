@@ -14,35 +14,36 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-interface BingoCardCompactProps {
+interface BingoCardProps {
   card: BingoCardType
   onSelect?: (card: BingoCardType) => void
   onEdit?: (card: BingoCardType) => void
 }
 
-export function BingoCardCompact({ card, onSelect, onEdit }: BingoCardCompactProps) {
+export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="w-[300px] min-w-[300px] max-w-[300px]">
+    <div className="w-full">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="w-[300px] min-w-[300px] max-w-[300px] bg-gray-900/30 rounded-lg"
-        style={{ width: '300px' }}
+        className="w-full bg-gray-900/30 rounded-lg"
       >
         <CollapsibleTrigger asChild>
           <Card 
             className={cn(
               "bg-gradient-to-br from-gray-800/95 to-gray-800/75",
               "border border-cyan-500/20 hover:border-cyan-500/40",
-              "transition-all duration-300 cursor-pointer group",
-              "w-[300px] min-w-[300px] max-w-[300px]",
+              "transition-all duration-300 cursor-pointer group w-full",
               isOpen && "border-b-0 rounded-b-none border-cyan-500/60"
             )}
           >
             <CardContent className="p-2 flex items-center justify-between">
-              <span className="text-sm text-cyan-300/90 truncate mr-2 flex-1">
+              <span 
+                className="text-sm text-cyan-300/90 truncate mr-2 flex-1" 
+                style={{ wordBreak: 'break-word' }}
+              >
                 {card.card_content}
               </span>
               <div className="flex items-center gap-2 shrink-0">
@@ -66,12 +67,12 @@ export function BingoCardCompact({ card, onSelect, onEdit }: BingoCardCompactPro
           </Card>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="w-[300px] min-w-[300px] max-w-[300px]">
-          <div className="border-x border-b border-cyan-500/20 rounded-b-lg w-[300px] min-w-[300px] max-w-[300px] p-3">
+        <CollapsibleContent>
+          <div className="border-x border-b border-cyan-500/20 rounded-b-lg p-3">
             <div className="space-y-2 mb-4">
-              <div className="w-full max-w-[270px]">
+              <div className="w-full">
                 <span className="text-xs text-cyan-400 font-medium block">Content:</span>
-                <p className="text-sm text-gray-300 break-words line-clamp-3">
+                <p className="text-sm text-gray-300 break-words line-clamp-3 overflow-break-word" style={{ wordBreak: 'break-word' }}>
                   {card.card_content}
                 </p>
               </div>
@@ -79,7 +80,10 @@ export function BingoCardCompact({ card, onSelect, onEdit }: BingoCardCompactPro
               {card.card_explanation && (
                 <div className="w-full max-w-[270px]">
                   <span className="text-xs text-cyan-400 font-medium block">Explanation:</span>
-                  <p className="text-sm text-gray-300 break-words line-clamp-3 overflow-hidden">
+                  <p 
+                    className="text-sm text-gray-300 line-clamp-3" 
+                    style={{ wordBreak: 'break-word' }}
+                  >
                     {card.card_explanation}
                   </p>
                 </div>
@@ -88,14 +92,14 @@ export function BingoCardCompact({ card, onSelect, onEdit }: BingoCardCompactPro
               <div className="grid grid-cols-2 gap-2 w-[270px]">
                 <div className="overflow-hidden">
                   <span className="text-xs text-cyan-400 font-medium block">Type:</span>
-                  <p className="text-sm text-gray-300 capitalize truncate">
+                  <p className="text-sm text-gray-300 capitalize break-words">
                     {card.card_type}
                   </p>
                 </div>
 
                 <div className="overflow-hidden">
                   <span className="text-xs text-cyan-400 font-medium block">Game:</span>
-                  <p className="text-sm text-gray-300 truncate">
+                  <p className="text-sm text-gray-300 break-words">
                     {card.game_category}
                   </p>
                 </div>
@@ -116,7 +120,7 @@ export function BingoCardCompact({ card, onSelect, onEdit }: BingoCardCompactPro
               {card.card_tags && card.card_tags.length > 0 && (
                 <div className="w-full">
                   <span className="text-xs text-cyan-400 font-medium block">Tags:</span>
-                  <p className="text-sm text-gray-300 truncate w-[270px]">
+                  <p className="text-sm text-gray-300 break-words">
                     {card.card_tags.join(', ')}
                   </p>
                 </div>

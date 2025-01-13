@@ -13,6 +13,7 @@ export type GameCategory =
 
 // Difficulty Levels
 export type Difficulty = 
+  | 'all'
   | 'beginner'
   | 'easy'
   | 'medium'
@@ -21,6 +22,7 @@ export type Difficulty =
 
 // Card Categories
 export type CardCategory = 
+  | 'all'
   | 'collecting'
   | 'killing'
   | 'building'
@@ -59,6 +61,7 @@ export type ParticipantStatus = 'registered' | 'confirmed' | 'checked_in' | 'com
 
 // Style Constants
 export const DIFFICULTY_STYLES = {
+  'all': 'bg-gray-500/10 text-gray-300 border-gray-500/20 hover:border-gray-500/40 hover:bg-gray-500/20',
   'beginner': 'bg-green-500/10 text-green-300 border-green-500/20 hover:border-green-500/40 hover:bg-green-500/20',
   'easy': 'bg-blue-500/10 text-blue-300 border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/20',
   'medium': 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20 hover:border-yellow-500/40 hover:bg-yellow-500/20',
@@ -81,6 +84,7 @@ export const GAMES: GameCategory[] = [
 ]
 
 export const CARD_CATEGORIES: CardCategory[] = [
+  'all',
   'collecting',
   'killing',
   'building',
@@ -90,9 +94,15 @@ export const CARD_CATEGORIES: CardCategory[] = [
 ]
 
 export const DIFFICULTIES: Difficulty[] = [
+  'all',
   'beginner',
   'easy',
   'medium',
   'hard',
   'expert'
 ]
+
+// Default values as constants
+export const DEFAULT_CARD_CATEGORY: CardCategory = 'all'
+export const DEFAULT_DIFFICULTY: Difficulty = 'all'
+export const DEFAULT_GAME_CATEGORY: GameCategory = 'All Games'

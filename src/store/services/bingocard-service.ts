@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
-import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards, setGridCards } from '../slices/bingocardsSlice'
+import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards, setGridCards, setPublicCards, clearPublicCards } from '../slices/bingocardsSlice'
 import { serverLog } from '@/lib/logger'
 import { DEFAULT_BINGO_CARD, DEFAULT_CARD_ID } from '../types/bingocard.types'
 import { UUID } from 'crypto'
@@ -345,6 +345,8 @@ class BingoCardService {
     }
   }
 
+
+
   clearGridCards(): void {
     store.dispatch(clearBingoGridCards())
   }
@@ -364,6 +366,91 @@ class BingoCardService {
       throw error
     }
   }
+  
+  async initializePublicCards(page: number = 1): Promise<void> {
+    try {
+      store.dispatch(setLoading(true))
+      store.dispatch(setError(null))
+      store.dispatch(clearPublicCards())
+
+      const currentBoard = store.getState().bingoBoard.currentBoard
+      if (!currentBoard) {
+        throw new Error('No board loaded')
+      }
+
+      const { data: cards, error } = await this.supabase
+        .from('bingocards')
+        .select('*')
+        .eq('is_public', true)
+        .eq('game_category', currentBoard.board_game_type)
+        .is('deleted_at', null)
+        .order('votes', { ascending: false })
+        .range((page - 1) * 50, page * 50 - 1) // Fetch 50 cards per page
+
+      if (error) {
+        console.error('Error fetching public cards:', error)
+        throw error
+      }
+
+      store.dispatch(setPublicCards(cards || []))
+    } catch (error) {
+      console.error('Failed to initialize public cards:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load public cards'))
+      store.dispatch(setPublicCards([]))
+    } finally {
+      store.dispatch(setLoading(false))
+    }
+  }
+
+  async filterPublicCards(filters: {
+    cardType?: CardCategory
+    difficulty?: Difficulty
+  }, page: number = 1): Promise<void> {
+    try {
+      store.dispatch(setLoading(true))
+      store.dispatch(setError(null))
+      store.dispatch(clearPublicCards())
+
+      const currentBoard = store.getState().bingoBoard.currentBoard
+      if (!currentBoard) {
+        throw new Error('No board loaded')
+      }
+
+      // Start with base query
+      let query = this.supabase
+        .from('bingocards')
+        .select('*')
+        .eq('is_public', true)
+        .eq('game_category', currentBoard.board_game_type)
+        .is('deleted_at', null)
+
+      // Only add filters if they are actually set
+      if (filters.cardType) {
+        query = query.eq('card_type', filters.cardType)
+      }
+      if (filters.difficulty) {
+        query = query.eq('card_difficulty', filters.difficulty)
+      }
+
+      // Always apply ordering and pagination
+      const { data: cards, error } = await query
+        .order('votes', { ascending: false })
+        .range((page - 1) * 50, page * 50 - 1)
+
+      if (error) {
+        console.error('Error filtering public cards:', error)
+        throw error
+      }
+
+      store.dispatch(setPublicCards(cards || []))
+    } catch (error) {
+      console.error('Failed to filter public cards:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to filter cards'))
+      store.dispatch(setPublicCards([]))
+    } finally {
+      store.dispatch(setLoading(false))
+    }
+  }
 }
 
-export const bingoCardService = new BingoCardService() 
+export const bingoCardService = new BingoCardService()

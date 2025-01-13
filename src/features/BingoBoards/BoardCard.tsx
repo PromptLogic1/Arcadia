@@ -55,7 +55,8 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
               <CardTitle className={cn(
                 "text-2xl font-bold",
                 "text-cyan-300/90 group-hover:text-cyan-300",
-                "transition-all duration-300"
+                "transition-all duration-300",
+                "break-words"
               )}>
                 {board.board_title}
               </CardTitle>
@@ -63,7 +64,7 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
                 <CardDescription className={cn(
                   "text-sm text-cyan-300/70 group-hover:text-cyan-300/90",
                   "transition-colors duration-300",
-                  "line-clamp-2 break-words overflow-hidden"
+                  "line-clamp-2 break-words"
                 )}>
                   {board.board_description}
                 </CardDescription>
