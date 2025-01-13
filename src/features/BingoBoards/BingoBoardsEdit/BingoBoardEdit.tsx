@@ -132,14 +132,14 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex flex-col gap-4 mb-8">
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+    <div className="container mx-auto p-6">
+      <div className="flex flex-col p-2 mb-8">
+          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r overflow-hidden from-cyan-400 to-fuchsia-500">
           <NeonText>{formData.board_title}</NeonText>
           </h1>
 
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between flex-wrap">
+            <div className="flex items-center gap-2 py-2">
               <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-transparent bg-clip-text">Game:</h2>
               <Badge 
                 variant="outline" 
@@ -148,7 +148,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               {currentBoard.board_game_type}
               </Badge>
             </div>
-          <div className="flex items-center gap-2"> 
+          <div className="flex items-center gap-2 py-2">
             <Button variant="outline" onClick={handleClose}>
               Back to Boards
             </Button>
@@ -173,8 +173,8 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
         </div>
       )}
 
-      <div className="flex gap-6">
-        <div className="w-[300px] min-w-[300px] shrink-0 relative">
+      <div className="flex flex-wrap gap-6">
+        <div className="flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-cyan-400 truncate">Available Cards</h2>
             <Button
@@ -194,7 +194,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                   <LoadingSpinner />
                 </div>
               ) : (
-                <div className="space-y-2 w-[300px]">
+                <div>
                   {cards.map((card) => (
                     <BingoCardCompact
                       key={card.id}
@@ -343,12 +343,9 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                 <LoadingSpinner />
               </div>
             ) : (
-              console.log('Current gridSize:', gridSize, 'Type:', typeof gridSize),
               <div className="flex flex-wrap gap-2 mx-auto p-4 bg-gray-900/30 rounded-lg"
                 style={{
-                  width: `${gridSize * 196
-                  }px`, // 180px card + 16px gap
-                  justifyContent: 'flex-start'
+                  justifyContent: 'center'
                 }}
               >
                 {gridCards.map((card, index) => (
