@@ -4,7 +4,7 @@ import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
 import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards, setGridCards, setPublicCards, clearPublicCards } from '../slices/bingocardsSlice'
 import { serverLog } from '@/lib/logger'
-import { DEFAULT_BINGO_CARD, DEFAULT_CARD_ID } from '../types/bingocard.types'
+import { DEFAULT_BINGO_CARD } from '../types/bingocard.types'
 import { UUID } from 'crypto'
 
 class BingoCardService {

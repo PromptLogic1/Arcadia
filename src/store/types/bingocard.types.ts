@@ -61,9 +61,6 @@ export const validateCardData = (card: Partial<BingoCard>) => {
   return { isValid: true }
 }
 
-// Konstanten für Default/Platzhalter
-export const DEFAULT_CARD_ID = '00000000-0000-0000-0000-000000000000' as UUID
-
 export const DEFAULT_BINGO_CARD: BingoCard = {
   id: "",
   creator_id: 'system',

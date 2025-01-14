@@ -227,12 +227,6 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                 >
                   Public Cards
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="generator"
-                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 p-0"
-                >
-                  Generator
-                </TabsTrigger>
               </div>
             </TabsList>
 
@@ -335,7 +329,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               >
                 <div className="flex items-center gap-2">
                   <Settings className="h-4 w-4 text-cyan-400" />
-                  <span className="text-lg font-semibold text-cyan-400">Settings</span>
+                  <span className="text-lg font-semibold text-cyan-400">Board Settings</span>
                 </div>
                 <ChevronDown className="h-4 w-4" />
               </Button>

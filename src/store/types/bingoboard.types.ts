@@ -1,5 +1,5 @@
 import { UUID } from "crypto"
-import { GameCategory, Difficulty } from "./game.types"
+import { GameCategory, Difficulty, GAMES } from "./game.types"
 
 export interface BingoBoard {
   id: UUID
@@ -24,9 +24,8 @@ export type CreateBingoBoardDTO = Omit<
   'creator_id' | 
   'created_at' | 
   'updated_at' | 
-  'votes' |  // votes sollte auch ausgeschlossen sein
-  'board_layoutbingocards'  // board_layout wird separat hinzugefügt
-> 
+  'votes'  // votes sollte auch ausgeschlossen sein
+>
 
 // Helper constants for validation
 export const BOARD_SIZE_LIMITS = {

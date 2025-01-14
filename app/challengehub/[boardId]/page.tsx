@@ -4,13 +4,13 @@ import { BingoBoardEdit } from '@/src/features/BingoBoards/BingoBoardsEdit/Bingo
 import { useRouter } from 'next/navigation'
 import { use } from "react"
 
-interface BoardEditPageProps {
+interface BoardPageProps {
   params: Promise<{
     boardId: string
   }>
 }
 
-export default function BoardEditPage({ params }: BoardEditPageProps) {
+export default function BoardPage({ params }: BoardPageProps) {
   const router = useRouter()
   const resolvedParams = use(params)
 
@@ -22,8 +22,7 @@ export default function BoardEditPage({ params }: BoardEditPageProps) {
     <BingoBoardEdit 
       boardId={resolvedParams.boardId} 
       onSaveSuccess={() => {
-        // Remove or comment out any navigation/redirect logic
-        // Just handle success state if needed
+        // Handle success state if needed
       }} 
     />
   )

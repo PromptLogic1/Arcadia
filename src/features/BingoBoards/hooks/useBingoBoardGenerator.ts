@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { BoardGeneratorService } from '../services/board-generator.service'
-import { BalanceService } from '../services/balance.service'
-import { TagValidationService } from '../services/tag-validation.service'
-import type { Tag } from '../types/tagsystem.types'
-import type { BoardCell, Game } from '../types/types'
-import type { GeneratorSettings, GeneratorStats } from '../types/generator.types'
-import { GENERATOR_CONFIG } from '../types/generator.constants'
+import { BoardGeneratorService } from '../../../../components/challenges/bingo-board/services/board-generator.service'
+import { BalanceService } from '../../../../components/challenges/bingo-board/services/balance.service'
+import { TagValidationService } from '../../../../components/challenges/bingo-board/services/tag-validation.service'
+import type { Tag } from '../../../../components/challenges/bingo-board/types/tagsystem.types'
+import type { BoardCell, Game } from '../../../../components/challenges/bingo-board/types/types'
+import type { GeneratorSettings, GeneratorStats } from '../../../../components/challenges/bingo-board/types/generator.types'
+import { GENERATOR_CONFIG } from '../../../../components/challenges/bingo-board/types/generator.constants'
 
 interface UseBoardGenerator {
   // States

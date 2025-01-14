@@ -1,5 +1,6 @@
 export const ROUTES = {
   CHALLENGE_HUB: '/challengehub',
-  BOARD_EDIT: (id: string) => `/challengehub/${id}/edit`,
-  // ... other routes
+  // Remove or update any edit-specific routes
+  // Before: CHALLENGE_EDIT: '/challengehub/:id/edit'
+  // After: CHALLENGE_BOARD: '/challengehub/:id'
 } as const 

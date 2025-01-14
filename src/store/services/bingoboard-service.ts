@@ -85,8 +85,15 @@ class BingoBoardService {
       // Debug log
       console.log('Input boardData:', boardData)
 
+      let initialBoardLayout: string[] = []
       const totalCells = boardData.board_size * boardData.board_size
-      const initialBoardLayout = Array(totalCells).fill("")
+
+      if (boardData.board_layoutbingocards === undefined) {
+        initialBoardLayout = Array(totalCells).fill("")
+      }
+      else {
+        initialBoardLayout = boardData.board_layoutbingocards
+      }
 
       // Prepare board data
       const newBoard = {

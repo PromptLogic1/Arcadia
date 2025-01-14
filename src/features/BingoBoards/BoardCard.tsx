@@ -27,7 +27,7 @@ interface BoardCardProps {
 
 export function BoardCard({ board, onClick }: BoardCardProps) {
   return (
-    <Link href={`/challengehub/${board.id}/edit`}>
+    <Link href={`/challengehub/${board.id}`}>
       <Card 
         className={cn(
           "bg-gradient-to-br from-gray-800/95 to-gray-800/75",

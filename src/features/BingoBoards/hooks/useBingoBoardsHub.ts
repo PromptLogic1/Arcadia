@@ -34,7 +34,7 @@ export function useBingoBoardsHub() {
       const newBoard = await createBoard(formData as CreateBingoBoardDTO)
       if (newBoard) {
         setIsCreateFormOpen(false)
-        router.push(`/challengehub/${newBoard.id}/edit`)
+        router.push(`/challengehub/${newBoard.id}`)
       }
     } catch (error) {
       console.error('Failed to create board:', error)
