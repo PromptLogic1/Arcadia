@@ -18,7 +18,7 @@ import { Difficulty, DIFFICULTIES, DIFFICULTY_STYLES } from '@/src/store/types/g
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
 import type { BingoCard } from "@/src/store/types/bingocard.types"
 import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
@@ -27,7 +27,7 @@ import { ROUTES } from '@/src/config/routes'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { ChevronDown } from "lucide-react"
-import { BingoCardPreview } from "../BingoCard"
+import { BingoCardPreview } from "./BingoCard"
 import { Badge } from "@/components/ui/badge"
 import NeonText from "@/components/ui/NeonText"
 import { GridPositionSelectDialog } from './GridPositionSelectDialog'
@@ -38,7 +38,7 @@ import {
   TabsContent
 } from "@/components/ui/tabs"
 import { bingoCardService } from "@/src/store/services/bingocard-service"
-import { BingoCardPublic } from '../BingoCardPublic'
+import { BingoCardPublic } from './BingoCardPublic'
 import { useSelector } from 'react-redux'
 import { selectPublicCards, selectIsLoading } from '@/src/store/selectors/bingocardsSelectors'
 import { FilterBingoCards, FilterOptions } from './FilterBingoCards'

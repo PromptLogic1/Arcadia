@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 import { useAuth } from '@/src/hooks/useAuth'
 import type { FilterState, CreateBoardFormData } from '../types'
-import type { GameCategory, Difficulty } from '@/src/store/types/game.types'
 import { CreateBingoBoardDTO } from '@/src/store/types/bingoboard.types'
 import { ROUTES } from '@/src/config/routes'
 

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GAMES } from '@/src/store/types/game.types'
 import {
@@ -23,8 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { 
   TITLE_LENGTH_LIMITS, 
-  DESCRIPTION_LENGTH_LIMIT,
-  BOARD_SIZE_LIMITS
+  DESCRIPTION_LENGTH_LIMIT
 } from '@/src/store/types/bingoboard.types'
 import { Difficulty, GameCategory } from '@/src/store/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"

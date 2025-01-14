@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BingoCard as BingoCardType } from '@/src/store/types/bingocard.types'
 import { DIFFICULTY_STYLES } from '@/src/store/types/game.types'
-import { Tag, Edit, ChevronDown } from 'lucide-react'
+import { Edit, ChevronDown } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,

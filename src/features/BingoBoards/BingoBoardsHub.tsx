@@ -6,7 +6,7 @@ import { Filter } from '@/components/filter/filter'
 import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
 import { GAMES } from '@/src/store/types/game.types'
 import { BoardCard } from './BoardCard'
-import { CreateBoardForm } from '@/components/challenges/bingo-board/components/Board/CreateBoardForm'
+import { CreateBoardForm } from './CreateBoardForm'
 import NeonText from '@/components/ui/NeonText'
 import { useBingoBoardsHub } from './hooks/useBingoBoardsHub'
 

@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { generateGridPositions, gridPositionToIndex } from "../utils/gridHelpers"
 import { cn } from "@/lib/utils"
 
 interface GridPositionSelectDialogProps {
