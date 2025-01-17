@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Wand2, RefreshCw, X } from 'lucide-react'
 import { useGeneratorPanel } from '../../hooks/useGeneratorPanel'
-import { CARD_CATEGORIES, GameCategory } from '@/src/store/types/game.types'
+import { CARD_CATEGORIES, CardCategory, GameCategory } from '@/src/store/types/game.types'
 import { GENERATOR_CONFIG, GeneratorDifficulty } from '@/src/store/types/generator.types'
 import {
   Select,
@@ -57,7 +57,7 @@ const ErrorFeedback = ({ error }: { error: string }) => {
 }
 
 export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [localCategories, setLocalCategories] = useState<CardCategory[]>([])
   const [usePrivateCards, setUsePrivateCards] = useState(true)
   const [usePublicCards, setUsePublicCards] = useState(true)
   const [useAllCategories, setUseAllCategories] = useState(true)
@@ -69,11 +69,25 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
   )
 
   const handleCategorySelect = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    )
+    if (!useAllCategories) {
+      const newCategories = localCategories.includes(category as CardCategory)
+        ? localCategories.filter(c => c !== category)
+        : [...localCategories, category as CardCategory]
+      
+      setLocalCategories(newCategories)
+      generatorPanel.handleCategoriesChange(newCategories)
+    }
+  }
+
+  const handleAllCategoriesChange = (checked: boolean) => {
+    setUseAllCategories(checked)
+    if (checked) {
+      setLocalCategories([])
+      generatorPanel.handleCategoriesChange([...CARD_CATEGORIES])
+    } else {
+      setLocalCategories([])
+      generatorPanel.handleCategoriesChange([])
+    }
   }
 
   return (
@@ -93,12 +107,7 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
             <Checkbox 
               id="all-categories"
               checked={useAllCategories}
-              onCheckedChange={(checked) => {
-                setUseAllCategories(checked as boolean)
-                if (checked) {
-                  setSelectedCategories([])
-                }
-              }}
+              onCheckedChange={handleAllCategoriesChange}
             />
             <label
               htmlFor="all-categories"
@@ -131,9 +140,9 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
               </Select>
 
               {/* Selected Categories Display */}
-              {selectedCategories.length > 0 && (
+              {!useAllCategories && localCategories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedCategories.map(category => (
+                  {localCategories.map(category => (
                     <Badge 
                       key={category}
                       variant="secondary" 
@@ -252,7 +261,7 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
           onClick={generatorPanel.generateBoard}
           disabled={
             generatorPanel.isLoading || 
-            (!useAllCategories && selectedCategories.length === 0) || 
+            (!useAllCategories && localCategories.length === 0) || 
             (!usePrivateCards && !usePublicCards)
           }
           className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500"

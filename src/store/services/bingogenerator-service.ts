@@ -17,7 +17,7 @@ class BingoGeneratorService {
     }
   }
 
-  private async fetchCardsForSelection(settings: GeneratorSettings): Promise<void> {
+  private async fetchCardsForSelection(settings: GeneratorSettings, gridSize: number): Promise<void> {
     try {
       const authState = store.getState().auth
       if (!authState.userdata?.id) {
@@ -33,6 +33,8 @@ class BingoGeneratorService {
         .eq('game_category', settings.gameCategory)
         .is('deleted_at', null)
         .limit(poolSizeLimit) // Apply limit early
+
+      console.log('Settings:', settings)
 
       // Apply card source filter
       if (settings.cardSource === 'public') {
@@ -67,6 +69,12 @@ class BingoGeneratorService {
 
       if (!cards || cards.length === 0) {
         throw new Error('No cards available for the selected criteria')
+      }
+
+      //Check if cards are enough
+      const requiredCards = gridSize * gridSize
+      if (cards.length < requiredCards) {
+        throw new Error(`Not enough cards found for your settings. Need ${requiredCards} cards but only found ${cards.length}. Try adjusting your filters (difficulty, categories, or card source) to get more cards.`)
       }
 
       store.dispatch(setCardsForSelection(cards))
@@ -375,7 +383,7 @@ class BingoGeneratorService {
       store.dispatch(setError(null))
 
       // 1. Fetch cards based on settings
-      await this.fetchCardsForSelection(settings)
+      await this.fetchCardsForSelection(settings, gridSize)
       
       /*const cards = store.getState().bingogenerator.cardsforselection
       // 2. Check if we have enough cards

@@ -14,7 +14,7 @@ interface UseGeneratorPanel {
   difficulty: GeneratorDifficulty
   minVotes: number
   poolSize: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS
-  handleCategoriesChange: (categories: CardCategory[]) => void
+  handleCategoriesChange: (selectedCategories: CardCategory[]) => void
   handleDifficultyChange: (difficulty: GeneratorDifficulty) => void
   handleMinVotesChange: (votes: number) => void
   handlePoolSizeChange: (size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS) => void
@@ -29,16 +29,16 @@ export function useGeneratorPanel(
   usePrivateCards: boolean
 ): UseGeneratorPanel {
   // Local state for generator settings
-  const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([...CARD_CATEGORIES])
   const [difficulty, setDifficulty] = useState<GeneratorDifficulty>('Medium')
   const [minVotes, setMinVotes] = useState(0)
   const [poolSize, setPoolSize] = useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [useAllCategories, setUseAllCategories] = useState(true)
 
   // Handlers for settings changes
   const handleCategoriesChange = useCallback((categories: CardCategory[]) => {
+    console.log('Selected Categories:', categories)
     setSelectedCategories(categories)
   }, [])
 
@@ -62,7 +62,7 @@ export function useGeneratorPanel(
         difficulty,
         cardPoolSize: poolSize,
         minVotes,
-        selectedCategories: useAllCategories ? [...CARD_CATEGORIES] : selectedCategories,
+        selectedCategories,
         gameCategory,
         cardSource: usePublicCards && usePrivateCards ? 'publicprivate' 
                    : usePublicCards ? 'public'
