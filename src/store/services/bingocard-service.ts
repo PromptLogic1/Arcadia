@@ -248,7 +248,7 @@ class BingoCardService {
         .eq('is_public', true)
         .is('deleted_at', null)
 
-      if (gameCategory && gameCategory !== 'All Games') {
+      if (gameCategory) {
         query = query.eq('game_category', gameCategory)
       }
       
@@ -408,8 +408,8 @@ class BingoCardService {
   }
 
   async filterPublicCards(filters: {
-    cardType?: CardCategory
-    difficulty?: Difficulty
+    cardType?: CardCategory | 'All Categories'
+    difficulty?: Difficulty | 'All Difficulties'
   }, page: number = 1): Promise<void> {
     try {
       store.dispatch(setLoading(true))
@@ -429,11 +429,11 @@ class BingoCardService {
         .eq('game_category', currentBoard.board_game_type)
         .is('deleted_at', null)
 
-      // Only add filters if they are set and not 'all'
-      if (filters.cardType && filters.cardType !== 'all') {
+      // Only add filters if they are set and not the 'All' values
+      if (filters.cardType && filters.cardType !== 'All Categories') {
         query = query.eq('card_type', filters.cardType)
       }
-      if (filters.difficulty && filters.difficulty !== 'all') {
+      if (filters.difficulty && filters.difficulty !== 'All Difficulties') {
         query = query.eq('card_difficulty', filters.difficulty)
       }
 

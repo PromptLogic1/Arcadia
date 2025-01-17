@@ -10,9 +10,7 @@ import {
   CardCategory, 
   CARD_CATEGORIES, 
   Difficulty, 
-  DIFFICULTIES,
-  DEFAULT_CARD_CATEGORY,
-  DEFAULT_DIFFICULTY 
+  DIFFICULTIES
 } from '@/src/store/types/game.types'
 import { X } from 'lucide-react'
 import { useState } from "react"
@@ -23,9 +21,14 @@ interface FilterBingoCardsProps {
   onClear: () => void
 }
 
+// Helper type to add 'all' to our existing types
+type WithAllCardCategory<T extends string> = T | 'All Categories'
+type WithAllDifficulty<T extends string> = T | 'All Difficulties'
+
+// Update interface to use enhanced types
 export interface FilterOptions {
-  cardType?: CardCategory
-  difficulty?: Difficulty
+  cardType?: WithAllCardCategory<CardCategory>
+  difficulty?: WithAllDifficulty<Difficulty>
 }
 
 export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
@@ -50,12 +53,13 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
     }
   }
 
+
   const handleClear = async () => {
     try {
       setIsLoading(true)
       setFilters({
-        cardType: DEFAULT_CARD_CATEGORY,
-        difficulty: DEFAULT_DIFFICULTY
+        cardType: 'All Categories',
+        difficulty: 'All Difficulties'
       })
       await bingoCardService.initializePublicCards()
       onClear()
@@ -71,9 +75,9 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <Select
-            defaultValue={DEFAULT_CARD_CATEGORY}
+            defaultValue="All Categories"
             value={filters.cardType}
-            onValueChange={(value: CardCategory) => 
+            onValueChange={(value: WithAllCardCategory<CardCategory>) => 
               setFilters(prev => ({ ...prev, cardType: value }))
             }
             disabled={isLoading}
@@ -82,8 +86,8 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
               <SelectValue placeholder="Card Type" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-cyan-500">
-              <SelectItem value={DEFAULT_CARD_CATEGORY}>All Types</SelectItem>
-              {CARD_CATEGORIES.filter(type => type !== 'all').map((type) => (
+              <SelectItem value="All Categories">All Types</SelectItem>
+              {CARD_CATEGORIES.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
                 </SelectItem>
@@ -94,9 +98,9 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
 
         <div>
           <Select
-            defaultValue={DEFAULT_DIFFICULTY}
+            defaultValue="All Difficulties"
             value={filters.difficulty}
-            onValueChange={(value: Difficulty) => 
+            onValueChange={(value: WithAllDifficulty<Difficulty>) => 
               setFilters(prev => ({ ...prev, difficulty: value }))
             }
             disabled={isLoading}
@@ -105,8 +109,8 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
               <SelectValue placeholder="Difficulty" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-cyan-500">
-              <SelectItem value={DEFAULT_DIFFICULTY}>All Difficulties</SelectItem>
-              {DIFFICULTIES.filter(diff => diff !== 'all').map((difficulty) => (
+              <SelectItem value="All Difficulties">All Difficulties</SelectItem>
+              {DIFFICULTIES.map((difficulty) => (
                 <SelectItem key={difficulty} value={difficulty}>
                   {difficulty}
                 </SelectItem>

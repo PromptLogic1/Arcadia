@@ -69,7 +69,7 @@ export const DEFAULT_BINGO_CARD: BingoCard = {
   card_tags: [],
   card_type: 'collecting',
   card_difficulty: 'medium',
-  game_category: 'All Games',
+  game_category: 'World of Warcraft',
   votes: 0,
   is_public: false,
   generated_by_ai: false,
