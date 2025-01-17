@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react'
 import { bingoGeneratorService } from '@/src/store/services/bingogenerator-service'
 import { useSelector } from 'react-redux'
 import { selectIsLoading, selectError } from '@/src/store/selectors/bingogeneratorSelectors'
-import type { GameCategory, CardCategory} from '@/src/store/types/game.types'
+import type { GameCategory, CardCategory } from '@/src/store/types/game.types'
+import { CARD_CATEGORIES } from '@/src/store/types/game.types'
 import { GENERATOR_CONFIG, GeneratorDifficulty } from '@/src/store/types/generator.types'
 import { GeneratorSettings } from '@/src/store/types/generator.types'
 
@@ -17,20 +18,24 @@ interface UseGeneratorPanel {
   handleDifficultyChange: (difficulty: GeneratorDifficulty) => void
   handleMinVotesChange: (votes: number) => void
   handlePoolSizeChange: (size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS) => void
-  generateBoard: (gridSize: number) => Promise<void>
+  generateBoard: () => Promise<void>
   reshuffleBoard: (gridSize: number) => Promise<void>
 }
 
-export function useGeneratorPanel(gameCategory: GameCategory): UseGeneratorPanel {
+export function useGeneratorPanel(
+  gameCategory: GameCategory, 
+  gridSize: number,
+  usePublicCards: boolean,
+  usePrivateCards: boolean
+): UseGeneratorPanel {
   // Local state for generator settings
   const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([])
-  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>('MEDIUM')
+  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>('Medium')
   const [minVotes, setMinVotes] = useState(0)
-  const [poolSize, setPoolSize] = useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('MEDIUM')
-
-  // Redux state
-  const isLoading = useSelector(selectIsLoading)
-  const error = useSelector(selectError)
+  const [poolSize, setPoolSize] = useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [useAllCategories, setUseAllCategories] = useState(true)
 
   // Handlers for settings changes
   const handleCategoriesChange = useCallback((categories: CardCategory[]) => {
@@ -50,18 +55,27 @@ export function useGeneratorPanel(gameCategory: GameCategory): UseGeneratorPanel
   }, [])
 
   // Generate new board
-  const generateBoard = useCallback(async (gridSize: number) => {
-    const settings: GeneratorSettings = {
-      difficulty,
-      cardPoolSize: poolSize,
-      minVotes,
-      selectedCategories,
-      gameCategory,
-      publicCards: 'all'
-    }
+  const generateBoard = async () => {
+    try {
+      setIsLoading(true)
+      const settings: GeneratorSettings = {
+        difficulty,
+        cardPoolSize: poolSize,
+        minVotes,
+        selectedCategories: useAllCategories ? [...CARD_CATEGORIES] : selectedCategories,
+        gameCategory,
+        cardSource: usePublicCards && usePrivateCards ? 'publicprivate' 
+                   : usePublicCards ? 'public'
+                   : 'private'
+      }
 
-    await bingoGeneratorService.generateBingoBoard(settings, gridSize)
-  }, [difficulty, poolSize, minVotes, selectedCategories, gameCategory])
+      await bingoGeneratorService.generateBingoBoard(settings, gridSize)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to generate board')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Reshuffle existing board
   const reshuffleBoard = useCallback(async (gridSize: number) => {

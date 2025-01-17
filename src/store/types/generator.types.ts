@@ -1,12 +1,14 @@
 import { GameCategory, CardCategory, Difficulty } from "./game.types"
 
+export type CardSource = 'public' | 'private' | 'publicprivate'
+
 export interface GeneratorSettings {
-  difficulty: keyof typeof GENERATOR_CONFIG.DIFFICULTY_LEVELS
+  difficulty: GeneratorDifficulty
   cardPoolSize: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS
   minVotes: number
   selectedCategories: CardCategory[]
   gameCategory: GameCategory
-  publicCards?: boolean | 'all'
+  cardSource: CardSource
 }
 
 export interface LineBalance {
@@ -16,17 +18,17 @@ export interface LineBalance {
 
 export const GENERATOR_CONFIG = {
     DIFFICULTY_LEVELS: {
-      BEGINNER: { beginner: 0.9, easy: 0.1 },
-      EASY: { beginner: 0.4, easy: 0.6 },
-      MEDIUM: {beginner: 0.01, easy: 0.15, medium: 0.65, hard: 0.15 },
-      HARD: { medium: 0.2, hard: 0.7, expert: 0.1 },
-      EXPERT: { hard: 0.1, expert: 0.9 }
+      Beginner: { beginner: 0.9, easy: 0.1 },
+      Easy: { beginner: 0.4, easy: 0.6 },
+      Medium: {beginner: 0.01, easy: 0.15, medium: 0.65, hard: 0.15 },
+      Hard: { medium: 0.2, hard: 0.7, expert: 0.1 },
+      Expert: { hard: 0.1, expert: 0.9 }
     },
     CARDPOOLSIZE_LIMITS: {
-      SMALL: 100,
-      MEDIUM: 200,
-      LARGE: 300,
-      XLARGE: 400
+      Small: 100,
+      Medium: 200,
+      Large: 300,
+      XLarge: 400
     },
     BALANCE_WEIGHTS: {
       tierSpread: 0.4,

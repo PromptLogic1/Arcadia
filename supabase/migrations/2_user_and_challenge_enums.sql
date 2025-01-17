@@ -76,7 +76,6 @@ CREATE TYPE participant_status AS ENUM (
 
 -- Add to existing enums
 CREATE TYPE game_category AS ENUM (
-    'All Games',
     'World of Warcraft',
     'Fortnite',
     'Minecraft',
@@ -89,7 +88,6 @@ CREATE TYPE game_category AS ENUM (
 );
 
 CREATE TYPE card_category AS ENUM (
-    'all',
     'collecting',
     'killing',
     'building',

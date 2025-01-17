@@ -6,6 +6,7 @@ import type { CardCategory, Difficulty } from '../types/game.types'
 import { indexToGridPosition } from '@/src/features/BingoBoards/utils/gridHelpers'
 import { setBingoGridCards } from '../slices/bingocardsSlice'
 import { GeneratorSettings, LineBalance, GENERATOR_CONFIG } from '../types/generator.types'
+import { CARD_CATEGORIES } from '../types/game.types'
 
 class BingoGeneratorService {
   private supabase = supabase
@@ -16,75 +17,131 @@ class BingoGeneratorService {
     }
   }
 
-  private async fetchCardsForSelection(settings: GeneratorSettings): Promise<void> {
+  private async fetchCardsForSelection(settings: GeneratorSettings): Promise<BingoCard[]> {
     try {
-      store.dispatch(setIsLoading(true))
-      store.dispatch(setError(null))
-
       const authState = store.getState().auth
-      if (!authState.userdata || !authState.userdata.id) {
+      if (!authState.userdata?.id) {
         throw new Error('User not authenticated')
       }
 
-      const userId = authState.userdata.id
+      // Get pool size limit first
+      const poolSizeLimit = GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS[settings.cardPoolSize]
 
-      const difficultyConfig = GENERATOR_CONFIG.DIFFICULTY_LEVELS[settings.difficulty]
-      const targetPoolSize = GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS[settings.cardPoolSize]
+      let query = this.supabase
+        .from('bingocards')
+        .select('*')
+        .eq('game_category', settings.gameCategory)
+        .is('deleted_at', null)
+        .limit(poolSizeLimit) // Apply limit early
 
-      // Calculate number of cards needed for each tier based on percentages
-      const cardCounts = Object.entries(difficultyConfig).reduce((acc, [tier, percentage]) => {
-        acc[tier] = Math.round(targetPoolSize * percentage)
-        return acc
-      }, {} as Record<string, number>)
-
-      // Map tiers to difficulties
-      const tierToDifficulty: Record<string, Difficulty> = {
-        T5: 'beginner',
-        T4: 'easy',
-        T3: 'medium',
-        T2: 'hard',
-        T1: 'expert'
+      // Apply card source filter
+      if (settings.cardSource === 'public') {
+        query = query.eq('is_public', true)
+      } else if (settings.cardSource === 'private') {
+        query = query.eq('creator_id', authState.userdata.id)
+      } else {
+        query = query.or(`is_public.eq.true,creator_id.eq.${authState.userdata.id}`)
       }
 
-      // Fetch cards for each tier
-      const cardPromises = Object.entries(cardCounts).map(async ([tier, count]) => {
-        let query = this.supabase
-          .from('bingocards')
-          .select('*')
-          .eq('card_difficulty', tierToDifficulty[tier])
-          .eq('game_category', settings.gameCategory)
-          .in('card_type', settings.selectedCategories)
-          .gte('votes', settings.minVotes)
-          .is('deleted_at', null)
-          .order('votes', { ascending: false })
-          .limit(count)
+      // Apply category filters only if not using all categories
+      if (settings.selectedCategories.length > 0 && settings.selectedCategories.length !== CARD_CATEGORIES.length) {
+        query = query.in('card_type', settings.selectedCategories)
+      }
 
-        // Handle public/private card filtering
-        if (settings.publicCards !== 'all') {
-          query = query.eq('is_public', settings.publicCards)
-          
-          // If fetching private cards, use authenticated user's ID
-          if (settings.publicCards === false) {
-            query = query.eq('creator_id', userId)
-          }
-        }
+      // Apply minimum votes filter for public cards
+      if (settings.cardSource !== 'private' && settings.minVotes > 0) {
+        query = query.gte('votes', settings.minVotes)
+      }
 
-        const { data: cards, error } = await query
+      // Apply difficulty distribution
+      const difficultyLevel = GENERATOR_CONFIG.DIFFICULTY_LEVELS[settings.difficulty]
+      if (difficultyLevel) {
+        query = query.in('card_difficulty', Object.keys(difficultyLevel))
+      }
 
-        if (error) throw error
-        return cards || []
-      })
+      const { data: cards, error } = await query
 
-      const cardsByTier = await Promise.all(cardPromises)
-      const allCards = cardsByTier.flat()
+      if (error) {
+        throw new Error(`Database error: ${error.message}`)
+      }
 
-      store.dispatch(setCardsForSelection(allCards))
+      if (!cards || cards.length === 0) {
+        throw new Error('No cards available for the selected criteria')
+      }
+
+      return cards
 
     } catch (error) {
-      console.error('Error fetching cards for selection:', error)
-      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to fetch cards'))
-    } finally {
-      store.dispatch(setIsLoading(false))
+      console.error('Error fetching cards:', error)
+      throw error // Propagate error to be handled by generateBingoBoard
+    }
+  }
+
+  private validateBoardBalance(selectedCards: BingoCard[], gridSize: number): { isValid: boolean; message: string } {
+    try {
+      // 1. Check category distribution
+      const categoryCount = selectedCards.reduce((acc, card) => {
+        acc[card.card_type] = (acc[card.card_type] || 0) + 1
+        return acc
+      }, {} as Record<CardCategory, number>)
+
+      const maxCategoryPercentage = 0.4 // No more than 40% of one category
+      const totalCells = gridSize * gridSize
+      for (const [category, count] of Object.entries(categoryCount)) {
+        if (count / totalCells > maxCategoryPercentage) {
+          return {
+            isValid: false,
+            message: `Too many ${category} cards (${count}). Maximum allowed is ${Math.floor(totalCells * maxCategoryPercentage)}`
+          }
+        }
+      }
+
+      // 2. Check difficulty spread
+      const difficultyCount = selectedCards.reduce((acc, card) => {
+        acc[card.card_difficulty] = (acc[card.card_difficulty] || 0) + 1
+        return acc
+      }, {} as Record<Difficulty, number>)
+
+      // Ensure no consecutive expert/hard cards
+      for (let i = 0; i < selectedCards.length - 1; i++) {
+        const current = selectedCards[i].card_difficulty
+        const next = selectedCards[i + 1].card_difficulty
+        if ((current === 'expert' && next === 'expert') ||
+            (current === 'expert' && next === 'hard') ||
+            (current === 'hard' && next === 'expert')) {
+          return {
+            isValid: false,
+            message: 'Found consecutive expert/hard cards. Adjusting balance...'
+          }
+        }
+      }
+
+      // 3. Check line balance
+      const rows = Array.from({ length: gridSize }, (_, i) => 
+        selectedCards.slice(i * gridSize, (i + 1) * gridSize)
+      )
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        if (!row) continue;  // Skip if row is undefined
+        
+        const rowDifficulty = row.reduce((sum, card) => {
+          const weights = { beginner: 1, easy: 2, medium: 3, hard: 4, expert: 5 }
+          return sum + weights[card.card_difficulty]
+        }, 0)
+
+        if (rowDifficulty > gridSize * 3.5) { // Adjust threshold as needed
+          return {
+            isValid: false,
+            message: `Row ${i + 1} is too difficult. Adjusting balance...`
+          }
+        }
+      }
+
+      return { isValid: true, message: 'Board is balanced' }
+    } catch (error) {
+      console.error('Error validating board balance:', error)
+      return { isValid: false, message: 'Error validating board balance' }
     }
   }
 
@@ -97,10 +154,49 @@ class BingoGeneratorService {
         throw new Error('No cards available for selection')
       }
 
+      let attempts = 0
+      const maxAttempts = 5
+      let selectedCards: BingoCard[] | null = null
+      let validationResult = { isValid: false, message: '' }
+
+      while (attempts < maxAttempts) {
+        attempts++
+        selectedCards = await this.attemptBoardGeneration(gridSize)
+        
+        if (selectedCards) {
+          validationResult = this.validateBoardBalance(selectedCards, gridSize)
+          if (validationResult.isValid) {
+            break
+          }
+          console.log(`Attempt ${attempts}: ${validationResult.message}`)
+        }
+      }
+
+      if (!selectedCards || !validationResult.isValid) {
+        throw new Error(
+          `Failed to generate a balanced board after ${maxAttempts} attempts. ` +
+          (validationResult.message || 'Try adjusting your settings.')
+        )
+      }
+
+      store.dispatch(setSelectedCards(selectedCards))
+
+    } catch (error) {
+      console.error('Error generating balanced board:', error)
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to generate balanced board'))
+    } finally {
+      store.dispatch(setIsLoading(false))
+    }
+  }
+
+  // Helper method to attempt board generation
+  private async attemptBoardGeneration(gridSize: number): Promise<BingoCard[] | null> {
+    try {
+      const cardsForSelection = store.getState().bingogenerator.cardsforselection
       const totalCells = gridSize * gridSize
       const selectedCards: BingoCard[] = new Array(totalCells)
       const usedCardIds = new Set<string>()
-
+      
       // Initialize line tracking
       const rows: LineBalance[] = Array.from({ length: gridSize }, () => this.createEmptyLineBalance())
       const cols: LineBalance[] = Array.from({ length: gridSize }, () => this.createEmptyLineBalance())
@@ -140,13 +236,10 @@ class BingoGeneratorService {
         this.updateLineBalances(selectedCard, affectedLines)
       }
 
-      store.dispatch(setSelectedCards(selectedCards))
-
+      return selectedCards
     } catch (error) {
-      console.error('Error generating balanced board:', error)
-      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to generate board'))
-    } finally {
-      store.dispatch(setIsLoading(false))
+      console.error('Error in board generation attempt:', error)
+      return null
     }
   }
 
@@ -200,6 +293,8 @@ class BingoGeneratorService {
     let score = 0
 
     for (const line of affectedLines) {
+      if (!line) continue;  // Skip undefined lines
+      
       // Tier balance score
       const tierScore = this.calculateTierScore(card.card_difficulty, line.tierDistribution)
       
@@ -214,7 +309,7 @@ class BingoGeneratorService {
       )
     }
 
-    return score / affectedLines.length
+    return score / (affectedLines.filter(line => line).length || 1)  // Avoid division by zero
   }
 
   private calculateTierScore(
@@ -257,19 +352,40 @@ class BingoGeneratorService {
   async generateBingoBoard(settings: GeneratorSettings, gridSize: number): Promise<void> {
     try {
       store.dispatch(setIsLoading(true))
+      store.dispatch(setError(null))
+
+      // 1. Fetch cards based on settings
+      const cards = await this.fetchCardsForSelection(settings)
       
-      // Step 1: Initialize card pool
-      await this.fetchCardsForSelection(settings)
-      
-      // Step 2: Generate balanced board
+      // 2. Check if we have enough cards
+      const requiredCards = gridSize * gridSize
+      if (cards.length < requiredCards) {
+        throw new Error(
+          `Not enough cards found for your settings. Need ${requiredCards} cards but only found ${cards.length}. ` +
+          'Try adjusting your filters (difficulty, categories, or card source) to get more cards.'
+        )
+      }
+
+      // 3. Store cards for selection
+      store.dispatch(setCardsForSelection(cards))
+
+      // 4. Generate balanced board
       await this.generateBalancedBoard(gridSize)
-      
-      // Step 3: Distribute to grid
-      await this.distributeToGrid()
-      
+
     } catch (error) {
-      console.error('Error in board generation process:', error)
-      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to generate board'))
+      let errorMessage = 'Failed to generate board'
+      
+      if (error instanceof Error) {
+        // Handle specific error cases
+        if (error.message.includes('No cards available')) {
+          errorMessage = 'No cards found matching your criteria. Try adjusting your filters.'
+        } else if (error.message.includes('Not enough cards')) {
+          errorMessage = error.message
+        }
+      }
+      
+      store.dispatch(setError(errorMessage))
+      console.error('Generator error:', error)
     } finally {
       store.dispatch(setIsLoading(false))
     }

@@ -43,6 +43,7 @@ import { useSelector } from 'react-redux'
 import { selectPublicCards, selectIsLoading } from '@/src/store/selectors/bingocardsSelectors'
 import { FilterBingoCards, FilterOptions } from './FilterBingoCards'
 import { useAuth } from '@/src/hooks/useAuth'
+import { GeneratorPanel } from '../Generator/components/GeneratorPanel'
 
 interface BingoBoardEditProps {
   boardId: string
@@ -238,19 +239,49 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       <div className="flex flex-wrap gap-6 justify-center">
         <div className="flex flex-col" style={{ maxWidth: '310px', minWidth: '310px' }}>
           <Tabs defaultValue="private" className="w-full" onValueChange={handleTabChange}>
-            <TabsList className="w-full  mb-4 bg-gray-800/50 border border-cyan-500/20">
+            <TabsList className="w-full mb-4 bg-gray-800/50 border border-cyan-500/20">
               <div className="flex flex-start w-full" style={{ justifyContent: 'space-around' }}>
                 <TabsTrigger 
                   value="private"
-                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 p-0"
+                  className={cn(
+                    "transition-all duration-200",
+                    "data-[state=active]:bg-cyan-500/20",
+                    "data-[state=active]:text-cyan-400",
+                    "data-[state=active]:border-b-2",
+                    "data-[state=active]:border-cyan-500",
+                    "hover:text-cyan-400",
+                    "p-0"
+                  )}
                 >
                   Private Cards
                 </TabsTrigger>
                 <TabsTrigger 
                   value="public"
-                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 p-0"
+                  className={cn(
+                    "transition-all duration-200",
+                    "data-[state=active]:bg-cyan-500/20",
+                    "data-[state=active]:text-cyan-400",
+                    "data-[state=active]:border-b-2",
+                    "data-[state=active]:border-cyan-500",
+                    "hover:text-cyan-400",
+                    "p-0"
+                  )}
                 >
                   Public Cards
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="generator"
+                  className={cn(
+                    "transition-all duration-200",
+                    "data-[state=active]:bg-cyan-500/20",
+                    "data-[state=active]:text-cyan-400",
+                    "data-[state=active]:border-b-2",
+                    "data-[state=active]:border-cyan-500",
+                    "hover:text-cyan-400",
+                    "p-0"
+                  )}
+                >
+                  Generator
                 </TabsTrigger>
               </div>
             </TabsList>
@@ -331,16 +362,10 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
             </TabsContent>
 
             <TabsContent value="generator" className="mt-2">
-              <div className="flex items-center mb-3 px-2">
-                <h2 className="text-lg font-semibold text-cyan-400 truncate">AI Generator</h2>
-              </div>
-              <ScrollArea className="min-h-[calc(100vh-12rem)]">
-                <div className="space-y-2 pr-3">
-                  <div className="min-h-[200px] flex items-center justify-center text-gray-400">
-                    AI Generator coming soon...
-                  </div>
-                </div>
-              </ScrollArea>
+              <GeneratorPanel 
+                gameCategory={currentBoard.board_game_type}
+                gridSize={currentBoard.board_size}
+              />
             </TabsContent>
           </Tabs>
         </div>

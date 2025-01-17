@@ -1,9 +1,14 @@
 // Constants
 export const GAMES = [
   'World of Warcraft',
-  'Diablo 4',
-  'Path of Exile',
-  'Lost Ark',
+  'Fortnite',
+  'Minecraft',
+  'Among Us',
+  'Apex Legends',
+  'League of Legends',
+  'Overwatch',
+  'Call of Duty: Warzone',
+  'Valorant',
   'other'
 ] as const
 
