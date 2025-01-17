@@ -38,6 +38,7 @@ class BingoCardService {
       if (error) throw error
 
       store.dispatch(setBingoCards(cards || []))
+      console.log('Bingo cards initialized:', cards)
       return cards
 
     } catch (error) {

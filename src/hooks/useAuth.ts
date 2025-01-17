@@ -5,7 +5,8 @@ import {
   selectIsAuthenticated, 
   selectAuthUser, 
   selectUserRole, 
-  selectUserData 
+  selectUserData, 
+  selectIsLoading 
 } from '../store/selectors'
 import { SignInCredentials } from '../store/services/auth-service'
 
@@ -15,6 +16,7 @@ export const useAuth = () => {
   const authUser = useAppSelector(selectAuthUser)
   const userRole = useAppSelector(selectUserRole)
   const userData = useAppSelector(selectUserData)
+  const isLoading = useAppSelector(selectIsLoading)
 
   // Service methods wrapped in hooks
   const signIn = useCallback(async (credentials: SignInCredentials) => {
@@ -30,6 +32,7 @@ export const useAuth = () => {
     authUser,
     userRole,
     userData,
+    isLoading,
     signIn,
     signOut,
   }

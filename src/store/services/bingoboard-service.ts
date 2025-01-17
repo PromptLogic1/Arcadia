@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
 import { BOARD_SIZE_OPTIONS } from '../types/bingoboard.types'
-import { setBingoBoards, setLoading, setError, setCurrentBoard } from '../slices/bingoboardSlice'
+import { setBingoBoards, setLoading, setError, setCurrentBoard, clearCurrentBoard } from '../slices/bingoboardSlice'
 import { serverLog } from '@/lib/logger'
 import { UUID } from 'crypto'
 import { bingoCardService } from './bingocard-service'
@@ -42,32 +42,6 @@ class BingoBoardService {
       console.error('Bingo boards initialization error:', error)
       store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load boards'))
       return []
-    } finally {
-      store.dispatch(setLoading(false))
-    }
-  }
-
-  async getBoardById(boardId: string): Promise<BingoBoard | null> {
-    try {
-      store.dispatch(setLoading(true))
-
-      const { data: board, error } = await this.supabase
-        .from('bingoboards')
-        .select('*')
-        .eq('id', boardId)
-        .single()
-
-      if (error) throw error
-
-      if (board) {
-        store.dispatch(setCurrentBoard(board as BingoBoard))
-      }
-
-      return board
-    } catch (error) {
-      console.error('Error fetching board:', error)
-      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to fetch board'))
-      return null
     } finally {
       store.dispatch(setLoading(false))
     }
@@ -321,6 +295,7 @@ class BingoBoardService {
   async loadBoardForEditing(boardId: string): Promise<void> {
     try {
       store.dispatch(setLoading(true))
+      store.dispatch(clearCurrentBoard())
       
       // 1. Wait for auth to be ready and check auth
       const waitForAuth = () => new Promise<void>((resolve, reject) => {
@@ -360,6 +335,10 @@ class BingoBoardService {
       if (board.board_layoutbingocards) {
         await bingoCardService.initGridCards(board.board_layoutbingocards)
       }
+
+      // 6. Load private cards
+      await bingoCardService.initializeCards()
+      
     } catch (error) {
       store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
       throw error

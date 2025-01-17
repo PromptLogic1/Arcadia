@@ -18,7 +18,7 @@ import { Difficulty, DIFFICULTIES, DIFFICULTY_STYLES } from '@/src/store/types/g
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
 import type { BingoCard } from "@/src/store/types/bingocard.types"
 import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
@@ -42,6 +42,7 @@ import { BingoCardPublic } from './BingoCardPublic'
 import { useSelector } from 'react-redux'
 import { selectPublicCards, selectIsLoading } from '@/src/store/selectors/bingocardsSelectors'
 import { FilterBingoCards, FilterOptions } from './FilterBingoCards'
+import { useAuth } from '@/src/hooks/useAuth'
 
 interface BingoBoardEditProps {
   boardId: string
@@ -62,6 +63,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   const [selectedCard, setSelectedCard] = useState<BingoCard | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
 
   const {
     isLoadingBoard,
@@ -79,11 +81,18 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     gridSize,
     handleSave,
     cards,
+    initializeBoard,
   } = useBingoBoardEdit(boardId)
 
   const publicCards = useSelector(selectPublicCards)
   const isLoadingPublicCards = useSelector(selectIsLoading)
   const [activeTab, setActiveTab] = useState('private')
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated) {
+      initializeBoard()
+    }
+  }, [isAuthLoading, isAuthenticated, boardId, initializeBoard])
 
   const handleClose = useCallback(() => {
     router.push(ROUTES.CHALLENGE_HUB)
@@ -129,10 +138,15 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   }
 
   const handleCreateNewCard = () => {
+    if (!currentBoard) {
+      console.error('Cannot create card: Board not initialized')
+      return
+    }
+
     setEditingCard({
       card: {
         ...DEFAULT_BINGO_CARD,
-        game_category: currentBoard?.board_game_type || 'All Games'
+        game_category: currentBoard.board_game_type
       },
       index: -1 // Use -1 to indicate this is a new card
     })
@@ -145,12 +159,23 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     }
   }
 
-  if (isLoadingBoard) {
+  if (isAuthLoading) {
+    return <LoadingSpinner />
+  }
+
+  if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <LoadingSpinner />
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <h2 className="text-2xl font-bold text-cyan-400">
+          Please log in to view and edit Bingo Boards
+        </h2>
+        {/* ... auth buttons ... */}
       </div>
     )
+  }
+
+  if (isLoadingBoard || isLoadingCards) {
+    return <LoadingSpinner />
   }
 
   if (error) {

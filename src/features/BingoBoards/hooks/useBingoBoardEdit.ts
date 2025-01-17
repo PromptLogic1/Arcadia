@@ -37,6 +37,7 @@ interface BoardEditReturn {
   editingCard: { card: BingoCard; index: number } | null
   setEditingCard: (card: { card: BingoCard; index: number } | null) => void
   validateBingoCardField: (field: string, value: string | string[] | boolean) => string | null
+  initializeBoard: () => Promise<void>
 }
 
 type FieldKey = 'board_title' | 'board_description' | 'board_tags' | 'board_difficulty' | 'is_public';
@@ -223,30 +224,19 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     }
   }, [currentBoard, formData])
 
-  // Load board data
-  useEffect(() => {
-    const initializeBoard = async () => {
+  const initializeBoard = useCallback(async () => {
+    try {
       setIsLoadingBoard(true)
       setIsLoadingCards(true)
 
-      try {
-        // 1. Load board and initialize cards
-        await bingoBoardService.loadBoardForEditing(boardId)
-        await bingoCardService.initializeCards()
-        
-      } catch (error) {
-        store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
-      } finally {
-        setIsLoadingBoard(false)
-        setIsLoadingCards(false)
-      }
-    }
-
-    initializeBoard()
-
-    return () => {
-      store.dispatch(clearCurrentBoard())
-      bingoCardService.clearGridCards()
+      // First load the board
+      await bingoBoardService.loadBoardForEditing(boardId)
+      
+    } catch (error) {
+      store.dispatch(setError(error instanceof Error ? error.message : 'Failed to load board'))
+    } finally {
+      setIsLoadingBoard(false)
+      setIsLoadingCards(false)
     }
   }, [boardId])
 
@@ -268,6 +258,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     gridSize: currentBoard?.board_size || 0,
     editingCard,
     setEditingCard,
-    validateBingoCardField
+    validateBingoCardField,
+    initializeBoard
   }
 } 
