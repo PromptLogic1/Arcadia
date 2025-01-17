@@ -5,7 +5,7 @@ import type { BingoCard } from '../types/bingocard.types'
 import type { CardCategory, Difficulty } from '../types/game.types'
 import { indexToGridPosition } from '@/src/features/BingoBoards/utils/gridHelpers'
 import { setBingoGridCards } from '../slices/bingocardsSlice'
-import { GeneratorSettings, LineBalance, GENERATOR_CONFIG } from '../types/generator.types'
+import { GeneratorSettings, LineBalance, GENERATOR_CONFIG, GeneratorDifficulty } from '../types/generator.types'
 import { CARD_CATEGORIES } from '../types/game.types'
 
 class BingoGeneratorService {
@@ -17,7 +17,7 @@ class BingoGeneratorService {
     }
   }
 
-  private async fetchCardsForSelection(settings: GeneratorSettings): Promise<BingoCard[]> {
+  private async fetchCardsForSelection(settings: GeneratorSettings): Promise<void> {
     try {
       const authState = store.getState().auth
       if (!authState.userdata?.id) {
@@ -69,7 +69,7 @@ class BingoGeneratorService {
         throw new Error('No cards available for the selected criteria')
       }
 
-      return cards
+      store.dispatch(setCardsForSelection(cards))
 
     } catch (error) {
       console.error('Error fetching cards:', error)
@@ -77,7 +77,11 @@ class BingoGeneratorService {
     }
   }
 
-  private validateBoardBalance(selectedCards: BingoCard[], gridSize: number): { isValid: boolean; message: string } {
+  private validateBoardBalance(
+    selectedCards: BingoCard[], 
+    gridSize: number, 
+    difficulty: GeneratorDifficulty
+  ): { isValid: boolean; message: string } {
     try {
       // 1. Check category distribution
       const categoryCount = selectedCards.reduce((acc, card) => {
@@ -101,6 +105,18 @@ class BingoGeneratorService {
         acc[card.card_difficulty] = (acc[card.card_difficulty] || 0) + 1
         return acc
       }, {} as Record<Difficulty, number>)
+
+      // Add actual difficulty distribution check
+      const difficultyLevel = GENERATOR_CONFIG.DIFFICULTY_LEVELS[difficulty]
+      for (const [difficulty, count] of Object.entries(difficultyCount)) {
+        const maxAllowed = Math.ceil(totalCells * (difficultyLevel[difficulty as Difficulty] || 0))
+        if (count > maxAllowed) {
+          return {
+            isValid: false,
+            message: `Too many ${difficulty} cards (${count}). Maximum allowed is ${maxAllowed}`
+          }
+        }
+      }
 
       // Ensure no consecutive expert/hard cards
       for (let i = 0; i < selectedCards.length - 1; i++) {
@@ -164,7 +180,7 @@ class BingoGeneratorService {
         selectedCards = await this.attemptBoardGeneration(gridSize)
         
         if (selectedCards) {
-          validationResult = this.validateBoardBalance(selectedCards, gridSize)
+          validationResult = this.validateBoardBalance(selectedCards, gridSize, settings.difficulty)
           if (validationResult.isValid) {
             break
           }
@@ -268,17 +284,19 @@ class BingoGeneratorService {
     availableCards: BingoCard[],
     usedCardIds: Set<string>,
     affectedLines: LineBalance[]
-  ): BingoCard | null {
-    let bestCard: BingoCard | null = null
-    let bestScore = -1
+  ): BingoCard {
+    const unusedCards = availableCards.filter(card => !usedCardIds.has(card.id))
+    if (unusedCards.length === 0) {
+      throw new Error('No more available cards to select from')
+    }
 
-    // Get random subset of available cards for variety
-    const candidateCards = this.getRandomSubset(
-      availableCards.filter(card => !usedCardIds.has(card.id)),
-      10
-    )
+    // Get random subset for variety
+    const candidateCards = this.getRandomSubset(unusedCards, 10)
+    
+    let bestCard = candidateCards[0] // Ensure we at least return a card
+    let bestScore = this.calculateCardScore(bestCard, affectedLines)
 
-    for (const card of candidateCards) {
+    for (const card of candidateCards.slice(1)) {
       const score = this.calculateCardScore(card, affectedLines)
       if (score > bestScore) {
         bestScore = score
@@ -338,6 +356,8 @@ class BingoGeneratorService {
 
   private updateLineBalances(card: BingoCard, lines: LineBalance[]): void {
     for (const line of lines) {
+      if (!line || !line.tierDistribution || !line.categoryDistribution) continue;
+      
       line.tierDistribution[card.card_difficulty]++
       line.categoryDistribution[card.card_type]++
     }
@@ -355,22 +375,33 @@ class BingoGeneratorService {
       store.dispatch(setError(null))
 
       // 1. Fetch cards based on settings
-      const cards = await this.fetchCardsForSelection(settings)
+      await this.fetchCardsForSelection(settings)
       
+      /*const cards = store.getState().bingogenerator.cardsforselection
       // 2. Check if we have enough cards
-      const requiredCards = gridSize * gridSize
-      if (cards.length < requiredCards) {
-        throw new Error(
-          `Not enough cards found for your settings. Need ${requiredCards} cards but only found ${cards.length}. ` +
-          'Try adjusting your filters (difficulty, categories, or card source) to get more cards.'
-        )
-      }
-
-      // 3. Store cards for selection
-      store.dispatch(setCardsForSelection(cards))
+      //const requiredCards = gridSize * gridSize
+      //if (cards.length < requiredCards) {
+      //  throw new Error(
+      //    `Not enough cards found for your settings. Need ${requiredCards} cards but only found ${cards.length}. ` +
+      //    'Try adjusting your filters (difficulty, categories, or card source) to get more cards.'
+      //  )
+      */
 
       // 4. Generate balanced board
-      await this.generateBalancedBoard(gridSize)
+      //await this.generateBalancedBoard(gridSize)
+
+      const cards = store.getState().bingogenerator.cardsforselection
+      if (!cards.length) {
+        throw new Error('No cards found for selection')
+      }
+
+      // Rand Selection Cards 
+      const selectedCards = this.getRandomSubset(cards, gridSize * gridSize)
+      // 3. Store cards for selection
+      store.dispatch(setCardsForSelection(selectedCards))
+
+      //Copy selected cards to Grid
+      store.dispatch(setBingoGridCards(selectedCards))
 
     } catch (error) {
       let errorMessage = 'Failed to generate board'
