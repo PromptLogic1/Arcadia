@@ -11,7 +11,7 @@ import {
 } from '@/src/store/selectors/bingoboardSelectors'
 
 export function useBingoBoards() {
-  const dispatch = useAppDispatch()
+  const _dispatch = useAppDispatch()
   
   // Selectors
   const boards = useSelector(selectBoards)

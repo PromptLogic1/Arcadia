@@ -117,7 +117,7 @@ class AuthService {
         hasPassword: password
       })
 
-      const { data, error } = await this.supabase.auth.signInWithPassword({
+      const { error } = await this.supabase.auth.signInWithPassword({
         email: email,
         password: password
       })
@@ -136,12 +136,13 @@ class AuthService {
         }
       }
 
-      if (!data?.user) {
+      const { data: { user } } = await this.supabase.auth.getUser()
+      if (!user) {
         await serverLog('No user data received')
         return { error: new Error('No user data received') }
       }
 
-      await serverLog('Login successful', { userId: data.user.id })
+      await serverLog('Login successful', { userId: user.id })
       await this.initializeApp()
       
       return {}
@@ -155,6 +156,7 @@ class AuthService {
 
   async signInWithOAuth(provider: 'google'): Promise<AuthResponse> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { data, error } = await this.supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -182,7 +184,7 @@ class AuthService {
     username: string; 
   }): Promise<AuthResponse> {
     try {
-      const { data, error } = await this.supabase.auth.signUp({
+      const { error } = await this.supabase.auth.signUp({
         email,
         password,
         options: {
@@ -197,11 +199,13 @@ class AuthService {
         return { error: new Error(error.message) }
       }
 
-      if (data?.user?.identities?.length === 0) {
+      const { data: { user } } = await this.supabase.auth.getUser()
+      
+      if (user?.identities?.length === 0) {
         return { error: new Error('Account with this email already exists') }
       }
 
-      if (!data.user?.confirmed_at) {
+      if (!user?.confirmed_at) {
         return { needsVerification: true }
       }
 
@@ -211,19 +215,31 @@ class AuthService {
     }
   }
 
-  async resetPasswordForEmail(email: string): Promise<AuthResponse> {
+  async resetPassword(newPassword: string): Promise<AuthResponse> {
     try {
-      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      })
+      const checks = this.checkPasswordRequirements(newPassword)
+      if (!Object.values(checks).every(Boolean)) {
+        return { error: new Error('Password does not meet all requirements') }
+      }
+
+      const { error } = await this.supabase.auth.updateUser({ password: newPassword })
 
       if (error) {
-        return { error: new Error(error.message) }
+        return { 
+          error: error instanceof Error 
+            ? error 
+            : new Error('Failed to reset password') 
+        }
       }
 
       return {}
     } catch (error) {
-      return { error: error as Error }
+      console.error('Password reset error:', error)
+      return { 
+        error: error instanceof Error 
+          ? error 
+          : new Error('An unexpected error occurred while resetting your password') 
+      }
     }
   }
 
@@ -293,6 +309,7 @@ class AuthService {
   async updateUserData(userId: string, updates: UpdateUserDataParams) {
     try {
       // Update in Supabase
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { data, error } = await this.supabase
         .from('users')
         .update(updates)
@@ -351,7 +368,7 @@ class AuthService {
       const { error } = await this.supabase.auth.updateUser({ password })
 
       if (error) {
-        // Verbesserte Fehlermeldungen
+        // Handle error cases
         switch (error.message) {
           case 'New password should be different from the old password':
             return { error: new Error('Your new password must be different from your current password') }
@@ -380,6 +397,27 @@ class AuthService {
       number: /[0-9]/.test(password),
       special: /[^A-Za-z0-9]/.test(password),
       length: password.length >= 8,
+    }
+  }
+
+  async resetPasswordForEmail(email: string): Promise<AuthResponse> {
+    try {
+      const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+
+      if (error) {
+        return { error: new Error(error.message) }
+      }
+
+      return {}
+    } catch (error) {
+      console.error('Password reset error:', error)
+      return { 
+        error: error instanceof Error 
+          ? error 
+          : new Error('An unexpected error occurred while resetting your password') 
+      }
     }
   }
 }

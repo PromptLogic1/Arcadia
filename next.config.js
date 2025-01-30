@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const withVercelAnalytics = require('@vercel/analytics/next')
-
 const nextConfig = {
   images: {
     domains: ['ui-avatars.com'], // Add any other domains you need
@@ -12,13 +10,12 @@ const nextConfig = {
     ],
   },
   experimental: {
-    esmExternals: false,
-    incrementalCacheHandlerPath: './cache-handler.js',
-    isrMemoryCacheSize: 512
+    esmExternals: 'loose'
   },
   env: {
-    EDGE_CONFIG_ID: process.env.EDGE_CONFIG_ID
+    EDGE_CONFIG_ID: process.env.EDGE_CONFIG_ID,
+    REVALIDATE_TOKEN: process.env.REVALIDATE_TOKEN
   }
 }
 
-module.exports = withVercelAnalytics(nextConfig) 
+module.exports = nextConfig 

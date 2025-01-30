@@ -166,8 +166,12 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
     
     try {
       startTransition(() => {
+        if (!state.board) {
+          dispatch({ type: 'UPDATE_ERROR', payload: new Error(ERROR_MESSAGES.SYNC_FAILED) })
+          return
+        }
         dispatch({ type: 'UPDATE_BOARD', payload: {
-          ...state.board!,
+          ...state.board,
           board_state: newState
         } as BingoBoardRow })
       })
@@ -237,7 +241,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
     let reconnectAttempts = 0
     const maxReconnectAttempts = BOARD_CONSTANTS.SYNC.RECONNECT_ATTEMPTS
     const reconnectDelay = BOARD_CONSTANTS.SYNC.RECONNECT_DELAY
-    const currentBoardState = state.board?.board_state // Capture current board state
+    const currentBoardState = state.board?.board_state
 
     const channel = supabase
       .channel(`board_${boardId}`)
@@ -256,10 +260,11 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
           ) {
             const updatedBoard = (payload.new as unknown) as BingoBoardRow
             
-            if (validateBoardState(updatedBoard.board_state)) {
+            if (updatedBoard.board_state && validateBoardState(updatedBoard.board_state)) {
+              const boardState = updatedBoard.board_state
               dispatch({ type: 'UPDATE_BOARD', payload: {
                 ...updatedBoard,
-                board_state: updatedBoard.board_state.map((cell: BoardCell, i: number) => ({
+                board_state: boardState.map((cell: BoardCell, i: number) => ({
                   ...cell,
                   colors: [...new Set([
                     ...(currentBoardState?.[i]?.colors || []),

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { GameSettings } from './GameSettings'
 import { PlayerManagement } from './PlayerManagement'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Gamepad2, Users2, Timer, AlertCircle } from 'lucide-react'
 import type { Player } from '../../types/types'
 import type { GameSettings as GameSettingsType } from '../../types/gamesettings.types'
+import { useTransition } from 'react'
 
 interface GameControlsProps {
   className?: string
@@ -37,6 +38,18 @@ export const GameControls: React.FC<GameControlsProps> = ({
     resetGame,
     updatePlayers
   } = useGameState()
+
+  const [_isPending, startTransition] = useTransition()
+
+  const handleSettingsChange = useCallback(
+    async (settings: Partial<GameSettingsType>) => {
+      startTransition(async () => {
+        updateSettings(settings)
+        onSettingsChange?.(settings)
+      })
+    },
+    [updateSettings, onSettingsChange]
+  )
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -91,15 +104,12 @@ export const GameControls: React.FC<GameControlsProps> = ({
               isOwner={isOwner}
               isRunning={isRunning}
               settings={settings}
-              onSettingsChange={(newSettings) => {
-                updateSettings(newSettings)
-                onSettingsChange?.(newSettings)
-              }}
-              onStartGame={() => setRunning(true)}
-              onResetGame={() => {
+              onSettingsChangeAction={handleSettingsChange}
+              onStartGameAction={async () => startTransition(() => setRunning(true))}
+              onResetGameAction={async () => startTransition(() => {
                 resetGame()
                 onReset?.()
-              }}
+              })}
             />
           </section>
 

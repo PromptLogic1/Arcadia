@@ -33,9 +33,9 @@ export function SignUpForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [_error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false)
+  const [_isPasswordFocused, _setIsPasswordFocused] = useState(false)
   const [passwordChecks, setPasswordChecks] = useState({
     uppercase: false,
     lowercase: false,

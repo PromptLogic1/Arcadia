@@ -5,6 +5,7 @@ import { UUID } from 'crypto'
 interface BingoBoardState {
   boards: BingoBoard[]
   currentBoard: BingoBoard | null
+  selectedBoardId: string | null
   isLoading: boolean
   error: string | null
 }
@@ -12,6 +13,7 @@ interface BingoBoardState {
 const initialState: BingoBoardState = {
   boards: [],
   currentBoard: null,
+  selectedBoardId: null,
   isLoading: false,
   error: null
 }
@@ -57,6 +59,9 @@ const bingoBoardSlice = createSlice({
       if (state.currentBoard) {
         state.currentBoard = { ...state.currentBoard, ...action.payload }
       }
+    },
+    setSelectedBoardId: (state, action: PayloadAction<string | null>) => {
+      state.selectedBoardId = action.payload
     }
   }
 })
@@ -70,7 +75,8 @@ export const {
   updateBoardLayoutId,
   setCurrentBoard,
   clearCurrentBoard,
-  updateCurrentBoard
+  updateCurrentBoard,
+  setSelectedBoardId
 } = bingoBoardSlice.actions
 
 export default bingoBoardSlice.reducer 

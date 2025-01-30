@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,11 +14,11 @@ import { cn } from '@/lib/utils'
 import type { Template } from './generator.types'
 
 interface BoardGeneratorProps {
-  onApplyTemplate: (template: Template) => void
+  onApplyTemplateAction: (template: Template) => Promise<void>
 }
 
 export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
-  onApplyTemplate
+  onApplyTemplateAction
 }) => {
   const { settings } = useGameState()
   const [customText, setCustomText] = useState('')
@@ -30,6 +30,7 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
   const [generatedTemplates, setGeneratedTemplates] = useState<Template[]>([])
+  const [_isPending, startTransition] = useTransition()
 
   // Handle template generation
   const handleGenerate = useCallback(async () => {
@@ -68,6 +69,15 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
     setCustomText('')
   }, [customText, selectedTags, difficulty])
 
+  const handleDifficultyChange = useCallback(
+    async (newDifficulty: 'easy' | 'medium' | 'hard') => {
+      startTransition(() => {
+        setDifficulty(newDifficulty)
+      })
+    },
+    [setDifficulty]
+  )
+
   return (
     <div className="space-y-6">
       {/* Generator Controls */}
@@ -87,7 +97,7 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
           {/* Difficulty Selection */}
           <DifficultySelector
             difficulty={difficulty}
-            onDifficultyChange={setDifficulty}
+            onDifficultyChangeAction={handleDifficultyChange}
           />
 
           {/* Custom Template Input */}
@@ -143,7 +153,7 @@ export const BoardGenerator: React.FC<BoardGeneratorProps> = ({
                   </p>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => onApplyTemplate(template)}
+                      onClick={() => onApplyTemplateAction(template)}
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"

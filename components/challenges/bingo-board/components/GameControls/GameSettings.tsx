@@ -11,26 +11,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Lock, Trophy, Play, Pause, RotateCcw, Grid3x3, Volume2 } from 'lucide-react'
+import { Lock, Play, Pause, RotateCcw, Grid3x3, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GameSettings as GameSettingsType } from '../../types/gamesettings.types'
 
-interface GameSettingsProps {
+export interface GameSettingsProps {
   isOwner: boolean
   isRunning: boolean
   settings: GameSettingsType
-  onSettingsChange: (settings: Partial<GameSettingsType>) => void
-  onStartGame: () => void
-  onResetGame: () => void
+  onSettingsChangeAction: (settings: Partial<GameSettingsType>) => Promise<void>
+  onStartGameAction: () => Promise<void>
+  onResetGameAction: () => Promise<void>
 }
 
 export const GameSettings: React.FC<GameSettingsProps> = ({
   isOwner,
   isRunning,
   settings,
-  onSettingsChange,
-  onStartGame,
-  onResetGame
+  onSettingsChangeAction,
+  onStartGameAction,
+  onResetGameAction
 }) => {
   return (
     <div className="space-y-3">
@@ -40,7 +40,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
         <div className="flex items-center gap-2">
           <Select
             value={settings.boardSize.toString()}
-            onValueChange={(value) => onSettingsChange({ boardSize: parseInt(value) })}
+            onValueChange={async (value) => await onSettingsChangeAction({ boardSize: parseInt(value) })}
             disabled={!isOwner || isRunning}
           >
             <SelectTrigger className="flex-1 h-9 bg-gray-900/50">
@@ -64,7 +64,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <Volume2 className="h-4 w-4 text-cyan-400" />
             <Switch
               checked={settings.soundEnabled}
-              onCheckedChange={(checked) => onSettingsChange({ soundEnabled: checked })}
+              onCheckedChange={(checked) => onSettingsChangeAction({ soundEnabled: checked })}
               disabled={!isOwner}
             />
           </div>
@@ -76,7 +76,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <Label className="text-sm text-cyan-200">Team Mode</Label>
             <Switch
               checked={settings.teamMode}
-              onCheckedChange={(checked) => onSettingsChange({ teamMode: checked })}
+              onCheckedChange={(checked) => onSettingsChangeAction({ teamMode: checked })}
               disabled={!isOwner || isRunning}
             />
           </div>
@@ -88,7 +88,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             </div>
             <Switch
               checked={settings.lockout}
-              onCheckedChange={(checked) => onSettingsChange({ lockout: checked })}
+              onCheckedChange={(checked) => onSettingsChangeAction({ lockout: checked })}
               disabled={!isOwner || isRunning || settings.teamMode}
             />
           </div>
@@ -97,7 +97,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
         {/* Win Conditions */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => !isRunning && isOwner && onSettingsChange({ 
+            onClick={() => !isRunning && isOwner && onSettingsChangeAction({ 
               winConditions: { ...settings.winConditions, line: !settings.winConditions.line } 
             })}
             className={cn(
@@ -121,7 +121,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           </button>
 
           <button
-            onClick={() => !isRunning && isOwner && onSettingsChange({ 
+            onClick={() => !isRunning && isOwner && onSettingsChangeAction({ 
               winConditions: { ...settings.winConditions, majority: !settings.winConditions.majority } 
             })}
             className={cn(
@@ -149,7 +149,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
       {/* Control Buttons */}
       <div className="grid grid-cols-2 gap-2">
         <Button
-          onClick={onResetGame}
+          onClick={onResetGameAction}
           disabled={!isOwner || isRunning}
           variant="outline"
           className={cn(
@@ -162,7 +162,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           Reset
         </Button>
         <Button
-          onClick={onStartGame}
+          onClick={onStartGameAction}
           disabled={!isOwner}
           className={cn(
             "h-9",

@@ -5,6 +5,7 @@ import Footer from './_components/Footer'
 import ScrollToTop from '@/components/ui/ScrollToTop'
 import { Providers } from './Providers'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,6 +27,7 @@ export default function RootLayout({
           <main>{children}</main>
           <Footer />
           <ScrollToTop />
+          <Analytics />
         </Providers>
       </body>
     </html>

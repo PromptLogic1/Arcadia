@@ -1,10 +1,7 @@
 import { supabase } from '@/lib/supabase_lib/supabase'
 import { store } from '@/src/store'
 import type { BingoBoard, CreateBingoBoardDTO } from '../types/bingoboard.types'
-import { BOARD_SIZE_OPTIONS } from '../types/bingoboard.types'
 import { setBingoBoards, setLoading, setError, setCurrentBoard, clearCurrentBoard } from '../slices/bingoboardSlice'
-import { serverLog } from '@/lib/logger'
-import { UUID } from 'crypto'
 import { bingoCardService } from './bingocard-service'
 
 class BingoBoardService {

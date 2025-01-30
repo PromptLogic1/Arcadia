@@ -10,13 +10,13 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { authService } from '@/src/store/services/auth-service'
 import { useDispatch } from 'react-redux'
-import { setLoading, setError } from '@/src/store/slices/authSlice'
+import { setLoading } from '@/src/store/slices/authSlice'
 import { serverLog } from '@/lib/logger'
 
 export function LogInForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
+  const [status, _setStatus] = useState('')
   const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
   const router = useRouter()
   const dispatch = useDispatch()

@@ -1,7 +1,7 @@
-import type { BoardCell, Game } from '../challenges/bingo-board/types/types'
-import type { GeneratorSettings } from './generator.types'
-import { GENERATOR_CONFIG } from './generator.constants'
-import { wowChallenges } from '../challenges/bingo-board/types/constants'
+import type { BoardCell, Game } from '../types/types'
+import type { GeneratorSettings } from '../types/generator.types'
+import { GENERATOR_CONFIG } from '../types/generator.constants'
+import { wowChallenges } from '../types/constants'
 
 interface CardPoolItem extends BoardCell {
   tier: 1 | 2 | 3 | 4 | 5

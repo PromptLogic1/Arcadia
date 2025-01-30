@@ -1,7 +1,8 @@
 {
+  "regions": ["fra1"],
   "build": {
     "env": {
-      "EDGE_CONFIG": "@arcadia-edge-config"
+      "EDGE_CONFIG": "arcadia-config"
     }
   }
 } 

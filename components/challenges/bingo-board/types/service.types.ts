@@ -1,3 +1,6 @@
+import type { BoardCell } from './types'
+import type { GeneratorStats } from './generator.types'
+
 export interface ServiceResponse<T> {
   data?: T
   error?: string

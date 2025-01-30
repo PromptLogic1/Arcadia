@@ -13,12 +13,12 @@ import { Gauge } from 'lucide-react'
 
 interface DifficultySelectorProps {
   difficulty: 'easy' | 'medium' | 'hard'
-  onDifficultyChange: (difficulty: 'easy' | 'medium' | 'hard') => void
+  onDifficultyChangeAction: (difficulty: 'easy' | 'medium' | 'hard') => Promise<void>
 }
 
 export const DifficultySelector: React.FC<DifficultySelectorProps> = ({
   difficulty,
-  onDifficultyChange
+  onDifficultyChangeAction
 }) => {
   return (
     <div className="space-y-2">
@@ -28,7 +28,9 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({
       </Label>
       <Select
         value={difficulty}
-        onValueChange={onDifficultyChange}
+        onValueChange={async (value) => {
+          await onDifficultyChangeAction(value as 'easy' | 'medium' | 'hard')
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Select difficulty" />

@@ -22,4 +22,4 @@ export interface GameSettings {
   difficulty: 'easy' | 'medium' | 'hard'
 }
 
-export interface BoardSettings extends GameSettings {} 
+export type BoardSettings = GameSettings 

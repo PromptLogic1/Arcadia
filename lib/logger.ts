@@ -1,4 +1,4 @@
-export const serverLog = async (message: string, details?: any) => {
+export const serverLog = async (message: string, details?: unknown) => {
   if (process.env.NODE_ENV === 'development') {
     try {
       await fetch('/api/auth/log', {

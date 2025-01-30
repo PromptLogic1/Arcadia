@@ -18,7 +18,7 @@ import { countries } from '@/lib/data/countries'
 export default function UserPageEdit() {
   const { userData, isAuthenticated } = useAuth()
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const _supabase = createClientComponentClient()
 
   // Form states
   const [username, setUsername] = useState(userData?.username || '')

@@ -11,7 +11,7 @@ interface BoardPageProps {
 }
 
 export default function BoardPage({ params }: BoardPageProps) {
-  const router = useRouter()
+  const _router = useRouter()
   const resolvedParams = use(params)
 
   if (!resolvedParams.boardId) {

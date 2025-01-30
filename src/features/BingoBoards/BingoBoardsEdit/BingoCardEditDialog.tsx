@@ -15,7 +15,6 @@ import { useState, useCallback } from "react"
 import type { BingoCard } from "@/src/store/types/bingocard.types"
 import { DIFFICULTIES, CARD_CATEGORIES, Difficulty, CardCategory } from "@/src/store/types/game.types"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
 
 interface BingoCardEditDialogProps {
   card: BingoCard
@@ -54,7 +53,7 @@ export function BingoCardEditDialog({
     explanation?: string
     tags?: string
   }>({})
-  const [isSaving, setIsSaving] = useState(false)
+  const [isSaving, _setIsSaving] = useState(false)
 
   const isNewCard = card.id === ""
   const buttonText = isNewCard ? 'Create Card' : 'Update Card'

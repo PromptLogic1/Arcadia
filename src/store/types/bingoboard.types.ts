@@ -1,5 +1,5 @@
 import { UUID } from "crypto"
-import { GameCategory, Difficulty, GAMES } from "./game.types"
+import { GameCategory, Difficulty } from "./game.types"
 
 export interface BingoBoard {
   id: UUID

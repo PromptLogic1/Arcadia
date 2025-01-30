@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import type { BingoCard } from '../types/bingocard.types'
-import { UUID } from 'crypto'
 
 interface BingoCardsState {
   cards: BingoCard[]

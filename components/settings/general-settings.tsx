@@ -19,7 +19,7 @@ export function GeneralSettings() {
 
   // Email states
   const [isChangingEmail, setIsChangingEmail] = useState(false)
-  const [currentEmail, setCurrentEmail] = useState(authUser?.email || '')
+  const [currentEmail, _setCurrentEmail] = useState(authUser?.email || '')
   const [newEmail, setNewEmail] = useState('')
   const [confirmEmail, setConfirmEmail] = useState('')
   

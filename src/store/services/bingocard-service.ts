@@ -3,9 +3,7 @@ import { store } from '@/src/store'
 import type { BingoCard, CreateBingoCardDTO } from '../types/bingocard.types'
 import type { GameCategory, CardCategory, Difficulty } from '../types/game.types'
 import { setBingoCards, setSelectedCardId, setLoading, setError, setBingoGridCards, clearBingoGridCards, setGridCards, setPublicCards, clearPublicCards } from '../slices/bingocardsSlice'
-import { serverLog } from '@/lib/logger'
 import { DEFAULT_BINGO_CARD } from '../types/bingocard.types'
-import { UUID } from 'crypto'
 
 class BingoCardService {
   private supabase = supabase
@@ -373,7 +371,7 @@ class BingoCardService {
     }
   }
   
-  async initializePublicCards(page: number = 1): Promise<void> {
+  async initializePublicCards(page = 1): Promise<void> {
     try {
       store.dispatch(setLoading(true))
       store.dispatch(setError(null))
@@ -411,7 +409,7 @@ class BingoCardService {
   async filterPublicCards(filters: {
     cardType?: CardCategory | 'All Categories'
     difficulty?: Difficulty | 'All Difficulties'
-  }, page: number = 1): Promise<void> {
+  }, page = 1): Promise<void> {
     try {
       store.dispatch(setLoading(true))
       store.dispatch(setError(null))

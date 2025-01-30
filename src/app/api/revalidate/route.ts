@@ -3,14 +3,37 @@ import { getRuntimeConfig } from '@/lib/config'
 import { revalidatePath } from 'next/cache'
 
 export async function POST(req: Request) {
-  const secret = await getRuntimeConfig('REVALIDATE_SECRET')
-  
-  if (req.headers.get('x-vercel-signature') !== secret) {
-    return new Response('Unauthorized', { status: 401 })
-  }
+  try {
+    const { token, path } = await req.json()
+    const config = getRuntimeConfig()
 
-  const { paths } = await req.json()
-  paths.forEach((path: string) => revalidatePath(path))
-  
-  return NextResponse.json({ revalidated: true })
+    // Validate token
+    if (token !== config.revalidateToken) {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
+
+    // Validate path
+    if (!config.allowedPaths.includes(path)) {
+      return NextResponse.json(
+        { error: 'Invalid path' },
+        { status: 400 }
+      )
+    }
+
+    // Revalidate the path
+    revalidatePath(path)
+
+    return NextResponse.json({
+      revalidated: true,
+      path
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to revalidate' },
+      { status: 500 }
+    )
+  }
 } 

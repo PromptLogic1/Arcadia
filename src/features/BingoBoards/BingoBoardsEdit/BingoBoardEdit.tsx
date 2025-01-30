@@ -87,7 +87,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
   const publicCards = useSelector(selectPublicCards)
   const isLoadingPublicCards = useSelector(selectIsLoading)
-  const [activeTab, setActiveTab] = useState('private')
+  const [_activeTab, setActiveTab] = useState('general')
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
