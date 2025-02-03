@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react'
 import { bingoGeneratorService } from '@/src/store/services/bingogenerator-service'
-import { useSelector } from 'react-redux'
-import { selectIsLoading, selectError } from '@/src/store/selectors/bingogeneratorSelectors'
 import type { GameCategory, CardCategory } from '@/src/store/types/game.types'
 import { CARD_CATEGORIES } from '@/src/store/types/game.types'
 import { GENERATOR_CONFIG, GeneratorDifficulty } from '@/src/store/types/generator.types'

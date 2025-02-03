@@ -379,6 +379,23 @@ class BingoBoardService {
       store.dispatch(setLoading(false))
     }
   }
+
+  async getBoardById(boardId: string): Promise<BingoBoard | null> {
+    try {
+      // Fetch the board by its id
+      const { data: board, error } = await this.supabase
+        .from('bingoboards')
+        .select('*')
+        .eq('id', boardId)
+        .single();
+
+      if (error) throw error;
+      return board;
+    } catch (error) {
+      console.error('Error fetching board by id:', error);
+      return null;
+    }
+  }
 }
 
 export const bingoBoardService = new BingoBoardService() 

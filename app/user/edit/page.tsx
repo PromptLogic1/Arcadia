@@ -1,4 +1,9 @@
-import UserPageEdit from '@/components/user/user-page-edit'
+'use client'
+import dynamic from 'next/dynamic'
+
+// Dynamically import the UserPageEdit component with SSR disabled.
+// This prevents module-level location references from running on the server.
+const UserPageEdit = dynamic(() => import('@/components/user/user-page-edit'), { ssr: false })
 
 export default function EditProfilePage() {
   return (
@@ -6,4 +11,4 @@ export default function EditProfilePage() {
       <UserPageEdit />
     </div>
   )
-} 
+}

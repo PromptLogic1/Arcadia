@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,8 +48,6 @@ interface FormErrors {
 
 interface CreateBoardFormProps {
   isOpen: boolean
-  onClose: () => void
-  onSubmit: (data: CreateBoardFormData) => Promise<void>
 }
 
 const BOARD_SIZES = [3, 4, 5, 6]
@@ -59,7 +57,7 @@ const sortedGames = [...GAMES]
   .filter(game => game !== 'All Games')
   .sort((a, b) => a.localeCompare(b))
 
-export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormProps) {
+export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
   const [formData, setFormData] = useState<FormData>({
     board_title: '',
     board_description: '',
@@ -70,6 +68,14 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
     board_tags: []
   })
   const [errors, setErrors] = useState<FormErrors>({})
+
+  const internalOnClose = useCallback(() => {
+    console.log('Dialog closed');
+  }, []);
+
+  const internalOnSubmit = useCallback(async (data: CreateBoardFormData) => {
+    console.log('Board data submitted:', data);
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -110,7 +116,7 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
     }
 
     try {
-      await onSubmit(formData)
+      await internalOnSubmit(formData)
       setFormData({
         board_title: '',
         board_description: '',
@@ -120,7 +126,7 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
         is_public: false,
         board_tags: []
       })
-      onClose()
+      internalOnClose()
     } catch (err) {
       setErrors({ 
         board_title: 'Failed to create board. Please try again.' 
@@ -129,7 +135,7 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={internalOnClose}>
       <DialogContent className="sm:max-w-[425px] bg-gray-900 text-gray-100">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
@@ -269,7 +275,7 @@ export function CreateBoardForm({ isOpen, onClose, onSubmit }: CreateBoardFormPr
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={internalOnClose}
               className="border-cyan-500/50 hover:bg-cyan-500/10"
             >
               Cancel

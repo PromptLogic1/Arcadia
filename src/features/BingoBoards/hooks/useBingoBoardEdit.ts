@@ -6,7 +6,7 @@ import type { Difficulty } from '@/src/store/types/game.types'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/src/store/store'
 import { BingoCard } from '@/src/store/types/bingocard.types'
-import { clearCurrentBoard, setError } from '@/src/store/slices/bingoboardSlice'
+import { setError } from '@/src/store/slices/bingoboardSlice'
 import { store } from '@/src/store/store'
 import { CreateBingoCardDTO, UpdateBingoCardDTO } from '@/src/store/types/bingocard.types'
 

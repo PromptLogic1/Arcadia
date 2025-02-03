@@ -16,7 +16,6 @@ export default function BingoBoardsHub() {
     isCreateFormOpen,
     filterSelections,
     handleFilterChange,
-    handleCreateBoard,
     setIsCreateFormOpen,
     handleBoardSelect,
   } = useBingoBoardsHub()
@@ -68,11 +67,7 @@ export default function BingoBoardsHub() {
         ))}
       </div>
 
-      <CreateBoardForm
-        isOpen={isCreateFormOpen}
-        onClose={() => setIsCreateFormOpen(false)}
-        onSubmit={handleCreateBoard}
-      />
+      <CreateBoardForm isOpen={isCreateFormOpen} />
     </div>
   )
 }

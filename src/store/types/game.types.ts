@@ -1,5 +1,6 @@
 // Constants
 export const GAMES = [
+  'All Games',
   'World of Warcraft',
   'Fortnite',
   'Minecraft',

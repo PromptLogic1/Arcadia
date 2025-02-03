@@ -10,6 +10,7 @@ import { CARD_CATEGORIES } from '../types/game.types'
 
 class BingoGeneratorService {
   private supabase = supabase
+  private lastUsedDifficulty: GeneratorDifficulty | null = null;
 
   constructor() {
     if (!this.supabase) {
@@ -116,23 +117,28 @@ class BingoGeneratorService {
 
       // Add actual difficulty distribution check
       const difficultyLevel = GENERATOR_CONFIG.DIFFICULTY_LEVELS[difficulty]
-      for (const [difficulty, count] of Object.entries(difficultyCount)) {
-        const maxAllowed = Math.ceil(totalCells * (difficultyLevel[difficulty as Difficulty] || 0))
+      // Cast to record so we can index with valid Difficulty keys
+      const levelConfig = difficultyLevel as Record<Difficulty, number>
+      for (const [diffKey, count] of Object.entries(difficultyCount)) {
+        const maxAllowed = Math.ceil(totalCells * (levelConfig[diffKey as Difficulty] || 0))
         if (count > maxAllowed) {
           return {
             isValid: false,
-            message: `Too many ${difficulty} cards (${count}). Maximum allowed is ${maxAllowed}`
+            message: `Too many ${diffKey} cards (${count}). Maximum allowed is ${maxAllowed}`
           }
         }
       }
 
       // Ensure no consecutive expert/hard cards
       for (let i = 0; i < selectedCards.length - 1; i++) {
-        const current = selectedCards[i].card_difficulty
-        const next = selectedCards[i + 1].card_difficulty
-        if ((current === 'expert' && next === 'expert') ||
-            (current === 'expert' && next === 'hard') ||
-            (current === 'hard' && next === 'expert')) {
+        const card1 = selectedCards[i];
+        const card2 = selectedCards[i + 1];
+        if (!card1 || !card2) {
+          throw new Error("Incomplete board generation: missing card in board");
+        }
+        if ((card1.card_difficulty === 'expert' && card2.card_difficulty === 'expert') ||
+            (card1.card_difficulty === 'expert' && card2.card_difficulty === 'hard') ||
+            (card1.card_difficulty === 'hard' && card2.card_difficulty === 'expert')) {
           return {
             isValid: false,
             message: 'Found consecutive expert/hard cards. Adjusting balance...'
@@ -188,7 +194,10 @@ class BingoGeneratorService {
         selectedCards = await this.attemptBoardGeneration(gridSize)
         
         if (selectedCards) {
-          validationResult = this.validateBoardBalance(selectedCards, gridSize, settings.difficulty)
+          if (!this.lastUsedDifficulty) {
+            throw new Error("No difficulty setting available");
+          }
+          validationResult = this.validateBoardBalance(selectedCards, gridSize, this.lastUsedDifficulty)
           if (validationResult.isValid) {
             break
           }
@@ -218,7 +227,7 @@ class BingoGeneratorService {
     try {
       const cardsForSelection = store.getState().bingogenerator.cardsforselection
       const totalCells = gridSize * gridSize
-      const selectedCards: BingoCard[] = new Array(totalCells)
+      const selectedCards: BingoCard[] = []
       const usedCardIds = new Set<string>()
       
       // Initialize line tracking
@@ -254,10 +263,12 @@ class BingoGeneratorService {
           throw new Error('Could not find suitable card for position')
         }
 
-        // Update board and tracking
-        selectedCards[i] = selectedCard
-        usedCardIds.add(selectedCard.id)
-        this.updateLineBalances(selectedCard, affectedLines)
+        // Safely assign selected card to a new constant
+        const card: BingoCard = selectedCard;
+        // Update board and tracking by pushing the card
+        selectedCards.push(card);
+        usedCardIds.add(card.id);
+        this.updateLineBalances(card, affectedLines);
       }
 
       return selectedCards
@@ -301,18 +312,21 @@ class BingoGeneratorService {
     // Get random subset for variety
     const candidateCards = this.getRandomSubset(unusedCards, 10)
     
-    let bestCard = candidateCards[0] // Ensure we at least return a card
+    if (candidateCards.length === 0) {
+      throw new Error("No candidate cards available for selection");
+    }
+    let bestCard = candidateCards[0] as BingoCard;
     let bestScore = this.calculateCardScore(bestCard, affectedLines)
 
     for (const card of candidateCards.slice(1)) {
       const score = this.calculateCardScore(card, affectedLines)
       if (score > bestScore) {
         bestScore = score
-        bestCard = card
+        bestCard = card;
       }
     }
 
-    return bestCard
+    return bestCard;
   }
 
   private calculateCardScore(card: BingoCard, affectedLines: LineBalance[]): number {
@@ -379,6 +393,7 @@ class BingoGeneratorService {
   // Public wrapper method
   async generateBingoBoard(settings: GeneratorSettings, gridSize: number): Promise<void> {
     try {
+      this.lastUsedDifficulty = settings.difficulty;
       store.dispatch(setIsLoading(true))
       store.dispatch(setError(null))
 

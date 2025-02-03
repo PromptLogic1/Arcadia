@@ -10,7 +10,6 @@ import {
   clearCardsForSelection, 
   clearSelectedCards 
 } from '@/src/store/slices/bingogeneratorSlice'
-import { bingoGeneratorService } from '@/src/store/services/bingogenerator-service'
 
 export function useGenerator() {
   const dispatch = useDispatch()
