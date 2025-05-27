@@ -1,18 +1,26 @@
-import type { Tag, TagValidationRules } from '../types/tagsystem.types'
-import { TAG_SYSTEM } from '../types/tagsystem.constants'
+import type { Tag, TagStatus, TagType, TagCategory } from '@/types'
+
+// Simple validation rules interface using centralized types
+interface TagValidationRules {
+  minLength: number
+  maxLength: number
+  maxTagsPerItem: number
+  forbiddenTerms: string[]
+  requiredFormat?: RegExp
+  allowedCategories: string[]
+}
 
 export class TagValidationService {
   private rules: TagValidationRules
 
   constructor(rules?: Partial<TagValidationRules>) {
     this.rules = {
-      minLength: TAG_SYSTEM.VALIDATION.MIN_LENGTH,
-      maxLength: TAG_SYSTEM.VALIDATION.MAX_LENGTH,
-      allowedCharacters: TAG_SYSTEM.VALIDATION.ALLOWED_CHARACTERS,
-      forbiddenTerms: [...TAG_SYSTEM.VALIDATION.FORBIDDEN_TERMS],
-      minUsageForVoting: TAG_SYSTEM.LIMITS.MIN_USAGE_FOR_VOTING,
-      minVotesForVerification: TAG_SYSTEM.LIMITS.MIN_VOTES_FOR_VERIFICATION,
-      votingDurationDays: TAG_SYSTEM.LIMITS.VOTING_DURATION_DAYS,
+      minLength: 2,
+      maxLength: 30,
+      maxTagsPerItem: 8,
+      forbiddenTerms: ['spam', 'test', 'undefined', 'null', 'admin', 'moderator'],
+      requiredFormat: /^[a-zA-Z0-9\s\-_]+$/,
+      allowedCategories: [],
       ...rules
     }
   }
@@ -20,11 +28,20 @@ export class TagValidationService {
   validateTag(tag: Tag): { isValid: boolean; errors: string[] } {
     const errors: string[] = []
 
-    if (!tag.name || tag.name.length < 3) {
-      errors.push('Tag name must be at least 3 characters')
+    if (!tag.name || tag.name.length < this.rules.minLength) {
+      errors.push(`Tag name must be at least ${this.rules.minLength} characters`)
     }
 
-    if (tag.name?.toLowerCase().includes('spam')) {
+    if (tag.name && tag.name.length > this.rules.maxLength) {
+      errors.push(`Tag name cannot exceed ${this.rules.maxLength} characters`)
+    }
+
+    if (tag.name && this.rules.requiredFormat && !this.rules.requiredFormat.test(tag.name)) {
+      errors.push('Tag name contains invalid characters')
+    }
+
+    if (tag.name && this.rules.forbiddenTerms.some(term => 
+      tag.name.toLowerCase().includes(term.toLowerCase()))) {
       errors.push('Tag name contains forbidden terms')
     }
 
@@ -37,113 +54,45 @@ export class TagValidationService {
   validateTagStructure(tag: unknown): tag is Tag {
     if (!tag || typeof tag !== 'object') return false
 
-    const requiredProps = [
-      'id', 'name', 'type', 'category', 'status',
-      'description', 'createdAt', 'updatedAt', 'usageCount', 'votes'
-    ]
-
-    const hasRequiredProps = requiredProps.every(prop => prop in (tag as Record<string, unknown>))
-    if (!hasRequiredProps) return false
-
-    // Validiere Category-Struktur
     const tagObj = tag as Tag
-    if (!this.validateCategoryStructure(tagObj.category)) return false
-
-    // Validiere Typen
+    
+    // Check required database fields using centralized types
     return (
+      typeof tagObj.id === 'string' &&
       typeof tagObj.name === 'string' &&
       typeof tagObj.description === 'string' &&
-      typeof tagObj.usageCount === 'number' &&
-      typeof tagObj.votes === 'number' &&
-      tagObj.createdAt instanceof Date &&
-      tagObj.updatedAt instanceof Date &&
+      typeof tagObj.created_at === 'string' &&
+      typeof tagObj.updated_at === 'string' &&
       this.isValidTagType(tagObj.type) &&
       this.isValidTagStatus(tagObj.status)
     )
   }
 
-  private validateCategoryStructure(category: unknown): boolean {
-    if (!category || typeof category !== 'object') return false
-
-    const requiredProps = ['id', 'name', 'isRequired', 'allowMultiple', 'validForGames']
-    const hasRequiredProps = requiredProps.every(prop => prop in (category as Record<string, unknown>))
-    if (!hasRequiredProps) return false
-
-    const cat = category as Tag['category']
-    return (
-      typeof cat.id === 'string' &&
-      this.isValidCategoryName(cat.name) &&
-      typeof cat.isRequired === 'boolean' &&
-      typeof cat.allowMultiple === 'boolean' &&
-      Array.isArray(cat.validForGames) &&
-      cat.validForGames.every(game => typeof game === 'string')
-    )
-  }
-
-  private isValidTagType(type: unknown): type is Tag['type'] {
+  private isValidTagType(type: unknown): type is TagType {
     return typeof type === 'string' && ['core', 'game', 'community'].includes(type)
   }
 
-  private isValidTagStatus(status: unknown): status is Tag['status'] {
+  private isValidTagStatus(status: unknown): status is TagStatus {
     return typeof status === 'string' && 
            ['active', 'proposed', 'verified', 'archived', 'suspended'].includes(status)
   }
 
-  private isValidCategoryName(name: unknown): name is Tag['category']['name'] {
-    const validNames = [
-      'difficulty',
-      'timeInvestment',
-      'primaryCategory',
-      'gamePhase',
-      'requirements',
-      'playerMode',
-      'custom'
-    ]
-    return typeof name === 'string' && validNames.includes(name)
-  }
-
-  validateTagRules(tag: Tag, rules: TagValidationRules): boolean {
-    // Name-Validierung
-    if (tag.name.length < rules.minLength || 
-        tag.name.length > rules.maxLength) {
+  validateTagRules(tag: Tag): boolean {
+    // Basic validation using database field names
+    if (tag.name.length < this.rules.minLength || 
+        tag.name.length > this.rules.maxLength) {
       return false
     }
 
-    if (!rules.allowedCharacters.test(tag.name)) {
+    if (this.rules.requiredFormat && !this.rules.requiredFormat.test(tag.name)) {
       return false
     }
 
-    if (rules.forbiddenTerms.some(term => 
+    if (this.rules.forbiddenTerms.some(term => 
       tag.name.toLowerCase().includes(term))) {
       return false
     }
 
-    // Status-spezifische Validierung
-    if (tag.status === 'proposed') {
-      const daysSinceCreation = this.getDaysDifference(
-        new Date(),
-        tag.createdAt
-      )
-
-      if (daysSinceCreation > rules.votingDurationDays) {
-        return false
-      }
-
-      if (tag.usageCount < rules.minUsageForVoting) {
-        return false
-      }
-    }
-
-    // Kategorie-spezifische Validierung
-    if (tag.category.isRequired && !tag.category.name) {
-      return false
-    }
-
     return true
-  }
-
-  private getDaysDifference(date1: Date, date2: Date): number {
-    const diffTime = Math.abs(date1.getTime() - date2.getTime())
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
 } 

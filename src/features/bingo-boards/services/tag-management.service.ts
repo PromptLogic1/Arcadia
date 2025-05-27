@@ -1,23 +1,49 @@
-import type { Tag, TagValidationRules, TagVote, TagHistory } from '../types/tagsystem.types'
+import type { Database, Tag, TagVote, TagHistory, TagStatus } from '@/types'
+import { TagValidationService } from './tag-validation.service'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-const DEFAULT_VALIDATION_RULES: TagValidationRules = {
-  minLength: 3,
-  maxLength: 20,
-  allowedCharacters: /^[a-zA-Z0-9\s-_]+$/,
-  forbiddenTerms: ['spam', 'test', 'inappropriate'],
-  minUsageForVoting: 5,
-  minVotesForVerification: 50,
-  votingDurationDays: 7
+const validationRules = {
+  minLength: 2,
+  maxLength: 30,
+  maxTagsPerItem: 8,
+  forbiddenTerms: ['spam', 'test', 'undefined', 'null', 'admin', 'moderator'],
+  requiredFormat: /^[a-zA-Z0-9\s\-_]+$/,
+  allowedCategories: []
 }
 
 export class TagManagementService {
-  private validationRules: TagValidationRules
+  private validationRules = validationRules
+  private supabase = createClientComponentClient<Database>()
 
-  constructor(rules: Partial<TagValidationRules> = {}) {
-    this.validationRules = { ...DEFAULT_VALIDATION_RULES, ...rules }
+  async createTag(tagData: Partial<Tag>): Promise<Tag> {
+    const validation = this.validateTagCreation(tagData)
+    if (!validation.isValid) {
+      throw new Error(`Tag validation failed: ${validation.errors.join(', ')}`)
+    }
+
+    const { data, error } = await this.supabase
+      .from('tags')
+      .insert({
+        name: tagData.name!,
+        type: tagData.type || 'community',
+        category: tagData.category || null,
+        status: 'proposed' as TagStatus,
+        description: tagData.description || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        usage_count: 0,
+        votes: 0,
+        created_by: null,
+        game: null
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
   }
 
-  validateTag(tag: Partial<Tag>): { isValid: boolean; errors: string[] } {
+  private validateTagCreation(tag: Partial<Tag>): { isValid: boolean; errors: string[] } {
     const errors: string[] = []
 
     if (!tag.name) {
@@ -33,12 +59,12 @@ export class TagManagementService {
       errors.push(`Tag name cannot exceed ${this.validationRules.maxLength} characters`)
     }
 
-    if (!this.validationRules.allowedCharacters.test(tag.name)) {
+    if (!this.validationRules.requiredFormat.test(tag.name)) {
       errors.push('Tag name contains invalid characters')
     }
 
-    if (this.validationRules.forbiddenTerms.some(term => 
-      tag.name?.toLowerCase().includes(term))) {
+    if (tag.name && this.validationRules.forbiddenTerms.some(term => 
+      tag.name!.toLowerCase().includes(term))) {
       errors.push('Tag name contains forbidden terms')
     }
 
@@ -48,105 +74,99 @@ export class TagManagementService {
     }
   }
 
-  processVote(tag: Tag, vote: TagVote): Tag {
-    return {
-      ...tag,
-      votes: tag.votes + (vote.vote === 'up' ? 1 : -1),
-      updatedAt: new Date()
-    }
+  async voteOnTag(tagId: string, userId: string, voteType: 'up' | 'down'): Promise<Tag> {
+    // Record the vote
+    await this.supabase
+      .from('tag_votes')
+      .insert({
+        tag_id: tagId,
+        user_id: userId,
+        vote: voteType,
+        created_at: new Date().toISOString()
+      })
+
+    // Update tag vote count
+    const { data: tag, error } = await this.supabase
+      .from('tags')
+      .select('*')
+      .eq('id', tagId)
+      .single()
+
+    if (error || !tag) throw error || new Error('Tag not found')
+
+    const voteChange = voteType === 'up' ? 1 : -1
+    const newVoteCount = (tag.votes || 0) + voteChange
+
+    const { data: updatedTag, error: updateError } = await this.supabase
+      .from('tags')
+      .update({ 
+        votes: newVoteCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', tagId)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+    return updatedTag
   }
 
-  checkForVerification(tag: Tag): Tag {
-    if (tag.status === 'proposed' && 
-        tag.votes >= this.validationRules.minVotesForVerification &&
-        tag.usageCount >= this.validationRules.minUsageForVoting) {
-      return {
-        ...tag,
-        status: 'verified',
-        updatedAt: new Date()
-      }
-    }
-    return tag
+  async getTagsByStatus(status: TagStatus): Promise<Tag[]> {
+    const { data, error } = await this.supabase
+      .from('tags')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
   }
 
-  checkForArchival(tag: Tag): Tag {
-    const threeMonthsAgo = new Date()
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  async autoModerateTag(tag: Tag): Promise<Tag | null> {
+    // Simple auto-moderation based on votes
+    if (tag.status === 'proposed' && (tag.votes || 0) >= 5) {
+      const { data, error } = await this.supabase
+        .from('tags')
+        .update({ 
+          status: 'active' as TagStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tag.id)
+        .select()
+        .single()
 
-    if (tag.status === 'active' && 
-        tag.updatedAt < threeMonthsAgo && 
-        tag.usageCount === 0) {
-      return {
-        ...tag,
-        status: 'archived',
-        updatedAt: new Date()
-      }
+      if (error) throw error
+      return data
     }
-    return tag
+
+    // Archive tags with negative votes
+    if ((tag.votes || 0) <= -3) {
+      const { data, error } = await this.supabase
+        .from('tags')
+        .update({ 
+          status: 'archived' as TagStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tag.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+
+    return null
   }
 
-  validateTagRules(tag: Tag, rules: TagValidationRules): boolean {
-    if (!tag.name) return false
-
-    if (tag.name.length < rules.minLength || 
-        tag.name.length > rules.maxLength) {
-      return false
-    }
-
-    if (!rules.allowedCharacters.test(tag.name)) {
-      return false
-    }
-
-    if (rules.forbiddenTerms.some(term => 
-      tag.name.toLowerCase().includes(term))) {
-      return false
-    }
-
-    return true
-  }
-
-  checkDuplicates(tag: Tag, existingTags: Tag[]): boolean {
-    return existingTags.some(existing => 
-      existing.id !== tag.id && 
-      existing.name.toLowerCase() === tag.name.toLowerCase()
-    )
-  }
-
-  validateUsage(tag: Tag): boolean {
-    return tag.usageCount >= this.validationRules.minUsageForVoting
-  }
-
-  validateVoting(tag: Tag): boolean {
-    return tag.votes >= this.validationRules.minVotesForVerification
-  }
-
-  mergeTagUpdates(tag: Tag, updates: Partial<Tag>): Tag {
-    return {
-      ...tag,
-      ...updates,
-      updatedAt: new Date(),
-      id: tag.id,
-      createdAt: tag.createdAt
-    }
-  }
-
-  handleTagConflict(tag1: Tag, tag2: Tag): Tag {
-    if (tag1.updatedAt > tag2.updatedAt) {
-      return tag1
-    }
-    if (tag1.updatedAt === tag2.updatedAt) {
-      return tag1.votes >= tag2.votes ? tag1 : tag2
-    }
-    return tag2
-  }
-
-  createHistoryEntry(tag: Tag, action: TagHistory['action'], changes: Record<string, unknown>): Omit<TagHistory, 'id'> {
-    return {
-      tagId: tag.id,
-      action,
-      changes,
-      performedBy: tag.createdBy || 'system',
-      timestamp: new Date()
-    }
+  async logTagChange(tagId: string, action: string, changes: Record<string, any>, performedBy: string): Promise<void> {
+    await this.supabase
+      .from('tag_history')
+      .insert({
+        tag_id: tagId,
+        action: action as any, // Type assertion for database enum
+        changes,
+        performed_by: performedBy,
+        created_at: new Date().toISOString()
+      })
   }
 } 

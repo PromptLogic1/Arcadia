@@ -2,19 +2,89 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Database } from '@/types/database.types'
-import type { QueueEntry, UseSessionQueue } from '../types/sessionqueue.types'
-import { QUEUE_CONSTANTS } from '../types/sessionqueue.constants'
-import { PLAYER_CONSTANTS } from '../types/playermanagement.constants'
+import type { 
+  Database,
+  BingoSessionQueue,
+  BingoSessionQueueInsert,
+  BingoSessionQueueUpdate,
+  QueueStatus
+} from '@/types'
 
-export const useSessionQueue = (sessionId: string): UseSessionQueue => {
-  const [queueEntries, setQueueEntries] = useState<QueueEntry[]>([])
+// =============================================================================
+// APPLICATION TYPES (Built on database types)
+// =============================================================================
+
+interface PlayerQueueData {
+  playerName: string
+  color: string
+  team?: number
+}
+
+interface QueueState {
+  entries: BingoSessionQueue[]
+  isProcessing: boolean
+  processingEntryId: string | null
+  error: string | null
+  lastUpdated: number
+}
+
+interface QueueStats {
+  totalEntries: number
+  pendingEntries: number
+  processingEntries: number
+  completedEntries: number
+  failedEntries: number
+  averageProcessingTime: number
+  queueWaitTime: number
+}
+
+interface UseSessionQueueReturn {
+  queueState: QueueState
+  queueEntries: BingoSessionQueue[] // For backward compatibility
+  stats: QueueStats
+  isLoading: boolean
+  error: string | null
+  addPlayerToQueue: (playerData: PlayerQueueData) => Promise<string | null>
+  removePlayerFromQueue: (entryId: string) => Promise<boolean>
+  processQueueEntry: (entryId: string) => Promise<boolean>
+  updateQueueEntry: (entryId: string, updates: BingoSessionQueueUpdate) => Promise<void> // Added for backward compatibility
+  clearSessionQueue: (sessionId: string) => Promise<void>
+  getPlayerQueuePosition: (userId: string, sessionId: string) => number
+  isPlayerInQueue: (userId: string, sessionId: string) => boolean
+  getQueueEntries: (sessionId: string) => BingoSessionQueue[]
+  subscribeToQueue: (sessionId: string) => void
+  unsubscribeFromQueue: () => void
+}
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const QUEUE_CONSTANTS = {
+  LIMITS: {
+    MAX_WAIT_TIME: 5 * 60 * 1000, // 5 minutes
+    CLEANUP_INTERVAL: 60 * 1000, // 1 minute
+  }
+} as const
+
+const PLAYER_CONSTANTS = {
+  LIMITS: {
+    MAX_PLAYERS: 12,
+  }
+} as const
+
+// =============================================================================
+// HOOK IMPLEMENTATION
+// =============================================================================
+
+export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
+  const [queueEntries, setQueueEntries] = useState<BingoSessionQueue[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
   const supabase = createClientComponentClient<Database>()
 
-  // Move fetchQueueEntries before the useEffect
+  // Fetch queue entries
   const fetchQueueEntries = useCallback(async () => {
     try {
       const { data, error: fetchError } = await supabase
@@ -24,9 +94,9 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
         .order('requested_at', { ascending: true })
 
       if (fetchError) throw fetchError
-      if (data) setQueueEntries(data)
+      setQueueEntries(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch queue entries'))
+      setError(err instanceof Error ? err.message : 'Failed to fetch queue entries')
     }
   }, [sessionId, supabase])
 
@@ -42,11 +112,13 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
         filter: `session_id=eq.${sessionId}`
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setQueueEntries(prev => [...prev, payload.new as QueueEntry])
+          const newEntry = payload.new as BingoSessionQueue
+          setQueueEntries(prev => [...prev, newEntry])
         } else if (payload.eventType === 'UPDATE') {
+          const updatedEntry = payload.new as BingoSessionQueue
           setQueueEntries(prev => 
             prev.map(entry => 
-              entry.id === payload.new.id ? { ...entry, ...payload.new } : entry
+              entry.id === updatedEntry.id ? updatedEntry : entry
             )
           )
         } else if (payload.eventType === 'DELETE') {
@@ -66,19 +138,18 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
   }, [sessionId, supabase, fetchQueueEntries])
 
   // Update queue entry
-  const updateQueueEntry = useCallback(async (entryId: string, updates: Partial<QueueEntry>) => {
+  const updateQueueEntry = useCallback(async (entryId: string, updates: BingoSessionQueueUpdate) => {
     try {
       setIsProcessing(true)
+      
       const { error: updateError } = await supabase
         .from('bingo_session_queue')
         .update(updates)
         .eq('id', entryId)
 
       if (updateError) throw updateError
-
-      // Queue processing is handled by database trigger
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to update queue entry'))
+      setError(err instanceof Error ? err.message : 'Failed to update queue entry')
       throw err
     } finally {
       setIsProcessing(false)
@@ -96,7 +167,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
 
       if (deleteError) throw deleteError
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to remove from queue'))
+      setError(err instanceof Error ? err.message : 'Failed to remove from queue')
       throw err
     } finally {
       setIsProcessing(false)
@@ -113,11 +184,11 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
         .from('bingo_session_queue')
         .delete()
         .lt('requested_at', cutoffTime.toISOString())
-        .in('status', ['approved', 'rejected'])
+        .in('status', ['approved', 'rejected'] as QueueStatus[])
 
       if (cleanupError) throw cleanupError
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to cleanup queue'))
+      setError(err instanceof Error ? err.message : 'Failed to cleanup queue')
       throw err
     } finally {
       setIsProcessing(false)
@@ -130,52 +201,37 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
     return () => clearInterval(cleanup)
   }, [cleanupQueue])
 
-  // Update the addToQueue function to include user_id
-  const addToQueue = useCallback(async (player: { name: string; color: string; team?: number }) => {
+  // Add to queue
+  const addToQueue = useCallback(async (player: PlayerQueueData) => {
     try {
       setIsProcessing(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
+      const queueEntry: BingoSessionQueueInsert = {
+        session_id: sessionId,
+        user_id: user.id,
+        player_name: player.playerName,
+        color: player.color,
+        team: player.team ?? null,
+        status: 'pending',
+        requested_at: new Date().toISOString()
+      }
+
       const { error: addError } = await supabase
         .from('bingo_session_queue')
-        .insert({
-          session_id: sessionId,
-          user_id: user.id,
-          player_name: player.name,
-          color: player.color,
-          team: player.team ?? null,
-          status: 'pending',
-          requested_at: new Date().toISOString()
-        })
+        .insert(queueEntry)
 
       if (addError) throw addError
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to add to queue'))
+      setError(err instanceof Error ? err.message : 'Failed to add to queue')
       throw err
     } finally {
       setIsProcessing(false)
     }
   }, [sessionId, supabase])
 
-  const checkQueueStatus = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('bingo_session_queue')
-        .select('status')
-        .eq('session_id', sessionId)
-        .eq('status', 'pending')
-        .single()
-
-      if (error) throw error
-      return !!data
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to check queue status'))
-      return false
-    }
-  }, [sessionId, supabase])
-
-  // Add processQueue implementation
+  // Process queue
   const processQueue = useCallback(async () => {
     try {
       setIsProcessing(true)
@@ -190,15 +246,15 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
 
       // Process each entry
       for (const entry of pendingEntries) {
-        const { data: playerCount } = await supabase
+        // Check player count
+        const { count: playerCount } = await supabase
           .from('bingo_session_players')
-          .select('count')
+          .select('*', { count: 'exact', head: true })
           .eq('session_id', sessionId)
-          .single()
 
-        if ((playerCount?.count || 0) >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
+        if ((playerCount || 0) >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
           await updateQueueEntry(entry.id, { 
-            status: 'rejected',
+            status: 'failed',
             processed_at: new Date().toISOString()
           })
           continue
@@ -207,14 +263,14 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
         // Check if color is available
         const { data: colorCheck } = await supabase
           .from('bingo_session_players')
-          .select()
+          .select('id')
           .eq('session_id', sessionId)
           .eq('color', entry.color)
           .single()
 
         if (colorCheck) {
           await updateQueueEntry(entry.id, { 
-            status: 'rejected',
+            status: 'failed',
             processed_at: new Date().toISOString()
           })
           continue
@@ -225,7 +281,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
           .from('bingo_session_players')
           .insert({
             session_id: sessionId,
-            user_id: entry.user_id,
+            user_id: entry.user_id || '',
             player_name: entry.player_name,
             color: entry.color,
             team: entry.team,
@@ -234,34 +290,79 @@ export const useSessionQueue = (sessionId: string): UseSessionQueue => {
 
         if (playerError) {
           await updateQueueEntry(entry.id, { 
-            status: 'rejected',
+            status: 'failed',
             processed_at: new Date().toISOString()
           })
           continue
         }
 
         await updateQueueEntry(entry.id, { 
-          status: 'approved',
+          status: 'completed',
           processed_at: new Date().toISOString()
         })
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to process queue'))
+      setError(err instanceof Error ? err.message : 'Failed to process queue')
       throw err
     } finally {
       setIsProcessing(false)
     }
   }, [sessionId, supabase, updateQueueEntry])
 
+  // Calculate stats
+  const stats: QueueStats = {
+    totalEntries: queueEntries.length,
+    pendingEntries: queueEntries.filter(e => e.status === 'pending').length,
+    processingEntries: queueEntries.filter(e => e.status === 'processing').length,
+    completedEntries: queueEntries.filter(e => e.status === 'completed').length,
+    failedEntries: queueEntries.filter(e => e.status === 'failed').length,
+    averageProcessingTime: 0, // TODO: Calculate based on processed_at - requested_at
+    queueWaitTime: 0 // TODO: Calculate based on oldest pending entry
+  }
+
   return {
-    queueEntries,
-    isProcessing,
+    queueState: {
+      entries: queueEntries,
+      isProcessing,
+      processingEntryId: null,
+      error,
+      lastUpdated: Date.now()
+    },
+    queueEntries, // For backward compatibility
+    stats,
+    isLoading: isProcessing,
     error,
-    updateQueueEntry,
-    removeFromQueue,
-    cleanupQueue,
-    addToQueue,
-    checkQueueStatus,
-    processQueue
+    addPlayerToQueue: async (playerData: PlayerQueueData) => {
+      await addToQueue(playerData)
+      return null
+    },
+    removePlayerFromQueue: async (entryId: string) => {
+      await removeFromQueue(entryId)
+      return true
+    },
+    processQueueEntry: async (entryId: string) => {
+      await updateQueueEntry(entryId, { status: 'processing' })
+      return true
+    },
+    updateQueueEntry, // Added for backward compatibility
+    clearSessionQueue: async () => {
+      await cleanupQueue()
+    },
+    getPlayerQueuePosition: (userId: string, sessionId: string) => {
+      const entry = queueEntries.find(e => e.user_id === userId && e.session_id === sessionId)
+      return entry ? queueEntries.indexOf(entry) + 1 : -1
+    },
+    isPlayerInQueue: (userId: string, sessionId: string) => {
+      return queueEntries.some(e => e.user_id === userId && e.session_id === sessionId)
+    },
+    getQueueEntries: (sessionId: string) => {
+      return queueEntries.filter(e => e.session_id === sessionId)
+    },
+    subscribeToQueue: () => {
+      // Already handled in useEffect
+    },
+    unsubscribeFromQueue: () => {
+      // Already handled in useEffect cleanup
+    }
   }
 } 

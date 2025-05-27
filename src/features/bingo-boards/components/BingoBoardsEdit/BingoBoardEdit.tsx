@@ -14,15 +14,13 @@ import {
 } from "@/components/ui/select"
 import { Settings, Plus, X } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import type { Difficulty } from '@/src/lib/types/game.types'
-import { DIFFICULTIES, DIFFICULTY_STYLES } from '@/src/lib/types/game.types'
+import type { Difficulty, BingoCard } from '@/types'
+import { DIFFICULTIES, DIFFICULTY_STYLES, DEFAULT_BINGO_CARD } from '@/types'
 import { Checkbox } from "@/components/ui/checkbox"
-import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
+import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import { useState, useCallback, useEffect } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
-import type { BingoCard } from "@/src/lib/types/bingocard.types"
-import { DEFAULT_BINGO_CARD } from "@/src/lib/types/bingocard.types"
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
 import { ScrollArea } from "@/components/ui/scroll-area"

@@ -1,4 +1,6 @@
-// Re-export core types
+// Main database types file that combines all modular type definitions
+
+// Re-export all core types
 export * from './database.core'
 
 // Import all table interfaces
@@ -7,9 +9,9 @@ import type {
   BingoCardsTable,
   BingoSessionsTable,
   BingoSessionPlayersTable,
-  BingoSessionEventsTable,
-  BingoSessionCellsTable,
   BingoSessionQueueTable,
+  BingoSessionEventsTable,
+  BingoSessionCellsTable
 } from './database.bingo'
 
 import type {
@@ -20,9 +22,9 @@ import type {
   DiscussionsTable,
   CommentsTable,
   TagsTable,
-  TagHistoryTable,
-  TagReportsTable,
   TagVotesTable,
+  TagReportsTable,
+  TagHistoryTable
 } from './database.users'
 
 import type {
@@ -32,59 +34,45 @@ import type {
   SubmissionsTable,
   BoardBookmarksTable,
   BoardVotesTable,
-  CardVotesTable,
+  CardVotesTable
 } from './database.challenges'
 
-import type {
-  Json,
-  BoardStatus,
-  ChallengeStatus,
-  DifficultyLevel,
-  GameCategory,
-  QueueStatus,
-  SessionStatus,
-  SubmissionStatus,
-  TagAction,
-  TagStatus,
-  TagType,
-  UserRole,
-  VisibilityType,
-  VoteType,
-  BoardCell,
-  BoardSettings,
-  SessionSettings,
-  TagCategory,
-  WinConditions,
-} from './database.core'
+// =====================================================================
+// MAIN DATABASE INTERFACE
+// =====================================================================
 
-// Main Database interface
 export interface Database {
   public: {
     Tables: {
+      // Bingo-related tables
       bingo_boards: BingoBoardsTable
       bingo_cards: BingoCardsTable
-      bingo_session_cells: BingoSessionCellsTable
-      bingo_session_events: BingoSessionEventsTable
+      bingo_sessions: BingoSessionsTable
       bingo_session_players: BingoSessionPlayersTable
       bingo_session_queue: BingoSessionQueueTable
-      bingo_sessions: BingoSessionsTable
+      bingo_session_events: BingoSessionEventsTable
+      bingo_session_cells: BingoSessionCellsTable
+      
+      // User and community tables
+      users: UsersTable
+      user_sessions: UserSessionsTable
+      user_friends: UserFriendsTable
+      user_achievements: UserAchievementsTable
+      discussions: DiscussionsTable
+      comments: CommentsTable
+      tags: TagsTable
+      tag_votes: TagVotesTable
+      tag_reports: TagReportsTable
+      tag_history: TagHistoryTable
+      
+      // Challenge and other tables
+      categories: CategoriesTable
+      challenges: ChallengesTable
+      challenge_tags: ChallengeTagsTable
+      submissions: SubmissionsTable
       board_bookmarks: BoardBookmarksTable
       board_votes: BoardVotesTable
       card_votes: CardVotesTable
-      categories: CategoriesTable
-      challenge_tags: ChallengeTagsTable
-      challenges: ChallengesTable
-      comments: CommentsTable
-      discussions: DiscussionsTable
-      submissions: SubmissionsTable
-      tag_history: TagHistoryTable
-      tag_reports: TagReportsTable
-      tag_votes: TagVotesTable
-      tags: TagsTable
-      user_achievements: UserAchievementsTable
-      user_friends: UserFriendsTable
-      user_sessions: UserSessionsTable
-      users: UsersTable
     }
     Views: {
       [_ in never]: never
@@ -104,31 +92,87 @@ export interface Database {
       }
     }
     Enums: {
-      board_status: BoardStatus
-      challenge_status: ChallengeStatus
-      difficulty_level: DifficultyLevel
-      game_category: GameCategory
-      queue_status: QueueStatus
-      session_status: SessionStatus
-      submission_status: SubmissionStatus
-      tag_action: TagAction
-      tag_status: TagStatus
-      tag_type: TagType
-      user_role: UserRole
-      visibility_type: VisibilityType
-      vote_type: VoteType
+      board_status: "draft" | "active" | "paused" | "completed" | "archived"
+      challenge_status: "draft" | "published" | "archived"
+      difficulty_level: "beginner" | "easy" | "medium" | "hard" | "expert"
+      game_category:
+        | "All Games"
+        | "World of Warcraft"
+        | "Fortnite"
+        | "Minecraft"
+        | "Among Us"
+        | "Apex Legends"
+        | "League of Legends"
+        | "Overwatch"
+        | "Call of Duty: Warzone"
+        | "Valorant"
+      queue_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "processing"
+        | "completed"
+        | "failed"
+      session_status: "waiting" | "active" | "completed" | "cancelled"
+      submission_status: "pending" | "running" | "completed" | "failed"
+      tag_action: "create" | "update" | "delete" | "vote" | "verify" | "archive"
+      tag_status: "active" | "proposed" | "verified" | "archived" | "suspended"
+      tag_type: "core" | "game" | "community"
+      user_role: "user" | "premium" | "moderator" | "admin"
+      visibility_type: "public" | "friends" | "private"
+      vote_type: "up" | "down"
     }
     CompositeTypes: {
-      board_cell: BoardCell
-      board_settings: BoardSettings
-      session_settings: SessionSettings
-      tag_category: TagCategory
-      win_conditions: WinConditions
+      board_cell: {
+        text: string | null
+        colors: string[] | null
+        completed_by: string[] | null
+        blocked: boolean | null
+        is_marked: boolean | null
+        cell_id: string | null
+        version: number | null
+        last_updated: number | null
+        last_modified_by: string | null
+      }
+      board_settings: {
+        team_mode: boolean | null
+        lockout: boolean | null
+        sound_enabled: boolean | null
+        win_conditions: {
+          line: boolean | null
+          majority: boolean | null
+          diagonal: boolean | null
+          corners: boolean | null
+        } | null
+      }
+      session_settings: {
+        max_players: number | null
+        allow_spectators: boolean | null
+        auto_start: boolean | null
+        time_limit: number | null
+        require_approval: boolean | null
+      }
+      tag_category: {
+        id: string | null
+        name: string | null
+        is_required: boolean | null
+        allow_multiple: boolean | null
+        valid_for_games: string[] | null
+      }
+      win_conditions: {
+        line: boolean | null
+        majority: boolean | null
+        diagonal: boolean | null
+        corners: boolean | null
+      }
     }
   }
 }
 
-// Helper types for better developer experience
+// =====================================================================
+// HELPER TYPES
+// =====================================================================
+
 type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -234,34 +278,5 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-// Constants for easy access to enum values
-export const Constants = {
-  public: {
-    Enums: {
-      board_status: ["draft", "active", "paused", "completed", "archived"],
-      challenge_status: ["draft", "published", "archived"],
-      difficulty_level: ["beginner", "easy", "medium", "hard", "expert"],
-      game_category: [
-        "All Games",
-        "World of Warcraft",
-        "Fortnite",
-        "Minecraft",
-        "Among Us",
-        "Apex Legends",
-        "League of Legends",
-        "Overwatch",
-        "Call of Duty: Warzone",
-        "Valorant",
-      ],
-      queue_status: ["pending", "approved", "rejected"],
-      session_status: ["waiting", "active", "completed", "cancelled"],
-      submission_status: ["pending", "running", "completed", "failed"],
-      tag_action: ["create", "update", "delete", "vote", "verify", "archive"],
-      tag_status: ["active", "proposed", "verified", "archived", "suspended"],
-      tag_type: ["core", "game", "community"],
-      user_role: ["user", "premium", "moderator", "admin"],
-      visibility_type: ["public", "friends", "private"],
-      vote_type: ["up", "down"],
-    },
-  },
-} as const 
+// Re-export Constants for easy access
+export { Constants } from './database.core' 

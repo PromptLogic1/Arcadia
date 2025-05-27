@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useTransition } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Database } from '@/types/database.types'
-import type { BoardCell } from '../types/types'
-import type { UseBingoBoardProps, UseBingoBoardReturn } from '../types/bingoboard.types'
-import { BOARD_CONSTANTS, ERROR_MESSAGES } from '../types/bingoboard.constants'
+import type { Database, BingoBoard } from '@/types'
+import type { 
+  GameBoardCell,
+  UseBingoBoardProps, 
+  UseBingoBoardReturn
+} from '@/types/domains/bingo'
+import { 
+  BOARD_CONSTANTS,
+  ERROR_MESSAGES
+} from '@/types/domains/bingo'
 
 type BingoBoardRow = Database['public']['Tables']['bingo_boards']['Row']
 type PostgresChangesPayload<T> = {
@@ -67,7 +73,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
   const supabase = useMemo(() => createClientComponentClient<Database>(), [])
 
   // Validierung mit Fehler-Feedback
-  const validateBoardState = useCallback((state: unknown): state is BoardCell[] => {
+  const validateBoardState = useCallback((state: unknown): state is GameBoardCell[] => {
     if (!Array.isArray(state)) {
       dispatch({ type: 'UPDATE_ERROR', payload: new Error(ERROR_MESSAGES.INVALID_BOARD) })
       return false
@@ -153,7 +159,7 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
   }, [boardId, supabase, validateBoardState])
 
   // Update board state mit optimistischem Update und Merge-Logik
-  const updateBoardState = useCallback(async (newState: BoardCell[]) => {
+  const updateBoardState = useCallback(async (newState: GameBoardCell[]) => {
     if (!validateBoardState(newState)) {
       const errorMsg = ERROR_MESSAGES.INVALID_BOARD
       startTransition(() => {
@@ -264,11 +270,11 @@ export const useBingoBoard = ({ boardId }: UseBingoBoardProps): UseBingoBoardRet
               const boardState = updatedBoard.board_state
               dispatch({ type: 'UPDATE_BOARD', payload: {
                 ...updatedBoard,
-                board_state: boardState.map((cell: BoardCell, i: number) => ({
+                board_state: boardState.map((cell: GameBoardCell, i: number) => ({
                   ...cell,
                   colors: [...new Set([
                     ...(currentBoardState?.[i]?.colors || []),
-                    ...cell.colors
+                    ...(cell.colors || [])
                   ])]
                 }))
               } })

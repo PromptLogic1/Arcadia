@@ -6,7 +6,10 @@ import type {
   VoteType 
 } from './database.core'
 
-// Categories Table
+// =====================================================================
+// CATEGORIES TABLE
+// =====================================================================
+
 export interface CategoriesTable {
   Row: {
     created_at: string | null
@@ -32,7 +35,10 @@ export interface CategoriesTable {
   Relationships: []
 }
 
-// Challenges Table
+// =====================================================================
+// CHALLENGES TABLE
+// =====================================================================
+
 export interface ChallengesTable {
   Row: {
     category_id: string | null
@@ -97,7 +103,10 @@ export interface ChallengesTable {
   ]
 }
 
-// Challenge Tags Table
+// =====================================================================
+// CHALLENGE TAGS TABLE
+// =====================================================================
+
 export interface ChallengeTagsTable {
   Row: {
     challenge_id: string
@@ -129,7 +138,10 @@ export interface ChallengeTagsTable {
   ]
 }
 
-// Submissions Table
+// =====================================================================
+// SUBMISSIONS TABLE
+// =====================================================================
+
 export interface SubmissionsTable {
   Row: {
     challenge_id: string | null
@@ -182,7 +194,10 @@ export interface SubmissionsTable {
   ]
 }
 
-// Board Bookmarks Table
+// =====================================================================
+// BOARD BOOKMARKS TABLE
+// =====================================================================
+
 export interface BoardBookmarksTable {
   Row: {
     board_id: string
@@ -217,7 +232,10 @@ export interface BoardBookmarksTable {
   ]
 }
 
-// Board Votes Table
+// =====================================================================
+// BOARD VOTES TABLE
+// =====================================================================
+
 export interface BoardVotesTable {
   Row: {
     board_id: string
@@ -258,7 +276,10 @@ export interface BoardVotesTable {
   ]
 }
 
-// Card Votes Table
+// =====================================================================
+// CARD VOTES TABLE
+// =====================================================================
+
 export interface CardVotesTable {
   Row: {
     card_id: string

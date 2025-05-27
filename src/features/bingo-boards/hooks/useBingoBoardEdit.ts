@@ -1,14 +1,20 @@
 import { useState, useCallback, useEffect } from 'react'
-import type { BingoBoard, BingoCard, DifficultyLevel } from '@/src/lib/stores/types'
-import { useBingoBoards, useBingoBoardsActions } from '@/src/lib/stores'
-import { useBingoCards } from '@/src/lib/stores'
-import { useAuth } from '@/src/lib/stores'
+import type { 
+  BingoBoard, 
+  BingoCard, 
+  Difficulty,
+  BingoBoardUpdate,
+  BingoCardInsert 
+} from '@/types'
+// TODO: Replace with proper hooks from centralized system
+// import { useBingoBoards, useBingoBoardsActions } from '@/src/lib/stores'
+// import { useBingoCards } from '@/src/lib/stores'
+// import { useAuth } from '@/src/lib/stores'
 
 interface FormData {
-  board_title: string
-  board_description: string
-  board_tags: string[]
-  board_difficulty: DifficultyLevel
+  title: string
+  description: string
+  difficulty: Difficulty
   is_public: boolean
 }
 
@@ -34,7 +40,7 @@ interface BoardEditReturn {
   initializeBoard: () => Promise<void>
 }
 
-type FieldKey = 'board_title' | 'board_description' | 'board_tags' | 'board_difficulty' | 'is_public';
+type FieldKey = 'title' | 'description' | 'difficulty' | 'is_public';
 type FieldValue = string | number | boolean | string[];
 
 export function useBingoBoardEdit(boardId: string): BoardEditReturn {
@@ -45,40 +51,37 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [editingCard, setEditingCard] = useState<{ card: BingoCard; index: number } | null>(null)
   const [gridCards, setGridCards] = useState<BingoCard[]>([])
+  const [currentBoard, setCurrentBoard] = useState<BingoBoard | null>(null)
+  const [cards, setCards] = useState<BingoCard[]>([])
+  const [error, setError] = useState<string | null>(null)
 
-  // Use Zustand stores
-  const { currentBoard, error: boardError } = useBingoBoards()
-  const { cards, error: cardsError } = useBingoCards()
-  const { userData } = useAuth()
-  const { setError } = useBingoBoardsActions()
-  
-  const error = boardError || cardsError
+  // Mock user data - TODO: Replace with real auth hook
+  const userData = { id: 'mock-user-id' }
 
   useEffect(() => {
     if (currentBoard) {
       setFormData({
-        board_title: currentBoard.board_title,
-        board_description: currentBoard.board_description || '',
-        board_tags: currentBoard.board_tags || [],
-        board_difficulty: currentBoard.board_difficulty,
-        is_public: currentBoard.is_public,
+        title: currentBoard.title,
+        description: currentBoard.description || '',
+        difficulty: currentBoard.difficulty,
+        is_public: currentBoard.is_public || false,
       })
     }
   }, [currentBoard])
 
   const validateBingoBoardField = useCallback((field: string, value: FieldValue): string | null => {
     switch (field) {
-      case 'board_title':
+      case 'title':
         if (typeof value === 'string' && (value.length < 3 || value.length > 50)) {
           return 'Title must be between 3 and 50 characters'
         }
         break
-      case 'board_description':
+      case 'description':
         if (typeof value === 'string' && value.length > 255) {
           return 'Description cannot exceed 255 characters'
         }
         break
-      case 'board_tags':
+      case 'tags':
         if (Array.isArray(value) && value.length > 5) {
           return 'Maximum of 5 tags allowed'
         }
@@ -89,17 +92,17 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
 
   const validateBingoCardField = useCallback((field: string, value: string | string[] | boolean): string | null => {
     switch (field) {
-      case 'card_content':
+      case 'title':
         if (typeof value === 'string' && (value.length === 0 || value.length > 50)) {
           return 'Content must be between 1 and 50 characters'
         }
         break
-      case 'card_explanation':
+      case 'description':
         if (typeof value === 'string' && value.length > 255) {
           return 'Explanation cannot exceed 255 characters'
         }
         break
-      case 'card_tags':
+      case 'tags':
         if (Array.isArray(value) && value.length > 5) {
           return 'Maximum of 5 tags allowed'
         }
@@ -130,21 +133,19 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
         throw new Error('Board or user not found')
       }
 
-      // Create a basic card structure - this will need to be expanded
+      // Create a basic card structure using correct schema
       const newCard: BingoCard = {
         id: `card-${Date.now()}`, // Temporary ID generation
-        card_content: updates.card_content || '',
-        card_explanation: updates.card_explanation || null,
-        card_type: updates.card_type || 'action',
-        card_difficulty: updates.card_difficulty || 'medium',
-        game_category: currentBoard.board_game_type,
-        card_tags: updates.card_tags || [],
+        title: updates.title || '',
+        description: updates.description || null,
+        difficulty: updates.difficulty || 'medium',
+        game_type: currentBoard.game_type,
+        tags: updates.tags || [],
         creator_id: userData.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_public: updates.is_public || false,
-        votes: 0,
-        generated_by_ai: false
+        votes: 0
       }
 
       if (index >= 0) {
@@ -197,22 +198,45 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
   const handleSave = useCallback(async () => {
     if (!currentBoard || !formData) return false
     try {
-      // This will need to be implemented with proper Zustand actions
+      // TODO: Implement proper save logic with Supabase
       console.log('Saving board changes:', formData)
       return true
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update board')
       return false
     }
-  }, [currentBoard, formData, setError])
+  }, [currentBoard, formData])
 
   const initializeBoard = useCallback(async () => {
     try {
       setIsLoadingBoard(true)
       setIsLoadingCards(true)
 
-      // Initialize with proper board loading logic
+      // TODO: Replace with proper Supabase data loading
       console.log('Loading board:', boardId)
+      
+      // Mock board data for now
+      const mockBoard: BingoBoard = {
+        id: boardId,
+        title: 'Mock Board',
+        description: 'Mock Description',
+        game_type: 'World of Warcraft',
+        difficulty: 'medium',
+        size: 5,
+        is_public: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        creator_id: 'mock-user-id',
+        board_state: null,
+        bookmarked_count: null,
+        cloned_from: null,
+        settings: null,
+        status: null,
+        version: null,
+        votes: null
+      }
+      
+      setCurrentBoard(mockBoard)
       
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to load board')
@@ -220,7 +244,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       setIsLoadingBoard(false)
       setIsLoadingCards(false)
     }
-  }, [boardId, setError])
+  }, [boardId])
 
   return {
     isLoadingBoard,
@@ -237,7 +261,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     placeCardInGrid,
     createNewCard,
     updateExistingCard,
-    gridSize: currentBoard?.board_size || 0,
+    gridSize: currentBoard?.size || 0,
     editingCard,
     setEditingCard,
     validateBingoCardField,

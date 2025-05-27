@@ -9,7 +9,10 @@ import type {
   TagType
 } from './database.core'
 
-// Users Table
+// =====================================================================
+// USERS TABLE
+// =====================================================================
+
 export interface UsersTable {
   Row: {
     achievements_visibility: VisibilityType | null
@@ -71,7 +74,10 @@ export interface UsersTable {
   Relationships: []
 }
 
-// User Sessions Table
+// =====================================================================
+// USER SESSIONS TABLE
+// =====================================================================
+
 export interface UserSessionsTable {
   Row: {
     created_at: string | null
@@ -114,7 +120,10 @@ export interface UserSessionsTable {
   ]
 }
 
-// User Friends Table
+// =====================================================================
+// USER FRIENDS TABLE
+// =====================================================================
+
 export interface UserFriendsTable {
   Row: {
     created_at: string | null
@@ -155,7 +164,10 @@ export interface UserFriendsTable {
   ]
 }
 
-// User Achievements Table
+// =====================================================================
+// USER ACHIEVEMENTS TABLE
+// =====================================================================
+
 export interface UserAchievementsTable {
   Row: {
     achievement_name: string
@@ -201,7 +213,10 @@ export interface UserAchievementsTable {
   ]
 }
 
-// Discussions Table
+// =====================================================================
+// DISCUSSIONS TABLE
+// =====================================================================
+
 export interface DiscussionsTable {
   Row: {
     author_id: string | null
@@ -250,7 +265,10 @@ export interface DiscussionsTable {
   ]
 }
 
-// Comments Table
+// =====================================================================
+// COMMENTS TABLE
+// =====================================================================
+
 export interface CommentsTable {
   Row: {
     author_id: string | null
@@ -297,7 +315,10 @@ export interface CommentsTable {
   ]
 }
 
-// Tags Table
+// =====================================================================
+// TAGS TABLE
+// =====================================================================
+
 export interface TagsTable {
   Row: {
     category: TagCategory | null
@@ -352,51 +373,54 @@ export interface TagsTable {
   ]
 }
 
-// Tag History Table
-export interface TagHistoryTable {
+// =====================================================================
+// TAG VOTES TABLE
+// =====================================================================
+
+export interface TagVotesTable {
   Row: {
-    action: TagAction
-    changes: Json | null
-    created_at: string | null
     id: string
-    performed_by: string | null
     tag_id: string | null
+    timestamp: string | null
+    user_id: string | null
+    vote: VoteType
   }
   Insert: {
-    action: TagAction
-    changes?: Json | null
-    created_at?: string | null
     id?: string
-    performed_by?: string | null
     tag_id?: string | null
+    timestamp?: string | null
+    user_id?: string | null
+    vote: VoteType
   }
   Update: {
-    action?: TagAction
-    changes?: Json | null
-    created_at?: string | null
     id?: string
-    performed_by?: string | null
     tag_id?: string | null
+    timestamp?: string | null
+    user_id?: string | null
+    vote?: VoteType
   }
   Relationships: [
     {
-      foreignKeyName: "tag_history_performed_by_fkey"
-      columns: ["performed_by"]
-      isOneToOne: false
-      referencedRelation: "users"
-      referencedColumns: ["id"]
-    },
-    {
-      foreignKeyName: "tag_history_tag_id_fkey"
+      foreignKeyName: "tag_votes_tag_id_fkey"
       columns: ["tag_id"]
       isOneToOne: false
       referencedRelation: "tags"
       referencedColumns: ["id"]
     },
+    {
+      foreignKeyName: "tag_votes_user_id_fkey"
+      columns: ["user_id"]
+      isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },
   ]
 }
 
-// Tag Reports Table
+// =====================================================================
+// TAG REPORTS TABLE
+// =====================================================================
+
 export interface TagReportsTable {
   Row: {
     id: string
@@ -437,42 +461,48 @@ export interface TagReportsTable {
   ]
 }
 
-// Tag Votes Table
-export interface TagVotesTable {
+// =====================================================================
+// TAG HISTORY TABLE
+// =====================================================================
+
+export interface TagHistoryTable {
   Row: {
+    action: TagAction
+    changes: Json | null
+    created_at: string | null
     id: string
+    performed_by: string | null
     tag_id: string | null
-    timestamp: string | null
-    user_id: string | null
-    vote: VoteType
   }
   Insert: {
+    action: TagAction
+    changes?: Json | null
+    created_at?: string | null
     id?: string
+    performed_by?: string | null
     tag_id?: string | null
-    timestamp?: string | null
-    user_id?: string | null
-    vote: VoteType
   }
   Update: {
+    action?: TagAction
+    changes?: Json | null
+    created_at?: string | null
     id?: string
+    performed_by?: string | null
     tag_id?: string | null
-    timestamp?: string | null
-    user_id?: string | null
-    vote?: VoteType
   }
   Relationships: [
     {
-      foreignKeyName: "tag_votes_tag_id_fkey"
-      columns: ["tag_id"]
+      foreignKeyName: "tag_history_performed_by_fkey"
+      columns: ["performed_by"]
       isOneToOne: false
-      referencedRelation: "tags"
+      referencedRelation: "users"
       referencedColumns: ["id"]
     },
     {
-      foreignKeyName: "tag_votes_user_id_fkey"
-      columns: ["user_id"]
+      foreignKeyName: "tag_history_tag_id_fkey"
+      columns: ["tag_id"]
       isOneToOne: false
-      referencedRelation: "users"
+      referencedRelation: "tags"
       referencedColumns: ["id"]
     },
   ]
