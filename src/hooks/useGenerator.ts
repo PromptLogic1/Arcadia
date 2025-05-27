@@ -1,37 +1,15 @@
-import { useSelector, useDispatch } from 'react-redux'
-import { useCallback } from 'react'
-import { 
-  selectCardsForSelection, 
-  selectSelectedCards, 
-  selectIsLoading, 
-  selectError 
-} from '@/src/store/selectors/bingogeneratorSelectors'
-import { 
-  clearCardsForSelection, 
-  clearSelectedCards 
-} from '@/src/store/slices/bingogeneratorSlice'
+import { useBingoGenerator, useBingoGeneratorActions } from '@/src/lib/stores'
 
 export function useGenerator() {
-  const dispatch = useDispatch()
-  const cardsForSelection = useSelector(selectCardsForSelection)
-  const selectedCards = useSelector(selectSelectedCards)
-  const isLoading = useSelector(selectIsLoading)
-  const error = useSelector(selectError)
-
-  const clearSelection = useCallback(() => {
-    dispatch(clearCardsForSelection())
-  }, [dispatch])
-
-  const clearSelected = useCallback(() => {
-    dispatch(clearSelectedCards())
-  }, [dispatch])
+  const { cardsForSelection, selectedCards, isLoading, error } = useBingoGenerator()
+  const { clearCardsForSelection, clearSelectedCards } = useBingoGeneratorActions()
 
   return {
     cardsForSelection,
     selectedCards,
     isLoading,
     error,
-    clearSelection,
-    clearSelected
+    clearSelection: clearCardsForSelection,
+    clearSelected: clearSelectedCards
   }
 }

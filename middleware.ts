@@ -1,6 +1,6 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
-import type { Request } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 // Define paths that require authentication
 const protectedPaths = [
@@ -14,7 +14,7 @@ const authPaths = [
   '/auth/oauth-success'
 ]
 
-export async function middleware(req: Request) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
@@ -22,7 +22,7 @@ export async function middleware(req: Request) {
   const { data: { session } } = await supabase.auth.getSession()
 
   // Get the pathname of the request
-  const pathname = req.url
+  const pathname = req.nextUrl.pathname
 
   // Check if the path is protected
   const isProtectedPath = protectedPaths.some(path => {
@@ -39,7 +39,7 @@ export async function middleware(req: Request) {
   if (!session && isProtectedPath) {
     // If user is not authenticated and tries to access protected route,
     // redirect to login page
-    const redirectUrl = new URL('/login', req.url)
+    const redirectUrl = new URL('/login', req.nextUrl.origin)
     redirectUrl.searchParams.set('redirectedFrom', pathname)
     return NextResponse.redirect(redirectUrl)
   }
@@ -47,7 +47,7 @@ export async function middleware(req: Request) {
   if (session && (pathname === '/login' || pathname === '/signup')) {
     // If user is authenticated and tries to access login/signup pages,
     // redirect to dashboard or home
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/', req.nextUrl.origin))
   }
 
   return res

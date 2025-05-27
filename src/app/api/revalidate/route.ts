@@ -5,10 +5,14 @@ import { revalidatePath } from 'next/cache'
 export async function POST(req: Request) {
   try {
     const { token, path } = await req.json()
-    const config = getRuntimeConfig()
+    
+    // Get configuration values
+    const revalidateToken = await getRuntimeConfig('REVALIDATE_TOKEN')
+    const allowedPathsStr = await getRuntimeConfig('ALLOWED_REVALIDATE_PATHS')
+    const allowedPaths = typeof allowedPathsStr === 'string' ? allowedPathsStr.split(',') : ['/']
 
     // Validate token
-    if (token !== config.revalidateToken) {
+    if (token !== revalidateToken) {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -16,7 +20,7 @@ export async function POST(req: Request) {
     }
 
     // Validate path
-    if (!config.allowedPaths.includes(path)) {
+    if (!allowedPaths.includes(path)) {
       return NextResponse.json(
         { error: 'Invalid path' },
         { status: 400 }

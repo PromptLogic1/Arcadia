@@ -1,314 +1,267 @@
-import type { BoardCell } from '@/components/challenges/bingo-board/types/types'
+// Re-export core types
+export * from './database.core'
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+// Import all table interfaces
+import type {
+  BingoBoardsTable,
+  BingoCardsTable,
+  BingoSessionsTable,
+  BingoSessionPlayersTable,
+  BingoSessionEventsTable,
+  BingoSessionCellsTable,
+  BingoSessionQueueTable,
+} from './database.bingo'
 
+import type {
+  UsersTable,
+  UserSessionsTable,
+  UserFriendsTable,
+  UserAchievementsTable,
+  DiscussionsTable,
+  CommentsTable,
+  TagsTable,
+  TagHistoryTable,
+  TagReportsTable,
+  TagVotesTable,
+} from './database.users'
+
+import type {
+  CategoriesTable,
+  ChallengesTable,
+  ChallengeTagsTable,
+  SubmissionsTable,
+  BoardBookmarksTable,
+  BoardVotesTable,
+  CardVotesTable,
+} from './database.challenges'
+
+import type {
+  Json,
+  BoardStatus,
+  ChallengeStatus,
+  DifficultyLevel,
+  GameCategory,
+  QueueStatus,
+  SessionStatus,
+  SubmissionStatus,
+  TagAction,
+  TagStatus,
+  TagType,
+  UserRole,
+  VisibilityType,
+  VoteType,
+  BoardCell,
+  BoardSettings,
+  SessionSettings,
+  TagCategory,
+  WinConditions,
+} from './database.core'
+
+// Main Database interface
 export interface Database {
   public: {
     Tables: {
-      users: {
-        Row: {
-          id: string
-          auth_id?: string
-          username: string
-          full_name: string | null
-          avatar_url: string | null
-          role?: 'user' | 'premium' | 'moderator' | 'admin'
-          experience_points?: number
-          land?: string | null
-          region?: string | null
-          city?: string | null
-          bio?: string | null
-          last_login_at: string | null
-          created_at?: string
-          updated_at?: string
-          profile_visibility?: 'public' | 'friends' | 'private'
-          achievements_visibility?: 'public' | 'friends' | 'private'
-          submissions_visibility?: 'public' | 'friends' | 'private'
-        }
-        Insert: Omit<Tables['users']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Tables['users']['Insert']>
-      }
-      challenges: {
-        Row: {
-          id: string
-          title: string
-          slug: string
-          description: string
-          difficulty: 'easy' | 'medium' | 'hard'
-          category_id: string
-          created_by: string
-          status: 'draft' | 'published' | 'archived'
-          test_cases: Json
-          initial_code: string
-          solution_code: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['challenges']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Tables['challenges']['Insert']>
-      }
-      submissions: {
-        Row: {
-          id: string
-          challenge_id: string
-          user_id: string
-          code: string
-          language: string
-          status: 'pending' | 'running' | 'completed' | 'failed'
-          results: Json | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['submissions']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Tables['submissions']['Insert']>
-      }
-      categories: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['categories']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Tables['categories']['Insert']>
-      }
-      challenge_tags: {
-        Row: {
-          challenge_id: string
-          tag_id: string
-        }
-        Insert: Tables['challenge_tags']['Row']
-        Update: Tables['challenge_tags']['Row']
-      }
-      tags: {
-        Row: {
-          id: string
-          name: string
-          type: 'core' | 'game' | 'community'
-          category: {
-            id: string
-            name: string
-            isRequired: boolean
-            allowMultiple: boolean
-            validForGames: string[]
-          }
-          status: 'active' | 'proposed' | 'verified' | 'archived' | 'suspended'
-          description: string
-          game?: string
-          created_at: string
-          updated_at: string
-          usage_count: number
-          votes: number
-          created_by?: string
-        }
-        Insert: Omit<Tables['tags']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Tables['tags']['Row']>
-      }
-      discussions: {
-        Row: {
-          id: number
-          title: string
-          content: string
-          game: string
-          challenge_type: string | null
-          tags: string[]
-          upvotes: number
-          author_id: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['discussions']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Tables['discussions']['Row'], 'id' | 'created_at' | 'updated_at'>>
-      }
-      comments: {
-        Row: {
-          id: number
-          content: string
-          upvotes: number
-          author_id: string
-          discussion_id: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['comments']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Tables['comments']['Row'], 'id' | 'created_at' | 'updated_at'>>
-      }
-      bingo_boards: {
-        Row: {
-          id: string
-          title: string
-          creator_id: string
-          size: number
-          board_state: BoardCell[]
-          settings: {
-            teamMode: boolean
-            lockout: boolean
-            soundEnabled: boolean
-            winConditions: {
-              line: boolean
-              majority: boolean
-            }
-          }
-          status: 'draft' | 'active' | 'paused' | 'completed' | 'archived'
-          game_type: string
-          difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
-          is_public: boolean
-          cloned_from: string | null
-          votes: number
-          bookmarked_count: number
-          created_at: string
-          updated_at: string
-          version?: number
-        }
-        Insert: Omit<Tables['bingo_boards']['Row'], 'id' | 'votes' | 'bookmarked_count' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Tables['bingo_boards']['Row'], 'id' | 'created_at' | 'updated_at'>>
-      }
-      bingo_sessions: {
-        Row: {
-          id: string
-          board_id: string
-          status: 'active' | 'completed' | 'cancelled'
-          current_state: BoardCell[]
-          winner_id: string | null
-          started_at: string
-          ended_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['bingo_sessions']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Tables['bingo_sessions']['Row'], 'id' | 'created_at' | 'updated_at'>>
-      }
-      bingo_session_players: {
-        Row: {
-          session_id: string
-          user_id: string
-          player_name: string
-          color: string
-          team: number | null
-          joined_at: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['bingo_session_players']['Row'], 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Tables['bingo_session_players']['Row'], 'created_at' | 'updated_at'>>
-      }
-      bingo_session_queue: {
-        Row: {
-          id: string
-          session_id: string
-          user_id: string
-          player_name: string
-          color: string
-          team: number | null
-          requested_at: string
-          status: 'pending' | 'approved' | 'rejected'
-          processed_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['bingo_session_queue']['Row'], 'id' | 'created_at' | 'updated_at' | 'processed_at'>
-        Update: Partial<Tables['bingo_session_queue']['Row']>
-      }
-      bingo_session_events: {
-        Row: {
-          id: string
-          board_id: string
-          event_type: string
-          player_id?: string
-          data: unknown
-          timestamp: number
-          version?: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          board_id: string
-          event_type: string
-          player_id?: string
-          data: unknown
-          timestamp: number
-          version?: number
-        }
-        Update: Partial<Omit<Tables['bingo_session_events']['Row'], 'id' | 'created_at' | 'updated_at'>>
-      }
-      bingo_session_cells: {
-        Row: {
-          id: string
-          board_id: string
-          cell_data: BoardCell
-          version: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: Omit<Tables['bingo_session_cells']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Tables['bingo_session_cells']['Row']>
-      }
-      tag_votes: {
-        Row: {
-          id: string
-          tag_id: string
-          user_id: string
-          vote: 'up' | 'down'
-          timestamp: string
-        }
-        Insert: Omit<Tables['tag_votes']['Row'], 'id'>
-        Update: Partial<Tables['tag_votes']['Row']>
-      }
-      tag_reports: {
-        Row: {
-          id: string
-          tag_id: string
-          user_id: string
-          reason: string
-          timestamp: string
-        }
-        Insert: Omit<Tables['tag_reports']['Row'], 'id'>
-        Update: Partial<Tables['tag_reports']['Row']>
-      }
-      tag_history: {
-        Row: {
-          id: string
-          tag_id: string
-          action: 'create' | 'update' | 'delete' | 'vote' | 'verify' | 'archive'
-          changes: Record<string, unknown>
-          performed_by: string
-          created_at: string
-        }
-        Insert: Omit<Tables['tag_history']['Row'], 'id' | 'created_at'>
-        Update: Partial<Tables['tag_history']['Row']>
-      }
+      bingo_boards: BingoBoardsTable
+      bingo_cards: BingoCardsTable
+      bingo_session_cells: BingoSessionCellsTable
+      bingo_session_events: BingoSessionEventsTable
+      bingo_session_players: BingoSessionPlayersTable
+      bingo_session_queue: BingoSessionQueueTable
+      bingo_sessions: BingoSessionsTable
+      board_bookmarks: BoardBookmarksTable
+      board_votes: BoardVotesTable
+      card_votes: CardVotesTable
+      categories: CategoriesTable
+      challenge_tags: ChallengeTagsTable
+      challenges: ChallengesTable
+      comments: CommentsTable
+      discussions: DiscussionsTable
+      submissions: SubmissionsTable
+      tag_history: TagHistoryTable
+      tag_reports: TagReportsTable
+      tag_votes: TagVotesTable
+      tags: TagsTable
+      user_achievements: UserAchievementsTable
+      user_friends: UserFriendsTable
+      user_sessions: UserSessionsTable
+      users: UsersTable
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      increment_discussion_upvotes: {
-        Args: {
-          discussion_id: number
-        }
-        Returns: void
-      }
       add_comment: {
         Args: {
           p_discussion_id: number
           p_content: string
           p_author_id: string
         }
-        Returns: Database['public']['Tables']['comments']['Row']
+        Returns: number
+      }
+      increment_discussion_upvotes: {
+        Args: { discussion_id: number }
+        Returns: undefined
       }
     }
     Enums: {
-      [_ in never]: never
+      board_status: BoardStatus
+      challenge_status: ChallengeStatus
+      difficulty_level: DifficultyLevel
+      game_category: GameCategory
+      queue_status: QueueStatus
+      session_status: SessionStatus
+      submission_status: SubmissionStatus
+      tag_action: TagAction
+      tag_status: TagStatus
+      tag_type: TagType
+      user_role: UserRole
+      visibility_type: VisibilityType
+      vote_type: VoteType
+    }
+    CompositeTypes: {
+      board_cell: BoardCell
+      board_settings: BoardSettings
+      session_settings: SessionSettings
+      tag_category: TagCategory
+      win_conditions: WinConditions
     }
   }
 }
 
-// Hilfstypaliase
-export type Tables = Database['public']['Tables']
+// Helper types for better developer experience
+type DefaultSchema = Database[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof Database },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+// Constants for easy access to enum values
+export const Constants = {
+  public: {
+    Enums: {
+      board_status: ["draft", "active", "paused", "completed", "archived"],
+      challenge_status: ["draft", "published", "archived"],
+      difficulty_level: ["beginner", "easy", "medium", "hard", "expert"],
+      game_category: [
+        "All Games",
+        "World of Warcraft",
+        "Fortnite",
+        "Minecraft",
+        "Among Us",
+        "Apex Legends",
+        "League of Legends",
+        "Overwatch",
+        "Call of Duty: Warzone",
+        "Valorant",
+      ],
+      queue_status: ["pending", "approved", "rejected"],
+      session_status: ["waiting", "active", "completed", "cancelled"],
+      submission_status: ["pending", "running", "completed", "failed"],
+      tag_action: ["create", "update", "delete", "vote", "verify", "archive"],
+      tag_status: ["active", "proposed", "verified", "archived", "suspended"],
+      tag_type: ["core", "game", "community"],
+      user_role: ["user", "premium", "moderator", "admin"],
+      visibility_type: ["public", "friends", "private"],
+      vote_type: ["up", "down"],
+    },
+  },
+} as const 
