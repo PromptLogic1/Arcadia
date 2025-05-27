@@ -359,14 +359,35 @@ export function isValidTagName(name: string): boolean {
   )
 }
 
-export function isGameDiscussion(obj: any): obj is GameDiscussion {
-  return obj && typeof obj.id === 'number' && typeof obj.title === 'string'
+export function isGameDiscussion(obj: unknown): obj is GameDiscussion {
+  return (
+    obj !== null && 
+    typeof obj === 'object' && 
+    'id' in obj && 
+    'title' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'number' && 
+    typeof (obj as Record<string, unknown>).title === 'string'
+  )
 }
 
-export function isGameComment(obj: any): obj is GameComment {
-  return obj && typeof obj.id === 'number' && typeof obj.content === 'string'
+export function isGameComment(obj: unknown): obj is GameComment {
+  return (
+    obj !== null && 
+    typeof obj === 'object' && 
+    'id' in obj && 
+    'content' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'number' && 
+    typeof (obj as Record<string, unknown>).content === 'string'
+  )
 }
 
-export function isGameTag(obj: any): obj is GameTag {
-  return obj && typeof obj.id === 'string' && typeof obj.name === 'string'
+export function isGameTag(obj: unknown): obj is GameTag {
+  return (
+    obj !== null && 
+    typeof obj === 'object' && 
+    'id' in obj && 
+    'name' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'string' && 
+    typeof (obj as Record<string, unknown>).name === 'string'
+  )
 } 

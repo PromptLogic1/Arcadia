@@ -25,6 +25,7 @@ import {
   TabsContent
 } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils'
+import { notifications } from '@/src/lib/notifications'
 import { ChevronDown, Settings, Plus, X } from 'lucide-react'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import NeonText from "@/components/ui/NeonText"
@@ -122,7 +123,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     // Check if card is already in grid
     const isCardInGrid = gridCards.some(gc => gc.id === card.id)
     if (isCardInGrid) {
-      alert('This card is already in the grid') // Simple alert for feedback
+              notifications.cardAlreadyInGrid()
       return
     }
     setSelectedCard(card)

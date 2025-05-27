@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DialogWrapper } from "./shared/DialogWrapper"
-import { FilterGroup } from "./shared/FilterGroup"
+import { FilterGroup } from "../shared/FilterGroup"
 
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
@@ -75,7 +75,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({ onClose, on
   }
 
   return (
-    <DialogWrapper open={true} onClose={onClose}>
+    <DialogWrapper open={true} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogHeader>
         <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">
           Create Discussion

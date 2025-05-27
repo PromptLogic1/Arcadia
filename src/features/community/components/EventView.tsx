@@ -23,7 +23,7 @@ const EventView: React.FC<EventViewProps> = ({ event, onClose }) => {
   return (
     <DialogWrapper 
       open={true} 
-      onClose={onClose}
+      onOpenChange={(open) => { if (!open) onClose() }}
       className="bg-gray-800 text-cyan-100 max-w-4xl max-h-[80vh]"
     >
       <DialogHeader>
@@ -66,7 +66,7 @@ const EventView: React.FC<EventViewProps> = ({ event, onClose }) => {
           <div>
             <h3 className="text-lg font-semibold mb-2">Tags</h3>
             <div className="flex flex-wrap gap-2">
-              {event.tags.map((tag) => (
+              {event.tags.map((tag: string) => (
                 <Badge key={tag} variant="secondary" className="bg-gray-700">
                   {tag}
                 </Badge>

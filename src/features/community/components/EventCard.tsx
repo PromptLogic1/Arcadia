@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Trophy, Calendar, ChevronDown, MapPin, Star, Bell, Share2 } from "lucide-react"
-import { CardWrapper } from "./shared/CardWrapper"
+import { CardWrapper } from "../shared/CardWrapper"
 import type { Event } from "./types/types"
 import { Button } from "@/components/ui/button"
 import { format } from 'date-fns'
@@ -72,7 +72,7 @@ const EventCard = React.memo(({ event, isExpanded, onToggle }: EventCardProps) =
   const handleInterested = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     setIsInterested(prev => !prev)
-    setLocalParticipants(prev => isInterested ? prev - 1 : prev + 1)
+    setLocalParticipants((prev: number) => isInterested ? prev - 1 : prev + 1)
   }, [isInterested])
 
   const handleNotify = useCallback((e: React.MouseEvent) => {
@@ -223,7 +223,7 @@ const EventCard = React.memo(({ event, isExpanded, onToggle }: EventCardProps) =
                     Event Tags
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {event.tags.map((tag) => (
+                    {event.tags.map((tag: string) => (
                       <button
                         key={tag}
                         className="px-3 py-1.5 bg-gray-800/50 hover:bg-gray-700/50 text-lime-400 border border-lime-500/20 rounded-full text-sm font-medium transition-colors"

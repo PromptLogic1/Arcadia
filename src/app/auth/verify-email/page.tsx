@@ -44,7 +44,7 @@ function VerifyEmailContent() {
             className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
             onClick={() => {
               // TODO: Implement resend verification email
-              alert('Resend functionality will be implemented soon')
+              notifications.info('Resend functionality will be implemented soon')
             }}
           >
             Click to resend

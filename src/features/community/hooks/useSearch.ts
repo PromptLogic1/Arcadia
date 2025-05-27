@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useTransition } from 'react'
-import type { Discussion, Event } from '../types/types'
+import type { Discussion, Event } from '@/src/lib/stores/community-store'
 import { useDebounce } from '@/src/hooks/useDebounce'
 
 interface UseSearchReturn<T> {
@@ -65,9 +65,11 @@ export function useSearch<T extends Discussion | Event>(
       })
       .sort((a, b) => {
         if (sortBy === 'newest') {
-          return new Date(b.date).getTime() - new Date(a.date).getTime()
+          const aDate = 'date' in a ? a.date : a.created_at || ''
+          const bDate = 'date' in b ? b.date : b.created_at || ''
+          return new Date(bDate).getTime() - new Date(aDate).getTime()
         }
-        return 'upvotes' in a && 'upvotes' in b ? b.upvotes - a.upvotes : 0
+        return 'upvotes' in a && 'upvotes' in b ? (b.upvotes || 0) - (a.upvotes || 0) : 0
       })
   }, [items, debouncedSearch, selectedGame, selectedChallenge, sortBy, searchKeys])
 

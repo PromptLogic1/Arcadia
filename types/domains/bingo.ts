@@ -540,16 +540,37 @@ export const ERROR_MESSAGES = {
 // TYPE GUARDS
 // =============================================================================
 
-export function isGameBoard(obj: any): obj is GameBoard {
-  return obj && typeof obj.id === 'string' && typeof obj.title === 'string'
+export function isGameBoard(obj: unknown): obj is GameBoard {
+  return (
+    obj !== null && 
+    typeof obj === 'object' && 
+    'id' in obj && 
+    'title' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'string' && 
+    typeof (obj as Record<string, unknown>).title === 'string'
+  )
 }
 
-export function isGameSession(obj: any): obj is GameSession {
-  return obj && typeof obj.id === 'string' && obj.board_id
+export function isGameSession(obj: unknown): obj is GameSession {
+  return (
+    obj !== null && 
+    typeof obj === 'object' && 
+    'id' in obj && 
+    'board_id' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'string' && 
+    typeof (obj as Record<string, unknown>).board_id === 'string'
+  )
 }
 
-export function isGamePlayer(obj: any): obj is GamePlayer {
-  return obj && typeof obj.user_id === 'string' && typeof obj.session_id === 'string'
+export function isGamePlayer(obj: unknown): obj is GamePlayer {
+  return (
+    obj !== null && 
+    typeof obj === 'object' && 
+    'user_id' in obj && 
+    'session_id' in obj &&
+    typeof (obj as Record<string, unknown>).user_id === 'string' && 
+    typeof (obj as Record<string, unknown>).session_id === 'string'
+  )
 }
 
 export function isValidColor(color: string): boolean {

@@ -31,14 +31,14 @@ export function useDebounce<T>(value: T, delay: number): T {
  * @param deps - Dependencies array for the callback
  * @returns The debounced callback function
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
+export function useDebouncedCallback<TArgs extends readonly unknown[], TReturn = void>(
+  callback: (...args: TArgs) => TReturn,
   delay: number,
   deps: React.DependencyList = []
-): T {
+): (...args: TArgs) => void {
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
 
-  const debouncedCallback = ((...args: Parameters<T>) => {
+  const debouncedCallback = (...args: TArgs): void => {
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
@@ -48,7 +48,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
     }, delay)
 
     setTimeoutId(newTimeoutId)
-  }) as T
+  }
 
   useEffect(() => {
     return () => {

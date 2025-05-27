@@ -2,8 +2,14 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Discussion, Comment } from '../types/types'
+import type { Discussion as BaseDiscussion, Comment } from '@/src/lib/stores/community-store'
 import type { Database } from '@/types/database.types'
+
+// Extended Discussion type that includes UI-specific properties
+interface Discussion extends BaseDiscussion {
+  comments?: number
+  commentList?: Comment[]
+}
 
 interface UseDiscussionsReturn {
   discussions: readonly Discussion[]
@@ -234,8 +240,8 @@ export const useDiscussions = (): UseDiscussionsReturn => {
         discussion.id === discussionId
           ? {
               ...discussion,
-              comments: discussion.comments + 1,
-              commentList: [...discussion.commentList, transformedComment]
+              comments: (discussion.comments || 0) + 1,
+              commentList: [...(discussion.commentList || []), transformedComment]
             }
           : discussion
       ))
@@ -264,7 +270,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
 
       setDiscussions(prev => prev.map(discussion =>
         discussion.id === discussionId
-          ? { ...discussion, upvotes: discussion.upvotes + 1 }
+          ? { ...discussion, upvotes: (discussion.upvotes || 0) + 1 }
           : discussion
       ))
     } catch (err) {
