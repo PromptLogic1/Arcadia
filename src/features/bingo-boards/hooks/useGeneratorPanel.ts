@@ -1,11 +1,8 @@
 import { useState, useCallback } from 'react'
 import type { GameCategory } from '@/src/lib/stores/types'
+import { GENERATOR_CONFIG, CARD_CATEGORIES, type CardCategory } from '@/src/store/types/generator.types'
 
-// TODO: These types need to be migrated or recreated
-type CardCategory = 'collecting' | 'killing' | 'building' | 'escaping' | 'surviving' | 'winning' | 'other'
 type GeneratorDifficulty = 'Easy' | 'Medium' | 'Hard'
-
-const CARD_CATEGORIES: CardCategory[] = ['collecting', 'killing', 'building', 'escaping', 'surviving', 'winning', 'other']
 
 interface GeneratorSettings {
   difficulty: GeneratorDifficulty
@@ -78,7 +75,9 @@ export function useGeneratorPanel(
                    : 'private'
       }
 
-      await bingoGeneratorService.generateBingoBoard(settings, gridSize)
+      // TODO: Implement bingo generator service
+      console.log('Generating board with settings:', settings, 'gridSize:', gridSize)
+      throw new Error('Bingo generator service not yet implemented')
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to generate board')
     } finally {
@@ -88,7 +87,9 @@ export function useGeneratorPanel(
 
   // Reshuffle existing board
   const reshuffleBoard = useCallback(async (gridSize: number) => {
-    await bingoGeneratorService.reshuffleBoard(gridSize)
+    // TODO: Implement bingo generator service
+    console.log('Reshuffling board with gridSize:', gridSize)
+    throw new Error('Bingo generator service not yet implemented')
   }, [])
 
   return {

@@ -46,21 +46,21 @@ export function useBingoBoardsHub() {
     
     // Filter boards
     const filtered = boards.filter(board => {
-      if (filterSelections.category !== '__all__' && board.board_game_type !== filterSelections.category) {
+      if (filterSelections.category !== '__all__' && board.game_type !== filterSelections.category) {
         return false
       }
-      if (filterSelections.difficulty !== 'all' && board.board_difficulty !== filterSelections.difficulty) {
+      if (filterSelections.difficulty !== 'all' && board.difficulty !== filterSelections.difficulty) {
         return false
       }
       if (filterSelections.search) {
         const searchTerm = filterSelections.search.toLowerCase()
         const searchableContent = [
-          board.board_title,
-          board.board_description,
-          board.board_game_type,
-          board.board_difficulty,
-          ...(board.board_tags || []),
-          String(board.board_size),
+          board.title,
+          board.description,
+          board.game_type,
+          board.difficulty,
+          ...(board.tags || []),
+          String(board.grid_size),
           String(board.votes || 0)
         ].map(item => (item || '').toLowerCase())
         return searchableContent.some(content => content.includes(searchTerm))
@@ -74,9 +74,9 @@ export function useBingoBoardsHub() {
         case 'oldest':
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         case 'name_asc':
-          return a.board_title.localeCompare(b.board_title)
+          return a.title.localeCompare(b.title)
         case 'name_desc':
-          return b.board_title.localeCompare(a.board_title)
+          return b.title.localeCompare(a.title)
         case 'newest':
         default:
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

@@ -1,5 +1,5 @@
 // Import database types
-import type { GameCategory, DifficultyLevel } from '../../../types/database.core'
+import type { GameCategory, DifficultyLevel, Tables } from '../../../types/database.types'
 
 // User Types
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin'
@@ -35,7 +35,7 @@ export interface AuthUser {
 }
 
 // Re-export types from database
-export type { GameCategory, DifficultyLevel } from '../../../types/database.core'
+export type { GameCategory, DifficultyLevel } from '../../../types/database.types'
 
 export interface BoardCell {
   id: string
@@ -44,37 +44,10 @@ export interface BoardCell {
   position: { row: number; col: number }
 }
 
-export interface BingoBoard {
-  id: string
-  board_title: string
-  board_description: string | null
-  board_size: number
-  board_game_type: GameCategory
-  board_difficulty: DifficultyLevel
-  board_tags: string[]
-  board_state: BoardCell[] | null
-  creator_id: string | null
-  created_at: string | null
-  updated_at: string | null
-  is_public: boolean
-  votes: number | null
-  bookmarked_count: number | null
-  cloned_from: string | null
-}
+// Use the correct database type structure
+export type BingoBoard = Tables<'bingo_boards'>
 
-export interface BingoCard {
-  id: string
-  title: string
-  description: string | null
-  difficulty: DifficultyLevel
-  game_type: GameCategory
-  tags: string[] | null
-  creator_id: string | null
-  created_at: string | null
-  updated_at: string | null
-  is_public: boolean | null
-  votes: number | null
-}
+export type BingoCard = Tables<'bingo_cards'>
 
 // Community Types
 export interface Discussion {

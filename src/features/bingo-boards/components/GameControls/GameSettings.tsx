@@ -13,13 +13,15 @@ import {
 } from '@/components/ui/select'
 import { Lock, Play, Pause, RotateCcw, Grid3x3, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { GameSettings as GameSettingsType } from '../../types/gamesettings.types'
+import type { BoardSettings, WinConditions } from '@/types/database.types'
 
 export interface GameSettingsProps {
   isOwner: boolean
   isRunning: boolean
-  settings: GameSettingsType
-  onSettingsChangeAction: (settings: Partial<GameSettingsType>) => Promise<void>
+  settings: BoardSettings
+  boardSize?: number
+  onSettingsChangeAction: (settings: Partial<BoardSettings>) => Promise<void>
+  onBoardSizeChange?: (size: number) => Promise<void>
   onStartGameAction: () => Promise<void>
   onResetGameAction: () => Promise<void>
 }
@@ -28,7 +30,9 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
   isOwner,
   isRunning,
   settings,
+  boardSize = 5,
   onSettingsChangeAction,
+  onBoardSizeChange,
   onStartGameAction,
   onResetGameAction
 }) => {
@@ -39,8 +43,12 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
         {/* Board Size & Sound */}
         <div className="flex items-center gap-2">
           <Select
-            value={settings.boardSize.toString()}
-            onValueChange={async (value) => await onSettingsChangeAction({ boardSize: parseInt(value) })}
+            value={boardSize.toString()}
+            onValueChange={async (value) => {
+              if (onBoardSizeChange) {
+                await onBoardSizeChange(parseInt(value))
+              }
+            }}
             disabled={!isOwner || isRunning}
           >
             <SelectTrigger className="flex-1 h-9 bg-gray-900/50">
@@ -63,8 +71,8 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <div className="flex items-center gap-2 px-3 h-9 bg-gray-900/50 rounded-md">
             <Volume2 className="h-4 w-4 text-cyan-400" />
             <Switch
-              checked={settings.soundEnabled}
-              onCheckedChange={(checked) => onSettingsChangeAction({ soundEnabled: checked })}
+              checked={settings.sound_enabled ?? false}
+              onCheckedChange={(checked) => onSettingsChangeAction({ sound_enabled: checked })}
               disabled={!isOwner}
             />
           </div>
@@ -75,8 +83,8 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
           <div className="flex-1 flex items-center justify-between px-3 h-9 bg-gray-900/50 rounded-md">
             <Label className="text-sm text-cyan-200">Team Mode</Label>
             <Switch
-              checked={settings.teamMode}
-              onCheckedChange={(checked) => onSettingsChangeAction({ teamMode: checked })}
+              checked={settings.team_mode ?? false}
+              onCheckedChange={(checked) => onSettingsChangeAction({ team_mode: checked })}
               disabled={!isOwner || isRunning}
             />
           </div>
@@ -87,9 +95,9 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
               <Label className="text-sm text-cyan-200">Lockout</Label>
             </div>
             <Switch
-              checked={settings.lockout}
+              checked={settings.lockout ?? false}
               onCheckedChange={(checked) => onSettingsChangeAction({ lockout: checked })}
-              disabled={!isOwner || isRunning || settings.teamMode}
+              disabled={!isOwner || isRunning || (settings.team_mode ?? false)}
             />
           </div>
         </div>
@@ -98,14 +106,19 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => !isRunning && isOwner && onSettingsChangeAction({ 
-              winConditions: { ...settings.winConditions, line: !settings.winConditions.line } 
+              win_conditions: { 
+                line: !(settings.win_conditions?.line ?? false),
+                majority: settings.win_conditions?.majority ?? null,
+                diagonal: settings.win_conditions?.diagonal ?? null,
+                corners: settings.win_conditions?.corners ?? null
+              } 
             })}
             className={cn(
               "flex-1 flex items-center justify-between px-3 h-9",
               "rounded-md transition-all duration-200",
               "hover:bg-gray-700/30",
               "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
-              settings.winConditions.line
+              settings.win_conditions?.line
                 ? "bg-cyan-500/10"
                 : "bg-gray-900/50"
             )}
@@ -114,7 +127,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <span className="text-sm text-cyan-200">Line Victory</span>
             <div className={cn(
               "w-2 h-2 rounded-full",
-              settings.winConditions.line
+              settings.win_conditions?.line
                 ? "bg-cyan-400"
                 : "bg-gray-600"
             )} />
@@ -122,14 +135,19 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
 
           <button
             onClick={() => !isRunning && isOwner && onSettingsChangeAction({ 
-              winConditions: { ...settings.winConditions, majority: !settings.winConditions.majority } 
+              win_conditions: { 
+                line: settings.win_conditions?.line ?? null,
+                majority: !(settings.win_conditions?.majority ?? false),
+                diagonal: settings.win_conditions?.diagonal ?? null,
+                corners: settings.win_conditions?.corners ?? null
+              } 
             })}
             className={cn(
               "flex-1 flex items-center justify-between px-3 h-9",
               "rounded-md transition-all duration-200",
               "hover:bg-gray-700/30",
               "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
-              settings.winConditions.majority
+              settings.win_conditions?.majority
                 ? "bg-cyan-500/10"
                 : "bg-gray-900/50"
             )}
@@ -138,7 +156,65 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             <span className="text-sm text-cyan-200">Majority Rule</span>
             <div className={cn(
               "w-2 h-2 rounded-full",
-              settings.winConditions.majority
+              settings.win_conditions?.majority
+                ? "bg-cyan-400"
+                : "bg-gray-600"
+            )} />
+          </button>
+
+          <button
+            onClick={() => !isRunning && isOwner && onSettingsChangeAction({ 
+              win_conditions: { 
+                line: settings.win_conditions?.line ?? null,
+                majority: settings.win_conditions?.majority ?? null,
+                diagonal: !(settings.win_conditions?.diagonal ?? false),
+                corners: settings.win_conditions?.corners ?? null
+              } 
+            })}
+            className={cn(
+              "flex-1 flex items-center justify-between px-3 h-9",
+              "rounded-md transition-all duration-200",
+              "hover:bg-gray-700/30",
+              "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
+              settings.win_conditions?.diagonal
+                ? "bg-cyan-500/10"
+                : "bg-gray-900/50"
+            )}
+            disabled={!isOwner || isRunning}
+          >
+            <span className="text-sm text-cyan-200">Diagonal</span>
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              settings.win_conditions?.diagonal
+                ? "bg-cyan-400"
+                : "bg-gray-600"
+            )} />
+          </button>
+
+          <button
+            onClick={() => !isRunning && isOwner && onSettingsChangeAction({ 
+              win_conditions: { 
+                line: settings.win_conditions?.line ?? null,
+                majority: settings.win_conditions?.majority ?? null,
+                diagonal: settings.win_conditions?.diagonal ?? null,
+                corners: !(settings.win_conditions?.corners ?? false)
+              } 
+            })}
+            className={cn(
+              "flex-1 flex items-center justify-between px-3 h-9",
+              "rounded-md transition-all duration-200",
+              "hover:bg-gray-700/30",
+              "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
+              settings.win_conditions?.corners
+                ? "bg-cyan-500/10"
+                : "bg-gray-900/50"
+            )}
+            disabled={!isOwner || isRunning}
+          >
+            <span className="text-sm text-cyan-200">Corners</span>
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              settings.win_conditions?.corners
                 ? "bg-cyan-400"
                 : "bg-gray-600"
             )} />

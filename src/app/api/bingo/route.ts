@@ -40,8 +40,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
 
     let query = supabase
       .from('bingo_boards')
@@ -86,8 +85,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

@@ -146,7 +146,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     setEditingCard({
       card: {
         ...DEFAULT_BINGO_CARD,
-        game_category: currentBoard.board_game_type
+        game_type: currentBoard.game_type
       },
       index: -1 // Use -1 to indicate this is a new card
     })
