@@ -3,9 +3,6 @@
 import { BingoLayout } from './layout/BingoLayout'
 import BingoBoardsHub from './BingoBoardsHub'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-// Commented out unused imports
-// import { Button } from '@/components/ui/button'
-// import Link from 'next/link'
 import { useBingoBoards } from '../hooks/useBingoBoards'
 
 export function BingoBoards() {

@@ -5,9 +5,10 @@ import { supabase, db, handleSupabaseError } from '@/lib/supabase'
 import type { 
   BingoBoard, 
   FilterState, 
-  BoardSection
+  BoardSection,
+  BoardCreator
 } from '../types'
-import { logger } from '@/src/lib/logger'
+import { logger } from '@/lib/logger'
 
 interface UseBingoBoardsOptions {
   initialSection?: BoardSection
@@ -88,7 +89,12 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
       const currentOffset = reset ? 0 : pagination.offset
       let query = db.bingoBoards()
         .select(`
-          *
+          *,
+          creator:creator_id(
+            username,
+            avatar_url,
+            id
+          )
         `)
 
       // Apply section filters
@@ -154,6 +160,8 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
       // Transform database results to BingoBoard format
       const transformedBoards: BingoBoard[] = (data || []).map(board => ({
         ...board,
+        creator_id: board.creator_id,
+        creator: board.creator as BoardCreator,
         created_at: board.created_at || new Date().toISOString(),
         updated_at: board.updated_at || new Date().toISOString(),
         description: board.description || '',

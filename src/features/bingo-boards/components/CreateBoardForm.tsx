@@ -23,8 +23,8 @@ import { Textarea } from "@/components/ui/textarea"
 // Constants moved to centralized types or defined locally
 const TITLE_LENGTH_LIMITS = { MIN: 3, MAX: 100 }
 const DESCRIPTION_LENGTH_LIMIT = 500
-import { GAME_CATEGORIES } from '@/src/types'
-import type { Difficulty, GameCategory } from '@/src/types'
+import { Constants } from '@/types'
+import type { Difficulty, GameCategory } from '@/types'
 import { Checkbox } from "@/components/ui/checkbox"
 import { log } from "@/lib/logger"
 // CreateBoardFormData type - using local FormData interface instead
@@ -55,8 +55,8 @@ interface CreateBoardFormProps {
 const BOARD_SIZES = [3, 4, 5, 6]
 const DEFAULT_GAME_TYPE: GameCategory = 'World of Warcraft'
 
-const sortedGames = [...GAME_CATEGORIES]
-  .filter(game => game !== 'All Games')
+const sortedGames = [...Constants.public.Enums.game_category]
+  .filter((game: GameCategory) => game !== 'All Games')
   .sort((a, b) => a.localeCompare(b))
 
 export function CreateBoardForm({ isOpen, createBoard }: CreateBoardFormProps) {

@@ -86,6 +86,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
           placeholder="Add tags..."
           className="flex-1"
           disabled={selectedTags.length >= maxTags}
+          aria-label="Add a new tag"
         />
         <Button
           onClick={handleAddTag}

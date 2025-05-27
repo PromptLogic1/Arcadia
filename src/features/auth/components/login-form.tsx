@@ -8,16 +8,16 @@ import { Label } from '@/components/ui/label'
 import { Info, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { useAuthActions } from '@/lib/stores'
-import { logger } from '@/src/lib/logger'
-import { notifications } from '@/src/lib/notifications'
+import { useAuth, useAuthActions } from '@/lib/stores'
+import { logger } from '@/lib/logger'
+import { notifications } from '@/lib/notifications'
 
 export function LogInForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, _setStatus] = useState('')
   const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
   const router = useRouter()
+  const { loading } = useAuth()
   const { setLoading, setAuthUser } = useAuthActions()
 
   // Load saved email on component mount
@@ -165,7 +165,7 @@ export function LogInForm() {
                 errorInfo?.message?.toLowerCase().includes('email') && "border-red-500/50 focus:border-red-500"
               )}
               placeholder="Enter your email"
-              disabled={status === 'loading'}
+              disabled={loading}
             />
           </div>
 
@@ -183,22 +183,22 @@ export function LogInForm() {
                 errorInfo?.message?.toLowerCase().includes('password') && "border-red-500/50 focus:border-red-500"
               )}
               placeholder="Enter your password"
-              disabled={status === 'loading'}
+              disabled={loading}
             />
           </div>
 
           <Button
             type="submit"
-            disabled={status === 'loading'}
+            disabled={loading}
             className={cn(
               "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
               "text-white font-medium py-2 rounded-full",
               "hover:opacity-90 transition-all duration-200",
               "shadow-lg shadow-cyan-500/25",
-              status === 'loading' && "opacity-50 cursor-not-allowed"
+              loading && "opacity-50 cursor-not-allowed"
             )}
           >
-            {status === 'loading' ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
 
           <div className="text-center">

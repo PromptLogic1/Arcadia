@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Info, Mail, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { useAuthActions } from '@/src/lib/stores'
-import { logger } from '@/src/lib/logger'
-import { notifications } from '@/src/lib/notifications'
+import { useAuthActions } from '@/lib/stores'
+import { logger } from '@/lib/logger'
+import { notifications } from '@/lib/notifications'
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('')

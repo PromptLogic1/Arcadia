@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useAuth, useAuthActions } from '@/src/lib/stores'
+import { useAuth, useAuthActions } from '@/lib/stores'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,14 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { countries } from '@/lib/data/countries'
-import { logger } from '@/src/lib/logger'
-import { notifications } from '@/src/lib/notifications'
+import { logger } from '@/lib/logger'
+import { notifications } from '@/lib/notifications'
 
 export default function UserPageEdit() {
   const { userData, isAuthenticated } = useAuth()
   const { updateUserDataService } = useAuthActions()
   const router = useRouter()
-  const _supabase = createClientComponentClient()
 
   // Form states
   const [username, setUsername] = useState(userData?.username || '')

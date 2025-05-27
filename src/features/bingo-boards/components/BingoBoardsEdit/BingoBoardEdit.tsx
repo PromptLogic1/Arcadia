@@ -25,7 +25,7 @@ import {
   TabsContent
 } from "@/components/ui/tabs"
 import { cn } from '@/lib/utils'
-import { notifications } from '@/src/lib/notifications'
+import { notifications } from '@/lib/notifications'
 import { ChevronDown, Settings, Plus, X } from 'lucide-react'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import NeonText from "@/components/ui/NeonText"
@@ -38,7 +38,7 @@ import { BingoCardEditDialog } from './BingoCardEditDialog'
 import { GridPositionSelectDialog } from './GridPositionSelectDialog'
 import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit'
 import { useBingoCardsStore, useBingoCardsActions } from '@/lib/stores/bingo-cards-store'
-import { useAuth } from '@/src/hooks/useAuth'
+import { useAuth } from '@/hooks/useAuth'
 import type { 
   BingoCard, 
   Difficulty,
@@ -94,7 +94,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     voteCard,
     updateGridCard
   } = useBingoCardsActions()
-  const [_activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState('general')
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
@@ -151,13 +151,28 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       return
     }
 
+    // Trusting the linter that the context expects 'game_type'
+    // and that DEFAULT_BINGO_CARD properties might be optional here.
+    const newCardObject = {
+      id: '',
+      text: DEFAULT_BINGO_CARD.text || '',
+      difficulty: DEFAULT_BINGO_CARD.difficulty || 'medium',
+      category: DEFAULT_BINGO_CARD.category || 'General',
+      description: DEFAULT_BINGO_CARD.description || null,
+      tags: DEFAULT_BINGO_CARD.tags || [],
+      isCompleted: DEFAULT_BINGO_CARD.isCompleted || false,
+      
+      game_type: currentBoard.game_type, // Linter insists on game_type
+      
+      creator_id: null,
+      created_at: null,
+      votes: null,
+    };
+
     setEditingCard({
-      card: {
-        ...DEFAULT_BINGO_CARD,
-        game_type: currentBoard.game_type
-      } as BingoCard,
-      index: -1 // Use -1 to indicate this is a new card
-    })
+      card: newCardObject as BingoCard, // Add cast back if newCardObject doesn't perfectly match inferred BingoCard yet
+      index: -1 
+    });
   }
 
   const handleTabChange = async (value: string) => {
@@ -606,5 +621,3 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     </div>
   )
 }
-
-export default BingoBoardEdit

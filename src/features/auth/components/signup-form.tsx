@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Info, Mail, Check, X, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { useAuth, useAuthActions } from '@/src/lib/stores'
-import { logger } from '@/src/lib/logger'
-import { notifications } from '@/src/lib/notifications'
+import { useAuth, useAuthActions } from '@/lib/stores'
+import { logger } from '@/lib/logger'
+import { notifications } from '@/lib/notifications'
 
 type SignUpStatus = 'idle' | 'loading' | 'success' | 'error' | 'verification_pending'
 
@@ -42,9 +42,7 @@ export function SignUpForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [_error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [_isPasswordFocused, _setIsPasswordFocused] = useState(false)
   const [passwordChecks, setPasswordChecks] = useState({
     uppercase: false,
     lowercase: false,
@@ -60,7 +58,7 @@ export function SignUpForm() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
 
   const router = useRouter()
-  const { loading: _loading } = useAuth()
+  const { loading } = useAuth()
   const { setLoading } = useAuthActions()
 
   // Load saved form data on component mount
@@ -129,7 +127,6 @@ export function SignUpForm() {
     value: string,
     field: 'email' | 'username' | 'password' | 'confirmPassword'
   ) => {
-    setError(null)
     setter(value)
     setValidationErrors(prev => ({ ...prev, [field]: undefined }))
 
@@ -191,7 +188,6 @@ export function SignUpForm() {
     }
 
     setStatus('loading')
-    setIsSubmitting(true)
     setLoading(true)
 
     try {
@@ -214,15 +210,12 @@ export function SignUpForm() {
       logger.error('Signup process failed', error as Error, { component: 'SignUpForm', metadata: { email, username } })
       handleSignUpError(error as Error)
     } finally {
-      setIsSubmitting(false)
       setLoading(false)
     }
   }
 
   // Update handleOAuthLogin to use authService
   const handleOAuthLogin = async (provider: 'google') => {
-    setError(null)
-    setIsSubmitting(true)
     setLoading(true)
 
     try {
@@ -234,10 +227,9 @@ export function SignUpForm() {
       logger.info('OAuth signup completed successfully', { component: 'SignUpForm', metadata: { provider } })
     } catch (error) {
       logger.error('OAuth signup failed', error as Error, { component: 'SignUpForm', metadata: { provider } })
-      setError('Failed to login with provider. Please try again.')
+      setMessage({ text: 'Failed to login with provider. Please try again.', type: 'error' })
       notifications.error('OAuth signup failed', { description: 'Please try again or contact support if the problem persists.' })
     } finally {
-      setIsSubmitting(false)
       setLoading(false)
     }
   }
@@ -283,7 +275,7 @@ export function SignUpForm() {
               validationErrors.username && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="This will not be your shown username"
-            disabled={isSubmitting}
+            disabled={loading}
           />
           {validationErrors.username && (
             <p className="text-sm text-red-400 mt-1">{validationErrors.username}</p>
@@ -303,7 +295,7 @@ export function SignUpForm() {
               validationErrors.email && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Enter your email"
-            disabled={isSubmitting}
+            disabled={loading}
           />
           {validationErrors.email && (
             <p className="text-sm text-red-400 mt-1">{validationErrors.email}</p>
@@ -324,7 +316,7 @@ export function SignUpForm() {
                 validationErrors.password && "border-red-500/50 focus:border-red-500"
               )}
               placeholder="Create a password"
-              disabled={isSubmitting}
+              disabled={loading}
             />
             
             <div className="w-full bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2">
@@ -371,7 +363,7 @@ export function SignUpForm() {
               validationErrors.confirmPassword && "border-red-500/50 focus:border-red-500"
             )}
             placeholder="Confirm your password"
-            disabled={isSubmitting}
+            disabled={loading}
           />
           {validationErrors.confirmPassword && (
             <p className="text-sm text-red-400 mt-1">{validationErrors.confirmPassword}</p>
@@ -409,16 +401,16 @@ export function SignUpForm() {
 
         <Button
           type="submit"
-          disabled={isSubmitting || status === 'loading'}
+          disabled={loading}
           className={cn(
             "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
             "text-white font-medium py-2 rounded-full",
             "hover:opacity-90 transition-all duration-200",
             "shadow-lg shadow-cyan-500/25",
-            (isSubmitting || status === 'loading') && "opacity-50 cursor-not-allowed"
+            loading && "opacity-50 cursor-not-allowed"
           )}
         >
-          {isSubmitting ? 'Processing...' : 'Sign Up'}
+          {loading ? 'Processing...' : 'Sign Up'}
         </Button>
       </form>
 
@@ -435,7 +427,7 @@ export function SignUpForm() {
         <Button 
           variant="outline" 
           onClick={() => handleOAuthLogin('google')}
-          disabled={isSubmitting}
+          disabled={loading}
           className="w-full flex items-center justify-center gap-2"
         >
           <Mail className="w-5 h-5" />

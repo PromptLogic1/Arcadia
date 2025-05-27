@@ -100,17 +100,129 @@ The following files/directories within `src/app/api/` have been systematically r
     - Comprehensive and well-structured type definitions for authentication features (state, forms, context, guards, OAuth, errors, session management).
     - Noted a minor point about `AuthUser` extending `User` and potential overlap with database schema fields, but no immediate changes required.
 
+### 12. `src/features/puzzle-quests/`
+- **Status:** Reviewed and Updated.
+- **Key Changes & Observations:**
+    - **`PuzzleQuests.tsx`**: Simple placeholder component. No issues.
+    - **`types/index.ts`**:
+        - Renamed `StepProgressStatus` (for individual steps) to `IndividualStepProgressStatus` to resolve naming conflict with `QuestProgressStatus`. Updated usage in `StepProgress` interface.
+
+### 13. `src/features/speedruns/`
+- **Status:** Reviewed.
+- **Key Observations:**
+    - **`SpeedRuns.tsx`**: Simple placeholder component. No issues.
+    - **`types/index.ts`**: Comprehensive types. No issues.
+
+### 14. `src/features/play-area/`
+- **Status:** Reviewed.
+- **Key Observations:**
+    - **`types/index.ts`**: Comprehensive types. No issues.
+    - **`components/`**: Empty directory.
+
+### 15. `src/features/settings/`
+- **Status:** Reviewed and Updated.
+- **Key Changes & Observations:**
+    - **`types/index.ts`**: Comprehensive types. No issues.
+    - **`components/settings.tsx`**:
+        - Corrected import path for `useAuth` hook from `@/src/hooks/useAuth` to `@/hooks/useAuth`.
+    - **`components/general-settings.tsx`**:
+        - Corrected import paths for `useAuth`, `useAuthActions` (from `@/src/lib/stores` to `@/lib/stores`), `logger` (from `@/src/lib/logger` to `@/lib/logger`), and `notifications` (from `@/src/lib/notifications` to `@/lib/notifications`).
+        - Removed unused `_setCurrentEmail` variable.
+        - Changed `authUser?.auth_username` to `userData.username` for consistency.
+        - Modified email update success message handling to use `notifications.info` for the tip, preventing the original message from being overwritten.
+
+### 16. `src/features/user/`
+- **Status:** Reviewed and Updated.
+- **Key Changes & Observations:**
+    - **`types/index.ts`**: Comprehensive types. No issues.
+    - **`components/user-profile-wrapper.tsx`**:
+        - Corrected import path for `useAuth` hook from `@/src/hooks/useAuth` to `@/hooks/useAuth`.
+        - Noted potentially outdated comment about Redux.
+    - **`components/user-page.tsx`**:
+        - Corrected import paths for UI components (e.g., `NeonBorder`, `NeonText`, `Card`) from `@/src/components/ui/` to `@/components/ui/`.
+    - **`components/user-page-edit.tsx`**:
+        - Corrected import paths for `useAuth`, `useAuthActions`, `logger`, and `notifications`.
+        - Removed unused `_supabase` variable.
+
+### 17. `src/features/challenge-hub/`
+- **Status:** Reviewed and Updated.
+- **Key Changes & Observations:**
+    - **`types/index.ts`**: Comprehensive types. No issues.
+    - **`components/challengehub.tsx`**:
+        - Corrected import paths for feature components (e.g., `BingoBoards`, `SpeedRuns`) from `@/src/features/...` to `@/features/...`.
+
+### 18. `src/features/auth/components/`
+- **Status:** Partially Reviewed and Updated (ongoing).
+- **Key Changes & Observations:**
+    - **`forgot-password-form.tsx`**:
+        - Corrected import paths for `useAuthActions`, `logger`, and `notifications`.
+        - Noted `TODO` for Supabase password reset implementation.
+    - **`login-form.tsx`**:
+        - Corrected import paths for `logger`, and `notifications`.
+        - Replaced unused `status` state with `loading` state from `useAuth()` store for disabling inputs/buttons.
+        - Noted `TODO`s for Supabase email and Google OAuth login.
+    - **`reset-password-form.tsx`**:
+        - Corrected import paths for `useAuthActions`, `logger`, and `notifications`.
+    - **`signup-form.tsx`**:
+        - Corrected import paths for `useAuth`, `useAuthActions`, `logger`, and `notifications`.
+        - Removed unused `_error` and `_isPasswordFocused` states.
+        - Replaced local `isSubmitting` state and `status === 'loading'` checks with global `loading` state from `useAuth()`.
+        - Noted `TODO`s for Supabase signup and OAuth.
+
+### 19. `src/features/auth/hooks/`
+- **Status:** Reviewed.
+- **Key Observations:**
+    - Empty directory. No issues.
+
+### 20. `src/features/bingo-boards/`
+- **Status:** Reviewed and Updated.
+- **Key Changes & Observations:**
+    - **`index.ts` (root of feature):** Exports components. Paths seem reasonable. No issues.
+    - **`types/` subdirectory:**
+        - **`index.ts`**: Reviewed.
+        - **`types.ts`**: Reviewed.
+        - **`constants.ts`**: Reviewed.
+        - **`generator.types.ts`**: Reviewed.
+    - **`utils/` subdirectory:**
+        - **`gridHelpers.ts`**: Reviewed.
+        - **`layout.utils.ts`**: Reviewed.
+        - **`guards.ts`**: Reviewed.
+    - **`hooks/` subdirectory:**
+        - **`index.ts`**: Reviewed.
+        - **`useBingoBoards.ts`**: Reviewed.
+        - **`useGameState.ts`**: Reviewed.
+        - **`useBingoBoardsHub.ts`**: Reviewed.
+        - **`useGeneratorPanel.ts`**: Updated to use `DifficultyLevel` from `types/database.core.ts`.
+    - **`components/` subdirectory (Partially Reviewed):**
+        - **`BingoBoards.tsx`**: Reviewed.
+        - **`BingoBoardsHub.tsx`**: Reviewed.
+        - **`BoardCard.tsx`**: Reviewed.
+        - **`CreateBoardForm.tsx`**: Review in Progress (from previous session).
+        - **`BingoErrorBoundary.tsx`**: Reviewed. No issues found.
+        - **`Generator/` subdirectory:**
+            - **`GeneratorPanel.tsx`**: Updated imports for generator types and `DifficultyLevel`/`Constants` from `types/database.core.ts`. Improved `handleCategorySelect` type safety.
+            - **`DifficultySelector.tsx`**: Updated to use `DifficultyLevel` and `Constants` from `types/database.core.ts`.
+            - **`TagSelector.tsx`**: Added `aria-label` to input for accessibility. No other issues.
+            - **`GeneratorControls.tsx`**: Reviewed. No issues found.
+        - **`BingoBoardsEdit/` subdirectory (Partially Reviewed):**
+            - **`BingoBoardEdit.tsx`**: 
+                - Corrected import paths for `notifications`, `ROUTES`, and `useAuth`.
+                - Renamed `_activeTab` state to `activeTab`.
+                - Changed default export to named export.
+                - **Unresolved Issue:** Significant type mismatch in `handleCreateNewCard` when creating a new card object. The linter indicates the context expects a `BingoCard` type with `game_type` (not `game`) and different optionality/fields (e.g., expecting `is_public`, `title`, `updated_at`) than defined in `src/types/index.ts` for `BingoCard` and `DEFAULT_BINGO_CARD`. This requires a deeper investigation into the `BingoCard` type used by `useBingoBoardEdit` hook or the component's `editingCard` state.
+        - **Subdirectories (`GameControls/`, `layout/`, `Board/`)**: Pending review.
+
 ## Pending Review Areas
 
 The following areas still require systematic review:
 
 -   **Core Application Logic & UI:**
-    -   `src/features/` (Remaining subdirectories: `puzzle-quests/`, `speedruns/`, `play-area/`, `settings/`, `user/`, `challenge-hub/`, `auth/` (components & hooks), `bingo-boards/`, `landing/`, `community/`)
-    -   `src/hooks/`
+    -   `src/features/` (Remaining subdirectories: `bingo-boards/components/` (files like `BingoErrorBoundary.tsx` and subdirectories like `Generator/`, `layout/` etc.), `landing/`, `community/`)
+    -   `src/hooks/` (Excluding `useAuth.ts` which was indirectly reviewed/confirmed path)
 -   **Libraries & Utilities:**
-    -   `src/lib/` (Excluding `logger.ts`, `rate-limiter.ts`, `task-queue.ts`, `config.ts` which were indirectly reviewed or addressed. Other utilities like `supabase_lib/` might need a look).
+    -   `src/lib/` (Excluding `logger.ts`, `notifications.ts`, `stores/*` which were indirectly reviewed for paths and usage. Other utilities like `supabase_lib/` might need a look).
 -   **State Management:**
-    -   `src/store/`
+    -   `src/store/` (If still relevant, as Zustand seems to be in use via `src/lib/stores`)
 -   **Styling:**
     -   `src/styles/`
 -   **Type Definitions:**

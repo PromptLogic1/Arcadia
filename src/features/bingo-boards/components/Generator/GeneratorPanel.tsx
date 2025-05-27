@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Wand2, X } from 'lucide-react'
 import { useGeneratorPanel } from '../../hooks/useGeneratorPanel'
-import type { GameCategory, Difficulty } from '@/types'
-import { DIFFICULTIES } from '@/types'
-import { GENERATOR_CONFIG, type CardCategory, CARD_CATEGORIES } from '@/src/store/types/generator.types'
+import type { GameCategory } from '@/features/bingo-boards/types'
+import { type DifficultyLevel, Constants } from '@/types/database.core'
+import { GENERATOR_CONFIG, type CardCategory, CARD_CATEGORIES } from '@/features/bingo-boards/types/generator.types'
 import {
   Select,
   SelectContent,
@@ -69,11 +69,11 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
     usePrivateCards
   )
 
-  const handleCategorySelect = (category: string) => {
+  const handleCategorySelect = (category: CardCategory) => {
     if (!useAllCategories) {
-      const newCategories = localCategories.includes(category as CardCategory)
+      const newCategories = localCategories.includes(category)
         ? localCategories.filter(c => c !== category)
-        : [...localCategories, category as CardCategory]
+        : [...localCategories, category]
       
       setLocalCategories(newCategories)
       generatorPanel.handleCategoriesChange(newCategories)
@@ -169,13 +169,13 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
           <Label>Difficulty</Label>
           <Select
             value={generatorPanel.difficulty}
-            onValueChange={generatorPanel.handleDifficultyChange}
+            onValueChange={generatorPanel.handleDifficultyChange as (value: DifficultyLevel) => void}
           >
             <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
               <SelectValue placeholder="Select difficulty" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border border-cyan-500/20">
-              {DIFFICULTIES.map(diff => (
+              {Constants.public.Enums.difficulty_level.map((diff: DifficultyLevel) => (
                 <SelectItem 
                   key={diff} 
                   value={diff}

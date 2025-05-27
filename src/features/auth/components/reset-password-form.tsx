@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Info, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuthActions } from '@/src/lib/stores'
-import { logger } from '@/src/lib/logger'
-import { notifications } from '@/src/lib/notifications'
+import { useAuthActions } from '@/lib/stores'
+import { logger } from '@/lib/logger'
+import { notifications } from '@/lib/notifications'
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('')

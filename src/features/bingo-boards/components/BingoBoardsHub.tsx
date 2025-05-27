@@ -8,7 +8,7 @@ import { BoardCard } from './BoardCard'
 import { CreateBoardForm } from './CreateBoardForm'
 import NeonText from '@/components/ui/NeonText'
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub'
-import { Constants } from '@/types'
+import { Constants, type GameCategory } from '@/types'
 
 export default function BingoBoardsHub() {
   const {
@@ -18,14 +18,15 @@ export default function BingoBoardsHub() {
     handleFilterChange,
     setIsCreateFormOpen,
     handleBoardSelect,
+    handleCreateBoard,
   } = useBingoBoardsHub()
 
   // Convert game categories to filter options format
   const categoryOptions = [
     { value: '__all__', label: 'All Games' },
     ...Constants.public.Enums.game_category
-      .filter((game: string) => game !== 'All Games')
-      .map((game: string) => ({
+      .filter((game: GameCategory) => game !== 'All Games')
+      .map((game: GameCategory) => ({
         value: game,
         label: game
       }))
@@ -67,7 +68,7 @@ export default function BingoBoardsHub() {
         ))}
       </div>
 
-      <CreateBoardForm isOpen={isCreateFormOpen} />
+      <CreateBoardForm isOpen={isCreateFormOpen} createBoard={handleCreateBoard} />
     </div>
   )
 }

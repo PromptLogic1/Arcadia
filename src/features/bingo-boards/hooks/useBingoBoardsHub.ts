@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useBingoBoards } from '@/src/hooks/useBingoBoards'
-import { useAuth } from '@/src/hooks/useAuth'
+import { useBingoBoards } from './useBingoBoards'
+import { useAuth } from '@/hooks/useAuth'
 import type { 
   GameCategory, 
   Difficulty, 
   BingoBoard,
-  CreateBoardForm,
-  BoardFilter
-} from '@/types'
+  CreateBoardFormData,
+  FilterState as BoardFilter
+} from '../types'
 import { ROUTES } from '@/src/config/routes'
 import { log } from '@/lib/logger'
 
@@ -20,7 +20,7 @@ export function useBingoBoardsHub() {
   
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
   const [filterSelections, setFilterSelections] = useState<BoardFilter>({
-    game_type: 'All Games',
+    category: 'All Games',
     difficulty: 'all',
     sort: 'newest',
     search: ''
@@ -28,11 +28,11 @@ export function useBingoBoardsHub() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const handleFilterChange = useCallback((type: string, value: string) => {
+  const handleFilterChange = useCallback((type: keyof BoardFilter, value: string) => {
     setFilterSelections(prev => ({ ...prev, [type]: value }))
   }, [])
 
-  const handleCreateBoard = useCallback(async (formData: CreateBoardForm) => {
+  const handleCreateBoard = useCallback(async (formData: CreateBoardFormData) => {
     if (!isAuthenticated) {
       router.push('/auth/login')
       return
@@ -59,7 +59,7 @@ export function useBingoBoardsHub() {
     
     // Filter boards
     const filtered = boards.filter(board => {
-      if (filterSelections.game_type !== 'All Games' && board.game_type !== filterSelections.game_type) {
+      if (filterSelections.category !== 'All Games' && board.game_type !== filterSelections.category) {
         return false
       }
       if (filterSelections.difficulty !== 'all' && board.difficulty !== filterSelections.difficulty) {
@@ -90,8 +90,6 @@ export function useBingoBoardsHub() {
         case 'difficulty':
           const difficultyOrder = { 'beginner': 1, 'easy': 2, 'medium': 3, 'hard': 4, 'expert': 5 }
           return (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0)
-        case 'size':
-          return (a.size || 0) - (b.size || 0)
         case 'newest':
         default:
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
@@ -114,7 +112,4 @@ export function useBingoBoardsHub() {
     loading,
     error
   }
-}
-
-// Export base hook for other components
-export { useBingoBoards } 
+} 

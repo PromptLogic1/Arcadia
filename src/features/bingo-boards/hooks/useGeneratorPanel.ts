@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
-import type { GameCategory } from '@/src/lib/stores/types'
-import { GENERATOR_CONFIG, CARD_CATEGORIES, type CardCategory } from '@/src/store/types/generator.types'
+import type { GameCategory } from '../types'
+import { type DifficultyLevel, Constants } from '@/types/database.core'
+import { GENERATOR_CONFIG, CARD_CATEGORIES, type CardCategory } from '../types/generator.types'
 import { log } from '@/lib/logger'
 
-type GeneratorDifficulty = 'Easy' | 'Medium' | 'Hard'
+type GeneratorDifficulty = DifficultyLevel
 
 interface GeneratorSettings {
   difficulty: GeneratorDifficulty
@@ -37,7 +38,7 @@ export function useGeneratorPanel(
 ): UseGeneratorPanel {
   // Local state for generator settings
   const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([...CARD_CATEGORIES])
-  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>('Medium')
+  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>(Constants.public.Enums.difficulty_level[2]) // Default to medium
   const [minVotes, setMinVotes] = useState(0)
   const [poolSize, setPoolSize] = useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium')
   const [isLoading, setIsLoading] = useState(false)

@@ -99,6 +99,13 @@ export interface QueueEntry {
 // BOARD AND SESSION TYPES
 // =============================================================================
 
+// Define a simple type for the creator, to be expanded if needed
+export interface BoardCreator {
+  username: string | null;
+  avatar_url: string | null;
+  id?: string | null;
+}
+
 export interface BingoBoard extends Omit<BingoBoardRow, 'created_at' | 'updated_at'> {
   id: string
   created_at: Date | string
@@ -107,6 +114,8 @@ export interface BingoBoard extends Omit<BingoBoardRow, 'created_at' | 'updated_
   bookmarked?: boolean
   clonedFrom?: string
   statistics?: BoardStatistics
+  creator_id: string | null;
+  creator?: BoardCreator | null;
 }
 
 export interface BoardStatistics {
@@ -249,24 +258,7 @@ export function isSet(value: Set<string> | string[]): value is Set<string> {
   return value instanceof Set
 }
 
-export function isValidGameCategory(value: string): value is GameCategory {
-  const validCategories = [
-    'World of Warcraft',
-    'Fortnite', 
-    'Minecraft',
-    'Among Us',
-    'Apex Legends',
-    'League of Legends',
-    'Overwatch',
-    'Call of Duty: Warzone',
-    'Valorant'
-  ] as const
-  return (validCategories as readonly string[]).includes(value)
-}
-
-export function isValidDifficulty(value: string): value is Difficulty {
-  return ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(value as Difficulty)
-}
+// Other type guards (isValidGameCategory, isValidDifficulty) moved to ../utils/guards.ts
 
 // =============================================================================
 // CONSTANTS

@@ -16,7 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger 
 } from "@/components/ui/tooltip"
-import { DIFFICULTY_STYLES, type BingoBoard } from '@/types'
+import type { BingoBoard } from '@/features/bingo-boards/types'
+import { DIFFICULTY_STYLES } from '@/types'
 import Link from 'next/link'
 
 interface BoardCardProps {
@@ -44,9 +45,9 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
               "group-hover:ring-cyan-500/40 transition-all duration-300",
               "shadow-lg shadow-cyan-500/5"
             )}>
-              <AvatarImage src={board.creator_id || undefined} alt="Creator" />
+              <AvatarImage src={board.creator?.avatar_url || undefined} alt={board.creator?.username || 'Creator'} />
               <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-fuchsia-500/20 text-cyan-400 font-bold">
-                <User className="h-6 w-6" />
+                {board.creator?.username ? board.creator.username.substring(0, 2).toUpperCase() : <User className="h-6 w-6" />}
               </AvatarFallback>
             </Avatar>
             

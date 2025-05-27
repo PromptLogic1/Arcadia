@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Info, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth, useAuthActions } from '@/src/lib/stores'
+import { useAuth, useAuthActions } from '@/lib/stores'
 import { useRouter } from 'next/navigation'
-import { logger } from '@/src/lib/logger'
-import { notifications } from '@/src/lib/notifications'
+import { logger } from '@/lib/logger'
+import { notifications } from '@/lib/notifications'
 
 export function GeneralSettings() {
   const { userData, authUser, isAuthenticated } = useAuth()
@@ -21,7 +21,7 @@ export function GeneralSettings() {
 
   // Email states
   const [isChangingEmail, setIsChangingEmail] = useState(false)
-  const [currentEmail, _setCurrentEmail] = useState(authUser?.email || '')
+  const [currentEmail] = useState(authUser?.email || '')
   const [newEmail, setNewEmail] = useState('')
   const [confirmEmail, setConfirmEmail] = useState('')
   
@@ -80,10 +80,9 @@ export function GeneralSettings() {
 
       // Show additional info after 3 seconds
       setTimeout(() => {
-        setMessage({
-          text: 'Tip: If you don\'t see the confirmation emails, please check your spam folder.',
-          type: 'info'
-        })
+        notifications.info(
+          'Tip: If you don\'t see the confirmation emails, please check your spam folder.'
+        )
       }, 3000)
 
       resetEmailForm()
@@ -185,7 +184,7 @@ export function GeneralSettings() {
       <div className="space-y-2">
         <Label>Account Username</Label>
         <p className="text-gray-400 text-sm mt-1">
-          {authUser?.auth_username}
+          {userData.username}
         </p>
       </div>
 

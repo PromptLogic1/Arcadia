@@ -6,8 +6,8 @@ interface GameStateReturn {
   boardState: BoardCell[]
   players: Player[]
   settings: GameSettings
-  currentPlayer: number
-  winner: number | null
+  currentPlayer: number // Represents the index of the current player in the `players` array. Access `Player.id` (string) via `players[currentPlayer]?.id`.
+  winner: number | null // Represents the index of the winning player in the `players` array. Access `Player.id` (string) via `players[winner]?.id` if winner is not null.
   isRunning: boolean
   updateBoard: (newBoard: BoardCell[]) => void
   updatePlayers: (newPlayers: Player[]) => void

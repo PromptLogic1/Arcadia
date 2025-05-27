@@ -156,7 +156,7 @@ export type QuestProgressStatus = 'not_started' | 'in_progress' | 'completed' | 
 
 export interface StepProgress {
   step_id: string
-  status: StepProgressStatus
+  status: IndividualStepProgressStatus
   score: number
   max_score: number
   attempts: number
@@ -166,7 +166,7 @@ export interface StepProgress {
   user_solution?: Record<string, unknown>
 }
 
-export type StepProgressStatus = 'locked' | 'available' | 'in_progress' | 'completed' | 'skipped'
+export type IndividualStepProgressStatus = 'locked' | 'available' | 'in_progress' | 'completed' | 'skipped'
 
 // Rewards and achievements
 export interface QuestReward {

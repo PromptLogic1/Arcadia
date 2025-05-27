@@ -10,10 +10,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Gauge } from 'lucide-react'
+import { type DifficultyLevel, Constants } from '@/types/database.core'
 
 interface DifficultySelectorProps {
-  difficulty: 'easy' | 'medium' | 'hard'
-  onDifficultyChangeAction: (difficulty: 'easy' | 'medium' | 'hard') => Promise<void>
+  difficulty: DifficultyLevel
+  onDifficultyChangeAction: (difficulty: DifficultyLevel) => Promise<void> | void
 }
 
 export const DifficultySelector: React.FC<DifficultySelectorProps> = ({
@@ -29,16 +30,18 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({
       <Select
         value={difficulty}
         onValueChange={async (value) => {
-          await onDifficultyChangeAction(value as 'easy' | 'medium' | 'hard')
+          await onDifficultyChangeAction(value as DifficultyLevel)
         }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Select difficulty" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="easy">Easy</SelectItem>
-          <SelectItem value="medium">Medium</SelectItem>
-          <SelectItem value="hard">Hard</SelectItem>
+          {Constants.public.Enums.difficulty_level.map((level: DifficultyLevel) => (
+            <SelectItem key={level} value={level}>
+              {level.charAt(0).toUpperCase() + level.slice(1)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
