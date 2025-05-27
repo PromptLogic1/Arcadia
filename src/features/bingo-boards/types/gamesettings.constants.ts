@@ -1,19 +1,24 @@
 import type { GameSettings, GameMode, WinConditions } from './gamesettings.types'
 
 export const DEFAULT_WIN_CONDITIONS: WinConditions = {
-  rows: true,
-  columns: true,
-  diagonals: true,
-  fullBoard: false,
+  line: true,
+  majority: false,
+  diagonal: true,
   corners: false,
 }
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
+  // From BoardSettings interface
+  team_mode: false,
+  lockout: false,
+  sound_enabled: true,
+  win_conditions: DEFAULT_WIN_CONDITIONS,
+  
+  // Session settings
   timeLimit: 3600, // 1 hour in seconds
   maxPlayers: 8,
   allowSpectators: true,
   enableChat: true,
-  winConditions: DEFAULT_WIN_CONDITIONS,
   difficulty: 'medium',
   gameCategory: 'All Games',
   autoStart: false,
@@ -28,7 +33,7 @@ export const GAME_MODES: Record<string, GameMode> = {
     settings: {
       timeLimit: 3600,
       maxPlayers: 8,
-      winConditions: DEFAULT_WIN_CONDITIONS,
+      win_conditions: DEFAULT_WIN_CONDITIONS,
     },
   },
   speed: {
@@ -37,11 +42,10 @@ export const GAME_MODES: Record<string, GameMode> = {
     settings: {
       timeLimit: 900, // 15 minutes
       maxPlayers: 4,
-      winConditions: {
-        rows: true,
-        columns: true,
-        diagonals: false,
-        fullBoard: false,
+      win_conditions: {
+        line: true,
+        majority: false,
+        diagonal: false,
         corners: false,
       },
     },
@@ -52,11 +56,10 @@ export const GAME_MODES: Record<string, GameMode> = {
     settings: {
       timeLimit: 7200, // 2 hours
       maxPlayers: 12,
-      winConditions: {
-        rows: true,
-        columns: true,
-        diagonals: true,
-        fullBoard: true,
+      win_conditions: {
+        line: true,
+        majority: true,
+        diagonal: true,
         corners: true,
       },
     },

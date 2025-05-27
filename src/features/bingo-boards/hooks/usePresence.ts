@@ -16,7 +16,8 @@ const convertPresence = (presence: PresenceStateWithRef): PresenceState => ({
   user_id: presence.user_id,
   online_at: presence.online_at,
   last_seen_at: presence.last_seen_at,
-  status: presence.status
+  status: presence.status,
+  activity: 'viewing' // Default activity when online
 })
 
 export const usePresence = (boardId: string) => {
@@ -55,7 +56,7 @@ export const usePresence = (boardId: string) => {
         await supabase.removeChannel(channelRef.current)
       }
 
-      const channel = supabase.channel(`${PRESENCE_CONSTANTS.CHANNEL_PREFIX}${boardId}`)
+      const channel = supabase.channel(`presence:bingo:${boardId}`)
       channelRef.current = channel
 
       channel
@@ -96,7 +97,7 @@ export const usePresence = (boardId: string) => {
 
       const heartbeatInterval = setInterval(() => {
         updatePresence(document.hidden ? PRESENCE_CONSTANTS.STATUS.AWAY : PRESENCE_CONSTANTS.STATUS.ONLINE)
-      }, PRESENCE_CONSTANTS.HEARTBEAT_INTERVAL)
+      }, PRESENCE_CONSTANTS.TIMING.HEARTBEAT_INTERVAL)
 
       return () => {
         clearInterval(heartbeatInterval)
@@ -106,6 +107,7 @@ export const usePresence = (boardId: string) => {
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to track presence'))
+      return undefined
     }
   }, [boardId, supabase, updatePresence, handleVisibilityChange])
 

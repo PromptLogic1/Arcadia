@@ -162,7 +162,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const boardId = searchParams.get('boardId')
-    const status = searchParams.get('status') || 'active'
+    const statusParam = searchParams.get('status') || 'active'
 
     if (!boardId) {
       return NextResponse.json(
@@ -170,6 +170,12 @@ export async function GET(request: Request) {
         { status: 400 }
       )
     }
+
+    // Validate status parameter
+    const validStatuses = ['waiting', 'active', 'completed', 'cancelled'] as const
+    const status = validStatuses.includes(statusParam as any) 
+      ? statusParam as Database['public']['Enums']['session_status']
+      : 'active' as Database['public']['Enums']['session_status']
 
     const supabase = createRouteHandlerClient<Database>({ cookies })
 

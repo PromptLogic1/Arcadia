@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { BingoCard as BingoCardType } from '../../types/card.types'
-import { DIFFICULTY_STYLES } from '@/src/types'
+import type { BingoCard as BingoCardType } from '@/types'
+import { DIFFICULTY_STYLES } from '@/types'
 import { Edit, ChevronDown } from 'lucide-react'
 import {
   Collapsible,
@@ -44,17 +44,17 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
                 className="text-sm text-cyan-300/90 truncate mr-2 flex-1" 
                 style={{ wordBreak: 'break-word' }}
               >
-                {card.card_content}
+                {card.title}
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 <Badge 
                   variant="outline"
                   className={cn(
                     "px-2 py-0.5 text-xs rounded-full",
-                    DIFFICULTY_STYLES[card.card_difficulty]
+                    DIFFICULTY_STYLES[card.difficulty]
                   )}
                 >
-                  {card.card_difficulty}
+                  {card.difficulty}
                 </Badge>
                 <ChevronDown 
                   className={cn(
@@ -71,57 +71,55 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
           <div className="border-x border-b border-cyan-500/20 rounded-b-lg p-3">
             <div className="space-y-2 mb-4">
               <div className="w-full">
-                <span className="text-xs text-cyan-400 font-medium block">Content:</span>
+                <span className="text-xs text-cyan-400 font-medium block">Title:</span>
                 <p className="text-sm text-gray-300 break-words line-clamp-3 overflow-break-word" style={{ wordBreak: 'break-word' }}>
-                  {card.card_content}
+                  {card.title}
                 </p>
               </div>
 
-              {card.card_explanation && (
+              {card.description && (
                 <div className="w-full max-w-[270px]">
-                  <span className="text-xs text-cyan-400 font-medium block">Explanation:</span>
+                  <span className="text-xs text-cyan-400 font-medium block">Description:</span>
                   <p 
                     className="text-sm text-gray-300 line-clamp-3" 
                     style={{ wordBreak: 'break-word' }}
                   >
-                    {card.card_explanation}
+                    {card.description}
                   </p>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-2 w-[270px]">
                 <div className="overflow-hidden">
-                  <span className="text-xs text-cyan-400 font-medium block">Type:</span>
-                  <p className="text-sm text-gray-300 capitalize break-words">
-                    {card.card_type}
-                  </p>
-                </div>
-
-                <div className="overflow-hidden">
                   <span className="text-xs text-cyan-400 font-medium block">Game:</span>
                   <p className="text-sm text-gray-300 break-words">
-                    {card.game_category}
+                    {card.game_type}
                   </p>
                 </div>
 
                 <div className="overflow-hidden">
                   <span className="text-xs text-cyan-400 font-medium block">Difficulty:</span>
                   <p className="text-sm text-gray-300 capitalize truncate">
-                    {card.card_difficulty}
+                    {card.difficulty}
                   </p>
                 </div>
 
                 <div className="overflow-hidden">
                   <span className="text-xs text-cyan-400 font-medium block">Votes:</span>
-                  <p className="text-sm text-gray-300 truncate">{card.votes}</p>
+                  <p className="text-sm text-gray-300 truncate">{card.votes || 0}</p>
+                </div>
+
+                <div className="overflow-hidden">
+                  <span className="text-xs text-cyan-400 font-medium block">Public:</span>
+                  <p className="text-sm text-gray-300 truncate">{card.is_public ? 'Yes' : 'No'}</p>
                 </div>
               </div>
 
-              {card.card_tags && card.card_tags.length > 0 && (
+              {card.tags && card.tags.length > 0 && (
                 <div className="w-full">
                   <span className="text-xs text-cyan-400 font-medium block">Tags:</span>
                   <p className="text-sm text-gray-300 break-words">
-                    {card.card_tags.join(', ')}
+                    {card.tags.join(', ')}
                   </p>
                 </div>
               )}
@@ -129,7 +127,7 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
               <div className="w-full">
                 <span className="text-xs text-cyan-400 font-medium block">Created:</span>
                 <p className="text-sm text-gray-400 truncate w-[270px]">
-                  {new Date(card.created_at).toLocaleDateString()}
+                  {card.created_at ? new Date(card.created_at).toLocaleDateString() : 'Unknown'}
                 </p>
               </div>
             </div>

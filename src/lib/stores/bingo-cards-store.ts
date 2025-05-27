@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { supabase } from '../supabase'
-import type { BingoCard } from './types'
-import type { GameCategory, DifficultyLevel } from '../../../types/database.core'
+import type { 
+  BingoCard,
+  GameCategory, 
+  DifficultyLevel,
+  FilterOptions
+} from '@/types'
 
 interface CreateBingoCardDTO {
   title: string
@@ -11,10 +15,6 @@ interface CreateBingoCardDTO {
   game_type: GameCategory
   tags?: string[] | null
   is_public?: boolean | null
-}
-
-interface FilterOptions {
-  difficulty?: DifficultyLevel | 'All Difficulties'
 }
 
 const DEFAULT_BINGO_CARD: BingoCard = {
@@ -607,7 +607,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
             .eq('is_public', true)
             .eq('game_type', gameCategory)
 
-          if (filters.difficulty && filters.difficulty !== 'All Difficulties') {
+          if (filters.difficulty && filters.difficulty !== 'all') {
             query = query.eq('difficulty', filters.difficulty)
           }
 

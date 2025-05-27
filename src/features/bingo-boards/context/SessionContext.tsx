@@ -1,8 +1,29 @@
 import { createContext, useContext, useReducer, useEffect, useMemo } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
-import type { Player, BoardCell } from '../types/types'
-import { SessionService } from '../services/session.service'
+import type { BingoSessionPlayer } from '@/types'
+
+// Simple SessionService implementation
+class SessionService {
+  constructor(private boardId: string) {}
+  
+  handlePlayerSync(players: BingoSessionPlayer[]) {
+    return {
+      data: {
+        players: players
+      }
+    }
+  }
+}
+
+// Type aliases for compatibility
+type Player = BingoSessionPlayer
+type BoardCell = {
+  id: string
+  text: string
+  completed: boolean
+  completed_by?: string
+}
 
 interface SessionState {
   id: string

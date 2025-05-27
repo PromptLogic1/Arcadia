@@ -1,17 +1,18 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { BoardCell, Player } from '../types/types'
-import type { 
-  GamePhase, 
-  LastMove, 
-  MarkedFields, 
+import type {
+  GameBoardCell,
+  GamePlayer,
+  GamePhase,
+  LastMove,
+  MarkedFields,
   GameError,
   BeforeMoveEvent,
   AfterMoveEvent,
   GameEndEvent
-} from '../types/bingogame.types'
-import { BINGO_GAME_CONSTANTS } from '../types/bingogame.constants'
+} from '@/types'
+import { BINGO_GAME_CONSTANTS } from '@/types'
 import { useGameAnalytics } from './useGameAnalytics'
 import { useSession } from './useSession'
 
@@ -28,11 +29,11 @@ const CONSTANTS = {
 // Add return type interface
 interface UseBingoGameReturn {
   // States
-  boardState: BoardCell[]
+  boardState: GameBoardCell[]
   gamePhase: GamePhase
   winner: number | null
   currentPlayer: number
-  lastMove: LastMove
+  lastMove: LastMove | null
   markedFields: MarkedFields
   gameError: GameError | null
   
@@ -43,8 +44,8 @@ interface UseBingoGameReturn {
   setWinConditions: (conditions: { line: boolean; majority: boolean }) => void
   
   // Actions & Error Handling
-  setBoardState: (state: BoardCell[]) => void
-  checkWinningCondition: (players: Player[], timeExpired?: boolean) => boolean
+  setBoardState: (state: GameBoardCell[]) => void
+  checkWinningCondition: (players: GamePlayer[], timeExpired?: boolean) => boolean
   emitBeforeMove: (event: BeforeMoveEvent) => boolean
   emitAfterMove: (event: AfterMoveEvent) => void
   handleError: (error: Error) => void
@@ -54,8 +55,8 @@ interface UseBingoGameReturn {
   generateBoard: () => void
   resetBoard: () => void
   handleCellChange: (index: number, value: string) => void
-  updateBoardState: (index: number, updates: Partial<BoardCell>) => void
-  setLastMove: (move: LastMove) => void
+  updateBoardState: (index: number, updates: Partial<GameBoardCell>) => void
+  setLastMove: (move: LastMove | null) => void
   
   // Marked Fields Management
   setMarkedFields: (fields: MarkedFields) => void
@@ -67,7 +68,7 @@ interface UseBingoGameReturn {
  * @param players - Array of active players
  * @returns Game state and control functions
  */
-export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGameReturn => {
+export const useBingoGame = (initialSize: number, players: GamePlayer[]): UseBingoGameReturn => {
   // Remove the minimum player validation
   if (initialSize < CONSTANTS.MIN_BOARD_SIZE || initialSize > CONSTANTS.MAX_BOARD_SIZE) {
     throw new Error(`Board size must be between ${CONSTANTS.MIN_BOARD_SIZE} and ${CONSTANTS.MAX_BOARD_SIZE}`)
@@ -88,7 +89,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
   }, [])
 
   // Core States
-  const [boardState, setBoardState] = useState<BoardCell[]>([])
+  const [boardState, setBoardState] = useState<GameBoardCell[]>([])
   const [gamePhase, setGamePhase] = useState<GamePhase>('active')
   const [winner, setWinner] = useState<number | null>(null)
   const [currentPlayer, setCurrentPlayer] = useState<number>(0)
@@ -98,7 +99,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
       Math.min(initialSize, BINGO_GAME_CONSTANTS.VALIDATION.MAX_BOARD_SIZE)
     )
   )
-  const [lastMove, setLastMoveState] = useState<LastMove>(null)
+  const [lastMove, setLastMoveState] = useState<LastMove | null>(null)
   const [markedFields, setMarkedFields] = useState<MarkedFields>({
     total: 0,
     byPlayer: {}
@@ -110,7 +111,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
 
   // Services & External Hooks
   const { updateStats, trackMove, recordWinner, measurePerformance } = useGameAnalytics()
-  const session = useSession({ boardId: '', _game: 'All Games', initialPlayers: [] })
+  const session = useSession({ boardId: '', _game: 'World of Warcraft', initialPlayers: [] })
   
   // Remove unused sessionService
   // const sessionService = useMemo(() => new SessionService(), [])
@@ -122,27 +123,27 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
 
     const completedLines: Record<string, number> = {}
     players.forEach(player => {
-      if (!player.id) return
-      completedLines[player.id] = 0
+      if (!player.user_id) return
+      completedLines[player.user_id] = 0
       
       // Check rows
       boardData.rows.forEach(row => {
-        if (row?.every(cell => cell?.colors?.includes(player.color))) {
-          completedLines[player.id] = (completedLines[player.id] || 0) + 1
+        if (row?.every(cell => cell?.colors?.includes(player.color || ''))) {
+          completedLines[player.user_id] = (completedLines[player.user_id] || 0) + 1
         }
       })
       
       // Check columns
       boardData.columns.forEach(col => {
-        if (col?.every(cell => cell?.colors?.includes(player.color))) {
-          completedLines[player.id] = (completedLines[player.id] || 0) + 1
+        if (col?.every(cell => cell?.colors?.includes(player.color || ''))) {
+          completedLines[player.user_id] = (completedLines[player.user_id] || 0) + 1
         }
       })
       
       // Check diagonals
       boardData.diagonals.forEach(diag => {
-        if (diag?.every(cell => cell?.colors?.includes(player.color))) {
-          completedLines[player.id] = (completedLines[player.id] || 0) + 1
+        if (diag?.every(cell => cell?.colors?.includes(player.color || ''))) {
+          completedLines[player.user_id] = (completedLines[player.user_id] || 0) + 1
         }
       })
     })
@@ -152,10 +153,10 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
 
   // Refs for optimization
   const boardDataRef = useRef<{
-    rows: BoardCell[][]
-    columns: BoardCell[][]
-    diagonals: BoardCell[][]
-  }>()
+    rows: GameBoardCell[][]
+    columns: GameBoardCell[][]
+    diagonals: GameBoardCell[][]
+  } | null>(null)
 
   // Event Emitters
   const emitBeforeMove = useCallback((event: BeforeMoveEvent) => {
@@ -164,7 +165,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
       if (winner !== null) return false
       
       const isValid = event.isValid && 
-        players[currentPlayer]?.id === event.playerId
+        players[currentPlayer]?.user_id === event.playerId
 
       if (!isValid) {
         setGameError({
@@ -189,9 +190,14 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
       setMarkedFields(event.markedFields)
       trackMove(event.move.playerId, 'mark', event.move.position)
       
-      // Update analytics
+      // Update analytics - adapt GamePlayer[] to expected Player[] format
+      const adaptedPlayers = players.map(player => ({
+        id: player.user_id,
+        name: player.player_name || '',
+        ...player
+      }))
       updateStats(
-        players,
+        adaptedPlayers as any,
         event.markedFields.byPlayer,
         getCompletedLinesCount()
       )
@@ -203,15 +209,20 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
   const emitGameEnd = useCallback((event: GameEndEvent) => {
     try {
       setGamePhase('ended')
-      setWinner(event.winner === -1 ? -1 : players.findIndex(p => p.id === event.winner))
-      recordWinner(event.winner === -1 ? null : event.winner)
+      if (event.winner === null) {
+        setWinner(-1)
+      } else {
+        const winnerIndex = players.findIndex(p => p.user_id === event.winner)
+        setWinner(winnerIndex !== -1 ? winnerIndex : -1)
+      }
+      recordWinner(event.winner)
       
       // Update session if available
       if (session && 'updateSessionState' in session && 
           typeof session.updateSessionState === 'function') {
         session.updateSessionState({
           status: 'completed',
-          winner_id: event.winner === -1 ? null : event.winner
+          winner_id: event.winner
         })
       }
     } catch (error) {
@@ -240,25 +251,26 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
   }, [boardState, boardSize, handleError])
 
   // Win Condition Checking
-  const checkLineWin = useCallback((cells: BoardCell[]): boolean => {
+  const checkLineWin = useCallback((cells: GameBoardCell[]): boolean => {
     if (!cells || cells.length !== boardSize) return false
     
-    // Get the first marked cell's completedBy player
-    const firstMarkedCell = cells.find(cell => cell.isMarked && cell.completedBy.length > 0)
+    // Get the first marked cell's completed_by player
+    const firstMarkedCell = cells.find(cell => cell.is_marked && cell.completed_by && cell.completed_by.length > 0)
     if (!firstMarkedCell) return false
     
-    const playerId = firstMarkedCell.completedBy[0]
+    const playerId = firstMarkedCell.completed_by?.[0]
     if (!playerId) return false
     
     // Check if all cells in the line are marked by the same player
     return cells.every(cell => 
-      cell.isMarked && 
-      cell.completedBy.length > 0 && 
-      cell.completedBy[0] === playerId
+      cell.is_marked && 
+      cell.completed_by && 
+      cell.completed_by.length > 0 && 
+      cell.completed_by[0] === playerId
     )
   }, [boardSize])
 
-  const checkWinningCondition = useCallback((currentPlayers: Player[], timeExpired?: boolean): boolean => {
+  const checkWinningCondition = useCallback((currentPlayers: GamePlayer[], timeExpired?: boolean): boolean => {
     try {
       measurePerformance()
       if (!currentPlayers.length || winner !== null) return false
@@ -273,9 +285,9 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
         // Check horizontal
         const currentRow = boardData.rows[row]
         if (currentRow && checkLineWin(currentRow)) {
-          const winningPlayerId = currentRow[0]?.completedBy[0]
+          const winningPlayerId = currentRow[0]?.completed_by?.[0]
           if (winningPlayerId) {
-            const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+            const winnerIndex = currentPlayers.findIndex(p => p.user_id === winningPlayerId)
             if (winnerIndex !== -1) {
               setWinner(winnerIndex)
               emitGameEnd({
@@ -291,9 +303,9 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
         // Check vertical
         const currentCol = boardData.columns[col]
         if (currentCol && checkLineWin(currentCol)) {
-          const winningPlayerId = currentCol[0]?.completedBy[0]
+          const winningPlayerId = currentCol[0]?.completed_by?.[0]
           if (winningPlayerId) {
-            const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+            const winnerIndex = currentPlayers.findIndex(p => p.user_id === winningPlayerId)
             if (winnerIndex !== -1) {
               setWinner(winnerIndex)
               emitGameEnd({
@@ -312,9 +324,9 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
           const diag2 = boardData.diagonals[1]
           
           if (diag1 && checkLineWin(diag1)) {
-            const winningPlayerId = diag1[0]?.completedBy[0]
+            const winningPlayerId = diag1[0]?.completed_by?.[0]
             if (winningPlayerId) {
-              const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+              const winnerIndex = currentPlayers.findIndex(p => p.user_id === winningPlayerId)
               if (winnerIndex !== -1) {
                 setWinner(winnerIndex)
                 emitGameEnd({
@@ -328,9 +340,9 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
           }
           
           if (diag2 && checkLineWin(diag2)) {
-            const winningPlayerId = diag2[0]?.completedBy[0]
+            const winningPlayerId = diag2[0]?.completed_by?.[0]
             if (winningPlayerId) {
-              const winnerIndex = currentPlayers.findIndex(p => p.id === winningPlayerId)
+              const winnerIndex = currentPlayers.findIndex(p => p.user_id === winningPlayerId)
               if (winnerIndex !== -1) {
                 setWinner(winnerIndex)
                 emitGameEnd({
@@ -354,7 +366,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
           .map(([playerId]) => playerId)
 
         if (winners.length === 1 && winners[0]) {
-          const winnerIndex = currentPlayers.findIndex(p => p.id === winners[0])
+          const winnerIndex = currentPlayers.findIndex(p => p.user_id === winners[0])
           if (winnerIndex !== -1) {
             setWinner(winnerIndex)
             emitGameEnd({
@@ -366,7 +378,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
         } else if (winners.length > 1 || markedFields.total === boardSize * boardSize) {
           setWinner(-1)
           emitGameEnd({
-            winner: -1,
+            winner: null,
             reason: 'tie'
           })
           return false
@@ -400,7 +412,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
       setGameError(null)
       setBoardState([])
       setCurrentPlayer(0)
-      boardDataRef.current = undefined
+      boardDataRef.current = null
       measurePerformance() // Track final performance
     }
 
@@ -421,15 +433,18 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
   // Board Management Implementations
   const generateBoard = useCallback(() => {
     try {
-      const newBoard: BoardCell[] = Array(boardSize * boardSize)
+      const newBoard: GameBoardCell[] = Array(boardSize * boardSize)
         .fill(null)
         .map((_, index) => ({
+          cell_id: `cell-${index}-${Date.now()}`,
           text: '',
           colors: [],
-          completedBy: [],
+          completed_by: [],
           blocked: false,
-          isMarked: false,
-          cellId: `cell-${index}-${Date.now()}`
+          is_marked: false,
+          version: 1,
+          last_updated: Date.now(),
+          last_modified_by: null
         }))
       setBoardState(newBoard)
       measurePerformance() // Track performance after generation
@@ -461,7 +476,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     })
   }, [])
 
-  const updateBoardState = useCallback((index: number, updates: Partial<BoardCell>) => {
+  const updateBoardState = useCallback((index: number, updates: Partial<GameBoardCell>) => {
     try {
       setBoardState(prev => {
         const newState = [...prev]
@@ -469,7 +484,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
           newState[index] = {
             ...newState[index],
             ...updates,
-            lastUpdated: Date.now()
+            last_updated: Date.now()
           }
         }
         measurePerformance() // Track performance after state update
@@ -480,7 +495,7 @@ export const useBingoGame = (initialSize: number, players: Player[]): UseBingoGa
     }
   }, [measurePerformance, handleError])
 
-  const setLastMove = useCallback((move: LastMove) => {
+  const setLastMove = useCallback((move: LastMove | null) => {
     setLastMoveState(move)
   }, [])
 

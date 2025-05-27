@@ -186,6 +186,7 @@ export function CommunityComponent() {
 
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [debouncedSearchQuery, selectedGame, selectedChallenge, sortBy, activeTab, isInitialLoad])
 
   const handleCreateDiscussion = (formData: {

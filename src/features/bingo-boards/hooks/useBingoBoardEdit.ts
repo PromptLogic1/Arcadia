@@ -11,10 +11,11 @@ import type {
 // import { useBingoCards } from '@/src/lib/stores'
 // import { useAuth } from '@/src/lib/stores'
 
-interface FormData {
-  title: string
-  description: string
-  difficulty: Difficulty
+export interface FormData {
+  board_title: string
+  board_description: string
+  board_tags: string[]
+  board_difficulty: Difficulty
   is_public: boolean
 }
 
@@ -60,28 +61,29 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
 
   useEffect(() => {
     if (currentBoard) {
-      setFormData({
-        title: currentBoard.title,
-        description: currentBoard.description || '',
-        difficulty: currentBoard.difficulty,
-        is_public: currentBoard.is_public || false,
-      })
+              setFormData({
+          board_title: currentBoard.title,
+          board_description: currentBoard.description || '',
+          board_difficulty: currentBoard.difficulty,
+          is_public: currentBoard.is_public || false,
+          board_tags: [],
+        })
     }
   }, [currentBoard])
 
   const validateBingoBoardField = useCallback((field: string, value: FieldValue): string | null => {
     switch (field) {
-      case 'title':
+      case 'board_title':
         if (typeof value === 'string' && (value.length < 3 || value.length > 50)) {
           return 'Title must be between 3 and 50 characters'
         }
         break
-      case 'description':
+      case 'board_description':
         if (typeof value === 'string' && value.length > 255) {
           return 'Description cannot exceed 255 characters'
         }
         break
-      case 'tags':
+      case 'board_tags':
         if (Array.isArray(value) && value.length > 5) {
           return 'Maximum of 5 tags allowed'
         }

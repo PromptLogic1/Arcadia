@@ -12,7 +12,7 @@ export const ANALYTICS_CONSTANTS = {
     EVENTS_MAX_COUNT: 1000,
     PERFORMANCE_MAX_COUNT: 100,
     SESSION_HISTORY_MAX: 50,
-    MAX_EVENT_AGE: 86400000, // 24 hours in ms
+    MAX_EVENT_AGE: 24 * 60 * 60 * 1000, // 24 hours
   },
 
   // Performance Thresholds
@@ -37,18 +37,34 @@ export const ANALYTICS_CONSTANTS = {
     MAX_EVENTS_PER_BATCH: 50,
     MAX_PERFORMANCE_PER_BATCH: 20,
     MAX_BATCH_SIZE_KB: 100,
+  },
+
+  EVENTS: {
+    MAX_QUEUE_SIZE: 1000,
+    BATCH_SIZE: 100,
+  },
+
+  PATTERNS: {
+    MAX_PATTERN_LENGTH: 10,
+  },
+
+  PERFORMANCE: {
+    MAX_MOVE_LATENCY: 1000, // 1 second
+    PERFORMANCE_CHECK_INTERVAL: 1000, // 1 second
   }
 } as const
 
 export const EVENT_TYPES = {
   GAME_STARTED: 'game_started',
-  GAME_ENDED: 'game_ended', 
+  GAME_ENDED: 'game_ended',
   MOVE_MADE: 'move_made',
+  MOVE: 'move_made', // Alias for MOVE_MADE
   LINE_COMPLETED: 'line_completed',
   PLAYER_JOINED: 'player_joined',
   PLAYER_LEFT: 'player_left',
   BOARD_GENERATED: 'board_generated',
   ERROR_OCCURRED: 'error_occurred',
+  WIN: 'game_ended' // Alias for GAME_ENDED
 } as const
 
 export const PERFORMANCE_METRICS = {
@@ -58,6 +74,9 @@ export const PERFORMANCE_METRICS = {
   FPS: 'fps',
   TOTAL_HEAP_SIZE: 'total_heap_size',
   USED_HEAP_SIZE: 'used_heap_size',
+  PAGE_LOAD: 'page_load',
+  TIME_TO_INTERACTIVE: 'time_to_interactive',
+  FRAME_TIME: 'frame_time'
 } as const
 
 // Analytics collection status

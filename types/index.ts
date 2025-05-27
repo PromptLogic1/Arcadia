@@ -225,5 +225,5 @@ export const MAX_PLAYERS = 12
 // =============================================================================
 
 // Re-export domain-specific types for convenience
-export * from './domains/bingo'
-export * from './domains/community' 
+  export * from './domains/bingo'
+  export * from './domains/community' 

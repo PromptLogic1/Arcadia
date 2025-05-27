@@ -109,7 +109,7 @@ const EventCard = React.memo(({ event, isExpanded, onToggle }: EventCardProps) =
                 </Badge>
                 <span className="text-gray-600">•</span>
                 <time className="text-gray-500">
-                  {format(event.date, 'MMM d, yyyy')}
+                  {format(new Date(event.date), 'MMM d, yyyy')}
                 </time>
               </div>
             </div>
@@ -139,7 +139,7 @@ const EventCard = React.memo(({ event, isExpanded, onToggle }: EventCardProps) =
               <Calendar className="h-5 w-5 text-lime-400" />
               <div>
                 <p className="text-sm font-medium text-gray-300">Date</p>
-                <p className="text-sm text-gray-400">{format(event.date, 'MMM d, h:mm a')}</p>
+                <p className="text-sm text-gray-400">{format(new Date(event.date), 'MMM d, h:mm a')}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3 bg-gray-800/30 rounded-lg p-3">
@@ -189,7 +189,7 @@ const EventCard = React.memo(({ event, isExpanded, onToggle }: EventCardProps) =
                     <div>
                       <p className="font-medium">Date & Time</p>
                       <p className="text-sm text-gray-400">
-                        {format(event.date, 'EEEE, MMMM d, yyyy h:mm a')}
+                        {format(new Date(event.date), 'EEEE, MMMM d, yyyy h:mm a')}
                       </p>
                     </div>
                   </div>

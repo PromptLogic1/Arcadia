@@ -8,8 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -55,8 +54,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const challenge_id = searchParams.get('challenge_id')
 
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     
     const { data: { user } } = await supabase.auth.getUser()
     

@@ -6,6 +6,36 @@ export const LAYOUT_CONSTANTS = {
     LG: 1024,  // Large devices (laptops)
     XL: 1280,  // Extra large devices (desktops)
     '2XL': 1536, // 2X Extra large devices (large desktops)
+    // Legacy names for compatibility with useLayout
+    mobile: 640,   // Same as SM
+    tablet: 768,   // Same as MD
+    desktop: 1024, // Same as LG
+  },
+
+  // Container Settings
+  CONTAINER: {
+    maxWidth: 1280, // XL breakpoint
+    padding: {
+      mobile: 16,
+      tablet: 24,
+      desktop: 32,
+    },
+  },
+
+  // Transitions
+  TRANSITIONS: {
+    duration: '200ms',
+    timing: 'ease-in-out',
+  },
+
+  // Events
+  EVENTS: {
+    layoutChange: 'layoutChange',
+  },
+
+  // Performance Settings
+  PERFORMANCE: {
+    debounceDelay: 150,
   },
 
   // Grid System
@@ -59,7 +89,7 @@ export const LAYOUT_CONSTANTS = {
 } as const
 
 // Breakpoint type for TypeScript
-export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'mobile' | 'tablet' | 'desktop'
 
 // Layout mode types
 export type LayoutMode = 'desktop' | 'tablet' | 'mobile'

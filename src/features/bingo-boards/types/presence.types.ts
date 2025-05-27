@@ -21,7 +21,7 @@ export interface PresenceState {
 
 // Extended Presence State with Ref for internal use
 export interface PresenceStateWithRef extends PresenceState {
-  ref?: any
+  ref?: string | number
 }
 
 // Presence Event Types

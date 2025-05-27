@@ -29,6 +29,8 @@ export interface Event {
   title: string
   description: string
   date: string
+  game: string
+  prize: string
   participants: number
   maxParticipants: number
   tags: string[]

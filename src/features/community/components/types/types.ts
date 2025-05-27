@@ -1,6 +1,6 @@
 // Import and re-export types from the community store to ensure consistency
-import type { Discussion, Comment } from '@/src/lib/stores/community-store'
-export type { Discussion, Comment } from '@/src/lib/stores/community-store'
+import type { Discussion, Comment, Event } from '@/src/lib/stores/community-store'
+export type { Discussion, Comment, Event } from '@/src/lib/stores/community-store'
 
 // Additional UI-specific types that extend the base types
 export interface DiscussionWithAuthor extends Discussion {

@@ -7,13 +7,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { 
-  CardCategory, 
-  Difficulty
-} from '@/src/store/types/game.types'
+  Difficulty,
+  FilterOptions
+} from '@/types'
 import { 
-  CARD_CATEGORIES, 
   DIFFICULTIES
-} from '@/src/store/types/game.types'
+} from '@/types'
 import { X } from 'lucide-react'
 import { useState } from "react"
 import { useBingoCardsActions } from "@/src/lib/stores"
@@ -21,16 +20,6 @@ import { useBingoCardsActions } from "@/src/lib/stores"
 interface FilterBingoCardsProps {
   onFilter: (filters: FilterOptions) => void
   onClear: () => void
-}
-
-// Helper type to add 'all' to our existing types
-type WithAllCardCategory<T extends string> = T | 'All Categories'
-type WithAllDifficulty<T extends string> = T | 'All Difficulties'
-
-// Update interface to use enhanced types
-export interface FilterOptions {
-  cardType?: WithAllCardCategory<CardCategory>
-  difficulty?: WithAllDifficulty<Difficulty>
 }
 
 export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
@@ -41,13 +30,6 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
   const handleFilter = async () => {
     try {
       setIsLoading(true)
-      // Only call filterPublicCards if we have actual filters set
-      if (filters.cardType || filters.difficulty) {
-        await bingoCardService.filterPublicCards(filters)
-      } else {
-        // If no filters are set, just load all cards
-        await bingoCardService.initializePublicCards()
-      }
       onFilter(filters)
     } catch (error) {
       console.error('Error applying filters:', error)
@@ -56,15 +38,12 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
     }
   }
 
-
   const handleClear = async () => {
     try {
       setIsLoading(true)
       setFilters({
-        cardType: 'All Categories',
-        difficulty: 'All Difficulties'
+        difficulty: 'all'
       })
-      await bingoCardService.initializePublicCards()
       onClear()
     } catch (error) {
       console.error('Error clearing filters:', error)
@@ -75,52 +54,27 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
 
   return (
     <div className="flex flex-col gap-2 p-2 bg-gray-800/30 rounded-lg mb-4">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Select
-            defaultValue="All Categories"
-            value={filters.cardType}
-            onValueChange={(value: WithAllCardCategory<CardCategory>) => 
-              setFilters(prev => ({ ...prev, cardType: value }))
-            }
-            disabled={isLoading}
-          >
-            <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
-              <SelectValue placeholder="Card Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-cyan-500">
-              <SelectItem value="All Categories">All Types</SelectItem>
-              {CARD_CATEGORIES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Select
-            defaultValue="All Difficulties"
-            value={filters.difficulty}
-            onValueChange={(value: WithAllDifficulty<Difficulty>) => 
-              setFilters(prev => ({ ...prev, difficulty: value }))
-            }
-            disabled={isLoading}
-          >
-            <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
-              <SelectValue placeholder="Difficulty" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-cyan-500">
-              <SelectItem value="All Difficulties">All Difficulties</SelectItem>
-              {DIFFICULTIES.map((difficulty) => (
-                <SelectItem key={difficulty} value={difficulty}>
-                  {difficulty}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="w-full">
+        <Select
+          defaultValue="all"
+          value={filters.difficulty || 'all'}
+          onValueChange={(value: Difficulty | 'all') => 
+            setFilters(prev => ({ ...prev, difficulty: value }))
+          }
+          disabled={isLoading}
+        >
+          <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
+            <SelectValue placeholder="Difficulty" />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-cyan-500">
+            <SelectItem value="all">All Difficulties</SelectItem>
+            {DIFFICULTIES.map((difficulty) => (
+              <SelectItem key={difficulty} value={difficulty}>
+                {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex justify-end gap-2">

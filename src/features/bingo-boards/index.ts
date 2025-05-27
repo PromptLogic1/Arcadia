@@ -1,3 +1,3 @@
-export { default as BingoBoardEdit } from '@/src/features/BingoBoards/BingoBoardsEdit/BingoBoardEdit'
-export { BingoErrorBoundary } from './BingoErrorBoundary' 
-export { BoardCard } from '@/src/features/BingoBoards/BoardCard'
+export { default as BingoBoardEdit } from './components/BingoBoardsEdit/BingoBoardEdit'
+export { BingoErrorBoundary } from './components/BingoErrorBoundary' 
+export { BoardCard } from './components/BoardCard'

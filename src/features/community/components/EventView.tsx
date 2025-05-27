@@ -22,7 +22,7 @@ const EventView: React.FC<EventViewProps> = ({ event, onClose }) => {
 
   return (
     <DialogWrapper 
-      isOpen={true} 
+      open={true} 
       onClose={onClose}
       className="bg-gray-800 text-cyan-100 max-w-4xl max-h-[80vh]"
     >
@@ -42,7 +42,7 @@ const EventView: React.FC<EventViewProps> = ({ event, onClose }) => {
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
             <div className="flex items-center">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>{event.date.toLocaleDateString()}</span>
+              <span>{new Date(event.date).toLocaleDateString()}</span>
             </div>
             <div className="flex items-center">
               <Users className="h-4 w-4 mr-2" />

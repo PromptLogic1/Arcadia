@@ -16,8 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger 
 } from "@/components/ui/tooltip"
-import { DIFFICULTY_STYLES } from '@/src/lib/types/game.types'
-import type { BingoBoard } from '@/features/bingo-boards/types'
+import { DIFFICULTY_STYLES, type BingoBoard } from '@/types'
 import Link from 'next/link'
 
 interface BoardCardProps {
@@ -45,7 +44,7 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
               "group-hover:ring-cyan-500/40 transition-all duration-300",
               "shadow-lg shadow-cyan-500/5"
             )}>
-              <AvatarImage src={board.creator_id} alt="Creator" />
+              <AvatarImage src={board.creator_id || undefined} alt="Creator" />
               <AvatarFallback className="bg-gradient-to-br from-cyan-500/20 to-fuchsia-500/20 text-cyan-400 font-bold">
                 <User className="h-6 w-6" />
               </AvatarFallback>
@@ -58,15 +57,15 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
                 "transition-all duration-300",
                 "break-words"
               )}>
-                {board.board_title}
+                {board.title}
               </CardTitle>
-              {board.board_description && (
+              {board.description && (
                 <CardDescription className={cn(
                   "text-sm text-cyan-300/70 group-hover:text-cyan-300/90",
                   "transition-colors duration-300",
                   "line-clamp-2 break-words"
                 )}>
-                  {board.board_description}
+                  {board.description}
                 </CardDescription>
               )}
             </div>
@@ -90,7 +89,7 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
                     <GridIcon className="h-4 w-4 text-cyan-400/70 group-hover/stat:text-cyan-400 shrink-0" />
                   </div>
                   <span className="text-sm text-cyan-300/70 group-hover/stat:text-cyan-300 ml-2 font-medium truncate">
-                    {board.board_size}×{board.board_size}
+                    {board.size}×{board.size}
                   </span>
                 </div>
               </TooltipTrigger>
@@ -122,10 +121,10 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
             className={cn(
               "px-3 py-1 rounded-full font-medium transition-all duration-300",
               "shadow-sm whitespace-nowrap overflow-hidden text-ellipsis",
-              DIFFICULTY_STYLES[board.board_difficulty]
+              DIFFICULTY_STYLES[board.difficulty]
             )}
           >
-            {board.board_difficulty}
+            {board.difficulty}
           </Badge>
 
           <Badge 
@@ -137,7 +136,7 @@ export function BoardCard({ board, onClick }: BoardCardProps) {
               "shadow-sm whitespace-nowrap overflow-hidden text-ellipsis"
             )}
           >
-            {board.board_game_type}
+            {board.game_type}
           </Badge>
         </CardContent>
       </Card>

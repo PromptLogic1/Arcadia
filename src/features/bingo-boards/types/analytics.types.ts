@@ -1,5 +1,7 @@
-import type { Player } from './index'
-import type { GamePhase } from './bingogame.types'
+import type { BingoSessionPlayer } from '@/types'
+
+// Type aliases for compatibility
+type Player = BingoSessionPlayer
 
 // Analytics Event Types
 export interface AnalyticsEvent {
@@ -21,6 +23,41 @@ export type EventType =
   | 'board_generated'
   | 'error_occurred'
 
+// Missing types that useGameAnalytics expects
+export interface GameStats {
+  moves: number
+  duration: number
+  winningPlayer: string | null
+  startTime: number
+  endTime: number | null
+  playerStats: Record<string, PlayerStats>
+  performanceMetrics: Record<string, number>
+}
+
+export interface GamePatterns {
+  commonMoves: string[]
+  winningStrategies: string[]
+  playerTendencies: Record<string, string[]>
+}
+
+export interface GameAnalysis {
+  averageMoveTime: number
+  movePatterns: string[]
+  winningStrategies: string[]
+  playerTendencies: Record<string, string[]>
+  performanceMetrics: Record<string, number>
+}
+
+export interface GameReport {
+  gameStats: GameStats
+  analysis: GameAnalysis
+  recommendations: string[]
+  performanceIssues: string[]
+}
+
+// Aliases for compatibility
+export type GameEvent = AnalyticsEvent
+
 // Performance Metrics
 export interface PerformanceData {
   renderTime: number
@@ -40,7 +77,7 @@ export interface GameAnalytics {
   uniquePlayers: number
   completedLines: number
   winner?: string | null
-  gamePhase: GamePhase
+  gamePhase: string
   playerStats: PlayerStats[]
   performance: PerformanceData[]
   events: AnalyticsEvent[]

@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Wand2, X } from 'lucide-react'
 import { useGeneratorPanel } from '../../hooks/useGeneratorPanel'
-import type { GameCategory } from '@/src/types'
-import { GENERATOR_CONFIG } from '@/src/store/types/generator.types'
+import type { GameCategory, Difficulty } from '@/types'
+import { DIFFICULTIES } from '@/types'
+import { GENERATOR_CONFIG, type CardCategory, CARD_CATEGORIES } from '@/src/store/types/generator.types'
 import {
   Select,
   SelectContent,
@@ -174,7 +175,7 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
               <SelectValue placeholder="Select difficulty" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border border-cyan-500/20">
-              {Object.keys(GENERATOR_CONFIG.DIFFICULTY_LEVELS).map(diff => (
+              {DIFFICULTIES.map(diff => (
                 <SelectItem 
                   key={diff} 
                   value={diff}

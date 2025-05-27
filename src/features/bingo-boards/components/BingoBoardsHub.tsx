@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from 'lucide-react'
 import { Filter } from '@/components/filter/filter'
 import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
-import { GAMES } from '@/src/store/types/game.types'
 import { BoardCard } from './BoardCard'
 import { CreateBoardForm } from './CreateBoardForm'
 import NeonText from '@/components/ui/NeonText'
-import { useBingoBoardsHub } from './hooks/useBingoBoardsHub'
+import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub'
+import { Constants } from '@/types'
 
 export default function BingoBoardsHub() {
   const {
@@ -23,9 +23,9 @@ export default function BingoBoardsHub() {
   // Convert game categories to filter options format
   const categoryOptions = [
     { value: '__all__', label: 'All Games' },
-    ...Object.values(GAMES)
-      .filter(game => game !== 'All Games')
-      .map(game => ({
+    ...Constants.public.Enums.game_category
+      .filter((game: string) => game !== 'All Games')
+      .map((game: string) => ({
         value: game,
         label: game
       }))

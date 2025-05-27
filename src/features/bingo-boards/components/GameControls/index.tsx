@@ -89,7 +89,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
             <TimerControls
               isOwner={isOwner}
               isRunning={isRunning}
-              timeLimit={settings.timeLimit}
+              timeLimit={settings.timeLimit || 3600}
               onTimerToggle={() => setRunning(!isRunning)}
             />
           </section>
@@ -120,7 +120,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
                 <Users2 className="h-4 w-4 text-cyan-400" />
                 <span className="text-sm font-medium text-cyan-400">Players</span>
               </div>
-              {settings.teamMode && (
+              {(settings.teamMode || settings.team_mode) && (
                 <span className="text-xs px-2 py-1 bg-cyan-500/10 rounded-full text-cyan-400">
                   Team Mode
                 </span>
@@ -129,7 +129,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
             <PlayerManagement
               isOwner={isOwner}
               players={players}
-              teamMode={settings.teamMode}
+              teamMode={Boolean(settings.teamMode || settings.team_mode)}
               onPlayersChange={(newPlayers) => {
                 updatePlayers(newPlayers)
                 const addedPlayers = newPlayers.filter(p => !players.find(op => op.id === p.id))

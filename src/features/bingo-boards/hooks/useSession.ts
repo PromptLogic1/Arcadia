@@ -3,11 +3,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
-import type { BoardCell, Game, Player } from '../types/types'
+import type { BoardCell, Player, GameCategory } from '../types/types'
 
 interface UseSessionProps {
   boardId: string
-  _game: Game
+  _game: GameCategory
   initialPlayers?: Player[]
   onSessionEnd?: () => void
 }
@@ -214,6 +214,7 @@ export const useSession = ({ boardId, _game, initialPlayers = [], onSessionEnd }
         supabase.removeChannel(channel)
       }
     }
+    return undefined
   }, [sessionState.id, subscribeToSession, supabase])
 
   // Cleanup on unmount

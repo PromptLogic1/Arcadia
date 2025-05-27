@@ -75,7 +75,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({ onClose, on
   }
 
   return (
-    <DialogWrapper isOpen={true} onClose={onClose}>
+    <DialogWrapper open={true} onClose={onClose}>
       <DialogHeader>
         <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">
           Create Discussion

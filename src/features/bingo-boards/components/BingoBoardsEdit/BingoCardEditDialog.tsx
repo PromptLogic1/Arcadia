@@ -12,9 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useState, useCallback } from "react"
-import type { BingoCard } from "@/src/lib/types/bingocard.types"
-import { DIFFICULTIES, CARD_CATEGORIES } from "@/src/lib/types/game.types"
-import type { Difficulty, CardCategory } from "@/src/lib/types/game.types"
+import type { BingoCard, Difficulty } from "@/types"
+import { DIFFICULTIES } from "@/types"
 import { cn } from "@/lib/utils"
 
 interface BingoCardEditDialogProps {
@@ -26,11 +25,10 @@ interface BingoCardEditDialogProps {
 }
 
 interface CardForm {
-  card_content: string
-  card_explanation: string
-  card_difficulty: Difficulty
-  card_type: CardCategory
-  card_tags: string[]
+  title: string
+  description: string
+  difficulty: Difficulty
+  tags: string[]
   is_public: boolean
 }
 
@@ -42,11 +40,10 @@ export function BingoCardEditDialog({
   onSave 
 }: BingoCardEditDialogProps) {
   const [formData, setFormData] = useState<CardForm>({
-    card_content: card.card_content,
-    card_explanation: card.card_explanation || '',
-    card_difficulty: card.card_difficulty,
-    card_type: card.card_type,
-    card_tags: card.card_tags || [],
+    title: card.title,
+    description: card.description || '',
+    difficulty: card.difficulty,
+    tags: card.tags || [],
     is_public: card.is_public || false
   })
   const [fieldErrors, setFieldErrors] = useState<{
@@ -61,17 +58,17 @@ export function BingoCardEditDialog({
 
   const validateField = useCallback((field: string, value: string | string[] | boolean): string | null => {
     switch (field) {
-      case 'card_content':
+      case 'title':
         if (typeof value === 'string' && (value.length === 0 || value.length > 50)) {
-          return 'Content must be between 1 and 50 characters'
+          return 'Title must be between 1 and 50 characters'
         }
         break
-      case 'card_explanation':
+      case 'description':
         if (typeof value === 'string' && value.length > 255) {
-          return 'Explanation cannot exceed 255 characters'
+          return 'Description cannot exceed 255 characters'
         }
         break
-      case 'card_tags':
+      case 'tags':
         if (Array.isArray(value) && value.length > 5) {
           return 'Maximum of 5 tags allowed'
         }
@@ -85,7 +82,7 @@ export function BingoCardEditDialog({
     
     setFieldErrors(prev => {
       const newErrors = { ...prev }
-      const key = field.replace('card_', '') as keyof typeof fieldErrors
+      const key = field as keyof typeof fieldErrors
       
       if (error) {
         newErrors[key] = error
@@ -122,18 +119,18 @@ export function BingoCardEditDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Content */}
+          {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="content">
-              Content
+            <Label htmlFor="title">
+              Title
               <span className="text-xs text-gray-400 ml-2">
-                ({formData.card_content.length}/50)
+                ({formData.title.length}/50)
               </span>
             </Label>
             <Textarea
-              id="content"
-              value={formData.card_content}
-              onChange={(e) => updateFormField('card_content', e.target.value)}
+              id="title"
+              value={formData.title}
+              onChange={(e) => updateFormField('title', e.target.value)}
               placeholder="Enter card content"
               className={cn(
                 "min-h-[100px] bg-gray-800/50",
@@ -151,13 +148,13 @@ export function BingoCardEditDialog({
             <Label htmlFor="explanation">
               Explanation (Optional)
               <span className="text-xs text-gray-400 ml-2">
-                ({formData.card_explanation.length}/255)
+                ({formData.description.length}/255)
               </span>
             </Label>
             <Textarea
               id="explanation"
-              value={formData.card_explanation}
-              onChange={(e) => updateFormField('card_explanation', e.target.value)}
+              value={formData.description}
+              onChange={(e) => updateFormField('description', e.target.value)}
               placeholder="Add an explanation for your challenge"
               className={cn(
                 "min-h-[100px] bg-gray-800/50",
@@ -175,9 +172,9 @@ export function BingoCardEditDialog({
             <div className="space-y-2">
               <Label>Difficulty</Label>
               <Select
-                value={formData.card_difficulty}
+                value={formData.difficulty}
                 onValueChange={(value: Difficulty) => 
-                  updateFormField('card_difficulty', value)
+                  updateFormField('difficulty', value)
                 }
               >
                 <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
@@ -197,31 +194,8 @@ export function BingoCardEditDialog({
               </Select>
             </div>
 
-            {/* Card Type */}
-            <div className="space-y-2">
-              <Label>Card Type</Label>
-              <Select
-                value={formData.card_type}
-                onValueChange={(value: CardCategory) => 
-                  updateFormField('card_type', value)
-                }
-              >
-                <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-cyan-500">
-                  {CARD_CATEGORIES.map((type) => (
-                    <SelectItem 
-                      key={type} 
-                      value={type}
-                      className="capitalize"
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Placeholder for future field */}
+            <div></div>
           </div>
 
           {/* Tags */}
@@ -234,8 +208,8 @@ export function BingoCardEditDialog({
             </Label>
             <Input
               id="tags"
-              value={formData.card_tags.join(', ')}
-              onChange={(e) => updateFormField('card_tags', e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag))}
+              value={formData.tags.join(', ')}
+              onChange={(e) => updateFormField('tags', e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag))}
               placeholder="Enter tags separated by commas..."
               className="bg-gray-800/50 border-cyan-500/20"
             />

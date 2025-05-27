@@ -107,8 +107,8 @@ export const useLayout = (): UseLayout => {
 
     const layout = {
       columns: size,
-      gap: isMobile ? LAYOUT_CONSTANTS.GRID.gap.mobile : LAYOUT_CONSTANTS.GRID.gap.desktop,
-      padding: isMobile ? LAYOUT_CONSTANTS.GRID.padding.mobile : LAYOUT_CONSTANTS.GRID.padding.desktop
+      gap: isMobile ? LAYOUT_CONSTANTS.GRID.GAP_SM : LAYOUT_CONSTANTS.GRID.GAP_LG,
+      padding: LAYOUT_CONSTANTS.GRID.CONTAINER_PADDING
     }
 
     layoutCache.set(cacheKey, layout)
@@ -123,14 +123,14 @@ export const useLayout = (): UseLayout => {
     const spacing = {
       base,
       vertical: layoutState.isMobile 
-        ? LAYOUT_CONSTANTS.SPACING.mobile.vertical 
-        : LAYOUT_CONSTANTS.SPACING.desktop.vertical,
+        ? LAYOUT_CONSTANTS.SPACING.SM 
+        : LAYOUT_CONSTANTS.SPACING.LG,
       horizontal: layoutState.isMobile 
-        ? LAYOUT_CONSTANTS.SPACING.mobile.horizontal 
-        : LAYOUT_CONSTANTS.SPACING.desktop.horizontal,
+        ? LAYOUT_CONSTANTS.SPACING.SM 
+        : LAYOUT_CONSTANTS.SPACING.LG,
       gap: layoutState.isMobile 
-        ? LAYOUT_CONSTANTS.SPACING.mobile.gap 
-        : LAYOUT_CONSTANTS.SPACING.desktop.gap
+        ? LAYOUT_CONSTANTS.SPACING.XS 
+        : LAYOUT_CONSTANTS.SPACING.MD
     }
 
     layoutCache.set(cacheKey, spacing)

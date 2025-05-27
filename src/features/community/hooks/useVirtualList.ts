@@ -4,7 +4,7 @@ import { useRef, useCallback } from 'react'
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual'
 
 interface UseVirtualListReturn {
-  parentRef: React.RefObject<HTMLDivElement>
+  parentRef: React.RefObject<HTMLDivElement | null>
   virtualizer: Virtualizer<HTMLDivElement, Element>
   scrollToIndex: (index: number) => void
 }

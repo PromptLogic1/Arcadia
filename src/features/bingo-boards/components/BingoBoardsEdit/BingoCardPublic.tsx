@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { BingoCard as BingoCardType } from '@/src/lib/types/bingocard.types'
-import { DIFFICULTY_STYLES } from '@/src/lib/types/game.types'
+import type { BingoCard as BingoCardType } from '@/types'
+import { DIFFICULTY_STYLES } from '@/types'
 import { ThumbsUp, ChevronDown, User } from 'lucide-react'
 import {
   Collapsible,
@@ -45,23 +45,23 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
                 className="text-sm text-cyan-300/90 truncate mr-2 flex-1" 
                 style={{ wordBreak: 'break-word' }}
               >
-                {card.card_content}
+                {card.title}
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 <Badge 
                   variant="outline"
                   className={cn(
                     "px-2 py-0.5 text-xs rounded-full",
-                    DIFFICULTY_STYLES[card.card_difficulty]
+                    DIFFICULTY_STYLES[card.difficulty]
                   )}
                 >
-                  {card.card_difficulty}
+                  {card.difficulty}
                 </Badge>
                 <Badge 
                   variant="outline" 
                   className="bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
                 >
-                  {card.votes} votes
+                  {card.votes || 0} votes
                 </Badge>
                 <ChevronDown 
                   className={cn(
@@ -88,48 +88,48 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
               </div>
 
               <div className="w-full">
-                <span className="text-xs text-cyan-400 font-medium block">Content:</span>
+                <span className="text-xs text-cyan-400 font-medium block">Title:</span>
                 <p 
                   className="text-sm text-gray-300 break-words line-clamp-3" 
                   style={{ wordBreak: 'break-word' }}
                 >
-                  {card.card_content}
+                  {card.title}
                 </p>
               </div>
 
-              {card.card_explanation && (
+              {card.description && (
                 <div className="w-full">
-                  <span className="text-xs text-cyan-400 font-medium block">Explanation:</span>
+                  <span className="text-xs text-cyan-400 font-medium block">Description:</span>
                   <p 
                     className="text-sm text-gray-300 line-clamp-3" 
                     style={{ wordBreak: 'break-word' }}
                   >
-                    {card.card_explanation}
+                    {card.description}
                   </p>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="overflow-hidden">
-                  <span className="text-xs text-cyan-400 font-medium block">Type:</span>
-                  <p className="text-sm text-gray-300 capitalize">
-                    {card.card_type}
+                  <span className="text-xs text-cyan-400 font-medium block">Game:</span>
+                  <p className="text-sm text-gray-300">
+                    {card.game_type}
                   </p>
                 </div>
 
                 <div className="overflow-hidden">
-                  <span className="text-xs text-cyan-400 font-medium block">Game:</span>
-                  <p className="text-sm text-gray-300">
-                    {card.game_category}
+                  <span className="text-xs text-cyan-400 font-medium block">Difficulty:</span>
+                  <p className="text-sm text-gray-300 capitalize">
+                    {card.difficulty}
                   </p>
                 </div>
               </div>
 
-              {card.card_tags && card.card_tags.length > 0 && (
+              {card.tags && card.tags.length > 0 && (
                 <div className="w-full">
                   <span className="text-xs text-cyan-400 font-medium block">Tags:</span>
                   <p className="text-sm text-gray-300 break-words">
-                    {card.card_tags.join(', ')}
+                    {card.tags.join(', ')}
                   </p>
                 </div>
               )}

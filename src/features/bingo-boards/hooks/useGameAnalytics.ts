@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { Player } from '../types/types'
+import type { BingoSessionPlayer } from '@/types'
+
+// Type alias for compatibility
+type Player = BingoSessionPlayer
 import type {
   GameStats,
   GamePatterns,
@@ -83,20 +86,25 @@ export const useGameAnalytics = (): UseGameAnalyticsReturn => {
 
       const updatedPlayerStats = players.reduce((stats, player) => ({
         ...stats,
-        [player.id]: {
-          markedFields: markedFields[player.id] || 0,
-          completedLines: completedLines[player.id] || 0,
-          averageMoveTime: moveTime,
-          totalMoves: (prev.playerStats[player.id]?.totalMoves || 0) + 1
-        }
+        [player.user_id]: {
+          playerId: player.user_id,
+          playerName: player.player_name,
+          joinTime: new Date(player.joined_at || player.created_at || Date.now()).getTime(),
+          totalMoves: (prev.playerStats[player.user_id]?.totalMoves || 0) + 1,
+          linesCompleted: completedLines[player.user_id] || 0,
+          averageTimePerMove: moveTime,
+          isWinner: false
+        } as PlayerStats
       }), {} as Record<string, PlayerStats>)
 
       moveTimestamps.current.push(now)
 
       trackEvent({
+        id: crypto.randomUUID(),
         type: EVENT_TYPES.MOVE,
         timestamp: now,
-        playerId: players[prev.moves % players.length]?.id,
+        sessionId: players[prev.moves % players.length]?.session_id || 'unknown',
+        playerId: players[prev.moves % players.length]?.user_id,
         data: { moveTime }
       })
 
@@ -140,8 +148,10 @@ export const useGameAnalytics = (): UseGameAnalyticsReturn => {
     }
 
     trackEvent({
+      id: crypto.randomUUID(),
       type: EVENT_TYPES.MOVE,
       timestamp: Date.now(),
+      sessionId: 'current-session', // TODO: Get actual session ID
       playerId,
       data: { moveType, position }
     })
@@ -157,8 +167,10 @@ export const useGameAnalytics = (): UseGameAnalyticsReturn => {
 
     if (playerId !== null) {
       trackEvent({
+        id: crypto.randomUUID(),
         type: EVENT_TYPES.WIN,
         timestamp: now,
+        sessionId: 'current-session', // TODO: Get actual session ID
         playerId,
         data: { duration: now - (gameStats.startTime || now) }
       })

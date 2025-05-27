@@ -1,10 +1,16 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import {
   Select,
   SelectContent,
@@ -12,36 +18,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Settings, Plus, X } from 'lucide-react'
-import { cn } from "@/lib/utils"
-import type { Difficulty, BingoCard } from '@/types'
-import { DIFFICULTIES, DIFFICULTY_STYLES, DEFAULT_BINGO_CARD } from '@/types'
-import { Checkbox } from "@/components/ui/checkbox"
-import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit'
-import LoadingSpinner from "@/components/ui/loading-spinner"
-import { useState, useCallback, useEffect } from "react"
-import { BingoCardEditDialog } from "./BingoCardEditDialog"
-import { useRouter } from 'next/navigation'
-import { ROUTES } from '@/src/config/routes'
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
-import { ChevronDown } from "lucide-react"
-import { BingoCardPreview } from "./BingoCard"
-import { Badge } from "@/components/ui/badge"
-import NeonText from "@/components/ui/NeonText"
-import { GridPositionSelectDialog } from './GridPositionSelectDialog'
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent
 } from "@/components/ui/tabs"
+import { cn } from '@/lib/utils'
+import { ChevronDown, Settings, Plus, X } from 'lucide-react'
+import LoadingSpinner from "@/components/ui/loading-spinner"
+import NeonText from "@/components/ui/NeonText"
+import { ROUTES } from '@/src/config/routes'
+import { BingoCardPreview } from './BingoCard'
 import { BingoCardPublic } from './BingoCardPublic'
-import { useBingoCards } from '@/src/lib/stores'
-import type { FilterOptions } from './FilterBingoCards'
 import { FilterBingoCards } from './FilterBingoCards'
+import { GeneratorPanel } from '../Generator/GeneratorPanel'
+import { BingoCardEditDialog } from './BingoCardEditDialog'
+import { GridPositionSelectDialog } from './GridPositionSelectDialog'
+import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit'
+import { useBingoCardsStore, useBingoCardsActions } from '@/lib/stores/bingo-cards-store'
 import { useAuth } from '@/src/hooks/useAuth'
-import { GeneratorPanel } from '../Generator/components/GeneratorPanel'
+import type { 
+  BingoCard, 
+  Difficulty,
+  FilterOptions
+} from '@/types'
+import { DIFFICULTIES, DIFFICULTY_STYLES, DEFAULT_BINGO_CARD } from '@/types'
 
 interface BingoBoardEditProps {
   boardId: string
@@ -62,7 +64,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
   const [selectedCard, setSelectedCard] = useState<BingoCard | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const { isAuthenticated, loading: isAuthLoading } = useAuth()
 
   const {
     isLoadingBoard,
@@ -83,7 +85,13 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     initializeBoard,
   } = useBingoBoardEdit(boardId)
 
-  const { publicCards, loading: isLoadingPublicCards } = useBingoCards()
+  const { publicCards, loading: isLoadingPublicCards } = useBingoCardsStore()
+  const {
+    initializePublicCards,
+    filterPublicCards,
+    voteCard,
+    updateGridCard
+  } = useBingoCardsActions()
   const [_activeTab, setActiveTab] = useState('general')
 
   useEffect(() => {
@@ -92,9 +100,9 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
     }
   }, [isAuthLoading, isAuthenticated, boardId, initializeBoard])
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     router.push(ROUTES.CHALLENGE_HUB)
-  }, [router])
+  }
 
   const handleSaveClick = async () => {
     try {
@@ -145,15 +153,15 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       card: {
         ...DEFAULT_BINGO_CARD,
         game_type: currentBoard.game_type
-      },
+      } as BingoCard,
       index: -1 // Use -1 to indicate this is a new card
     })
   }
 
   const handleTabChange = async (value: string) => {
     setActiveTab(value)
-    if (value === 'public') {
-      await bingoCardService.initializePublicCards()
+    if (value === 'public' && currentBoard) {
+      await initializePublicCards(currentBoard.game_type)
     }
   }
 
@@ -198,7 +206,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
               variant="outline" 
               className="bg-gray-800/50 border-cyan-500/50 text-cyan-400"
             >
-              {currentBoard.board_game_type}
+              {currentBoard.game_type}
             </Badge>
           </div>
           <div className="flex justify-center gap-2">
@@ -323,10 +331,14 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
             <TabsContent value="public" className="mt-2">
               <FilterBingoCards 
                 onFilter={async (filters: FilterOptions) => {
-                  await bingoCardService.filterPublicCards(filters)
+                  if (currentBoard) {
+                    await filterPublicCards(filters, currentBoard.game_type)
+                  }
                 }}
                 onClear={async () => {
-                  await bingoCardService.initializePublicCards()
+                  if (currentBoard) {
+                    await initializePublicCards(currentBoard.game_type)
+                  }
                 }}
               />
               <ScrollArea className="min-h-[calc(100vh-12rem)]">
@@ -347,8 +359,10 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                           card={card}
                           onSelect={handleCardSelect}
                           onVote={async (card: BingoCard) => {
-                            await bingoCardService.voteCard(card.id)
-                            await bingoCardService.initializePublicCards()
+                            await voteCard(card.id)
+                            if (currentBoard) {
+                              await initializePublicCards(currentBoard.game_type)
+                            }
                           }}
                         />
                       ))}
@@ -360,8 +374,8 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
             <TabsContent value="generator" className="mt-2">
               <GeneratorPanel 
-                gameCategory={currentBoard.board_game_type}
-                gridSize={currentBoard.board_size}
+                gameCategory={currentBoard.game_type}
+                gridSize={currentBoard.size || 5}
               />
             </TabsContent>
           </Tabs>
@@ -518,7 +532,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                       <div className="absolute text-xs text-red-400 font-mono z-10 bg-gray-900/50 hover:bg-red-500/20 px-1 rounded cursor-pointer border border-red-500/20" style={{ top: '0.25rem', right: '0.5rem' }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          bingoCardService.updateGridCard(index, { ...DEFAULT_BINGO_CARD })
+                          updateGridCard(index, { ...DEFAULT_BINGO_CARD } as BingoCard)
                         }}
                       >
                         <X className="h-4 w-4 inline-block" />
@@ -529,15 +543,15 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
                       <div className="flex flex-col items-center h-full pt-6">
                         <div className={cn(
                           "w-full text-center text-xs border-b border-gray-700 pb-1",
-                          DIFFICULTY_STYLES[card.card_difficulty as Difficulty]
+                          DIFFICULTY_STYLES[card.difficulty as Difficulty]
                         )}>
-                          {card.card_difficulty}
+                          {card.difficulty}
                         </div>
                         <div className="flex-1 flex items-center justify-center text-center px-1 text-sm break-words overflow-break-word" style={{ wordBreak: 'break-word' }}>
-                          {card.card_content}
+                          {card.title}
                         </div>
                         <div className="w-full text-center text-xs text-gray-400 border-t border-gray-700 pt-1">
-                          {card.card_type}
+                          {card.tags?.join(', ') || 'No tags'}
                         </div>
                       </div>
                     ) : (
