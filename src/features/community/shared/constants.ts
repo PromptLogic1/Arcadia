@@ -45,7 +45,7 @@ export const MOCK_DISCUSSIONS: readonly Discussion[] = [
   }
 ] as const
 
-import type { Event as StoreEvent } from '@/src/lib/stores/community-store'
+import type { Event as StoreEvent } from '@/lib/stores/community-store'
 
 // Note: Using store Event type which has different structure
 export const MOCK_EVENTS: StoreEvent[] = [

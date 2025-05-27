@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useCallback, memo } from 'react'
 import useEmblaCarousel from 'embla-carousel-react'
-import { OptimizedImage } from '@/src/components/ui/image'
+import { OptimizedImage } from '@/components/ui/image'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
-import NeonBorder from '@/src/components/ui/NeonBorder'
-import { Card, CardContent } from '@/src/components/ui/card'
-import NeonText from '@/src/components/ui/NeonText'
-import { Button } from '@/src/components/ui/button'
+import NeonBorder from '@/components/ui/NeonBorder'
+import { Card, CardContent } from '@/components/ui/card'
+import NeonText from '@/components/ui/NeonText'
+import { Button } from '@/components/ui/button'
 
 // Define the FeaturedGame interface with proper image typing
 interface FeaturedGame {

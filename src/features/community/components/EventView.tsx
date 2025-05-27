@@ -67,7 +67,7 @@ const EventView: React.FC<EventViewProps> = ({ event, onClose }) => {
           <div>
             <h3 className="text-lg font-semibold mb-2">Tags</h3>
             <div className="flex flex-wrap gap-2">
-              {event.tags.map((tag: string) => (
+              {event.tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="bg-gray-700">
                   {tag}
                 </Badge>

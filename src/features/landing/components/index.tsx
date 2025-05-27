@@ -3,7 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { GamepadIcon } from 'lucide-react'
-import NeonText from '@/src/components/ui/NeonText'
+import NeonText from '@/components/ui/NeonText'
 
 export default function LandingPage() {
   return (

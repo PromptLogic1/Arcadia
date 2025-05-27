@@ -16,14 +16,13 @@ import {
 import {
   ToggleGroup,
   ToggleGroupItem
-} from "@/src/components/ui/toggle-group"
+} from "@/components/ui/toggle-group"
 import { NeonButton } from '@/components/ui/NeonButton'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
-import type { Comment } from '@/src/features/community/types/types'
 import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from '@/src/features/community/shared/constants'
 import { SearchInput } from '@/src/features/community/shared/SearchInput'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useCommunity, useCommunityActions, type Discussion } from '@/src/lib/stores/community-store'
+import { useCommunity, useCommunityActions, type Discussion, type Comment } from '@/src/lib/stores/community-store'
 
 // Dynamic imports for better code splitting
 const DiscussionCard = dynamic(() => import('./DiscussionCard'), {
@@ -75,6 +74,7 @@ export function CommunityComponent() {
   const [selectedGame, setSelectedGame] = useState('All Games')
   const [selectedChallenge, setSelectedChallenge] = useState('All Challenges')
   const [isCreateDiscussionOpen, setIsCreateDiscussionOpen] = useState(false)
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
 
   // Use Zustand store
   const { discussions, comments, events, selectedDiscussion, loading } = useCommunity()
@@ -114,7 +114,7 @@ export function CommunityComponent() {
           discussion.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
           discussion.content.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
           discussion.game.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          (discussion.tags && discussion.tags.some((tag: string) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase())))
+          (discussion.tags && discussion.tags.some((tag) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase())))
 
         const matchesGame = selectedGame === 'All Games' || discussion.game === selectedGame
         const matchesChallenge =
@@ -141,7 +141,7 @@ export function CommunityComponent() {
         debouncedSearchQuery === '' ||
         event.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         event.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        event.tags.some((tag: string) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+        event.tags.some((tag) => tag.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
       )
     })
   }, [events, debouncedSearchQuery])
@@ -328,11 +328,11 @@ export function CommunityComponent() {
               >
                 <EventCard
                   event={event}
-                  isExpanded={selectedDiscussion?.id === event.id}
-                  onToggle={() => setSelectedDiscussion(
-                    selectedDiscussion?.id === event.id 
+                  isExpanded={selectedEventId === event.id}
+                  onToggle={() => setSelectedEventId(
+                    selectedEventId === event.id 
                       ? null 
-                      : null
+                      : event.id
                   )}
                 />
               </div>

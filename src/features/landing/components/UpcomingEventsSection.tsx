@@ -3,9 +3,9 @@
 import React, { useMemo } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import NeonBorder from '@/src/components/ui/NeonBorder'
-import NeonText from '@/src/components/ui/NeonText'
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card'
+import NeonBorder from '@/components/ui/NeonBorder'
+import NeonText from '@/components/ui/NeonText'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from 'lucide-react'
 
 interface Event {

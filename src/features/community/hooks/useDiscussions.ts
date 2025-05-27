@@ -2,21 +2,27 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Discussion as BaseDiscussion, Comment } from '@/src/lib/stores/community-store'
+import type { Discussion as BaseDiscussion, Comment as BaseComment } from '@/src/lib/stores/community-store'
 import type { Database } from '@/types/database.types'
 
 // Extended Discussion type that includes UI-specific properties
 interface Discussion extends BaseDiscussion {
-  comments?: number
-  commentList?: Comment[]
+  author?: { username: string; avatar_url: string | null };
+  comments_count?: number;
+  commentList?: Comment[];
+}
+
+// Frontend Comment type, extending BaseComment if needed, or just defining fully
+interface Comment extends BaseComment {
+  author?: { username: string; avatar_url: string | null };
 }
 
 interface UseDiscussionsReturn {
   discussions: readonly Discussion[]
   error: Error | null
   isLoading: boolean
-  addDiscussion: (discussion: Omit<Discussion, 'id' | 'comments' | 'upvotes' | 'date' | 'commentList'>) => Promise<Discussion>
-  addComment: (discussionId: number, comment: Omit<Comment, 'id' | 'date'>) => Promise<Comment>
+  addDiscussion: (discussionData: Omit<BaseDiscussion, 'id' | 'upvotes' | 'created_at' | 'updated_at'>) => Promise<Discussion>
+  addComment: (discussionId: number, commentData: Omit<BaseComment, 'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at'>) => Promise<Comment>
   upvoteDiscussion: (discussionId: number) => Promise<void>
 }
 
@@ -62,10 +68,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
   const supabase = createClientComponentClient<Database>()
 
   const transformDatabaseComment = useCallback((dbComment: DatabaseComment & {
-    author: {
-      username: string
-      avatar_url: string | null
-    }
+    author: { username: string; avatar_url: string | null; };
   }): Comment => ({
     id: dbComment.id,
     content: dbComment.content,
@@ -73,10 +76,10 @@ export const useDiscussions = (): UseDiscussionsReturn => {
     discussion_id: dbComment.discussion_id,
     updated_at: dbComment.updated_at,
     upvotes: dbComment.upvotes || 0,
-    author_id: dbComment.author_id
+    author_id: dbComment.author_id,
+    author: dbComment.author,
   }), [])
 
-  // Transform database types to our frontend types
   const transformDatabaseDiscussion = useCallback((dbDiscussion: DiscussionWithRelations): Discussion => ({
     id: dbDiscussion.id,
     title: dbDiscussion.title,
@@ -87,12 +90,16 @@ export const useDiscussions = (): UseDiscussionsReturn => {
     created_at: dbDiscussion.created_at,
     updated_at: dbDiscussion.updated_at,
     tags: dbDiscussion.tags || [],
-    author_id: dbDiscussion.author_id
-  }), [])
+    author_id: dbDiscussion.author_id,
+    author: dbDiscussion.author,
+    comments_count: dbDiscussion.comments.count,
+    commentList: (dbDiscussion.commentList || []).map(transformDatabaseComment),
+  }), [transformDatabaseComment])
 
   useEffect(() => {
     const fetchDiscussions = async () => {
       try {
+        setIsLoading(true)
         const response = await supabase
           .from('discussions')
           .select(`
@@ -106,40 +113,11 @@ export const useDiscussions = (): UseDiscussionsReturn => {
           `)
           .order('created_at', { ascending: false })
 
-        // Type assertion after we get the response
-        const result = response as PostgrestResponse<Array<{
-          id: number
-          title: string
-          content: string
-          game: string
-          challenge_type: string | null
-          tags: string[]
-          upvotes: number
-          author_id: string
-          created_at: string
-          updated_at: string
-          author: { username: string; avatar_url: string | null }
-          comments: { count: number }
-          commentList: Array<{
-            id: number
-            content: string
-            upvotes: number
-            author_id: string
-            discussion_id: number
-            created_at: string
-            updated_at: string
-            author: { username: string; avatar_url: string | null }
-          }>
-        }>>
+        const result = response as PostgrestResponse<DiscussionWithRelations[]>
 
         if (result.error) throw result.error
         
-        const transformedDiscussions = (result.data || []).map(discussion => ({
-          ...discussion,
-          author: discussion.author,
-          comments: discussion.comments,
-          commentList: discussion.commentList
-        })).map(transformDatabaseDiscussion)
+        const transformedDiscussions = (result.data || []).map(transformDatabaseDiscussion)
 
         setDiscussions(transformedDiscussions)
       } catch (err) {
@@ -152,18 +130,29 @@ export const useDiscussions = (): UseDiscussionsReturn => {
     fetchDiscussions()
 
     const channel = supabase
-      .channel('discussions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'discussions' }, 
-        fetchDiscussions
+      .channel('discussions_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'discussions' },
+        (payload) => {
+          fetchDiscussions()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'comments' },
+        (payload) => {
+          fetchDiscussions()
+        }
       )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, transformDatabaseDiscussion])
+  }, [supabase, transformDatabaseDiscussion, transformDatabaseComment])
 
-  const addDiscussion = useCallback(async (discussion: Omit<Discussion, 'id' | 'comments' | 'upvotes' | 'date' | 'commentList'>) => {
+  const addDiscussion = useCallback(async (discussionData: Omit<BaseDiscussion, 'id' | 'upvotes' | 'created_at' | 'updated_at'>) => {
     setIsLoading(true)
     setError(null)
     
@@ -171,17 +160,19 @@ export const useDiscussions = (): UseDiscussionsReturn => {
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) throw new Error('Not authenticated')
 
+      const insertData = {
+        title: discussionData.title,
+        content: discussionData.content,
+        game: discussionData.game,
+        challenge_type: discussionData.challenge_type,
+        author_id: userData.user.id,
+        tags: discussionData.tags ? Array.from(discussionData.tags) : [],
+        upvotes: 0,
+      }
+
       const { data, error: supabaseError } = await supabase
         .from('discussions')
-        .insert({
-          title: discussion.title,
-          content: discussion.content,
-          game: discussion.game,
-          challenge_type: discussion.challenge_type,
-          author_id: userData.user.id,
-          tags: discussion.tags ? Array.from(discussion.tags) : [],
-          upvotes: 0
-        })
+        .insert(insertData)
         .select(`
           *,
           author:users!author_id(username, avatar_url),
@@ -191,13 +182,14 @@ export const useDiscussions = (): UseDiscussionsReturn => {
             author:users!author_id(username, avatar_url)
           )
         `)
-        .single() as PostgrestResponse<DiscussionWithRelations>
-
-      if (supabaseError) throw supabaseError
-      if (!data) throw new Error('No data returned from insert')
+        .single()
       
-      const transformedDiscussion = transformDatabaseDiscussion(data)
-      setDiscussions(prev => [...prev, transformedDiscussion])
+      const result = { data, error: supabaseError } as PostgrestResponse<DiscussionWithRelations>
+
+      if (result.error) throw result.error
+      if (!result.data) throw new Error('No data returned from insert')
+      
+      const transformedDiscussion = transformDatabaseDiscussion(result.data)
       return transformedDiscussion
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to add discussion')
@@ -208,7 +200,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
     }
   }, [supabase, transformDatabaseDiscussion])
 
-  const addComment = useCallback(async (discussionId: number, comment: Omit<Comment, 'id' | 'date'>) => {
+  const addComment = useCallback(async (discussionId: number, commentData: Omit<BaseComment, 'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at'>) => {
     setIsLoading(true)
     setError(null)
     
@@ -216,36 +208,28 @@ export const useDiscussions = (): UseDiscussionsReturn => {
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) throw new Error('Not authenticated')
 
+      const insertData = {
+        discussion_id: discussionId,
+        content: commentData.content,
+        author_id: userData.user.id,
+        upvotes: 0,
+      }
+
       const { data, error: supabaseError } = await supabase
         .from('comments')
-        .insert({
-          discussion_id: discussionId,
-          content: comment.content,
-          author_id: userData.user.id,
-          upvotes: 0
-        })
+        .insert(insertData)
         .select(`
           *,
           author:users!author_id(username, avatar_url)
         `)
-        .single() as PostgrestResponse<DatabaseComment & {
-          author: { username: string; avatar_url: string | null }
-        }>
+        .single()
+        
+      const result = { data, error: supabaseError } as PostgrestResponse<DatabaseComment & { author: { username: string; avatar_url: string | null; }; }>
 
-      if (supabaseError) throw supabaseError
-      if (!data) throw new Error('No data returned from insert')
+      if (result.error) throw result.error
+      if (!result.data) throw new Error('No data returned from insert')
 
-      const transformedComment = transformDatabaseComment(data)
-      setDiscussions(prev => prev.map(discussion =>
-        discussion.id === discussionId
-          ? {
-              ...discussion,
-              comments: (discussion.comments || 0) + 1,
-              commentList: [...(discussion.commentList || []), transformedComment]
-            }
-          : discussion
-      ))
-
+      const transformedComment = transformDatabaseComment(result.data)
       return transformedComment
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to add comment')

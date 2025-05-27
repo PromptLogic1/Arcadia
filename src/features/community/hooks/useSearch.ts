@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useMemo, useCallback, useTransition } from 'react'
-import type { Discussion, Event } from '@/src/lib/stores/community-store'
-import { useDebounce } from '@/src/hooks/useDebounce'
+import type { Discussion, Event } from '@/lib/stores/community-store'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface UseSearchReturn<T> {
   filteredItems: T[]
@@ -65,11 +65,20 @@ export function useSearch<T extends Discussion | Event>(
       })
       .sort((a, b) => {
         if (sortBy === 'newest') {
-          const aDate = 'date' in a ? a.date : a.created_at || ''
-          const bDate = 'date' in b ? b.date : b.created_at || ''
-          return new Date(bDate).getTime() - new Date(aDate).getTime()
+          const aDateStr = 'date' in a ? a.date : a.created_at;
+          const bDateStr = 'date' in b ? b.date : b.created_at;
+          // Ensure valid date strings or fallback to epoch for consistent sorting
+          const aTime = aDateStr ? new Date(aDateStr).getTime() : 0;
+          const bTime = bDateStr ? new Date(bDateStr).getTime() : 0;
+          // Handle NaN cases explicitly if new Date() results in Invalid Date
+          const validATime = isNaN(aTime) ? 0 : aTime;
+          const validBTime = isNaN(bTime) ? 0 : bTime;
+          return validBTime - validATime; // newest first
         }
-        return 'upvotes' in a && 'upvotes' in b ? (b.upvotes || 0) - (a.upvotes || 0) : 0
+        // For 'hot' sort, ensure upvotes exist or default to 0
+        const aUpvotes = ('upvotes' in a && typeof a.upvotes === 'number') ? a.upvotes : 0;
+        const bUpvotes = ('upvotes' in b && typeof b.upvotes === 'number') ? b.upvotes : 0;
+        return bUpvotes - aUpvotes; // most upvotes first
       })
   }, [items, debouncedSearch, selectedGame, selectedChallenge, sortBy, searchKeys])
 

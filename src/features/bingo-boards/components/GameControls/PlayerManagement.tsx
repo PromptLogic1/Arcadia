@@ -184,6 +184,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                   className={cn(
                     "h-8 text-sm bg-gray-800/50",
                     "border-gray-700/50 focus:border-cyan-500/50",
+                    player.hoverColor,
                     "transition-colors duration-200"
                   )}
                   maxLength={20}

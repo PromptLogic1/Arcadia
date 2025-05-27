@@ -2,8 +2,8 @@
 
 import React, { useMemo } from 'react'
 import Image from 'next/image'
-import NeonBorder from '@/src/components/ui/NeonBorder'
-import NeonText from '@/src/components/ui/NeonText'
+import NeonBorder from '@/components/ui/NeonBorder'
+import NeonText from '@/components/ui/NeonText'
 
 interface Partner {
   id: string

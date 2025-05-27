@@ -266,6 +266,25 @@ export function CreateBoardForm({ isOpen, createBoard }: CreateBoardFormProps) {
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="board_tags">Tags (Optional, comma-separated)</Label>
+            <Input
+              id="board_tags"
+              value={formData.board_tags.join(', ')}
+              onChange={(e) => 
+                setFormData(prev => ({ 
+                  ...prev, 
+                  board_tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag !== '') 
+                }))
+              }
+              className="bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500"
+              placeholder="e.g. raiding, pvp, fun"
+            />
+            <p className="text-xs text-gray-400">
+              {formData.board_tags.length} tags entered.
+            </p>
+          </div>
+
           <div className="flex items-center space-x-2">
             <Checkbox
               id="is_public"

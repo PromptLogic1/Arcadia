@@ -1,6 +1,6 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
-import { logger } from '@/src/lib/logger'
+import { logger } from '@/lib/logger'
 
 interface Props {
   children: ReactNode

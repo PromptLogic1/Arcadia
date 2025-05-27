@@ -151,26 +151,23 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
       return
     }
 
-    // Trusting the linter that the context expects 'game_type'
-    // and that DEFAULT_BINGO_CARD properties might be optional here.
-    const newCardObject = {
-      id: '',
-      text: DEFAULT_BINGO_CARD.text || '',
+    const newCardObject: BingoCard = {
+      id: '', // Temporary, will be replaced by hook/DB
+      title: DEFAULT_BINGO_CARD.title || '',
       difficulty: DEFAULT_BINGO_CARD.difficulty || 'medium',
-      category: DEFAULT_BINGO_CARD.category || 'General',
-      description: DEFAULT_BINGO_CARD.description || null,
-      tags: DEFAULT_BINGO_CARD.tags || [],
-      isCompleted: DEFAULT_BINGO_CARD.isCompleted || false,
-      
-      game_type: currentBoard.game_type, // Linter insists on game_type
-      
-      creator_id: null,
-      created_at: null,
-      votes: null,
+      game_type: currentBoard.game_type, // Use game_type from currentBoard, aligns with DB
+      description: DEFAULT_BINGO_CARD.description ?? null,
+      tags: DEFAULT_BINGO_CARD.tags ?? null,
+      creator_id: DEFAULT_BINGO_CARD.creator_id ?? null,
+      created_at: DEFAULT_BINGO_CARD.created_at ?? null,
+      updated_at: DEFAULT_BINGO_CARD.updated_at ?? null,
+      is_public: DEFAULT_BINGO_CARD.is_public ?? null,
+      votes: DEFAULT_BINGO_CARD.votes ?? null,
+      // Removed: category, isCompleted (as they are removed from BingoCard type)
     };
 
     setEditingCard({
-      card: newCardObject as BingoCard, // Add cast back if newCardObject doesn't perfectly match inferred BingoCard yet
+      card: newCardObject, // No cast needed if newCardObject perfectly matches BingoCard
       index: -1 
     });
   }

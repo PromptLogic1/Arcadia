@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
-import NeonText from '@/src/components/ui/NeonText'
+import NeonText from '@/components/ui/NeonText'
 
 interface FAQ {
   id: string

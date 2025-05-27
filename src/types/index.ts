@@ -54,16 +54,17 @@ type GameCategory = DbGameCategory
 
 // Application representation of a bingo card (different from database BoardCell)
 export interface BingoCard {
-  id: string
-  text: string
-  difficulty: Difficulty  // Use aliased type
-  category: string
-  game: GameCategory     // Use database type
-  description?: string
-  tags?: string[]
-  isCompleted?: boolean
-  completedBy?: string
-  completedAt?: Date
+  id: string;
+  title: string;
+  difficulty: Difficulty;
+  game_type: GameCategory;
+  description?: string | null;
+  tags?: string[] | null;
+  creator_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  is_public?: boolean | null;
+  votes?: number | null;
 }
 
 // =============================================================================
@@ -148,11 +149,14 @@ export interface BingoCardStats {
 
 // Default bingo card
 export const DEFAULT_BINGO_CARD: Omit<BingoCard, 'id'> = {
-  text: '',
+  title: '',
   difficulty: 'medium',
-  category: 'General',
-  game: 'All Games',
+  game_type: 'All Games',
   description: '',
   tags: [],
-  isCompleted: false
+  is_public: false,
+  votes: 0,
+  creator_id: null,
+  created_at: null,
+  updated_at: null,
 } 

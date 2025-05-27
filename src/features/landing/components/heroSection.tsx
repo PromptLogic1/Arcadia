@@ -4,10 +4,10 @@ import React, { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { Play, Users } from 'lucide-react'
-import NeonBorder from '@/src/components/ui/NeonBorder'
-import ArcadeDecoration from '@/src/components/ui/ArcadeDecoration'
-import NeonText from '@/src/components/ui/NeonText'
-import { Button } from '@/src/components/ui/button'
+import NeonBorder from '@/components/ui/NeonBorder'
+import ArcadeDecoration from '@/components/ui/ArcadeDecoration'
+import NeonText from '@/components/ui/NeonText'
+import { Button } from '@/components/ui/button'
 
 interface Challenge {
   id: string

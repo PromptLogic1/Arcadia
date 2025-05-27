@@ -4,10 +4,10 @@ import React, { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { ChevronRight, X } from 'lucide-react'
-import NeonBorder from '@/src/components/ui/NeonBorder'
+import NeonBorder from '@/components/ui/NeonBorder'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import NeonText from '@/src/components/ui/NeonText'
+import NeonText from '@/components/ui/NeonText'
 
 interface Challenge {
   name: string
@@ -20,7 +20,7 @@ interface Challenge {
 }
 
 interface FeaturedChallengesProps {
-  challenges: readonly Challenge[] | Challenge[]
+  challenges: readonly Challenge[]
 }
 
 const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) => {

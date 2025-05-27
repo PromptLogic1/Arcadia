@@ -209,8 +209,79 @@ The following files/directories within `src/app/api/` have been systematically r
                 - Corrected import paths for `notifications`, `ROUTES`, and `useAuth`.
                 - Renamed `_activeTab` state to `activeTab`.
                 - Changed default export to named export.
-                - **Unresolved Issue:** Significant type mismatch in `handleCreateNewCard` when creating a new card object. The linter indicates the context expects a `BingoCard` type with `game_type` (not `game`) and different optionality/fields (e.g., expecting `is_public`, `title`, `updated_at`) than defined in `src/types/index.ts` for `BingoCard` and `DEFAULT_BINGO_CARD`. This requires a deeper investigation into the `BingoCard` type used by `useBingoBoardEdit` hook or the component's `editingCard` state.
-        - **Subdirectories (`GameControls/`, `layout/`, `Board/`)**: Pending review.
+                - **Resolved Issue:** Addressed significant type mismatch in `handleCreateNewCard`. Updated `BingoCard` type in `src/types/index.ts` to align with database schema (`types/database.bingo.ts -> BingoCardsTable`), changing `text` to `title`, `game` to `game_type`, and adding/removing fields appropriately. Updated `DEFAULT_BINGO_CARD` in `src/types/index.ts`. Refactored `handleCreateNewCard` in `BingoBoardEdit.tsx` to use the corrected types and `DEFAULT_BINGO_CARD` values, resolving linter errors related to type compatibility.
+        - **Subdirectories (`GameControls/`, `layout/`, `Board/`)**: Reviewed and updated. All files (`GameSettings.tsx`, `PlayerManagement.tsx`, `TimerControls.tsx`, `GameControls/index.tsx`, `BingoLayout.tsx`, `WinnerModal.tsx`) checked for type safety, logic, and imports. Necessary corrections applied.
+        - **`CreateBoardForm.tsx`**: Reviewed. Added missing input field for `board_tags` to align with `FormData` type and `CreateBoardFormData` from shared types.
+
+### 21. `src/features/landing/components/`
+- **Status:** Reviewed and Updated.
+- **Key Changes & Observations:**
+    - Corrected import paths in `heroSection.tsx`, `UpcomingEventsSection.tsx`, `PartnersSection.tsx`, `FeaturedGamesCarousel.tsx`, `FeaturedChallenges.tsx`, `FAQSection.tsx`, and `landing/components/index.tsx` to remove redundant `src/` segment.
+    - Simplified `challenges` prop type in `FeaturedChallenges.tsx`.
+    - **Note on `heroSection.tsx`**: Filename is `heroSection.tsx` (lowercase 'h'), standard practice is typically `HeroSection.tsx` (PascalCase). Consider renaming for consistency (manual step).
+    - **Note on `landing/components/index.tsx`**: This file defines a `LandingPage` component, rather than being an export file for the directory's components. This is unusual. If this `LandingPage` component is the primary one, it doesn't use the other section components in this directory. If the other sections are used, the landing page is assembled elsewhere. This might indicate `landing/components/index.tsx` is deprecated or needs clarification on its role.
+
+### 22. `src/features/community/`
+- **Status:** Partially Reviewed and Updated (types, hooks, some shared components).
+- **Key Changes & Observations:**
+    - **`types/types.ts`**:
+        - Reviewed. Contains various type definitions (aliases for DB tables, extended UI types, form types, etc.).
+        - Noted potential redundancy of local `NeonButtonProps`; will verify against components using it.
+        - Confirmed `CreateCommentFormData.discussion_id` as `number` aligns with DB schema.
+    - **`hooks/` subdirectory**:
+        - **`useDiscussions.ts`**: Reviewed and significantly refactored to improve type safety and data consistency. Internal `Discussion` and `Comment` types were enhanced to include related data (author details, comment counts/lists). Transformation functions (`transformDatabaseDiscussion`, `transformDatabaseComment`) updated accordingly. Realtime subscriptions made more robust. Argument types for mutations (`addDiscussion`, `addComment`) were refined. Removed direct state manipulation post-mutation in favor of realtime updates.
+        - **`useEvents.ts`**: Reviewed. Manages mock event data in local state (no backend interaction). Appears correct for its current client-side only scope.
+        - **`useSearch.ts`**: Reviewed. Provides client-side search, filter, and sort. Corrected import paths. Improved robustness of date and upvote sorting logic.
+        - **`useVirtualList.ts`**: Reviewed. A straightforward wrapper for `@tanstack/react-virtual`. Seems correct.
+    - **`shared/` subdirectory (Partially Reviewed)**:
+        - **`constants.ts`**: Reviewed. Corrected import path for `StoreEvent` from `community-store`.
+        - **`CardWrapper.tsx`**: Reviewed. Seems fine.
+        - **`DialogWrapper.tsx`**: Reviewed. Noted concern about aggressive global styling of child elements (`[&_tag]:style`) due to potential maintainability and override issues, but deferred changes pending review of its usage.
+        - **`ErrorBoundary.tsx`**: Reviewed. No issues found.
+        - **`SearchInput.tsx`**: Reviewed. No issues found.
+        - **`LoadingState.tsx`**: Reviewed. No issues found.
+        - **`FilterGroup.tsx`**: Reviewed. No issues found.
+    - **Subdirectories pending full review**: `components/`.
+
+### 23. `src/features/community/components/`
+- **Status:** Reviewed.
+- **Key Changes & Observations:**
+    - **`EventCard.tsx`**: Removed redundant type annotation for `event.tags`. Noted TODOs for share/register functionality.
+    - **`EventView.tsx`**: Corrected `DialogWrapper` import path and props after initial miscorrection. Removed redundant type annotation for `event.tags`. Noted TODO for registration logic. Highlighted that this component uses `DialogWrapper` from `./shared/` (i.e., `src/features/community/components/shared/`) unlike `EventCard.tsx`.
+    - **`CreateDiscussionForm.tsx`**: Uses `DialogWrapper` from `./shared/` and `FilterGroup` from `../shared/` (i.e. `src/features/community/shared/`). Code itself seems fine.
+    - **`DiscussionCard.tsx`**: Uses `CardWrapper` from `./shared/`. Noted TODO for `author_id` and hardcoded user data (avatars, usernames).
+    - **`community.tsx` (main component):**
+        - Corrected `ToggleGroupItem` import path.
+        - Removed redundant type annotations for tags in filter functions.
+        - Corrected `EventCard` expansion logic by introducing `selectedEventId` state.
+        - Changed `Comment` type import to use the one from Zustand store for consistency with `addComment` action.
+        - Noted TODOs for `author_id` in `handleCreateDiscussion` and mock ID generation.
+        - Noted that `metadata` export should be moved to a page/layout file.
+    - **Structural Concerns Noted:**
+        - **Duplicated Shared Components:** Evidence of duplicated/different versions of `DialogWrapper.tsx`, `CardWrapper.tsx`, and `FilterGroup.tsx` in `src/features/community/shared/` and `src/features/community/components/shared/`. This needs consolidation.
+        - **Tangled Type Definitions:** Multiple sources and extending patterns for types (`Discussion`, `Comment`, `Event`) across `src/lib/stores/community-store.ts`, `src/features/community/types/types.ts`, and `src/features/community/components/types/types.ts`. This needs a unified strategy.
+    - **General TODOs:** Implement actual share/registration logic, replace hardcoded user data and mock ID generation with real authentication and backend integration.
+
+### 24. `src/hooks/`
+- **Status:** Reviewed.
+- **Key Changes & Observations:**
+    - **`useDebounce.ts`**: Refined `useDebouncedCallback` to correctly handle changing callback references using `useRef` and `useEffect`, and to memoize the returned debounced function using `useCallback`. Removed the unused `deps` parameter from `useDebouncedCallback`.
+    - **`useGenerator.ts`**: Simple wrapper around a Zustand store. No issues.
+    - **`useBingoCards.ts`**: Re-exports hooks and types from Zustand. No issues.
+    - **`useBingoBoards.ts`**: Re-exports hooks and types from Zustand. No issues.
+
+### 25. `src/lib/` (Partial Review)
+- **Status:** Partially Reviewed.
+- **Key Changes & Observations (so far):**
+    - **`task-queue.ts`**: Implements a simple in-memory task queue. Noted that `BingoGenerationResult.cells` is `unknown[]`, which could be more specific. Otherwise functional for dev purposes.
+    - **`utils.ts`**: Contains utility functions like `cn`, `formatDate`, `formatRelativeTime`, `generateId`, and a generic `debounce`. No issues found.
+    - **`config.ts`**: Handles runtime configuration (Vercel Edge Config / env vars) and Zod validation for server env vars. Noted that `getRuntimeConfig` has an implicit `any` return type. `allowedPaths` in `getApiRuntimeConfig` are hardcoded.
+    - **`rate-limiter.ts`**: 
+        - Implements two in-memory rate-limiting strategies: `isLimited()` (sliding window, used in an API route) and `check()` (fixed window, usage not seen).
+        - Noted that `uniqueTokenPerInterval` constructor option appears unused in the current logic.
+        - `MAX_REQUESTS` for `isLimited()` is hardcoded.
+        - Suitable for development; would need a persistent store for production.
+- **Pending in `src/lib/`**: `supabase.ts`, `data/` directory.
 
 ## Pending Review Areas
 

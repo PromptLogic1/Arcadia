@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 /**
  * Hook to debounce a value
@@ -28,35 +28,37 @@ export function useDebounce<T>(value: T, delay: number): T {
  * Hook to debounce a callback function
  * @param callback - The callback function to debounce
  * @param delay - The delay in milliseconds
- * @param deps - Dependencies array for the callback
  * @returns The debounced callback function
  */
 export function useDebouncedCallback<TArgs extends readonly unknown[], TReturn = void>(
   callback: (...args: TArgs) => TReturn,
-  delay: number,
-  deps: React.DependencyList = []
+  delay: number
 ): (...args: TArgs) => void {
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
-
-  const debouncedCallback = (...args: TArgs): void => {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-    }
-
-    const newTimeoutId = setTimeout(() => {
-      callback(...args)
-    }, delay)
-
-    setTimeoutId(newTimeoutId)
-  }
+  const callbackRef = useRef(callback)
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    callbackRef.current = callback
+  }, [callback])
+
+  const debouncedCallback = useCallback((...args: TArgs): void => {
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current)
+    }
+
+    timeoutIdRef.current = setTimeout(() => {
+      callbackRef.current(...args)
+    }, delay)
+  }, [delay])
+
+  useEffect(() => {
+    // Cleanup timeout on unmount
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current)
       }
     }
-  }, [timeoutId])
+  }, []) // Empty dependency array means this effect runs once on mount and cleans up on unmount
 
   return debouncedCallback
 } 
