@@ -8,6 +8,8 @@ import { Info, Mail, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useAuthActions } from '@/src/lib/stores'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('')
@@ -23,13 +25,16 @@ export function ForgotPasswordForm() {
 
     try {
       // TODO: Implement password reset with Supabase
-      console.log('Requesting password reset for:', email)
+      logger.debug('Requesting password reset', { component: 'ForgotPasswordForm', metadata: { email } })
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       setStatus('success')
+      notifications.info('Password reset email sent', { description: `If an account exists with ${email}, we've sent you instructions to reset your password.` })
+      logger.info('Password reset email sent successfully', { component: 'ForgotPasswordForm', metadata: { email } })
     } catch (error) {
-      console.error('Reset password error:', error)
+      logger.error('Password reset request failed', error as Error, { component: 'ForgotPasswordForm', metadata: { email } })
       setError('An error occurred. Please try again.')
+      notifications.error('Failed to send reset link', { description: 'Please try again or contact support if the problem persists.' })
       setStatus('idle')
     } finally {
       setLoading(false)

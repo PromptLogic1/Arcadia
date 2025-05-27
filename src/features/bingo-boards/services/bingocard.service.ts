@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { BingoCardsTable } from '@/types/database.bingo'
 import type { GameCategory, DifficultyLevel } from '@/types/database.core'
+import { logger } from '@/src/lib/logger'
 
 // Type definitions from database
 type BingoCard = BingoCardsTable['Row']
@@ -87,13 +88,13 @@ class BingoCardServiceImpl implements BingoCardService {
       const { data, error } = await query
 
       if (error) {
-        console.error('Error fetching cards:', error)
+        logger.error('Error fetching bingo cards', error, { metadata: { service: 'BingoCardService', method: 'getCards', filters } })
         return []
       }
 
       return data || []
     } catch (error) {
-      console.error('Error in getCards:', error)
+      logger.error('Exception in getCards', error as Error, { metadata: { service: 'BingoCardService', method: 'getCards', filters } })
       return []
     }
   }
@@ -107,13 +108,13 @@ class BingoCardServiceImpl implements BingoCardService {
         .single()
 
       if (error) {
-        console.error('Error fetching card:', error)
+        logger.error('Error fetching bingo card by ID', error, { metadata: { service: 'BingoCardService', method: 'getCardById', id } })
         return null
       }
 
       return data
     } catch (error) {
-      console.error('Error in getCardById:', error)
+      logger.error('Exception in getCardById', error as Error, { metadata: { service: 'BingoCardService', method: 'getCardById', id } })
       return null
     }
   }
@@ -131,13 +132,13 @@ class BingoCardServiceImpl implements BingoCardService {
         .single()
 
       if (error) {
-        console.error('Error creating card:', error)
+        logger.error('Error creating bingo card', error, { metadata: { service: 'BingoCardService', method: 'createCard', cardData } })
         return null
       }
 
       return data
     } catch (error) {
-      console.error('Error in createCard:', error)
+      logger.error('Exception in createCard', error as Error, { metadata: { service: 'BingoCardService', method: 'createCard', cardData } })
       return null
     }
   }
@@ -155,13 +156,13 @@ class BingoCardServiceImpl implements BingoCardService {
         .single()
 
       if (error) {
-        console.error('Error updating card:', error)
+        logger.error('Error updating bingo card', error, { metadata: { service: 'BingoCardService', method: 'updateCard', id, updates } })
         return null
       }
 
       return data
     } catch (error) {
-      console.error('Error in updateCard:', error)
+      logger.error('Exception in updateCard', error as Error, { metadata: { service: 'BingoCardService', method: 'updateCard', id, updates } })
       return null
     }
   }
@@ -174,13 +175,13 @@ class BingoCardServiceImpl implements BingoCardService {
         .eq('id', id)
 
       if (error) {
-        console.error('Error deleting card:', error)
+        logger.error('Error deleting bingo card', error, { metadata: { service: 'BingoCardService', method: 'deleteCard', id } })
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Error in deleteCard:', error)
+      logger.error('Exception in deleteCard', error as Error, { metadata: { service: 'BingoCardService', method: 'deleteCard', id } })
       return false
     }
   }

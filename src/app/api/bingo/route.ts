@@ -10,6 +10,7 @@ import type {
 } from '@/types/database.types'
 import { Constants } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
+import { log } from "@/lib/logger"
 
 const rateLimiter = new RateLimiter()
 
@@ -32,7 +33,7 @@ function isValidDifficultyLevel(value: string | null): value is DifficultyLevel 
   return value !== null && Constants.public.Enums.difficulty_level.includes(value as DifficultyLevel)
 }
 
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url)
     const game = searchParams.get('game')
@@ -66,16 +67,19 @@ export async function GET(request: Request) {
 
     const { data: boards, error } = await query
 
-    if (error) throw error
+    if (error) {
+      log.error('Error fetching bingo boards', error, { metadata: { apiRoute: 'bingo', method: 'GET', filters: { game, difficulty, limit, offset } } })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     return NextResponse.json(boards)
   } catch (error) {
-    console.error('Error fetching bingo boards:', error)
+    log.error('Unhandled error in GET /api/bingo', error as Error, { metadata: { apiRoute: 'bingo', method: 'GET' } })
     return NextResponse.json({ error: 'Failed to fetch bingo boards' }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse> {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
     if (await rateLimiter.isLimited(ip)) {
@@ -130,11 +134,14 @@ export async function POST(request: Request) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      log.error('Error creating bingo board', error, { metadata: { apiRoute: 'bingo', method: 'POST', userId: user.id, boardData: { title, size, settings, game_type, difficulty, is_public, board_state } } })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error creating bingo board:', error)
+    log.error('Unhandled error in POST /api/bingo', error as Error, { metadata: { apiRoute: 'bingo', method: 'POST' } })
     return NextResponse.json(
       { error: 'Failed to create bingo board' },
       { status: 500 }

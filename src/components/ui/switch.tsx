@@ -19,8 +19,8 @@ const Switch = React.forwardRef<
       "hover:border-cyan-500/50",
       className
     )}
-    {...props}
     ref={ref}
+    {...props}
   >
     <SwitchPrimitives.Thumb
       className={cn(

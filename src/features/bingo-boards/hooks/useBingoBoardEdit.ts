@@ -10,6 +10,8 @@ import type {
 // import { useBingoBoards, useBingoBoardsActions } from '@/src/lib/stores'
 // import { useBingoCards } from '@/src/lib/stores'
 // import { useAuth } from '@/src/lib/stores'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export interface FormData {
   board_title: string
@@ -155,9 +157,11 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
         updatedCards[index] = newCard
         setGridCards(updatedCards)
       }
+      logger.debug('Created new card', { metadata: { hook: 'useBingoBoardEdit', cardId: newCard.id, index } })
     } catch (error) {
-      console.error('Failed to create card:', error)
+      logger.error('Failed to create new card', error as Error, { metadata: { hook: 'useBingoBoardEdit', currentBoardId: currentBoard?.id, updates, index } })
       setError(error instanceof Error ? error.message : 'Failed to create card')
+      notifications.error('Failed to create card', { description: 'Please try again or contact support.' })
     }
   }
 
@@ -180,9 +184,11 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
         updatedCards[index] = updatedCard
         setGridCards(updatedCards)
       }
+      logger.debug('Updated existing card in grid', { metadata: { hook: 'useBingoBoardEdit', cardId: updates.id, index } })
     } catch (error) {
-      console.error('Failed to update card:', error)
+      logger.error('Failed to update existing card', error as Error, { metadata: { hook: 'useBingoBoardEdit', updates, index } })
       setError(error instanceof Error ? error.message : 'Failed to update card')
+      notifications.error('Failed to update card', { description: 'Please try again or contact support.' })
     }
   }
 
@@ -191,9 +197,11 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       const updatedCards = [...gridCards]
       updatedCards[index] = card
       setGridCards(updatedCards)
+      logger.debug('Placed card in grid', { metadata: { hook: 'useBingoBoardEdit', cardId: card.id, index } })
     } catch (error) {
-      console.error('Failed to place card in grid:', error)
+      logger.error('Failed to place card in grid', error as Error, { metadata: { hook: 'useBingoBoardEdit', index } })
       setError(error instanceof Error ? error.message : 'Failed to place card')
+      notifications.error('Failed to place card', { description: 'Please try again or contact support.' })
     }
   }
 
@@ -201,10 +209,12 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     if (!currentBoard || !formData) return false
     try {
       // TODO: Implement proper save logic with Supabase
-      console.log('Saving board changes:', formData)
+      logger.info('Saving board changes', { metadata: { hook: 'useBingoBoardEdit', boardId: currentBoard.id, formData } })
       return true
     } catch (error) {
+      logger.error('Failed to save board changes', error as Error, { metadata: { hook: 'useBingoBoardEdit', boardId: currentBoard.id, formData } })
       setError(error instanceof Error ? error.message : 'Failed to update board')
+      notifications.error('Failed to save board', { description: 'Please try again or contact support.' })
       return false
     }
   }, [currentBoard, formData])
@@ -215,7 +225,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       setIsLoadingCards(true)
 
       // TODO: Replace with proper Supabase data loading
-      console.log('Loading board:', boardId)
+      logger.info('Initializing board for editing', { metadata: { hook: 'useBingoBoardEdit', boardId } })
       
       // Mock board data for now
       const mockBoard: BingoBoard = {

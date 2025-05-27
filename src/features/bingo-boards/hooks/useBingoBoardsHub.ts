@@ -10,6 +10,7 @@ import type {
   BoardFilter
 } from '@/types'
 import { ROUTES } from '@/src/config/routes'
+import { log } from '@/lib/logger'
 
 // Hub hook for board management and filtering
 export function useBingoBoardsHub() {
@@ -24,6 +25,8 @@ export function useBingoBoardsHub() {
     sort: 'newest',
     search: ''
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   const handleFilterChange = useCallback((type: string, value: string) => {
     setFilterSelections(prev => ({ ...prev, [type]: value }))
@@ -35,14 +38,19 @@ export function useBingoBoardsHub() {
       return
     }
     
+    setLoading(true)
+    setError(null)
+    log.info('Board creation requested', { metadata: { hook: 'useBingoBoardsHub', formData }})
     try {
       // TODO: Implement board creation through proper API
-      console.log('Board creation requested:', formData)
       setIsCreateFormOpen(false)
       // Temporary: redirect to board edit page
       // router.push(`/challengehub/${newBoard.id}`)
+      setLoading(false)
     } catch (error) {
-      console.error('Failed to create board:', error)
+      log.error('Failed to create board', error as Error, { metadata: { hook: 'useBingoBoardsHub', formData }})
+      setError(error as Error)
+      setLoading(false)
     }
   }, [isAuthenticated, router])
 
@@ -103,6 +111,8 @@ export function useBingoBoardsHub() {
     handleCreateBoard,
     setIsCreateFormOpen,
     handleBoardSelect,
+    loading,
+    error
   }
 }
 

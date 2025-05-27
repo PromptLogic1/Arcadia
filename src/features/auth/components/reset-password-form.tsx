@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Info, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthActions } from '@/src/lib/stores'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('')
@@ -48,9 +50,12 @@ export function ResetPasswordForm() {
         router.push('/')
         router.refresh()
       }, 2000)
+      notifications.success('Password reset successfully!')
+      logger.info('Password reset successfully', { component: 'ResetPasswordForm' })
     } catch (error) {
-      console.error('Reset password error:', error)
+      logger.error('Password reset failed', error as Error, { component: 'ResetPasswordForm' })
       setError(error instanceof Error ? error.message : 'Failed to reset password. Please try again.')
+      notifications.error('Failed to reset password', { description: error instanceof Error ? error.message : 'Please try again or contact support.' })
       setStatus('idle')
     } finally {
       setLoading(false)

@@ -2,11 +2,18 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
+import { log } from "@/lib/logger"
 
 export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: Request) {
+interface SubmissionPostBody {
+  challenge_id: string; 
+  code: string;
+  language: string;
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
   try {
     const supabase = createRouteHandlerClient<Database>({ cookies })
     
@@ -19,7 +26,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as SubmissionPostBody
     const { challenge_id, code, language } = body
 
     const { data, error } = await supabase
@@ -35,13 +42,19 @@ export async function POST(request: Request) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      log.error('Error creating submission', error, { metadata: { apiRoute: 'submissions', method: 'POST', submissionData: { challenge_id, code, language } } })
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
 
     const response = NextResponse.json(data)
     response.headers.set('Cache-Control', 'no-store')
     return response
   } catch (error) {
-    console.error('Error creating submission:', error)
+    log.error('Unhandled error in POST /api/submissions', error as Error, { metadata: { apiRoute: 'submissions', method: 'POST' } })
     return NextResponse.json(
       { error: 'Error creating submission' },
       { status: 500 }
@@ -49,7 +62,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url)
     const challenge_id = searchParams.get('challenge_id')
@@ -79,13 +92,19 @@ export async function GET(request: Request) {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) {
+      log.error('Error fetching submissions', error, { metadata: { apiRoute: 'submissions', method: 'GET', challengeId: challenge_id } })
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
 
     const response = NextResponse.json(data)
     response.headers.set('Cache-Control', 'no-store')
     return response
   } catch (error) {
-    console.error('Error fetching submissions:', error)
+    log.error('Unhandled error in GET /api/submissions', error as Error, { metadata: { apiRoute: 'submissions', method: 'GET' } })
     return NextResponse.json(
       { error: 'Error fetching submissions' },
       { status: 500 }

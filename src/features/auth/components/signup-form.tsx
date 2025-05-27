@@ -9,6 +9,8 @@ import { Info, Mail, Check, X, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useAuth, useAuthActions } from '@/src/lib/stores'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 type SignUpStatus = 'idle' | 'loading' | 'success' | 'error' | 'verification_pending'
 
@@ -70,7 +72,7 @@ export function SignUpForm() {
         setEmail(email || '')
         setUsername(username || '')
       } catch (e) {
-        console.error('Error loading saved form data:', e)
+        logger.warn('Failed to load saved signup form data', { component: 'SignUpForm' })
         localStorage.removeItem('signupForm')
       }
     }
@@ -141,7 +143,7 @@ export function SignUpForm() {
           [field]: value
         }))
       } catch (e) {
-        console.error('Error saving form data:', e)
+        logger.warn('Failed to save signup form data to localStorage', { component: 'SignUpForm' })
       }
     }
 
@@ -193,9 +195,9 @@ export function SignUpForm() {
     setLoading(true)
 
     try {
-      // TODO: Implement actual signup with Supabase
-      console.log('Signing up:', { email, username })
+      logger.debug('Starting user signup process', { component: 'SignUpForm', metadata: { email, username } })
       
+      // TODO: Implement actual signup with Supabase
       // Temporary success simulation
       await new Promise(resolve => setTimeout(resolve, 1000))
       
@@ -205,9 +207,11 @@ export function SignUpForm() {
         type: 'success'
       })
       setRedirectTimer(3)
+      
+      logger.info('User signup completed successfully', { component: 'SignUpForm', metadata: { email, username } })
 
     } catch (error) {
-      console.error('Signup error:', error)
+      logger.error('Signup process failed', error as Error, { component: 'SignUpForm', metadata: { email, username } })
       handleSignUpError(error as Error)
     } finally {
       setIsSubmitting(false)
@@ -222,12 +226,16 @@ export function SignUpForm() {
     setLoading(true)
 
     try {
+      logger.debug('Starting OAuth signup process', { component: 'SignUpForm', metadata: { provider } })
+      
       // TODO: Implement OAuth with Supabase
-      console.log('OAuth login:', provider)
       await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      logger.info('OAuth signup completed successfully', { component: 'SignUpForm', metadata: { provider } })
     } catch (error) {
-      console.error('OAuth error:', error)
+      logger.error('OAuth signup failed', error as Error, { component: 'SignUpForm', metadata: { provider } })
       setError('Failed to login with provider. Please try again.')
+      notifications.error('OAuth signup failed', { description: 'Please try again or contact support if the problem persists.' })
     } finally {
       setIsSubmitting(false)
       setLoading(false)

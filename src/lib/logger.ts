@@ -1,3 +1,6 @@
+import pino from 'pino';
+import os from 'os';
+
 /**
  * Production-ready logger utility for better debugging and monitoring
  */
@@ -21,62 +24,88 @@ interface LogEntry {
   stack?: string;
 }
 
+const pinoLogger = pino({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  browser: {
+    asObject: true, // Log an object instead of a string
+  },
+  transport: process.env.NODE_ENV !== 'production' ? {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      levelFirst: true,
+      translateTime: 'SYS:standard',
+    },
+  } : undefined,
+  formatters: {
+    level: (label) => {
+      return { level: label };
+    },
+    // Add context directly to the log object
+    log: (obj) => {
+      const { context, ...rest } = obj as any;
+      if (context) {
+        return { ...context, ...rest };
+      }
+      return rest;
+    }
+  },
+  // Base properties to include in every log
+  base: {
+    pid: typeof process !== 'undefined' ? process.pid : undefined, // process is not available in browser
+    hostname: typeof process !== 'undefined' ? os.hostname() : undefined, // os is not available in browser
+  },
+  // Serialize errors properly
+  serializers: {
+    ...pino.stdSerializers, // Includes err serializer
+    error: pino.stdSerializers.err, // Explicitly use pino's error serializer
+  },
+  // Add a timestamp
+  timestamp: pino.stdTimeFunctions.isoTime,
+});
+
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
   private isProduction = process.env.NODE_ENV === 'production';
   
-  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
-    const timestamp = new Date().toISOString();
-    const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
-    const contextStr = context ? ` [${Object.entries(context).map(([k, v]) => `${k}:${v}`).join(', ')}]` : '';
-    return `${prefix}${contextStr} ${message}`;
-  }
-
   private shouldLog(level: LogLevel): boolean {
-    if (this.isDevelopment) return true;
-    if (this.isProduction) {
-      // In production, only log warnings and errors
-      return ['warn', 'error'].includes(level);
-    }
-    return true;
+    // Pino handles level filtering based on its initialization
+    return true; 
   }
 
   private createLogEntry(level: LogLevel, message: string, context?: LogContext, error?: Error): LogEntry {
+    // This is mainly for sendToMonitoringService, pino handles its own entry structure
     return {
       timestamp: new Date().toISOString(),
       level,
       message,
       context,
       error,
-      stack: error?.stack,
     };
   }
 
   debug(message: string, context?: LogContext): void {
     if (this.shouldLog('debug')) {
-      const formattedMessage = this.formatMessage('debug', message, context);
-      console.debug(formattedMessage);
+      pinoLogger.debug({ context }, message);
     }
   }
 
   info(message: string, context?: LogContext): void {
     if (this.shouldLog('info')) {
-      const formattedMessage = this.formatMessage('info', message, context);
-      console.info(formattedMessage);
+      pinoLogger.info({ context }, message);
     }
   }
 
   warn(message: string, context?: LogContext): void {
     if (this.shouldLog('warn')) {
-      const formattedMessage = this.formatMessage('warn', message, context);
-      console.warn(formattedMessage);
+      pinoLogger.warn({ context }, message);
     }
   }
 
   error(message: string, error?: Error, context?: LogContext): void {
     if (this.shouldLog('error')) {
-      const formattedMessage = this.formatMessage('error', message, context);
-      console.error(formattedMessage, error);
+      // Pino's stdSerializers.err will handle the error object correctly
+      pinoLogger.error({ context, err: error }, message);
       
       // In production, you might want to send errors to a monitoring service
       if (this.isProduction && error) {
@@ -126,7 +155,13 @@ class Logger {
   private sendToMonitoringService(logEntry: LogEntry): void {
     // Placeholder for production monitoring service integration
     // You could integrate with services like Sentry, LogRocket, etc.
-    console.error('Send to monitoring service:', logEntry);
+    // Avoid using console.error here to prevent potential logging loops
+    if (this.isDevelopment) {
+      // Use pino for this warning as well
+      pinoLogger.warn({ logEntry, source: 'sendToMonitoringService' }, '[Logger] Sending to monitoring service (dev mode)');
+    }
+    // In a real production scenario, this would be an API call to your monitoring service.
+    // For example: fetch('https://your-monitoring-service.com/logs', { method: 'POST', body: JSON.stringify(logEntry) });
   }
 }
 
@@ -148,4 +183,6 @@ export const log = {
   gameEvent: (eventType: string, data: Record<string, unknown>, context?: LogContext) => logger.gameEvent(eventType, data, context),
   performance: (metric: string, value: number, context?: LogContext) => logger.performance(metric, value, context),
   userAction: (action: string, context?: LogContext) => logger.userAction(action, context),
+  componentMount: (componentName: string, context?: LogContext) => logger.componentMount(componentName, context),
+  componentUnmount: (componentName: string, context?: LogContext) => logger.componentUnmount(componentName, context),
 }; 

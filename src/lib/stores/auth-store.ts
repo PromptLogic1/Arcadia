@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { supabase } from '@/lib/supabase'
 import type { AuthUser, UserData } from './types'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export interface SignInCredentials {
   email: string;
@@ -166,7 +168,7 @@ export const useAuthStore = create<AuthState>()(
               })
 
           } catch (error) {
-            console.error('Auth initialization error:', error)
+            logger.error('Auth initialization failed', error as Error, { metadata: { store: 'AuthStore' } })
             get().clearUser()
           } finally {
             get().setLoading(false)
@@ -281,7 +283,9 @@ export const useAuthStore = create<AuthState>()(
             const { error } = await supabase.auth.signOut()
             
             if (error) {
-              return { error: new Error(error.message) }
+              logger.error('Sign out failed', error as Error, { metadata: { store: 'AuthStore' } })
+              notifications.error('Sign out failed', { description: 'Please try again or contact support.' })
+              return { error: error as Error }
             }
 
             // Clear the user data from store
@@ -292,7 +296,8 @@ export const useAuthStore = create<AuthState>()(
 
             return {}
           } catch (error) {
-            console.error('Sign out error:', error)
+            logger.error('Sign out failed', error as Error, { metadata: { store: 'AuthStore' } })
+            notifications.error('Sign out failed', { description: 'Please try again or contact support.' })
             return { error: error as Error }
           } finally {
             get().setLoading(false)
@@ -338,7 +343,7 @@ export const useAuthStore = create<AuthState>()(
 
             return userData
           } catch (error) {
-            console.error('Error refreshing user data:', error)
+            logger.error('Failed to refresh user data', error as Error, { metadata: { store: 'AuthStore' } })
             throw error
           }
         },
@@ -374,10 +379,12 @@ export const useAuthStore = create<AuthState>()(
               submissions_visibility: data.submissions_visibility ?? 'public',
               updated_at: data.updated_at
             })
-
+            notifications.success('Profile updated successfully!')
+            logger.info('User data updated successfully', { metadata: { store: 'AuthStore', userId } })
             return data
           } catch (error) {
-            console.error('Error updating user data:', error)
+            logger.error('Failed to update user data', error as Error, { metadata: { store: 'AuthStore', userId, updates } })
+            notifications.error('Failed to update profile', { description: 'Please try again or contact support.' })
             throw error
           }
         },
@@ -389,8 +396,11 @@ export const useAuthStore = create<AuthState>()(
             })
 
             if (error) throw error
+            notifications.success('Email updated successfully! Please check your inbox to verify the new email.')
+            logger.info('User email updated successfully', { metadata: { store: 'AuthStore', newEmail } })
           } catch (error) {
-            console.error('Error updating email:', error)
+            logger.error('Failed to update email', error as Error, { metadata: { store: 'AuthStore', newEmail } })
+            notifications.error('Failed to update email', { description: 'Please try again or contact support.' })
             throw error
           }
         },
@@ -409,19 +419,25 @@ export const useAuthStore = create<AuthState>()(
 
             if (error) {
               // Handle error cases
+              let errorMessage = error.message || 'Failed to update password'
               switch (error.message) {
                 case 'New password should be different from the old password':
-                  return { error: new Error('Your new password must be different from your current password') }
+                  errorMessage = 'Your new password must be different from your current password'
+                  break
                 case 'Auth session missing!':
-                  return { error: new Error('Your session has expired. Please log in again') }
-                default:
-                  return { error: new Error(error.message || 'Failed to update password') }
+                  errorMessage = 'Your session has expired. Please log in again'
+                  break
               }
+              logger.warn('Password update failed', { metadata: { store: 'AuthStore', supabaseError: error.message } })
+              notifications.error('Password update failed', { description: errorMessage })
+              return { error: new Error(errorMessage) }
             }
-
+            notifications.success('Password updated successfully!')
+            logger.info('Password updated successfully', { metadata: { store: 'AuthStore' } })
             return {}
           } catch (error) {
-            console.error('Password update error:', error)
+            logger.error('Password update failed with unexpected error', error as Error, { metadata: { store: 'AuthStore' } })
+            notifications.error('Password update failed', { description: 'An unexpected error occurred. Please try again.' })
             return { 
               error: error instanceof Error 
                 ? error 
@@ -440,16 +456,20 @@ export const useAuthStore = create<AuthState>()(
             const { error } = await supabase.auth.updateUser({ password: newPassword })
 
             if (error) {
+              logger.warn('Password reset failed', { metadata: { store: 'AuthStore', supabaseError: error.message } })
+              notifications.error('Password reset failed', { description: error.message || 'Please try again.' })
               return { 
                 error: error instanceof Error 
                   ? error 
                   : new Error('Failed to reset password') 
               }
             }
-
+            notifications.success('Password reset successfully!')
+            logger.info('Password reset successfully', { metadata: { store: 'AuthStore' } })
             return {}
           } catch (error) {
-            console.error('Password reset error:', error)
+            logger.error('Password reset failed with unexpected error', error as Error, { metadata: { store: 'AuthStore' } })
+            notifications.error('Password reset failed', { description: 'An unexpected error occurred. Please try again.' })
             return { 
               error: error instanceof Error 
                 ? error 
@@ -465,12 +485,16 @@ export const useAuthStore = create<AuthState>()(
             })
 
             if (error) {
+              logger.warn('Requesting password reset for email failed', { metadata: { store: 'AuthStore', email, supabaseError: error.message } })
+              notifications.error('Failed to send password reset email', { description: error.message || 'Please try again.' })
               return { error: new Error(error.message) }
             }
-
+            notifications.success('Password reset email sent!', { description: 'Please check your inbox for instructions.' })
+            logger.info('Password reset email sent successfully', { metadata: { store: 'AuthStore', email } })
             return {}
           } catch (error) {
-            console.error('Password reset error:', error)
+            logger.error('Requesting password reset for email failed with unexpected error', error as Error, { metadata: { store: 'AuthStore', email } })
+            notifications.error('Failed to send password reset email', { description: 'An unexpected error occurred. Please try again.' })
             return { 
               error: error instanceof Error 
                 ? error 

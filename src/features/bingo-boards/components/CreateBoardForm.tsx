@@ -26,6 +26,7 @@ const DESCRIPTION_LENGTH_LIMIT = 500
 import { GAME_CATEGORIES } from '@/src/types'
 import type { Difficulty, GameCategory } from '@/src/types'
 import { Checkbox } from "@/components/ui/checkbox"
+import { log } from "@/lib/logger"
 // CreateBoardFormData type - using local FormData interface instead
 
 interface FormData {
@@ -48,6 +49,7 @@ interface FormErrors {
 
 interface CreateBoardFormProps {
   isOpen: boolean
+  createBoard: (data: FormData) => Promise<void>
 }
 
 const BOARD_SIZES = [3, 4, 5, 6]
@@ -57,7 +59,7 @@ const sortedGames = [...GAME_CATEGORIES]
   .filter(game => game !== 'All Games')
   .sort((a, b) => a.localeCompare(b))
 
-export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
+export function CreateBoardForm({ isOpen, createBoard }: CreateBoardFormProps) {
   const [formData, setFormData] = useState<FormData>({
     board_title: '',
     board_description: '',
@@ -68,14 +70,20 @@ export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
     board_tags: []
   })
   const [errors, setErrors] = useState<FormErrors>({})
+  const [isFormOpen, setIsFormOpen] = useState(isOpen)
 
-  const internalOnClose = useCallback(() => {
-    console.log('Dialog closed');
-  }, []);
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      log.info('Dialog closed', { component: 'CreateBoardForm' })
+    }
+    setIsFormOpen(open)
+  }
 
-  const internalOnSubmit = useCallback(async (data: FormData) => {
-    console.log('Board data submitted:', data);
-  }, []);
+  const onSubmit = async (data: FormData) => {
+    log.info('Board data submitted', { component: 'CreateBoardForm', metadata: { data } })
+    await createBoard(data)
+    setIsFormOpen(false) // Close dialog on successful submission
+  }
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -116,7 +124,7 @@ export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
     }
 
     try {
-      await internalOnSubmit(formData)
+      await onSubmit(formData)
       setFormData({
         board_title: '',
         board_description: '',
@@ -126,7 +134,7 @@ export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
         is_public: false,
         board_tags: []
       })
-      internalOnClose()
+      handleOpenChange(false)
     } catch {
       setErrors({ 
         board_title: 'Failed to create board. Please try again.' 
@@ -135,7 +143,7 @@ export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={internalOnClose}>
+    <Dialog open={isFormOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-gray-900 text-gray-100">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
@@ -275,7 +283,7 @@ export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={internalOnClose}
+              onClick={() => handleOpenChange(false)}
               className="border-cyan-500/50 hover:bg-cyan-500/10"
             >
               Cancel

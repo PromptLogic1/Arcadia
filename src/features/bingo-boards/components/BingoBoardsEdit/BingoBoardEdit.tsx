@@ -45,6 +45,7 @@ import type {
   FilterOptions
 } from '@/types'
 import { DIFFICULTIES, DIFFICULTY_STYLES, DEFAULT_BINGO_CARD } from '@/types'
+import { log } from "@/lib/logger"
 
 interface BingoBoardEditProps {
   boardId: string
@@ -146,7 +147,7 @@ export function BingoBoardEdit({ boardId, onSaveSuccess }: BingoBoardEditProps) 
 
   const handleCreateNewCard = () => {
     if (!currentBoard) {
-      console.error('Cannot create card: Board not initialized')
+      log.error('Cannot create card: Board not initialized', undefined, { component: 'BingoBoardEdit' })
       return
     }
 

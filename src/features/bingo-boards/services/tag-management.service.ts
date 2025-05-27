@@ -1,4 +1,4 @@
-import type { Database, Tag, TagVote, TagHistory, TagStatus } from '@/types'
+import type { Database, Tag, TagVote, TagHistory, TagStatus, Json, TagAction } from '@/types'
 import { TagValidationService } from './tag-validation.service'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
@@ -158,12 +158,12 @@ export class TagManagementService {
     return null
   }
 
-  async logTagChange(tagId: string, action: string, changes: Record<string, any>, performedBy: string): Promise<void> {
+  async logTagChange(tagId: string, action: TagAction, changes: Json | null, performedBy: string): Promise<void> {
     await this.supabase
       .from('tag_history')
       .insert({
         tag_id: tagId,
-        action: action as any, // Type assertion for database enum
+        action: action,
         changes,
         performed_by: performedBy,
         created_at: new Date().toISOString()

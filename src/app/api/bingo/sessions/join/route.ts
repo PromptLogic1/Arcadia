@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
 import { DEFAULT_MAX_PLAYERS } from '@/features/bingo-boards/types'
+import { log } from "@/lib/logger"
 
 const rateLimiter = new RateLimiter()
 
@@ -14,7 +15,16 @@ interface JoinSessionRequest {
   team?: number | null
 }
 
-export async function POST(request: Request) {
+interface JoinRoutePayloadForLog {
+  playerName?: string;
+  color?: string;
+  team?: number | null;
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  let userIdForLog: string | undefined
+  let sessionIdForLog: string | undefined
+  let joinPayloadForLog: JoinRoutePayloadForLog = {};
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
     if (await rateLimiter.isLimited(ip)) {
@@ -26,7 +36,7 @@ export async function POST(request: Request) {
 
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-
+    userIdForLog = user?.id
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -36,6 +46,8 @@ export async function POST(request: Request) {
 
     const body = await request.json() as JoinSessionRequest
     const { sessionId, playerName, color, team } = body
+    sessionIdForLog = sessionId
+    joinPayloadForLog = { playerName, color, team }
 
     // Check if session exists and is active
     const { data: session, error: sessionError } = await supabase
@@ -85,29 +97,28 @@ export async function POST(request: Request) {
       )
     }
 
-    // Add to queue instead of directly joining
-    const { data: queueEntry, error: queueError } = await supabase
-      .from('bingo_session_queue')
+    // Add player directly (assuming this is an older or different join mechanism)
+    const { data: player, error: playerInsertError } = await supabase
+      .from('bingo_session_players')
       .insert({
         session_id: sessionId,
         user_id: user.id,
         player_name: playerName,
         color,
         team: team ?? null,
-        status: 'pending',
-        requested_at: new Date().toISOString()
+        joined_at: new Date().toISOString(),
       })
       .select()
       .single()
 
-    if (queueError) throw queueError
+    if (playerInsertError) {
+      log.error('Error inserting player to join session', playerInsertError, { metadata: { apiRoute: 'bingo/sessions/join', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog, ...joinPayloadForLog } })
+      return NextResponse.json({ error: playerInsertError.message }, { status: 500 })
+    }
 
-    return NextResponse.json(queueEntry)
+    return NextResponse.json(player)
   } catch (error) {
-    console.error('Error joining session:', error)
-    return NextResponse.json(
-      { error: 'Failed to join session' },
-      { status: 500 }
-    )
+    log.error('Unhandled error in POST /api/bingo/sessions/join', error as Error, { metadata: { apiRoute: 'bingo/sessions/join', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog, ...joinPayloadForLog } })
+    return NextResponse.json({ error: (error as Error).message || 'Failed to join session' }, { status: 500 })
   }
 } 

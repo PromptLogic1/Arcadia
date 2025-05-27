@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { debounce } from '../utils/layout.utils'
 import { LAYOUT_CONSTANTS, type Breakpoint } from '../types/layout.constants'
+import { log } from '@/lib/logger'
 
 // Add export to FluidTypography interface
 export interface FluidTypography {
@@ -242,7 +243,7 @@ export const useLayout = (): UseLayout => {
       })
       window.dispatchEvent(event)
     } catch (error) {
-      console.error('Error emitting layout change:', error)
+      log.error('Error emitting layout change', error, { metadata: { hook: 'useLayout' } })
     }
   }, [])
 

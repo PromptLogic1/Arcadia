@@ -7,6 +7,7 @@ import type {
   DifficultyLevel,
   FilterOptions
 } from '@/types'
+import { logger } from '@/src/lib/logger'
 
 interface CreateBingoCardDTO {
   title: string
@@ -261,11 +262,11 @@ export const useBingoCardsStore = create<BingoCardsState>()(
           if (error) throw error
 
           get().setCards(cards || [])
-          console.log('Bingo cards initialized:', cards)
+          logger.debug('Bingo cards initialized', { metadata: { store: 'BingoCardsStore', count: cards?.length } })
           return cards || []
 
         } catch (error) {
-          console.error('Bingo cards initialization error:', error)
+          logger.error('Bingo cards initialization error', error as Error, { metadata: { store: 'BingoCardsStore' } })
           get().setError(error instanceof Error ? error.message : 'Failed to load cards')
           return []
         } finally {
@@ -291,7 +292,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
 
           return card
         } catch (error) {
-          console.error('Error fetching card:', error)
+          logger.error('Error fetching card by ID', error as Error, { metadata: { store: 'BingoCardsStore', cardId } })
           get().setError(error instanceof Error ? error.message : 'Failed to fetch card')
           return null
         } finally {
@@ -303,7 +304,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
         try {
           get().setLoading(true)
 
-          console.log('Creating card with data:', cardData)
+          logger.debug('Creating bingo card', { metadata: { store: 'BingoCardsStore', cardData } })
 
           const { data: card, error } = await supabase
             .from('bingo_cards')
@@ -318,11 +319,14 @@ export const useBingoCardsStore = create<BingoCardsState>()(
             .single()
 
           if (error) {
-            console.error('Supabase error details:', {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
+            logger.error('Supabase error creating card', error, { 
+              metadata: { 
+                store: 'BingoCardsStore', 
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+              } 
             })
             throw error
           }
@@ -335,7 +339,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
           return card
 
         } catch (error) {
-          console.error('Error details:', error)
+          logger.error('Error creating card', error as Error, { metadata: { store: 'BingoCardsStore', cardData } })
           get().setError(error instanceof Error ? error.message : 'Failed to create card')
           return null
         } finally {
@@ -360,7 +364,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
           
           return card
         } catch (error) {
-          console.error('Error updating card:', error)
+          logger.error('Error updating card', error as Error, { metadata: { store: 'BingoCardsStore', cardId, updates } })
           get().setError(error instanceof Error ? error.message : 'Failed to update card')
           return null
         } finally {
@@ -383,7 +387,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
           
           return true
         } catch (error) {
-          console.error('Error deleting card:', error)
+          logger.error('Error deleting card', error as Error, { metadata: { store: 'BingoCardsStore', cardId } })
           get().setError(error instanceof Error ? error.message : 'Failed to delete card')
           return false
         } finally {
@@ -412,7 +416,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
           
           return true
         } catch (error) {
-          console.error('Error voting for card:', error)
+          logger.error('Error voting for card', error as Error, { metadata: { store: 'BingoCardsStore', cardId } })
           get().setError(error instanceof Error ? error.message : 'Failed to vote for card')
           return false
         } finally {
@@ -435,7 +439,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
 
           return cards || []
         } catch (error) {
-          console.error('Error fetching cards by game category:', error)
+          logger.error('Error fetching cards by game category', error as Error, { metadata: { store: 'BingoCardsStore', gameCategory } })
           get().setError(error instanceof Error ? error.message : 'Failed to fetch cards')
           return []
         } finally {
@@ -480,7 +484,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
 
           return cards || []
         } catch (error) {
-          console.error('Error filtering cards:', error)
+          logger.error('Error filtering cards', error as Error, { metadata: { store: 'BingoCardsStore', gameCategory, difficulty, searchTerm } })
           get().setError(error instanceof Error ? error.message : 'Failed to filter cards')
           return []
         } finally {
@@ -494,7 +498,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
           
           if (realCardIds.length === 0) return []
 
-          console.log('Fetching cards with IDs:', realCardIds)
+          logger.debug('Fetching cards by IDs', { metadata: { store: 'BingoCardsStore', cardIds: realCardIds } })
 
           const { data, error } = await supabase
             .from('bingo_cards')
@@ -502,21 +506,24 @@ export const useBingoCardsStore = create<BingoCardsState>()(
             .in('id', realCardIds)
 
           if (error) {
-            console.error('Supabase error details:', {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
+            logger.error('Supabase error fetching cards by IDs', error, { 
+              metadata: { 
+                store: 'BingoCardsStore', 
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+              } 
             })
             throw new Error(`Database error: ${error.message}`)
           }
 
-          console.log('Fetched cards:', data)
+          logger.debug('Fetched cards by IDs successfully', { metadata: { store: 'BingoCardsStore', count: data?.length } })
           return data || []
 
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching cards'
-          console.error('Error fetching cards:', errorMessage)
+          logger.error('Error fetching cards by IDs', error as Error, { metadata: { store: 'BingoCardsStore', cardIds } })
           throw error
         }
       },
@@ -545,7 +552,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
 
           get().setGridCards(gridCards)
         } catch (error) {
-          console.error('Error initializing grid cards:', error)
+          logger.error('Error initializing grid cards', error as Error, { metadata: { store: 'BingoCardsStore', layoutIds } })
           get().setError(error instanceof Error ? error.message : 'Failed to initialize grid cards')
         } finally {
           get().setLoading(false)
@@ -581,13 +588,13 @@ export const useBingoCardsStore = create<BingoCardsState>()(
             .range((page - 1) * 50, page * 50 - 1)
 
           if (error) {
-            console.error('Error fetching public cards:', error)
+            logger.error('Error fetching public cards', error, { metadata: { store: 'BingoCardsStore', gameCategory, page } })
             throw error
           }
 
           get().setPublicCards(cards || [])
         } catch (error) {
-          console.error('Failed to initialize public cards:', error)
+          logger.error('Failed to initialize public cards', error as Error, { metadata: { store: 'BingoCardsStore', gameCategory, page } })
           get().setError(error instanceof Error ? error.message : 'Failed to load public cards')
           get().setPublicCards([])
         } finally {
@@ -616,13 +623,13 @@ export const useBingoCardsStore = create<BingoCardsState>()(
             .range((page - 1) * 50, page * 50 - 1)
 
           if (error) {
-            console.error('Error filtering public cards:', error)
+            logger.error('Error filtering public cards', error, { metadata: { store: 'BingoCardsStore', filters, gameCategory, page } })
             throw error
           }
 
           get().setPublicCards(cards || [])
         } catch (error) {
-          console.error('Failed to filter public cards:', error)
+          logger.error('Failed to filter public cards', error as Error, { metadata: { store: 'BingoCardsStore', filters, gameCategory, page } })
           get().setError(error instanceof Error ? error.message : 'Failed to filter cards')
           get().setPublicCards([])
         } finally {

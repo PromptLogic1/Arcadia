@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getRuntimeConfig } from '@/lib/config'
 import { revalidatePath } from 'next/cache'
+import { log } from '@/lib/logger'
 
-export async function POST(req: Request) {
+interface RevalidatePostBody {
+  token: string;
+  path: string;
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const { token, path } = await req.json()
+    const { token, path } = await req.json() as RevalidatePostBody
     
     // Get configuration values
     const revalidateToken = await getRuntimeConfig('REVALIDATE_TOKEN')
@@ -34,7 +40,8 @@ export async function POST(req: Request) {
       revalidated: true,
       path
     })
-  } catch {
+  } catch (error) {
+    log.error('Error in POST /api/revalidate', error as Error, { metadata: { apiRoute: 'revalidate', method: 'POST' } });
     return NextResponse.json(
       { error: 'Failed to revalidate' },
       { status: 500 }

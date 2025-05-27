@@ -9,6 +9,7 @@ import { CardWrapper } from "../shared/CardWrapper"
 import type { Event } from "./types/types"
 import { Button } from "@/components/ui/button"
 import { format } from 'date-fns'
+import { log } from "@/lib/logger"
 
 interface EventCardProps {
   event: Event
@@ -85,11 +86,11 @@ const EventCard = React.memo(({ event, isExpanded, onToggle }: EventCardProps) =
     // Implementiere Share-Funktionalität
   }, [])
 
-  const handleRegister = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    // Handle event registration
-    console.log('Registering for event:', event.id)
-  }, [event.id])
+  const handleRegister = () => {
+    // TODO: Implement actual registration logic
+    log.info('Registering for event:', { component: 'EventCard', metadata: { eventId: event.id } });
+    // For now, just navigate to a placeholder page or show a notification
+  }
 
   return (
     <CardWrapper onClick={onToggle} hoverAccentColor="lime">

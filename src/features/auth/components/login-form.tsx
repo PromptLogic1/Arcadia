@@ -9,6 +9,8 @@ import { Info, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useAuthActions } from '@/lib/stores'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export function LogInForm() {
   const [email, setEmail] = useState('')
@@ -75,10 +77,13 @@ export function LogInForm() {
         type: 'info'
       })
     } catch (error) {
-      console.error('Google login error:', error)
+      logger.error('Google login error', error as Error, { component: 'LogInForm' })
       setErrorInfo({
         message: 'Failed to login with Google',
         type: 'error'
+      })
+      notifications.error('Google login failed', { 
+        description: 'Please try again or contact support if the problem persists.' 
       })
     }
   }

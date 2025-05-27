@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Users, Trophy, Calendar, MapPin } from "lucide-react"
 import { DialogWrapper } from "./shared/DialogWrapper"
 import type { Event } from "./types/types"
+import { log } from "@/lib/logger"
 
 interface EventViewProps {
   event: Event
@@ -16,8 +17,8 @@ interface EventViewProps {
 
 const EventView: React.FC<EventViewProps> = ({ event, onClose }) => {
   const handleRegister = () => {
-    // Handle event registration
-    console.log('Registering for event:', event.id)
+    // TODO: Implement actual registration logic
+    log.info('Registering for event:', { component: 'EventView', metadata: { eventId: event.id } });
   }
 
   return (

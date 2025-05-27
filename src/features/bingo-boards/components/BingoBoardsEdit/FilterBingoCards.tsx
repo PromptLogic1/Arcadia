@@ -16,6 +16,7 @@ import {
 import { X } from 'lucide-react'
 import { useState } from "react"
 import { useBingoCardsActions } from "@/src/lib/stores"
+import { log } from "@/lib/logger"
 
 interface FilterBingoCardsProps {
   onFilter: (filters: FilterOptions) => void
@@ -32,7 +33,7 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
       setIsLoading(true)
       onFilter(filters)
     } catch (error) {
-      console.error('Error applying filters:', error)
+      log.error('Error applying filters', error as Error, { component: 'FilterBingoCards', metadata: { filters: filters } })
     } finally {
       setIsLoading(false)
     }
@@ -46,7 +47,7 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
       })
       onClear()
     } catch (error) {
-      console.error('Error clearing filters:', error)
+      log.error('Error clearing filters', error as Error, { component: 'FilterBingoCards' })
     } finally {
       setIsLoading(false)
     }

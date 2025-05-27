@@ -7,6 +7,7 @@ import type {
   FilterState, 
   BoardSection
 } from '../types'
+import { logger } from '@/src/lib/logger'
 
 interface UseBingoBoardsOptions {
   initialSection?: BoardSection
@@ -73,10 +74,10 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
 
   // Error handling
   const handleError = useCallback((error: unknown) => {
-    console.error('BingoBoards Hook Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    logger.error('Error in useBingoBoards hook', error as Error, { metadata: { hook: 'useBingoBoards', section: currentSection, filters: filterState } })
     setError(errorMessage)
-  }, [])
+  }, [currentSection, filterState])
 
   // Fetch boards based on current section and filters
   const fetchBoards = useCallback(async (reset = false) => {
@@ -310,7 +311,7 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
   const toggleBookmark = useCallback(async (boardId: string) => {
     try {
       // TODO: Implement bookmarks table and logic
-      console.log('Bookmark toggle for board:', boardId)
+      logger.info('Toggling bookmark for board', { metadata: { hook: 'useBingoBoards', boardId } })
     } catch (error) {
       handleError(error)
     }
@@ -320,7 +321,7 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
   const voteOnBoard = useCallback(async (boardId: string, vote: 'up' | 'down') => {
     try {
       // TODO: Implement voting system
-      console.log('Vote on board:', boardId, vote)
+      logger.info('Voting on board', { metadata: { hook: 'useBingoBoards', boardId, vote } })
     } catch (error) {
       handleError(error)
     }
@@ -363,7 +364,7 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
         schema: 'public',
         table: 'bingo_boards'
       }, (payload) => {
-        console.log('Realtime update:', payload)
+        logger.debug('Realtime update received for bingo_boards', { metadata: { hook: 'useBingoBoards', payload } })
         // Handle realtime updates
         refreshBoards()
       })

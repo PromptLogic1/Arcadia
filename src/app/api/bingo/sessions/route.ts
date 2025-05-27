@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
 import type { BoardCell } from '@/features/bingo-boards/types'
+import { log } from "@/lib/logger"
+import type { SessionStatus } from '@/types/database.core'
 
 const rateLimiter = new RateLimiter()
 
@@ -14,7 +16,22 @@ interface CreateSessionRequest {
   team?: number | null
 }
 
-export async function POST(request: Request) {
+interface UpdatesForLog {
+  currentState?: BoardCell[] | null;
+  winnerId?: string | null;
+  status?: SessionStatus | null;
+}
+
+interface PatchSessionRequest {
+  sessionId: string;
+  currentState?: BoardCell[] | null;
+  winnerId?: string | null;
+  status?: SessionStatus | null;
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  let userIdForLog: string | undefined;
+  let boardIdForLog: string | undefined;
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
     if (await rateLimiter.isLimited(ip)) {
@@ -26,6 +43,7 @@ export async function POST(request: Request) {
 
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    userIdForLog = user?.id;
 
     if (authError || !user) {
       return NextResponse.json(
@@ -36,6 +54,7 @@ export async function POST(request: Request) {
 
     const body = await request.json() as CreateSessionRequest
     const { boardId, playerName, color, team } = body
+    boardIdForLog = boardId;
 
     // Check if board exists and is published
     const { data: board, error: boardError } = await supabase
@@ -51,9 +70,10 @@ export async function POST(request: Request) {
       )
     }
 
-    if (board.status !== 'draft') {
+    // A board must be 'active' to allow new sessions.
+    if (board.status !== 'active') {
       return NextResponse.json(
-        { error: 'Board is not published' },
+        { error: 'Board is not active. Sessions can only be created for active boards.' },
         { status: 400 }
       )
     }
@@ -109,18 +129,22 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ session, player })
   } catch (error) {
-    console.error('Error creating bingo session:', error)
+    log.error('Error creating bingo session', error as Error, { metadata: { apiRoute: 'bingo/sessions', method: 'POST', userId: userIdForLog, boardId: boardIdForLog } });
     return NextResponse.json(
-      { error: 'Failed to create bingo session' },
+      { error: (error as Error).message || 'Failed to create bingo session' },
       { status: 500 }
     )
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: Request): Promise<NextResponse> {
+  let userIdForLog: string | undefined;
+  let sessionIdForLog: string | undefined;
+  let updatesForLog: UpdatesForLog = {};
   try {
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    userIdForLog = user?.id;
 
     if (authError || !user) {
       return NextResponse.json(
@@ -129,8 +153,10 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const body = await request.json()
-    const { sessionId, currentState, winnerId, status } = body
+    const body = await request.json() as PatchSessionRequest
+    const { sessionId, currentState, winnerId, status } = body;
+    sessionIdForLog = sessionId;
+    updatesForLog = { currentState, winnerId, status };
 
     // Update session with independent transaction
     const { data, error } = await supabase
@@ -150,36 +176,50 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating bingo session:', error)
+    log.error('Error updating bingo session', error as Error, { metadata: { apiRoute: 'bingo/sessions', method: 'PATCH', userId: userIdForLog, sessionId: sessionIdForLog, updates: updatesForLog } });
     return NextResponse.json(
-      { error: 'Failed to update bingo session' },
+      { error: (error as Error).message || 'Failed to update bingo session' },
       { status: 500 }
     )
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<NextResponse> {
+  let boardIdForLog: string | null = null;
+  let statusForLog: string | undefined;
   try {
-    const { searchParams } = new URL(request.url)
-    const boardId = searchParams.get('boardId')
-    const statusParam = searchParams.get('status') || 'active'
+    const { searchParams } = new URL(request.url);
+    const boardId = searchParams.get('boardId');
+    boardIdForLog = boardId;
+    const statusParam = searchParams.get('status');
 
     if (!boardId) {
       return NextResponse.json(
         { error: 'Board ID is required' },
         { status: 400 }
-      )
+      );
     }
 
     // Validate status parameter
-    const validStatuses = ['waiting', 'active', 'completed', 'cancelled'] as const
-    const status = validStatuses.includes(statusParam as any) 
-      ? statusParam as Database['public']['Enums']['session_status']
-      : 'active' as Database['public']['Enums']['session_status']
+    const validStatuses = ['waiting', 'active', 'completed', 'cancelled'] as const;
+    type ValidSessionStatus = (typeof validStatuses)[number];
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    let status: ValidSessionStatus | undefined;
 
-    const { data: sessions, error } = await supabase
+    if (statusParam && (validStatuses as ReadonlyArray<string>).includes(statusParam)) {
+      status = statusParam as ValidSessionStatus;
+    } else if (statusParam) {
+      log.warn(`Invalid status parameter received: ${statusParam}`, { metadata: { apiRoute: 'bingo/sessions', method: 'GET', boardId: boardIdForLog } });
+      status = 'active';
+    } else {
+      status = 'active';
+    }
+
+    statusForLog = status;
+
+    const supabase = createRouteHandlerClient<Database>({ cookies });
+
+    const query = supabase
       .from('bingo_sessions')
       .select(`
         *,
@@ -190,18 +230,30 @@ export async function GET(request: Request) {
           team
         )
       `)
-      .eq('board_id', boardId)
-      .eq('status', status)
-      .order('created_at', { ascending: false })
+      .eq('board_id', boardId);
 
-    if (error) throw error
+    if (status) {
+      query.eq('status', status);
+    }
+    
+    query.order('created_at', { ascending: false });
 
-    return NextResponse.json(sessions)
+    const { data: sessions, error } = await query;
+
+    if (error) {
+      log.error('Error fetching bingo sessions from DB', error, { metadata: { apiRoute: 'bingo/sessions', method: 'GET', boardId: boardIdForLog, status: statusForLog } });
+      return NextResponse.json(
+        { error: error.message || 'Failed to fetch sessions from DB' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(sessions);
   } catch (error) {
-    console.error('Error fetching bingo sessions:', error)
+    log.error('Unhandled error in GET /api/bingo/sessions', error as Error, { metadata: { apiRoute: 'bingo/sessions', method: 'GET', boardId: boardIdForLog, status: statusForLog } });
     return NextResponse.json(
-      { error: 'Failed to fetch bingo sessions' },
+      { error: (error as Error).message || 'Failed to fetch bingo sessions' }, 
       { status: 500 }
-    )
+    );
   }
 } 

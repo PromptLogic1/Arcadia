@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/database.types'
 import type { BoardCell, Player, GameCategory } from '../types/types'
+import { logger } from '@/src/lib/logger'
 
 interface UseSessionProps {
   boardId: string
@@ -91,7 +92,7 @@ export const useSession = ({ boardId, _game, initialPlayers = [], onSessionEnd }
       const data = await response.json()
       return data
     } catch (error) {
-      console.error('Session initialization error:', error)
+      logger.error('Session initialization failed', error as Error, { metadata: { hook: 'useSession', boardId } })
       throw error
     }
   }, [boardId, supabase])

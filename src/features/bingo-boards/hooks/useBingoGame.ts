@@ -15,6 +15,7 @@ import type {
 import { BINGO_GAME_CONSTANTS } from '@/types'
 import { useGameAnalytics } from './useGameAnalytics'
 import { useSession } from './useSession'
+import { logger } from '@/src/lib/logger'
 
 // Add constants
 const CONSTANTS = {
@@ -79,7 +80,7 @@ export const useBingoGame = (initialSize: number, players: GamePlayer[]): UseBin
   
   const handleError = useCallback((error: Error) => {
     if (process.env.NODE_ENV !== 'test') {
-      console.error('Game error:', error)
+      logger.error('Bingo game error', error, { metadata: { hook: 'useBingoGame' } })
     }
     setGameError({
       type: BINGO_GAME_CONSTANTS.ERROR_TYPES.INVALID_GAME_STATE,
@@ -190,14 +191,9 @@ export const useBingoGame = (initialSize: number, players: GamePlayer[]): UseBin
       setMarkedFields(event.markedFields)
       trackMove(event.move.playerId, 'mark', event.move.position)
       
-      // Update analytics - adapt GamePlayer[] to expected Player[] format
-      const adaptedPlayers = players.map(player => ({
-        id: player.user_id,
-        name: player.player_name || '',
-        ...player
-      }))
+      // Update analytics - GamePlayer[] is assignable to Player[] (BingoSessionPlayer[])
       updateStats(
-        adaptedPlayers as any,
+        players, // Pass players directly
         event.markedFields.byPlayer,
         getCompletedLinesCount()
       )

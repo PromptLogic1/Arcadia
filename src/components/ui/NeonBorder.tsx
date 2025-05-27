@@ -20,9 +20,9 @@ const colorClasses = {
 }
 
 const intensityClasses = {
-  low: 'border shadow-[0_0_5px_currentColor]',
-  medium: 'border-2 shadow-[0_0_10px_currentColor]',
-  high: 'border-2 shadow-[0_0_20px_currentColor]',
+  low: 'border',
+  medium: 'border-2',
+  high: 'border-2',
 }
 
 const NeonBorder: React.FC<NeonBorderProps> = ({ 

@@ -12,6 +12,7 @@ import { useSession } from './useSession'
 import { useGameAnalytics } from './useGameAnalytics'
 import { useGameSettings } from './useGameSettings'
 import { usePresence } from './usePresence'
+import { logger } from '@/src/lib/logger'
 
 type PlayerEvent = {
   type: string
@@ -84,7 +85,7 @@ export const usePlayerManagement = ({ sessionId }: UsePlayerManagementProps): Us
         trackMove(event.playerId, 'team_switch', event.newTeam)
       }
     } catch (error) {
-      console.error('Error emitting player event:', error)
+      logger.error('Error emitting player event', error as Error, { metadata: { hook: 'usePlayerManagement', event } })
     }
   }, [trackMove])
 

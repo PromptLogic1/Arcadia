@@ -6,6 +6,7 @@ import type { PresenceState } from '../types/presence.types'
 import { PRESENCE_CONSTANTS } from '../types/presence.constants'
 import type { Database } from '@/types/database.types'
 import type { RealtimePresenceState } from '@supabase/supabase-js'
+import { log } from '@/lib/logger'
 
 interface PresenceStateWithRef extends PresenceState {
   presence_ref: string
@@ -20,7 +21,7 @@ const convertPresence = (presence: PresenceStateWithRef): PresenceState => ({
   activity: 'viewing' // Default activity when online
 })
 
-export const usePresence = (boardId: string) => {
+export const usePresence = (boardId: string, userId: string) => {
   const [presenceState, setPresenceState] = useState<Record<string, PresenceState>>({})
   const [error, setError] = useState<Error | null>(null)
   const supabase = createClientComponentClient<Database>()
@@ -38,7 +39,7 @@ export const usePresence = (boardId: string) => {
         status
       })
     } catch (err) {
-      console.error('Error updating presence:', err)
+      log.error('Error updating presence', err as Error, { metadata: { hook: 'usePresence', boardId, userId } })
     }
   }, [supabase])
 

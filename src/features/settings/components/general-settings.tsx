@@ -8,6 +8,8 @@ import { Info, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth, useAuthActions } from '@/src/lib/stores'
 import { useRouter } from 'next/navigation'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export function GeneralSettings() {
   const { userData, authUser, isAuthenticated } = useAuth()
@@ -86,11 +88,12 @@ export function GeneralSettings() {
 
       resetEmailForm()
     } catch (error) {
-      console.error('Email update error:', error)
+      logger.error('Email update failed', error as Error, { component: 'GeneralSettings', metadata: { userId: userData.id, newEmail } })
       setMessage({
         text: error instanceof Error ? error.message : 'An error occurred while updating email',
         type: 'error'
       })
+      notifications.error('Failed to update email', { description: error instanceof Error ? error.message : 'Please try again or contact support.' })
     } finally {
       setIsSaving(false)
     }
@@ -135,11 +138,12 @@ export function GeneralSettings() {
 
       resetPasswordForm()
     } catch (error) {
-      console.error('Password update error:', error)
+      logger.error('Password update failed', error as Error, { component: 'GeneralSettings', metadata: { userId: userData.id } })
       setMessage({
         text: error instanceof Error ? error.message : 'An error occurred while updating password',
         type: 'error'
       })
+      notifications.error('Failed to update password', { description: error instanceof Error ? error.message : 'Please try again or contact support.' })
     } finally {
       setIsSaving(false)
     }

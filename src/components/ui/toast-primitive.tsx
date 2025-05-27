@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-interface ToastProps {
+export interface ToastProps {
   title?: string
   description?: string
   variant?: 'default' | 'destructive'

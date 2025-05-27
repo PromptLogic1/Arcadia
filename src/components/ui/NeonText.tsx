@@ -1,14 +1,17 @@
 import * as React from "react"
-import { cn } from "@/src/lib/utils"
+import { cn } from "@/lib/utils"
 
 interface NeonTextProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode
   color?: "blue" | "green" | "purple" | "pink" | "yellow"
   intensity?: "low" | "medium" | "high"
+  useGradient?: boolean
+  gradientFrom?: string
+  gradientTo?: string
 }
 
 const NeonText = React.forwardRef<HTMLSpanElement, NeonTextProps>(
-  ({ className, children, color = "blue", intensity = "medium", ...props }, ref) => {
+  ({ className, children, color = "blue", intensity = "medium", useGradient = false, gradientFrom = 'from-cyan-400', gradientTo = 'to-fuchsia-500', ...props }, ref) => {
     const colorClasses = {
       blue: "text-blue-400",
       green: "text-green-400", 
@@ -29,6 +32,24 @@ const NeonText = React.forwardRef<HTMLSpanElement, NeonTextProps>(
       purple: "drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]", 
       pink: "drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]",
       yellow: "drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+    }
+
+    if (useGradient) {
+      return (
+        <span
+          ref={ref}
+          className={cn(
+            "text-transparent bg-clip-text bg-gradient-to-r",
+            gradientFrom,
+            gradientTo,
+            "font-bold tracking-wide",
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </span>
+      )
     }
 
     return (

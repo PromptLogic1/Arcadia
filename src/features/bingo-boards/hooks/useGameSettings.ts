@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { BoardSettings, WinConditions } from '@/types/database.types'
 import type { Database } from '@/types/database.types'
+import { log } from '@/lib/logger'
 
 // Default settings aligned with database structure
 const DEFAULT_BOARD_SETTINGS: BoardSettings = {
@@ -70,7 +71,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
           .single()
 
         if (fetchError) {
-          console.error('Fetch error:', fetchError)
+          log.error('Fetch error:', fetchError, { metadata: { hook: 'useGameSettings', boardId }})
           throw new Error('Failed to load settings')
         }
 
@@ -83,7 +84,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         
         setError(null)
       } catch (err) {
-        console.error('Error loading settings:', err)
+        log.error('Error loading settings:', err as Error, { metadata: { hook: 'useGameSettings', boardId }})
         // Still use default settings even if there's an error
         setSettings(DEFAULT_BOARD_SETTINGS)
         setError(err instanceof Error ? err : new Error('Failed to load settings'))
@@ -119,7 +120,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       setError(null)
       return true
     } catch (error) {
-      console.error('Error validating settings:', error)
+      log.error('Error validating settings:', error as Error, { metadata: { hook: 'useGameSettings', boardId, newSettings }})
       return false
     }
   }, [setErrorMessage, setError])
@@ -141,7 +142,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       })
       window.dispatchEvent(event)
     } catch (error) {
-      console.error('Error emitting settings event:', error)
+      log.error('Error emitting settings event:', error as Error, { metadata: { hook: 'useGameSettings', boardId }})
     }
   }, [])
 
@@ -159,7 +160,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       
       setError(null)
     } catch (err) {
-      console.error('Error saving settings:', err)
+      log.error('Error saving settings:', err as Error, { metadata: { hook: 'useGameSettings', boardId, newSettings }})
       setError(new Error('Failed to save settings'))
       throw err
     }
@@ -200,7 +201,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
 
       emitSettingsEvent('change', newSettings)
     } catch (err) {
-      console.error('Error updating settings:', err)
+      log.error('Error updating settings:', err as Error, { metadata: { hook: 'useGameSettings', boardId, updates }})
       setError(new Error('Failed to update settings'))
     }
   }, [
@@ -241,7 +242,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
           }
         }
       } catch (error) {
-        console.error('Error loading local settings:', error)
+        log.error('Error loading local settings:', error as Error, { metadata: { hook: 'useGameSettings', boardId, storageKey: 'lastBoardSettings' }})
       }
     }
   }, [boardId, validateSettings])
@@ -251,7 +252,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
     setSettings(DEFAULT_BOARD_SETTINGS)
     if (boardId) {
       saveSettings(DEFAULT_BOARD_SETTINGS).catch(err => {
-        console.error('Error resetting settings:', err)
+        log.error('Error resetting settings:', err as Error, { metadata: { hook: 'useGameSettings', boardId }})
         setError(new Error('Failed to reset settings'))
       })
     }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { TIMER_CONSTANTS } from '../types/timer.constants'
+import { log } from '@/lib/logger'
 
 // Event-System für Timer-Updates
 interface TimerUpdateEvent {
@@ -123,7 +124,7 @@ export const useTimer = ({
       })
       window.dispatchEvent(event)
     } catch (error) {
-      console.error('Error emitting timer update:', error)
+      log.error('Error emitting timer update', error, { metadata: { hook: 'useTimer' }})
     }
   }, [])
 
@@ -142,7 +143,7 @@ export const useTimer = ({
       })
       window.dispatchEvent(event)
     } catch (error) {
-      console.error('Error emitting timer event:', error)
+      log.error('Error emitting timer event', error, { metadata: { hook: 'useTimer', eventName: eventType }})
     }
   }, [timerState, timerStats])
 
@@ -204,7 +205,7 @@ export const useTimer = ({
 
       lastTick.current = now
     } catch (error) {
-      console.error('Timer update error:', error)
+      log.error('Timer update error', error, { metadata: { hook: 'useTimer' }})
       setTimerState(prev => ({ ...prev, isRunning: false }))
       emitTimerEvent('stop')
     }
@@ -335,19 +336,13 @@ export const useTimer = ({
   // Browser-Refresh Persistenz mit konstanten Storage-Keys
   useEffect(() => {
     // Load saved state only on mount
-    const savedState = sessionStorage.getItem(TIMER_CONSTANTS.STORAGE_KEY)
-    if (savedState) {
-      try {
-        const parsed = JSON.parse(savedState) as TimerState
-        if (parsed.time > TIMER_CONSTANTS.MIN_TIME) {
-          setTimerState(parsed)
-          lastTick.current = Date.now()
-          startTime.current = Date.now()
-          initialStartTime.current = Date.now()
-        }
-      } catch (error) {
-        console.error('Error loading timer state:', error)
+    try {
+      const storedState = localStorage.getItem(`timerState_local`);
+      if (storedState) {
+        setTimerState(JSON.parse(storedState));
       }
+    } catch (error) {
+      log.error('Error loading timer state', error, { metadata: { hook: 'useTimer' }});
     }
   }, []) // Only run on mount
 
@@ -355,19 +350,9 @@ export const useTimer = ({
   useEffect(() => {
     const saveState = () => {
       try {
-        if (timerState.time > TIMER_CONSTANTS.MIN_TIME) {
-          const stateToSave = {
-            time: timerState.time,
-            isRunning: timerState.isRunning,
-            isPaused: timerState.isPaused,
-            pausedTime: timerState.pausedTime
-          }
-          sessionStorage.setItem(TIMER_CONSTANTS.STORAGE_KEY, JSON.stringify(stateToSave))
-        } else {
-          sessionStorage.removeItem(TIMER_CONSTANTS.STORAGE_KEY)
-        }
+        localStorage.setItem(`timerState_local`, JSON.stringify(timerState));
       } catch (error) {
-        console.error('Error saving timer state:', error)
+        log.error('Error saving timer state', error, { metadata: { hook: 'useTimer' }});
       }
     }
 

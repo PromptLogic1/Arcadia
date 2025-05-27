@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Mail } from 'lucide-react'
+import { notifications } from '@/src/lib/notifications'
 
 // Force the page to be dynamic so it isn't statically prerendered.
 export const dynamic = 'force-dynamic'

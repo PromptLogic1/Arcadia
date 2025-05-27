@@ -6,6 +6,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from '@/components/ui/button'
 import { Check, User, Settings } from 'lucide-react'
 import type { Database } from '@/types/database.types'
+import { log } from "@/lib/logger"
 
 export default function OAuthSuccessPage() {
   const [username, setUsername] = useState<string | null>(null)
@@ -33,7 +34,8 @@ export default function OAuthSuccessPage() {
           setUsername(userData.username)
         }
       } catch (error) {
-        console.error('Error fetching user data:', error)
+        log.error('Error fetching user data after OAuth success', error, { metadata: { page: 'OAuthSuccessPage' } })
+        router.push('/auth/login?error=oauth_failed')
       } finally {
         setLoading(false)
       }

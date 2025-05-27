@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { countries } from '@/lib/data/countries'
+import { logger } from '@/src/lib/logger'
+import { notifications } from '@/src/lib/notifications'
 
 export default function UserPageEdit() {
   const { userData, isAuthenticated } = useAuth()
@@ -59,11 +61,12 @@ export default function UserPageEdit() {
       
       router.refresh()
     } catch (error) {
-      console.error('Profile update error:', error)
+      logger.error('Profile update failed', error as Error, { component: 'UserPageEdit', metadata: { userId: userData.id } })
       setMessage({
         text: error instanceof Error ? error.message : 'An error occurred while updating profile',
         type: 'error'
       })
+      notifications.error('Failed to update profile', { description: error instanceof Error ? error.message : 'Please try again or contact support.' })
     } finally {
       setIsSaving(false)
     }

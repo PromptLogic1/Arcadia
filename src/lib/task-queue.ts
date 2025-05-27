@@ -1,31 +1,31 @@
-interface BingoGenerationPayload {
+export interface BingoGenerationPayload {
   gameCategory: string
   difficulty: string
   gridSize: number
 }
 
-interface CodeExecutionPayload {
+export interface CodeExecutionPayload {
   code: string
   language: string
   timeout?: number
 }
 
-type TaskPayload = BingoGenerationPayload | CodeExecutionPayload
+export type TaskPayload = BingoGenerationPayload | CodeExecutionPayload
 
-interface BingoGenerationResult {
+export interface BingoGenerationResult {
   board: string
   cells: unknown[]
 }
 
-interface CodeExecutionResult {
+export interface CodeExecutionResult {
   success: boolean
   output: string
   executionTime: number
 }
 
-type TaskResult = BingoGenerationResult | CodeExecutionResult
+export type TaskResult = BingoGenerationResult | CodeExecutionResult
 
-interface Task {
+export interface Task {
   id: string
   type: string
   payload: TaskPayload

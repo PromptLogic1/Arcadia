@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
+import { log } from "@/lib/logger"
 
 const rateLimiter = new RateLimiter()
 
@@ -13,9 +14,31 @@ interface JoinSessionRequest {
   team?: number | null
 }
 
+interface JoinRequestDataForLog {
+  playerName?: string;
+  color?: string;
+  team?: number | null;
+}
+
+interface PlayerUpdatesForLog {
+  player_name?: string;
+  color?: string;
+  team?: number | null;
+}
+
+interface PatchPlayerRequest {
+  sessionId: string;
+  playerName?: string;
+  color?: string;
+  team?: number | null;
+}
+
 type QueueEntry = Database['public']['Tables']['bingo_session_queue']['Row']
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse> {
+  let userIdForLog: string | undefined
+  let sessionIdForLog: string | undefined
+  let joinRequestDataForLog: JoinRequestDataForLog = {};
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
     if (await rateLimiter.isLimited(ip)) {
@@ -27,8 +50,9 @@ export async function POST(request: Request) {
 
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    userIdForLog = user?.id
 
-    if (authError || !user) {
+    if (authError || !user || !user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -37,6 +61,8 @@ export async function POST(request: Request) {
 
     const body = await request.json() as JoinSessionRequest
     const { sessionId, playerName, color, team } = body
+    sessionIdForLog = sessionId
+    joinRequestDataForLog = { playerName, color, team }
 
     // Validate player name
     if (!playerName || playerName.length < 3 || playerName.length > 20) {
@@ -82,7 +108,10 @@ export async function POST(request: Request) {
       .select('id, status')
       .single()
 
-    if (queueError) throw queueError
+    if (queueError) {
+      log.error('Error adding to join queue', queueError, { metadata: { apiRoute: 'bingo/sessions/players', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog, ...joinRequestDataForLog } })
+      return NextResponse.json({ error: queueError.message }, { status: 500 })
+    }
 
     // Wait for queue processing (with timeout)
     let attempts = 0
@@ -94,17 +123,24 @@ export async function POST(request: Request) {
         .eq('id', queueEntry?.id)
         .single()
 
-      if (checkError) throw checkError
+      if (checkError) {
+        log.error('Error checking queue status', checkError, { metadata: { apiRoute: 'bingo/sessions/players', method: 'POST', userId: userIdForLog, queueEntryId: queueEntry?.id } })
+        return NextResponse.json({ error: checkError.message }, { status: 500 })
+      }
 
       if (processedEntry?.status === 'approved') {
         // Successfully joined
-        const { data: player } = await supabase
+        const { data: player, error: playerFetchError } = await supabase
           .from('bingo_session_players')
           .select()
           .eq('session_id', sessionId)
           .eq('user_id', user.id)
           .single()
 
+        if (playerFetchError) {
+          log.error('Error fetching player after approved join', playerFetchError, { metadata: { apiRoute: 'bingo/sessions/players', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog, playerName, color, team } })
+          return NextResponse.json({ error: playerFetchError.message }, { status: 500 })
+        }
         return NextResponse.json(player)
       } else if (processedEntry?.status === 'rejected') {
         return NextResponse.json(
@@ -124,18 +160,19 @@ export async function POST(request: Request) {
     )
 
   } catch (error) {
-    console.error('Error joining session:', error)
-    return NextResponse.json(
-      { error: 'Failed to join session' },
-      { status: 500 }
-    )
+    log.error('Unhandled error in POST /api/bingo/sessions/players (join session)', error as Error, { metadata: { apiRoute: 'bingo/sessions/players', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog } })
+    return NextResponse.json({ error: (error as Error).message || 'Failed to join session' }, { status: 500 })
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: Request): Promise<NextResponse> {
+  let userIdForLog: string | undefined
+  let playerIdForLog: string | undefined
+  let updatesForLog: PlayerUpdatesForLog = {};
   try {
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    userIdForLog = user?.id
 
     if (authError || !user) {
       return NextResponse.json(
@@ -144,11 +181,21 @@ export async function PATCH(request: Request) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as PatchPlayerRequest
     const { sessionId, playerName, color, team } = body
+    playerIdForLog = user?.id
+    
+    // Prepare the update object for Supabase. This must match Supabase's expected type.
+    const supabaseUpdatePayload: Database['public']['Tables']['bingo_session_players']['Update'] = {};
+    if (playerName !== undefined) supabaseUpdatePayload.player_name = playerName;
+    if (color !== undefined) supabaseUpdatePayload.color = color;
+    if (team !== undefined) supabaseUpdatePayload.team = team ?? null;
+
+    // For logging, we can use a slightly different structure if needed, but here it's the same.
+    updatesForLog = supabaseUpdatePayload;
 
     // Validate player name
-    if (!playerName || playerName.length < 3 || playerName.length > 20) {
+    if (playerName && (playerName.length < 3 || playerName.length > 20)) {
       return NextResponse.json(
         { error: 'Player name must be between 3 and 20 characters' },
         { status: 400 }
@@ -176,29 +223,27 @@ export async function PATCH(request: Request) {
     // Update player
     const { data, error } = await supabase
       .from('bingo_session_players')
-      .update({
-        player_name: playerName,
-        color,
-        team: team ?? null
-      })
+      .update(supabaseUpdatePayload)
       .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      log.error('Error updating player', error, { metadata: { apiRoute: 'bingo/sessions/players', method: 'PATCH', userId: userIdForLog, playerId: playerIdForLog, updates: updatesForLog } })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating player:', error)
-    return NextResponse.json(
-      { error: 'Failed to update player' },
-      { status: 500 }
-    )
+    log.error('Unhandled error in PATCH /api/bingo/sessions/players (update player)', error as Error, { metadata: { apiRoute: 'bingo/sessions/players', method: 'PATCH', userId: userIdForLog, playerId: playerIdForLog, updates: updatesForLog } })
+    return NextResponse.json({ error: (error as Error).message || 'Failed to update player' }, { status: 500 })
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: Request): Promise<NextResponse> {
+  let userIdForLog: string | undefined
+  let sessionIdForLog: string | undefined
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')
@@ -212,6 +257,7 @@ export async function DELETE(request: Request) {
 
     const supabase = createRouteHandlerClient<Database>({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    userIdForLog = user?.id
 
     if (authError || !user) {
       return NextResponse.json(
@@ -242,12 +288,11 @@ export async function DELETE(request: Request) {
 
     if (leaveError) throw leaveError
 
-    return NextResponse.json({ success: true })
+    sessionIdForLog = sessionId
+
+    return NextResponse.json({ message: 'Successfully left session' })
   } catch (error) {
-    console.error('Error leaving session:', error)
-    return NextResponse.json(
-      { error: 'Failed to leave session' },
-      { status: 500 }
-    )
+    log.error('Unhandled error in DELETE /api/bingo/sessions/players (leave session)', error as Error, { metadata: { apiRoute: 'bingo/sessions/players', method: 'DELETE', userId: userIdForLog, sessionId: sessionIdForLog } })
+    return NextResponse.json({ error: (error as Error).message || 'Failed to leave session' }, { status: 500 })
   }
 } 

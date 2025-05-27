@@ -23,22 +23,26 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         'bg-green-500',
         'bg-red-500',
         'bg-fuchsia-500'
-      ].map((colorOption) => (
-        <button
-          key={colorOption}
-          onClick={() => onChange(colorOption)}
-          disabled={disabled}
-          className={cn(
-            "w-6 h-6 rounded-full",
-            "transition-all duration-200",
-            "hover:scale-110",
-            "border-2",
-            colorOption,
-            color === colorOption ? "border-white" : "border-transparent",
-            disabled && "opacity-50 cursor-not-allowed"
-          )}
-        />
-      ))}
+      ].map((colorOption) => {
+        const colorName = colorOption.replace('bg-', '').replace('-500', '');
+        return (
+          <button
+            key={colorOption}
+            onClick={() => onChange(colorOption)}
+            disabled={disabled}
+            aria-label={`Select ${colorName}`}
+            className={cn(
+              "w-6 h-6 rounded-full",
+              "transition-all duration-200",
+              "hover:scale-110",
+              "border-2",
+              colorOption,
+              color === colorOption ? "border-white" : "border-transparent",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
+          />
+        )
+      })}
     </div>
   )
 } 

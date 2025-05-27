@@ -32,21 +32,22 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from "@/lib/utils"
 import { useAuth, useAuthActions } from '@/lib/stores'
+import NeonText from '../ui/NeonText'
 
 // NeonText Component for Gradient Text
-const NeonText = ({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode
-  className?: string
-}) => (
-  <span
-    className={`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 font-bold ${className}`}
-  >
-    {children}
-  </span>
-)
+// const NeonText = ({
+//   children,
+//   className = '',
+// }: {
+//   children: React.ReactNode
+//   className?: string
+// }) => (
+//   <span
+//     className={`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 font-bold ${className}`}
+//   >
+//     {children}
+//   </span>
+// )
 
 // Navigation Item Interface
 interface NavItem {
@@ -110,7 +111,7 @@ const Header: React.FC = () => {
         {/* Logo */}
         <Link href="/" className="flex items-center group" aria-label="Arcadia Home">
           <GamepadIcon className="h-8 w-8 mr-2 text-cyan-400 group-hover:text-fuchsia-400 transition-colors duration-300" />
-          <NeonText className="text-2xl group-hover:text-fuchsia-400 transition-colors duration-300">
+          <NeonText useGradient className="text-2xl group-hover:text-fuchsia-400 transition-colors duration-300">
             Arcadia
           </NeonText>
         </Link>
@@ -184,8 +185,8 @@ const Header: React.FC = () => {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 bg-gray-800 border-cyan-500/50 text-white p-4">
-              <h3 className="font-semibold text-lg mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-                Notifications
+              <h3 className="font-semibold text-lg mb-2">
+                <NeonText useGradient>Notifications</NeonText>
               </h3>
               <p className="text-gray-400">No new notifications</p>
             </PopoverContent>
@@ -338,7 +339,7 @@ const Header: React.FC = () => {
                     Profile
                   </Link>
                   <Link
-                    href="/user/settings"
+                    href="/settings"
                     className="block py-2 px-3 rounded-md text-lg font-medium text-gray-300 hover:text-cyan-400 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >

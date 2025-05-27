@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import type { BoardCell, Player } from '../types/types'
 import type { GameSettings } from '../types/gamesettings.types'
 import { DEFAULT_GAME_SETTINGS } from '../types/gamesettings.constants'
+import { log } from '@/lib/logger'
 
 // State Types
 interface GameState {
@@ -133,7 +134,7 @@ export function GameProvider({
         const parsed = JSON.parse(savedState)
         dispatch({ type: 'SYNC_STATE', payload: parsed })
       } catch (error) {
-        console.error('Failed to restore game state:', error)
+        log.error('Failed to restore game state', error as Error, { metadata: { contextName: 'BingoGameContext' } })
       }
     }
   }, [])

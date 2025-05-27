@@ -1,13 +1,7 @@
 'use client'
 
 import { useToast } from './use-toast'
-import { Toast as ToastPrimitive } from './toast-primitive'
-
-export interface ToastProps {
-  title?: string
-  description?: string
-  variant?: 'default' | 'destructive'
-}
+import { Toast as ToastPrimitive, type ToastProps } from './toast-primitive'
 
 export const ToastComponent = () => {
   const { toast, hideToast } = useToast()
