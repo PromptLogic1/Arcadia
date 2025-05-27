@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import About from '../about.us/page'
 
 export const metadata: Metadata = {
   title: 'About Arcadia - Gaming Community Platform',
@@ -7,5 +6,28 @@ export const metadata: Metadata = {
 }
 
 export default function AboutPage() {
-  return <About />
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6">About Arcadia</h1>
+      <div className="prose max-w-none">
+        <p className="text-lg mb-4">
+          Welcome to Arcadia, a comprehensive gaming community platform designed to bring
+          gamers together through challenges, competitions, and collaborative gameplay.
+        </p>
+        <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
+        <p className="mb-4">
+          Our mission is to create an inclusive and engaging environment where gamers of all
+          skill levels can connect, compete, and grow together. We believe in the power of
+          community-driven gaming experiences.
+        </p>
+        <h2 className="text-2xl font-semibold mb-4">Features</h2>
+        <ul className="list-disc pl-6 mb-4">
+          <li>Interactive Bingo Boards and Challenges</li>
+          <li>Community Discussions and Events</li>
+          <li>User Profiles and Achievement Tracking</li>
+          <li>Real-time Multiplayer Sessions</li>
+        </ul>
+      </div>
+    </div>
+  )
 } 

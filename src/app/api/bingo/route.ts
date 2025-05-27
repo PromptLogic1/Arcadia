@@ -2,7 +2,13 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
-import type { BoardCell } from '@/src/features/bingo-boards/types/types'
+import type { 
+  BoardCell, 
+  DifficultyLevel, 
+  GameCategory, 
+  BoardSettings
+} from '@/types/database.types'
+import { Constants } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
 
 const rateLimiter = new RateLimiter()
@@ -10,19 +16,20 @@ const rateLimiter = new RateLimiter()
 interface CreateBoardRequest {
   title: string
   size: number
-  settings: {
-    teamMode: boolean
-    lockout: boolean
-    soundEnabled: boolean
-    winConditions: {
-      line: boolean
-      majority: boolean
-    }
-  }
-  game_type: string
-  difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
+  settings: BoardSettings
+  game_type: GameCategory
+  difficulty: DifficultyLevel
   is_public: boolean
   board_state: BoardCell[]
+}
+
+// Helper function to validate enum values
+function isValidGameCategory(value: string | null): value is GameCategory {
+  return value !== null && Constants.public.Enums.game_category.includes(value as GameCategory)
+}
+
+function isValidDifficultyLevel(value: string | null): value is DifficultyLevel {
+  return value !== null && Constants.public.Enums.difficulty_level.includes(value as DifficultyLevel)
 }
 
 export async function GET(request: Request) {
@@ -33,7 +40,8 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
 
     let query = supabase
       .from('bingo_boards')
@@ -49,11 +57,11 @@ export async function GET(request: Request) {
       .limit(limit)
       .range(offset, offset + limit - 1)
 
-    if (game && game !== 'All Games') {
+    if (game && game !== 'All Games' && isValidGameCategory(game)) {
       query = query.eq('game_type', game)
     }
 
-    if (difficulty) {
+    if (difficulty && isValidDifficultyLevel(difficulty)) {
       query = query.eq('difficulty', difficulty)
     }
 
@@ -78,7 +86,8 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -91,6 +100,21 @@ export async function POST(request: Request) {
     const body = await request.json() as CreateBoardRequest
     const { title, size, settings, game_type, difficulty, is_public, board_state } = body
 
+    // Validate enum values
+    if (!isValidGameCategory(game_type)) {
+      return NextResponse.json(
+        { error: 'Invalid game type' },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidDifficultyLevel(difficulty)) {
+      return NextResponse.json(
+        { error: 'Invalid difficulty level' },
+        { status: 400 }
+      )
+    }
+
     const { data, error } = await supabase
       .from('bingo_boards')
       .insert({
@@ -102,7 +126,7 @@ export async function POST(request: Request) {
         difficulty,
         is_public,
         board_state,
-        status: 'draft',
+        status: 'draft' as const,
         cloned_from: null
       })
       .select()

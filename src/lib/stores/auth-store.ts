@@ -48,13 +48,13 @@ interface AuthState {
 
   // Service Methods
   initializeApp: () => Promise<void>
-  setupAuthListener: () => { data: { subscription: any } }
+  setupAuthListener: () => { data: { subscription: unknown } }
   signIn: (credentials: SignInCredentials) => Promise<AuthResponse>
   signInWithOAuth: (provider: 'google') => Promise<AuthResponse>
   signUp: (params: { email: string; password: string; username: string }) => Promise<AuthResponse>
   signOut: () => Promise<AuthResponse>
-  refreshUserData: () => Promise<any>
-  updateUserDataService: (userId: string, updates: UpdateUserDataParams) => Promise<any>
+  refreshUserData: () => Promise<unknown>
+  updateUserDataService: (userId: string, updates: UpdateUserDataParams) => Promise<unknown>
   updateEmail: (newEmail: string) => Promise<void>
   updatePassword: (password: string) => Promise<AuthResponse>
   resetPassword: (newPassword: string) => Promise<AuthResponse>

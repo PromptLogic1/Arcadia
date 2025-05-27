@@ -5,7 +5,7 @@ import { useBingoBoards as useZustandBingoBoards, useBingoBoardsActions } from '
 export function useBingoBoards() {
   const { isAuthenticated } = useAuth()
   const { loading, error } = useZustandBingoBoards()
-  const { setUserBoards } = useBingoBoardsActions()
+  const { setUserBoards: _setUserBoards } = useBingoBoardsActions()
 
   // Initialize boards when authenticated
   // Note: You might need to add an initializeBoards method to the store if needed

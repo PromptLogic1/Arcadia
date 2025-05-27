@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useBingoBoards } from '@/src/hooks/useBingoBoards'
 import { useAuth } from '@/src/hooks/useAuth'
 import type { FilterState, CreateBoardFormData } from '../types'
-import { CreateBingoBoardDTO } from '@/src/store/types/bingoboard.types'
+import type { CreateBingoBoardDTO } from '@/src/lib/types/bingoboard.types'
 import { ROUTES } from '@/src/config/routes'
 
 // Hub hook for board management and filtering

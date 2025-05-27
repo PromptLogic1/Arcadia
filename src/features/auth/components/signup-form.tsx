@@ -58,7 +58,7 @@ export function SignUpForm() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
 
   const router = useRouter()
-  const { loading } = useAuth()
+  const { loading: _loading } = useAuth()
   const { setLoading } = useAuthActions()
 
   // Load saved form data on component mount
@@ -87,6 +87,7 @@ export function SignUpForm() {
     if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
       return 'Username can only contain letters, numbers, underscores, and hyphens'
     }
+    return undefined
   }
 
   const validateEmail = (value: string): string | undefined => {
@@ -97,6 +98,7 @@ export function SignUpForm() {
     if (!emailRegex.test(value)) {
       return 'Please enter a valid email address'
     }
+    return undefined
   }
 
   const validatePassword = (value: string): string | undefined => {
@@ -106,6 +108,7 @@ export function SignUpForm() {
     if (!Object.values(passwordChecks).every(check => check)) {
       return 'Password does not meet all requirements'
     }
+    return undefined
   }
 
   const validateConfirmPassword = (value: string): string | undefined => {
@@ -115,6 +118,7 @@ export function SignUpForm() {
     if (value !== password) {
       return 'Passwords do not match'
     }
+    return undefined
   }
 
   // Update handleInputChange to use authService
@@ -172,6 +176,7 @@ export function SignUpForm() {
       }, 1000)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [redirectTimer, status, router])
 
   // Update handleSubmit to use authService

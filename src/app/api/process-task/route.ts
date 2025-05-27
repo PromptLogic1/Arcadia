@@ -5,10 +5,10 @@ export const maxDuration = 10 // Enforce Vercel's limit
 
 export async function POST(request: Request) {
   try {
-    const { taskId } = await request.json()
-    await queueTask(taskId)
+    const { type, payload } = await request.json()
+    const taskId = queueTask(type, payload)
     return NextResponse.json({ success: true, taskId })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to queue task' },
       { status: 500 }
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     }
     const status = await checkTaskStatus(taskId)
     return NextResponse.json(status)
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to check task status' },
       { status: 500 }

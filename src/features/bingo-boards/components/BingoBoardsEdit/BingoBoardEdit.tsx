@@ -14,14 +14,15 @@ import {
 } from "@/components/ui/select"
 import { Settings, Plus, X } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { Difficulty, DIFFICULTIES, DIFFICULTY_STYLES } from '@/src/store/types/game.types'
+import type { Difficulty } from '@/src/lib/types/game.types'
+import { DIFFICULTIES, DIFFICULTY_STYLES } from '@/src/lib/types/game.types'
 import { Checkbox } from "@/components/ui/checkbox"
 import { useBingoBoardEdit } from '../hooks/useBingoBoardEdit'
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import { useState, useCallback, useEffect } from "react"
 import { BingoCardEditDialog } from "./BingoCardEditDialog"
-import type { BingoCard } from "@/src/store/types/bingocard.types"
-import { DEFAULT_BINGO_CARD } from "@/src/store/types/bingocard.types"
+import type { BingoCard } from "@/src/lib/types/bingocard.types"
+import { DEFAULT_BINGO_CARD } from "@/src/lib/types/bingocard.types"
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/src/config/routes'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -38,8 +39,9 @@ import {
   TabsContent
 } from "@/components/ui/tabs"
 import { BingoCardPublic } from './BingoCardPublic'
-import { useBingoCards, useBingoCardsActions } from '@/src/lib/stores'
-import { FilterBingoCards, FilterOptions } from './FilterBingoCards'
+import { useBingoCards } from '@/src/lib/stores'
+import type { FilterOptions } from './FilterBingoCards'
+import { FilterBingoCards } from './FilterBingoCards'
 import { useAuth } from '@/src/hooks/useAuth'
 import { GeneratorPanel } from '../Generator/components/GeneratorPanel'
 

@@ -82,7 +82,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
     updated_at: dbDiscussion.updated_at,
     tags: dbDiscussion.tags || [],
     author_id: dbDiscussion.author_id
-  }), [transformDatabaseComment])
+  }), [])
 
   useEffect(() => {
     const fetchDiscussions = async () => {

@@ -57,7 +57,7 @@ export function LogInForm() {
       clearSavedData()
       router.push('/')
       router.refresh()
-    } catch (error) {
+    } catch {
       setErrorInfo({
         message: 'An unexpected error occurred',
         type: 'error'

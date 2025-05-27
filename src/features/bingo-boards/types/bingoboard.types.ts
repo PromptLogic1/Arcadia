@@ -1,43 +1,28 @@
-import type { BoardCell } from './types'
-import type { Database } from '@/types/database.types'
+// =============================================================================
+// BINGO BOARD SPECIFIC TYPES
+// =============================================================================
+// Re-export from main types for compatibility
 
-export interface BingoBoardState {
-  board: Database['public']['Tables']['bingo_boards']['Row'] | null
-  loading: boolean
-  error: Error | null
-}
+// Just re-export everything from the main types file for now
+export * from './index'
+import type { BingoBoard } from './index'
 
-export interface BingoBoardResponse {
-  data: Database['public']['Tables']['bingo_boards']['Row'] | null
-  error: Error | null
-}
-
-export interface BoardUpdate {
-  state: BoardCell[]
-  version: number
-  timestamp: number
-}
-
-export interface BoardConflict {
-  clientState: BoardCell[]
-  serverState: BoardCell[]
-  timestamp: number
-  resolution: 'client' | 'server'
-}
-
-export interface BoardValidationResult {
-  isValid: boolean
-  errors: string[]
-}
-
+// Additional hook-specific interfaces
 export interface UseBingoBoardProps {
   boardId: string
+  userId?: string
+  enableRealtime?: boolean
 }
 
 export interface UseBingoBoardReturn {
-  board: Database['public']['Tables']['bingo_boards']['Row'] | null
+  board: BingoBoard | null
   loading: boolean
-  error: Error | null
-  updateBoardState: (newState: BoardCell[]) => Promise<void>
-  updateBoardSettings: (settings: Partial<Database['public']['Tables']['bingo_boards']['Row']>) => Promise<void>
+  error: string | null
+  updateBoard: (updates: Partial<BingoBoard>) => Promise<void>
+  deleteBoard: () => Promise<void>
+  duplicateBoard: () => Promise<BingoBoard>
+  refreshBoard: () => Promise<void>
 }
+
+// Re-export constants
+export * from './constants' 

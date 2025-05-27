@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { BingoBoard, BingoCard, DifficultyLevel } from '@/src/lib/stores/types'
 import { useBingoBoards, useBingoBoardsActions } from '@/src/lib/stores'
-import { useBingoCards, useBingoCardsActions } from '@/src/lib/stores'
+import { useBingoCards } from '@/src/lib/stores'
 import { useAuth } from '@/src/lib/stores'
 
 interface FormData {

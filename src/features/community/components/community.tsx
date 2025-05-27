@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react'
 import type { Metadata } from 'next'
 import dynamic from 'next/dynamic'
-import { Skeleton } from '@/src/shared/components/ui/skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MessageCircle, Calendar, Plus } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -12,18 +12,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/src/shared/components/ui/select"
+} from "@/components/ui/select"
 import {
   ToggleGroup,
   ToggleGroupItem
 } from "@/src/components/ui/toggle-group"
-import { NeonButton } from '@/src/shared/components/ui/NeonButton'
+import { NeonButton } from '@/components/ui/NeonButton'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
 import type { Comment } from '@/src/features/community/types/types'
 import { GAMES, CHALLENGE_TYPES, MOCK_DISCUSSIONS, MOCK_EVENTS } from '@/src/features/community/shared/constants'
 import { SearchInput } from '@/src/features/community/shared/SearchInput'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useCommunity, useCommunityActions, type Discussion, type Event } from '@/src/lib/stores/community-store'
+import { useCommunity, useCommunityActions, type Discussion } from '@/src/lib/stores/community-store'
 
 // Dynamic imports for better code splitting
 const DiscussionCard = dynamic(() => import('./DiscussionCard'), {
@@ -84,8 +84,7 @@ export function CommunityComponent() {
     setSelectedDiscussion, 
     addDiscussion, 
     upvoteDiscussion,
-    addComment,
-    setLoading 
+    addComment
   } = useCommunityActions()
 
   // Add loading states for different sections

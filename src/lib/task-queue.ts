@@ -1,18 +1,45 @@
+interface BingoGenerationPayload {
+  gameCategory: string
+  difficulty: string
+  gridSize: number
+}
+
+interface CodeExecutionPayload {
+  code: string
+  language: string
+  timeout?: number
+}
+
+type TaskPayload = BingoGenerationPayload | CodeExecutionPayload
+
+interface BingoGenerationResult {
+  board: string
+  cells: unknown[]
+}
+
+interface CodeExecutionResult {
+  success: boolean
+  output: string
+  executionTime: number
+}
+
+type TaskResult = BingoGenerationResult | CodeExecutionResult
+
 interface Task {
   id: string
   type: string
-  payload: any
+  payload: TaskPayload
   status: 'pending' | 'processing' | 'completed' | 'failed'
   createdAt: Date
   completedAt?: Date
   error?: string
-  result?: any
+  result?: TaskResult
 }
 
 // Simple in-memory task queue (in production, use Redis Queue or similar)
 const tasks = new Map<string, Task>()
 
-export function queueTask(type: string, payload: any): string {
+export function queueTask(type: string, payload: TaskPayload): string {
   const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   
   const task: Task = {
@@ -44,14 +71,14 @@ async function processTask(taskId: string): Promise<void> {
     tasks.set(taskId, task)
     
     // Simulate task processing based on type
-    let result: any
+    let result: TaskResult
     
     switch (task.type) {
       case 'bingo-generation':
-        result = await generateBingoBoard(task.payload)
+        result = await generateBingoBoard(task.payload as BingoGenerationPayload)
         break
       case 'code-execution':
-        result = await executeCode(task.payload)
+        result = await executeCode(task.payload as CodeExecutionPayload)
         break
       default:
         throw new Error(`Unknown task type: ${task.type}`)
@@ -71,13 +98,13 @@ async function processTask(taskId: string): Promise<void> {
 }
 
 // Mock task processors
-async function generateBingoBoard(payload: any): Promise<any> {
+async function generateBingoBoard(_payload: BingoGenerationPayload): Promise<BingoGenerationResult> {
   // Simulate bingo board generation
   await new Promise(resolve => setTimeout(resolve, 1000))
   return { board: 'generated', cells: [] }
 }
 
-async function executeCode(payload: any): Promise<any> {
+async function executeCode(_payload: CodeExecutionPayload): Promise<CodeExecutionResult> {
   // Simulate code execution
   await new Promise(resolve => setTimeout(resolve, 2000))
   return { 

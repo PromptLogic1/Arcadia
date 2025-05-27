@@ -3,17 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Card } from '@/src/shared/components/ui/card'
-import { Button } from '@/src/shared/components/ui/button'
-import { Input } from '@/src/shared/components/ui/input'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/src/shared/components/ui/select'
-import { PLAYER_CONSTANTS } from '@/src/features/bingo-boards/types/playermanagement.constants'
+} from '@/components/ui/select'
+import { PLAYER_COLORS, PLAYER_CONSTANTS } from '@/features/bingo-boards/types'
 import type { Database } from '@/types/database.types'
 
 interface SessionDetails {
@@ -27,7 +27,7 @@ interface SessionDetails {
 export default function JoinSession({ params }: { params: { sessionId: string } }) {
   const router = useRouter()
   const [playerName, setPlayerName] = useState('')
-  const [selectedColor, setSelectedColor] = useState(PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0])
+  const [selectedColor, setSelectedColor] = useState(PLAYER_COLORS[0]?.color || '#06b6d4')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null)
@@ -48,8 +48,7 @@ export default function JoinSession({ params }: { params: { sessionId: string } 
         .from('bingo_sessions')
         .select(`
           *,
-          players:bingo_session_players(count),
-          board:bingo_boards(settings)
+          bingo_boards!inner(settings)
         `)
         .eq('id', params.sessionId)
         .single()
@@ -64,11 +63,20 @@ export default function JoinSession({ params }: { params: { sessionId: string } 
         return
       }
 
+      // Get player count separately
+      const { count: playerCount } = await supabase
+        .from('bingo_session_players')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', params.sessionId)
+
+      const boardSettings = sessionData.bingo_boards?.settings
+      const teamMode = boardSettings?.team_mode ?? false
+
       setSessionDetails({
-        teamMode: sessionData.board?.[0]?.settings?.teamMode ?? false,
-        currentPlayers: sessionData.players?.[0]?.count ?? 0,
+        teamMode,
+        currentPlayers: playerCount ?? 0,
         settings: {
-          teamMode: sessionData.board?.[0]?.settings?.teamMode ?? false
+          teamMode
         }
       })
     }
@@ -144,11 +152,14 @@ export default function JoinSession({ params }: { params: { sessionId: string } 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS.map((color: string) => (
-                    <SelectItem key={color} value={color}>
+                  {PLAYER_COLORS.map((colorOption) => (
+                    <SelectItem key={colorOption.color} value={colorOption.color}>
                       <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full ${color}`} />
-                        <span>{color.split('-')[1]}</span>
+                        <div 
+                          className="w-4 h-4 rounded-full" 
+                          style={{ backgroundColor: colorOption.color }}
+                        />
+                        <span>{colorOption.name}</span>
                       </div>
                     </SelectItem>
                   ))}

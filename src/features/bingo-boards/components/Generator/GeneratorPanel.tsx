@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Wand2, X } from 'lucide-react'
 import { useGeneratorPanel } from '../../hooks/useGeneratorPanel'
-import { GameCategory } from '@/src/types'
+import type { GameCategory } from '@/src/types'
 import { GENERATOR_CONFIG } from '@/src/store/types/generator.types'
 import {
   Select,

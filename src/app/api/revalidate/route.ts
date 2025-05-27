@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       revalidated: true,
       path
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to revalidate' },
       { status: 500 }

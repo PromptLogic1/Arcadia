@@ -6,10 +6,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { 
+import type { 
   CardCategory, 
+  Difficulty
+} from '@/src/store/types/game.types'
+import { 
   CARD_CATEGORIES, 
-  Difficulty, 
   DIFFICULTIES
 } from '@/src/store/types/game.types'
 import { X } from 'lucide-react'
@@ -34,7 +36,7 @@ export interface FilterOptions {
 export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
   const [filters, setFilters] = useState<FilterOptions>({})
   const [isLoading, setIsLoading] = useState(false)
-  const { filterPublicCards, initializePublicCards } = useBingoCardsActions()
+  const { filterPublicCards: _filterPublicCards, initializePublicCards: _initializePublicCards } = useBingoCardsActions()
 
   const handleFilter = async () => {
     try {

@@ -1,5 +1,5 @@
 import { LogInForm } from '../../../features/auth/components/login-form'
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Sign In | Arcadia',

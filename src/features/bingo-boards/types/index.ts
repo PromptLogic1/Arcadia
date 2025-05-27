@@ -1,39 +1,43 @@
+// =============================================================================
+// BINGO BOARDS FEATURE TYPES
+// =============================================================================
+// This file consolidates all bingo-boards related types following best practices
+
+// Import from centralized type system (single source of truth)
 import type { 
   Tables, 
   GameCategory, 
-  DifficultyLevel
-} from '@/types/database.types'
-import { Constants } from '@/types/database.types'
+  Difficulty,
+  BoardStatus,
+  SessionStatus,
+  QueueStatus,
+  BoardCell as DbBoardCell,
+  SessionSettings as DbSessionSettings,
+  WinConditions as DbWinConditions
+} from '../../../types'
 
-// Base types from database
+// =============================================================================
+// BASE DATABASE TYPES (re-exported for convenience)
+// =============================================================================
 export type BingoBoardRow = Tables<'bingo_boards'>
 export type BingoCardRow = Tables<'bingo_cards'>
 export type BingoSessionRow = Tables<'bingo_sessions'>
 
-// Use database enum types
-export type { GameCategory }
-export type Difficulty = DifficultyLevel
+// Re-export centralized types (no duplication)
+export type { GameCategory, BoardStatus, SessionStatus, QueueStatus, Difficulty }
 
-// Use constants from database types
-export const GAME_CATEGORIES = Constants.public.Enums.game_category
-export const DIFFICULTIES = Constants.public.Enums.difficulty_level
+// =============================================================================
+// GAME STATE TYPES
+// =============================================================================
 
-// Component Props
-export interface BingoBoardComponentProps {
-  boardId?: string
-  onClose?: () => void
-  className?: string
-}
-
-// Board Cell (Game State)
-export interface BoardCell {
-  text: string
+// Enhanced board cell for game state (extends database type)
+export interface BoardCell extends DbBoardCell {
   colors: string[]
   completedBy: string[]
   blocked: boolean
   isMarked: boolean
   cellId: string
-  version?: number
+  version: number | null
   lastUpdated?: number
   lastModifiedBy?: string
   conflictResolution?: {
@@ -43,7 +47,25 @@ export interface BoardCell {
   }
 }
 
-// Player Management
+export interface GameState {
+  currentState: BoardCell[]
+  version: number
+  lastUpdate: string
+  activePlayer?: string
+}
+
+export interface GameEvent {
+  type: 'cell_marked' | 'cell_unmarked' | 'player_joined' | 'player_left' | 'game_ended'
+  sessionId: string
+  playerId: string
+  data: Record<string, unknown>
+  timestamp: Date
+}
+
+// =============================================================================
+// PLAYER MANAGEMENT TYPES
+// =============================================================================
+
 export interface Player {
   id: string
   name: string
@@ -62,22 +84,21 @@ export interface ColorOption {
   available?: boolean
 }
 
-// Game State
-export interface GameState {
-  currentState: BoardCell[]
-  version: number
-  lastUpdate: string
-  activePlayer?: string
+export interface QueueEntry {
+  id: string
+  sessionId: string
+  userId: string
+  playerName: string
+  color: string
+  status: 'pending' | 'approved' | 'rejected'
+  requestedAt: string
+  error?: string
 }
 
-export interface WinConditions {
-  line: boolean
-  majority: boolean
-  diagonal?: boolean
-  corners?: boolean
-}
+// =============================================================================
+// BOARD AND SESSION TYPES
+// =============================================================================
 
-// Board Management
 export interface BingoBoard extends Omit<BingoBoardRow, 'created_at' | 'updated_at'> {
   id: string
   created_at: Date | string
@@ -95,7 +116,60 @@ export interface BoardStatistics {
   popularityScore: number
 }
 
-// Forms and Filters
+export interface BingoSession {
+  id: string
+  board_id: string
+  host_id: string
+  players: Player[]
+  status: SessionStatus
+  current_state?: BoardCell[]
+  win_conditions: WinConditions
+  winner_id?: string
+  started_at?: Date
+  completed_at?: Date
+  settings: SessionSettings
+}
+
+// Use database SessionSettings type directly
+export type SessionSettings = DbSessionSettings
+
+// Use database WinConditions type
+export type WinConditions = DbWinConditions
+
+// =============================================================================
+// CARD MANAGEMENT TYPES
+// =============================================================================
+
+export interface BingoCard extends Omit<BingoCardRow, 'created_at' | 'votes'> {
+  id: string
+  created_at: Date | string
+  votes?: number | null
+  hasVoted?: boolean
+  isSelected?: boolean
+}
+
+export interface GeneratorOptions {
+  gameCategory: GameCategory
+  difficulty: Difficulty
+  tags: string[]
+  excludePrevious: boolean
+  customPrompts?: string[]
+}
+
+export interface GeneratorResult {
+  cards: BingoCard[]
+  metadata: {
+    generatedAt: Date
+    options: GeneratorOptions
+    totalGenerated: number
+    duplicatesRemoved: number
+  }
+}
+
+// =============================================================================
+// FORM AND FILTER TYPES
+// =============================================================================
+
 export interface CreateBoardFormData {
   board_title: string
   board_description?: string
@@ -120,87 +194,23 @@ export interface SortOption {
   label: string
 }
 
-// Session Management
-export interface BingoSession {
-  id: string
-  board_id: string
-  host_id: string
-  players: Player[]
-  status: 'waiting' | 'active' | 'completed' | 'cancelled'
-  current_state?: BoardCell[]
-  win_conditions: WinConditions
-  winner_id?: string
-  started_at?: Date
-  completed_at?: Date
-  settings: SessionSettings
+export interface BingoCardFilter {
+  game?: GameCategory
+  difficulty?: Difficulty
+  category?: string
+  search?: string
 }
 
-export interface SessionSettings {
-  maxPlayers: number
-  allowSpectators: boolean
-  autoStart: boolean
-  timeLimit?: number
-  requireApproval: boolean
+// =============================================================================
+// COMPONENT PROPS TYPES
+// =============================================================================
+
+export interface BingoBoardComponentProps {
+  boardId?: string
+  onClose?: () => void
+  className?: string
 }
 
-// Queue and Join System
-export interface QueueEntry {
-  id: string
-  sessionId: string
-  userId: string
-  playerName: string
-  color: string
-  status: 'pending' | 'approved' | 'rejected'
-  requestedAt: string
-  error?: string
-}
-
-// Card Management
-export interface BingoCard extends Omit<BingoCardRow, 'created_at' | 'votes'> {
-  id: string
-  created_at: Date | string
-  votes?: number | null
-  hasVoted?: boolean
-  isSelected?: boolean
-}
-
-// Generator Types
-export interface GeneratorOptions {
-  gameCategory: GameCategory
-  difficulty: Difficulty
-  tags: string[]
-  excludePrevious: boolean
-  customPrompts?: string[]
-}
-
-export interface GeneratorResult {
-  cards: BingoCard[]
-  metadata: {
-    generatedAt: Date
-    options: GeneratorOptions
-    totalGenerated: number
-    duplicatesRemoved: number
-  }
-}
-
-// Event Types for Real-time
-export interface GameEvent {
-  type: 'cell_marked' | 'cell_unmarked' | 'player_joined' | 'player_left' | 'game_ended'
-  sessionId: string
-  playerId: string
-  data: Record<string, unknown>
-  timestamp: Date
-}
-
-// Error Types
-export interface BingoError {
-  code: string
-  message: string
-  field?: string
-  details?: Record<string, unknown>
-}
-
-// Component State Types
 export interface BoardCardProps {
   board: BingoBoard
   section: 'bookmarked' | 'all' | 'my-boards'
@@ -217,24 +227,51 @@ export interface BingoBoardDetailProps {
   onPlay?: () => void
 }
 
-// Utility Types
+// =============================================================================
+// UTILITY TYPES
+// =============================================================================
+
 export type BoardViewMode = 'grid' | 'list' | 'compact'
 export type BoardSection = 'all' | 'bookmarked' | 'my-boards' | 'recent'
 
-// Type Guards
+export interface BingoError {
+  code: string
+  message: string
+  field?: string
+  details?: Record<string, unknown>
+}
+
+// =============================================================================
+// TYPE GUARDS
+// =============================================================================
+
 export function isSet(value: Set<string> | string[]): value is Set<string> {
   return value instanceof Set
 }
 
 export function isValidGameCategory(value: string): value is GameCategory {
-  return GAME_CATEGORIES.includes(value as GameCategory)
+  const validCategories = [
+    'World of Warcraft',
+    'Fortnite', 
+    'Minecraft',
+    'Among Us',
+    'Apex Legends',
+    'League of Legends',
+    'Overwatch',
+    'Call of Duty: Warzone',
+    'Valorant'
+  ] as const
+  return (validCategories as readonly string[]).includes(value)
 }
 
 export function isValidDifficulty(value: string): value is Difficulty {
-  return DIFFICULTIES.includes(value as Difficulty)
+  return ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(value as Difficulty)
 }
 
-// Constants
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
 export const DEFAULT_BOARD_SIZE = 5
 export const MIN_BOARD_SIZE = 3
 export const MAX_BOARD_SIZE = 6
@@ -255,4 +292,35 @@ export const PLAYER_COLORS: ColorOption[] = [
   { name: 'Green', color: '#10b981', hoverColor: '#059669' },
   { name: 'Orange', color: '#f59e0b', hoverColor: '#d97706' },
   { name: 'Red', color: '#ef4444', hoverColor: '#dc2626' },
-] as const 
+] as const
+
+// =============================================================================
+// DEFAULT VALUES
+// =============================================================================
+
+export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
+  max_players: 4,
+  allow_spectators: true,
+  auto_start: false,
+  time_limit: null,
+  require_approval: false
+}
+
+export const DEFAULT_WIN_CONDITIONS: WinConditions = {
+  line: true,
+  majority: false,
+  diagonal: false,
+  corners: false
+}
+
+export const DEFAULT_FILTER_STATE: FilterState = {
+  category: 'All Games',
+  difficulty: 'all',
+  sort: 'newest',
+  search: '',
+  tags: [],
+  isPublic: true
+}
+
+// Re-export all constants
+export * from './constants' 

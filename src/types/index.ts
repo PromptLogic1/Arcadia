@@ -105,7 +105,7 @@ export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>
 
 // API Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data: T
   success: boolean
   message?: string

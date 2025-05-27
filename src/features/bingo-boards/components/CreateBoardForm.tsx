@@ -23,7 +23,8 @@ import { Textarea } from "@/components/ui/textarea"
 // Constants moved to centralized types or defined locally
 const TITLE_LENGTH_LIMITS = { MIN: 3, MAX: 100 }
 const DESCRIPTION_LENGTH_LIMIT = 500
-import { Difficulty, GameCategory, DIFFICULTIES, GAME_CATEGORIES } from '@/src/types'
+import { GAME_CATEGORIES } from '@/src/types'
+import type { Difficulty, GameCategory } from '@/src/types'
 import { Checkbox } from "@/components/ui/checkbox"
 // CreateBoardFormData type - using local FormData interface instead
 
@@ -126,7 +127,7 @@ export function CreateBoardForm({ isOpen }: CreateBoardFormProps) {
         board_tags: []
       })
       internalOnClose()
-    } catch (err) {
+    } catch {
       setErrors({ 
         board_title: 'Failed to create board. Please try again.' 
       })

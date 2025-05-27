@@ -445,7 +445,7 @@ export const useBingoCardsStore = create<BingoCardsState>()(
 
       filterCards: async ({
         gameCategory,
-        cardType,
+        cardType: _cardType,
         difficulty,
         searchTerm
       }: {

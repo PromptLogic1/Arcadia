@@ -12,8 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useState, useCallback } from "react"
-import type { BingoCard } from "@/src/store/types/bingocard.types"
-import { DIFFICULTIES, CARD_CATEGORIES, Difficulty, CardCategory } from "@/src/store/types/game.types"
+import type { BingoCard } from "@/src/lib/types/bingocard.types"
+import { DIFFICULTIES, CARD_CATEGORIES } from "@/src/lib/types/game.types"
+import type { Difficulty, CardCategory } from "@/src/lib/types/game.types"
 import { cn } from "@/lib/utils"
 
 interface BingoCardEditDialogProps {
@@ -53,7 +54,7 @@ export function BingoCardEditDialog({
     explanation?: string
     tags?: string
   }>({})
-  const [isSaving, _setIsSaving] = useState(false)
+  const [isSaving] = useState(false)
 
   const isNewCard = card.id === ""
   const buttonText = isNewCard ? 'Create Card' : 'Update Card'

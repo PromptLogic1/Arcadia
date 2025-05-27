@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import LoadingSpinner from '@/src/components/ui/loading-spinner'
 

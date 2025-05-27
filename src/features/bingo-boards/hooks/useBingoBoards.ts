@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { supabase, db, handleSupabaseError } from '@/src/lib/supabase'
+import { supabase, db, handleSupabaseError } from '@/lib/supabase'
 import type { 
   BingoBoard, 
   FilterState, 
@@ -87,21 +87,7 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
       const currentOffset = reset ? 0 : pagination.offset
       let query = db.bingoBoards()
         .select(`
-          id,
-          title,
-          creator_id,
-          size,
-          board_state,
-          settings,
-          game_type,
-          difficulty,
-          is_public,
-          votes,
-          bookmarked_count,
-          created_at,
-          updated_at,
-          status,
-          cloned_from
+          *
         `)
 
       // Apply section filters
@@ -164,19 +150,26 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
         handleSupabaseError(fetchError)
       }
 
-      const newBoards = data || []
+      // Transform database results to BingoBoard format
+      const transformedBoards: BingoBoard[] = (data || []).map(board => ({
+        ...board,
+        created_at: board.created_at || new Date().toISOString(),
+        updated_at: board.updated_at || new Date().toISOString(),
+        description: board.description || '',
+        version: board.version || 1
+      }))
       
       if (reset) {
-        setBoards(newBoards)
+        setBoards(transformedBoards)
       } else {
-        setBoards(prev => [...prev, ...newBoards])
+        setBoards(prev => [...prev, ...transformedBoards])
       }
 
-      setPagination(prev => ({
-        ...prev,
-        offset: currentOffset + newBoards.length,
-        hasMore: newBoards.length === pagination.limit
-      }))
+              setPagination(prev => ({
+          ...prev,
+          offset: currentOffset + transformedBoards.length,
+          hasMore: transformedBoards.length === pagination.limit
+        }))
 
     } catch (error) {
       handleError(error)
@@ -212,12 +205,14 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
           size: boardData.size || 5,
           board_state: [],
           settings: {
-            teamMode: false,
+            team_mode: false,
             lockout: false,
-            soundEnabled: true,
-            winConditions: {
+            sound_enabled: true,
+            win_conditions: {
               line: true,
-              majority: false
+              majority: false,
+              diagonal: false,
+              corners: false
             }
           },
           status: 'draft',
@@ -246,8 +241,15 @@ export const useBingoBoards = (options: UseBingoBoardsOptions = {}): UseBingoBoa
   // Update board
   const updateBoard = useCallback(async (boardId: string, updates: Partial<BingoBoard>) => {
     try {
+      // Transform updates for database compatibility
+      const dbUpdates = {
+        ...updates,
+        created_at: updates.created_at instanceof Date ? updates.created_at.toISOString() : updates.created_at,
+        updated_at: updates.updated_at instanceof Date ? updates.updated_at.toISOString() : updates.updated_at
+      }
+
       const { error } = await db.bingoBoards()
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', boardId)
 
       if (error) {

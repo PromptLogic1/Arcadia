@@ -16,8 +16,8 @@ import {
   TooltipProvider,
   TooltipTrigger 
 } from "@/components/ui/tooltip"
-import { BingoBoard } from '@/src/store/types/bingoboard.types'
-import { DIFFICULTY_STYLES } from '@/src/store/types/game.types'
+import { DIFFICULTY_STYLES } from '@/src/lib/types/game.types'
+import type { BingoBoard } from '@/features/bingo-boards/types'
 import Link from 'next/link'
 
 interface BoardCardProps {

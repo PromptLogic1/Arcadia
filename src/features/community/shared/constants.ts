@@ -1,4 +1,4 @@
-import type { Discussion, Event } from '../types/types'
+import type { Discussion } from '../types/types'
 
 export const GAMES = ['All Games', 'Elden Ring', 'Fortnite', 'World of Warcraft', 'Cyberpunk 2077'] as const
 export type Game = (typeof GAMES)[number]

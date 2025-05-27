@@ -1,5 +1,5 @@
 import { SignUpForm } from '../../../features/auth/components/signup-form'
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Sign Up | Arcadia',

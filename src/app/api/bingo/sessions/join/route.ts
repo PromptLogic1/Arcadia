@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database.types'
 import { RateLimiter } from '@/lib/rate-limiter'
-import { PLAYER_CONSTANTS } from '@/src/features/bingo-boards/types/playermanagement.constants'
+import { DEFAULT_MAX_PLAYERS } from '@/features/bingo-boards/types'
 
 const rateLimiter = new RateLimiter()
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     // Check player limit
     const currentPlayerCount = session.players?.[0]?.count ?? 0
-    if (currentPlayerCount >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
+    if (currentPlayerCount >= DEFAULT_MAX_PLAYERS) {
       return NextResponse.json(
         { error: 'Session is full' },
         { status: 400 }

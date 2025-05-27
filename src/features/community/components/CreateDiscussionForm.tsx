@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DialogWrapper } from "./shared/DialogWrapper"
 import { FilterGroup } from "./shared/FilterGroup"
-import type { Discussion } from "./types/types"
+
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 

@@ -13,4 +13,5 @@
 // })
 
 // Placeholder export to prevent module errors
-export default {} 
+const taskProcessor = {}
+export default taskProcessor 
