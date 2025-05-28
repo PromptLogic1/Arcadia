@@ -1,26 +1,27 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Button } from '@/components/ui/button'
-import { Check, User, Settings } from 'lucide-react'
-import type { Database } from '@/types/database.types'
-import { log } from "@/lib/logger"
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Check, User, Settings } from 'lucide-react';
+import { log } from '@/lib/logger';
 
 export default function OAuthSuccessPage() {
-  const [username, setUsername] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const supabase = createClientComponentClient<Database>()
+  const [username, setUsername] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
-          router.push('/auth/login')
-          return
+          router.push('/auth/login');
+          return;
         }
 
         // Fetch the username from your users table
@@ -28,40 +29,42 @@ export default function OAuthSuccessPage() {
           .from('users')
           .select('username')
           .eq('auth_id', session.user.id)
-          .single()
+          .single();
 
         if (userData) {
-          setUsername(userData.username)
+          setUsername(userData.username);
         }
       } catch (error) {
-        log.error('Error fetching user data after OAuth success', error, { metadata: { page: 'OAuthSuccessPage' } })
-        router.push('/auth/login?error=oauth_failed')
+        log.error('Error fetching user data after OAuth success', error, {
+          metadata: { page: 'OAuthSuccessPage' },
+        });
+        router.push('/auth/login?error=oauth_failed');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchUserData()
-  }, [supabase, router])
+    fetchUserData();
+  }, [supabase, router]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-cyan-500"></div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="max-w-md mx-auto text-center space-y-8 p-6">
+    <div className="mx-auto max-w-md space-y-8 p-6 text-center">
       <div className="flex justify-center">
         <div className="rounded-full bg-green-500/10 p-3">
-          <Check className="w-12 h-12 text-green-400" />
+          <Check className="h-12 w-12 text-green-400" />
         </div>
       </div>
 
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+        <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
           Welcome to Arcadia!
         </h1>
         <p className="text-gray-400">
@@ -69,17 +72,16 @@ export default function OAuthSuccessPage() {
         </p>
       </div>
 
-      <div className="bg-gray-800/50 border border-cyan-500/20 rounded-lg p-6 space-y-4">
+      <div className="space-y-4 rounded-lg border border-cyan-500/20 bg-gray-800/50 p-6">
         <div className="space-y-2">
           <p className="text-gray-300">Your username is:</p>
-          <p className="text-xl font-semibold text-white">
-            {username}
-          </p>
+          <p className="text-xl font-semibold text-white">{username}</p>
         </div>
-        
+
         <div className="space-y-2">
           <p className="text-sm text-gray-400">
-            You can customize your profile and change your username in the settings.
+            You can customize your profile and change your username in the
+            settings.
           </p>
         </div>
       </div>
@@ -87,18 +89,18 @@ export default function OAuthSuccessPage() {
       <div className="space-y-4">
         <Button
           onClick={() => router.push('/user/user-page')}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+          className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
         >
-          <User className="w-4 h-4" />
+          <User className="h-4 w-4" />
           View Your Profile
         </Button>
 
         <Button
           onClick={() => router.push('/user/settings')}
           variant="outline"
-          className="w-full flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-2"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="h-4 w-4" />
           Customize Settings
         </Button>
 
@@ -111,5 +113,5 @@ export default function OAuthSuccessPage() {
         </Button>
       </div>
     </div>
-  )
-} 
+  );
+}

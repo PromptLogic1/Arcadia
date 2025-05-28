@@ -1,37 +1,38 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
-import type { BingoBoard, GameCategory, DifficultyLevel } from './types'
+import { createWithEqualityFn } from 'zustand/traditional';
+import { devtools } from 'zustand/middleware';
+import type { BingoBoard, GameCategory, DifficultyLevel } from './types';
+import { useShallow } from 'zustand/shallow';
 
 interface BingoBoardsState {
   // State
-  boards: BingoBoard[]
-  currentBoard: BingoBoard | null
-  userBoards: BingoBoard[]
-  publicBoards: BingoBoard[]
-  loading: boolean
-  error: string | null
+  boards: BingoBoard[];
+  currentBoard: BingoBoard | null;
+  userBoards: BingoBoard[];
+  publicBoards: BingoBoard[];
+  loading: boolean;
+  error: string | null;
   filters: {
-    gameType: GameCategory | null
-    difficulty: DifficultyLevel | null
-    tags: string[]
-    searchTerm: string
-  }
+    gameType: GameCategory | null;
+    difficulty: DifficultyLevel | null;
+    tags: string[];
+    searchTerm: string;
+  };
 
   // Actions
-  setLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
-  setBoards: (boards: BingoBoard[]) => void
-  setCurrentBoard: (board: BingoBoard | null) => void
-  setUserBoards: (boards: BingoBoard[]) => void
-  setPublicBoards: (boards: BingoBoard[]) => void
-  addBoard: (board: BingoBoard) => void
-  updateBoard: (id: string, updates: Partial<BingoBoard>) => void
-  removeBoard: (id: string) => void
-  setFilters: (filters: Partial<BingoBoardsState['filters']>) => void
-  clearFilters: () => void
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  setBoards: (boards: BingoBoard[]) => void;
+  setCurrentBoard: (board: BingoBoard | null) => void;
+  setUserBoards: (boards: BingoBoard[]) => void;
+  setPublicBoards: (boards: BingoBoard[]) => void;
+  addBoard: (board: BingoBoard) => void;
+  updateBoard: (id: string, updates: Partial<BingoBoard>) => void;
+  removeBoard: (id: string) => void;
+  setFilters: (filters: Partial<BingoBoardsState['filters']>) => void;
+  clearFilters: () => void;
 }
 
-export const useBingoBoardsStore = create<BingoBoardsState>()(
+export const useBingoBoardsStore = createWithEqualityFn<BingoBoardsState>()(
   devtools(
     (set, get) => ({
       // Initial state
@@ -49,26 +50,24 @@ export const useBingoBoardsStore = create<BingoBoardsState>()(
       },
 
       // Actions
-      setLoading: (loading) =>
-        set({ loading }, false, 'bingoBoards/setLoading'),
+      setLoading: loading => set({ loading }, false, 'bingoBoards/setLoading'),
 
-      setError: (error) =>
-        set({ error }, false, 'bingoBoards/setError'),
+      setError: error => set({ error }, false, 'bingoBoards/setError'),
 
-      setBoards: (boards) =>
+      setBoards: boards =>
         set({ boards, error: null }, false, 'bingoBoards/setBoards'),
 
-      setCurrentBoard: (currentBoard) =>
+      setCurrentBoard: currentBoard =>
         set({ currentBoard }, false, 'bingoBoards/setCurrentBoard'),
 
-      setUserBoards: (userBoards) =>
+      setUserBoards: userBoards =>
         set({ userBoards }, false, 'bingoBoards/setUserBoards'),
 
-      setPublicBoards: (publicBoards) =>
+      setPublicBoards: publicBoards =>
         set({ publicBoards }, false, 'bingoBoards/setPublicBoards'),
 
-      addBoard: (board) => {
-        const { boards, userBoards } = get()
+      addBoard: board => {
+        const { boards, userBoards } = get();
         set(
           {
             boards: [...boards, board],
@@ -76,16 +75,16 @@ export const useBingoBoardsStore = create<BingoBoardsState>()(
           },
           false,
           'bingoBoards/addBoard'
-        )
+        );
       },
 
       updateBoard: (id, updates) => {
-        const { boards, userBoards, publicBoards, currentBoard } = get()
-        
+        const { boards, userBoards, publicBoards, currentBoard } = get();
+
         const updateBoards = (boardList: BingoBoard[]) =>
-          boardList.map((board) =>
+          boardList.map(board =>
             board.id === id ? { ...board, ...updates } : board
-          )
+          );
 
         set(
           {
@@ -99,14 +98,14 @@ export const useBingoBoardsStore = create<BingoBoardsState>()(
           },
           false,
           'bingoBoards/updateBoard'
-        )
+        );
       },
 
-      removeBoard: (id) => {
-        const { boards, userBoards, publicBoards, currentBoard } = get()
-        
+      removeBoard: id => {
+        const { boards, userBoards, publicBoards, currentBoard } = get();
+
         const filterBoards = (boardList: BingoBoard[]) =>
-          boardList.filter((board) => board.id !== id)
+          boardList.filter(board => board.id !== id);
 
         set(
           {
@@ -117,16 +116,16 @@ export const useBingoBoardsStore = create<BingoBoardsState>()(
           },
           false,
           'bingoBoards/removeBoard'
-        )
+        );
       },
 
-      setFilters: (newFilters) => {
-        const { filters } = get()
+      setFilters: newFilters => {
+        const { filters } = get();
         set(
           { filters: { ...filters, ...newFilters } },
           false,
           'bingoBoards/setFilters'
-        )
+        );
       },
 
       clearFilters: () =>
@@ -147,29 +146,35 @@ export const useBingoBoardsStore = create<BingoBoardsState>()(
       name: 'bingo-boards-store',
     }
   )
-)
+);
 
 // Selectors
-export const useBingoBoards = () => useBingoBoardsStore((state) => ({
-  boards: state.boards,
-  currentBoard: state.currentBoard,
-  userBoards: state.userBoards,
-  publicBoards: state.publicBoards,
-  loading: state.loading,
-  error: state.error,
-  filters: state.filters,
-}))
+export const useBingoBoards = () =>
+  useBingoBoardsStore(
+    useShallow(state => ({
+      boards: state.boards,
+      currentBoard: state.currentBoard,
+      userBoards: state.userBoards,
+      publicBoards: state.publicBoards,
+      loading: state.loading,
+      error: state.error,
+      filters: state.filters,
+    }))
+  );
 
-export const useBingoBoardsActions = () => useBingoBoardsStore((state) => ({
-  setLoading: state.setLoading,
-  setError: state.setError,
-  setBoards: state.setBoards,
-  setCurrentBoard: state.setCurrentBoard,
-  setUserBoards: state.setUserBoards,
-  setPublicBoards: state.setPublicBoards,
-  addBoard: state.addBoard,
-  updateBoard: state.updateBoard,
-  removeBoard: state.removeBoard,
-  setFilters: state.setFilters,
-  clearFilters: state.clearFilters,
-})) 
+export const useBingoBoardsActions = () =>
+  useBingoBoardsStore(
+    useShallow(state => ({
+      setLoading: state.setLoading,
+      setError: state.setError,
+      setBoards: state.setBoards,
+      setCurrentBoard: state.setCurrentBoard,
+      setUserBoards: state.setUserBoards,
+      setPublicBoards: state.setPublicBoards,
+      addBoard: state.addBoard,
+      updateBoard: state.updateBoard,
+      removeBoard: state.removeBoard,
+      setFilters: state.setFilters,
+      clearFilters: state.clearFilters,
+    }))
+  );

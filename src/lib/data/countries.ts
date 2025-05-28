@@ -1,7 +1,7 @@
 export interface Country {
-  code: string
-  name: string
-  flag: string
+  code: string;
+  name: string;
+  flag: string;
 }
 
 export const countries: Country[] = [
@@ -48,7 +48,7 @@ export const countries: Country[] = [
   { code: 'CF', name: 'Central African Republic', flag: '🇨🇫' },
   { code: 'CG', name: 'Republic of the Congo', flag: '🇨🇬' },
   { code: 'CH', name: 'Switzerland', flag: '🇨🇭' },
-  { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
+  { code: 'CI', name: "Côte d'Ivoire", flag: '🇨🇮' },
   { code: 'CK', name: 'Cook Islands', flag: '🇨🇰' },
   { code: 'CL', name: 'Chile', flag: '🇨🇱' },
   { code: 'CM', name: 'Cameroon', flag: '🇨🇲' },
@@ -94,7 +94,11 @@ export const countries: Country[] = [
   { code: 'GP', name: 'Guadeloupe', flag: '🇬🇵' },
   { code: 'GQ', name: 'Equatorial Guinea', flag: '🇬🇶' },
   { code: 'GR', name: 'Greece', flag: '🇬🇷' },
-  { code: 'GS', name: 'South Georgia and the South Sandwich Islands', flag: '🇬🇸' },
+  {
+    code: 'GS',
+    name: 'South Georgia and the South Sandwich Islands',
+    flag: '🇬🇸',
+  },
   { code: 'GT', name: 'Guatemala', flag: '🇬🇹' },
   { code: 'GU', name: 'Guam', flag: '🇬🇺' },
   { code: 'GW', name: 'Guinea-Bissau', flag: '🇬🇼' },
@@ -253,5 +257,5 @@ export const countries: Country[] = [
   { code: 'YT', name: 'Mayotte', flag: '🇾🇹' },
   { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
   { code: 'ZM', name: 'Zambia', flag: '🇿🇲' },
-  { code: 'ZW', name: 'Zimbabwe', flag: '🇿🇼' }
-] 
+  { code: 'ZW', name: 'Zimbabwe', flag: '🇿🇼' },
+];

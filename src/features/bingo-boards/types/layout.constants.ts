@@ -1,14 +1,14 @@
 export const LAYOUT_CONSTANTS = {
   // Breakpoints (mobile-first approach)
   BREAKPOINTS: {
-    SM: 640,   // Small devices (landscape phones)
-    MD: 768,   // Medium devices (tablets)
-    LG: 1024,  // Large devices (laptops)
-    XL: 1280,  // Extra large devices (desktops)
+    SM: 640, // Small devices (landscape phones)
+    MD: 768, // Medium devices (tablets)
+    LG: 1024, // Large devices (laptops)
+    XL: 1280, // Extra large devices (desktops)
     '2XL': 1536, // 2X Extra large devices (large desktops)
     // Legacy names for compatibility with useLayout
-    mobile: 640,   // Same as SM
-    tablet: 768,   // Same as MD
+    mobile: 640, // Same as SM
+    tablet: 768, // Same as MD
     desktop: 1024, // Same as LG
   },
 
@@ -85,47 +85,57 @@ export const LAYOUT_CONSTANTS = {
     XL: 32,
     '2XL': 48,
     '3XL': 64,
-  }
-} as const
+  },
+} as const;
 
 // Breakpoint type for TypeScript
-export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'mobile' | 'tablet' | 'desktop'
+export type Breakpoint =
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | '2xl'
+  | 'mobile'
+  | 'tablet'
+  | 'desktop';
 
 // Layout mode types
-export type LayoutMode = 'desktop' | 'tablet' | 'mobile'
+export type LayoutMode = 'desktop' | 'tablet' | 'mobile';
 
 // Responsive value type
-export type ResponsiveValue<T> = T | {
-  sm?: T
-  md?: T  
-  lg?: T
-  xl?: T
-  '2xl'?: T
-}
+export type ResponsiveValue<T> =
+  | T
+  | {
+      sm?: T;
+      md?: T;
+      lg?: T;
+      xl?: T;
+      '2xl'?: T;
+    };
 
 // Grid props type
 export interface GridProps {
-  columns?: ResponsiveValue<number>
-  gap?: ResponsiveValue<number>
-  padding?: ResponsiveValue<number>
+  columns?: ResponsiveValue<number>;
+  gap?: ResponsiveValue<number>;
+  padding?: ResponsiveValue<number>;
 }
 
 // Layout utilities
 export const LAYOUT_UTILS = {
   // Get current breakpoint based on window width
   getCurrentBreakpoint: (width: number): Breakpoint => {
-    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS['2XL']) return '2xl'
-    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS.XL) return 'xl'
-    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS.LG) return 'lg'
-    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS.MD) return 'md'
-    return 'sm'
+    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS['2XL']) return '2xl';
+    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS.XL) return 'xl';
+    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS.LG) return 'lg';
+    if (width >= LAYOUT_CONSTANTS.BREAKPOINTS.MD) return 'md';
+    return 'sm';
   },
 
   // Get layout mode from breakpoint
   getLayoutMode: (breakpoint: Breakpoint): LayoutMode => {
-    if (breakpoint === 'sm') return 'mobile'
-    if (breakpoint === 'md') return 'tablet'
-    return 'desktop'
+    if (breakpoint === 'sm') return 'mobile';
+    if (breakpoint === 'md') return 'tablet';
+    return 'desktop';
   },
 
   // Media query helpers
@@ -135,5 +145,5 @@ export const LAYOUT_UTILS = {
     lg: `(min-width: ${LAYOUT_CONSTANTS.BREAKPOINTS.LG}px)`,
     xl: `(min-width: ${LAYOUT_CONSTANTS.BREAKPOINTS.XL}px)`,
     '2xl': `(min-width: ${LAYOUT_CONSTANTS.BREAKPOINTS['2XL']}px)`,
-  }
-} as const 
+  },
+} as const;

@@ -1,77 +1,52 @@
-'use client'
+'use client';
 
-import { Input } from "@/components/ui/input"
-import { Search, X } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { Input } from '@/components/ui/input';
+import { Search, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SearchInputProps {
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  className?: string
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }
 
-export const SearchInput: React.FC<SearchInputProps> = ({ 
-  value, 
-  onChange, 
-  placeholder = "Search discussions...",
-  className = ""
+export const SearchInput: React.FC<SearchInputProps> = ({
+  value,
+  onChange,
+  placeholder = 'Search discussions...',
+  className = '',
 }) => {
-  const [isFocused, setIsFocused] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === '/' && e.ctrlKey) {
-        e.preventDefault()
-        inputRef.current?.focus()
+        e.preventDefault();
+        inputRef.current?.focus();
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [])
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   return (
-    <div className={`relative group ${className}`}>
-      <Search 
-        className={`
-          absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 
-          ${isFocused ? 'text-cyan-400' : 'text-cyan-300'} 
-          transition-colors duration-200
-        `}
+    <div className={`group relative ${className}`}>
+      <Search
+        className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform ${isFocused ? 'text-cyan-400' : 'text-cyan-300'} transition-colors duration-200`}
       />
       <Input
         ref={inputRef}
         type="text"
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="
-          bg-gray-800/90
-          border-2
-          border-gray-700
-          hover:border-cyan-500/70
-          focus:border-cyan-400 
-          focus:ring-2
-          focus:ring-cyan-400/30
-          pl-10 
-          pr-10
-          h-12
-          text-base
-          font-medium
-          text-white
-          placeholder:text-cyan-300/50
-          transition-all
-          duration-200
-          min-w-[300px]
-          shadow-lg
-          shadow-black/10
-          rounded-lg
-        "
+        className="h-12 min-w-[300px] rounded-lg border-2 border-gray-700 bg-gray-800/90 pl-10 pr-10 text-base font-medium text-white shadow-lg shadow-black/10 transition-all duration-200 placeholder:text-cyan-300/50 hover:border-cyan-500/70 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
         aria-label={placeholder}
       />
       <AnimatePresence>
@@ -81,7 +56,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-cyan-300 hover:text-cyan-400 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 transform text-cyan-300 transition-colors hover:text-cyan-400"
             onClick={() => onChange('')}
             aria-label="Clear search"
           >
@@ -97,13 +72,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
         />
       )}
-      <div 
-        className={`
-          absolute inset-0 -z-10 rounded-lg opacity-0 
-          group-hover:opacity-100 transition-opacity duration-300
-          bg-gradient-to-r from-cyan-500/10 to-fuchsia-500/10 blur-sm
-        `}
+      <div
+        className={`absolute inset-0 -z-10 rounded-lg bg-gradient-to-r from-cyan-500/10 to-fuchsia-500/10 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-100`}
       />
     </div>
-  )
-} 
+  );
+};

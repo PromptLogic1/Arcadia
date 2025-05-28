@@ -1,36 +1,86 @@
-import React from 'react'
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { Button, type ButtonProps } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-interface NeonButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  children: React.ReactNode
-  variant?: 'default' | 'outline' | 'ghost'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
-  className?: string
+const neonEffectVariants = cva(
+  'group relative overflow-hidden transition-all duration-300',
+  {
+    variants: {
+      intensity: {
+        none: '',
+        subtle: 'hover:scale-[1.01] active:scale-[0.99]',
+        default: 'hover:scale-[1.02] active:scale-[0.98]',
+        strong: 'hover:scale-[1.03] active:scale-[0.97]',
+      },
+      glow: {
+        cyan: [
+          'before:absolute before:inset-0 before:bg-gradient-to-r before:from-cyan-500/50 before:via-cyan-400/50 before:to-cyan-500/50',
+          'before:opacity-0 before:blur-xl before:transition-opacity before:duration-300 hover:before:opacity-100',
+        ],
+        fuchsia: [
+          'before:absolute before:inset-0 before:bg-gradient-to-r before:from-fuchsia-500/50 before:via-fuchsia-400/50 before:to-fuchsia-500/50',
+          'before:opacity-0 before:blur-xl before:transition-opacity before:duration-300 hover:before:opacity-100',
+        ],
+        rainbow: [
+          'before:absolute before:inset-0 before:bg-gradient-to-r before:from-cyan-500/50 before:via-fuchsia-500/50 before:to-cyan-500/50',
+          'before:opacity-0 before:blur-xl before:transition-opacity before:duration-300 hover:before:opacity-100',
+        ],
+        primary: [
+          'before:absolute before:inset-0 before:bg-gradient-to-r before:from-primary/50 before:via-primary/70 before:to-primary/50',
+          'before:opacity-0 before:blur-xl before:transition-opacity before:duration-300 hover:before:opacity-100',
+        ],
+      },
+      overlay: {
+        none: '',
+        subtle: 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-current after:to-current after:opacity-5 after:transition-opacity after:duration-300 group-hover:after:opacity-10',
+        default: 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-cyan-500 after:to-fuchsia-500 after:opacity-20 after:transition-opacity after:duration-300 group-hover:after:opacity-30',
+        strong: 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-cyan-500 after:to-fuchsia-500 after:opacity-30 after:transition-opacity after:duration-300 group-hover:after:opacity-40',
+      },
+    },
+    defaultVariants: {
+      intensity: 'default',
+      glow: 'rainbow',
+      overlay: 'default',
+    },
+  }
+);
+
+export interface NeonButtonProps
+  extends Omit<ButtonProps, 'asChild'>,
+    VariantProps<typeof neonEffectVariants> {
+  children: React.ReactNode;
 }
 
-const NeonButtonComponent = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
-  ({ children, className, variant = 'default', size = 'default', ...props }, ref) => (
-    <Button
-      ref={ref}
-      variant={variant}
-      size={size}
-      className={cn(
-        'group relative overflow-hidden transition-all duration-300',
-        'hover:scale-[1.02] active:scale-[0.98]',
-        'before:absolute before:inset-0 before:bg-gradient-to-r before:from-cyan-500/50 before:via-fuchsia-500/50 before:to-cyan-500/50 before:blur-xl before:opacity-0 before:transition-opacity before:duration-300',
-        'hover:before:opacity-100',
-        className
-      )}
-      {...props}
-    >
-      <span className="relative z-10 flex items-center gap-2">{children}</span>
-      <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-fuchsia-500 opacity-20 transition-opacity duration-300 group-hover:opacity-30" />
-    </Button>
-  )
-)
+const NeonButton = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
+  (
+    { 
+      children, 
+      className, 
+      intensity, 
+      glow, 
+      overlay,
+      ...buttonProps 
+    },
+    ref
+  ) => {
+    return (
+      <Button
+        ref={ref}
+        className={cn(
+          neonEffectVariants({ intensity, glow, overlay }),
+          className
+        )}
+        {...buttonProps}
+      >
+        <span className="relative z-10 flex items-center gap-2">
+          {children}
+        </span>
+      </Button>
+    );
+  }
+);
 
-NeonButtonComponent.displayName = 'NeonButton'
+NeonButton.displayName = 'NeonButton';
 
-export const NeonButton = NeonButtonComponent
-export default NeonButton
+export { NeonButton };

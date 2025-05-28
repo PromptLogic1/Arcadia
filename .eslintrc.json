@@ -1,0 +1,11 @@
+{
+  "extends": ["./eslint.config.mjs"],
+  "overrides": [
+    {
+      "files": ["**/__tests__/**/*", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+      "rules": {
+        "@typescript-eslint/ban-ts-comment": "off"
+      }
+    }
+  ]
+} 

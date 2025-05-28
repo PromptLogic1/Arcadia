@@ -1,25 +1,25 @@
-import React from 'react'
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import React from 'react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu"
-import { ChevronDown } from "lucide-react"
+} from '@/src/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 interface FilterOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface FilterGroupProps {
-  title: string
-  options: FilterOption[]
-  selectedValue?: string
-  onSelect: (value: string) => void
-  className?: string
+  title: string;
+  options: FilterOption[];
+  selectedValue?: string;
+  onSelect: (value: string) => void;
+  className?: string;
 }
 
 export const FilterGroup: React.FC<FilterGroupProps> = ({
@@ -29,10 +29,10 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
   onSelect,
   className,
 }) => {
-  const selectedOption = options.find(option => option.value === selectedValue)
+  const selectedOption = options.find(option => option.value === selectedValue);
 
   return (
-    <div className={cn("flex flex-col space-y-2", className)}>
+    <div className={cn('flex flex-col space-y-2', className)}>
       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
         {title}
       </label>
@@ -44,7 +44,7 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-full">
-          {options.map((option) => (
+          {options.map(option => (
             <DropdownMenuItem
               key={option.value}
               onClick={() => onSelect(option.value)}
@@ -59,5 +59,5 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  )
-} 
+  );
+};

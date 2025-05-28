@@ -8,9 +8,9 @@ export interface CardPoolSizeLimits {
 // Define the generator configuration
 export const GENERATOR_CONFIG = {
   CARDPOOLSIZE_LIMITS: {
-    Small: 50,  // Example value
+    Small: 50, // Example value
     Medium: 100, // Example value
-    Large: 200   // Example value
+    Large: 200, // Example value
   } as CardPoolSizeLimits,
   // Add other generator configurations here if needed
 };
@@ -41,4 +41,4 @@ export const CARD_CATEGORIES: CardCategory[] = [
 // export const CARD_CATEGORIES: CardCategory[] = [
 //   { id: 'action', name: 'Action' },
 //   { id: 'adventure', name: 'Adventure' },
-// ]; 
+// ];

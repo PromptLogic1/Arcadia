@@ -1,21 +1,21 @@
-'use client'
+'use client';
 
-import { create } from 'zustand'
+import { createWithEqualityFn } from 'zustand/traditional';
 
 interface ToastState {
-  title?: string
-  description?: string
-  variant?: 'default' | 'destructive'
+  title?: string;
+  description?: string;
+  variant?: 'default' | 'destructive';
 }
 
 interface ToastStore {
-  toast: ToastState | null
-  showToast: (toast: ToastState) => void
-  hideToast: () => void
+  toast: ToastState | null;
+  showToast: (toast: ToastState) => void;
+  hideToast: () => void;
 }
 
-export const useToast = create<ToastStore>((set) => ({
+export const useToast = createWithEqualityFn<ToastStore>(set => ({
   toast: null,
-  showToast: (toast) => set({ toast }),
-  hideToast: () => set({ toast: null })
-})) 
+  showToast: toast => set({ toast }),
+  hideToast: () => set({ toast: null }),
+}));

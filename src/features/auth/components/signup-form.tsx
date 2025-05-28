@@ -1,449 +1,620 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Info, Mail, Check, X, AlertCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import Link from 'next/link'
-import { useAuth, useAuthActions } from '@/lib/stores'
-import { logger } from '@/lib/logger'
-import { notifications } from '@/lib/notifications'
+import React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Mail } from 'lucide-react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { useAuth, useAuthActions } from '@/lib/stores';
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
 
-type SignUpStatus = 'idle' | 'loading' | 'success' | 'error' | 'verification_pending'
+// Import our new compound components
+import { FormField } from './form-field';
+import { PasswordRequirements } from './password-requirements';
+import { FormMessage } from './form-message';
 
-interface SignUpMessage {
-  text: string
-  type: 'success' | 'error' | 'info'
+// Import utilities and types
+import type {
+  SignUpFormProps,
+  FormData,
+  SignUpStatus,
+  SignUpMessage,
+  FormConfig,
+  OAuthProvider,
+  ValidationErrors,
+} from '../types/signup-form.types';
+import {
+  validateForm,
+  checkPasswordRequirements,
+  isFormValid as validateFormComplete,
+} from '../utils/validation.utils';
+import { createFormPersistence } from '../utils/persistence.utils';
+
+// 🎨 CVA Variant System - Main Form Container
+const signUpFormVariants = cva(
+  'w-full max-w-md space-y-8',
+  {
+    variants: {
+      variant: {
+        default: '',
+        gaming: 'relative',
+        neon: 'relative',
+        cyber: 'relative group',
+      },
+      size: {
+        sm: 'max-w-sm space-y-6',
+        default: 'max-w-md space-y-8',
+        lg: 'max-w-lg space-y-10',
+      },
+      state: {
+        idle: '',
+        loading: 'pointer-events-none opacity-75',
+        success: '',
+        error: '',
+        verification_pending: 'pointer-events-none opacity-50',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+      state: 'idle',
+    },
+  }
+);
+
+// 🎨 CVA Variant System - Form Header
+const headerVariants = cva(
+  'text-center space-y-2',
+  {
+    variants: {
+      variant: {
+        default: '',
+        gaming: '',
+        neon: '',
+        cyber: '',
+      },
+      size: {
+        sm: 'space-y-1',
+        default: 'space-y-2',
+        lg: 'space-y-3',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+// 🎨 CVA Variant System - OAuth Section
+const oauthSectionVariants = cva(
+  'space-y-4',
+  {
+    variants: {
+      variant: {
+        default: '',
+        gaming: 'relative',
+        neon: 'relative',
+        cyber: 'relative group',
+      },
+      show: {
+        true: 'block',
+        false: 'hidden',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      show: true,
+    },
+  }
+);
+
+// 🧱 Default Configuration
+const defaultConfig: FormConfig = {
+  enableLocalStorage: true,
+  enableOAuth: true,
+  redirectPath: '/user/user-page',
+  redirectDelay: 3,
+  passwordRequirements: {
+    minLength: 8,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumber: true,
+    requireSpecial: true,
+  },
+};
+
+// 🎯 Enhanced Props Interface
+interface EnhancedSignUpFormProps 
+  extends Omit<SignUpFormProps, 'className'>,
+    VariantProps<typeof signUpFormVariants> {
+  variant?: VariantProps<typeof signUpFormVariants>['variant'];
+  size?: VariantProps<typeof signUpFormVariants>['size'];
+  showHeader?: boolean;
+  showOAuth?: boolean;
+  customTitle?: string;
+  customSubtitle?: string;
+  theme?: 'default' | 'gaming' | 'neon' | 'cyber';
+  className?: string;
 }
 
-// Add validation types
-interface ValidationErrors {
-  username?: string;
-  email?: string;
-  password?: string | React.ReactNode;
-  confirmPassword?: string;
-  general?: string;
-}
-
-// Temporary password validation helper
-const checkPasswordRequirements = (password: string) => ({
-  uppercase: /[A-Z]/.test(password),
-  lowercase: /[a-z]/.test(password),
-  number: /\d/.test(password),
-  special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-  length: password.length >= 8,
-})
-
-export function SignUpForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [username, setUsername] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [passwordChecks, setPasswordChecks] = useState({
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-    length: false,
-  })
-  const [status, setStatus] = useState<SignUpStatus>('idle')
-  const [message, setMessage] = useState<SignUpMessage | null>(null)
-  const [redirectTimer, setRedirectTimer] = useState<number | null>(null)
-
-  // Add validation state
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
-
-  const router = useRouter()
-  const { loading } = useAuth()
-  const { setLoading } = useAuthActions()
-
-  // Load saved form data on component mount
-  useEffect(() => {
-    const savedFormData = localStorage.getItem('signupForm')
-    if (savedFormData) {
-      try {
-        const { email, username } = JSON.parse(savedFormData)
-        setEmail(email || '')
-        setUsername(username || '')
-      } catch (e) {
-        logger.warn('Failed to load saved signup form data', { component: 'SignUpForm' })
-        localStorage.removeItem('signupForm')
-      }
-    }
-  }, [])
-
-  // Add field validation functions
-  const validateUsername = (value: string): string | undefined => {
-    if (!value.trim()) {
-      return 'Username is required'
-    }
-    if (value.length < 3) {
-      return 'Username must be at least 3 characters long'
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
-      return 'Username can only contain letters, numbers, underscores, and hyphens'
-    }
-    return undefined
-  }
-
-  const validateEmail = (value: string): string | undefined => {
-    if (!value.trim()) {
-      return 'Email is required'
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(value)) {
-      return 'Please enter a valid email address'
-    }
-    return undefined
-  }
-
-  const validatePassword = (value: string): string | undefined => {
-    if (!value) {
-      return 'Password is required'
-    }
-    if (!Object.values(passwordChecks).every(check => check)) {
-      return 'Password does not meet all requirements'
-    }
-    return undefined
-  }
-
-  const validateConfirmPassword = (value: string): string | undefined => {
-    if (!value) {
-      return 'Please confirm your password'
-    }
-    if (value !== password) {
-      return 'Passwords do not match'
-    }
-    return undefined
-  }
-
-  // Update handleInputChange to use authService
-  const handleInputChange = (
-    setter: (value: string) => void,
-    value: string,
-    field: 'email' | 'username' | 'password' | 'confirmPassword'
+// 🎯 Forward Ref Implementation
+export const SignUpForm = React.forwardRef<HTMLDivElement, EnhancedSignUpFormProps>(
+  (
+    {
+      config: userConfig,
+      initialData,
+      variant = 'default',
+      size = 'default',
+      showHeader = true,
+      showOAuth = true,
+      customTitle,
+      customSubtitle,
+      theme = 'default',
+      onFormSubmit,
+      onOAuthSignUp,
+      onSuccess,
+      onError,
+      onStatusChange,
+      customValidation,
+      className,
+      ...props
+    },
+    ref
   ) => {
-    setter(value)
-    setValidationErrors(prev => ({ ...prev, [field]: undefined }))
+    // 🧼 Configuration Merging
+    const config = React.useMemo(
+      () => ({ ...defaultConfig, ...userConfig }),
+      [userConfig]
+    );
 
-    // Only save non-sensitive data to localStorage
-    if (field === 'email' || field === 'username') {
-      try {
-        const currentData = localStorage.getItem('signupForm')
-        const existingData = currentData ? JSON.parse(currentData) : {}
-        localStorage.setItem('signupForm', JSON.stringify({
-          ...existingData,
-          [field]: value
-        }))
-      } catch (e) {
-        logger.warn('Failed to save signup form data to localStorage', { component: 'SignUpForm' })
+    // 🧼 Form State Management
+    const [formData, setFormData] = React.useState<FormData>({
+      username: initialData?.username || '',
+      email: initialData?.email || '',
+      password: initialData?.password || '',
+      confirmPassword: initialData?.confirmPassword || '',
+    });
+
+    const [status, setStatus] = React.useState<SignUpStatus>('idle');
+    const [message, setMessage] = React.useState<SignUpMessage | null>(null);
+    const [redirectTimer, setRedirectTimer] = React.useState<number | null>(null);
+    const [validationErrors, setValidationErrors] = React.useState<ValidationErrors>({});
+    const [passwordRequirements, setPasswordRequirements] = React.useState(
+      checkPasswordRequirements('', config.passwordRequirements)
+    );
+
+    // 🧼 External State
+    const router = useRouter();
+    const { loading } = useAuth();
+    const { setLoading, signUp, signInWithOAuth } = useAuthActions();
+
+    // 🧼 Persistence Setup
+    const persistence = React.useMemo(() => 
+      config.enableLocalStorage ? createFormPersistence() : null,
+      [config.enableLocalStorage]
+    );
+
+    // 🧼 Load Saved Data Effect
+    React.useEffect(() => {
+      if (!persistence) return;
+
+      const savedData = persistence.load();
+      if (savedData) {
+        setFormData(prev => ({
+          ...prev,
+          username: savedData.username || prev.username,
+          email: savedData.email || prev.email,
+        }));
+
+        logger.debug('Loaded saved form data', {
+          component: 'SignUpForm',
+          metadata: { fields: Object.keys(savedData) },
+        });
       }
-    }
+    }, [persistence]);
 
-    // Update password checks if password field changes
-    if (field === 'password') {
-      setPasswordChecks(checkPasswordRequirements(value))
-    }
-  }
+    // 🧼 Password Requirements Effect
+    React.useEffect(() => {
+      setPasswordRequirements(
+        checkPasswordRequirements(formData.password, config.passwordRequirements)
+      );
+    }, [formData.password, config.passwordRequirements]);
 
-  // Update validateForm to use new validation functions
-  const validateForm = (): boolean => {
-    const errors: ValidationErrors = {
-      username: validateUsername(username),
-      email: validateEmail(email),
-      password: validatePassword(password),
-      confirmPassword: validateConfirmPassword(confirmPassword)
-    }
+    // 🧼 Status Change Effect
+    React.useEffect(() => {
+      onStatusChange?.(status);
+    }, [status, onStatusChange]);
 
-    setValidationErrors(errors)
-    return !Object.values(errors).some(error => error !== undefined)
-  }
+    // 🧼 Redirect Timer Effect
+    React.useEffect(() => {
+      if (status === 'success' && redirectTimer !== null) {
+        const timer = setTimeout(() => {
+          if (redirectTimer > 1) {
+            setRedirectTimer(redirectTimer - 1);
+          } else {
+            router.push(config.redirectPath);
+          }
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+      return undefined;
+    }, [redirectTimer, status, router, config.redirectPath]);
 
-  // Handle redirect countdown
-  useEffect(() => {
-    if (status === 'success' && redirectTimer !== null) {
-      const timer = setTimeout(() => {
-        if (redirectTimer > 1) {
-          setRedirectTimer(redirectTimer - 1)
-        } else {
-          router.push('/user/user-page')
+    // 🧼 Pure Logic - Field Change Handler
+    const handleFieldChange = React.useCallback(
+      (field: keyof FormData, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        
+        // Clear field-specific validation error
+        setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+
+        // Save to persistence if enabled and field is persistable
+        if (persistence && (field === 'username' || field === 'email')) {
+          persistence.save({ [field]: value });
         }
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-    return undefined
-  }, [redirectTimer, status, router])
 
-  // Update handleSubmit to use authService
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setMessage(null)
-    
-    if (!validateForm()) {
-      return
-    }
+        logger.debug('Form field changed', {
+          component: 'SignUpForm',
+          metadata: { field, hasValue: !!value },
+        });
+      },
+      [persistence]
+    );
 
-    setStatus('loading')
-    setLoading(true)
+    // 🧼 Pure Logic - Form Validation
+    const validateFormData = React.useCallback((): boolean => {
+      const errors = validateForm(formData, customValidation);
+      setValidationErrors(errors);
+      return !Object.keys(errors).length;
+    }, [formData, customValidation]);
 
-    try {
-      logger.debug('Starting user signup process', { component: 'SignUpForm', metadata: { email, username } })
-      
-      // TODO: Implement actual signup with Supabase
-      // Temporary success simulation
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setStatus('success')
-      setMessage({
-        text: 'Account created successfully!',
-        type: 'success'
-      })
-      setRedirectTimer(3)
-      
-      logger.info('User signup completed successfully', { component: 'SignUpForm', metadata: { email, username } })
+    // 🧼 Form Submit Handler
+    const handleSubmit = React.useCallback(
+      async (e: React.FormEvent) => {
+        e.preventDefault();
+        setMessage(null);
 
-    } catch (error) {
-      logger.error('Signup process failed', error as Error, { component: 'SignUpForm', metadata: { email, username } })
-      handleSignUpError(error as Error)
-    } finally {
-      setLoading(false)
-    }
-  }
+        if (!validateFormData()) {
+          setMessage({
+            text: 'Please fix the errors below',
+            type: 'error',
+          });
+          return;
+        }
 
-  // Update handleOAuthLogin to use authService
-  const handleOAuthLogin = async (provider: 'google') => {
-    setLoading(true)
+        setStatus('loading');
+        setLoading(true);
 
-    try {
-      logger.debug('Starting OAuth signup process', { component: 'SignUpForm', metadata: { provider } })
-      
-      // TODO: Implement OAuth with Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      logger.info('OAuth signup completed successfully', { component: 'SignUpForm', metadata: { provider } })
-    } catch (error) {
-      logger.error('OAuth signup failed', error as Error, { component: 'SignUpForm', metadata: { provider } })
-      setMessage({ text: 'Failed to login with provider. Please try again.', type: 'error' })
-      notifications.error('OAuth signup failed', { description: 'Please try again or contact support if the problem persists.' })
-    } finally {
-      setLoading(false)
-    }
-  }
+        try {
+          logger.debug('Starting user signup process', {
+            component: 'SignUpForm',
+            metadata: { email: formData.email, username: formData.username },
+          });
 
-  // Add error handling function
-  const handleSignUpError = (error: Error) => {
-    setStatus('error')
-    setMessage({
-      text: error.message || 'An error occurred during sign up',
-      type: 'error'
-    })
-  }
+          if (onFormSubmit) {
+            await onFormSubmit(formData);
+          } else {
+            // Use the actual auth store signup method
+            const result = await signUp({
+              email: formData.email.trim(),
+              password: formData.password,
+              username: formData.username.trim(),
+            });
 
-  return (
-    <div className="max-w-md w-full space-y-8">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
-          Create your account
-        </h2>
-        <p className="mt-2 text-sm text-gray-400">
-          Join our community and start your journey
-        </p>
-      </div>
+            if (result.error) {
+              throw result.error;
+            }
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {validationErrors.general && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-400">{validationErrors.general}</p>
+            if (result.needsVerification) {
+              setStatus('verification_pending');
+              setMessage({
+                text: 'Please check your email to verify your account',
+                type: 'info',
+              });
+              return;
+            }
+          }
+
+          // Success handling
+          setStatus('success');
+          setMessage({
+            text: 'Account created successfully!',
+            type: 'success',
+          });
+          setRedirectTimer(config.redirectDelay);
+
+          // Clear persistence on success
+          persistence?.clear();
+
+          onSuccess?.(formData);
+
+          logger.info('User signup completed successfully', {
+            component: 'SignUpForm',
+            metadata: { email: formData.email, username: formData.username },
+          });
+        } catch (error) {
+          const errorObj = error as Error;
+          setStatus('error');
+          setMessage({
+            text: errorObj.message || 'An error occurred during sign up',
+            type: 'error',
+            actionLabel: 'Try Again',
+          });
+
+          onError?.(errorObj, 'form_submit');
+
+          logger.error('Signup process failed', errorObj, {
+            component: 'SignUpForm',
+            metadata: { email: formData.email, username: formData.username },
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+      [
+        formData,
+        validateFormData,
+        onFormSubmit,
+        onSuccess,
+        onError,
+        config.redirectDelay,
+        persistence,
+        setLoading,
+        router,
+        signUp,
+      ]
+    );
+
+    // 🧼 OAuth Handler
+    const handleOAuthSignUp = React.useCallback(
+      async (provider: OAuthProvider) => {
+        setLoading(true);
+        setMessage(null);
+
+        try {
+          logger.debug('Starting OAuth signup process', {
+            component: 'SignUpForm',
+            metadata: { provider },
+          });
+
+          if (onOAuthSignUp) {
+            await onOAuthSignUp(provider);
+          } else {
+            // Currently only Google OAuth is supported
+            if (provider !== 'google') {
+              throw new Error(`${provider} OAuth is not yet supported`);
+            }
+
+            // Use the actual auth store OAuth method
+            const result = await signInWithOAuth(provider);
+
+            if (result.error) {
+              throw result.error;
+            }
+
+            setMessage({
+              text: `Redirecting to ${provider}...`,
+              type: 'info',
+            });
+
+            // Note: OAuth will redirect away from page
+          }
+
+          logger.info('OAuth signup completed successfully', {
+            component: 'SignUpForm',
+            metadata: { provider },
+          });
+        } catch (error) {
+          const errorObj = error as Error;
+          setMessage({
+            text: `Failed to sign up with ${provider}. ${errorObj.message}`,
+            type: 'error',
+          });
+
+          onError?.(errorObj, `oauth_${provider}`);
+
+          notifications.error('OAuth signup failed', {
+            description: errorObj.message || 'Please try again or contact support if the problem persists.',
+          });
+
+          logger.error('OAuth signup failed', errorObj, {
+            component: 'SignUpForm',
+            metadata: { provider },
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+      [onOAuthSignUp, onError, setLoading, signInWithOAuth]
+    );
+
+    // 🎨 Style Calculations
+    const formStyles = signUpFormVariants({ variant, size, state: status });
+    const headerStyles = headerVariants({ variant, size });
+    const oauthStyles = oauthSectionVariants({ 
+      variant, 
+      show: config.enableOAuth && showOAuth 
+    });
+
+    // 🧼 Derived States
+    const isFormCompletelyValid = React.useMemo(
+      (): boolean => validateFormComplete(formData, customValidation),
+      [formData, customValidation]
+    );
+
+    const canSubmit = React.useMemo(
+      () => !loading && isFormCompletelyValid,
+      [loading, isFormCompletelyValid]
+    );
+
+    return (
+      <div ref={ref} className={cn(formStyles, className)} {...props}>
+        {/* Form Header */}
+        {showHeader && (
+          <div className={headerStyles}>
+            <h2 className={cn(
+              'text-3xl font-bold tracking-tight',
+              'bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-transparent',
+              {
+                'text-2xl': size === 'sm',
+                'text-4xl': size === 'lg',
+              }
+            )}>
+              {customTitle || 'Create your account'}
+            </h2>
+            <p className={cn(
+              'text-gray-400',
+              {
+                'text-sm': size === 'sm',
+                'text-base': size === 'lg',
+              }
+            )}>
+              {customSubtitle || 'Join our community and start your journey'}
+            </p>
           </div>
         )}
 
-        {/* Username field */}
-        <div className="space-y-2">
-          <Label htmlFor="username">Account Name</Label>
-          <Input
-            id="username"
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* General Error Message */}
+          {message && (
+            <FormMessage
+              message={message}
+              redirectTimer={redirectTimer}
+              variant={theme}
+              dismissible={message.type === 'error'}
+              onDismiss={() => setMessage(null)}
+            />
+          )}
+
+          {/* Username Field */}
+          <FormField
+            label="Account Name"
             type="text"
-            value={username}
-            onChange={(e) => handleInputChange(setUsername, e.target.value, 'username')}
-            className={cn(
-              "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              validationErrors.username && "border-red-500/50 focus:border-red-500"
-            )}
+            value={formData.username}
+            onChange={(value) => handleFieldChange('username', value)}
+            error={validationErrors.username}
             placeholder="This will not be your shown username"
             disabled={loading}
+            required
+            variant={theme}
+            helpText="Choose a unique identifier for your account"
           />
-          {validationErrors.username && (
-            <p className="text-sm text-red-400 mt-1">{validationErrors.username}</p>
-          )}
-        </div>
 
-        {/* Email field */}
-        <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            id="email"
+          {/* Email Field */}
+          <FormField
+            label="Email address"
             type="email"
-            value={email}
-            onChange={(e) => handleInputChange(setEmail, e.target.value, 'email')}
-            className={cn(
-              "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              validationErrors.email && "border-red-500/50 focus:border-red-500"
-            )}
+            value={formData.email}
+            onChange={(value) => handleFieldChange('email', value)}
+            error={validationErrors.email}
             placeholder="Enter your email"
             disabled={loading}
+            required
+            variant={theme}
           />
-          {validationErrors.email && (
-            <p className="text-sm text-red-400 mt-1">{validationErrors.email}</p>
-          )}
-        </div>
 
-        {/* Password fields with requirements box */}
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="space-y-4">
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => handleInputChange(setPassword, e.target.value, 'password')}
-              className={cn(
-                "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-                validationErrors.password && "border-red-500/50 focus:border-red-500"
-              )}
-              placeholder="Create a password"
-              disabled={loading}
-            />
-            
-            <div className="w-full bg-gray-800/95 border border-cyan-500/20 rounded-lg p-4 space-y-2">
-              <p className="text-sm font-medium text-gray-300 mb-3">
-                Password Requirements:
-              </p>
-              {[
-                { label: 'Uppercase letter', check: passwordChecks.uppercase },
-                { label: 'Lowercase letter', check: passwordChecks.lowercase },
-                { label: 'Number', check: passwordChecks.number },
-                { label: 'Special character', check: passwordChecks.special },
-                { label: '8 characters or more', check: passwordChecks.length },
-              ].map(({ label, check }) => (
-                <div 
-                  key={label} 
-                  className={cn(
-                    "flex items-center gap-2 text-sm",
-                    check ? "text-green-400" : "text-gray-400"
-                  )}
-                >
-                  {check ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                  {label}
-                </div>
-              ))}
-            </div>
-            {validationErrors.password && (
-              <div className="text-sm text-red-400 mt-1">
-                {validationErrors.password}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Confirm Password field */}
-        <div className="space-y-2">
-          <Label htmlFor="confirm-password">Confirm Password</Label>
-          <Input
-            id="confirm-password"
+          {/* Password Field */}
+          <FormField
+            label="Password"
             type="password"
-            value={confirmPassword}
-            onChange={(e) => handleInputChange(setConfirmPassword, e.target.value, 'confirmPassword')}
-            className={cn(
-              "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-              validationErrors.confirmPassword && "border-red-500/50 focus:border-red-500"
-            )}
+            value={formData.password}
+            onChange={(value) => handleFieldChange('password', value)}
+            error={typeof validationErrors.password === 'string' ? validationErrors.password : undefined}
+            placeholder="Create a password"
+            disabled={loading}
+            required
+            variant={theme}
+          />
+
+          {/* Password Requirements */}
+          <PasswordRequirements
+            requirements={passwordRequirements}
+            variant={theme}
+            showProgress={theme === 'neon' || theme === 'cyber'}
+            hideCompleted={false}
+          />
+
+          {/* Confirm Password Field */}
+          <FormField
+            label="Confirm Password"
+            type="password"
+            value={formData.confirmPassword}
+            onChange={(value) => handleFieldChange('confirmPassword', value)}
+            error={validationErrors.confirmPassword}
             placeholder="Confirm your password"
             disabled={loading}
+            required
+            variant={theme}
           />
-          {validationErrors.confirmPassword && (
-            <p className="text-sm text-red-400 mt-1">{validationErrors.confirmPassword}</p>
-          )}
-        </div>
 
-        {message && (
-          <div className={cn(
-            "p-4 rounded-lg flex items-start gap-2",
-            {
-              'bg-green-500/10 border border-green-500/20 text-green-400': message.type === 'success',
-              'bg-red-500/10 border border-red-500/20 text-red-400': message.type === 'error',
-              'bg-blue-500/10 border border-blue-500/20 text-blue-400': message.type === 'info'
-            }
-          )}>
-            {message.type === 'success' && <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />}
-            {message.type === 'error' && <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />}
-            {message.type === 'info' && <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />}
-            <div>
-              <p className="text-sm">{message.text}</p>
-              {redirectTimer !== null && (
-                <p className="text-sm mt-1">Redirecting in {redirectTimer} seconds...</p>
-              )}
-              {message.type === 'error' && message.text.includes('password') && (
-                <Link 
-                  href="/auth/reset-password" 
-                  className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200 mt-2 block"
-                >
-                  Reset Password
-                </Link>
-              )}
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className={cn(
+              'w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500',
+              'rounded-full py-2 font-medium text-white',
+              'transition-all duration-200 hover:opacity-90',
+              'shadow-lg shadow-cyan-500/25',
+              !canSubmit && 'cursor-not-allowed opacity-50'
+            )}
+          >
+            {loading ? 'Processing...' : 'Sign Up'}
+          </Button>
+        </form>
+
+        {/* OAuth Section */}
+        {config.enableOAuth && showOAuth && (
+          <>
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-gray-900 px-2 text-gray-400">
+                  Or continue with
+                </span>
+              </div>
             </div>
-          </div>
+
+            {/* OAuth Buttons */}
+            <div className={oauthStyles}>
+              <Button
+                variant="outline"
+                onClick={() => handleOAuthSignUp('google')}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2"
+              >
+                <Mail className="h-5 w-5" />
+                Continue with Google
+              </Button>
+            </div>
+          </>
         )}
 
-        <Button
-          type="submit"
-          disabled={loading}
-          className={cn(
-            "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
-            "text-white font-medium py-2 rounded-full",
-            "hover:opacity-90 transition-all duration-200",
-            "shadow-lg shadow-cyan-500/25",
-            loading && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          {loading ? 'Processing...' : 'Sign Up'}
-        </Button>
-      </form>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-700"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-gray-900 text-gray-400">Or continue with</span>
-        </div>
+        {/* Login Link */}
+        <p className="text-center text-sm text-gray-400">
+          Already have an account?{' '}
+          <Link
+            href="/auth/login"
+            className="text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
+    );
+  }
+);
 
-      <div className="space-y-4">
-        <Button 
-          variant="outline" 
-          onClick={() => handleOAuthLogin('google')}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2"
-        >
-          <Mail className="w-5 h-5" />
-          Continue with Google
-        </Button>
-      </div>
+SignUpForm.displayName = 'SignUpForm';
 
-      <p className="text-center text-sm text-gray-400">
-        Already have an account?{' '}
-        <Link 
-          href="/auth/login" 
-          className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-        >
-          Sign in
-        </Link>
-      </p>
-    </div>
-  )
-}
+// 🎯 Type Exports
+export type { EnhancedSignUpFormProps as SignUpFormProps };
+export { signUpFormVariants, headerVariants, oauthSectionVariants }; 

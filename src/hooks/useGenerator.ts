@@ -1,8 +1,10 @@
-import { useBingoGenerator, useBingoGeneratorActions } from '@/src/lib/stores'
+import { useBingoGenerator, useBingoGeneratorActions } from '@/src/lib/stores';
 
 export function useGenerator() {
-  const { cardsForSelection, selectedCards, isLoading, error } = useBingoGenerator()
-  const { clearCardsForSelection, clearSelectedCards } = useBingoGeneratorActions()
+  const { cardsForSelection, selectedCards, isLoading, error } =
+    useBingoGenerator();
+  const { clearCardsForSelection, clearSelectedCards } =
+    useBingoGeneratorActions();
 
   return {
     cardsForSelection,
@@ -10,6 +12,6 @@ export function useGenerator() {
     isLoading,
     error,
     clearSelection: clearCardsForSelection,
-    clearSelected: clearSelectedCards
-  }
+    clearSelected: clearSelectedCards,
+  };
 }

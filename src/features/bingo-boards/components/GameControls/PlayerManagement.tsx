@@ -1,16 +1,16 @@
-'use client'
+'use client';
 
-import React, { useState, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import React, { useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -19,20 +19,20 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-} from "@/components/ui/alert-dialog"
-import { UserPlus, UserMinus, User, Users2, Crown } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { Player } from '../../types/types'
-import { PLAYER_CONSTANTS } from '../../types/playermanagement.constants'
-import { useSession } from '../../hooks/useSession'
-import { useSessionQueue } from '../../hooks/useSessionQueue'
+} from '@/components/ui/alert-dialog';
+import { UserPlus, UserMinus, User, Users2, Crown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { Player } from '../../types/types';
+import { PLAYER_CONSTANTS } from '../../types/playermanagement.constants';
+import { useSession } from '../../hooks/useSession';
+import { useSessionQueue } from '../../hooks/useSessionQueue';
 
 interface PlayerManagementProps {
-  isOwner: boolean
-  players: Player[]
-  teamMode: boolean
-  onPlayersChange: (players: Player[]) => void
-  sessionId?: string
+  isOwner: boolean;
+  players: Player[];
+  teamMode: boolean;
+  onPlayersChange: (players: Player[]) => void;
+  sessionId?: string;
 }
 
 export const PlayerManagement: React.FC<PlayerManagementProps> = ({
@@ -43,25 +43,29 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
   sessionId = '',
 }) => {
   // States
-  const [showInviteDialog, setShowInviteDialog] = useState(false)
-  const [showQueueDialog, setShowQueueDialog] = useState(false)
-  const [inviteLink, setInviteLink] = useState('')
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showQueueDialog, setShowQueueDialog] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
 
   // Hooks
-  const session = useSession({ boardId: sessionId, _game: 'All Games', initialPlayers: players })
-  const queue = useSessionQueue(sessionId)
+  const session = useSession({
+    boardId: sessionId,
+    _game: 'All Games',
+    initialPlayers: players,
+  });
+  const queue = useSessionQueue(sessionId);
 
   // Generate invite link
   const generateInviteLink = useCallback(() => {
-    const link = `${window.location.origin}/join/${sessionId}`
-    setInviteLink(link)
-    setShowInviteDialog(true)
-  }, [sessionId])
+    const link = `${window.location.origin}/join/${sessionId}`;
+    setInviteLink(link);
+    setShowInviteDialog(true);
+  }, [sessionId]);
 
   // Copy invite link
   const copyInviteLink = useCallback(() => {
-    navigator.clipboard.writeText(inviteLink)
-  }, [inviteLink])
+    navigator.clipboard.writeText(inviteLink);
+  }, [inviteLink]);
 
   return (
     <div className="space-y-4">
@@ -84,13 +88,13 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               variant="outline"
               size="sm"
               className={cn(
-                "h-8 px-3",
-                "bg-cyan-500/10 hover:bg-cyan-500/20",
-                "border-cyan-500/20 hover:border-cyan-500/40",
-                "text-cyan-400"
+                'h-8 px-3',
+                'bg-cyan-500/10 hover:bg-cyan-500/20',
+                'border-cyan-500/20 hover:border-cyan-500/40',
+                'text-cyan-400'
               )}
             >
-              <UserPlus className="h-4 w-4 mr-2" />
+              <UserPlus className="mr-2 h-4 w-4" />
               Invite Players
             </Button>
             <Button
@@ -98,13 +102,13 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               variant="outline"
               size="sm"
               className={cn(
-                "h-8 px-3",
-                "bg-cyan-500/10 hover:bg-cyan-500/20",
-                "border-cyan-500/20 hover:border-cyan-500/40",
-                "text-cyan-400"
+                'h-8 px-3',
+                'bg-cyan-500/10 hover:bg-cyan-500/20',
+                'border-cyan-500/20 hover:border-cyan-500/40',
+                'text-cyan-400'
               )}
             >
-              <Users2 className="h-4 w-4 mr-2" />
+              <Users2 className="mr-2 h-4 w-4" />
               View Queue ({queue.queueEntries.length})
             </Button>
           </div>
@@ -117,37 +121,39 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
           <div
             key={player.id}
             className={cn(
-              "flex flex-col gap-2 p-3",
-              "bg-gray-900/50 rounded-lg",
-              "border border-cyan-500/20",
-              "transition-all duration-200",
-              "hover:border-cyan-500/30",
-              "group"
+              'flex flex-col gap-2 p-3',
+              'rounded-lg bg-gray-900/50',
+              'border border-cyan-500/20',
+              'transition-all duration-200',
+              'hover:border-cyan-500/30',
+              'group'
             )}
           >
             {/* Player Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {index === 0 && (
-                  <Crown className="h-4 w-4 text-yellow-400" />
-                )}
-                <span className={cn(
-                  "text-xs font-medium",
-                  player.color.replace('bg-', 'text-')
-                )}>
+                {index === 0 && <Crown className="h-4 w-4 text-yellow-400" />}
+                <span
+                  className={cn(
+                    'text-xs font-medium',
+                    player.color.replace('bg-', 'text-')
+                  )}
+                >
                   Player {index + 1}
                 </span>
               </div>
               {isOwner && index !== 0 && (
                 <Button
-                  onClick={() => onPlayersChange(players.filter(p => p.id !== player.id))}
+                  onClick={() =>
+                    onPlayersChange(players.filter(p => p.id !== player.id))
+                  }
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-6 w-6 p-0",
-                    "opacity-0 group-hover:opacity-100",
-                    "hover:bg-red-500/10 hover:text-red-400",
-                    "transition-all duration-200"
+                    'h-6 w-6 p-0',
+                    'opacity-0 group-hover:opacity-100',
+                    'hover:bg-red-500/10 hover:text-red-400',
+                    'transition-all duration-200'
                   )}
                 >
                   <UserMinus className="h-3 w-3" />
@@ -157,13 +163,13 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
 
             {/* Player Info */}
             <div className="flex items-center gap-3">
-              <Avatar 
+              <Avatar
                 className={cn(
-                  "h-8 w-8 border-2 shrink-0",
-                  "transition-colors duration-200"
+                  'h-8 w-8 shrink-0 border-2',
+                  'transition-colors duration-200'
                 )}
-                style={{ 
-                  borderColor: `rgb(var(--${player.color.replace('bg-', '')}))` 
+                style={{
+                  borderColor: `rgb(var(--${player.color.replace('bg-', '')}))`,
                 }}
               >
                 <AvatarImage src={player.avatarUrl} alt={player.name} />
@@ -172,20 +178,20 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                 </AvatarFallback>
               </Avatar>
 
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex flex-1 items-center gap-2">
                 <Input
                   value={player.name}
-                  onChange={(e) => {
-                    const newPlayers = [...players]
-                    newPlayers[index] = { ...player, name: e.target.value }
-                    onPlayersChange(newPlayers)
+                  onChange={e => {
+                    const newPlayers = [...players];
+                    newPlayers[index] = { ...player, name: e.target.value };
+                    onPlayersChange(newPlayers);
                   }}
                   disabled={!isOwner && player.id !== session.currentPlayer?.id}
                   className={cn(
-                    "h-8 text-sm bg-gray-800/50",
-                    "border-gray-700/50 focus:border-cyan-500/50",
+                    'h-8 bg-gray-800/50 text-sm',
+                    'border-gray-700/50 focus:border-cyan-500/50',
                     player.hoverColor,
-                    "transition-colors duration-200"
+                    'transition-colors duration-200'
                   )}
                   maxLength={20}
                 />
@@ -193,44 +199,40 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                 {/* Color Selection */}
                 <Select
                   value={player.color}
-                  onValueChange={(color) => {
-                    const newPlayers = [...players]
-                    newPlayers[index] = { 
-                      ...player, 
+                  onValueChange={color => {
+                    const newPlayers = [...players];
+                    newPlayers[index] = {
+                      ...player,
                       color,
-                      hoverColor: `hover:${color.replace('bg-', '')}`
-                    }
-                    onPlayersChange(newPlayers)
+                      hoverColor: `hover:${color.replace('bg-', '')}`,
+                    };
+                    onPlayersChange(newPlayers);
                   }}
                   disabled={!isOwner && player.id !== session.currentPlayer?.id}
                 >
-                  <SelectTrigger className={cn(
-                    "w-[100px] h-8",
-                    "bg-gray-800/50 border-gray-700/50",
-                    "focus:border-cyan-500/50",
-                    "transition-colors duration-200"
-                  )}>
-                    <div className={cn(
-                      "w-4 h-4 rounded-full",
-                      player.color
-                    )} />
+                  <SelectTrigger
+                    className={cn(
+                      'h-8 w-[100px]',
+                      'border-gray-700/50 bg-gray-800/50',
+                      'focus:border-cyan-500/50',
+                      'transition-colors duration-200'
+                    )}
+                  >
+                    <div className={cn('h-4 w-4 rounded-full', player.color)} />
                   </SelectTrigger>
                   <SelectContent>
-                    {PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS.map((color) => (
+                    {PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS.map(color => (
                       <SelectItem
                         key={color}
                         value={color}
                         className={cn(
-                          "flex items-center gap-2",
-                          "cursor-pointer",
-                          "hover:bg-gray-800/50",
-                          "transition-colors duration-200"
+                          'flex items-center gap-2',
+                          'cursor-pointer',
+                          'hover:bg-gray-800/50',
+                          'transition-colors duration-200'
                         )}
                       >
-                        <div className={cn(
-                          "w-4 h-4 rounded-full",
-                          color
-                        )} />
+                        <div className={cn('h-4 w-4 rounded-full', color)} />
                         <span>{color.split('-')[1]}</span>
                       </SelectItem>
                     ))}
@@ -243,19 +245,21 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             {teamMode && (
               <Select
                 value={player.team.toString()}
-                onValueChange={(team) => {
-                  const newPlayers = [...players]
-                  newPlayers[index] = { ...player, team: parseInt(team) }
-                  onPlayersChange(newPlayers)
+                onValueChange={team => {
+                  const newPlayers = [...players];
+                  newPlayers[index] = { ...player, team: parseInt(team) };
+                  onPlayersChange(newPlayers);
                 }}
                 disabled={!isOwner && player.id !== session.currentPlayer?.id}
               >
-                <SelectTrigger className={cn(
-                  "h-8",
-                  "bg-gray-800/50 border-gray-700/50",
-                  "focus:border-cyan-500/50",
-                  "transition-colors duration-200"
-                )}>
+                <SelectTrigger
+                  className={cn(
+                    'h-8',
+                    'border-gray-700/50 bg-gray-800/50',
+                    'focus:border-cyan-500/50',
+                    'transition-colors duration-200'
+                  )}
+                >
                   <span className="text-xs">Team {player.team + 1}</span>
                 </SelectTrigger>
                 <SelectContent>
@@ -297,10 +301,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            {queue.queueEntries.map((entry) => (
+            {queue.queueEntries.map(entry => (
               <div
                 key={entry.id}
-                className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
+                className="flex items-center justify-between rounded-lg bg-gray-800/50 p-3"
               >
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-400" />
@@ -309,14 +313,18 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                 {isOwner && (
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => queue.updateQueueEntry(entry.id, { status: 'approved' })}
+                      onClick={() =>
+                        queue.updateQueueEntry(entry.id, { status: 'approved' })
+                      }
                       size="sm"
                       variant="default"
                     >
                       Accept
                     </Button>
                     <Button
-                      onClick={() => queue.updateQueueEntry(entry.id, { status: 'rejected' })}
+                      onClick={() =>
+                        queue.updateQueueEntry(entry.id, { status: 'rejected' })
+                      }
                       size="sm"
                       variant="destructive"
                     >
@@ -327,7 +335,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               </div>
             ))}
             {queue.queueEntries.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p className="py-4 text-center text-sm text-gray-400">
                 No players in queue
               </p>
             )}
@@ -338,7 +346,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
-}
+  );
+};
 
-PlayerManagement.displayName = 'PlayerManagement'
+PlayerManagement.displayName = 'PlayerManagement';

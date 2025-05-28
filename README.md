@@ -13,12 +13,14 @@ A modern web application built with Next.js, featuring arcade-style UI component
 ## 🚀 Getting Started
 
 1. Clone the repository:
+
 ```bash
 git clone [your-repository-url]
 cd frontend-arcadia
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 # or
@@ -28,6 +30,7 @@ pnpm install
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 # or
@@ -50,6 +53,7 @@ The project includes several custom UI components:
 ## 🔤 Fonts
 
 This project uses custom fonts:
+
 - Geist Variable Font
 - Geist Mono Variable Font
 

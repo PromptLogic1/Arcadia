@@ -7,15 +7,15 @@ export type {
   // Core database types
   Database,
   Tables,
-  TablesInsert, 
+  TablesInsert,
   TablesUpdate,
   Enums,
   CompositeTypes,
-  
+
   // Core enums and types
   BoardStatus,
   ChallengeStatus,
-  GameCategory,        // <- Single source, from database
+  GameCategory, // <- Single source, from database
   QueueStatus,
   SessionStatus,
   SubmissionStatus,
@@ -25,28 +25,31 @@ export type {
   UserRole,
   VisibilityType,
   VoteType,
-  
+
   // Core composite types
-  BoardCell,           // <- Database representation
+  BoardCell, // <- Database representation
   BoardSettings,
   SessionSettings,
   TagCategory,
   WinConditions,
-  Json
-} from '../../types/database.types'
+  Json,
+} from '../../types/database.types';
 
 // Alias for consistency (eliminate Difficulty vs DifficultyLevel confusion)
-export type { DifficultyLevel as Difficulty } from '../../types/database.core'
+export type { DifficultyLevel as Difficulty } from '../../types/database.core';
 
 // Application-specific product types
-export * from './product.types'
+export * from './product.types';
 
 // Import types we need to reference
-import type { DifficultyLevel, GameCategory as DbGameCategory } from '../../types/database.core'
+import type {
+  DifficultyLevel,
+  GameCategory as DbGameCategory,
+} from '../../types/database.core';
 
 // Type aliases for internal use
-type Difficulty = DifficultyLevel
-type GameCategory = DbGameCategory
+type Difficulty = DifficultyLevel;
+type GameCategory = DbGameCategory;
 
 // =============================================================================
 // APPLICATION LAYER TYPES (extend database types for business logic)
@@ -72,22 +75,28 @@ export interface BingoCard {
 // =============================================================================
 
 // Re-export database constants
-export { Constants } from '../../types/database.types'
+export { Constants } from '../../types/database.core';
 
-// Application constants derived from database types  
-export const DIFFICULTIES: Difficulty[] = ['beginner', 'easy', 'medium', 'hard', 'expert']
+// Application constants derived from database types
+export const DIFFICULTIES: Difficulty[] = [
+  'beginner',
+  'easy',
+  'medium',
+  'hard',
+  'expert',
+];
 
 export const DIFFICULTY_STYLES: Record<Difficulty, string> = {
   beginner: 'bg-green-100 text-green-800 border-green-200',
-  easy: 'bg-blue-100 text-blue-800 border-blue-200', 
+  easy: 'bg-blue-100 text-blue-800 border-blue-200',
   medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   hard: 'bg-orange-100 text-orange-800 border-orange-200',
-  expert: 'bg-red-100 text-red-800 border-red-200'
-}
+  expert: 'bg-red-100 text-red-800 border-red-200',
+};
 
 export const GAME_CATEGORIES: GameCategory[] = [
   'All Games',
-  'World of Warcraft', 
+  'World of Warcraft',
   'Fortnite',
   'Minecraft',
   'Among Us',
@@ -95,38 +104,38 @@ export const GAME_CATEGORIES: GameCategory[] = [
   'League of Legends',
   'Overwatch',
   'Call of Duty: Warzone',
-  'Valorant'
-]
+  'Valorant',
+];
 
 // =============================================================================
 // UTILITY TYPES
 // =============================================================================
 
-export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
-export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
 // API Response types
 export interface ApiResponse<T = unknown> {
-  data: T
-  success: boolean
-  message?: string
-  error?: string
+  data: T;
+  success: boolean;
+  message?: string;
+  error?: string;
 }
 
 export interface PaginationParams {
-  page: number
-  limit: number
-  offset?: number
+  page: number;
+  limit: number;
+  offset?: number;
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   pagination: {
-    total: number
-    pages: number
-    current: number
-    hasNext: boolean
-    hasPrev: boolean
-  }
+    total: number;
+    pages: number;
+    current: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 // =============================================================================
@@ -134,17 +143,17 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 // =============================================================================
 
 export interface BingoCardFilter {
-  game?: GameCategory
-  difficulty?: Difficulty
-  category?: string
-  search?: string
+  game?: GameCategory;
+  difficulty?: Difficulty;
+  category?: string;
+  search?: string;
 }
 
 export interface BingoCardStats {
-  total: number
-  completed: number
-  byDifficulty: Record<Difficulty, number>
-  byCategory: Record<string, number>
+  total: number;
+  completed: number;
+  byDifficulty: Record<Difficulty, number>;
+  byCategory: Record<string, number>;
 }
 
 // Default bingo card
@@ -159,4 +168,4 @@ export const DEFAULT_BINGO_CARD: Omit<BingoCard, 'id'> = {
   creator_id: null,
   created_at: null,
   updated_at: null,
-} 
+};

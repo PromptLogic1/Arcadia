@@ -1,5 +1,3 @@
-import type { GameCategory, DifficultyLevel } from '@/types/database.types'
-
 export const BOARD_CONSTANTS = {
   SIZE: {
     MIN: 3,
@@ -7,42 +5,42 @@ export const BOARD_CONSTANTS = {
     DEFAULT: 5,
     SUPPORTED: [3, 4, 5, 6, 7] as const,
   },
-  
+
   TITLE: {
     MIN_LENGTH: 3,
     MAX_LENGTH: 50,
   },
-  
+
   DESCRIPTION: {
     MAX_LENGTH: 500,
   },
-  
+
   GRID: {
-    MIN_CELLS: 9,   // 3x3
-    MAX_CELLS: 49,  // 7x7
+    MIN_CELLS: 9, // 3x3
+    MAX_CELLS: 49, // 7x7
     DEFAULT_CELLS: 25, // 5x5
   },
-  
+
   VALIDATION: {
     TITLE_REQUIRED: true,
     MIN_FILLED_CELLS: 5,
     MAX_TAGS: 10,
   },
-  
+
   STATUS: {
     DRAFT: 'draft',
-    ACTIVE: 'active', 
+    ACTIVE: 'active',
     PAUSED: 'paused',
     COMPLETED: 'completed',
     ARCHIVED: 'archived',
   } as const,
-  
+
   VISIBILITY: {
     PUBLIC: 'public',
     FRIENDS: 'friends',
     PRIVATE: 'private',
   } as const,
-} as const
+} as const;
 
 export const ERROR_MESSAGES = {
   BOARD_NOT_FOUND: 'Board not found',
@@ -58,7 +56,7 @@ export const ERROR_MESSAGES = {
   SAVE_FAILED: 'Failed to save board',
   DELETE_FAILED: 'Failed to delete board',
   DUPLICATE_FAILED: 'Failed to duplicate board',
-} as const
+} as const;
 
 export const DIFFICULTY_SETTINGS = {
   beginner: {
@@ -68,14 +66,14 @@ export const DIFFICULTY_SETTINGS = {
     pointsMultiplier: 0.8,
   },
   easy: {
-    label: 'Easy', 
+    label: 'Easy',
     color: '#60A5FA', // blue-400
     timeMultiplier: 1.2,
     pointsMultiplier: 0.9,
   },
   medium: {
     label: 'Medium',
-    color: '#FBBF24', // amber-400  
+    color: '#FBBF24', // amber-400
     timeMultiplier: 1.0,
     pointsMultiplier: 1.0,
   },
@@ -91,7 +89,7 @@ export const DIFFICULTY_SETTINGS = {
     timeMultiplier: 0.6,
     pointsMultiplier: 1.5,
   },
-} as const
+} as const;
 
 export const BOARD_TEMPLATES = {
   classic: {
@@ -102,7 +100,7 @@ export const BOARD_TEMPLATES = {
   },
   mini: {
     name: 'Mini 3x3',
-    size: 3, 
+    size: 3,
     description: 'Quick games',
     centerFree: false,
   },
@@ -112,4 +110,4 @@ export const BOARD_TEMPLATES = {
     description: 'Extended gameplay',
     centerFree: true,
   },
-} as const 
+} as const;

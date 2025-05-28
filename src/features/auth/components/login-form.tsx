@@ -1,249 +1,301 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Info, Mail } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import Link from 'next/link'
-import { useAuth, useAuthActions } from '@/lib/stores'
-import { logger } from '@/lib/logger'
-import { notifications } from '@/lib/notifications'
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@/components/ui/button';
+import { Mail } from 'lucide-react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { useAuth, useAuthActions } from '@/lib/stores';
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
 
-export function LogInForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [errorInfo, setErrorInfo] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null)
-  const router = useRouter()
-  const { loading } = useAuth()
-  const { setLoading, setAuthUser } = useAuthActions()
+// Import our improved components and types
+import { FormField } from './form-field';
+import { FormMessage } from './form-message';
+import { loginFormSchema, type LoginFormData } from '../types/auth-schemas';
 
-  // Load saved email on component mount
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('loginEmail')
+interface LoginFormProps {
+  variant?: 'default' | 'gaming' | 'neon' | 'cyber';
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+
+export function LoginForm({ 
+  variant = 'default',
+  onSuccess,
+  onError 
+}: LoginFormProps) {
+  // 🧼 Form state with React Hook Form + Zod
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginFormSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  // 🧼 Component state
+  const [message, setMessage] = useState<{
+    text: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+    details?: string;
+  } | null>(null);
+
+  // 🧼 External state
+  const router = useRouter();
+  const { loading } = useAuth();
+  const { setLoading, signIn, signInWithOAuth } = useAuthActions();
+
+  // 🧼 Load saved email on mount
+  React.useEffect(() => {
+    const savedEmail = localStorage.getItem('loginEmail');
     if (savedEmail) {
-      setEmail(savedEmail)
+      form.setValue('email', savedEmail);
     }
-  }, [])
+  }, [form]);
 
+  // 🧼 Save email on change
   const handleEmailChange = (value: string) => {
-    setErrorInfo(null)
-    setEmail(value)
-    localStorage.setItem('loginEmail', value)
-  }
+    form.setValue('email', value);
+    localStorage.setItem('loginEmail', value);
+    // Clear any existing errors
+    setMessage(null);
+  };
 
-  const clearSavedData = () => {
-    localStorage.removeItem('loginEmail')
-  }
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorInfo(null)
-    setLoading(true)
+  // 🧼 Form submission handler
+  const onSubmit = async (data: LoginFormData) => {
+    setMessage(null);
+    setLoading(true);
 
     try {
-      // TODO: Implement proper authentication with Supabase
-      // For now, just simulate successful login
-      const user = {
-        id: '1',
-        email: email.trim(),
-        phone: null,
-        auth_username: null,
-        provider: 'email',
-        userRole: 'user' as const
-      }
-      
-      setAuthUser(user)
-      clearSavedData()
-      router.push('/')
-      router.refresh()
-    } catch {
-      setErrorInfo({
-        message: 'An unexpected error occurred',
-        type: 'error'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+      logger.debug('Starting login process', {
+        component: 'LoginForm',
+        metadata: { email: data.email },
+      });
 
+      // Use the actual auth store for authentication
+      const result = await signIn({
+        email: data.email.trim(),
+        password: data.password,
+      });
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      if (result.needsVerification) {
+        setMessage({
+          text: 'Please check your email to verify your account',
+          type: 'info',
+        });
+        return;
+      }
+
+      localStorage.removeItem('loginEmail'); // Clear saved email on success
+      
+      setMessage({
+        text: 'Welcome back! Redirecting...',
+        type: 'success',
+      });
+
+      logger.info('Login completed successfully', {
+        component: 'LoginForm',
+        metadata: { email: data.email },
+      });
+
+      // Success callback
+      onSuccess?.();
+      
+      // Redirect after short delay
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 1000);
+
+    } catch (error) {
+      const errorObj = error as Error;
+      
+      setMessage({
+        text: 'Login failed',
+        type: 'error',
+        details: errorObj.message || 'An unexpected error occurred',
+      });
+
+      logger.error('Login process failed', errorObj, {
+        component: 'LoginForm',
+        metadata: { email: data.email },
+      });
+
+      // Error callback
+      onError?.(errorObj);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🧼 OAuth handler
   const handleGoogleLogin = async () => {
     try {
-      // TODO: Implement Google OAuth with Supabase
-      setErrorInfo({
-        message: 'Google login not yet implemented',
-        type: 'info'
-      })
+      setMessage(null);
+      setLoading(true);
+
+      logger.debug('Starting Google OAuth login', {
+        component: 'LoginForm',
+      });
+
+      const result = await signInWithOAuth('google');
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setMessage({
+        text: 'Redirecting to Google...',
+        type: 'info',
+      });
+
+      // Note: OAuth will redirect away from page, so no need for additional handling
+      
     } catch (error) {
-      logger.error('Google login error', error as Error, { component: 'LogInForm' })
-      setErrorInfo({
-        message: 'Failed to login with Google',
-        type: 'error'
-      })
-      notifications.error('Google login failed', { 
-        description: 'Please try again or contact support if the problem persists.' 
-      })
+      const errorObj = error as Error;
+      
+      setMessage({
+        text: 'Google login failed',
+        type: 'error',
+        details: errorObj.message || 'Please try again',
+      });
+
+      logger.error('Google login error', errorObj, {
+        component: 'LoginForm',
+      });
+
+      onError?.(errorObj);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="max-w-md w-full text-center space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+    <div className="w-full max-w-md space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h2 className={cn(
+          'text-3xl font-bold tracking-tight',
+          'bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-transparent'
+        )}>
           Welcome back
         </h2>
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="text-sm text-gray-400">
           Sign in to your account
         </p>
       </div>
 
-      <div className="space-y-6">
-        {/* Email Login Form */}
-        <form onSubmit={handleEmailLogin} className="space-y-6">
-          {errorInfo && (
-            <div className={cn(
-              "p-3 rounded-lg flex items-start gap-2",
-              {
-                'bg-red-500/10 border-red-500/20': errorInfo.type === 'error',
-                'bg-yellow-500/10 border-yellow-500/20': errorInfo.type === 'warning',
-                'bg-blue-500/10 border-blue-500/20': errorInfo.type === 'info'
-              }
-            )}>
-              <Info className={cn(
-                "w-5 h-5 flex-shrink-0 mt-0.5",
-                {
-                  'text-red-400': errorInfo.type === 'error',
-                  'text-yellow-400': errorInfo.type === 'warning',
-                  'text-blue-400': errorInfo.type === 'info'
-                }
-              )} />
-              <div className="space-y-2 text-left">
-                <p className={cn(
-                  "text-sm",
-                  {
-                    'text-red-400': errorInfo.type === 'error',
-                    'text-yellow-400': errorInfo.type === 'warning',
-                    'text-blue-400': errorInfo.type === 'info'
-                  }
-                )}>
-                  {errorInfo.message}
-                </p>
-                {errorInfo.type === 'warning' && errorInfo.message.includes('verify') && (
-                  <button
-                    type="button"
-                    onClick={() => {/* Add resend verification email logic */}}
-                    className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-                  >
-                    Resend verification email
-                  </button>
-                )}
-                {errorInfo.type === 'error' && errorInfo.message.includes('password') && (
-                  <Link
-                    href="/auth/forgot-password"
-                    className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-                  >
-                    Forgot your password?
-                  </Link>
-                )}
-              </div>
-            </div>
+      {/* Main Form */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* General Message */}
+        {message && (
+          <FormMessage
+            message={message}
+            variant={variant}
+            dismissible={message.type === 'error'}
+            onDismiss={() => setMessage(null)}
+          />
+        )}
+
+        {/* Email Field */}
+        <FormField
+          label="Email address"
+          type="email"
+          value={form.watch('email')}
+          onChange={handleEmailChange}
+          onBlur={() => form.trigger('email')}
+          error={form.formState.errors.email?.message}
+          placeholder="Enter your email"
+          disabled={form.formState.isSubmitting}
+          required
+          variant={variant}
+        />
+
+        {/* Password Field */}
+        <FormField
+          label="Password"
+          type="password"
+          value={form.watch('password')}
+          onChange={(value) => form.setValue('password', value)}
+          onBlur={() => form.trigger('password')}
+          error={form.formState.errors.password?.message}
+          placeholder="Enter your password"
+          disabled={form.formState.isSubmitting}
+          required
+          variant={variant}
+        />
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting || !form.formState.isValid}
+          className={cn(
+            'w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500',
+            'rounded-full py-2 font-medium text-white',
+            'transition-all duration-200 hover:opacity-90',
+            'shadow-lg shadow-cyan-500/25',
+            'disabled:cursor-not-allowed disabled:opacity-50'
           )}
+        >
+          {form.formState.isSubmitting ? 'Signing in...' : 'Sign In'}
+        </Button>
 
-          <div className="space-y-2">
-            <div className="flex justify-start">
-              <Label htmlFor="email">Email address</Label>
-            </div>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => handleEmailChange(e.target.value)}
-              className={cn(
-                "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-                errorInfo?.message?.toLowerCase().includes('email') && "border-red-500/50 focus:border-red-500"
-              )}
-              placeholder="Enter your email"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-start">
-              <Label htmlFor="password">Password</Label>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={cn(
-                "bg-gray-800/50 border-cyan-500/50 focus:border-fuchsia-500",
-                errorInfo?.message?.toLowerCase().includes('password') && "border-red-500/50 focus:border-red-500"
-              )}
-              placeholder="Enter your password"
-              disabled={loading}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className={cn(
-              "w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500",
-              "text-white font-medium py-2 rounded-full",
-              "hover:opacity-90 transition-all duration-200",
-              "shadow-lg shadow-cyan-500/25",
-              loading && "opacity-50 cursor-not-allowed"
-            )}
+        {/* Forgot Password Link */}
+        <div className="text-center">
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
-
-          <div className="text-center">
-            <Link 
-              href="/auth/forgot-password" 
-              className="text-sm text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-            >
-              Forgot password?
-            </Link>
-          </div>
-        </form>
-
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-900 text-gray-400">Or continue with</span>
-          </div>
-        </div>
-
-        {/* OAuth Buttons */}
-        <div className="space-y-4">
-          <Button 
-            variant="outline" 
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            <Mail className="w-5 h-5" />
-            Continue with Google
-          </Button>
-        </div>
-
-        {/* Sign Up Link */}
-        <p className="text-center text-sm text-gray-400">
-          Don&apos;t have an account?{' '}
-          <Link 
-            href="/auth/signup" 
-            className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
-          >
-            Sign up
+            Forgot password?
           </Link>
-        </p>
+        </div>
+      </form>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-gray-900 px-2 text-gray-400">
+            Or continue with
+          </span>
+        </div>
       </div>
+
+      {/* OAuth Buttons */}
+      <div className="space-y-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleGoogleLogin}
+          disabled={form.formState.isSubmitting}
+          className="flex w-full items-center justify-center gap-2"
+        >
+          <Mail className="h-5 w-5" />
+          Continue with Google
+        </Button>
+      </div>
+
+      {/* Sign Up Link */}
+      <p className="text-center text-sm text-gray-400">
+        Don&apos;t have an account?{' '}
+        <Link
+          href="/auth/signup"
+          className="text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
+        >
+          Sign up
+        </Link>
+      </p>
     </div>
-  )
+  );
 } 

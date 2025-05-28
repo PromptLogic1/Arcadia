@@ -1,120 +1,138 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { useState, useCallback } from "react"
-import type { BingoCard, Difficulty } from "@/types"
-import { DIFFICULTIES } from "@/types"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/select';
+import { useState, useCallback } from 'react';
+import type { BingoCard, Difficulty } from '@/types';
+import { DIFFICULTIES } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface BingoCardEditDialogProps {
-  card: BingoCard
-  index: number
-  isOpen: boolean
-  onClose: () => void
-  onSave: (updates: Partial<BingoCard>, index: number) => void
+  card: BingoCard;
+  index: number;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updates: Partial<BingoCard>, index: number) => void;
 }
 
 interface CardForm {
-  title: string
-  description: string
-  difficulty: Difficulty
-  tags: string[]
-  is_public: boolean
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+  tags: string[];
+  is_public: boolean;
 }
 
-export function BingoCardEditDialog({ 
-  card, 
+export function BingoCardEditDialog({
+  card,
   index,
-  isOpen, 
+  isOpen,
   onClose,
-  onSave 
+  onSave,
 }: BingoCardEditDialogProps) {
   const [formData, setFormData] = useState<CardForm>({
     title: card.title,
     description: card.description || '',
     difficulty: card.difficulty,
     tags: card.tags || [],
-    is_public: card.is_public || false
-  })
+    is_public: card.is_public || false,
+  });
   const [fieldErrors, setFieldErrors] = useState<{
-    content?: string
-    explanation?: string
-    tags?: string
-  }>({})
-  const [isSaving] = useState(false)
+    content?: string;
+    explanation?: string;
+    tags?: string;
+  }>({});
+  const [isSaving] = useState(false);
 
-  const isNewCard = card.id === ""
-  const buttonText = isNewCard ? 'Create Card' : 'Update Card'
+  const isNewCard = card.id === '';
+  const buttonText = isNewCard ? 'Create Card' : 'Update Card';
 
-  const validateField = useCallback((field: string, value: string | string[] | boolean): string | null => {
-    switch (field) {
-      case 'title':
-        if (typeof value === 'string' && (value.length === 0 || value.length > 50)) {
-          return 'Title must be between 1 and 50 characters'
-        }
-        break
-      case 'description':
-        if (typeof value === 'string' && value.length > 255) {
-          return 'Description cannot exceed 255 characters'
-        }
-        break
-      case 'tags':
-        if (Array.isArray(value) && value.length > 5) {
-          return 'Maximum of 5 tags allowed'
-        }
-        break
-    }
-    return null
-  }, [])
-
-  const updateFormField = useCallback((field: string, value: string | string[] | boolean) => {
-    const error = validateField(field, value)
-    
-    setFieldErrors(prev => {
-      const newErrors = { ...prev }
-      const key = field as keyof typeof fieldErrors
-      
-      if (error) {
-        newErrors[key] = error
-      } else {
-        delete newErrors[key]
+  const validateField = useCallback(
+    (field: string, value: string | string[] | boolean): string | null => {
+      switch (field) {
+        case 'title':
+          if (
+            typeof value === 'string' &&
+            (value.length === 0 || value.length > 50)
+          ) {
+            return 'Title must be between 1 and 50 characters';
+          }
+          break;
+        case 'description':
+          if (typeof value === 'string' && value.length > 255) {
+            return 'Description cannot exceed 255 characters';
+          }
+          break;
+        case 'tags':
+          if (Array.isArray(value) && value.length > 5) {
+            return 'Maximum of 5 tags allowed';
+          }
+          break;
       }
-      return newErrors
-    })
-    
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }, [validateField])
+      return null;
+    },
+    []
+  );
+
+  const updateFormField = useCallback(
+    (field: string, value: string | string[] | boolean) => {
+      const error = validateField(field, value);
+
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        const key = field as keyof typeof fieldErrors;
+
+        if (error) {
+          newErrors[key] = error;
+        } else {
+          delete newErrors[key];
+        }
+        return newErrors;
+      });
+
+      setFormData(prev => ({ ...prev, [field]: value }));
+    },
+    [validateField]
+  );
 
   const handleSave = () => {
-    if (!formData) return
-    
+    if (!formData) return;
+
     if (!card.id) {
-      onSave(formData, index)
+      onSave(formData, index);
     } else {
-      onSave({
-        ...formData,
-        id: card.id
-      }, index)
+      onSave(
+        {
+          ...formData,
+          id: card.id,
+        },
+        index
+      );
     }
-    onClose()
-  }
+    onClose();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl bg-gray-900 text-gray-100">
         <DialogHeader>
           <DialogTitle>
-            {isNewCard ? "Create New Card" : "Edit Card"}
+            {isNewCard ? 'Create New Card' : 'Edit Card'}
           </DialogTitle>
         </DialogHeader>
 
@@ -123,23 +141,23 @@ export function BingoCardEditDialog({
           <div className="space-y-2">
             <Label htmlFor="title">
               Title
-              <span className="text-xs text-gray-400 ml-2">
+              <span className="ml-2 text-xs text-gray-400">
                 ({formData.title.length}/50)
               </span>
             </Label>
             <Textarea
               id="title"
               value={formData.title}
-              onChange={(e) => updateFormField('title', e.target.value)}
+              onChange={e => updateFormField('title', e.target.value)}
               placeholder="Enter card content"
               className={cn(
-                "min-h-[100px] bg-gray-800/50",
-                "break-words",
-                fieldErrors.content ? "border-red-500/20" : "border-cyan-500/20"
+                'min-h-[100px] bg-gray-800/50',
+                'break-words',
+                fieldErrors.content ? 'border-red-500/20' : 'border-cyan-500/20'
               )}
             />
             {fieldErrors.content && (
-              <p className="text-red-400 text-xs">{fieldErrors.content}</p>
+              <p className="text-xs text-red-400">{fieldErrors.content}</p>
             )}
           </div>
 
@@ -147,23 +165,25 @@ export function BingoCardEditDialog({
           <div className="space-y-2">
             <Label htmlFor="explanation">
               Explanation (Optional)
-              <span className="text-xs text-gray-400 ml-2">
+              <span className="ml-2 text-xs text-gray-400">
                 ({formData.description.length}/255)
               </span>
             </Label>
             <Textarea
               id="explanation"
               value={formData.description}
-              onChange={(e) => updateFormField('description', e.target.value)}
+              onChange={e => updateFormField('description', e.target.value)}
               placeholder="Add an explanation for your challenge"
               className={cn(
-                "min-h-[100px] bg-gray-800/50",
-                "break-words",
-                fieldErrors.explanation ? "border-red-500/20" : "border-cyan-500/20"
+                'min-h-[100px] bg-gray-800/50',
+                'break-words',
+                fieldErrors.explanation
+                  ? 'border-red-500/20'
+                  : 'border-cyan-500/20'
               )}
             />
             {fieldErrors.explanation && (
-              <p className="text-red-400 text-xs">{fieldErrors.explanation}</p>
+              <p className="text-xs text-red-400">{fieldErrors.explanation}</p>
             )}
           </div>
 
@@ -173,17 +193,17 @@ export function BingoCardEditDialog({
               <Label>Difficulty</Label>
               <Select
                 value={formData.difficulty}
-                onValueChange={(value: Difficulty) => 
+                onValueChange={(value: Difficulty) =>
                   updateFormField('difficulty', value)
                 }
               >
-                <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
+                <SelectTrigger className="border-cyan-500/20 bg-gray-800/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-cyan-500">
-                  {DIFFICULTIES.map((difficulty) => (
-                    <SelectItem 
-                      key={difficulty} 
+                <SelectContent className="border-cyan-500 bg-gray-800">
+                  {DIFFICULTIES.map(difficulty => (
+                    <SelectItem
+                      key={difficulty}
                       value={difficulty}
                       className="capitalize"
                     >
@@ -202,16 +222,24 @@ export function BingoCardEditDialog({
           <div className="space-y-2">
             <Label htmlFor="tags">
               Tags
-              <span className="text-xs text-gray-400 ml-2">
+              <span className="ml-2 text-xs text-gray-400">
                 (Comma separated, max 5)
               </span>
             </Label>
             <Input
               id="tags"
               value={formData.tags.join(', ')}
-              onChange={(e) => updateFormField('tags', e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag))}
+              onChange={e =>
+                updateFormField(
+                  'tags',
+                  e.target.value
+                    .split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag)
+                )
+              }
               placeholder="Enter tags separated by commas..."
-              className="bg-gray-800/50 border-cyan-500/20"
+              className="border-cyan-500/20 bg-gray-800/50"
             />
           </div>
 
@@ -220,7 +248,7 @@ export function BingoCardEditDialog({
             <Checkbox
               id="is_public"
               checked={formData.is_public}
-              onCheckedChange={(checked) => 
+              onCheckedChange={checked =>
                 updateFormField('is_public', checked as boolean)
               }
             />
@@ -232,7 +260,7 @@ export function BingoCardEditDialog({
           <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={isSaving || Object.keys(fieldErrors).length > 0}
             className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
@@ -242,5 +270,5 @@ export function BingoCardEditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

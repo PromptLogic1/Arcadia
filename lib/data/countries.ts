@@ -1,7 +1,7 @@
 export interface Country {
-  code: string
-  name: string
-  flag: string
+  code: string;
+  name: string;
+  flag: string;
 }
 
 export const countries: Country[] = [
@@ -37,4 +37,4 @@ export const countries: Country[] = [
   { code: 'CH', name: 'Switzerland', flag: '🇨🇭' },
   { code: 'US', name: 'United States', flag: '🇺🇸' },
   // Add more countries as needed...
-].sort((a, b) => a.name.localeCompare(b.name)) // Sort alphabetically by name
+].sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name

@@ -1,120 +1,141 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
-import type { Database } from '@/types/database.types'
-import type { 
-  BoardCell, 
-  DifficultyLevel, 
-  GameCategory, 
-  BoardSettings
-} from '@/types/database.types'
-import { Constants } from '@/types/database.types'
-import { RateLimiter } from '@/lib/rate-limiter'
-import { log } from "@/lib/logger"
+import { createServerComponentClient } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
+import type {
+  BoardCell,
+  DifficultyLevel,
+  GameCategory,
+  BoardSettings,
+} from '@/types/database.types';
+import { Constants } from '@/types/database.types';
+import { RateLimiter } from '@/lib/rate-limiter';
+import { log } from '@/lib/logger';
 
-const rateLimiter = new RateLimiter()
+const rateLimiter = new RateLimiter();
 
 interface CreateBoardRequest {
-  title: string
-  size: number
-  settings: BoardSettings
-  game_type: GameCategory
-  difficulty: DifficultyLevel
-  is_public: boolean
-  board_state: BoardCell[]
+  title: string;
+  size: number;
+  settings: BoardSettings;
+  game_type: GameCategory;
+  difficulty: DifficultyLevel;
+  is_public: boolean;
+  board_state: BoardCell[];
 }
 
 // Helper function to validate enum values
 function isValidGameCategory(value: string | null): value is GameCategory {
-  return value !== null && Constants.public.Enums.game_category.includes(value as GameCategory)
+  return (
+    value !== null &&
+    Constants.public.Enums.game_category.includes(value as GameCategory)
+  );
 }
 
-function isValidDifficultyLevel(value: string | null): value is DifficultyLevel {
-  return value !== null && Constants.public.Enums.difficulty_level.includes(value as DifficultyLevel)
+function isValidDifficultyLevel(
+  value: string | null
+): value is DifficultyLevel {
+  return (
+    value !== null &&
+    Constants.public.Enums.difficulty_level.includes(value as DifficultyLevel)
+  );
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(request.url)
-    const game = searchParams.get('game')
-    const difficulty = searchParams.get('difficulty')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const { searchParams } = new URL(request.url);
+    const game = searchParams.get('game');
+    const difficulty = searchParams.get('difficulty');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
+    const supabase = await createServerComponentClient();
 
     let query = supabase
       .from('bingo_boards')
-      .select(`
+      .select(
+        `
         *,
         creator:creator_id(
           username,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(limit)
-      .range(offset, offset + limit - 1)
+      .range(offset, offset + limit - 1);
 
     if (game && game !== 'All Games' && isValidGameCategory(game)) {
-      query = query.eq('game_type', game)
+      query = query.eq('game_type', game);
     }
 
     if (difficulty && isValidDifficultyLevel(difficulty)) {
-      query = query.eq('difficulty', difficulty)
+      query = query.eq('difficulty', difficulty);
     }
 
-    const { data: boards, error } = await query
+    const { data: boards, error } = await query;
 
     if (error) {
-      log.error('Error fetching bingo boards', error, { metadata: { apiRoute: 'bingo', method: 'GET', filters: { game, difficulty, limit, offset } } })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      log.error('Error fetching bingo boards', error, {
+        metadata: {
+          apiRoute: 'bingo',
+          method: 'GET',
+          filters: { game, difficulty, limit, offset },
+        },
+      });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(boards)
+    return NextResponse.json(boards);
   } catch (error) {
-    log.error('Unhandled error in GET /api/bingo', error as Error, { metadata: { apiRoute: 'bingo', method: 'GET' } })
-    return NextResponse.json({ error: 'Failed to fetch bingo boards' }, { status: 500 })
+    log.error('Unhandled error in GET /api/bingo', error as Error, {
+      metadata: { apiRoute: 'bingo', method: 'GET' },
+    });
+    return NextResponse.json(
+      { error: 'Failed to fetch bingo boards' },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (await rateLimiter.isLimited(ip)) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const supabase = await createServerComponentClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json() as CreateBoardRequest
-    const { title, size, settings, game_type, difficulty, is_public, board_state } = body
+    const body = (await request.json()) as CreateBoardRequest;
+    const {
+      title,
+      size,
+      settings,
+      game_type,
+      difficulty,
+      is_public,
+      board_state,
+    } = body;
 
     // Validate enum values
     if (!isValidGameCategory(game_type)) {
-      return NextResponse.json(
-        { error: 'Invalid game type' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid game type' }, { status: 400 });
     }
 
     if (!isValidDifficultyLevel(difficulty)) {
       return NextResponse.json(
         { error: 'Invalid difficulty level' },
         { status: 400 }
-      )
+      );
     }
 
     const { data, error } = await supabase
@@ -129,22 +150,39 @@ export async function POST(request: Request): Promise<NextResponse> {
         is_public,
         board_state,
         status: 'draft' as const,
-        cloned_from: null
+        cloned_from: null,
       })
       .select()
-      .single()
+      .single();
 
     if (error) {
-      log.error('Error creating bingo board', error, { metadata: { apiRoute: 'bingo', method: 'POST', userId: user.id, boardData: { title, size, settings, game_type, difficulty, is_public, board_state } } })
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      log.error('Error creating bingo board', error, {
+        metadata: {
+          apiRoute: 'bingo',
+          method: 'POST',
+          userId: user.id,
+          boardData: {
+            title,
+            size,
+            settings,
+            game_type,
+            difficulty,
+            is_public,
+            board_state,
+          },
+        },
+      });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(data);
   } catch (error) {
-    log.error('Unhandled error in POST /api/bingo', error as Error, { metadata: { apiRoute: 'bingo', method: 'POST' } })
+    log.error('Unhandled error in POST /api/bingo', error as Error, {
+      metadata: { apiRoute: 'bingo', method: 'POST' },
+    });
     return NextResponse.json(
       { error: 'Failed to create bingo board' },
       { status: 500 }
-    )
+    );
   }
-} 
+}

@@ -1,23 +1,21 @@
-'use client'
+'use client';
 
-import { BingoLayout } from './layout/BingoLayout'
-import BingoBoardsHub from './BingoBoardsHub'
-import LoadingSpinner from '@/components/ui/loading-spinner'
-import { useBingoBoards } from '../hooks/useBingoBoards'
+import { BingoLayout } from './layout/BingoLayout';
+import BingoBoardsHub from './BingoBoardsHub';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useBingoBoards } from '../hooks/useBingoBoards';
 
 export function BingoBoards() {
-  const { loading, error } = useBingoBoards()
+  const { loading, error } = useBingoBoards();
 
   if (loading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
 
   if (error) {
     return (
-      <div className="text-red-500">
-        Error loading bingo boards: {error}
-      </div>
-    )
+      <div className="text-red-500">Error loading bingo boards: {error}</div>
+    );
   }
 
   return (
@@ -26,5 +24,5 @@ export function BingoBoards() {
         <BingoBoardsHub />
       </BingoLayout>
     </div>
-  )
+  );
 }

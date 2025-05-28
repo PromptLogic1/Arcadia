@@ -1,18 +1,18 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Clock, Play, Pause } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { GAME_SETTINGS } from '../../types/gamesettings.constants'
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Clock, Play, Pause } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { GAME_SETTINGS } from '../../types/gamesettings.constants';
 
 interface TimerControlsProps {
-  isOwner: boolean
-  isRunning: boolean
-  timeLimit: number
-  onTimerToggle: () => void
-  onTimeChange?: (time: number) => void
+  isOwner: boolean;
+  isRunning: boolean;
+  timeLimit: number;
+  onTimerToggle: () => void;
+  onTimeChange?: (time: number) => void;
 }
 
 export const TimerControls: React.FC<TimerControlsProps> = ({
@@ -20,20 +20,20 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   isRunning,
   timeLimit,
   onTimerToggle,
-  onTimeChange
+  onTimeChange,
 }) => {
-  const timeInMinutes = Math.floor(timeLimit / 60000)
+  const timeInMinutes = Math.floor(timeLimit / 60000);
 
   const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000)
-    const seconds = Math.floor((ms % 60000) / 1000)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="flex items-center justify-between gap-4">
       {/* Timer Display */}
-      <div className="flex-1 flex items-center gap-3 px-3 py-2 bg-gray-900/50 rounded-lg">
+      <div className="flex flex-1 items-center gap-3 rounded-lg bg-gray-900/50 px-3 py-2">
         <Clock className="h-4 w-4 text-cyan-400" />
         <span className="font-mono text-lg font-medium text-cyan-400">
           {formatTime(timeLimit)}
@@ -45,18 +45,18 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
         <Input
           type="number"
           value={timeInMinutes}
-          onChange={(e) => {
+          onChange={e => {
             const newTime = Math.max(
               GAME_SETTINGS.TIME_LIMITS.MIN_TIME / 60000,
               Math.min(
                 parseInt(e.target.value) || 0,
                 GAME_SETTINGS.TIME_LIMITS.MAX_TIME / 60000
               )
-            )
-            onTimeChange?.(newTime * 60000)
+            );
+            onTimeChange?.(newTime * 60000);
           }}
           disabled={!isOwner || isRunning}
-          className="w-16 h-9 text-center"
+          className="h-9 w-16 text-center"
           min={GAME_SETTINGS.TIME_LIMITS.MIN_TIME / 60000}
           max={GAME_SETTINGS.TIME_LIMITS.MAX_TIME / 60000}
         />
@@ -67,10 +67,10 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
           variant="outline"
           size="sm"
           className={cn(
-            "h-9 px-3",
-            isRunning 
-              ? "bg-red-500/10 hover:bg-red-500/20 text-red-400"
-              : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400"
+            'h-9 px-3',
+            isRunning
+              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+              : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
           )}
         >
           {isRunning ? (
@@ -81,5 +81,5 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

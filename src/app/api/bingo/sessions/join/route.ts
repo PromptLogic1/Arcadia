@@ -1,18 +1,16 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
-import type { Database } from '@/types/database.types'
-import { RateLimiter } from '@/lib/rate-limiter'
-import { DEFAULT_MAX_PLAYERS } from '@/features/bingo-boards/types'
-import { log } from "@/lib/logger"
+import { createServerComponentClient } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
+import { RateLimiter } from '@/lib/rate-limiter';
+import { DEFAULT_MAX_PLAYERS } from '@/features/bingo-boards/types';
+import { log } from '@/lib/logger';
 
-const rateLimiter = new RateLimiter()
+const rateLimiter = new RateLimiter();
 
 interface JoinSessionRequest {
-  sessionId: string
-  playerName: string
-  color: string
-  team?: number | null
+  sessionId: string;
+  playerName: string;
+  color: string;
+  team?: number | null;
 }
 
 interface JoinRoutePayloadForLog {
@@ -22,64 +20,57 @@ interface JoinRoutePayloadForLog {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  let userIdForLog: string | undefined
-  let sessionIdForLog: string | undefined
+  let userIdForLog: string | undefined;
+  let sessionIdForLog: string | undefined;
   let joinPayloadForLog: JoinRoutePayloadForLog = {};
   try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (await rateLimiter.isLimited(ip)) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    userIdForLog = user?.id
+    const supabase = await createServerComponentClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    userIdForLog = user?.id;
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json() as JoinSessionRequest
-    const { sessionId, playerName, color, team } = body
-    sessionIdForLog = sessionId
-    joinPayloadForLog = { playerName, color, team }
+    const body = (await request.json()) as JoinSessionRequest;
+    const { sessionId, playerName, color, team } = body;
+    sessionIdForLog = sessionId;
+    joinPayloadForLog = { playerName, color, team };
 
     // Check if session exists and is active
     const { data: session, error: sessionError } = await supabase
       .from('bingo_sessions')
-      .select(`
+      .select(
+        `
         *,
         players:bingo_session_players(count)
-      `)
+      `
+      )
       .eq('id', sessionId)
-      .single()
+      .single();
 
     if (sessionError || !session) {
-      return NextResponse.json(
-        { error: 'Session not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
     if (session.status !== 'active') {
       return NextResponse.json(
         { error: 'Session is not active' },
         { status: 400 }
-      )
+      );
     }
 
     // Check player limit
-    const currentPlayerCount = session.players?.[0]?.count ?? 0
+    const currentPlayerCount = session.players?.[0]?.count ?? 0;
     if (currentPlayerCount >= DEFAULT_MAX_PLAYERS) {
-      return NextResponse.json(
-        { error: 'Session is full' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Session is full' }, { status: 400 });
     }
 
     // Check if player is already in session
@@ -88,13 +79,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       .select('user_id')
       .eq('session_id', sessionId)
       .eq('user_id', user.id)
-      .single()
+      .single();
 
     if (existingPlayer) {
       return NextResponse.json(
         { error: 'Already in session' },
         { status: 400 }
-      )
+      );
     }
 
     // Add player directly (assuming this is an older or different join mechanism)
@@ -109,16 +100,42 @@ export async function POST(request: Request): Promise<NextResponse> {
         joined_at: new Date().toISOString(),
       })
       .select()
-      .single()
+      .single();
 
     if (playerInsertError) {
-      log.error('Error inserting player to join session', playerInsertError, { metadata: { apiRoute: 'bingo/sessions/join', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog, ...joinPayloadForLog } })
-      return NextResponse.json({ error: playerInsertError.message }, { status: 500 })
+      log.error('Error inserting player to join session', playerInsertError, {
+        metadata: {
+          apiRoute: 'bingo/sessions/join',
+          method: 'POST',
+          userId: userIdForLog,
+          sessionId: sessionIdForLog,
+          ...joinPayloadForLog,
+        },
+      });
+      return NextResponse.json(
+        { error: playerInsertError.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(player)
+    return NextResponse.json(player);
   } catch (error) {
-    log.error('Unhandled error in POST /api/bingo/sessions/join', error as Error, { metadata: { apiRoute: 'bingo/sessions/join', method: 'POST', userId: userIdForLog, sessionId: sessionIdForLog, ...joinPayloadForLog } })
-    return NextResponse.json({ error: (error as Error).message || 'Failed to join session' }, { status: 500 })
+    log.error(
+      'Unhandled error in POST /api/bingo/sessions/join',
+      error as Error,
+      {
+        metadata: {
+          apiRoute: 'bingo/sessions/join',
+          method: 'POST',
+          userId: userIdForLog,
+          sessionId: sessionIdForLog,
+          ...joinPayloadForLog,
+        },
+      }
+    );
+    return NextResponse.json(
+      { error: (error as Error).message || 'Failed to join session' },
+      { status: 500 }
+    );
   }
-} 
+}

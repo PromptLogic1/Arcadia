@@ -1,16 +1,16 @@
-'use client'
+'use client';
 
-import { Skeleton } from "@/components/ui/skeleton"
-import { motion } from "framer-motion"
+import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 
 interface LoadingStateProps {
-  count?: number
-  className?: string
+  count?: number;
+  className?: string;
 }
 
-export const LoadingState: React.FC<LoadingStateProps> = ({ 
+export const LoadingState: React.FC<LoadingStateProps> = ({
   count = 3,
-  className = "h-40"
+  className = 'h-40',
 }) => (
   <div className="space-y-4">
     {Array.from({ length: count }).map((_, i) => (
@@ -24,4 +24,4 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
       </motion.div>
     ))}
   </div>
-) 
+);

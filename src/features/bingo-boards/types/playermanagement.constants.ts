@@ -5,11 +5,11 @@ export const PLAYER_CONSTANTS = {
     MAXIMUM: 50,
     TEAM_MAX: 6,
   },
-  
+
   COLORS: {
     DEFAULT: [
       '#FF6B6B', // Red
-      '#4ECDC4', // Teal  
+      '#4ECDC4', // Teal
       '#45B7D1', // Blue
       '#96CEB4', // Green
       '#FFEAA7', // Yellow
@@ -23,7 +23,7 @@ export const PLAYER_CONSTANTS = {
     ],
     TEAM_COLORS: [
       '#FF0000', // Red Team
-      '#0000FF', // Blue Team  
+      '#0000FF', // Blue Team
       '#00FF00', // Green Team
       '#FFFF00', // Yellow Team
       '#FF00FF', // Purple Team
@@ -48,8 +48,12 @@ export const PLAYER_CONSTANTS = {
     MIN_TEAM_SIZE: 1,
     MAX_TEAM_SIZE: 8,
     DEFAULT_COLORS: [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', 
-      '#96CEB4', '#FFEAA7', '#DDA0DD'
+      '#FF6B6B',
+      '#4ECDC4',
+      '#45B7D1',
+      '#96CEB4',
+      '#FFEAA7',
+      '#DDA0DD',
     ],
     DEFAULT_NAMES: ['Team Alpha', 'Team Beta'] as [string, string],
     AUTO_BALANCE: true,
@@ -107,14 +111,20 @@ export const PLAYER_CONSTANTS = {
 
   EVENTS: {
     TYPES: [
-      'joined', 'left', 'marked_cell', 'completed_line', 
-      'won', 'disconnected', 'reconnected', 'kicked'
+      'joined',
+      'left',
+      'marked_cell',
+      'completed_line',
+      'won',
+      'disconnected',
+      'reconnected',
+      'kicked',
     ] as const,
     MAX_HISTORY: 100,
     PLAYER_JOIN: 'joined',
     TEAM_CHANGE: 'team_change',
   },
-  
+
   LIMITS: {
     MAX_PLAYERS: 12,
     MIN_PLAYERS: 1,
@@ -167,7 +177,7 @@ export const PLAYER_CONSTANTS = {
     ALREADY_IN_SESSION: 'ALREADY_IN_SESSION',
     NOT_IN_SESSION: 'NOT_IN_SESSION',
   },
-} as const
+} as const;
 
 export const PLAYER_VALIDATION = {
   NAME: {
@@ -180,11 +190,16 @@ export const PLAYER_VALIDATION = {
     MAX_LENGTH: 15,
     ALLOWED_CHARS: /^[a-zA-Z0-9_\-\s]+$/,
   },
-} as const 
+} as const;
 
 // Type exports
-export type PlayerColor = typeof PLAYER_CONSTANTS.COLORS[keyof typeof PLAYER_CONSTANTS.COLORS]
-export type PlayerRole = typeof PLAYER_CONSTANTS.ROLES[keyof typeof PLAYER_CONSTANTS.ROLES]
-export type PlayerStatus = typeof PLAYER_CONSTANTS.STATUS[keyof typeof PLAYER_CONSTANTS.STATUS]
-export type PlayerAction = typeof PLAYER_CONSTANTS.ACTIONS[keyof typeof PLAYER_CONSTANTS.ACTIONS]
-export type PlayerErrorCode = typeof PLAYER_CONSTANTS.ERRORS[keyof typeof PLAYER_CONSTANTS.ERRORS] 
+export type PlayerColor =
+  (typeof PLAYER_CONSTANTS.COLORS)[keyof typeof PLAYER_CONSTANTS.COLORS];
+export type PlayerRole =
+  (typeof PLAYER_CONSTANTS.ROLES)[keyof typeof PLAYER_CONSTANTS.ROLES];
+export type PlayerStatus =
+  (typeof PLAYER_CONSTANTS.STATUS)[keyof typeof PLAYER_CONSTANTS.STATUS];
+export type PlayerAction =
+  (typeof PLAYER_CONSTANTS.ACTIONS)[keyof typeof PLAYER_CONSTANTS.ACTIONS];
+export type PlayerErrorCode =
+  (typeof PLAYER_CONSTANTS.ERRORS)[keyof typeof PLAYER_CONSTANTS.ERRORS];

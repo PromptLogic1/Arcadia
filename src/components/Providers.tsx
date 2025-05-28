@@ -1,14 +1,11 @@
-'use client'
+'use client';
 
-import { ThemeProvider } from './ui/ThemeProvider'
-import { useEffect } from 'react'
+import { ThemeProvider } from './ui/ThemeProvider';
+import { AuthProvider } from './auth/AuthProvider';
+import { Suspense } from 'react';
+import AuthLoader from './auth/AuthLoader';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    // TODO: Initialize Supabase auth session
-    // This will be implemented when proper auth is integrated
-  }, []);
-
   return (
     <ThemeProvider
       attribute="class"
@@ -16,7 +13,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      {children}
+      <Suspense fallback={<AuthLoader />}>
+        <AuthProvider>{children}</AuthProvider>
+      </Suspense>
     </ThemeProvider>
-  )
-} 
+  );
+}

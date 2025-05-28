@@ -10,6 +10,7 @@
 /coverage
 /test-results
 *.test.results.json
+test-results.json
 
 # next.js
 /.next/
@@ -51,6 +52,7 @@ next-env.d.ts
 # supabase
 /supabase/.branches
 /supabase/.temp
+/supabase/.env.local
 .supabase/
 
 # cache
@@ -71,5 +73,16 @@ next-env.d.ts
 **/public/sw.js.map
 **/public/workbox-*.js.map
 **/public/worker-*.js.map
+
+# Editor specific files
+.cursor/
+
+# Backup files
+backups/
+
+# Development placeholder files
+public/images/placeholder*.jpg
+public/images/placeholder*.svg
+public/placeholder*.svg
 
 .vercel

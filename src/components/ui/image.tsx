@@ -1,9 +1,9 @@
-import NextImage from 'next/image'
-import type { ImageProps } from 'next/image'
-import { useState } from 'react'
+import NextImage from 'next/image';
+import type { ImageProps } from 'next/image';
+import { useState } from 'react';
 
 interface OptimizedImageProps extends Omit<ImageProps, 'onError' | 'onLoad'> {
-  fallbackSrc?: string
+  fallbackSrc?: string;
 }
 
 export function OptimizedImage({
@@ -14,7 +14,7 @@ export function OptimizedImage({
   height,
   ...props
 }: OptimizedImageProps) {
-  const [imgSrc, setImgSrc] = useState(src)
+  const [imgSrc, setImgSrc] = useState(src);
 
   return (
     <NextImage
@@ -29,5 +29,5 @@ export function OptimizedImage({
       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       quality={75}
     />
-  )
-} 
+  );
+}

@@ -3,4 +3,4 @@ export const ROUTES = {
   // Remove or update any edit-specific routes
   // Before: CHALLENGE_EDIT: '/challengehub/:id/edit'
   // After: CHALLENGE_BOARD: '/challengehub/:id'
-} as const 
+} as const;

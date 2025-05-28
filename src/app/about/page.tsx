@@ -1,27 +1,29 @@
-import type { Metadata } from 'next'
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'About Arcadia - Gaming Community Platform',
-  description: 'Learn about Arcadia, our mission, and the team behind the gaming community platform.',
-}
+  description:
+    'Learn about Arcadia, our mission, and the team behind the gaming community platform.',
+};
 
 export default function AboutPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-6">About Arcadia</h1>
+      <h1 className="mb-6 text-4xl font-bold">About Arcadia</h1>
       <div className="prose max-w-none">
-        <p className="text-lg mb-4">
-          Welcome to Arcadia, a comprehensive gaming community platform designed to bring
-          gamers together through challenges, competitions, and collaborative gameplay.
+        <p className="mb-4 text-lg">
+          Welcome to Arcadia, a comprehensive gaming community platform designed
+          to bring gamers together through challenges, competitions, and
+          collaborative gameplay.
         </p>
-        <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
+        <h2 className="mb-4 text-2xl font-semibold">Our Mission</h2>
         <p className="mb-4">
-          Our mission is to create an inclusive and engaging environment where gamers of all
-          skill levels can connect, compete, and grow together. We believe in the power of
-          community-driven gaming experiences.
+          Our mission is to create an inclusive and engaging environment where
+          gamers of all skill levels can connect, compete, and grow together. We
+          believe in the power of community-driven gaming experiences.
         </p>
-        <h2 className="text-2xl font-semibold mb-4">Features</h2>
-        <ul className="list-disc pl-6 mb-4">
+        <h2 className="mb-4 text-2xl font-semibold">Features</h2>
+        <ul className="mb-4 list-disc pl-6">
           <li>Interactive Bingo Boards and Challenges</li>
           <li>Community Discussions and Events</li>
           <li>User Profiles and Achievement Tracking</li>
@@ -29,5 +31,5 @@ export default function AboutPage() {
         </ul>
       </div>
     </div>
-  )
-} 
+  );
+}

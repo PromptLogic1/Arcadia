@@ -4,7 +4,7 @@
 // This file exists for compatibility with existing imports
 // All new code should import from './index' instead
 
-export * from './index'
+export * from './index';
 
 // Specific re-exports for common patterns
 export type {
@@ -29,8 +29,8 @@ export type {
   Difficulty,
   BoardStatus,
   SessionStatus,
-  QueueStatus
-} from './index'
+  QueueStatus,
+} from './index';
 
-// Game and Game-related types alias for backward compatibility  
-export type { BingoSession as Game } from './index' 
+// Game and Game-related types alias for backward compatibility
+export type { BingoSession as Game } from './index';

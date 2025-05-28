@@ -1,41 +1,46 @@
-import { useGameContext } from '../context/BingoGameContext'
-import type { BoardCell, Player } from '../types/types'
-import type { GameSettings } from '../types/gamesettings.types'
+import { useGameContext } from '../context/BingoGameContext';
+import type { BoardCell, Player } from '../types/types';
+import type { GameSettings } from '../types/gamesettings.types';
 
 interface GameStateReturn {
-  boardState: BoardCell[]
-  players: Player[]
-  settings: GameSettings
-  currentPlayer: number // Represents the index of the current player in the `players` array. Access `Player.id` (string) via `players[currentPlayer]?.id`.
-  winner: number | null // Represents the index of the winning player in the `players` array. Access `Player.id` (string) via `players[winner]?.id` if winner is not null.
-  isRunning: boolean
-  updateBoard: (newBoard: BoardCell[]) => void
-  updatePlayers: (newPlayers: Player[]) => void
-  updateSettings: (newSettings: Partial<GameSettings>) => void
-  setCurrentPlayer: (index: number) => void
-  setWinner: (winner: number | null) => void
-  setRunning: (isRunning: boolean) => void
-  resetGame: () => void
-  lastUpdate: number
-  version: number
+  boardState: BoardCell[];
+  players: Player[];
+  settings: GameSettings;
+  currentPlayer: number; // Represents the index of the current player in the `players` array. Access `Player.id` (string) via `players[currentPlayer]?.id`.
+  winner: number | null; // Represents the index of the winning player in the `players` array. Access `Player.id` (string) via `players[winner]?.id` if winner is not null.
+  isRunning: boolean;
+  updateBoard: (newBoard: BoardCell[]) => void;
+  updatePlayers: (newPlayers: Player[]) => void;
+  updateSettings: (newSettings: Partial<GameSettings>) => void;
+  setCurrentPlayer: (index: number) => void;
+  setWinner: (winner: number | null) => void;
+  setRunning: (isRunning: boolean) => void;
+  resetGame: () => void;
+  lastUpdate: number;
+  version: number;
 }
 
 export function useGameState(): GameStateReturn {
-  const context = useGameContext()
+  const context = useGameContext();
   if (!context) {
-    throw new Error('useGameState must be used within a GameProvider')
+    throw new Error('useGameState must be used within a GameProvider');
   }
 
-  const { state, dispatch } = context
+  const { state, dispatch } = context;
 
   return {
     ...state,
-    updateBoard: (newBoard) => dispatch({ type: 'UPDATE_BOARD', payload: newBoard }),
-    updatePlayers: (newPlayers) => dispatch({ type: 'UPDATE_PLAYERS', payload: newPlayers }),
-    updateSettings: (newSettings) => dispatch({ type: 'UPDATE_SETTINGS', payload: newSettings }),
-    setCurrentPlayer: (index) => dispatch({ type: 'SET_CURRENT_PLAYER', payload: index }),
-    setWinner: (winner) => dispatch({ type: 'SET_WINNER', payload: winner }),
-    setRunning: (isRunning) => dispatch({ type: 'SET_RUNNING', payload: isRunning }),
-    resetGame: () => dispatch({ type: 'RESET_STATE' })
-  }
-} 
+    updateBoard: newBoard =>
+      dispatch({ type: 'UPDATE_BOARD', payload: newBoard }),
+    updatePlayers: newPlayers =>
+      dispatch({ type: 'UPDATE_PLAYERS', payload: newPlayers }),
+    updateSettings: newSettings =>
+      dispatch({ type: 'UPDATE_SETTINGS', payload: newSettings }),
+    setCurrentPlayer: index =>
+      dispatch({ type: 'SET_CURRENT_PLAYER', payload: index }),
+    setWinner: winner => dispatch({ type: 'SET_WINNER', payload: winner }),
+    setRunning: isRunning =>
+      dispatch({ type: 'SET_RUNNING', payload: isRunning }),
+    resetGame: () => dispatch({ type: 'RESET_STATE' }),
+  };
+}

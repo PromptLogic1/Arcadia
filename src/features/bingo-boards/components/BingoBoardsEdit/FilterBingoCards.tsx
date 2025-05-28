@@ -1,75 +1,78 @@
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import type { 
-  Difficulty,
-  FilterOptions
-} from '@/types'
-import { 
-  DIFFICULTIES
-} from '@/types'
-import { X } from 'lucide-react'
-import { useState } from "react"
-import { useBingoCardsActions } from "@/src/lib/stores"
-import { log } from "@/lib/logger"
+} from '@/components/ui/select';
+import type { Difficulty, FilterOptions } from '@/types';
+import { DIFFICULTIES } from '@/types';
+import { X } from 'lucide-react';
+import { useState } from 'react';
+import { useBingoCardsActions } from '@/src/lib/stores';
+import { log } from '@/lib/logger';
 
 interface FilterBingoCardsProps {
-  onFilter: (filters: FilterOptions) => void
-  onClear: () => void
+  onFilter: (filters: FilterOptions) => void;
+  onClear: () => void;
 }
 
 export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
-  const [filters, setFilters] = useState<FilterOptions>({})
-  const [isLoading, setIsLoading] = useState(false)
-  const { filterPublicCards: _filterPublicCards, initializePublicCards: _initializePublicCards } = useBingoCardsActions()
+  const [filters, setFilters] = useState<FilterOptions>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const {
+    filterPublicCards: _filterPublicCards,
+    initializePublicCards: _initializePublicCards,
+  } = useBingoCardsActions();
 
   const handleFilter = async () => {
     try {
-      setIsLoading(true)
-      onFilter(filters)
+      setIsLoading(true);
+      onFilter(filters);
     } catch (error) {
-      log.error('Error applying filters', error as Error, { component: 'FilterBingoCards', metadata: { filters: filters } })
+      log.error('Error applying filters', error as Error, {
+        component: 'FilterBingoCards',
+        metadata: { filters: filters },
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleClear = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       setFilters({
-        difficulty: 'all'
-      })
-      onClear()
+        difficulty: 'all',
+      });
+      onClear();
     } catch (error) {
-      log.error('Error clearing filters', error as Error, { component: 'FilterBingoCards' })
+      log.error('Error clearing filters', error as Error, {
+        component: 'FilterBingoCards',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="flex flex-col gap-2 p-2 bg-gray-800/30 rounded-lg mb-4">
+    <div className="mb-4 flex flex-col gap-2 rounded-lg bg-gray-800/30 p-2">
       <div className="w-full">
         <Select
           defaultValue="all"
           value={filters.difficulty || 'all'}
-          onValueChange={(value: Difficulty | 'all') => 
+          onValueChange={(value: Difficulty | 'all') =>
             setFilters(prev => ({ ...prev, difficulty: value }))
           }
           disabled={isLoading}
         >
-          <SelectTrigger className="bg-gray-800/50 border-cyan-500/50">
+          <SelectTrigger className="border-cyan-500/50 bg-gray-800/50">
             <SelectValue placeholder="Difficulty" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-cyan-500">
+          <SelectContent className="border-cyan-500 bg-gray-800">
             <SelectItem value="all">All Difficulties</SelectItem>
-            {DIFFICULTIES.map((difficulty) => (
+            {DIFFICULTIES.map(difficulty => (
               <SelectItem key={difficulty} value={difficulty}>
                 {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
               </SelectItem>
@@ -99,5 +102,5 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
         </Button>
       </div>
     </div>
-  )
-} 
+  );
+}

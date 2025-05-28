@@ -1,11 +1,15 @@
-import type { GameSettings, GameMode, WinConditions } from './gamesettings.types'
+import type {
+  GameSettings,
+  GameMode,
+  WinConditions,
+} from './gamesettings.types';
 
 export const DEFAULT_WIN_CONDITIONS: WinConditions = {
   line: true,
   majority: false,
   diagonal: true,
   corners: false,
-}
+};
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   // From BoardSettings interface
@@ -13,7 +17,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   lockout: false,
   sound_enabled: true,
   win_conditions: DEFAULT_WIN_CONDITIONS,
-  
+
   // Session settings
   timeLimit: 3600, // 1 hour in seconds
   maxPlayers: 8,
@@ -24,7 +28,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   autoStart: false,
   pauseOnDisconnect: true,
   showProgress: true,
-}
+};
 
 export const GAME_MODES: Record<string, GameMode> = {
   classic: {
@@ -64,12 +68,12 @@ export const GAME_MODES: Record<string, GameMode> = {
       },
     },
   },
-}
+};
 
 export const GAME_SETTINGS = {
   TIME_LIMITS: {
     VALUES: [300, 600, 900, 1800, 3600, 7200], // 5min, 10min, 15min, 30min, 1h, 2h
-    MIN_TIME: 60,   // 1 minute
+    MIN_TIME: 60, // 1 minute
     MAX_TIME: 14400, // 4 hours
   },
   MAX_PLAYERS_OPTIONS: [2, 4, 6, 8, 10, 12, 16],
@@ -83,4 +87,4 @@ export const GAME_SETTINGS = {
   DEFAULT_TIMER_WARNING: 300, // 5 minutes
   MIN_PLAYERS: 1,
   MAX_PLAYERS_LIMIT: 50,
-} as const 
+} as const;

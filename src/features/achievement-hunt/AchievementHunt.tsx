@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React from 'react'
+import React from 'react';
 
 export function AchievementHunt() {
   return (
@@ -10,5 +10,5 @@ export function AchievementHunt() {
         Achievement tracking features coming soon...
       </p>
     </div>
-  )
-} 
+  );
+}

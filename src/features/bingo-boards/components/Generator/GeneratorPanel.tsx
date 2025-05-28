@@ -1,39 +1,45 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Wand2, X } from 'lucide-react'
-import { useGeneratorPanel } from '../../hooks/useGeneratorPanel'
-import type { GameCategory } from '@/features/bingo-boards/types'
-import { type DifficultyLevel, Constants } from '@/types/database.core'
-import { GENERATOR_CONFIG, type CardCategory, CARD_CATEGORIES } from '@/features/bingo-boards/types/generator.types'
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Wand2, X } from 'lucide-react';
+import { useGeneratorPanel } from '../../hooks/useGeneratorPanel';
+import type { GameCategory } from '@/features/bingo-boards/types';
+import { type DifficultyLevel, Constants } from '@/types/database.core';
+import {
+  GENERATOR_CONFIG,
+  type CardCategory,
+  CARD_CATEGORIES,
+} from '@/features/bingo-boards/types/generator.types';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { useState } from 'react'
-import LoadingSpinner from '@/components/ui/loading-spinner'
-import { Checkbox } from "@/components/ui/checkbox"
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface GeneratorPanelProps {
-  gameCategory: GameCategory
-  gridSize: number
+  gameCategory: GameCategory;
+  gridSize: number;
 }
 
 const ErrorFeedback = ({ error }: { error: string }) => {
   // Extract useful information from error stack
-  const errorMessage = error.includes('No cards available') 
+  const errorMessage = error.includes('No cards available')
     ? 'No cards found with current settings'
     : error.includes('Not enough cards')
-    ? error
-    : 'Failed to generate board'
+      ? error
+      : 'Failed to generate board';
 
   return (
-    <div className="bg-red-500/10 border border-red-500/20 rounded-md p-4 mt-4">
+    <div className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <X className="h-5 w-5 text-red-400" aria-hidden="true" />
@@ -44,7 +50,7 @@ const ErrorFeedback = ({ error }: { error: string }) => {
           </h3>
           <div className="mt-2 text-sm text-red-400/90">
             <p>{errorMessage}</p>
-            <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-red-400/70">
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-red-400/70">
               <li>Try selecting different categories</li>
               <li>Adjust difficulty settings</li>
               <li>Include both public and private cards</li>
@@ -54,45 +60,48 @@ const ErrorFeedback = ({ error }: { error: string }) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) {
-  const [localCategories, setLocalCategories] = useState<CardCategory[]>([])
-  const [usePrivateCards, setUsePrivateCards] = useState(true)
-  const [usePublicCards, setUsePublicCards] = useState(true)
-  const [useAllCategories, setUseAllCategories] = useState(true)
+export function GeneratorPanel({
+  gameCategory,
+  gridSize,
+}: GeneratorPanelProps) {
+  const [localCategories, setLocalCategories] = useState<CardCategory[]>([]);
+  const [usePrivateCards, setUsePrivateCards] = useState(true);
+  const [usePublicCards, setUsePublicCards] = useState(true);
+  const [useAllCategories, setUseAllCategories] = useState(true);
   const generatorPanel = useGeneratorPanel(
-    gameCategory, 
+    gameCategory,
     gridSize,
     usePublicCards,
     usePrivateCards
-  )
+  );
 
   const handleCategorySelect = (category: CardCategory) => {
     if (!useAllCategories) {
       const newCategories = localCategories.includes(category)
         ? localCategories.filter(c => c !== category)
-        : [...localCategories, category]
-      
-      setLocalCategories(newCategories)
-      generatorPanel.handleCategoriesChange(newCategories)
+        : [...localCategories, category];
+
+      setLocalCategories(newCategories);
+      generatorPanel.handleCategoriesChange(newCategories);
     }
-  }
+  };
 
   const handleAllCategoriesChange = (checked: boolean) => {
-    setUseAllCategories(checked)
+    setUseAllCategories(checked);
     if (checked) {
-      setLocalCategories([])
-      generatorPanel.handleCategoriesChange([...CARD_CATEGORIES])
+      setLocalCategories([]);
+      generatorPanel.handleCategoriesChange([...CARD_CATEGORIES]);
     } else {
-      setLocalCategories([])
-      generatorPanel.handleCategoriesChange([])
+      setLocalCategories([]);
+      generatorPanel.handleCategoriesChange([]);
     }
-  }
+  };
 
   return (
-    <Card className="bg-gray-800/30 border-cyan-500/20">
+    <Card className="border-cyan-500/20 bg-gray-800/30">
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-cyan-400">
           Board Generator Settings
@@ -102,10 +111,10 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
         {/* Card Categories Section */}
         <div className="space-y-2">
           <Label>Card Categories</Label>
-          
+
           {/* Use All Categories Checkbox */}
-          <div className="flex items-center space-x-2 mb-2">
-            <Checkbox 
+          <div className="mb-2 flex items-center space-x-2">
+            <Checkbox
               id="all-categories"
               checked={useAllCategories}
               onCheckedChange={handleAllCategoriesChange}
@@ -121,16 +130,14 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
           {/* Only show category selection when not using all categories */}
           {!useAllCategories && (
             <>
-              <Select
-                onValueChange={handleCategorySelect}
-              >
-                <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
+              <Select onValueChange={handleCategorySelect}>
+                <SelectTrigger className="border-cyan-500/20 bg-gray-800/50">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border border-cyan-500/20">
+                <SelectContent className="border border-cyan-500/20 bg-gray-800">
                   {CARD_CATEGORIES.map(category => (
-                    <SelectItem 
-                      key={category} 
+                    <SelectItem
+                      key={category}
                       value={category}
                       className="hover:bg-cyan-500/20 focus:bg-cyan-500/20"
                     >
@@ -142,12 +149,12 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
 
               {/* Selected Categories Display */}
               {!useAllCategories && localCategories.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {localCategories.map(category => (
-                    <Badge 
+                    <Badge
                       key={category}
-                      variant="secondary" 
-                      className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                      variant="secondary"
+                      className="border border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
                     >
                       {category}
                       <button
@@ -169,21 +176,27 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
           <Label>Difficulty</Label>
           <Select
             value={generatorPanel.difficulty}
-            onValueChange={generatorPanel.handleDifficultyChange as (value: DifficultyLevel) => void}
+            onValueChange={
+              generatorPanel.handleDifficultyChange as (
+                value: DifficultyLevel
+              ) => void
+            }
           >
-            <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
+            <SelectTrigger className="border-cyan-500/20 bg-gray-800/50">
               <SelectValue placeholder="Select difficulty" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border border-cyan-500/20">
-              {Constants.public.Enums.difficulty_level.map((diff: DifficultyLevel) => (
-                <SelectItem 
-                  key={diff} 
-                  value={diff}
-                  className="hover:bg-cyan-500/20 focus:bg-cyan-500/20"
-                >
-                  {diff}
-                </SelectItem>
-              ))}
+            <SelectContent className="border border-cyan-500/20 bg-gray-800">
+              {Constants.public.Enums.difficulty_level.map(
+                (diff: DifficultyLevel) => (
+                  <SelectItem
+                    key={diff}
+                    value={diff}
+                    className="hover:bg-cyan-500/20 focus:bg-cyan-500/20"
+                  >
+                    {diff}
+                  </SelectItem>
+                )
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -195,13 +208,13 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
             value={generatorPanel.poolSize}
             onValueChange={generatorPanel.handlePoolSizeChange}
           >
-            <SelectTrigger className="bg-gray-800/50 border-cyan-500/20">
+            <SelectTrigger className="border-cyan-500/20 bg-gray-800/50">
               <SelectValue placeholder="Select pool size" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border border-cyan-500/20">
+            <SelectContent className="border border-cyan-500/20 bg-gray-800">
               {Object.keys(GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS).map(size => (
-                <SelectItem 
-                  key={size} 
+                <SelectItem
+                  key={size}
                   value={size}
                   className="hover:bg-cyan-500/20 focus:bg-cyan-500/20"
                 >
@@ -218,8 +231,10 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
           <Input
             type="number"
             value={generatorPanel.minVotes}
-            onChange={(e) => generatorPanel.handleMinVotesChange(parseInt(e.target.value) || 0)}
-            className="bg-gray-800/50 border-cyan-500/20"
+            onChange={e =>
+              generatorPanel.handleMinVotesChange(parseInt(e.target.value) || 0)
+            }
+            className="border-cyan-500/20 bg-gray-800/50"
             min={0}
           />
         </div>
@@ -229,10 +244,12 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
           <Label>Card Sources</Label>
           <div className="flex flex-col gap-2">
             <div className="flex items-center space-x-2">
-              <Checkbox 
+              <Checkbox
                 id="private-cards"
                 checked={usePrivateCards}
-                onCheckedChange={(checked) => setUsePrivateCards(checked as boolean)}
+                onCheckedChange={checked =>
+                  setUsePrivateCards(checked as boolean)
+                }
               />
               <label
                 htmlFor="private-cards"
@@ -242,10 +259,12 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
               </label>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox 
+              <Checkbox
                 id="public-cards"
                 checked={usePublicCards}
-                onCheckedChange={(checked) => setUsePublicCards(checked as boolean)}
+                onCheckedChange={checked =>
+                  setUsePublicCards(checked as boolean)
+                }
               />
               <label
                 htmlFor="public-cards"
@@ -261,8 +280,8 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
         <Button
           onClick={generatorPanel.generateBoard}
           disabled={
-            generatorPanel.isLoading || 
-            (!useAllCategories && localCategories.length === 0) || 
+            generatorPanel.isLoading ||
+            (!useAllCategories && localCategories.length === 0) ||
             (!usePrivateCards && !usePublicCards)
           }
           className="w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500"
@@ -280,5 +299,5 @@ export function GeneratorPanel({ gameCategory, gridSize }: GeneratorPanelProps) 
         {generatorPanel.error && <ErrorFeedback error={generatorPanel.error} />}
       </CardContent>
     </Card>
-  )
+  );
 }

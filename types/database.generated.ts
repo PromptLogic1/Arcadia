@@ -1101,6 +1101,41 @@ export type Database = {
           },
         ]
       }
+      user_activity: {
+        Row: {
+          id: string
+          user_id: string | null
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          data: Json | null
+          timestamp: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          data?: Json | null
+          timestamp?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          data?: Json | null
+          timestamp?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           achievements_visibility:
@@ -1196,8 +1231,30 @@ export type Database = {
         Args: { discussion_id: number }
         Returns: undefined
       }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      log_user_activity: {
+        Args: {
+          p_user_id: string
+          p_activity_type: Database["public"]["Enums"]["activity_type"]
+          p_data?: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
+      activity_type:
+        | "login"
+        | "logout"
+        | "board_create"
+        | "board_join"
+        | "board_complete"
+        | "submission_create"
+        | "discussion_create"
+        | "comment_create"
+        | "achievement_unlock"
       board_status: "draft" | "active" | "paused" | "completed" | "archived"
       challenge_status: "draft" | "published" | "archived"
       difficulty_level: "beginner" | "easy" | "medium" | "hard" | "expert"
@@ -1380,6 +1437,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type: [
+        "login",
+        "logout",
+        "board_create",
+        "board_join",
+        "board_complete",
+        "submission_create",
+        "discussion_create",
+        "comment_create",
+        "achievement_unlock",
+      ],
       board_status: ["draft", "active", "paused", "completed", "archived"],
       challenge_status: ["draft", "published", "archived"],
       difficulty_level: ["beginner", "easy", "medium", "hard", "expert"],
@@ -1413,4 +1481,4 @@ export const Constants = {
       vote_type: ["up", "down"],
     },
   },
-} as const 
+} as const

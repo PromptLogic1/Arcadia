@@ -1,49 +1,62 @@
-import { createContext, useContext, useReducer, useEffect, useMemo } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { Database } from '@/types/database.types'
-import type { BingoSessionPlayer } from '@/types'
+'use client';
+
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useMemo,
+} from 'react';
+import { createClient } from '@/lib/supabase';
+import type { BingoSessionPlayer } from '@/types';
 
 // Simple SessionService implementation
 class SessionService {
   constructor(private boardId: string) {}
-  
+
   handlePlayerSync(players: BingoSessionPlayer[]) {
     return {
       data: {
-        players: players
-      }
-    }
+        players: players,
+      },
+    };
   }
 }
 
 // Type aliases for compatibility
-type Player = BingoSessionPlayer
+type Player = BingoSessionPlayer;
 type BoardCell = {
-  id: string
-  text: string
-  completed: boolean
-  completed_by?: string
-}
+  id: string;
+  text: string;
+  completed: boolean;
+  completed_by?: string;
+};
 
 interface SessionState {
-  id: string
-  status: 'initializing' | 'active' | 'paused' | 'completed'
-  players: Player[]
-  currentPlayer: Player | null
-  boardState: BoardCell[]
-  version: number
-  error: Error | null
-  isLoading: boolean
+  id: string;
+  status: 'initializing' | 'active' | 'paused' | 'completed';
+  players: Player[];
+  currentPlayer: Player | null;
+  boardState: BoardCell[];
+  version: number;
+  error: Error | null;
+  isLoading: boolean;
 }
 
 type SessionAction =
-  | { type: 'INITIALIZE'; payload: { id: string; players: Player[]; boardState: BoardCell[] } }
-  | { type: 'UPDATE_STATE'; payload: { boardState: BoardCell[]; version: number } }
+  | {
+      type: 'INITIALIZE';
+      payload: { id: string; players: Player[]; boardState: BoardCell[] };
+    }
+  | {
+      type: 'UPDATE_STATE';
+      payload: { boardState: BoardCell[]; version: number };
+    }
   | { type: 'UPDATE_PLAYERS'; payload: Player[] }
   | { type: 'SET_CURRENT_PLAYER'; payload: Player }
   | { type: 'SET_STATUS'; payload: SessionState['status'] }
   | { type: 'SET_ERROR'; payload: Error }
-  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_LOADING'; payload: boolean };
 
 const initialState: SessionState = {
   id: '',
@@ -53,15 +66,18 @@ const initialState: SessionState = {
   boardState: [],
   version: 0,
   error: null,
-  isLoading: false
-}
+  isLoading: false,
+};
 
 const SessionContext = createContext<{
-  state: SessionState
-  dispatch: React.Dispatch<SessionAction>
-} | null>(null)
+  state: SessionState;
+  dispatch: React.Dispatch<SessionAction>;
+} | null>(null);
 
-function sessionReducer(state: SessionState, action: SessionAction): SessionState {
+function sessionReducer(
+  state: SessionState,
+  action: SessionAction
+): SessionState {
   switch (action.type) {
     case 'INITIALIZE':
       return {
@@ -69,41 +85,41 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         id: action.payload.id,
         players: action.payload.players,
         boardState: action.payload.boardState,
-        status: 'active'
-      }
+        status: 'active',
+      };
     case 'UPDATE_STATE':
       return {
         ...state,
         boardState: action.payload.boardState,
-        version: action.payload.version
-      }
+        version: action.payload.version,
+      };
     case 'UPDATE_PLAYERS':
       return {
         ...state,
-        players: action.payload
-      }
+        players: action.payload,
+      };
     case 'SET_CURRENT_PLAYER':
       return {
         ...state,
-        currentPlayer: action.payload
-      }
+        currentPlayer: action.payload,
+      };
     case 'SET_STATUS':
       return {
         ...state,
-        status: action.payload
-      }
+        status: action.payload,
+      };
     case 'SET_ERROR':
       return {
         ...state,
-        error: action.payload
-      }
+        error: action.payload,
+      };
     case 'SET_LOADING':
       return {
         ...state,
-        isLoading: action.payload
-      }
+        isLoading: action.payload,
+      };
     default:
-      return state
+      return state;
   }
 }
 
@@ -113,81 +129,98 @@ interface SessionPayload {
   [key: string]: unknown;
 }
 
-export function SessionProvider({ 
+export function SessionProvider({
   children,
-  boardId 
-}: { 
-  children: React.ReactNode
-  boardId: string 
+  boardId,
+}: {
+  children: React.ReactNode;
+  boardId: string;
 }) {
-  const [state, dispatch] = useReducer(sessionReducer, initialState)
-  const supabase = createClientComponentClient<Database>()
-  const sessionService = useMemo(() => new SessionService(boardId), [boardId])
+  const [state, dispatch] = useReducer(sessionReducer, initialState);
+  const supabase = createClient();
+  const sessionService = useMemo(() => new SessionService(boardId), [boardId]);
 
   useEffect(() => {
     if (!state.id && boardId) {
       // Initialize session logic here
       // This could involve checking for existing session or creating new one
     }
-  }, [boardId, state.id])
+  }, [boardId, state.id]);
 
   useEffect(() => {
-    const channel = supabase.channel(`session:${state.id}`)
+    const channel = supabase.channel(`session:${state.id}`);
 
     if (state.id) {
       channel
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_sessions',
-          filter: `id=eq.${state.id}`
-        }, (payload) => {
-          if (payload.new) {
-            const newState = payload.new as SessionPayload
-            dispatch({
-              type: 'UPDATE_STATE',
-              payload: {
-                boardState: newState.current_state,
-                version: newState.version
-              }
-            })
-          }
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_session_players',
-          filter: `session_id=eq.${state.id}`
-        }, (payload) => {
-          if (payload.new) {
-            const event = sessionService.handlePlayerSync([payload.new as Player])
-            if (event.data && typeof event.data === 'object' && 'players' in event.data) {
-              dispatch({ 
-                type: 'UPDATE_PLAYERS', 
-                payload: [...state.players, ...(event.data.players as Player[])]
-              })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'bingo_sessions',
+            filter: `id=eq.${state.id}`,
+          },
+          payload => {
+            if (payload.new) {
+              const newState = payload.new as SessionPayload;
+              dispatch({
+                type: 'UPDATE_STATE',
+                payload: {
+                  boardState: newState.current_state,
+                  version: newState.version,
+                },
+              });
             }
           }
-        })
-        .subscribe()
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'bingo_session_players',
+            filter: `session_id=eq.${state.id}`,
+          },
+          payload => {
+            if (payload.new) {
+              const event = sessionService.handlePlayerSync([
+                payload.new as Player,
+              ]);
+              if (
+                event.data &&
+                typeof event.data === 'object' &&
+                'players' in event.data
+              ) {
+                dispatch({
+                  type: 'UPDATE_PLAYERS',
+                  payload: [
+                    ...state.players,
+                    ...(event.data.players as Player[]),
+                  ],
+                });
+              }
+            }
+          }
+        )
+        .subscribe();
     }
 
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [state.id, supabase, sessionService, state.players])
+      supabase.removeChannel(channel);
+    };
+  }, [state.id, supabase, sessionService, state.players]);
 
   return (
     <SessionContext.Provider value={{ state, dispatch }}>
       {children}
     </SessionContext.Provider>
-  )
+  );
 }
 
 export function useSessionContext() {
-  const context = useContext(SessionContext)
+  const context = useContext(SessionContext);
   if (!context) {
-    throw new Error('useSessionContext must be used within a SessionProvider')
+    throw new Error('useSessionContext must be used within a SessionProvider');
   }
-  return context
-} 
+  return context;
+}

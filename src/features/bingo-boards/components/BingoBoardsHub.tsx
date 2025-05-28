@@ -1,14 +1,17 @@
-'use client'
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { PlusCircle } from 'lucide-react'
-import { Filter } from '@/components/filter/filter'
-import { DIFFICULTY_OPTIONS, DEFAULT_SORT_OPTIONS } from '@/components/filter/types'
-import { BoardCard } from './BoardCard'
-import { CreateBoardForm } from './CreateBoardForm'
-import NeonText from '@/components/ui/NeonText'
-import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub'
-import { Constants, type GameCategory } from '@/types'
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { Filter } from '@/components/filter/filter';
+import {
+  DIFFICULTY_OPTIONS,
+  DEFAULT_SORT_OPTIONS,
+} from '@/components/filter/types';
+import { BoardCard } from './BoardCard';
+import { CreateBoardForm } from './CreateBoardForm';
+import { NeonText } from '@/components/ui/NeonText';
+import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
+import { Constants, type GameCategory } from '@/types';
 
 export default function BingoBoardsHub() {
   const {
@@ -19,7 +22,7 @@ export default function BingoBoardsHub() {
     setIsCreateFormOpen,
     handleBoardSelect,
     handleCreateBoard,
-  } = useBingoBoardsHub()
+  } = useBingoBoardsHub();
 
   // Convert game categories to filter options format
   const categoryOptions = [
@@ -28,9 +31,9 @@ export default function BingoBoardsHub() {
       .filter((game: GameCategory) => game !== 'All Games')
       .map((game: GameCategory) => ({
         value: game,
-        label: game
-      }))
-  ]
+        label: game,
+      })),
+  ];
 
   return (
     <div className="space-y-6">
@@ -39,13 +42,13 @@ export default function BingoBoardsHub() {
           categories: categoryOptions,
           difficulties: DIFFICULTY_OPTIONS,
           sortOptions: DEFAULT_SORT_OPTIONS,
-          enableSearch: true
+          enableSearch: true,
         }}
         selections={filterSelections}
         onFilterChange={handleFilterChange}
       />
 
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold">
           <NeonText>Your Bingo Boards</NeonText>
         </h3>
@@ -59,7 +62,7 @@ export default function BingoBoardsHub() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {boards.map((board) => (
+        {boards.map(board => (
           <BoardCard
             key={board.id}
             board={board}
@@ -68,7 +71,10 @@ export default function BingoBoardsHub() {
         ))}
       </div>
 
-      <CreateBoardForm isOpen={isCreateFormOpen} createBoard={handleCreateBoard} />
+      <CreateBoardForm
+        isOpen={isCreateFormOpen}
+        createBoard={handleCreateBoard}
+      />
     </div>
-  )
+  );
 }

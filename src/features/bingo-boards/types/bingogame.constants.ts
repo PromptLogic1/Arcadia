@@ -62,7 +62,7 @@ export const BINGO_GAME_CONSTANTS = {
   STATUS: {
     WAITING: 'waiting',
     ACTIVE: 'active',
-    PAUSED: 'paused', 
+    PAUSED: 'paused',
     ENDED: 'ended',
     CANCELLED: 'cancelled',
   },
@@ -73,12 +73,12 @@ export const BINGO_GAME_CONSTANTS = {
     MARKED: 'marked',
     BLOCKED: 'blocked',
     COMPLETED: 'completed',
-  }
-} as const
+  },
+} as const;
 
-export type BingoGameConstant = typeof BINGO_GAME_CONSTANTS
-export type ErrorType = keyof typeof BINGO_GAME_CONSTANTS.ERROR_TYPES
-export type GameEvent = keyof typeof BINGO_GAME_CONSTANTS.EVENTS
-export type WinCondition = keyof typeof BINGO_GAME_CONSTANTS.WIN_CONDITIONS
-export type GameStatus = keyof typeof BINGO_GAME_CONSTANTS.STATUS
-export type CellState = keyof typeof BINGO_GAME_CONSTANTS.CELL_STATES 
+export type BingoGameConstant = typeof BINGO_GAME_CONSTANTS;
+export type ErrorType = keyof typeof BINGO_GAME_CONSTANTS.ERROR_TYPES;
+export type GameEvent = keyof typeof BINGO_GAME_CONSTANTS.EVENTS;
+export type WinCondition = keyof typeof BINGO_GAME_CONSTANTS.WIN_CONDITIONS;
+export type GameStatus = keyof typeof BINGO_GAME_CONSTANTS.STATUS;
+export type CellState = keyof typeof BINGO_GAME_CONSTANTS.CELL_STATES;

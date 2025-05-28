@@ -1,4 +1,4 @@
-import type { PresenceConfig } from './presence.types'
+import type { PresenceConfig } from './presence.types';
 
 export const PRESENCE_CONSTANTS = {
   // Timing Configuration
@@ -63,8 +63,8 @@ export const PRESENCE_CONSTANTS = {
     MAX_EVENTS_PER_BATCH: 10,
     BATCH_FLUSH_INTERVAL: 1000, // 1 second
     MAX_BATCH_SIZE_KB: 50,
-  }
-} as const
+  },
+} as const;
 
 // Default presence configuration
 export const DEFAULT_PRESENCE_CONFIG: PresenceConfig = {
@@ -73,7 +73,7 @@ export const DEFAULT_PRESENCE_CONFIG: PresenceConfig = {
   awayThreshold: PRESENCE_CONSTANTS.TIMING.AWAY_THRESHOLD,
   reconnectAttempts: PRESENCE_CONSTANTS.CONNECTION.MAX_RECONNECT_ATTEMPTS,
   reconnectDelay: PRESENCE_CONSTANTS.TIMING.RECONNECT_DELAY,
-}
+};
 
 // Status priority for conflict resolution
 export const STATUS_PRIORITY = {
@@ -81,18 +81,18 @@ export const STATUS_PRIORITY = {
   [PRESENCE_CONSTANTS.STATUS.BUSY]: 3,
   [PRESENCE_CONSTANTS.STATUS.AWAY]: 2,
   [PRESENCE_CONSTANTS.STATUS.OFFLINE]: 1,
-} as const
+} as const;
 
-// Activity priority for display purposes  
+// Activity priority for display purposes
 export const ACTIVITY_PRIORITY = {
   [PRESENCE_CONSTANTS.ACTIVITY.PLAYING]: 4,
   [PRESENCE_CONSTANTS.ACTIVITY.EDITING]: 3,
   [PRESENCE_CONSTANTS.ACTIVITY.VIEWING]: 2,
   [PRESENCE_CONSTANTS.ACTIVITY.IDLE]: 1,
-} as const
+} as const;
 
-export type PresenceConstant = typeof PRESENCE_CONSTANTS
-export type PresenceStatus = keyof typeof PRESENCE_CONSTANTS.STATUS
-export type ActivityType = keyof typeof PRESENCE_CONSTANTS.ACTIVITY
-export type PresenceEvent = keyof typeof PRESENCE_CONSTANTS.EVENTS
-export type DeviceType = keyof typeof PRESENCE_CONSTANTS.DEVICE_TYPES 
+export type PresenceConstant = typeof PRESENCE_CONSTANTS;
+export type PresenceStatus = keyof typeof PRESENCE_CONSTANTS.STATUS;
+export type ActivityType = keyof typeof PRESENCE_CONSTANTS.ACTIVITY;
+export type PresenceEvent = keyof typeof PRESENCE_CONSTANTS.EVENTS;
+export type DeviceType = keyof typeof PRESENCE_CONSTANTS.DEVICE_TYPES;

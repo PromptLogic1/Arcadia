@@ -37,7 +37,11 @@ class NotificationManager {
     }
   }
 
-  private show(type: NotificationType, message: string, options?: NotificationOptions) {
+  private show(
+    type: NotificationType,
+    message: string,
+    options?: NotificationOptions
+  ) {
     const title = options?.title || this.getDefaultTitle(type);
     const variant = this.getToastVariant(type);
 
@@ -67,29 +71,32 @@ class NotificationManager {
   }
 
   // Specialized notifications for common use cases
-  saveSuccess(itemName: string = 'item'): void {
+  saveSuccess(itemName = 'item'): void {
     this.success(`${itemName} saved successfully!`);
   }
 
-  saveError(itemName: string = 'item', error?: string): void {
+  saveError(itemName = 'item', error?: string): void {
     this.error(`Failed to save ${itemName}`, {
-      description: error || 'Please try again or contact support if the problem persists.',
+      description:
+        error || 'Please try again or contact support if the problem persists.',
     });
   }
 
-  deleteSuccess(itemName: string = 'item'): void {
+  deleteSuccess(itemName = 'item'): void {
     this.success(`${itemName} deleted successfully!`);
   }
 
-  deleteError(itemName: string = 'item'): void {
+  deleteError(itemName = 'item'): void {
     this.error(`Failed to delete ${itemName}`, {
-      description: 'Please try again or contact support if the problem persists.',
+      description:
+        'Please try again or contact support if the problem persists.',
     });
   }
 
   connectionError(): void {
     this.error('Connection Error', {
-      description: 'Unable to connect to the server. Please check your internet connection.',
+      description:
+        'Unable to connect to the server. Please check your internet connection.',
       action: {
         label: 'Retry',
         onClick: () => window.location.reload(),
@@ -160,7 +167,9 @@ class NotificationManager {
   // Auth notifications
   loginSuccess(username?: string): void {
     this.success('Welcome back!', {
-      description: username ? `Welcome back, ${username}!` : 'You have been logged in successfully.',
+      description: username
+        ? `Welcome back, ${username}!`
+        : 'You have been logged in successfully.',
     });
   }
 
@@ -185,7 +194,8 @@ class NotificationManager {
   // Network status notifications
   networkOffline(): void {
     this.warning('Connection Lost', {
-      description: 'You are currently offline. Some features may not be available.',
+      description:
+        'You are currently offline. Some features may not be available.',
       duration: 0, // Don't auto-dismiss
     });
   }
@@ -197,7 +207,7 @@ class NotificationManager {
   }
 
   // Copy to clipboard notifications
-  copySuccess(item: string = 'text'): void {
+  copySuccess(item = 'text'): void {
     this.success(`${item} copied to clipboard!`);
   }
 
@@ -213,14 +223,19 @@ export const notifications = new NotificationManager();
 
 // Export convenience functions
 export const notify = {
-  success: (message: string, options?: NotificationOptions) => notifications.success(message, options),
-  error: (message: string, options?: NotificationOptions) => notifications.error(message, options),
-  warning: (message: string, options?: NotificationOptions) => notifications.warning(message, options),
-  info: (message: string, options?: NotificationOptions) => notifications.info(message, options),
-  
+  success: (message: string, options?: NotificationOptions) =>
+    notifications.success(message, options),
+  error: (message: string, options?: NotificationOptions) =>
+    notifications.error(message, options),
+  warning: (message: string, options?: NotificationOptions) =>
+    notifications.warning(message, options),
+  info: (message: string, options?: NotificationOptions) =>
+    notifications.info(message, options),
+
   // Specialized shortcuts
   saveSuccess: (itemName?: string) => notifications.saveSuccess(itemName),
-  saveError: (itemName?: string, error?: string) => notifications.saveError(itemName, error),
+  saveError: (itemName?: string, error?: string) =>
+    notifications.saveError(itemName, error),
   deleteSuccess: (itemName?: string) => notifications.deleteSuccess(itemName),
   deleteError: (itemName?: string) => notifications.deleteError(itemName),
   connectionError: () => notifications.connectionError(),
@@ -228,4 +243,4 @@ export const notify = {
   cardAlreadyInGrid: () => notifications.cardAlreadyInGrid(),
   copySuccess: (item?: string) => notifications.copySuccess(item),
   copyError: () => notifications.copyError(),
-}; 
+};

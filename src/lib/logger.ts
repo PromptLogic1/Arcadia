@@ -1,8 +1,6 @@
-import pino from 'pino';
-import os from 'os';
-
 /**
  * Production-ready logger utility for better debugging and monitoring
+ * Custom implementation without pino to avoid thread-stream dependency issues in Next.js
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -24,57 +22,154 @@ interface LogEntry {
   stack?: string;
 }
 
-const pinoLogger = pino({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  browser: {
-    asObject: true, // Log an object instead of a string
-  },
-  transport: process.env.NODE_ENV !== 'production' ? {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      levelFirst: true,
-      translateTime: 'SYS:standard',
-    },
-  } : undefined,
-  formatters: {
-    level: (label) => {
-      return { level: label };
-    },
-    // Add context directly to the log object
-    log: (obj) => {
-      const { context, ...rest } = obj as any;
-      if (context) {
-        return { ...context, ...rest };
-      }
-      return rest;
+// Define proper types for log objects
+interface LogObject {
+  level: LogLevel;
+  time: number;
+  msg: string;
+  context?: LogContext;
+  err?: Error;
+  [key: string]: unknown;
+}
+
+// Logger interface that matches our usage patterns
+interface LoggerMethods {
+  debug: (obj: Record<string, unknown>, msg?: string) => void;
+  info: (obj: Record<string, unknown>, msg?: string) => void;
+  warn: (obj: Record<string, unknown>, msg?: string) => void;
+  error: (obj: Record<string, unknown>, msg?: string) => void;
+}
+
+// Custom logger implementation without any external dependencies
+const createCustomLogger = (): LoggerMethods => {
+  const getLogLevel = (): LogLevel => {
+    const envLevel = process.env.LOG_LEVEL?.toLowerCase() as LogLevel;
+    if (['debug', 'info', 'warn', 'error'].includes(envLevel)) {
+      return envLevel;
     }
-  },
-  // Base properties to include in every log
-  base: {
-    pid: typeof process !== 'undefined' ? process.pid : undefined, // process is not available in browser
-    hostname: typeof process !== 'undefined' ? os.hostname() : undefined, // os is not available in browser
-  },
-  // Serialize errors properly
-  serializers: {
-    ...pino.stdSerializers, // Includes err serializer
-    error: pino.stdSerializers.err, // Explicitly use pino's error serializer
-  },
-  // Add a timestamp
-  timestamp: pino.stdTimeFunctions.isoTime,
-});
+    return process.env.NODE_ENV === 'production' ? 'info' : 'debug';
+  };
+
+  const shouldLog = (level: LogLevel): boolean => {
+    const currentLevel = getLogLevel();
+    const levels = ['debug', 'info', 'warn', 'error'];
+    const currentLevelIndex = levels.indexOf(currentLevel);
+    const messageLevelIndex = levels.indexOf(level);
+    return messageLevelIndex >= currentLevelIndex;
+  };
+
+  const formatLog = (logObject: LogObject) => {
+    const { level, time, msg, context, err, ...rest } = logObject;
+    const timestamp = new Date(time).toISOString();
+    
+    // Create base log object
+    const logEntry = {
+      timestamp,
+      level: level.toUpperCase(),
+      message: msg,
+      ...(context && { context }),
+      ...(Object.keys(rest).length > 0 && { data: rest }),
+      ...(err && { 
+        error: {
+          name: err.name,
+          message: err.message,
+          stack: err.stack
+        }
+      }),
+      ...(typeof process !== 'undefined' && process.pid && { pid: process.pid })
+    };
+
+    // In development, use colorized console output
+    if (process.env.NODE_ENV === 'development') {
+      const levelColors = {
+        debug: '\x1b[36m', // cyan
+        info: '\x1b[32m',  // green
+        warn: '\x1b[33m',  // yellow
+        error: '\x1b[31m', // red
+      };
+      const resetColor = '\x1b[0m';
+      const color = levelColors[level as keyof typeof levelColors] || '';
+      
+      let logLine = `${color}[${new Date(time).toLocaleTimeString()}] ${level.toUpperCase()}${resetColor}: ${msg}`;
+      
+      if (context) {
+        logLine += ` | Context: ${JSON.stringify(context)}`;
+      }
+      
+      if (Object.keys(rest).length > 0) {
+        logLine += ` | Data: ${JSON.stringify(rest)}`;
+      }
+      
+      if (err) {
+        logLine += `\n  Error: ${err.message}`;
+        if (err.stack) {
+          logLine += `\n  Stack: ${err.stack}`;
+        }
+      }
+      
+      return logLine;
+    }
+
+    // In production, use JSON format
+    return JSON.stringify(logEntry);
+  };
+
+  const logMessage = (level: LogLevel, obj: Record<string, unknown>, msg?: string) => {
+    if (!shouldLog(level)) return;
+
+    const logObj: LogObject = { 
+      ...obj, 
+      level, 
+      time: Date.now(), 
+      msg: msg || '' 
+    };
+
+    const formatted = formatLog(logObj);
+
+    // Use appropriate console method
+    switch (level) {
+      case 'debug':
+        console.debug(formatted);
+        break;
+      case 'info':
+        console.info(formatted);
+        break;
+      case 'warn':
+        console.warn(formatted);
+        break;
+      case 'error':
+        console.error(formatted);
+        break;
+    }
+  };
+
+  return {
+    debug: (obj: Record<string, unknown>, msg?: string) => logMessage('debug', obj, msg),
+    info: (obj: Record<string, unknown>, msg?: string) => logMessage('info', obj, msg),
+    warn: (obj: Record<string, unknown>, msg?: string) => logMessage('warn', obj, msg),
+    error: (obj: Record<string, unknown>, msg?: string) => logMessage('error', obj, msg),
+  };
+};
+
+// Create logger instance
+const activeLogger: LoggerMethods = createCustomLogger();
 
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
   private isProduction = process.env.NODE_ENV === 'production';
-  
-  private shouldLog(level: LogLevel): boolean {
-    // Pino handles level filtering based on its initialization
-    return true; 
+
+  private shouldLog(_level: LogLevel): boolean {
+    // Level filtering is handled by the underlying logger
+    return true;
   }
 
-  private createLogEntry(level: LogLevel, message: string, context?: LogContext, error?: Error): LogEntry {
-    // This is mainly for sendToMonitoringService, pino handles its own entry structure
+  private createLogEntry(
+    level: LogLevel,
+    message: string,
+    context?: LogContext,
+    error?: Error
+  ): LogEntry {
+    // This is mainly for sendToMonitoringService
     return {
       timestamp: new Date().toISOString(),
       level,
@@ -86,30 +181,35 @@ class Logger {
 
   debug(message: string, context?: LogContext): void {
     if (this.shouldLog('debug')) {
-      pinoLogger.debug({ context }, message);
+      activeLogger.debug({ context }, message);
     }
   }
 
   info(message: string, context?: LogContext): void {
     if (this.shouldLog('info')) {
-      pinoLogger.info({ context }, message);
+      activeLogger.info({ context }, message);
     }
   }
 
   warn(message: string, context?: LogContext): void {
     if (this.shouldLog('warn')) {
-      pinoLogger.warn({ context }, message);
+      activeLogger.warn({ context }, message);
     }
   }
 
   error(message: string, error?: Error, context?: LogContext): void {
     if (this.shouldLog('error')) {
-      // Pino's stdSerializers.err will handle the error object correctly
-      pinoLogger.error({ context, err: error }, message);
-      
+      // Use our custom error handling
+      activeLogger.error(
+        { ...(context && { context }), ...(error && { err: error }) },
+        message
+      );
+
       // In production, you might want to send errors to a monitoring service
       if (this.isProduction && error) {
-        this.sendToMonitoringService(this.createLogEntry('error', message, context, error));
+        this.sendToMonitoringService(
+          this.createLogEntry('error', message, context, error)
+        );
       }
     }
   }
@@ -124,7 +224,12 @@ class Logger {
     this.debug(`API Call: ${method} ${url}`, context);
   }
 
-  apiError(method: string, url: string, error: Error, context?: LogContext): void {
+  apiError(
+    method: string,
+    url: string,
+    error: Error,
+    context?: LogContext
+  ): void {
     this.error(`API Error: ${method} ${url}`, error, context);
   }
 
@@ -138,8 +243,15 @@ class Logger {
   }
 
   // Game event logging
-  gameEvent(eventType: string, data: Record<string, unknown>, context?: LogContext): void {
-    this.info(`Game Event: ${eventType}`, { ...context, metadata: { ...context?.metadata, eventData: data } });
+  gameEvent(
+    eventType: string,
+    data: Record<string, unknown>,
+    context?: LogContext
+  ): void {
+    this.info(`Game Event: ${eventType}`, {
+      ...context,
+      metadata: { ...context?.metadata, eventData: data },
+    });
   }
 
   // Performance logging
@@ -155,10 +267,9 @@ class Logger {
   private sendToMonitoringService(logEntry: LogEntry): void {
     // Placeholder for production monitoring service integration
     // You could integrate with services like Sentry, LogRocket, etc.
-    // Avoid using console.error here to prevent potential logging loops
     if (this.isDevelopment) {
-      // Use pino for this warning as well
-      pinoLogger.warn({ logEntry, source: 'sendToMonitoringService' }, '[Logger] Sending to monitoring service (dev mode)');
+      // Use our simple console output to avoid any dependency issues
+      console.warn('[Logger] Sending to monitoring service (dev mode)', logEntry);
     }
     // In a real production scenario, this would be an API call to your monitoring service.
     // For example: fetch('https://your-monitoring-service.com/logs', { method: 'POST', body: JSON.stringify(logEntry) });
@@ -173,16 +284,31 @@ export type { LogLevel, LogContext, LogEntry };
 
 // Export convenience functions
 export const log = {
-  debug: (message: string, context?: LogContext) => logger.debug(message, context),
-  info: (message: string, context?: LogContext) => logger.info(message, context),
-  warn: (message: string, context?: LogContext) => logger.warn(message, context),
-  error: (message: string, error?: Error, context?: LogContext) => logger.error(message, error, context),
-  storeAction: (action: string, context?: LogContext) => logger.storeAction(action, context),
-  apiCall: (method: string, url: string, context?: LogContext) => logger.apiCall(method, url, context),
-  apiError: (method: string, url: string, error: Error, context?: LogContext) => logger.apiError(method, url, error, context),
-  gameEvent: (eventType: string, data: Record<string, unknown>, context?: LogContext) => logger.gameEvent(eventType, data, context),
-  performance: (metric: string, value: number, context?: LogContext) => logger.performance(metric, value, context),
-  userAction: (action: string, context?: LogContext) => logger.userAction(action, context),
-  componentMount: (componentName: string, context?: LogContext) => logger.componentMount(componentName, context),
-  componentUnmount: (componentName: string, context?: LogContext) => logger.componentUnmount(componentName, context),
-}; 
+  debug: (message: string, context?: LogContext) =>
+    logger.debug(message, context),
+  info: (message: string, context?: LogContext) =>
+    logger.info(message, context),
+  warn: (message: string, context?: LogContext) =>
+    logger.warn(message, context),
+  error: (message: string, error?: Error, context?: LogContext) =>
+    logger.error(message, error, context),
+  storeAction: (action: string, context?: LogContext) =>
+    logger.storeAction(action, context),
+  apiCall: (method: string, url: string, context?: LogContext) =>
+    logger.apiCall(method, url, context),
+  apiError: (method: string, url: string, error: Error, context?: LogContext) =>
+    logger.apiError(method, url, error, context),
+  gameEvent: (
+    eventType: string,
+    data: Record<string, unknown>,
+    context?: LogContext
+  ) => logger.gameEvent(eventType, data, context),
+  performance: (metric: string, value: number, context?: LogContext) =>
+    logger.performance(metric, value, context),
+  userAction: (action: string, context?: LogContext) =>
+    logger.userAction(action, context),
+  componentMount: (componentName: string, context?: LogContext) =>
+    logger.componentMount(componentName, context),
+  componentUnmount: (componentName: string, context?: LogContext) =>
+    logger.componentUnmount(componentName, context),
+};

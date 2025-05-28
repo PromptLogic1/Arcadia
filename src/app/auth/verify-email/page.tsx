@@ -1,51 +1,53 @@
-'use client'
+'use client';
 
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Mail } from 'lucide-react'
-import { notifications } from '@/src/lib/notifications'
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Mail } from 'lucide-react';
+import { notifications } from '@/src/lib/notifications';
 
 // Force the page to be dynamic so it isn't statically prerendered.
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 function VerifyEmailContent() {
-  const searchParams = useSearchParams()
-  const email = searchParams.get('email')
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-900">
-      <div className="max-w-md w-full text-center space-y-6">
+    <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-12">
+      <div className="w-full max-w-md space-y-6 text-center">
         <div className="flex justify-center">
           <div className="rounded-full bg-cyan-500/10 p-3">
-            <Mail className="w-12 h-12 text-cyan-400" />
+            <Mail className="h-12 w-12 text-cyan-400" />
           </div>
         </div>
-        
-        <h1 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">
+
+        <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
           Check your email
         </h1>
-        
+
         <p className="text-gray-400">
           We sent a verification link to{' '}
-          <span className="text-white font-medium">
+          <span className="font-medium text-white">
             {email || 'your email address'}
           </span>
         </p>
-        
-        <div className="bg-gray-800/50 border border-cyan-500/20 rounded-lg p-4 text-sm text-gray-300">
+
+        <div className="rounded-lg border border-cyan-500/20 bg-gray-800/50 p-4 text-sm text-gray-300">
           <p>
-            Please check your email and click the verification link to complete your registration.
-            The link will expire in 24 hours.
+            Please check your email and click the verification link to complete
+            your registration. The link will expire in 24 hours.
           </p>
         </div>
-        
+
         <p className="text-sm text-gray-400">
           Didn&apos;t receive an email?{' '}
-          <button 
-            className="text-cyan-400 hover:text-fuchsia-400 transition-colors duration-200"
+          <button
+            className="text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
             onClick={() => {
               // TODO: Implement resend verification email
-              notifications.info('Resend functionality will be implemented soon')
+              notifications.info(
+                'Resend functionality will be implemented soon'
+              );
             }}
           >
             Click to resend
@@ -53,7 +55,7 @@ function VerifyEmailContent() {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 export default function VerifyEmailPage() {
@@ -61,5 +63,5 @@ export default function VerifyEmailPage() {
     <Suspense fallback={<div>Loading...</div>}>
       <VerifyEmailContent />
     </Suspense>
-  )
-} 
+  );
+}

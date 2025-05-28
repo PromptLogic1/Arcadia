@@ -1,98 +1,123 @@
-import { useState, useCallback } from 'react'
-import type { GameCategory } from '../types'
-import { type DifficultyLevel, Constants } from '@/types/database.core'
-import { GENERATOR_CONFIG, CARD_CATEGORIES, type CardCategory } from '../types/generator.types'
-import { log } from '@/lib/logger'
+import { useState, useCallback } from 'react';
+import type { GameCategory } from '../types';
+import { type DifficultyLevel, Constants } from '@/types/database.core';
+import {
+  type GENERATOR_CONFIG,
+  CARD_CATEGORIES,
+  type CardCategory,
+} from '../types/generator.types';
+import { log } from '@/lib/logger';
 
-type GeneratorDifficulty = DifficultyLevel
+type GeneratorDifficulty = DifficultyLevel;
 
 interface GeneratorSettings {
-  difficulty: GeneratorDifficulty
-  cardPoolSize: 'Small' | 'Medium' | 'Large'
-  minVotes: number
-  selectedCategories: CardCategory[]
-  gameCategory: GameCategory
-  cardSource: 'public' | 'private' | 'publicprivate'
+  difficulty: GeneratorDifficulty;
+  cardPoolSize: 'Small' | 'Medium' | 'Large';
+  minVotes: number;
+  selectedCategories: CardCategory[];
+  gameCategory: GameCategory;
+  cardSource: 'public' | 'private' | 'publicprivate';
 }
 
 interface UseGeneratorPanel {
-  isLoading: boolean
-  error: string | null
-  selectedCategories: CardCategory[]
-  difficulty: GeneratorDifficulty
-  minVotes: number
-  poolSize: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS
-  handleCategoriesChange: (selectedCategories: CardCategory[]) => void
-  handleDifficultyChange: (difficulty: GeneratorDifficulty) => void
-  handleMinVotesChange: (votes: number) => void
-  handlePoolSizeChange: (size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS) => void
-  generateBoard: () => Promise<void>
-  reshuffleBoard: (gridSize: number) => Promise<void>
+  isLoading: boolean;
+  error: string | null;
+  selectedCategories: CardCategory[];
+  difficulty: GeneratorDifficulty;
+  minVotes: number;
+  poolSize: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS;
+  handleCategoriesChange: (selectedCategories: CardCategory[]) => void;
+  handleDifficultyChange: (difficulty: GeneratorDifficulty) => void;
+  handleMinVotesChange: (votes: number) => void;
+  handlePoolSizeChange: (
+    size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS
+  ) => void;
+  generateBoard: () => Promise<void>;
+  reshuffleBoard: (gridSize: number) => Promise<void>;
 }
 
 export function useGeneratorPanel(
-  gameCategory: GameCategory, 
+  gameCategory: GameCategory,
   gridSize: number,
   usePublicCards: boolean,
   usePrivateCards: boolean
 ): UseGeneratorPanel {
   // Local state for generator settings
-  const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([...CARD_CATEGORIES])
-  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>(Constants.public.Enums.difficulty_level[2]) // Default to medium
-  const [minVotes, setMinVotes] = useState(0)
-  const [poolSize, setPoolSize] = useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([
+    ...CARD_CATEGORIES,
+  ]);
+  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>(
+    Constants.public.Enums.difficulty_level[2]
+  ); // Default to medium
+  const [minVotes, setMinVotes] = useState(0);
+  const [poolSize, setPoolSize] =
+    useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Handlers for settings changes
   const handleCategoriesChange = useCallback((categories: CardCategory[]) => {
-    setSelectedCategories(categories)
-    log.info('Selected Categories:', { metadata: { hook: 'useGeneratorPanel', categories: categories }})
-  }, [])
+    setSelectedCategories(categories);
+    log.info('Selected Categories:', {
+      metadata: { hook: 'useGeneratorPanel', categories: categories },
+    });
+  }, []);
 
   const handleDifficultyChange = useCallback((diff: GeneratorDifficulty) => {
-    setDifficulty(diff)
-  }, [])
+    setDifficulty(diff);
+  }, []);
 
   const handleMinVotesChange = useCallback((votes: number) => {
-    setMinVotes(votes)
-  }, [])
+    setMinVotes(votes);
+  }, []);
 
-  const handlePoolSizeChange = useCallback((size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS) => {
-    setPoolSize(size)
-  }, [])
+  const handlePoolSizeChange = useCallback(
+    (size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS) => {
+      setPoolSize(size);
+    },
+    []
+  );
 
   // Generate new board
   const generateBoard = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const settings: GeneratorSettings = {
         difficulty,
         cardPoolSize: poolSize,
         minVotes,
         selectedCategories,
         gameCategory,
-        cardSource: usePublicCards && usePrivateCards ? 'publicprivate' 
-                   : usePublicCards ? 'public'
-                   : 'private'
-      }
+        cardSource:
+          usePublicCards && usePrivateCards
+            ? 'publicprivate'
+            : usePublicCards
+              ? 'public'
+              : 'private',
+      };
 
-      log.info('Generating board with settings:', { metadata: { hook: 'useGeneratorPanel', settings, gridSize }})
+      log.info('Generating board with settings:', {
+        metadata: { hook: 'useGeneratorPanel', settings, gridSize },
+      });
       // TODO: Implement bingo generator service
-      throw new Error('Bingo generator service not yet implemented')
+      throw new Error('Bingo generator service not yet implemented');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to generate board')
+      setError(
+        error instanceof Error ? error.message : 'Failed to generate board'
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Reshuffle existing board
   const reshuffleBoard = useCallback(async (gridSize: number) => {
-    log.info('Reshuffling board with gridSize:', { metadata: { hook: 'useGeneratorPanel', gridSize }})
+    log.info('Reshuffling board with gridSize:', {
+      metadata: { hook: 'useGeneratorPanel', gridSize },
+    });
     // TODO: Implement bingo generator service
-    throw new Error('Bingo generator service not yet implemented')
-  }, [])
+    throw new Error('Bingo generator service not yet implemented');
+  }, []);
 
   return {
     isLoading,
@@ -106,6 +131,6 @@ export function useGeneratorPanel(
     handleMinVotesChange,
     handlePoolSizeChange,
     generateBoard,
-    reshuffleBoard
-  }
+    reshuffleBoard,
+  };
 }

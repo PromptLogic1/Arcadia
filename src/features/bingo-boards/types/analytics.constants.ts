@@ -51,8 +51,8 @@ export const ANALYTICS_CONSTANTS = {
   PERFORMANCE: {
     MAX_MOVE_LATENCY: 1000, // 1 second
     PERFORMANCE_CHECK_INTERVAL: 1000, // 1 second
-  }
-} as const
+  },
+} as const;
 
 export const EVENT_TYPES = {
   GAME_STARTED: 'game_started',
@@ -64,8 +64,8 @@ export const EVENT_TYPES = {
   PLAYER_LEFT: 'player_left',
   BOARD_GENERATED: 'board_generated',
   ERROR_OCCURRED: 'error_occurred',
-  WIN: 'game_ended' // Alias for GAME_ENDED
-} as const
+  WIN: 'game_ended', // Alias for GAME_ENDED
+} as const;
 
 export const PERFORMANCE_METRICS = {
   RENDER_TIME: 'render_time',
@@ -76,8 +76,8 @@ export const PERFORMANCE_METRICS = {
   USED_HEAP_SIZE: 'used_heap_size',
   PAGE_LOAD: 'page_load',
   TIME_TO_INTERACTIVE: 'time_to_interactive',
-  FRAME_TIME: 'frame_time'
-} as const
+  FRAME_TIME: 'frame_time',
+} as const;
 
 // Analytics collection status
 export const ANALYTICS_STATUS = {
@@ -86,9 +86,9 @@ export const ANALYTICS_STATUS = {
   PROCESSING: 'processing',
   SENDING: 'sending',
   ERROR: 'error',
-} as const
+} as const;
 
-export type AnalyticsConstant = typeof ANALYTICS_CONSTANTS
-export type EventType = keyof typeof EVENT_TYPES  
-export type PerformanceMetric = keyof typeof PERFORMANCE_METRICS
-export type AnalyticsStatus = keyof typeof ANALYTICS_STATUS 
+export type AnalyticsConstant = typeof ANALYTICS_CONSTANTS;
+export type EventType = keyof typeof EVENT_TYPES;
+export type PerformanceMetric = keyof typeof PERFORMANCE_METRICS;
+export type AnalyticsStatus = keyof typeof ANALYTICS_STATUS;

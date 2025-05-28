@@ -1,67 +1,70 @@
-'use client'
+'use client';
 
-import { useState, useMemo, useCallback, useTransition } from 'react'
-import type { Discussion, Event } from '@/lib/stores/community-store'
-import { useDebounce } from '@/hooks/useDebounce'
+import { useState, useMemo, useCallback, useTransition } from 'react';
+import type { Discussion, Event } from '@/lib/stores/community-store';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface UseSearchReturn<T> {
-  filteredItems: T[]
-  searchQuery: string
-  setSearchQuery: (query: string) => void
-  sortBy: 'newest' | 'hot'
-  setSortBy: (sort: 'newest' | 'hot') => void
-  selectedGame: string
-  setSelectedGame: (game: string) => void
-  selectedChallenge: string
-  setSelectedChallenge: (challenge: string) => void
-  isSearching: boolean
+  filteredItems: T[];
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  sortBy: 'newest' | 'hot';
+  setSortBy: (sort: 'newest' | 'hot') => void;
+  selectedGame: string;
+  setSelectedGame: (game: string) => void;
+  selectedChallenge: string;
+  setSelectedChallenge: (challenge: string) => void;
+  isSearching: boolean;
 }
 
 export function useSearch<T extends Discussion | Event>(
   items: readonly T[],
   searchKeys: (keyof T)[]
 ): UseSearchReturn<T> {
-  const [searchQuery, setSearchQueryRaw] = useState('')
-  const [sortBy, setSortBy] = useState<'newest' | 'hot'>('newest')
-  const [selectedGame, setSelectedGame] = useState('All Games')
-  const [selectedChallenge, setSelectedChallenge] = useState('All Challenges')
-  const [isPending, startTransition] = useTransition()
+  const [searchQuery, setSearchQueryRaw] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'hot'>('newest');
+  const [selectedGame, setSelectedGame] = useState('All Games');
+  const [selectedChallenge, setSelectedChallenge] = useState('All Challenges');
+  const [isPending, startTransition] = useTransition();
 
   // Debounce search query to prevent too many re-renders
-  const debouncedSearch = useDebounce(searchQuery, 300)
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const setSearchQuery = useCallback((query: string) => {
     startTransition(() => {
-      setSearchQueryRaw(query)
-    })
-  }, [])
+      setSearchQueryRaw(query);
+    });
+  }, []);
 
   const filteredItems = useMemo(() => {
     // Create search index for better performance
-    const searchIndex = new Map<T, string>()
-    
+    const searchIndex = new Map<T, string>();
+
     return items
       .filter(item => {
         // Get or create search string for item
-        let searchString = searchIndex.get(item)
+        let searchString = searchIndex.get(item);
         if (!searchString) {
           searchString = searchKeys
             .map(key => {
-              const value = item[key]
-              return typeof value === 'string' ? value.toLowerCase() : ''
+              const value = item[key];
+              return typeof value === 'string' ? value.toLowerCase() : '';
             })
-            .join(' ')
-          searchIndex.set(item, searchString)
+            .join(' ');
+          searchIndex.set(item, searchString);
         }
 
-        const matchesSearch = !debouncedSearch || 
-          searchString.includes(debouncedSearch.toLowerCase())
+        const matchesSearch =
+          !debouncedSearch ||
+          searchString.includes(debouncedSearch.toLowerCase());
 
-        const matchesGame = selectedGame === 'All Games' || item.game === selectedGame
-        const matchesChallenge = selectedChallenge === 'All Challenges' || 
-          ('challengeType' in item && item.challengeType === selectedChallenge)
+        const matchesGame =
+          selectedGame === 'All Games' || item.game === selectedGame;
+        const matchesChallenge =
+          selectedChallenge === 'All Challenges' ||
+          ('challengeType' in item && item.challengeType === selectedChallenge);
 
-        return matchesSearch && matchesGame && matchesChallenge
+        return matchesSearch && matchesGame && matchesChallenge;
       })
       .sort((a, b) => {
         if (sortBy === 'newest') {
@@ -76,11 +79,20 @@ export function useSearch<T extends Discussion | Event>(
           return validBTime - validATime; // newest first
         }
         // For 'hot' sort, ensure upvotes exist or default to 0
-        const aUpvotes = ('upvotes' in a && typeof a.upvotes === 'number') ? a.upvotes : 0;
-        const bUpvotes = ('upvotes' in b && typeof b.upvotes === 'number') ? b.upvotes : 0;
+        const aUpvotes =
+          'upvotes' in a && typeof a.upvotes === 'number' ? a.upvotes : 0;
+        const bUpvotes =
+          'upvotes' in b && typeof b.upvotes === 'number' ? b.upvotes : 0;
         return bUpvotes - aUpvotes; // most upvotes first
-      })
-  }, [items, debouncedSearch, selectedGame, selectedChallenge, sortBy, searchKeys])
+      });
+  }, [
+    items,
+    debouncedSearch,
+    selectedGame,
+    selectedChallenge,
+    sortBy,
+    searchKeys,
+  ]);
 
   return {
     filteredItems,
@@ -92,6 +104,6 @@ export function useSearch<T extends Discussion | Event>(
     setSelectedGame,
     selectedChallenge,
     setSelectedChallenge,
-    isSearching: isPending
-  }
-} 
+    isSearching: isPending,
+  };
+}

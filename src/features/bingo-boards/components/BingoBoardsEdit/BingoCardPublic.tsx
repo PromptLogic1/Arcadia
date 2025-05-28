@@ -1,73 +1,77 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import type { BingoCard as BingoCardType } from '@/types'
-import { DIFFICULTY_STYLES } from '@/types'
-import { ThumbsUp, ChevronDown, User } from 'lucide-react'
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import type { BingoCard as BingoCardType } from '@/types';
+import { DIFFICULTY_STYLES } from '@/types';
+import { ThumbsUp, ChevronDown, User } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+} from '@/components/ui/collapsible';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface BingoCardPublicProps {
-  card: BingoCardType
-  onSelect?: (card: BingoCardType) => void
-  onVote?: (card: BingoCardType) => void
+  card: BingoCardType;
+  onSelect?: (card: BingoCardType) => void;
+  onVote?: (card: BingoCardType) => void;
 }
 
-export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function BingoCardPublic({
+  card,
+  onSelect,
+  onVote,
+}: BingoCardPublicProps) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="w-full">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="w-full bg-gray-900/30 rounded-lg"
+        className="w-full rounded-lg bg-gray-900/30"
       >
         <CollapsibleTrigger asChild>
-          <Card 
+          <Card
             className={cn(
-              "bg-gradient-to-br from-gray-800/95 to-gray-800/75",
-              "border border-cyan-500/20 hover:border-cyan-500/40",
-              "transition-all duration-300 cursor-pointer group w-full",
-              isOpen && "border-b-0 rounded-b-none border-cyan-500/60"
+              'bg-gradient-to-br from-gray-800/95 to-gray-800/75',
+              'border border-cyan-500/20 hover:border-cyan-500/40',
+              'group w-full cursor-pointer transition-all duration-300',
+              isOpen && 'rounded-b-none border-b-0 border-cyan-500/60'
             )}
           >
-            <CardContent className="p-2 flex items-center justify-between">
-              <span 
-                className="text-sm text-cyan-300/90 truncate mr-2 flex-1" 
+            <CardContent className="flex items-center justify-between p-2">
+              <span
+                className="mr-2 flex-1 truncate text-sm text-cyan-300/90"
                 style={{ wordBreak: 'break-word' }}
               >
                 {card.title}
               </span>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge 
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge
                   variant="outline"
                   className={cn(
-                    "px-2 py-0.5 text-xs rounded-full",
+                    'rounded-full px-2 py-0.5 text-xs',
                     DIFFICULTY_STYLES[card.difficulty]
                   )}
                 >
                   {card.difficulty}
                 </Badge>
-                <Badge 
-                  variant="outline" 
-                  className="bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+                <Badge
+                  variant="outline"
+                  className="border-cyan-500/30 bg-cyan-500/10 text-cyan-400"
                 >
                   {card.votes || 0} votes
                 </Badge>
-                <ChevronDown 
+                <ChevronDown
                   className={cn(
-                    "h-4 w-4 text-cyan-400/70 transition-transform duration-200",
-                    isOpen && "transform rotate-180"
-                  )} 
+                    'h-4 w-4 text-cyan-400/70 transition-transform duration-200',
+                    isOpen && 'rotate-180 transform'
+                  )}
                 />
               </div>
             </CardContent>
@@ -75,22 +79,26 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-x border-b border-cyan-500/20 rounded-b-lg p-3">
-            <div className="space-y-2 mb-4">
+          <div className="rounded-b-lg border-x border-b border-cyan-500/20 p-3">
+            <div className="mb-4 space-y-2">
               {/* Creator Info */}
-              <div className="flex items-center gap-2 mb-3">
+              <div className="mb-3 flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="bg-cyan-500/10 text-cyan-400">
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm text-gray-400">Created by Community</span>
+                <span className="text-sm text-gray-400">
+                  Created by Community
+                </span>
               </div>
 
               <div className="w-full">
-                <span className="text-xs text-cyan-400 font-medium block">Title:</span>
-                <p 
-                  className="text-sm text-gray-300 break-words line-clamp-3" 
+                <span className="block text-xs font-medium text-cyan-400">
+                  Title:
+                </span>
+                <p
+                  className="line-clamp-3 break-words text-sm text-gray-300"
                   style={{ wordBreak: 'break-word' }}
                 >
                   {card.title}
@@ -99,9 +107,11 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
 
               {card.description && (
                 <div className="w-full">
-                  <span className="text-xs text-cyan-400 font-medium block">Description:</span>
-                  <p 
-                    className="text-sm text-gray-300 line-clamp-3" 
+                  <span className="block text-xs font-medium text-cyan-400">
+                    Description:
+                  </span>
+                  <p
+                    className="line-clamp-3 text-sm text-gray-300"
                     style={{ wordBreak: 'break-word' }}
                   >
                     {card.description}
@@ -111,15 +121,17 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="overflow-hidden">
-                  <span className="text-xs text-cyan-400 font-medium block">Game:</span>
-                  <p className="text-sm text-gray-300">
-                    {card.game_type}
-                  </p>
+                  <span className="block text-xs font-medium text-cyan-400">
+                    Game:
+                  </span>
+                  <p className="text-sm text-gray-300">{card.game_type}</p>
                 </div>
 
                 <div className="overflow-hidden">
-                  <span className="text-xs text-cyan-400 font-medium block">Difficulty:</span>
-                  <p className="text-sm text-gray-300 capitalize">
+                  <span className="block text-xs font-medium text-cyan-400">
+                    Difficulty:
+                  </span>
+                  <p className="text-sm capitalize text-gray-300">
                     {card.difficulty}
                   </p>
                 </div>
@@ -127,15 +139,17 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
 
               {card.tags && card.tags.length > 0 && (
                 <div className="w-full">
-                  <span className="text-xs text-cyan-400 font-medium block">Tags:</span>
-                  <p className="text-sm text-gray-300 break-words">
+                  <span className="block text-xs font-medium text-cyan-400">
+                    Tags:
+                  </span>
+                  <p className="break-words text-sm text-gray-300">
                     {card.tags.join(', ')}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-gray-700">
+            <div className="flex gap-2 border-t border-gray-700 pt-2">
               <Button
                 size="sm"
                 onClick={() => onSelect?.(card)}
@@ -157,5 +171,5 @@ export function BingoCardPublic({ card, onSelect, onVote }: BingoCardPublicProps
         </CollapsibleContent>
       </Collapsible>
     </div>
-  )
+  );
 }

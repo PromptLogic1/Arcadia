@@ -1,12 +1,9 @@
 // Re-export Zustand bingo cards hooks for backward compatibility
-export {
-  useBingoCards,
-  useBingoCardsActions
-} from '@/lib/stores'
+export { useBingoCards, useBingoCardsActions } from '@/lib/stores';
 
 // Export bingo card types
-export type { 
+export type {
   BingoCard,
   GameCategory,
-  DifficultyLevel
-} from '@/lib/stores/types' 
+  DifficultyLevel,
+} from '@/lib/stores/types';

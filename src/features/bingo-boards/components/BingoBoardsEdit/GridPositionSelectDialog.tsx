@@ -1,13 +1,19 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface GridPositionSelectDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  onSelect: (index: number) => void
-  gridSize: number
-  takenPositions: number[]
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (index: number) => void;
+  gridSize: number;
+  takenPositions: number[];
 }
 
 export function GridPositionSelectDialog({
@@ -19,22 +25,25 @@ export function GridPositionSelectDialog({
 }: GridPositionSelectDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gray-900 border-cyan-500/20">
+      <DialogContent className="border-cyan-500/20 bg-gray-900 sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Select Grid Position</DialogTitle>
           <DialogDescription className="text-gray-400">
-            Choose where to place the card in the grid. 
+            Choose where to place the card in the grid.
             {takenPositions.length > 0 && (
-              <span className="text-cyan-400"> Positions with cyan borders are currently occupied.</span>
+              <span className="text-cyan-400">
+                {' '}
+                Positions with cyan borders are currently occupied.
+              </span>
             )}
           </DialogDescription>
         </DialogHeader>
-        <div 
+        <div
           className="grid gap-2 p-4"
-          style={{ 
+          style={{
             gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
             width: 'fit-content',
-            margin: '0 auto'
+            margin: '0 auto',
           }}
         >
           {Array.from({ length: gridSize * gridSize }).map((_, index) => (
@@ -42,11 +51,11 @@ export function GridPositionSelectDialog({
               key={index}
               onClick={() => onSelect(index)}
               className={cn(
-                "w-12 h-12 p-0 font-mono text-sm",
-                "bg-gray-800/50 hover:bg-gray-800/70",
+                'h-12 w-12 p-0 font-mono text-sm',
+                'bg-gray-800/50 hover:bg-gray-800/70',
                 takenPositions.includes(index)
-                  ? "border-2 border-cyan-500/50"
-                  : "border border-gray-600/20"
+                  ? 'border-2 border-cyan-500/50'
+                  : 'border border-gray-600/20'
               )}
             >
               {`${Math.floor(index / gridSize) + 1}-${(index % gridSize) + 1}`}
@@ -55,5 +64,5 @@ export function GridPositionSelectDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}
