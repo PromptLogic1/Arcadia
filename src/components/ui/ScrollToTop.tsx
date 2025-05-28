@@ -178,7 +178,6 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
     const [isVisible, setIsVisible] = useState(false);
 
     const checkScrollPosition = useCallback(() => {
-      const scrollElement = scrollTarget?.current || window;
       const scrollY = scrollTarget?.current 
         ? scrollTarget.current.scrollTop 
         : window.pageYOffset;
@@ -209,8 +208,6 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
         onScroll();
         return;
       }
-
-      const scrollElement = scrollTarget?.current || window;
       
       if (scrollTarget?.current) {
         scrollTarget.current.scrollTo({

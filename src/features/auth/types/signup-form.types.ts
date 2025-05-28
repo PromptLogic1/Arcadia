@@ -1,5 +1,6 @@
 import { type VariantProps } from 'class-variance-authority';
 import { type HTMLAttributes } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
 
 // 🧱 Data Contracts - Core Form Types
 export type SignUpStatus = 
@@ -153,8 +154,8 @@ export interface PasswordAnalysis {
 
 // 🧱 Data Contracts - Service Interfaces
 export interface AuthService {
-  signUp: (data: FormData) => Promise<{ user: any; session: any }>;
-  signUpWithOAuth: (provider: OAuthProvider) => Promise<{ user: any; session: any }>;
+  signUp: (data: FormData) => Promise<{ user: User | null; session: Session | null }>;
+  signUpWithOAuth: (provider: OAuthProvider) => Promise<{ user: User | null; session: Session | null }>;
   checkUsernameAvailability: (username: string) => Promise<boolean>;
   checkEmailAvailability: (email: string) => Promise<boolean>;
 }

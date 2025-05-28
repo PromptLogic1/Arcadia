@@ -1,17 +1,13 @@
-// @ts-nocheck - Jest handles jest-dom types correctly at runtime
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import type { AuthUser } from '@/lib/stores/types';
 import { 
   createMockUser, 
-  createMockAuthUser, 
-  createMockUserData,
-  mockSupabaseResponse,
-  setupIntegrationTest,
+  createMockAuthUser,
   mockAuthStates
 } from './test-utils';
 

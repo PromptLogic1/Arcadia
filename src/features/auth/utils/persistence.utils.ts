@@ -58,14 +58,17 @@ const deserializeFormData = (serialized: string): Partial<PersistentFormData> | 
 };
 
 // 🧼 Pure Functions - Validation
-const isValidFormData = (data: any): data is Partial<PersistentFormData> => {
+const isValidFormData = (data: unknown): data is Partial<PersistentFormData> => {
   if (!data || typeof data !== 'object') {
     return false;
   }
   
+  // Type assertion after checking it's an object
+  const obj = data as Record<string, unknown>;
+  
   // Check that only allowed fields are present
   const allowedFields = ['username', 'email'];
-  const dataKeys = Object.keys(data);
+  const dataKeys = Object.keys(obj);
   
   for (const key of dataKeys) {
     if (!allowedFields.includes(key)) {
@@ -81,11 +84,11 @@ const isValidFormData = (data: any): data is Partial<PersistentFormData> => {
   }
   
   // Validate field types
-  if (data.username !== undefined && typeof data.username !== 'string') {
+  if (obj.username !== undefined && typeof obj.username !== 'string') {
     return false;
   }
   
-  if (data.email !== undefined && typeof data.email !== 'string') {
+  if (obj.email !== undefined && typeof obj.email !== 'string') {
     return false;
   }
   
@@ -209,7 +212,7 @@ const removeStoredField = (field: keyof PersistentFormData): boolean => {
     return true; // Nothing to remove
   }
   
-  const { [field]: removed, ...remainingData } = currentData;
+  const { [field]: _removed, ...remainingData } = currentData;
   
   if (Object.keys(remainingData).length === 0) {
     return clearFromStorage();

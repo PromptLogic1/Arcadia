@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase';
+import { logger as _logger } from '@/lib/logger';
 import type {
   Discussion as BaseDiscussion,
   Comment as BaseComment,

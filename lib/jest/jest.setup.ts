@@ -52,7 +52,29 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
 // Mock Supabase client with complete API surface
-const mockSupabaseClient = {
+interface MockSupabaseClient {
+  auth: {
+    getSession: jest.Mock;
+    getUser: jest.Mock;
+    signInWithPassword: jest.Mock;
+    signInWithOAuth: jest.Mock;
+    signUp: jest.Mock;
+    signOut: jest.Mock;
+    updateUser: jest.Mock;
+    resetPasswordForEmail: jest.Mock;
+    onAuthStateChange: jest.Mock;
+  };
+  from: jest.Mock;
+  select: jest.Mock;
+  insert: jest.Mock;
+  update: jest.Mock;
+  delete: jest.Mock;
+  eq: jest.Mock;
+  single: jest.Mock;
+  channel: jest.Mock;
+}
+
+const mockSupabaseClient: MockSupabaseClient = {
   auth: {
     getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
     getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
@@ -82,8 +104,14 @@ jest.mock('@/lib/supabase', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));
 
+// Extend global interface to include mockSupabaseClient
+declare global {
+  // eslint-disable-next-line no-var
+  var mockSupabaseClient: MockSupabaseClient;
+}
+
 // Global test utilities
-(global as any).mockSupabaseClient = mockSupabaseClient;
+global.mockSupabaseClient = mockSupabaseClient;
 
 // Mock console methods in tests to reduce noise
 global.console = {

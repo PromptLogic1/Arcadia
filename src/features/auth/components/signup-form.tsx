@@ -364,7 +364,6 @@ export const SignUpForm = React.forwardRef<HTMLDivElement, EnhancedSignUpFormPro
         config.redirectDelay,
         persistence,
         setLoading,
-        router,
         signUp,
       ]
     );

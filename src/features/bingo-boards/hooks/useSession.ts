@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { createClient } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import type { BoardCell, Player, GameCategory } from '../types/types';
-import { logger } from '@/src/lib/logger';
 
 interface UseSessionProps {
   boardId: string;

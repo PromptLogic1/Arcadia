@@ -8,7 +8,7 @@ import type {
   TagAction,
 } from '@/types';
 import { TagValidationService as _TagValidationService } from './tag-validation.service';
-import { logger } from '@/lib/logger';
+import { logger as _logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase';
 
 // Type aliases for compatibility (unused imports prefixed with _)

@@ -164,7 +164,7 @@ export const validateConfirmPassword: FieldValidator = (value: string, context?:
 
 // 🧼 Pure Functions - Form Validation
 export const createValidationScheme = (
-  config?: Partial<FormConfig>
+  _config?: Partial<FormConfig>
 ): ValidationScheme => ({
   username: validateUsername,
   email: validateEmail,

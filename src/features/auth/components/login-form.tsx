@@ -10,7 +10,6 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
-import { notifications } from '@/lib/notifications';
 
 // Import our improved components and types
 import { FormField } from './form-field';
@@ -47,7 +46,7 @@ export function LoginForm({
 
   // 🧼 External state
   const router = useRouter();
-  const { loading } = useAuth();
+  const { loading: _loading } = useAuth();
   const { setLoading, signIn, signInWithOAuth } = useAuthActions();
 
   // 🧼 Load saved email on mount

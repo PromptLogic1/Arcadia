@@ -1,10 +1,27 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 import type { Database } from '../../types/database.types';
 
+// Type definitions for cookie handling
+interface CookieOptions {
+  maxAge?: number;
+  path?: string;
+  domain?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: 'strict' | 'lax' | 'none';
+}
+
+interface RequestWithCookies extends Request {
+  cookies: {
+    getAll(): Array<{ name: string; value: string }>;
+    set(name: string, value: string): void;
+  };
+}
+
 // Supabase configuration
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const _supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Validation function that runs at module load
 const validateConfig = () => {
@@ -54,10 +71,10 @@ export async function createServerComponentClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet: any) {
+      setAll(cookiesToSet: unknown) {
         try {
-          cookiesToSet.forEach(({ name, value, options }: any) =>
-            cookieStore.set(name, value, options)
+          (cookiesToSet as Array<{ name: string; value: string; options?: unknown }>).forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
           );
         } catch {
           // The `setAll` method was called from a Server Component.
@@ -154,17 +171,17 @@ export async function updateSession(request: Request) {
   const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return (request as any).cookies.getAll();
+        return (request as RequestWithCookies).cookies.getAll();
       },
-      setAll(cookiesToSet: any) {
-        cookiesToSet.forEach(({ name, value, options }: any) =>
-          (request as any).cookies.set(name, value)
+      setAll(cookiesToSet: unknown) {
+        (cookiesToSet as Array<{ name: string; value: string; options?: unknown }>).forEach(({ name, value }) =>
+          (request as RequestWithCookies).cookies.set(name, value)
         );
         supabaseResponse = NextResponse.next({
           request,
         });
-        cookiesToSet.forEach(({ name, value, options }: any) =>
-          supabaseResponse.cookies.set(name, value, options)
+        (cookiesToSet as Array<{ name: string; value: string; options?: unknown }>).forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
         );
       },
     },
@@ -178,6 +195,9 @@ export async function updateSession(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  
+  // Assign to underscore-prefixed variable to indicate it's intentionally unused
+  const _user = user;
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:

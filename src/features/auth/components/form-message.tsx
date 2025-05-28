@@ -282,7 +282,7 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
       }, autoHideDelay);
       
       return () => clearTimeout(timer);
-    }, [autoHide, autoHideDelay, isVisible]);
+    }, [autoHide, autoHideDelay, isVisible, handleDismiss]);
 
     // 🧼 Pure Logic - Icon Selection
     const getMessageIcon = React.useCallback(() => {

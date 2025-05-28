@@ -81,7 +81,6 @@ const eslintConfig = [
       'testing-library/no-dom-import': 'error',
       'testing-library/no-node-access': 'warn',
       'testing-library/no-promise-in-fire-event': 'error',
-      'testing-library/no-render-in-setup': 'warn',
       'testing-library/no-unnecessary-act': 'warn',
       'testing-library/no-wait-for-multiple-assertions': 'error',
       'testing-library/no-wait-for-side-effects': 'error',

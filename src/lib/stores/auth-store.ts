@@ -1,7 +1,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { User as _User, Session as _Session, AuthError as _AuthError } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from './types';
 import { logger } from '@/lib/logger';

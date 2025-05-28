@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
-import { notifications } from '@/lib/notifications';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');

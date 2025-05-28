@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { GamepadIcon, Github, Twitter } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { GamepadIcon } from 'lucide-react';
 import { NeonText } from '../ui/NeonText';
 
 const Footer = () => {

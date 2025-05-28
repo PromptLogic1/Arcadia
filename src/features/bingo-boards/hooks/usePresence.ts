@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { createClient } from '@/lib/supabase';
 import type { PresenceState } from '../types/presence.types';
 import { PRESENCE_CONSTANTS } from '../types/presence.constants';
 import type { RealtimePresenceState } from '@supabase/supabase-js';
-import { log } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 interface PresenceStateWithRef extends PresenceState {
   presence_ref: string;
@@ -44,7 +43,7 @@ export const usePresence = (boardId: string, userId?: string) => {
           status,
         });
       } catch (err) {
-        log.error('Error updating presence', err as Error, {
+        logger.error('Error updating presence', err as Error, {
           metadata: { hook: 'usePresence', boardId, userId },
         });
       }

@@ -4,6 +4,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { toHaveNoViolations } from 'jest-axe';
 import { LoginForm } from '../components/login-form';
 import { renderWithUserAndA11y, mockAuthStates, axe } from './test-utils';
+import { useAuth, useAuthActions } from '@/lib/stores';
 
 // Extend expect with jest-axe matchers
 expect.extend(toHaveNoViolations);
@@ -21,22 +22,23 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
+// Create typed mocks
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseAuthActions = useAuthActions as jest.MockedFunction<typeof useAuthActions>;
+
 describe('Authentication Best Practices Demo', () => {
   const mockAuthActions = {
     setLoading: jest.fn(),
+    setError: jest.fn(),
     setAuthUser: jest.fn(),
     signIn: jest.fn(),
     signInWithOAuth: jest.fn(),
-  };
+  } as any; // Use type assertion for test simplicity
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (require('@/lib/stores').useAuth as jest.Mock).mockReturnValue(
-      mockAuthStates.unauthenticated
-    );
-    (require('@/lib/stores').useAuthActions as jest.Mock).mockReturnValue(
-      mockAuthActions
-    );
+    mockUseAuth.mockReturnValue(mockAuthStates.unauthenticated);
+    mockUseAuthActions.mockReturnValue(mockAuthActions);
   });
 
   describe('LoginForm - Comprehensive Testing', () => {
@@ -87,7 +89,7 @@ describe('Authentication Best Practices Demo', () => {
 
     it('should handle error states accessibly', async () => {
       // Mock error state
-      (require('@/lib/stores').useAuth as jest.Mock).mockReturnValue({
+      mockUseAuth.mockReturnValue({
         ...mockAuthStates.authError,
         error: 'Invalid credentials',
       });
@@ -109,7 +111,7 @@ describe('Authentication Best Practices Demo', () => {
 
     it('should handle loading states properly', async () => {
       // Mock loading state  
-      (require('@/lib/stores').useAuth as jest.Mock).mockReturnValue({
+      mockUseAuth.mockReturnValue({
         ...mockAuthStates.unauthenticated,
         loading: true,
       });

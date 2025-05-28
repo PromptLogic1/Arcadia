@@ -44,13 +44,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
   const {
     initializeApp,
-    setupAuthListener,
     setLoading: setStoreLoading,
   } = useAuthActions();
 
   useEffect(() => {
     let mounted = true;
-    let authSubscription: any = null;
+    let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
 
     const initializeAuth = async () => {
       try {
