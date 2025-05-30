@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database.generated';
+import type { Database } from '@/types/database-generated';
 
 // Database types
 export type UserActivityRow =

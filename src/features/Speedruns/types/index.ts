@@ -1,4 +1,4 @@
-import type { Tables, Enums } from '@/types/database.types';
+import type { Tables, Enums } from '@/types/database-types';
 
 // Base database types (we might need to add speedrun tables to database later)
 export type User = Tables<'users'>;

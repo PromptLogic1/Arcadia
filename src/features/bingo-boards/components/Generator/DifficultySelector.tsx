@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Gauge } from 'lucide-react';
-import { type DifficultyLevel, Constants } from '@/types/database.core';
+import { type DifficultyLevel, Constants } from '@/types/database-core';
 
 interface DifficultySelectorProps {
   difficulty: DifficultyLevel;

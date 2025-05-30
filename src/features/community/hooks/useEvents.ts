@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import type { Event } from '@/src/lib/stores/community-store';
-import { MOCK_EVENTS } from '../shared/constants';
+import { MOCK_EVENTS } from '../constants';
 
 export const useEvents = () => {
   const [events, setEvents] = useState<readonly Event[]>(MOCK_EVENTS);

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { BoardCell, Player } from '../types/types';
-import type { GameSettings } from '../types/gamesettings.types';
-import { DEFAULT_GAME_SETTINGS } from '../types/gamesettings.constants';
+import type { GameSettings } from '../types/game-settings.types';
+import { DEFAULT_GAME_SETTINGS } from '../types/game-settings.constants';
 import { log } from '@/lib/logger';
 
 // State Types

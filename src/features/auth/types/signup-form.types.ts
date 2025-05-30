@@ -3,11 +3,11 @@ import { type HTMLAttributes } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 
 // 🧱 Data Contracts - Core Form Types
-export type SignUpStatus = 
-  | 'idle' 
-  | 'loading' 
-  | 'success' 
-  | 'error' 
+export type SignUpStatus =
+  | 'idle'
+  | 'loading'
+  | 'success'
+  | 'error'
   | 'verification_pending';
 
 export type MessageType = 'success' | 'error' | 'info' | 'warning';
@@ -71,7 +71,10 @@ export interface FormConfig {
 }
 
 // 🧱 Data Contracts - Validation Functions
-export type FieldValidator = (value: string, context?: Partial<FormData>) => string | undefined;
+export type FieldValidator = (
+  value: string,
+  context?: Partial<FormData>
+) => string | undefined;
 
 export interface ValidationScheme {
   username: FieldValidator;
@@ -90,7 +93,8 @@ export interface FormHandlers {
 }
 
 // 🧱 Data Contracts - Component Props
-export interface SignUpFormProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit' | 'onError'> {
+export interface SignUpFormProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit' | 'onError'> {
   config?: Partial<FormConfig>;
   initialData?: Partial<FormData>;
   onFormSubmit?: (data: FormData) => Promise<void>;
@@ -103,7 +107,8 @@ export interface SignUpFormProps extends Omit<HTMLAttributes<HTMLDivElement>, 'o
 }
 
 // 🧱 Data Contracts - Sub-component Props
-export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
+export interface FormFieldProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
   label: string;
   type?: 'text' | 'email' | 'password';
   placeholder?: string;
@@ -116,7 +121,8 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'on
   className?: string;
 }
 
-export interface PasswordRequirementsProps extends HTMLAttributes<HTMLDivElement> {
+export interface PasswordRequirementsProps
+  extends HTMLAttributes<HTMLDivElement> {
   requirements: PasswordRequirements;
   showTitle?: boolean;
   variant?: 'default' | 'compact' | 'minimal';
@@ -154,11 +160,15 @@ export interface PasswordAnalysis {
 
 // 🧱 Data Contracts - Service Interfaces
 export interface AuthService {
-  signUp: (data: FormData) => Promise<{ user: User | null; session: Session | null }>;
-  signUpWithOAuth: (provider: OAuthProvider) => Promise<{ user: User | null; session: Session | null }>;
+  signUp: (
+    data: FormData
+  ) => Promise<{ user: User | null; session: Session | null }>;
+  signUpWithOAuth: (
+    provider: OAuthProvider
+  ) => Promise<{ user: User | null; session: Session | null }>;
   checkUsernameAvailability: (username: string) => Promise<boolean>;
   checkEmailAvailability: (email: string) => Promise<boolean>;
 }
 
 // Re-export commonly used types
-export type { VariantProps }; 
+export type { VariantProps };

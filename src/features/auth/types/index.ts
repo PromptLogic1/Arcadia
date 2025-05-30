@@ -1,9 +1,10 @@
+import { z as _z } from 'zod';
 import type {
   Tables,
   TablesInsert,
   TablesUpdate,
   Enums,
-} from '@/types/database.types';
+} from '@/types/database-types';
 
 // Database types
 export type User = Tables<'users'>;
@@ -171,3 +172,6 @@ export const VISIBILITY_OPTIONS: Record<VisibilityType, string> = {
   friends: 'Friends Only',
   private: 'Private',
 } as const;
+
+// TODO: Consider moving these to a more general location if used elsewhere
+// export type { UserRole, UserProfile, LoginFormInputs, SignUpFormInputs };

@@ -7,35 +7,35 @@ import type {
   Discussion as BaseDiscussion,
   Comment as BaseComment,
 } from '@/src/lib/stores/community-store';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/types/database-types';
 
 // Extended Discussion type that includes UI-specific properties
-interface Discussion extends BaseDiscussion {
+export interface Discussion extends BaseDiscussion {
   author?: { username: string; avatar_url: string | null };
   comments_count?: number;
   commentList?: Comment[];
 }
 
 // Frontend Comment type, extending BaseComment if needed, or just defining fully
-interface Comment extends BaseComment {
+export interface Comment extends BaseComment {
   author?: { username: string; avatar_url: string | null };
 }
 
-interface UseDiscussionsReturn {
-  discussions: readonly Discussion[];
+export interface UseDiscussionsReturn {
+  discussions: Discussion[];
   error: Error | null;
   isLoading: boolean;
   addDiscussion: (
     discussionData: Omit<
       BaseDiscussion,
-      'id' | 'upvotes' | 'created_at' | 'updated_at'
+      'id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
     >
   ) => Promise<Discussion>;
   addComment: (
     discussionId: number,
     commentData: Omit<
       BaseComment,
-      'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at'
+      'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
     >
   ) => Promise<Comment>;
   upvoteDiscussion: (discussionId: number) => Promise<void>;
@@ -78,7 +78,7 @@ type PostgrestResponse<T> = {
 };
 
 export const useDiscussions = (): UseDiscussionsReturn => {
-  const [discussions, setDiscussions] = useState<readonly Discussion[]>([]);
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -189,7 +189,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
     async (
       discussionData: Omit<
         BaseDiscussion,
-        'id' | 'upvotes' | 'created_at' | 'updated_at'
+        'id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
       >
     ) => {
       setIsLoading(true);
@@ -252,7 +252,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
       discussionId: number,
       commentData: Omit<
         BaseComment,
-        'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at'
+        'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
       >
     ) => {
       setIsLoading(true);

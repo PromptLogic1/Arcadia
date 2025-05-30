@@ -50,7 +50,7 @@ jest.mock('@/lib/notifications', () => ({
 describe('Password Reset - High Value Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default successful responses
     mockResetPasswordForEmail.mockResolvedValue({});
     mockResetPassword.mockResolvedValue({});
@@ -68,22 +68,35 @@ describe('Password Reset - High Value Tests', () => {
       render(<ForgotPasswordForm />);
 
       // Core form elements must be present
-      expect(screen.getByRole('heading', { name: /reset your password/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /reset your password/i })
+      ).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /send reset link/i })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /back to login/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /send reset link/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /back to login/i })
+      ).toBeInTheDocument();
     });
 
     it('should call API with email when form is submitted', async () => {
       const user = userEvent.setup();
       render(<ForgotPasswordForm />);
 
-      await user.type(screen.getByLabelText(/email address/i), 'user@example.com');
-      await user.click(screen.getByRole('button', { name: /send reset link/i }));
+      await user.type(
+        screen.getByLabelText(/email address/i),
+        'user@example.com'
+      );
+      await user.click(
+        screen.getByRole('button', { name: /send reset link/i })
+      );
 
       // Verify API was called with correct email
       await waitFor(() => {
-        expect(mockResetPasswordForEmail).toHaveBeenCalledWith('user@example.com');
+        expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
+          'user@example.com'
+        );
       });
     });
 
@@ -91,17 +104,26 @@ describe('Password Reset - High Value Tests', () => {
       const user = userEvent.setup();
       render(<ForgotPasswordForm />);
 
-      await user.type(screen.getByLabelText(/email address/i), 'user@example.com');
-      await user.click(screen.getByRole('button', { name: /send reset link/i }));
+      await user.type(
+        screen.getByLabelText(/email address/i),
+        'user@example.com'
+      );
+      await user.click(
+        screen.getByRole('button', { name: /send reset link/i })
+      );
 
       // Should show success state
       await waitFor(() => {
-        expect(screen.getByText(/we've sent you instructions/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/we've sent you instructions/i)
+        ).toBeInTheDocument();
       });
-      
+
       // Form should be hidden, success message shown
       expect(screen.queryByLabelText(/email address/i)).not.toBeInTheDocument();
-      expect(screen.getByText(/check your email inbox and spam folder/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/check your email inbox and spam folder/i)
+      ).toBeInTheDocument();
     });
 
     it('should show error message when API returns error', async () => {
@@ -113,14 +135,19 @@ describe('Password Reset - High Value Tests', () => {
 
       render(<ForgotPasswordForm />);
 
-      await user.type(screen.getByLabelText(/email address/i), 'user@example.com');
-      await user.click(screen.getByRole('button', { name: /send reset link/i }));
+      await user.type(
+        screen.getByLabelText(/email address/i),
+        'user@example.com'
+      );
+      await user.click(
+        screen.getByRole('button', { name: /send reset link/i })
+      );
 
       // Should show error message
       await waitFor(() => {
         expect(screen.getByText(errorMessage)).toBeInTheDocument();
       });
-      
+
       // Should remain in form state
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     });
@@ -136,8 +163,13 @@ describe('Password Reset - High Value Tests', () => {
 
       render(<ForgotPasswordForm />);
 
-      await user.type(screen.getByLabelText(/email address/i), 'user@example.com');
-      await user.click(screen.getByRole('button', { name: /send reset link/i }));
+      await user.type(
+        screen.getByLabelText(/email address/i),
+        'user@example.com'
+      );
+      await user.click(
+        screen.getByRole('button', { name: /send reset link/i })
+      );
 
       // Button should show loading state and be disabled
       expect(screen.getByRole('button', { name: /sending/i })).toBeDisabled();
@@ -145,7 +177,9 @@ describe('Password Reset - High Value Tests', () => {
       // Resolve and verify success
       resolvePromise!({});
       await waitFor(() => {
-        expect(screen.getByText(/we've sent you instructions/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/we've sent you instructions/i)
+        ).toBeInTheDocument();
       });
     });
 
@@ -153,12 +187,19 @@ describe('Password Reset - High Value Tests', () => {
       const user = userEvent.setup();
       render(<ForgotPasswordForm />);
 
-      await user.type(screen.getByLabelText(/email address/i), 'nonexistent@example.com');
-      await user.click(screen.getByRole('button', { name: /send reset link/i }));
+      await user.type(
+        screen.getByLabelText(/email address/i),
+        'nonexistent@example.com'
+      );
+      await user.click(
+        screen.getByRole('button', { name: /send reset link/i })
+      );
 
       await waitFor(() => {
         // Should always show generic message to prevent email enumeration
-        expect(screen.getByText(/if an account exists with/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/if an account exists with/i)
+        ).toBeInTheDocument();
       });
     });
   });
@@ -178,10 +219,14 @@ describe('Password Reset - High Value Tests', () => {
     it('should render all required form elements', () => {
       render(<ResetPasswordForm />);
 
-      expect(screen.getByRole('heading', { name: /reset your password/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /reset your password/i })
+      ).toBeInTheDocument();
       expect(screen.getByLabelText('New Password')).toBeInTheDocument();
       expect(screen.getByLabelText('Confirm New Password')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /reset password/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /reset password/i })
+      ).toBeInTheDocument();
     });
 
     it('should call API with password when valid form is submitted', async () => {
@@ -190,7 +235,10 @@ describe('Password Reset - High Value Tests', () => {
 
       const strongPassword = 'SecurePass123!';
       await user.type(screen.getByLabelText('New Password'), strongPassword);
-      await user.type(screen.getByLabelText('Confirm New Password'), strongPassword);
+      await user.type(
+        screen.getByLabelText('Confirm New Password'),
+        strongPassword
+      );
       await user.click(screen.getByRole('button', { name: /reset password/i }));
 
       await waitFor(() => {
@@ -204,11 +252,16 @@ describe('Password Reset - High Value Tests', () => {
 
       const strongPassword = 'SecurePass123!';
       await user.type(screen.getByLabelText('New Password'), strongPassword);
-      await user.type(screen.getByLabelText('Confirm New Password'), strongPassword);
+      await user.type(
+        screen.getByLabelText('Confirm New Password'),
+        strongPassword
+      );
       await user.click(screen.getByRole('button', { name: /reset password/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/password successfully reset/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/password successfully reset/i)
+        ).toBeInTheDocument();
       });
     });
 
@@ -218,11 +271,16 @@ describe('Password Reset - High Value Tests', () => {
 
       const weakPassword = 'weak';
       await user.type(screen.getByLabelText('New Password'), weakPassword);
-      await user.type(screen.getByLabelText('Confirm New Password'), weakPassword);
+      await user.type(
+        screen.getByLabelText('Confirm New Password'),
+        weakPassword
+      );
       await user.click(screen.getByRole('button', { name: /reset password/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/password does not meet all requirements/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/password does not meet all requirements/i)
+        ).toBeInTheDocument();
       });
 
       // API should not be called
@@ -234,7 +292,10 @@ describe('Password Reset - High Value Tests', () => {
       render(<ResetPasswordForm />);
 
       await user.type(screen.getByLabelText('New Password'), 'SecurePass123!');
-      await user.type(screen.getByLabelText('Confirm New Password'), 'DifferentPass123!');
+      await user.type(
+        screen.getByLabelText('Confirm New Password'),
+        'DifferentPass123!'
+      );
       await user.click(screen.getByRole('button', { name: /reset password/i }));
 
       await waitFor(() => {
@@ -251,7 +312,9 @@ describe('Password Reset - High Value Tests', () => {
       const passwordInput = screen.getByLabelText('New Password');
 
       // Requirements should not be visible initially
-      expect(screen.queryByText(/password requirements/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/password requirements/i)
+      ).not.toBeInTheDocument();
 
       // Focus password input
       await user.click(passwordInput);
@@ -270,7 +333,10 @@ describe('Password Reset - High Value Tests', () => {
 
       const strongPassword = 'SecurePass123!';
       await user.type(screen.getByLabelText('New Password'), strongPassword);
-      await user.type(screen.getByLabelText('Confirm New Password'), strongPassword);
+      await user.type(
+        screen.getByLabelText('Confirm New Password'),
+        strongPassword
+      );
       await user.click(screen.getByRole('button', { name: /reset password/i }));
 
       await waitFor(() => {
@@ -285,19 +351,26 @@ describe('Password Reset - High Value Tests', () => {
       render(<ResetPasswordForm />);
 
       const maliciousInput = '<script>alert("xss")</script>';
-      
+
       await user.type(screen.getByLabelText('New Password'), maliciousInput);
-      await user.type(screen.getByLabelText('Confirm New Password'), maliciousInput);
+      await user.type(
+        screen.getByLabelText('Confirm New Password'),
+        maliciousInput
+      );
 
       // Form should treat input as plain text and remain functional
       expect(screen.getByLabelText('New Password')).toHaveValue(maliciousInput);
-      expect(screen.getByLabelText('Confirm New Password')).toHaveValue(maliciousInput);
-      expect(screen.getByRole('button', { name: /reset password/i })).toBeInTheDocument();
+      expect(screen.getByLabelText('Confirm New Password')).toHaveValue(
+        maliciousInput
+      );
+      expect(
+        screen.getByRole('button', { name: /reset password/i })
+      ).toBeInTheDocument();
     });
 
     it('should require email input in forgot password form', () => {
       render(<ForgotPasswordForm />);
-      
+
       const emailInput = screen.getByLabelText(/email address/i);
       expect(emailInput).toBeRequired();
       expect(emailInput).toHaveAttribute('type', 'email');
@@ -305,14 +378,14 @@ describe('Password Reset - High Value Tests', () => {
 
     it('should require password inputs in reset form', () => {
       render(<ResetPasswordForm />);
-      
+
       const passwordInput = screen.getByLabelText('New Password');
       const confirmInput = screen.getByLabelText('Confirm New Password');
-      
+
       expect(passwordInput).toBeRequired();
       expect(confirmInput).toBeRequired();
       expect(passwordInput).toHaveAttribute('type', 'password');
       expect(confirmInput).toHaveAttribute('type', 'password');
     });
   });
-}); 
+});

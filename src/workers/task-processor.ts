@@ -32,14 +32,20 @@ export interface TaskContext {
 class TaskProcessor {
   private config: TaskProcessorOptions;
   private processingTasks = new Map<string, TaskContext>();
-  private taskQueue: Array<{ taskId: string; processor: () => Promise<unknown> }> = [];
+  private taskQueue: Array<{
+    taskId: string;
+    processor: () => Promise<unknown>;
+  }> = [];
   private isProcessing = false;
 
   constructor(config: TaskProcessorOptions) {
     this.config = config;
   }
 
-  async processTask(taskId: string, processor: () => Promise<unknown>): Promise<unknown> {
+  async processTask(
+    taskId: string,
+    processor: () => Promise<unknown>
+  ): Promise<unknown> {
     if (this.processingTasks.has(taskId)) {
       throw new Error(`Task ${taskId} is already being processed`);
     }
@@ -65,7 +71,10 @@ class TaskProcessor {
     return this.executeTask(taskId, processor);
   }
 
-  private async executeTask(taskId: string, processor: () => Promise<unknown>): Promise<unknown> {
+  private async executeTask(
+    taskId: string,
+    processor: () => Promise<unknown>
+  ): Promise<unknown> {
     const context: TaskContext = {
       taskId,
       type: 'task',
@@ -77,33 +86,36 @@ class TaskProcessor {
 
     try {
       logger.debug('Starting task processing', {
-        metadata: { taskId, processor: 'TaskProcessor' }
+        metadata: { taskId, processor: 'TaskProcessor' },
       });
 
       const result = await Promise.race([
         processor(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Task timeout')), this.config.ttl * 1000)
-        )
+          setTimeout(
+            () => reject(new Error('Task timeout')),
+            this.config.ttl * 1000
+          )
+        ),
       ]);
 
       logger.debug('Task processing completed', {
-        metadata: { 
-          taskId, 
+        metadata: {
+          taskId,
           processor: 'TaskProcessor',
-          duration: Date.now() - context.startTime
-        }
+          duration: Date.now() - context.startTime,
+        },
       });
 
       return result;
     } catch (error) {
       logger.error('Task processing failed', error as Error, {
-        metadata: { 
-          taskId, 
+        metadata: {
+          taskId,
           processor: 'TaskProcessor',
           duration: Date.now() - context.startTime,
-          retries: context.retries
-        }
+          retries: context.retries,
+        },
       });
       throw error;
     } finally {
@@ -123,21 +135,24 @@ class TaskProcessor {
 
     this.isProcessing = true;
     const nextTask = this.taskQueue.shift();
-    
+
     if (nextTask) {
       try {
         await nextTask.processor();
       } catch (error) {
         logger.error('Queued task failed', error as Error, {
-          metadata: { taskId: nextTask.taskId }
+          metadata: { taskId: nextTask.taskId },
         });
       }
     }
 
     this.isProcessing = false;
-    
+
     // Process next task if available
-    if (this.taskQueue.length > 0 && this.processingTasks.size < this.config.concurrency) {
+    if (
+      this.taskQueue.length > 0 &&
+      this.processingTasks.size < this.config.concurrency
+    ) {
       setImmediate(() => this.processQueue());
     }
   }
@@ -161,17 +176,20 @@ class TaskProcessor {
   // Graceful shutdown
   async shutdown(): Promise<void> {
     logger.info('Shutting down task processor', {
-      metadata: { 
+      metadata: {
         activeTasks: this.processingTasks.size,
-        queuedTasks: this.taskQueue.length
-      }
+        queuedTasks: this.taskQueue.length,
+      },
     });
 
     // Wait for active tasks to complete (with timeout)
     const shutdownTimeout = 30000; // 30 seconds
     const startTime = Date.now();
 
-    while (this.processingTasks.size > 0 && (Date.now() - startTime) < shutdownTimeout) {
+    while (
+      this.processingTasks.size > 0 &&
+      Date.now() - startTime < shutdownTimeout
+    ) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
@@ -191,13 +209,13 @@ const defaultWorker = createWorker({
   routes: {
     '/api/process-task': {
       retries: 3,
-      timeout: 9500 // Keep under 10s for Vercel
+      timeout: 9500, // Keep under 10s for Vercel
     },
     '/api/bingo/sessions': {
       retries: 2,
-      timeout: 5000
-    }
-  }
+      timeout: 5000,
+    },
+  },
 });
 
 export default defaultWorker;

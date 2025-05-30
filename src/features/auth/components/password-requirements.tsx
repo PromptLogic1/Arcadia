@@ -83,30 +83,27 @@ const passwordRequirementsVariants = cva(
 );
 
 // 🎨 CVA Variant System - Title Styling
-const titleVariants = cva(
-  'font-medium transition-colors duration-200',
-  {
-    variants: {
-      variant: {
-        default: 'text-gray-300',
-        compact: 'text-gray-400 text-sm',
-        minimal: 'text-gray-400 text-sm',
-        gaming: 'text-cyan-300',
-        neon: 'text-cyan-200',
-        cyber: 'text-fuchsia-200',
-      },
-      size: {
-        sm: 'text-sm mb-2',
-        default: 'text-sm mb-3',
-        lg: 'text-base mb-4',
-      },
+const titleVariants = cva('font-medium transition-colors duration-200', {
+  variants: {
+    variant: {
+      default: 'text-gray-300',
+      compact: 'text-gray-400 text-sm',
+      minimal: 'text-gray-400 text-sm',
+      gaming: 'text-cyan-300',
+      neon: 'text-cyan-200',
+      cyber: 'text-fuchsia-200',
     },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
+    size: {
+      sm: 'text-sm mb-2',
+      default: 'text-sm mb-3',
+      lg: 'text-base mb-4',
     },
-  }
-);
+  },
+  defaultVariants: {
+    variant: 'default',
+    size: 'default',
+  },
+});
 
 // 🎨 CVA Variant System - Requirement Item Styling
 const requirementItemVariants = cva(
@@ -174,63 +171,60 @@ const requirementItemVariants = cva(
 );
 
 // 🎨 CVA Variant System - Icon Styling
-const iconVariants = cva(
-  'flex-shrink-0 transition-all duration-200',
-  {
-    variants: {
-      variant: {
-        default: '',
-        compact: '',
-        minimal: '',
-        gaming: 'drop-shadow-sm',
-        neon: 'drop-shadow-md',
-        cyber: 'drop-shadow-lg',
-      },
-      size: {
-        sm: 'h-3 w-3',
-        default: 'h-4 w-4',
-        lg: 'h-5 w-5',
-      },
-      state: {
-        met: '',
-        unmet: '',
-      },
+const iconVariants = cva('flex-shrink-0 transition-all duration-200', {
+  variants: {
+    variant: {
+      default: '',
+      compact: '',
+      minimal: '',
+      gaming: 'drop-shadow-sm',
+      neon: 'drop-shadow-md',
+      cyber: 'drop-shadow-lg',
     },
-    compoundVariants: [
-      // Met state icons
-      {
-        state: 'met',
-        className: 'text-green-400',
-      },
-      // Gaming theme met icons
-      {
-        variant: 'gaming',
-        state: 'met',
-        className: 'text-green-400 drop-shadow-[0_0_4px_rgba(34,197,94,0.4)]',
-      },
-      // Neon theme met icons
-      {
-        variant: 'neon',
-        state: 'met',
-        className: 'text-green-300 drop-shadow-[0_0_6px_rgba(34,197,94,0.5)]',
-      },
-      // Cyber theme met icons
-      {
-        variant: 'cyber',
-        state: 'met',
-        className: 'text-green-200 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]',
-      },
-    ],
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-      state: 'unmet',
+    size: {
+      sm: 'h-3 w-3',
+      default: 'h-4 w-4',
+      lg: 'h-5 w-5',
     },
-  }
-);
+    state: {
+      met: '',
+      unmet: '',
+    },
+  },
+  compoundVariants: [
+    // Met state icons
+    {
+      state: 'met',
+      className: 'text-green-400',
+    },
+    // Gaming theme met icons
+    {
+      variant: 'gaming',
+      state: 'met',
+      className: 'text-green-400 drop-shadow-[0_0_4px_rgba(34,197,94,0.4)]',
+    },
+    // Neon theme met icons
+    {
+      variant: 'neon',
+      state: 'met',
+      className: 'text-green-300 drop-shadow-[0_0_6px_rgba(34,197,94,0.5)]',
+    },
+    // Cyber theme met icons
+    {
+      variant: 'cyber',
+      state: 'met',
+      className: 'text-green-200 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]',
+    },
+  ],
+  defaultVariants: {
+    variant: 'default',
+    size: 'default',
+    state: 'unmet',
+  },
+});
 
 // 🧱 Enhanced Props Interface
-interface EnhancedPasswordRequirementsProps 
+interface EnhancedPasswordRequirementsProps
   extends Omit<PasswordRequirementsProps, 'variant'>,
     VariantProps<typeof passwordRequirementsVariants> {
   variant?: VariantProps<typeof passwordRequirementsVariants>['variant'];
@@ -243,7 +237,10 @@ interface EnhancedPasswordRequirementsProps
 }
 
 // 🎯 Forward Ref Implementation
-export const PasswordRequirements = React.forwardRef<HTMLDivElement, EnhancedPasswordRequirementsProps>(
+export const PasswordRequirements = React.forwardRef<
+  HTMLDivElement,
+  EnhancedPasswordRequirementsProps
+>(
   (
     {
       requirements,
@@ -270,7 +267,7 @@ export const PasswordRequirements = React.forwardRef<HTMLDivElement, EnhancedPas
       const completed = requirementsList.filter(item => item.met).length;
       const total = requirementsList.length;
       const percentage = Math.round((completed / total) * 100);
-      
+
       return { completed, total, percentage };
     }, [requirementsList]);
 
@@ -283,28 +280,41 @@ export const PasswordRequirements = React.forwardRef<HTMLDivElement, EnhancedPas
     }, [propState, progressStats.percentage]);
 
     // 🧼 Pure Logic - Icon Selection
-    const getIcon = React.useCallback((met: boolean) => {
-      const iconProps = { className: iconVariants({ variant, size, state: met ? 'met' : 'unmet' }) };
-      
-      if (met) {
-        return <Check {...iconProps} />;
-      }
-      
-      switch (iconSet) {
-        case 'gaming':
-          return <Info {...iconProps} />;
-        default:
-          return <X {...iconProps} />;
-      }
-    }, [variant, size, iconSet]);
+    const getIcon = React.useCallback(
+      (met: boolean) => {
+        const iconProps = {
+          className: iconVariants({
+            variant,
+            size,
+            state: met ? 'met' : 'unmet',
+          }),
+        };
+
+        if (met) {
+          return <Check {...iconProps} />;
+        }
+
+        switch (iconSet) {
+          case 'gaming':
+            return <Info {...iconProps} />;
+          default:
+            return <X {...iconProps} />;
+        }
+      },
+      [variant, size, iconSet]
+    );
 
     // 🎨 Style Calculations
-    const containerStyles = passwordRequirementsVariants({ variant, size, state: derivedState });
+    const containerStyles = passwordRequirementsVariants({
+      variant,
+      size,
+      state: derivedState,
+    });
     const titleStyles = titleVariants({ variant, size });
 
     // Filter requirements if hideCompleted is enabled
     const displayedRequirements = React.useMemo(() => {
-      return hideCompleted 
+      return hideCompleted
         ? requirementsList.filter(item => !item.met)
         : requirementsList;
     }, [requirementsList, hideCompleted]);
@@ -323,16 +333,18 @@ export const PasswordRequirements = React.forwardRef<HTMLDivElement, EnhancedPas
               {customTitle || 'Password Requirements:'}
             </p>
             {showProgress && (
-              <span className={cn(
-                'text-xs font-medium transition-colors duration-200',
-                {
-                  'text-gray-400': variant === 'default',
-                  'text-cyan-300': variant === 'gaming',
-                  'text-cyan-200': variant === 'neon',
-                  'text-fuchsia-200': variant === 'cyber',
-                  'text-green-400': derivedState === 'complete',
-                }
-              )}>
+              <span
+                className={cn(
+                  'text-xs font-medium transition-colors duration-200',
+                  {
+                    'text-gray-400': variant === 'default',
+                    'text-cyan-300': variant === 'gaming',
+                    'text-cyan-200': variant === 'neon',
+                    'text-fuchsia-200': variant === 'cyber',
+                    'text-green-400': derivedState === 'complete',
+                  }
+                )}
+              >
                 {progressStats.completed}/{progressStats.total}
               </span>
             )}
@@ -341,39 +353,39 @@ export const PasswordRequirements = React.forwardRef<HTMLDivElement, EnhancedPas
 
         {/* Progress bar for certain variants */}
         {showProgress && (variant === 'neon' || variant === 'cyber') && (
-          <div className={cn(
-            'w-full h-1 rounded-full overflow-hidden',
-            {
+          <div
+            className={cn('h-1 w-full overflow-hidden rounded-full', {
               'bg-gray-700': variant === 'neon',
               'bg-gray-800': variant === 'cyber',
-            }
-          )}>
-            <div 
-              className={cn(
-                'h-full transition-all duration-500 ease-out',
-                {
-                  'bg-gradient-to-r from-cyan-500 to-blue-500': variant === 'neon',
-                  'bg-gradient-to-r from-fuchsia-500 to-purple-500': variant === 'cyber',
-                  'from-green-500 to-emerald-500': derivedState === 'complete',
-                }
-              )}
+            })}
+          >
+            <div
+              className={cn('h-full transition-all duration-500 ease-out', {
+                'bg-gradient-to-r from-cyan-500 to-blue-500':
+                  variant === 'neon',
+                'bg-gradient-to-r from-fuchsia-500 to-purple-500':
+                  variant === 'cyber',
+                'from-green-500 to-emerald-500': derivedState === 'complete',
+              })}
               style={{ width: `${progressStats.percentage}%` }}
             />
           </div>
         )}
 
         {/* Requirements List */}
-        <div className={cn('space-y-1', {
-          'space-y-0.5': size === 'sm',
-          'space-y-2': size === 'lg',
-        })}>
+        <div
+          className={cn('space-y-1', {
+            'space-y-0.5': size === 'sm',
+            'space-y-2': size === 'lg',
+          })}
+        >
           {displayedRequirements.map(({ label, met }) => (
             <div
               key={label}
-              className={requirementItemVariants({ 
-                variant, 
-                size, 
-                state: met ? 'met' : 'unmet' 
+              className={requirementItemVariants({
+                variant,
+                size,
+                state: met ? 'met' : 'unmet',
               })}
             >
               {getIcon(met)}
@@ -390,4 +402,9 @@ PasswordRequirements.displayName = 'PasswordRequirements';
 
 // 🎯 Type Exports
 export type { EnhancedPasswordRequirementsProps as PasswordRequirementsProps };
-export { passwordRequirementsVariants, titleVariants, requirementItemVariants, iconVariants }; 
+export {
+  passwordRequirementsVariants,
+  titleVariants,
+  requirementItemVariants,
+  iconVariants,
+};

@@ -41,8 +41,8 @@ export function ForgotPasswordForm() {
         metadata: { email },
       });
       setError(
-        error instanceof Error 
-          ? error.message 
+        error instanceof Error
+          ? error.message
           : 'An error occurred. Please try again.'
       );
       // Note: The notification is already handled by the auth store

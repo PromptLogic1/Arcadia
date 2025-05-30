@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { RateLimiter } from '@/lib/rate-limiter';
 import type { BoardCell } from '@/features/bingo-boards/types';
 import { log } from '@/lib/logger';
-import type { SessionStatus } from '@/types/database.core';
+import type { SessionStatus } from '@/types/database-core';
 
 const rateLimiter = new RateLimiter();
 

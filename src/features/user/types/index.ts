@@ -3,7 +3,7 @@ import type {
   TablesInsert,
   TablesUpdate,
   Enums,
-} from '@/types/database.types';
+} from '@/types/database-types';
 
 // Database types
 export type User = Tables<'users'>;

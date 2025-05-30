@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DialogWrapper } from './shared/DialogWrapper';
-import { FilterGroup } from '../shared/FilterGroup';
+import { CommunityGameFilters } from './CommunityGameFilters';
 
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
@@ -113,7 +113,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
           <label className="text-sm font-medium text-gray-200">
             Game & Challenge Type
           </label>
-          <FilterGroup
+          <CommunityGameFilters
             selectedGame={selectedGame}
             selectedChallenge={selectedChallenge}
             onGameChange={setSelectedGame}

@@ -1,4 +1,4 @@
-import type { Tables, TablesUpdate, Enums } from '@/types/database.types';
+import type { Tables, TablesUpdate, Enums } from '@/types/database-types';
 
 // Database types
 export type User = Tables<'users'>;

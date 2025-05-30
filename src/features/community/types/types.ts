@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '@/types/database-types';
 
 // Database types
 export type Comment = Tables<'comments'>;
@@ -27,10 +27,13 @@ export interface Event {
   readonly title: string;
   readonly date: string;
   readonly game: string;
-  readonly participants: number;
+  participants: number;
+  maxParticipants?: number;
   readonly prize: string;
   readonly description: string;
   readonly tags: readonly string[];
+  readonly created_at?: string;
+  readonly updated_at?: string;
 }
 
 // Component prop types
@@ -38,7 +41,6 @@ export interface CardWrapperProps {
   readonly children: ReactNode;
   readonly onClick?: () => void;
   readonly className?: string;
-  readonly hoverAccentColor?: 'cyan' | 'fuchsia' | 'lime';
 }
 
 // Form types for creating discussions/comments

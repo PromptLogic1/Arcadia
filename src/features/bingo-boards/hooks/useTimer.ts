@@ -379,7 +379,10 @@ export const useTimer = ({
   useEffect(() => {
     const saveState = () => {
       try {
-        localStorage.setItem(`timerState_local`, JSON.stringify(timerStateRef.current));
+        localStorage.setItem(
+          `timerState_local`,
+          JSON.stringify(timerStateRef.current)
+        );
       } catch (error) {
         log.error('Error saving timer state', error, {
           metadata: { hook: 'useTimer' },

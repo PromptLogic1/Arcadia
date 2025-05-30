@@ -28,7 +28,7 @@ const path = require('path');
 const CONFIG = {
   PROJECT_ID: 'cnotiupdqbdxxxjrcqvb',
   MIGRATIONS_DIR: 'supabase/migrations',
-  TYPES_FILE: 'types/database.generated.ts',
+  TYPES_FILE: 'types/database-generated.ts',
   BACKUP_DIR: 'backups/migrations',
   MAX_MIGRATION_SIZE: 10 * 1024 * 1024, // 10MB
 };

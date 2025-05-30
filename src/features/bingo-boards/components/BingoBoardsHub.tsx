@@ -7,7 +7,7 @@ import {
   DIFFICULTY_OPTIONS,
   DEFAULT_SORT_OPTIONS,
 } from '@/components/filter/types';
-import { BoardCard } from './BoardCard';
+import { default as BoardCard } from './board-card';
 import { CreateBoardForm } from './CreateBoardForm';
 import { NeonText } from '@/components/ui/NeonText';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
@@ -20,7 +20,6 @@ export default function BingoBoardsHub() {
     filterSelections,
     handleFilterChange,
     setIsCreateFormOpen,
-    handleBoardSelect,
     handleCreateBoard,
   } = useBingoBoardsHub();
 
@@ -63,17 +62,14 @@ export default function BingoBoardsHub() {
 
       <div className="grid grid-cols-1 gap-4">
         {boards.map(board => (
-          <BoardCard
-            key={board.id}
-            board={board}
-            onClick={() => handleBoardSelect(board.id)}
-          />
+          <BoardCard key={board.id} board={board} />
         ))}
       </div>
 
       <CreateBoardForm
         isOpen={isCreateFormOpen}
-        createBoard={handleCreateBoard}
+        onOpenChange={setIsCreateFormOpen}
+        createBoardAction={handleCreateBoard}
       />
     </div>
   );

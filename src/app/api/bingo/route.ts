@@ -5,8 +5,8 @@ import type {
   DifficultyLevel,
   GameCategory,
   BoardSettings,
-} from '@/types/database.types';
-import { Constants } from '@/types/database.types';
+} from '@/types';
+import { Constants } from '@/types';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 

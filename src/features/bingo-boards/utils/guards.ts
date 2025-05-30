@@ -1,5 +1,5 @@
 import type { GameCategory, Difficulty } from '../types';
-import { Constants } from '@/types/database.core';
+import { Constants } from '@/types/database-core';
 
 export function isValidGameCategory(value: string): value is GameCategory {
   return (Constants.public.Enums.game_category as readonly string[]).includes(

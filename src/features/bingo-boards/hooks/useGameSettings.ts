@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
-import type { BoardSettings, WinConditions } from '@/types/database.types';
+import type { BoardSettings, WinConditions } from '@/types';
 import { log } from '@/lib/logger';
 
 // Default settings aligned with database structure

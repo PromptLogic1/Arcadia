@@ -12,25 +12,41 @@ export const passwordRequirementsSchema = z.object({
 });
 
 // Base password validation with dynamic requirements
-export const createPasswordSchema = (requirements = passwordRequirementsSchema.parse({})) => {
-  let schema = z.string().min(requirements.minLength, `Password must be at least ${requirements.minLength} characters`);
-  
+export const createPasswordSchema = (
+  requirements = passwordRequirementsSchema.parse({})
+) => {
+  let schema = z
+    .string()
+    .min(
+      requirements.minLength,
+      `Password must be at least ${requirements.minLength} characters`
+    );
+
   if (requirements.requireUppercase) {
-    schema = schema.regex(/[A-Z]/, 'Password must contain at least one uppercase letter');
+    schema = schema.regex(
+      /[A-Z]/,
+      'Password must contain at least one uppercase letter'
+    );
   }
-  
+
   if (requirements.requireLowercase) {
-    schema = schema.regex(/[a-z]/, 'Password must contain at least one lowercase letter');
+    schema = schema.regex(
+      /[a-z]/,
+      'Password must contain at least one lowercase letter'
+    );
   }
-  
+
   if (requirements.requireNumber) {
     schema = schema.regex(/\d/, 'Password must contain at least one number');
   }
-  
+
   if (requirements.requireSpecial) {
-    schema = schema.regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+    schema = schema.regex(
+      /[^A-Za-z0-9]/,
+      'Password must contain at least one special character'
+    );
   }
-  
+
   return schema;
 };
 
@@ -40,28 +56,31 @@ export const loginFormSchema = z.object({
     .string()
     .min(1, 'Email is required')
     .email('Please enter a valid email address'),
-  password: z
-    .string()
-    .min(1, 'Password is required'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 // Signup form schema
-export const signupFormSchema = z.object({
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(20, 'Username must be less than 20 characters')
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
-  password: createPasswordSchema(),
-  confirmPassword: z.string().min(1, 'Please confirm your password'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+export const signupFormSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, 'Username must be at least 3 characters')
+      .max(20, 'Username must be less than 20 characters')
+      .regex(
+        /^[a-zA-Z0-9_-]+$/,
+        'Username can only contain letters, numbers, underscores, and hyphens'
+      ),
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address'),
+    password: createPasswordSchema(),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 // Forgot password form schema
 export const forgotPasswordFormSchema = z.object({
@@ -72,13 +91,15 @@ export const forgotPasswordFormSchema = z.object({
 });
 
 // Reset password form schema
-export const resetPasswordFormSchema = z.object({
-  password: createPasswordSchema(),
-  confirmPassword: z.string().min(1, 'Please confirm your password'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+export const resetPasswordFormSchema = z
+  .object({
+    password: createPasswordSchema(),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 // OAuth provider schema
 export const oauthProviderSchema = z.enum(['google', 'github', 'discord']);
@@ -108,4 +129,4 @@ export const authErrorSchema = z.object({
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
-export type AuthError = z.infer<typeof authErrorSchema>; 
+export type AuthError = z.infer<typeof authErrorSchema>;

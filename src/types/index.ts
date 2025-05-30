@@ -33,19 +33,19 @@ export type {
   TagCategory,
   WinConditions,
   Json,
-} from '../../types/database.types';
+} from '../../types/database-types';
 
 // Alias for consistency (eliminate Difficulty vs DifficultyLevel confusion)
-export type { DifficultyLevel as Difficulty } from '../../types/database.core';
+export type { DifficultyLevel as Difficulty } from '../../types/database-core';
 
 // Application-specific product types
-export * from './product.types';
+export * from './product-types';
 
 // Import types we need to reference
 import type {
   DifficultyLevel,
   GameCategory as DbGameCategory,
-} from '../../types/database.core';
+} from '../../types/database-core';
 
 // Type aliases for internal use
 type Difficulty = DifficultyLevel;
@@ -75,7 +75,7 @@ export interface BingoCard {
 // =============================================================================
 
 // Re-export database constants
-export { Constants } from '../../types/database.core';
+export { Constants } from '../../types/database-core';
 
 // Application constants derived from database types
 export const DIFFICULTIES: Difficulty[] = [

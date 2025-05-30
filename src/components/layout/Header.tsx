@@ -80,10 +80,10 @@ const Header: React.FC = () => {
   const navItems = useMemo<NavItem[]>(
     () => [
       { href: '/', label: 'Home' },
-      { href: '/playarea', label: 'Play Area' },
-      { href: '/challengehub', label: 'Challenge Hub' },
-      { href: '/community', label: 'Community' },
       { href: '/about', label: 'About' },
+      { href: '/play-area', label: 'Play Area' },
+      { href: '/challenge-hub', label: 'Challenge Hub' },
+      { href: '/community', label: 'Community' },
     ],
     []
   );

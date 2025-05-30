@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/ui/ScrollToTop';
-import { Providers } from '../components/Providers';
+import { Providers } from '../components/providers';
 import '../styles/globals.css';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';

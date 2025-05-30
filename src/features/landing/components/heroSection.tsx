@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Play, Users } from 'lucide-react';
+import { Play, Users, Sparkles } from 'lucide-react';
 import NeonBorder from '@/components/ui/NeonBorder';
 import ArcadeDecoration from '@/components/ui/ArcadeDecoration';
 import { NeonText } from '@/components/ui/NeonText';
@@ -28,69 +28,92 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
 
     return (
       <section
-        className="animate-gradient-x relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 py-24"
+        className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background py-24"
         id="home"
       >
-        <ArcadeDecoration className="left-10 top-10 opacity-10" />
-        <ArcadeDecoration className="bottom-10 right-10 opacity-10" />
-        <div className="container mx-auto flex flex-col items-center justify-center px-4">
+        <div className="absolute inset-0 bg-linear-to-br/oklch from-background via-background/95 to-accent/5" />
+        <div className="absolute inset-0 gradient-radial-glow" />
+        
+        <ArcadeDecoration className="left-10 top-10 opacity-10 animate-float" />
+        <ArcadeDecoration className="bottom-10 right-10 opacity-10 animate-float" style={{ animationDelay: '1s' }} />
+        
+        <div className="container mx-auto flex flex-col items-center justify-center px-4 relative z-10">
           <motion.div
-            className="w-full max-w-3xl text-center"
+            className="w-full max-w-4xl text-center"
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="mb-8 text-6xl font-extrabold leading-tight tracking-tight md:text-7xl">
+            <h1 className="mb-8 text-6xl font-extrabold leading-tight tracking-tight md:text-7xl lg:text-8xl">
               Welcome to{' '}
               <span className="mt-2 block">
-                <NeonText intensity="high">Arcadia</NeonText>
+                <NeonText intensity="high">
+                  <span className="text-hero animate-glow gradient-primary bg-clip-text text-transparent">
+                    Arcadia
+                  </span>
+                </NeonText>
               </span>
             </h1>
+            
             <motion.p
-              className="mb-12 text-xl leading-relaxed text-cyan-200 md:text-2xl"
+              className="mb-12 text-xl leading-relaxed text-muted-foreground md:text-2xl text-glow max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Experience the thrill of gaming with innovative challenges
+              Experience the thrill of gaming with innovative challenges, enhanced graphics, and modern interactions
             </motion.p>
+            
             <motion.div
-              className="flex flex-col justify-center gap-6 sm:flex-row"
+              className="flex flex-col justify-center gap-6 sm:flex-row items-center"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <Button className="w-full transform rounded-full bg-cyan-500 px-10 py-6 text-lg text-white shadow-lg shadow-cyan-500/50 transition-all duration-300 hover:scale-105 hover:bg-cyan-600 sm:w-auto">
-                <Play className="mr-3 h-6 w-6" aria-hidden="true" />
+              <Button 
+                variant="gradient" 
+                size="lg" 
+                className="touch-target hover-glow animate-glow group"
+                shadow="colored"
+                glow="normal"
+              >
+                <Play className="mr-3 h-6 w-6 group-hover:animate-pulse" aria-hidden="true" />
                 Start Playing
+                <Sparkles className="ml-2 h-4 w-4 opacity-70 group-hover:opacity-100 transition-opacity" />
               </Button>
+              
               <Button
-                variant="ghost"
-                className="w-full transform rounded-full border-2 border-cyan-500/20 px-10 py-6 text-lg text-cyan-400 transition-all duration-300 hover:scale-105 hover:bg-cyan-500/20 hover:text-cyan-300 sm:w-auto"
+                variant="glass"
+                size="lg"
+                className="touch-target hover-lift border-primary/30"
+                glow="subtle"
               >
                 <Users className="mr-3 h-6 w-6" aria-hidden="true" />
                 Join Community
               </Button>
             </motion.div>
           </motion.div>
+          
           <motion.div
-            className="mt-16 w-full max-w-3xl"
+            className="mt-16 w-full max-w-4xl @container"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.6 }}
           >
-            <NeonBorder className="p-0.5">
-              <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-gray-800/80 backdrop-blur-sm">
+            <NeonBorder className="p-0.5 hover-lift">
+              <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-lg glass-intense">
                 <Image
                   src="/placeholder.svg"
                   alt="Arcadia Gameplay"
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-700 hover:scale-105"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
-                <div className="absolute bottom-8 left-8 right-8 text-center">
-                  <h2 className="mb-4 text-4xl font-bold md:text-5xl">
+                
+                <div className="absolute inset-0 mask-fade-bottom bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                
+                <div className="absolute bottom-8 left-8 right-8 text-center safe-center">
+                  <h2 className="mb-4 text-4xl font-bold md:text-5xl @sm:text-6xl">
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={currentChallenge}
@@ -98,20 +121,47 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -20, scale: 0.95 }}
                         transition={{ duration: 0.4 }}
-                        className="inline-block rounded-lg bg-gray-900/60 px-4 py-2 shadow-lg"
+                        className="inline-block rounded-lg glass p-4 text-shadow-lg hover-glow"
                       >
                         <NeonText intensity="high">
-                          {currentChallengeName}
+                          <span className="text-neon">
+                            {currentChallengeName}
+                          </span>
                         </NeonText>
                       </motion.span>
                     </AnimatePresence>
                   </h2>
-                  <p className="text-xl text-cyan-200">
+                  <p className="text-xl text-muted-foreground text-glow @sm:text-2xl">
                     Challenge yourself and others
                   </p>
                 </div>
               </div>
             </NeonBorder>
+          </motion.div>
+          
+          <motion.div
+            className="mt-16 grid gap-6 grid-cols-1 @sm:grid-cols-3 w-full max-w-4xl"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+          >
+            {[
+              { icon: '🎮', title: 'Interactive Gaming', desc: 'Touch-optimized controls' },
+              { icon: '🌟', title: 'Modern Effects', desc: 'Enhanced visual feedback' },
+              { icon: '📱', title: 'Cross-Device', desc: 'Adaptive to your device' }
+            ].map((feature, index) => (
+              <div 
+                key={feature.title}
+                className="glass touch-target hover-lift text-center p-6 rounded-lg"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="text-4xl mb-3 animate-float" style={{ animationDelay: `${index * 0.5}s` }}>
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-glow">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.desc}</p>
+              </div>
+            ))}
           </motion.div>
         </div>
       </section>

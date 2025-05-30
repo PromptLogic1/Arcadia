@@ -1,13 +1,16 @@
 import { createClient } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
-import type { ProductRow } from '@/src/types/product.types';
+import { notFound as _notFound } from 'next/navigation';
+import type { ProductRow } from '@/src/types/product-types';
 import type { QueryResultRow } from '@vercel/postgres';
 
 export async function generateStaticParams() {
   try {
     // Skip static generation if no database connection is available
     if (!process.env.POSTGRES_URL_NON_POOLING && !process.env.POSTGRES_URL) {
-      console.log('No PostgreSQL connection available during build, skipping static generation');
+      console.log(
+        'No PostgreSQL connection available during build, skipping static generation'
+      );
       return [];
     }
 

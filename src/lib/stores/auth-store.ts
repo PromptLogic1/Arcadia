@@ -1,7 +1,11 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
-import { User as _User, Session as _Session, AuthError as _AuthError } from '@supabase/supabase-js';
+import {
+  User as _User,
+  Session as _Session,
+  AuthError as _AuthError,
+} from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from './types';
 import { logger } from '@/lib/logger';
@@ -126,14 +130,21 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         initializeApp: async () => {
           try {
             get().setLoading(true);
-            
+
             let supabase;
             try {
               supabase = createClient();
             } catch (clientError) {
-              logger.warn('Failed to create Supabase client during initialization', {
-                metadata: { store: 'AuthStore', phase: 'client-creation', error: (clientError as Error).message },
-              });
+              logger.warn(
+                'Failed to create Supabase client during initialization',
+                {
+                  metadata: {
+                    store: 'AuthStore',
+                    phase: 'client-creation',
+                    error: (clientError as Error).message,
+                  },
+                }
+              );
               // If we can't create the client, clear the user and return early
               get().clearUser();
               return;
@@ -147,9 +158,12 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             // If no user or error, just clear the store and return
             if (!user || authError) {
               if (authError) {
-                logger.info('No authenticated user found during initialization', {
-                  metadata: { store: 'AuthStore', error: authError.message },
-                });
+                logger.info(
+                  'No authenticated user found during initialization',
+                  {
+                    metadata: { store: 'AuthStore', error: authError.message },
+                  }
+                );
               }
               get().clearUser();
               return;
@@ -585,9 +599,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           }
         },
 
-        resetPasswordForEmail: async (
-          email: string
-        ): Promise<AuthResponse> => {
+        resetPasswordForEmail: async (email: string): Promise<AuthResponse> => {
           try {
             const supabase = createClient();
             const { error } = await supabase.auth.resetPasswordForEmail(email, {

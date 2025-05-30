@@ -1,7 +1,5 @@
 // Import database types
-import type {
-  Tables,
-} from '../../../types/database.types';
+import type { Tables } from '../../../types/database-types';
 
 // User Types
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
@@ -40,7 +38,7 @@ export interface AuthUser {
 export type {
   GameCategory,
   DifficultyLevel,
-} from '../../../types/database.types';
+} from '../../../types/database-types';
 
 export interface BoardCell {
   id: string;

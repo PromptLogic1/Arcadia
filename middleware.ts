@@ -7,8 +7,8 @@ const protectedPaths = [
   '/user',
   '/settings',
   '/admin',
-  '/challengehub',
-  '/playarea',
+  '/challenge-hub',
+  '/play-area',
 ];
 
 // Define paths that are auth-related (should redirect if already authenticated)
@@ -17,34 +17,61 @@ const authPaths = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Redirect old paths
+  if (pathname.startsWith('/challengehub')) {
+    const newPath = pathname.replace('/challengehub', '/challenge-hub');
+    return NextResponse.redirect(new URL(newPath, request.url));
+  }
+  if (pathname.startsWith('/playarea')) {
+    const newPath = pathname.replace('/playarea', '/play-area');
+    return NextResponse.redirect(new URL(newPath, request.url));
+  }
+
   try {
+    // Validate required environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      logger.error(
+        'Missing required Supabase environment variables',
+        undefined,
+        {
+          component: 'middleware',
+          metadata: {
+            pathname,
+            hasUrl: !!supabaseUrl,
+            hasAnonKey: !!supabaseAnonKey,
+          },
+        }
+      );
+      // Return next() to prevent breaking the app, but log the error
+      return NextResponse.next({ request });
+    }
+
     // Create response and Supabase client with proper cookie handling
     let supabaseResponse = NextResponse.next({
       request,
     });
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => 
-              request.cookies.set(name, value)
-            );
-            supabaseResponse = NextResponse.next({
-              request,
-            });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              supabaseResponse.cookies.set(name, value, options)
-            );
-          },
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
         },
-      }
-    );
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    });
 
     // IMPORTANT: Do not run code between createServerClient and
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
@@ -56,7 +83,9 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     // Check if the path is protected
-    const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+    const isProtectedPath = protectedPaths.some(path =>
+      pathname.startsWith(path)
+    );
     const isAuthPath = authPaths.some(path => pathname.startsWith(path));
 
     // Handle authentication logic
@@ -70,8 +99,13 @@ export async function middleware(request: NextRequest) {
     if (user && isAuthPath) {
       // User is authenticated and tries to access auth pages
       const redirectedFrom = request.nextUrl.searchParams.get('redirectedFrom');
-      if (redirectedFrom && !authPaths.some(path => redirectedFrom.startsWith(path))) {
-        return NextResponse.redirect(new URL(redirectedFrom, request.nextUrl.origin));
+      if (
+        redirectedFrom &&
+        !authPaths.some(path => redirectedFrom.startsWith(path))
+      ) {
+        return NextResponse.redirect(
+          new URL(redirectedFrom, request.nextUrl.origin)
+        );
       }
       // Otherwise redirect to home
       return NextResponse.redirect(new URL('/', request.nextUrl.origin));
@@ -96,7 +130,7 @@ export async function middleware(request: NextRequest) {
       component: 'middleware',
       metadata: { pathname },
     });
-    
+
     // Return the original request on error to prevent breaking the app
     return NextResponse.next({ request });
   }

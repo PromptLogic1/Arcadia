@@ -12,7 +12,7 @@ import type {
   AchievementActivityData,
   LoginActivityData,
 } from '@/features/user/types/activity';
-import type { Json } from '@/types/database.generated';
+import type { Json } from '@/types/database-generated';
 
 interface UseActivityTrackerOptions {
   enableAutoLogging?: boolean;

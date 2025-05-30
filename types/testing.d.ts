@@ -32,4 +32,4 @@ declare module '@jest/expect' {
 }
 
 // Export empty to ensure this is treated as a module
-export {}; 
+export {};

@@ -29,10 +29,13 @@ const scrollToTopVariants = cva(
       color: {
         default: 'bg-cyan-500 hover:bg-cyan-600 text-white shadow-cyan-500/50',
         primary: 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/50',
-        secondary: 'bg-purple-500 hover:bg-purple-600 text-white shadow-purple-500/50',
-        accent: 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/50',
+        secondary:
+          'bg-purple-500 hover:bg-purple-600 text-white shadow-purple-500/50',
+        accent:
+          'bg-green-500 hover:bg-green-600 text-white shadow-green-500/50',
         dark: 'bg-gray-800 hover:bg-gray-700 text-white shadow-gray-800/50',
-        glass: 'bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/20',
+        glass:
+          'bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/20',
       },
       effect: {
         none: '',
@@ -69,7 +72,7 @@ const scrollToTopVariants = cva(
         color: 'accent',
         class: 'shadow-[0_0_20px_rgba(34,197,94,0.5)]',
       },
-      
+
       // Neon effects
       {
         effect: 'neon',
@@ -125,9 +128,10 @@ const getAnimationVariants = (animation: string) => {
       exit: { opacity: 0, scale: 0.3 },
     },
   };
-  
-  const defaultVariant = variants[animation as keyof typeof variants] || variants.scale;
-  
+
+  const defaultVariant =
+    variants[animation as keyof typeof variants] || variants.scale;
+
   // Return variant with optional transition
   if (animation === 'bounce') {
     return {
@@ -135,7 +139,7 @@ const getAnimationVariants = (animation: string) => {
       transition: { type: 'spring', stiffness: 500, damping: 15 },
     };
   }
-  
+
   return defaultVariant;
 };
 
@@ -178,12 +182,12 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
     const [isVisible, setIsVisible] = useState(false);
 
     const checkScrollPosition = useCallback(() => {
-      const scrollY = scrollTarget?.current 
-        ? scrollTarget.current.scrollTop 
+      const scrollY = scrollTarget?.current
+        ? scrollTarget.current.scrollTop
         : window.pageYOffset;
-      
+
       const visible = scrollY > threshold;
-      
+
       if (visible !== isVisible) {
         setIsVisible(visible);
         onVisibilityChange?.(visible);
@@ -192,12 +196,14 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
 
     useEffect(() => {
       const scrollElement = scrollTarget?.current || window;
-      
-      scrollElement.addEventListener('scroll', checkScrollPosition, { passive: true });
-      
+
+      scrollElement.addEventListener('scroll', checkScrollPosition, {
+        passive: true,
+      });
+
       // Check initial position
       checkScrollPosition();
-      
+
       return () => {
         scrollElement.removeEventListener('scroll', checkScrollPosition);
       };
@@ -208,7 +214,7 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
         onScroll();
         return;
       }
-      
+
       if (scrollTarget?.current) {
         scrollTarget.current.scrollTo({
           top: 0,
@@ -223,9 +229,10 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
     }, [smooth, scrollTarget, onScroll]);
 
     const animationVariants = getAnimationVariants(animation || 'scale');
-    const customTransition = animation === 'bounce' 
-      ? { type: 'spring', stiffness: 500, damping: 15 }
-      : { duration: 0.2 };
+    const customTransition =
+      animation === 'bounce'
+        ? { type: 'spring', stiffness: 500, damping: 15 }
+        : { duration: 0.2 };
 
     return (
       <AnimatePresence>
@@ -249,13 +256,17 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
               aria-label="Scroll to top"
               {...props}
             >
-              {icon || <ArrowUp className={cn(
-                'transition-transform duration-200 hover:scale-110',
-                size === 'sm' && 'h-4 w-4',
-                size === 'default' && 'h-5 w-5',
-                size === 'lg' && 'h-6 w-6',
-                size === 'xl' && 'h-7 w-7'
-              )} />}
+              {icon || (
+                <ArrowUp
+                  className={cn(
+                    'transition-transform duration-200 hover:scale-110',
+                    size === 'sm' && 'h-4 w-4',
+                    size === 'default' && 'h-5 w-5',
+                    size === 'lg' && 'h-6 w-6',
+                    size === 'xl' && 'h-7 w-7'
+                  )}
+                />
+              )}
             </Button>
           </motion.div>
         )}

@@ -33,9 +33,12 @@ const neonEffectVariants = cva(
       },
       overlay: {
         none: '',
-        subtle: 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-current after:to-current after:opacity-5 after:transition-opacity after:duration-300 group-hover:after:opacity-10',
-        default: 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-cyan-500 after:to-fuchsia-500 after:opacity-20 after:transition-opacity after:duration-300 group-hover:after:opacity-30',
-        strong: 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-cyan-500 after:to-fuchsia-500 after:opacity-30 after:transition-opacity after:duration-300 group-hover:after:opacity-40',
+        subtle:
+          'after:absolute after:inset-0 after:bg-gradient-to-r after:from-current after:to-current after:opacity-5 after:transition-opacity after:duration-300 group-hover:after:opacity-10',
+        default:
+          'after:absolute after:inset-0 after:bg-gradient-to-r after:from-cyan-500 after:to-fuchsia-500 after:opacity-20 after:transition-opacity after:duration-300 group-hover:after:opacity-30',
+        strong:
+          'after:absolute after:inset-0 after:bg-gradient-to-r after:from-cyan-500 after:to-fuchsia-500 after:opacity-30 after:transition-opacity after:duration-300 group-hover:after:opacity-40',
       },
     },
     defaultVariants: {
@@ -53,17 +56,7 @@ export interface NeonButtonProps
 }
 
 const NeonButton = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
-  (
-    { 
-      children, 
-      className, 
-      intensity, 
-      glow, 
-      overlay,
-      ...buttonProps 
-    },
-    ref
-  ) => {
+  ({ children, className, intensity, glow, overlay, ...buttonProps }, ref) => {
     return (
       <Button
         ref={ref}

@@ -5,7 +5,6 @@ import { log } from '@/lib/logger';
 interface DiscussionPostBody {
   title: string;
   content: string;
-  category: string;
   game: string;
 }
 

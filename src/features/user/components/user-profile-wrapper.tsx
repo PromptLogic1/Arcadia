@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import UserPage from './user-page';
+import UserPage from './UserPage';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function UserProfileComponent() {

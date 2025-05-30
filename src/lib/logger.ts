@@ -61,7 +61,7 @@ const createCustomLogger = (): LoggerMethods => {
   const formatLog = (logObject: LogObject) => {
     const { level, time, msg, context, err, ...rest } = logObject;
     const timestamp = new Date(time).toISOString();
-    
+
     // Create base log object
     const logEntry = {
       timestamp,
@@ -69,44 +69,45 @@ const createCustomLogger = (): LoggerMethods => {
       message: msg,
       ...(context && { context }),
       ...(Object.keys(rest).length > 0 && { data: rest }),
-      ...(err && { 
+      ...(err && {
         error: {
           name: err.name,
           message: err.message,
-          stack: err.stack
-        }
+          stack: err.stack,
+        },
       }),
-      ...(typeof process !== 'undefined' && process.pid && { pid: process.pid })
+      ...(typeof process !== 'undefined' &&
+        process.pid && { pid: process.pid }),
     };
 
     // In development, use colorized console output
     if (process.env.NODE_ENV === 'development') {
       const levelColors = {
         debug: '\x1b[36m', // cyan
-        info: '\x1b[32m',  // green
-        warn: '\x1b[33m',  // yellow
+        info: '\x1b[32m', // green
+        warn: '\x1b[33m', // yellow
         error: '\x1b[31m', // red
       };
       const resetColor = '\x1b[0m';
       const color = levelColors[level as keyof typeof levelColors] || '';
-      
+
       let logLine = `${color}[${new Date(time).toLocaleTimeString()}] ${level.toUpperCase()}${resetColor}: ${msg}`;
-      
+
       if (context) {
         logLine += ` | Context: ${JSON.stringify(context)}`;
       }
-      
+
       if (Object.keys(rest).length > 0) {
         logLine += ` | Data: ${JSON.stringify(rest)}`;
       }
-      
+
       if (err) {
         logLine += `\n  Error: ${err.message}`;
         if (err.stack) {
           logLine += `\n  Stack: ${err.stack}`;
         }
       }
-      
+
       return logLine;
     }
 
@@ -114,14 +115,18 @@ const createCustomLogger = (): LoggerMethods => {
     return JSON.stringify(logEntry);
   };
 
-  const logMessage = (level: LogLevel, obj: Record<string, unknown>, msg?: string) => {
+  const logMessage = (
+    level: LogLevel,
+    obj: Record<string, unknown>,
+    msg?: string
+  ) => {
     if (!shouldLog(level)) return;
 
-    const logObj: LogObject = { 
-      ...obj, 
-      level, 
-      time: Date.now(), 
-      msg: msg || '' 
+    const logObj: LogObject = {
+      ...obj,
+      level,
+      time: Date.now(),
+      msg: msg || '',
     };
 
     const formatted = formatLog(logObj);
@@ -144,10 +149,14 @@ const createCustomLogger = (): LoggerMethods => {
   };
 
   return {
-    debug: (obj: Record<string, unknown>, msg?: string) => logMessage('debug', obj, msg),
-    info: (obj: Record<string, unknown>, msg?: string) => logMessage('info', obj, msg),
-    warn: (obj: Record<string, unknown>, msg?: string) => logMessage('warn', obj, msg),
-    error: (obj: Record<string, unknown>, msg?: string) => logMessage('error', obj, msg),
+    debug: (obj: Record<string, unknown>, msg?: string) =>
+      logMessage('debug', obj, msg),
+    info: (obj: Record<string, unknown>, msg?: string) =>
+      logMessage('info', obj, msg),
+    warn: (obj: Record<string, unknown>, msg?: string) =>
+      logMessage('warn', obj, msg),
+    error: (obj: Record<string, unknown>, msg?: string) =>
+      logMessage('error', obj, msg),
   };
 };
 
@@ -269,7 +278,10 @@ class Logger {
     // You could integrate with services like Sentry, LogRocket, etc.
     if (this.isDevelopment) {
       // Use our simple console output to avoid any dependency issues
-      console.warn('[Logger] Sending to monitoring service (dev mode)', logEntry);
+      console.warn(
+        '[Logger] Sending to monitoring service (dev mode)',
+        logEntry
+      );
     }
     // In a real production scenario, this would be an API call to your monitoring service.
     // For example: fetch('https://your-monitoring-service.com/logs', { method: 'POST', body: JSON.stringify(logEntry) });

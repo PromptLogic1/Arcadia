@@ -1,4 +1,4 @@
-import { SignUpForm } from '@/features/auth/components/signup-form';
+import { SignUpForm } from '@/features/auth/components/SignUpForm';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

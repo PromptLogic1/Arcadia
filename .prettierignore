@@ -45,7 +45,7 @@ pnpm-lock.yaml
 .vercel/
 
 # Generated types
-types/database.generated.ts
+types/database-generated.ts
 
 # Public assets
 public/ 

@@ -206,7 +206,7 @@ const gradientVariants = {
   'purple-pink': 'from-purple-400 to-pink-500',
   'yellow-red': 'from-yellow-400 to-red-500',
   'cyan-blue': 'from-cyan-400 to-blue-500',
-  'rainbow': 'from-cyan-400 via-fuchsia-500 to-yellow-400',
+  rainbow: 'from-cyan-400 via-fuchsia-500 to-yellow-400',
 } as const;
 
 export interface NeonTextProps

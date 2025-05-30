@@ -62,7 +62,8 @@ export function useSearch<T extends Discussion | Event>(
           selectedGame === 'All Games' || item.game === selectedGame;
         const matchesChallenge =
           selectedChallenge === 'All Challenges' ||
-          ('challengeType' in item && item.challengeType === selectedChallenge);
+          ('challenge_type' in item &&
+            (item as Discussion).challenge_type === selectedChallenge);
 
         return matchesSearch && matchesGame && matchesChallenge;
       })

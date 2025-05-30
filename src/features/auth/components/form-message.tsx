@@ -22,14 +22,8 @@ const formMessageVariants = cva(
       variant: {
         default: '',
         gaming: 'backdrop-blur-sm border-2',
-        neon: [
-          'backdrop-blur-md border-2',
-          'shadow-lg',
-        ],
-        cyber: [
-          'backdrop-blur-lg border-2',
-          'shadow-xl',
-        ],
+        neon: ['backdrop-blur-md border-2', 'shadow-lg'],
+        cyber: ['backdrop-blur-lg border-2', 'shadow-xl'],
         minimal: 'border-none bg-transparent p-3',
       },
       size: {
@@ -120,96 +114,90 @@ const formMessageVariants = cva(
 );
 
 // 🎨 CVA Variant System - Icon Styling
-const iconVariants = cva(
-  'flex-shrink-0 transition-all duration-200',
-  {
-    variants: {
-      type: {
-        success: 'text-green-400',
-        error: 'text-red-400',
-        warning: 'text-yellow-400',
-        info: 'text-blue-400',
-      },
-      variant: {
-        default: '',
-        gaming: 'drop-shadow-sm',
-        neon: 'drop-shadow-md',
-        cyber: 'drop-shadow-lg',
-        minimal: '',
-      },
-      size: {
-        sm: 'h-4 w-4 mt-0.5',
-        default: 'h-5 w-5 mt-0.5',
-        lg: 'h-6 w-6 mt-1',
-      },
+const iconVariants = cva('flex-shrink-0 transition-all duration-200', {
+  variants: {
+    type: {
+      success: 'text-green-400',
+      error: 'text-red-400',
+      warning: 'text-yellow-400',
+      info: 'text-blue-400',
     },
-    compoundVariants: [
-      // Gaming theme icons
-      {
-        variant: 'gaming',
-        type: 'success',
-        className: 'drop-shadow-[0_0_4px_rgba(34,197,94,0.4)]',
-      },
-      {
-        variant: 'gaming',
-        type: 'error',
-        className: 'drop-shadow-[0_0_4px_rgba(239,68,68,0.4)]',
-      },
-      // Neon theme icons
-      {
-        variant: 'neon',
-        type: 'success',
-        className: 'drop-shadow-[0_0_6px_rgba(34,197,94,0.6)]',
-      },
-      {
-        variant: 'neon',
-        type: 'error',
-        className: 'drop-shadow-[0_0_6px_rgba(239,68,68,0.6)]',
-      },
-      // Cyber theme icons
-      {
-        variant: 'cyber',
-        type: 'success',
-        className: 'drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]',
-      },
-      {
-        variant: 'cyber',
-        type: 'error',
-        className: 'drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]',
-      },
-    ],
-    defaultVariants: {
-      type: 'info',
-      variant: 'default',
-      size: 'default',
+    variant: {
+      default: '',
+      gaming: 'drop-shadow-sm',
+      neon: 'drop-shadow-md',
+      cyber: 'drop-shadow-lg',
+      minimal: '',
     },
-  }
-);
+    size: {
+      sm: 'h-4 w-4 mt-0.5',
+      default: 'h-5 w-5 mt-0.5',
+      lg: 'h-6 w-6 mt-1',
+    },
+  },
+  compoundVariants: [
+    // Gaming theme icons
+    {
+      variant: 'gaming',
+      type: 'success',
+      className: 'drop-shadow-[0_0_4px_rgba(34,197,94,0.4)]',
+    },
+    {
+      variant: 'gaming',
+      type: 'error',
+      className: 'drop-shadow-[0_0_4px_rgba(239,68,68,0.4)]',
+    },
+    // Neon theme icons
+    {
+      variant: 'neon',
+      type: 'success',
+      className: 'drop-shadow-[0_0_6px_rgba(34,197,94,0.6)]',
+    },
+    {
+      variant: 'neon',
+      type: 'error',
+      className: 'drop-shadow-[0_0_6px_rgba(239,68,68,0.6)]',
+    },
+    // Cyber theme icons
+    {
+      variant: 'cyber',
+      type: 'success',
+      className: 'drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]',
+    },
+    {
+      variant: 'cyber',
+      type: 'error',
+      className: 'drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]',
+    },
+  ],
+  defaultVariants: {
+    type: 'info',
+    variant: 'default',
+    size: 'default',
+  },
+});
 
 // 🎨 CVA Variant System - Timer Styling
-const timerVariants = cva(
-  'text-sm transition-colors duration-200',
-  {
-    variants: {
-      variant: {
-        default: 'text-gray-400',
-        gaming: 'text-cyan-300',
-        neon: 'text-cyan-200',
-        cyber: 'text-fuchsia-200',
-        minimal: 'text-gray-500',
-      },
-      urgency: {
-        low: '',
-        medium: 'animate-pulse',
-        high: 'animate-pulse text-orange-400',
-      },
+const timerVariants = cva('text-sm transition-colors duration-200', {
+  variants: {
+    variant: {
+      default: 'text-gray-400',
+      gaming: 'text-cyan-300',
+      neon: 'text-cyan-200',
+      cyber: 'text-fuchsia-200',
+      minimal: 'text-gray-500',
     },
-    defaultVariants: {
-      variant: 'default',
-      urgency: 'low',
+    urgency: {
+      low: '',
+      medium: 'animate-pulse',
+      high: 'animate-pulse text-orange-400',
     },
-  }
-);
+  },
+  defaultVariants: {
+    variant: 'default',
+    urgency: 'low',
+  },
+});
 
 // 🎨 CVA Variant System - Action Link Styling
 const actionLinkVariants = cva(
@@ -238,7 +226,7 @@ const actionLinkVariants = cva(
 );
 
 // 🧱 Enhanced Props Interface
-interface EnhancedFormMessageProps 
+interface EnhancedFormMessageProps
   extends Omit<FormMessageProps, 'message'>,
     VariantProps<typeof formMessageVariants> {
   message: FormMessageProps['message'];
@@ -252,7 +240,10 @@ interface EnhancedFormMessageProps
 }
 
 // 🎯 Forward Ref Implementation
-export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageProps>(
+export const FormMessage = React.forwardRef<
+  HTMLDivElement,
+  EnhancedFormMessageProps
+>(
   (
     {
       message,
@@ -273,23 +264,29 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
     // 🧼 State Management
     const [isVisible, setIsVisible] = React.useState(true);
 
+    // 🧼 Event Handlers
+    const handleDismiss = React.useCallback(() => {
+      setIsVisible(false);
+      onDismiss?.();
+    }, [onDismiss]);
+
     // 🧼 Auto-hide Effect
     React.useEffect(() => {
       if (!autoHide || !isVisible) return;
-      
+
       const timer = setTimeout(() => {
         handleDismiss();
       }, autoHideDelay);
-      
+
       return () => clearTimeout(timer);
     }, [autoHide, autoHideDelay, isVisible, handleDismiss]);
 
     // 🧼 Pure Logic - Icon Selection
     const getMessageIcon = React.useCallback(() => {
-      const iconProps = { 
-        className: iconVariants({ type: message.type, variant, size }) 
+      const iconProps = {
+        className: iconVariants({ type: message.type, variant, size }),
       };
-      
+
       switch (message.type) {
         case 'success':
           return <Check {...iconProps} />;
@@ -310,28 +307,22 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
       return 'low' as const;
     }, []);
 
-    // 🧼 Event Handlers
-    const handleDismiss = React.useCallback(() => {
-      setIsVisible(false);
-      onDismiss?.();
-    }, [onDismiss]);
-
     // 🎨 Style Calculations
-    const messageStyles = formMessageVariants({ 
-      type: message.type, 
-      variant, 
-      size, 
-      animation: isVisible ? animation : 'none' 
+    const messageStyles = formMessageVariants({
+      type: message.type,
+      variant,
+      size,
+      animation: isVisible ? animation : 'none',
     });
-    
-    const timerStyles = timerVariants({ 
-      variant, 
-      urgency: redirectTimer ? getTimerUrgency(redirectTimer) : 'low' 
+
+    const timerStyles = timerVariants({
+      variant,
+      urgency: redirectTimer ? getTimerUrgency(redirectTimer) : 'low',
     });
-    
-    const actionStyles = actionLinkVariants({ 
-      type: message.type, 
-      variant 
+
+    const actionStyles = actionLinkVariants({
+      type: message.type,
+      variant,
     });
 
     // Don't render if not visible
@@ -340,9 +331,9 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
     }
 
     return (
-      <div 
-        ref={ref} 
-        className={cn(messageStyles, className)} 
+      <div
+        ref={ref}
+        className={cn(messageStyles, className)}
         role="alert"
         aria-live="polite"
         {...props}
@@ -351,20 +342,20 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
         {showIcon && getMessageIcon()}
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           {/* Main Message */}
-          <p className="text-sm leading-relaxed">
-            {message.text}
-          </p>
+          <p className="text-sm leading-relaxed">{message.text}</p>
 
           {/* Details */}
           {message.details && (
-            <p className={cn('mt-1 text-xs opacity-90', {
-              'text-gray-300': variant === 'default',
-              'text-cyan-200': variant === 'gaming',
-              'text-cyan-100': variant === 'neon',
-              'text-fuchsia-100': variant === 'cyber',
-            })}>
+            <p
+              className={cn('mt-1 text-xs opacity-90', {
+                'text-gray-300': variant === 'default',
+                'text-cyan-200': variant === 'gaming',
+                'text-cyan-100': variant === 'neon',
+                'text-fuchsia-100': variant === 'cyber',
+              })}
+            >
               {message.details}
             </p>
           )}
@@ -374,7 +365,8 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
             <div className="mt-2 flex items-center gap-2">
               <Clock className="h-3 w-3" />
               <p className={timerStyles}>
-                Redirecting in {redirectTimer} second{redirectTimer !== 1 ? 's' : ''}...
+                Redirecting in {redirectTimer} second
+                {redirectTimer !== 1 ? 's' : ''}...
               </p>
             </div>
           )}
@@ -382,10 +374,7 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
           {/* Action Link */}
           {message.actionLabel && message.actionHref && (
             <div className="mt-3">
-              <Link 
-                href={message.actionHref}
-                className={actionStyles}
-              >
+              <Link href={message.actionHref} className={actionStyles}>
                 {message.actionLabel}
                 <ExternalLink className="h-3 w-3" />
               </Link>
@@ -398,7 +387,7 @@ export const FormMessage = React.forwardRef<HTMLDivElement, EnhancedFormMessageP
           <button
             onClick={handleDismiss}
             className={cn(
-              'flex-shrink-0 p-1 rounded transition-colors duration-200',
+              'flex-shrink-0 rounded p-1 transition-colors duration-200',
               'hover:bg-white/10 focus:bg-white/10 focus:outline-none',
               {
                 'text-gray-400 hover:text-gray-300': variant === 'default',
@@ -421,4 +410,4 @@ FormMessage.displayName = 'FormMessage';
 
 // 🎯 Type Exports
 export type { EnhancedFormMessageProps as FormMessageProps };
-export { formMessageVariants, iconVariants, timerVariants, actionLinkVariants }; 
+export { formMessageVariants, iconVariants, timerVariants, actionLinkVariants };

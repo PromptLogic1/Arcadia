@@ -2,12 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase';
-import type {
-  Tag,
-  TagStatus,
-  TagType,
-  VoteType,
-} from '@/types';
+import type { Tag, TagStatus, TagType, VoteType } from '@/types';
 import type {
   UseTagSystemProps,
   UseTagSystemReturn,

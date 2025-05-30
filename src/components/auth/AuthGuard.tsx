@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/stores';
-import { useAuthContext } from './AuthProvider';
+import { useAuthContext } from './auth-provider';
 import { Button } from '@/components/ui/button';
 import {
   Card,

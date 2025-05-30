@@ -1,8 +1,8 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import type { Database } from '../../types/database.types';
+import type { Database } from '../../types/database-types';
 
-// Type definitions for cookie handling
-interface CookieOptions {
+// Type definitions for cookie handling (kept for future use)
+interface _CookieOptions {
   maxAge?: number;
   path?: string;
   domain?: string;
@@ -18,8 +18,10 @@ interface RequestWithCookies extends Request {
   };
 }
 
-// Supabase configuration
+// Supabase configuration - these are validated below, so non-null assertions are safe
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const _supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -27,21 +29,24 @@ const _supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const validateConfig = () => {
   const isServer = typeof window === 'undefined';
   const missing: string[] = [];
-  
+
   if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
   if (!supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  
+
   if (missing.length > 0) {
     const context = isServer ? 'server' : 'browser';
     const error = `Missing required environment variables in ${context} context: ${missing.join(', ')}`;
-    
+
     // Log error but don't throw - this allows the app to still load
     console.error(error);
-    console.error('Available env vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_')));
-    
+    console.error(
+      'Available env vars:',
+      Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_'))
+    );
+
     return { error, isValid: false };
   }
-  
+
   return { isValid: true };
 };
 
@@ -53,7 +58,7 @@ export function createClient() {
   if (!configValidation.isValid) {
     throw new Error(configValidation.error || 'Invalid Supabase configuration');
   }
-  
+
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }
 
@@ -61,7 +66,7 @@ export function createClient() {
 export async function createServerComponentClient() {
   const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
-  
+
   if (!configValidation.isValid) {
     throw new Error(configValidation.error || 'Invalid Supabase configuration');
   }
@@ -73,8 +78,18 @@ export async function createServerComponentClient() {
       },
       setAll(cookiesToSet: unknown) {
         try {
-          (cookiesToSet as Array<{ name: string; value: string; options?: unknown }>).forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+          (
+            cookiesToSet as Array<{
+              name: string;
+              value: string;
+              options?: unknown;
+            }>
+          ).forEach(({ name, value, options }) =>
+            cookieStore.set(
+              name,
+              value,
+              options as Parameters<typeof cookieStore.set>[2]
+            )
           );
         } catch {
           // The `setAll` method was called from a Server Component.
@@ -159,7 +174,7 @@ export const features = {
 // 🧼 Middleware Utility for Session Management
 export async function updateSession(request: Request) {
   const { NextResponse } = await import('next/server');
-  
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -174,14 +189,30 @@ export async function updateSession(request: Request) {
         return (request as RequestWithCookies).cookies.getAll();
       },
       setAll(cookiesToSet: unknown) {
-        (cookiesToSet as Array<{ name: string; value: string; options?: unknown }>).forEach(({ name, value }) =>
+        (
+          cookiesToSet as Array<{
+            name: string;
+            value: string;
+            options?: unknown;
+          }>
+        ).forEach(({ name, value }) =>
           (request as RequestWithCookies).cookies.set(name, value)
         );
         supabaseResponse = NextResponse.next({
           request,
         });
-        (cookiesToSet as Array<{ name: string; value: string; options?: unknown }>).forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
+        (
+          cookiesToSet as Array<{
+            name: string;
+            value: string;
+            options?: unknown;
+          }>
+        ).forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(
+            name,
+            value,
+            options as Parameters<typeof supabaseResponse.cookies.set>[2]
+          )
         );
       },
     },
@@ -195,7 +226,7 @@ export async function updateSession(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  
+
   // Assign to underscore-prefixed variable to indicate it's intentionally unused
   const _user = user;
 

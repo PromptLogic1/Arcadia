@@ -1,9 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type {
-  BingoBoard,
-  BingoCard,
-  Difficulty,
-} from '@/types';
+import type { BingoBoard, BingoCard, Difficulty } from '@/types';
 // TODO: Replace with proper hooks from centralized system
 // import { useBingoBoards, useBingoBoardsActions } from '@/src/lib/stores'
 // import { useBingoCards } from '@/src/lib/stores'

@@ -1,4 +1,4 @@
-import { render} from '@testing-library/react';
+import { render } from '@testing-library/react';
 import type { RenderOptions } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import type { User } from '@supabase/supabase-js';
@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 export const axe = configureAxe({
   rules: {
     // Disable landmark rules when testing isolated components
-    'region': { enabled: false },
+    region: { enabled: false },
     // Color contrast doesn't work in JSDOM
     'color-contrast': { enabled: false },
   },
@@ -61,7 +61,9 @@ export const createMockUser = (overrides?: Partial<User>): User => ({
   ...overrides,
 });
 
-export const createMockAuthUser = (overrides?: Partial<AuthUser>): AuthUser => ({
+export const createMockAuthUser = (
+  overrides?: Partial<AuthUser>
+): AuthUser => ({
   id: 'test-user-id',
   email: 'test@example.com',
   phone: null,
@@ -71,7 +73,9 @@ export const createMockAuthUser = (overrides?: Partial<AuthUser>): AuthUser => (
   ...overrides,
 });
 
-export const createMockUserData = (overrides?: Partial<UserData>): UserData => ({
+export const createMockUserData = (
+  overrides?: Partial<UserData>
+): UserData => ({
   id: 'test-userdata-id',
   auth_id: 'test-user-id',
   username: 'testuser',
@@ -102,7 +106,7 @@ export const mockAuthStates = {
     loading: false,
     error: null,
   },
-  
+
   // User is authenticated but data is still loading
   authenticatedLoading: {
     authUser: createMockAuthUser(),
@@ -111,7 +115,7 @@ export const mockAuthStates = {
     loading: true,
     error: null,
   },
-  
+
   // User is fully authenticated with complete data
   fullyAuthenticated: {
     authUser: createMockAuthUser(),
@@ -120,7 +124,7 @@ export const mockAuthStates = {
     loading: false,
     error: null,
   },
-  
+
   // Authentication error state
   authError: {
     authUser: null,
@@ -135,18 +139,20 @@ export const mockAuthStates = {
 export const mockSupabaseResponse = {
   success: <T>(data: T) => ({ data, error: null }),
   error: (message: string) => ({ data: null, error: { message } }),
-  authSuccess: (user: User) => ({ 
-    data: { user, session: { user, access_token: 'test-token' } }, 
-    error: null 
+  authSuccess: (user: User) => ({
+    data: { user, session: { user, access_token: 'test-token' } },
+    error: null,
   }),
-  authError: (message: string) => ({ 
-    data: { user: null, session: null }, 
-    error: { message } 
+  authError: (message: string) => ({
+    data: { user: null, session: null },
+    error: { message },
   }),
 };
 
 // Helper to mock auth store with specific state
-export const mockAuthStore = (state: Partial<typeof mockAuthStates.unauthenticated>) => {
+export const mockAuthStore = (
+  state: Partial<typeof mockAuthStates.unauthenticated>
+) => {
   const mockStore = {
     ...mockAuthStates.unauthenticated,
     ...state,
@@ -171,7 +177,7 @@ export const mockAuthStore = (state: Partial<typeof mockAuthStates.unauthenticat
     resetPasswordForEmail: jest.fn(),
     checkPasswordRequirements: jest.fn(),
   };
-  
+
   return mockStore;
 };
 
@@ -196,14 +202,24 @@ export const authFlowScenarios = {
   },
   signUp: {
     success: {
-      input: { email: 'new@example.com', password: 'password123', username: 'newuser' },
+      input: {
+        email: 'new@example.com',
+        password: 'password123',
+        username: 'newuser',
+      },
       expectedCalls: ['signUp'],
       expectedResult: { needsVerification: true },
     },
     emailExists: {
-      input: { email: 'exists@example.com', password: 'password123', username: 'exists' },
+      input: {
+        email: 'exists@example.com',
+        password: 'password123',
+        username: 'exists',
+      },
       expectedCalls: ['signUp'],
-      expectedResult: { error: new Error('Account with this email already exists') },
+      expectedResult: {
+        error: new Error('Account with this email already exists'),
+      },
     },
   },
   signOut: {
@@ -258,18 +274,18 @@ export const renderWithAuth = (
   options?: CustomRenderOptions
 ) => {
   const { authState, ...renderOptions } = options || {};
-  
+
   // Mock the auth store hooks
   const { useAuth, useAuthActions } = jest.requireActual('@/lib/stores');
   jest.spyOn({ useAuth, useAuthActions }, 'useAuth').mockReturnValue({
     ...mockAuthStates.unauthenticated,
     ...authState,
   });
-  
-  jest.spyOn({ useAuth, useAuthActions }, 'useAuthActions').mockReturnValue(
-    mockAuthStore(authState || {})
-  );
-  
+
+  jest
+    .spyOn({ useAuth, useAuthActions }, 'useAuthActions')
+    .mockReturnValue(mockAuthStore(authState || {}));
+
   return render(ui, renderOptions);
 };
 
@@ -279,14 +295,14 @@ export const renderWithUserAndA11y = (
   options?: CustomRenderOptions
 ) => {
   const user = userEvent.setup();
-  const renderResult = renderWithAuth(ui, options);
-  
+  const view = renderWithAuth(ui, options);
+
   return {
     user,
-    ...renderResult,
+    ...view,
     // Helper for accessibility testing
     checkA11y: async () => {
-      const results = await axe(renderResult.container);
+      const results = await axe(view.container);
       expect(results).toHaveNoViolations();
       return results;
     },
@@ -295,21 +311,27 @@ export const renderWithUserAndA11y = (
 
 // Assertion helpers
 export const assertAuthenticationFlow = {
-  userIsAuthenticated: (authUser: AuthUser | null, userData: UserData | null) => {
+  userIsAuthenticated: (
+    authUser: AuthUser | null,
+    userData: UserData | null
+  ) => {
     expect(authUser).not.toBeNull();
     expect(userData).not.toBeNull();
     expect(authUser?.email).toBeTruthy();
   },
-  
-  userIsUnauthenticated: (authUser: AuthUser | null, userData: UserData | null) => {
+
+  userIsUnauthenticated: (
+    authUser: AuthUser | null,
+    userData: UserData | null
+  ) => {
     expect(authUser).toBeNull();
     expect(userData).toBeNull();
   },
-  
+
   loadingState: (loading: boolean, expectedLoading: boolean) => {
     expect(loading).toBe(expectedLoading);
   },
-  
+
   errorState: (error: string | null, expectedError?: string) => {
     if (expectedError) {
       expect(error).toBe(expectedError);
@@ -330,11 +352,15 @@ export const setupIntegrationTest = {
     mockClient.auth.signInWithPassword.mockResolvedValue(
       mockSupabaseResponse.success({ user: createMockUser(), session: null })
     );
-    mockClient.from().select().eq().single.mockResolvedValue(
-      mockSupabaseResponse.success(createMockUserData())
-    );
+    mockClient
+      .from()
+      .select()
+      .eq()
+      .single.mockResolvedValue(
+        mockSupabaseResponse.success(createMockUserData())
+      );
   },
-  
+
   // Setup mock Supabase client for failed authentication
   mockFailedAuth: (errorMessage = 'Authentication failed') => {
     const mockClient = globalThis.mockSupabaseClient;
@@ -345,7 +371,7 @@ export const setupIntegrationTest = {
       mockSupabaseResponse.error(errorMessage)
     );
   },
-  
+
   // Reset all mocks between tests
   resetMocks: () => {
     jest.clearAllMocks();
@@ -353,4 +379,4 @@ export const setupIntegrationTest = {
       mockSupabaseResponse.authError('User not authenticated')
     );
   },
-}; 
+};

@@ -1,6 +1,6 @@
 import { useGameContext } from '../context/BingoGameContext';
 import type { BoardCell, Player } from '../types/types';
-import type { GameSettings } from '../types/gamesettings.types';
+import type { GameSettings } from '../types/game-settings.types';
 
 interface GameStateReturn {
   boardState: BoardCell[];

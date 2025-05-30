@@ -76,7 +76,9 @@ interface MockSupabaseClient {
 
 const mockSupabaseClient: MockSupabaseClient = {
   auth: {
-    getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    getSession: jest
+      .fn()
+      .mockResolvedValue({ data: { session: null }, error: null }),
     getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
     signInWithPassword: jest.fn(),
     signInWithOAuth: jest.fn(),
@@ -84,7 +86,9 @@ const mockSupabaseClient: MockSupabaseClient = {
     signOut: jest.fn(),
     updateUser: jest.fn(),
     resetPasswordForEmail: jest.fn(), // Add missing method
-    onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
+    onAuthStateChange: jest
+      .fn()
+      .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
   },
   from: jest.fn().mockReturnThis(),
   select: jest.fn().mockReturnThis(),
@@ -167,4 +171,4 @@ Object.defineProperty(window, 'sessionStorage', {
 });
 
 // Set up test timeout
-jest.setTimeout(10000); 
+jest.setTimeout(10000);

@@ -63,11 +63,11 @@ A centralized TypeScript type system that eliminates type chaos and provides a s
 ```
 types/
 ├── index.ts                 # 🎯 MAIN ENTRY POINT - Import from here
-├── database.generated.ts    # 🤖 Auto-generated from Supabase
+├── database-generated.ts    # 🤖 Auto-generated from Supabase
 ├── database.core.ts         # 🔧 Core enums and utilities
-├── database.bingo.ts        # 🎮 Bingo game tables
-├── database.users.ts        # 👤 User and auth tables
-├── database.challenges.ts   # 🏆 Challenge system tables
+├── database-bingo.ts        # �� Bingo game tables
+├── database-users.ts        # 👤 User and auth tables
+├── database-challenges.ts   # 🏆 Challenge system tables
 ├── database.types.ts        # 🗂️ Main database interface
 └── domains/
     ├── bingo.ts            # 🎲 Game-specific enhanced types
@@ -149,7 +149,7 @@ When Supabase schema changes:
 1. **Generate new types**:
 
    ```bash
-   npx supabase gen types typescript --project-id YOUR_PROJECT_ID > types/database.generated.ts
+   npx supabase gen types typescript --project-id YOUR_PROJECT_ID > types/database-generated.ts
    ```
 
 2. **Update modular files** (if needed)

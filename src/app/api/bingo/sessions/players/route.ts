@@ -1,6 +1,6 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import type { Database } from '@/types/database.types';
+import type { Database, QueueStatus } from '@/types';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
@@ -31,8 +31,6 @@ interface PatchPlayerRequest {
   color?: string;
   team?: number | null;
 }
-
-type QueueEntry = Database['public']['Tables']['bingo_session_queue']['Row'];
 
 export async function POST(request: Request): Promise<NextResponse> {
   let userIdForLog: string | undefined;
@@ -95,12 +93,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         player_name: playerName,
         color,
         team: team ?? null,
-        status: 'pending',
+        status: 'pending' as QueueStatus,
         requested_at: new Date().toISOString(),
-      } satisfies Omit<
-        QueueEntry,
-        'id' | 'created_at' | 'updated_at' | 'processed_at'
-      >)
+      })
       .select('id, status')
       .single();
 

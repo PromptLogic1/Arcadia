@@ -18,6 +18,7 @@ interface CardWrapperProps {
   headerClassName?: string;
   contentClassName?: string;
   footerClassName?: string;
+  onClick?: () => void;
 }
 
 export const CardWrapper: React.FC<CardWrapperProps> = ({
@@ -29,9 +30,13 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
   headerClassName,
   contentClassName,
   footerClassName,
+  onClick,
 }) => {
   return (
-    <Card className={cn('w-full', className)}>
+    <Card
+      className={cn('w-full transition-colors', className)}
+      onClick={onClick}
+    >
       {(title || description) && (
         <CardHeader className={headerClassName}>
           {title && <CardTitle>{title}</CardTitle>}

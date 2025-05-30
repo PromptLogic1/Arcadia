@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { GeneralSettings } from './general-settings';
+import { GeneralSettings } from './GeneralSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsComponent() {

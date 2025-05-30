@@ -63,14 +63,16 @@ const arcadeDecorationVariants = cva(
       {
         variant: 'glow',
         color: 'primary',
-        class: 'border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-cyan-400/5',
+        class:
+          'border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.5)] bg-cyan-400/5',
       },
       {
         variant: 'neon',
         color: 'primary',
-        class: 'border-cyan-400 shadow-[0_0_40px_rgba(6,182,212,0.8)] bg-cyan-400/10',
+        class:
+          'border-cyan-400 shadow-[0_0_40px_rgba(6,182,212,0.8)] bg-cyan-400/10',
       },
-      
+
       // Secondary color variants
       {
         variant: 'border',
@@ -90,14 +92,16 @@ const arcadeDecorationVariants = cva(
       {
         variant: 'glow',
         color: 'secondary',
-        class: 'border-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.5)] bg-pink-400/5',
+        class:
+          'border-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.5)] bg-pink-400/5',
       },
       {
         variant: 'neon',
         color: 'secondary',
-        class: 'border-pink-400 shadow-[0_0_40px_rgba(236,72,153,0.8)] bg-pink-400/10',
+        class:
+          'border-pink-400 shadow-[0_0_40px_rgba(236,72,153,0.8)] bg-pink-400/10',
       },
-      
+
       // Accent color variants
       {
         variant: 'border',
@@ -117,14 +121,16 @@ const arcadeDecorationVariants = cva(
       {
         variant: 'glow',
         color: 'accent',
-        class: 'border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.5)] bg-yellow-400/5',
+        class:
+          'border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.5)] bg-yellow-400/5',
       },
       {
         variant: 'neon',
         color: 'accent',
-        class: 'border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.8)] bg-yellow-400/10',
+        class:
+          'border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.8)] bg-yellow-400/10',
       },
-      
+
       // Cyber color variants
       {
         variant: 'border',
@@ -139,9 +145,10 @@ const arcadeDecorationVariants = cva(
       {
         variant: 'glow',
         color: 'cyber',
-        class: 'border-green-400 shadow-[0_0_30px_rgba(34,197,94,0.5)] bg-green-400/5',
+        class:
+          'border-green-400 shadow-[0_0_30px_rgba(34,197,94,0.5)] bg-green-400/5',
       },
-      
+
       // Retro color variants
       {
         variant: 'border',
@@ -156,9 +163,10 @@ const arcadeDecorationVariants = cva(
       {
         variant: 'glow',
         color: 'retro',
-        class: 'border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.5)] bg-purple-400/5',
+        class:
+          'border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.5)] bg-purple-400/5',
       },
-      
+
       // Electric color variants
       {
         variant: 'border',
@@ -173,9 +181,10 @@ const arcadeDecorationVariants = cva(
       {
         variant: 'glow',
         color: 'electric',
-        class: 'border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.5)] bg-blue-400/5',
+        class:
+          'border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.5)] bg-blue-400/5',
       },
-      
+
       // Size adjustments for padding
       {
         variant: ['border', 'glow', 'neon', 'frame'],
@@ -228,7 +237,10 @@ export interface ArcadeDecorationProps
   decorative?: boolean;
 }
 
-const ArcadeDecoration = React.forwardRef<HTMLDivElement, ArcadeDecorationProps>(
+const ArcadeDecoration = React.forwardRef<
+  HTMLDivElement,
+  ArcadeDecorationProps
+>(
   (
     {
       className,
@@ -250,7 +262,13 @@ const ArcadeDecoration = React.forwardRef<HTMLDivElement, ArcadeDecorationProps>
         <div
           ref={ref}
           className={cn(
-            arcadeDecorationVariants({ variant, color, size, intensity, animation }),
+            arcadeDecorationVariants({
+              variant,
+              color,
+              size,
+              intensity,
+              animation,
+            }),
             // Corner-specific pseudo-element classes
             'before:absolute before:left-0 before:top-0 before:h-4 before:w-4 before:border-l-2 before:border-t-2',
             'after:absolute after:bottom-0 after:right-0 after:h-4 after:w-4 after:border-b-2 after:border-r-2',
@@ -269,7 +287,13 @@ const ArcadeDecoration = React.forwardRef<HTMLDivElement, ArcadeDecorationProps>
       <div
         ref={ref}
         className={cn(
-          arcadeDecorationVariants({ variant, color, size, intensity, animation }),
+          arcadeDecorationVariants({
+            variant,
+            color,
+            size,
+            intensity,
+            animation,
+          }),
           className
         )}
         role={decorative ? 'presentation' : undefined}

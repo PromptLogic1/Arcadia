@@ -2,10 +2,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBingoBoards } from './useBingoBoards';
 import { useAuth } from '@/hooks/useAuth';
-import type {
-  CreateBoardFormData,
-  FilterState as BoardFilter,
-} from '../types';
+import type { CreateBoardFormData, FilterState as BoardFilter } from '../types';
 import { ROUTES } from '@/src/config/routes';
 import { log } from '@/lib/logger';
 
@@ -48,7 +45,7 @@ export function useBingoBoardsHub() {
         // TODO: Implement board creation through proper API
         setIsCreateFormOpen(false);
         // Temporary: redirect to board edit page
-        // router.push(`/challengehub/${newBoard.id}`)
+        // router.push(`/challenge-hub/${newBoard.id}`)
         setLoading(false);
       } catch (error) {
         log.error('Failed to create board', error as Error, {

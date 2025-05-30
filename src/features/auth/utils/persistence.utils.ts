@@ -1,4 +1,7 @@
-import type { PersistentFormData, FormPersistence } from '../types/signup-form.types';
+import type {
+  PersistentFormData,
+  FormPersistence,
+} from '../types/signup-form.types';
 import { logger } from '@/lib/logger';
 
 // 🧼 Pure Functions - Storage Keys
@@ -16,10 +19,12 @@ const serializeFormData = (data: Partial<PersistentFormData>): string => {
   });
 };
 
-const deserializeFormData = (serialized: string): Partial<PersistentFormData> | null => {
+const deserializeFormData = (
+  serialized: string
+): Partial<PersistentFormData> | null => {
   try {
     const parsed = JSON.parse(serialized);
-    
+
     // Version check for future compatibility
     if (parsed.version !== STORAGE_KEYS.FORM_VERSION) {
       logger.warn('Stored form data version mismatch', {
@@ -31,7 +36,7 @@ const deserializeFormData = (serialized: string): Partial<PersistentFormData> | 
       });
       return null;
     }
-    
+
     // Check if data is expired (7 days)
     const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
     if (Date.now() - parsed.timestamp > maxAge) {
@@ -44,7 +49,7 @@ const deserializeFormData = (serialized: string): Partial<PersistentFormData> | 
       });
       return null;
     }
-    
+
     return parsed.data;
   } catch (error) {
     logger.warn('Failed to deserialize form data', {
@@ -58,18 +63,20 @@ const deserializeFormData = (serialized: string): Partial<PersistentFormData> | 
 };
 
 // 🧼 Pure Functions - Validation
-const isValidFormData = (data: unknown): data is Partial<PersistentFormData> => {
+const isValidFormData = (
+  data: unknown
+): data is Partial<PersistentFormData> => {
   if (!data || typeof data !== 'object') {
     return false;
   }
-  
+
   // Type assertion after checking it's an object
   const obj = data as Record<string, unknown>;
-  
+
   // Check that only allowed fields are present
   const allowedFields = ['username', 'email'];
   const dataKeys = Object.keys(obj);
-  
+
   for (const key of dataKeys) {
     if (!allowedFields.includes(key)) {
       logger.warn('Invalid field in stored form data', {
@@ -82,16 +89,16 @@ const isValidFormData = (data: unknown): data is Partial<PersistentFormData> => 
       return false;
     }
   }
-  
+
   // Validate field types
   if (obj.username !== undefined && typeof obj.username !== 'string') {
     return false;
   }
-  
+
   if (obj.email !== undefined && typeof obj.email !== 'string') {
     return false;
   }
-  
+
   return true;
 };
 
@@ -103,7 +110,7 @@ const saveToStorage = (data: Partial<PersistentFormData>): boolean => {
     });
     return false;
   }
-  
+
   if (!isValidFormData(data)) {
     logger.error('Invalid form data provided for storage', undefined, {
       component: 'SignUpFormPersistence',
@@ -111,18 +118,18 @@ const saveToStorage = (data: Partial<PersistentFormData>): boolean => {
     });
     return false;
   }
-  
+
   try {
     const serialized = serializeFormData(data);
     window.localStorage.setItem(STORAGE_KEYS.SIGNUP_FORM, serialized);
-    
+
     logger.debug('Form data saved to localStorage', {
       component: 'SignUpFormPersistence',
       metadata: {
         fields: Object.keys(data),
       },
     });
-    
+
     return true;
   } catch (error) {
     logger.error('Failed to save form data to localStorage', error as Error, {
@@ -139,35 +146,35 @@ const loadFromStorage = (): Partial<PersistentFormData> | null => {
     });
     return null;
   }
-  
+
   try {
     const stored = window.localStorage.getItem(STORAGE_KEYS.SIGNUP_FORM);
-    
+
     if (!stored) {
       return null;
     }
-    
+
     const data = deserializeFormData(stored);
-    
+
     if (!data || !isValidFormData(data)) {
       // Clear invalid data
       clearFromStorage();
       return null;
     }
-    
+
     logger.debug('Form data loaded from localStorage', {
       component: 'SignUpFormPersistence',
       metadata: {
         fields: Object.keys(data),
       },
     });
-    
+
     return data;
   } catch (error) {
     logger.error('Failed to load form data from localStorage', error as Error, {
       component: 'SignUpFormPersistence',
     });
-    
+
     // Clear corrupted data
     clearFromStorage();
     return null;
@@ -181,25 +188,32 @@ const clearFromStorage = (): boolean => {
     });
     return false;
   }
-  
+
   try {
     window.localStorage.removeItem(STORAGE_KEYS.SIGNUP_FORM);
-    
+
     logger.debug('Form data cleared from localStorage', {
       component: 'SignUpFormPersistence',
     });
-    
+
     return true;
   } catch (error) {
-    logger.error('Failed to clear form data from localStorage', error as Error, {
-      component: 'SignUpFormPersistence',
-    });
+    logger.error(
+      'Failed to clear form data from localStorage',
+      error as Error,
+      {
+        component: 'SignUpFormPersistence',
+      }
+    );
     return false;
   }
 };
 
 // 🧼 Pure Functions - Partial Data Updates
-const updateStoredField = (field: keyof PersistentFormData, value: string): boolean => {
+const updateStoredField = (
+  field: keyof PersistentFormData,
+  value: string
+): boolean => {
   const currentData = loadFromStorage() || {};
   const updatedData = { ...currentData, [field]: value };
   return saveToStorage(updatedData);
@@ -207,17 +221,17 @@ const updateStoredField = (field: keyof PersistentFormData, value: string): bool
 
 const removeStoredField = (field: keyof PersistentFormData): boolean => {
   const currentData = loadFromStorage();
-  
+
   if (!currentData || !(field in currentData)) {
     return true; // Nothing to remove
   }
-  
+
   const { [field]: _removed, ...remainingData } = currentData;
-  
+
   if (Object.keys(remainingData).length === 0) {
     return clearFromStorage();
   }
-  
+
   return saveToStorage(remainingData);
 };
 
@@ -246,23 +260,25 @@ export const checkStorageHealth = (): {
   dataAge?: number;
 } => {
   const available = typeof window !== 'undefined' && !!window.localStorage;
-  
+
   if (!available) {
     return { available: false, hasStoredData: false, dataValid: false };
   }
-  
+
   try {
     const stored = window.localStorage.getItem(STORAGE_KEYS.SIGNUP_FORM);
     const hasStoredData = !!stored;
-    
+
     if (!hasStoredData) {
       return { available: true, hasStoredData: false, dataValid: false };
     }
-    
+
     const parsed = JSON.parse(stored);
     const dataValid = isValidFormData(parsed.data);
-    const dataAge = parsed.timestamp ? Date.now() - parsed.timestamp : undefined;
-    
+    const dataAge = parsed.timestamp
+      ? Date.now() - parsed.timestamp
+      : undefined;
+
     return { available: true, hasStoredData: true, dataValid, dataAge };
   } catch {
     return { available: true, hasStoredData: true, dataValid: false };
@@ -270,4 +286,4 @@ export const checkStorageHealth = (): {
 };
 
 // Default export for convenience
-export default createFormPersistence; 
+export default createFormPersistence;

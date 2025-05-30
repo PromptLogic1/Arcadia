@@ -3,7 +3,7 @@
 // =============================================================================
 
 // Re-export all database types as the primary source of truth
-export * from './database.types';
+export * from './database-types';
 
 // Import what we need for application types
 import type {
@@ -16,7 +16,7 @@ import type {
   DifficultyLevel as DbDifficultyLevel,
   QueueStatus as DbQueueStatus,
   BoardCell as DbBoardCell,
-} from './database.types';
+} from './database-types';
 
 // =============================================================================
 // TYPE ALIASES FOR CLEAN API

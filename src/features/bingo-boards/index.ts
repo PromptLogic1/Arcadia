@@ -1,4 +1,4 @@
-export { BingoBoardEdit } from './components/BingoBoardsEdit/BingoBoardEdit';
+export { BingoBoardEdit } from './components/bingo-boards-edit/BingoBoardEdit';
 export { BingoErrorBoundary } from './components/BingoErrorBoundary';
-export { BoardCard } from './components/BoardCard';
+export { default as BoardCard } from './components/board-card';
 export { default as BingoBoardsHub } from './components/BingoBoardsHub';

@@ -14,8 +14,8 @@ import {
   Bell,
   Share2,
 } from 'lucide-react';
-import { CardWrapper } from '../shared/CardWrapper';
-import type { Event } from '../types/types';
+import { CardWrapper } from './shared/CardWrapper';
+import type { Event } from '@/lib/stores/community-store';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { log } from '@/lib/logger';
@@ -123,7 +123,10 @@ const EventCard = React.memo(
     };
 
     return (
-      <CardWrapper onClick={onToggle} hoverAccentColor="lime">
+      <CardWrapper 
+        onClick={onToggle}
+        className="transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10"
+      >
         <div className="relative">
           <CardHeader className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 p-5">
             <div className="flex items-start justify-between">

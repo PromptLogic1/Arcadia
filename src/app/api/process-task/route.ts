@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server';
-import {
-  queueTask,
-  checkTaskStatus,
-  type TaskPayload,
-} from '@/lib/task-queue';
+import { queueTask, checkTaskStatus, type TaskPayload } from '@/lib/task-queue';
 import { log } from '@/lib/logger';
 
 export const maxDuration = 10; // Enforce Vercel's limit

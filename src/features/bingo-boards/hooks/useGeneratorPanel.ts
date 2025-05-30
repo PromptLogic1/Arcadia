@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { GameCategory } from '../types';
-import { type DifficultyLevel, Constants } from '@/types/database.core';
+import { type DifficultyLevel, Constants } from '@/types/database-core';
 import {
   type GENERATOR_CONFIG,
   CARD_CATEGORIES,

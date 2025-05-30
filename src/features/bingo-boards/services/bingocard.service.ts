@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase';
-import type { BingoCardsTable } from '@/types/database.bingo';
-import type { GameCategory, DifficultyLevel } from '@/types/database.core';
-import { logger } from '@/src/lib/logger';
+import type { BingoCardsTable } from '@/types/database-bingo';
+import type { GameCategory, DifficultyLevel } from '@/types/database-core';
+import { log } from '@/lib/logger';
 
 // Type definitions from database
 type BingoCard = BingoCardsTable['Row'];
@@ -94,7 +94,7 @@ class BingoCardServiceImpl implements BingoCardService {
       const { data, error } = await query;
 
       if (error) {
-        logger.error('Error fetching bingo cards', error, {
+        log.error('Error fetching bingo cards', error, {
           metadata: {
             service: 'BingoCardService',
             method: 'getCards',
@@ -106,7 +106,7 @@ class BingoCardServiceImpl implements BingoCardService {
 
       return data || [];
     } catch (error) {
-      logger.error('Exception in getCards', error as Error, {
+      log.error('Exception in getCards', error as Error, {
         metadata: { service: 'BingoCardService', method: 'getCards', filters },
       });
       return [];
@@ -115,13 +115,14 @@ class BingoCardServiceImpl implements BingoCardService {
 
   async getCardById(id: string): Promise<BingoCard | null> {
     try {
-      const { data, error } = await createClient().from('bingo_cards')
+      const { data, error } = await createClient()
+        .from('bingo_cards')
         .select('*')
         .eq('id', id)
         .single();
 
       if (error) {
-        logger.error('Error fetching bingo card by ID', error, {
+        log.error('Error fetching bingo card by ID', error, {
           metadata: { service: 'BingoCardService', method: 'getCardById', id },
         });
         return null;
@@ -129,7 +130,7 @@ class BingoCardServiceImpl implements BingoCardService {
 
       return data;
     } catch (error) {
-      logger.error('Exception in getCardById', error as Error, {
+      log.error('Exception in getCardById', error as Error, {
         metadata: { service: 'BingoCardService', method: 'getCardById', id },
       });
       return null;
@@ -138,7 +139,8 @@ class BingoCardServiceImpl implements BingoCardService {
 
   async createCard(cardData: CreateCardData): Promise<BingoCard | null> {
     try {
-      const { data, error } = await createClient().from('bingo_cards')
+      const { data, error } = await createClient()
+        .from('bingo_cards')
         .insert({
           ...cardData,
           created_at: new Date().toISOString(),
@@ -148,7 +150,7 @@ class BingoCardServiceImpl implements BingoCardService {
         .single();
 
       if (error) {
-        logger.error('Error creating bingo card', error, {
+        log.error('Error creating bingo card', error, {
           metadata: {
             service: 'BingoCardService',
             method: 'createCard',
@@ -160,7 +162,7 @@ class BingoCardServiceImpl implements BingoCardService {
 
       return data;
     } catch (error) {
-      logger.error('Exception in createCard', error as Error, {
+      log.error('Exception in createCard', error as Error, {
         metadata: {
           service: 'BingoCardService',
           method: 'createCard',
@@ -176,7 +178,8 @@ class BingoCardServiceImpl implements BingoCardService {
     updates: UpdateCardData
   ): Promise<BingoCard | null> {
     try {
-      const { data, error } = await createClient().from('bingo_cards')
+      const { data, error } = await createClient()
+        .from('bingo_cards')
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
@@ -186,7 +189,7 @@ class BingoCardServiceImpl implements BingoCardService {
         .single();
 
       if (error) {
-        logger.error('Error updating bingo card', error, {
+        log.error('Error updating bingo card', error, {
           metadata: {
             service: 'BingoCardService',
             method: 'updateCard',
@@ -199,7 +202,7 @@ class BingoCardServiceImpl implements BingoCardService {
 
       return data;
     } catch (error) {
-      logger.error('Exception in updateCard', error as Error, {
+      log.error('Exception in updateCard', error as Error, {
         metadata: {
           service: 'BingoCardService',
           method: 'updateCard',
@@ -213,12 +216,13 @@ class BingoCardServiceImpl implements BingoCardService {
 
   async deleteCard(id: string): Promise<boolean> {
     try {
-      const { error } = await createClient().from('bingo_cards')
+      const { error } = await createClient()
+        .from('bingo_cards')
         .delete()
         .eq('id', id);
 
       if (error) {
-        logger.error('Error deleting bingo card', error, {
+        log.error('Error deleting bingo card', error, {
           metadata: { service: 'BingoCardService', method: 'deleteCard', id },
         });
         return false;
@@ -226,7 +230,7 @@ class BingoCardServiceImpl implements BingoCardService {
 
       return true;
     } catch (error) {
-      logger.error('Exception in deleteCard', error as Error, {
+      log.error('Exception in deleteCard', error as Error, {
         metadata: { service: 'BingoCardService', method: 'deleteCard', id },
       });
       return false;

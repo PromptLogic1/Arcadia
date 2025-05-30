@@ -82,7 +82,8 @@ const inputVariants = cva(
       {
         variant: 'neon',
         state: 'success',
-        className: 'border-green-400/70 bg-green-900/20 focus:shadow-green-500/20',
+        className:
+          'border-green-400/70 bg-green-900/20 focus:shadow-green-500/20',
       },
       // Cyber theme combinations
       {
@@ -93,7 +94,8 @@ const inputVariants = cva(
       {
         variant: 'cyber',
         state: 'success',
-        className: 'border-green-400/80 bg-green-900/30 focus:shadow-green-500/40',
+        className:
+          'border-green-400/80 bg-green-900/30 focus:shadow-green-500/40',
       },
     ],
     defaultVariants: {
@@ -150,30 +152,27 @@ const labelVariants = cva(
   }
 );
 
-const errorMessageVariants = cva(
-  'mt-1 text-sm transition-all duration-200',
-  {
-    variants: {
-      variant: {
-        default: 'text-red-400',
-        gaming: 'text-red-300',
-        neon: 'text-red-300',
-        cyber: 'text-red-200',
-      },
-      show: {
-        true: 'opacity-100 translate-y-0',
-        false: 'opacity-0 -translate-y-1 pointer-events-none',
-      },
+const errorMessageVariants = cva('mt-1 text-sm transition-all duration-200', {
+  variants: {
+    variant: {
+      default: 'text-red-400',
+      gaming: 'text-red-300',
+      neon: 'text-red-300',
+      cyber: 'text-red-200',
     },
-    defaultVariants: {
-      variant: 'default',
-      show: true,
+    show: {
+      true: 'opacity-100 translate-y-0',
+      false: 'opacity-0 -translate-y-1 pointer-events-none',
     },
-  }
-);
+  },
+  defaultVariants: {
+    variant: 'default',
+    show: true,
+  },
+});
 
 // 🧱 Props Interface with CVA Integration
-interface EnhancedFormFieldProps 
+interface EnhancedFormFieldProps
   extends Omit<FormFieldProps, 'className'>,
     VariantProps<typeof formFieldVariants> {
   variant?: VariantProps<typeof formFieldVariants>['variant'];
@@ -188,7 +187,10 @@ interface EnhancedFormFieldProps
 }
 
 // 🎯 Forward Ref Implementation
-export const FormField = React.forwardRef<HTMLInputElement, EnhancedFormFieldProps>(
+export const FormField = React.forwardRef<
+  HTMLInputElement,
+  EnhancedFormFieldProps
+>(
   (
     {
       label,
@@ -227,26 +229,32 @@ export const FormField = React.forwardRef<HTMLInputElement, EnhancedFormFieldPro
     );
 
     // 🎨 Style Calculations
-    const fieldStyles = formFieldVariants({ variant, size, state: derivedState });
-    const inputStyles = inputVariants({ variant, size, state: derivedState });
-    const labelStyles = labelVariants({ 
-      variant, 
-      size, 
+    const fieldStyles = formFieldVariants({
+      variant,
+      size,
       state: derivedState,
     });
-    const errorStyles = errorMessageVariants({ 
-      variant, 
+    const inputStyles = inputVariants({ variant, size, state: derivedState });
+    const labelStyles = labelVariants({
+      variant,
+      size,
+      state: derivedState,
+    });
+    const errorStyles = errorMessageVariants({
+      variant,
       show: !!error,
     });
 
     return (
       <div className={cn(fieldStyles, className)} {...props}>
         {/* Field Label */}
-        <Label 
+        <Label
           htmlFor={fieldId}
           className={cn(
             labelStyles,
-            showRequiredIndicator && required && 'after:content-["*"] after:ml-1',
+            showRequiredIndicator &&
+              required &&
+              'after:ml-1 after:content-["*"]',
             labelClassName
           )}
         >
@@ -259,19 +267,25 @@ export const FormField = React.forwardRef<HTMLInputElement, EnhancedFormFieldPro
           id={fieldId}
           type={type}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           onBlur={onBlur}
           placeholder={placeholder}
           disabled={disabled}
           required={required}
           aria-invalid={!!error}
-          aria-describedby={error ? `${fieldId}-error` : helpText ? `${fieldId}-help` : undefined}
+          aria-describedby={
+            error
+              ? `${fieldId}-error`
+              : helpText
+                ? `${fieldId}-help`
+                : undefined
+          }
           className={cn(inputStyles, inputClassName)}
         />
 
         {/* Help Text */}
         {helpText && !error && (
-          <p 
+          <p
             id={`${fieldId}-help`}
             className={cn(
               'mt-1 text-sm text-gray-400 transition-colors duration-200',
@@ -288,7 +302,7 @@ export const FormField = React.forwardRef<HTMLInputElement, EnhancedFormFieldPro
 
         {/* Error Message */}
         {error && (
-          <p 
+          <p
             id={`${fieldId}-error`}
             role="alert"
             className={cn(errorStyles, errorClassName)}
@@ -305,4 +319,9 @@ FormField.displayName = 'FormField';
 
 // 🎯 Type Exports
 export type { EnhancedFormFieldProps as FormFieldProps };
-export { formFieldVariants, inputVariants, labelVariants, errorMessageVariants }; 
+export {
+  formFieldVariants,
+  inputVariants,
+  labelVariants,
+  errorMessageVariants,
+};

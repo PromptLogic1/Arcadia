@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, ChevronDown, Heart } from 'lucide-react';
 import { CardWrapper } from './shared/CardWrapper';
-import type { Discussion, Comment } from './types/types';
+import type { Discussion, Comment } from '../types/types';
 import { format } from 'date-fns';
 
 interface DiscussionCardProps {

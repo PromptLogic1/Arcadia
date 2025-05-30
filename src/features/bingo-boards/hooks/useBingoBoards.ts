@@ -98,9 +98,7 @@ export const useBingoBoards = (
         setError(null);
 
         const currentOffset = reset ? 0 : pagination.offset;
-        let query = createClient()
-          .from('bingo_boards')
-          .select(`
+        let query = createClient().from('bingo_boards').select(`
             *,
             users!bingo_boards_creator_id_fkey(
               username,
