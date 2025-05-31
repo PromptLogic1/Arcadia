@@ -62,7 +62,7 @@ export function GeneratorPanel({
 
   // Custom generator callback that integrates with legacy hook
   const handleGenerate = useCallback(
-    async (formData: GeneratorFormData) => {
+    async (_formData: GeneratorFormData) => {
       // TODO: Replace with proper generator service integration
       // For now, delegate to legacy generateBoard method
       await legacyPanel.generateBoard();

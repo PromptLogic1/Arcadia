@@ -9,7 +9,7 @@ const rateLimiter = new RateLimiter();
 
 interface CreateSessionRequest {
   boardId: string;
-  playerName: string;
+  displayName: string;
   color: string;
   team?: number | null;
 }
@@ -48,13 +48,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const body = (await request.json()) as CreateSessionRequest;
-    const { boardId, playerName, color, team } = body;
+    const { boardId, displayName, color, team } = body;
     boardIdForLog = boardId;
 
     // Check if board exists and is published
     const { data: board, error: boardError } = await supabase
       .from('bingo_boards')
-      .select('id, status')
+      .select('id, status, board_state, size')
       .eq('id', boardId)
       .single();
 
@@ -73,32 +73,34 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Check for existing active session
+    // Check for existing active or waiting session
     const { data: existingSession } = await supabase
       .from('bingo_sessions')
       .select('id')
       .eq('board_id', boardId)
-      .eq('status', 'active')
+      .in('status', ['active', 'waiting'])
       .single();
 
     if (existingSession) {
       return NextResponse.json(
-        { error: 'An active session already exists for this board' },
+        { error: 'An active or waiting session already exists for this board' },
         { status: 409 }
       );
     }
 
     const now = new Date().toISOString();
 
-    // Create new session
+    // Create new session with proper initialization
     const { data: session, error: sessionError } = await supabase
       .from('bingo_sessions')
       .insert({
         board_id: boardId,
-        current_state: [] as BoardCell[],
-        status: 'active',
+        host_id: user.id,
+        current_state: board.board_state || [],
+        status: 'waiting',
+        version: 1,
         winner_id: null,
-        started_at: now,
+        started_at: null,
         ended_at: null,
       })
       .select()
@@ -106,13 +108,13 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (sessionError) throw sessionError;
 
-    // Add creator as first player
+    // Add creator as first player and host
     const { data: player, error: playerError } = await supabase
       .from('bingo_session_players')
       .insert({
         session_id: session.id,
         user_id: user.id,
-        player_name: playerName,
+        display_name: displayName,
         color,
         team: team ?? null,
         joined_at: now,
@@ -250,7 +252,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         *,
         players:bingo_session_players(
           user_id,
-          player_name,
+          display_name,
           color,
           team
         )

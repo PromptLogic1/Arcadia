@@ -55,7 +55,7 @@ export interface GameComment extends Comment {
 
   // Hierarchy
   depth?: number;
-  parentId?: number | null;
+  parentId?: string | null;
 
   // Moderation
   isFlagged?: boolean;
@@ -98,7 +98,7 @@ export interface TagHistoryEntry extends TagHistory {
 export interface TagReportEntry extends TagReport {
   reporter?: Pick<User, 'id' | 'username'>;
   moderator?: Pick<User, 'id' | 'username'>;
-  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed' | null;
 }
 
 // =============================================================================
@@ -116,8 +116,8 @@ export interface CreateDiscussionForm {
 
 export interface CreateCommentForm {
   content: string;
-  discussion_id: number;
-  parent_id?: number;
+  discussion_id: string;
+  parent_id?: string;
 }
 
 export interface CreateTagForm {

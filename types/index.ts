@@ -120,6 +120,20 @@ export interface FilterOptions {
   sort?: 'newest' | 'oldest' | 'popular' | 'rating';
 }
 
+// Consolidated Profile Form Data (replaces feature-specific duplicates)
+export interface ProfileFormData {
+  username?: string;
+  full_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  city?: string | null;
+  region?: string | null;
+  land?: string | null;
+  profile_visibility?: Enums<'visibility_type'>;
+  achievements_visibility?: Enums<'visibility_type'>;
+  submissions_visibility?: Enums<'visibility_type'>;
+}
+
 // =============================================================================
 // UTILITY TYPES (These are defined in src/types/index.ts - remove duplication)
 // =============================================================================
@@ -237,6 +251,50 @@ export const MIN_BOARD_SIZE = 3;
 export const MAX_BOARD_SIZE = 6;
 export const DEFAULT_MAX_PLAYERS = 4;
 export const MAX_PLAYERS = 12;
+
+// =============================================================================
+// VALIDATION RULES (Consolidated from features)
+// =============================================================================
+
+export const VALIDATION_RULES = {
+  username: {
+    minLength: 3,
+    maxLength: 20,
+    pattern: /^[a-zA-Z0-9_-]+$/,
+    reserved: [
+      'admin',
+      'moderator', 
+      'support',
+      'api',
+      'www',
+      'app',
+      'root',
+      'system',
+    ],
+  },
+  password: {
+    minLength: 8,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumbers: true,
+    requireSpecialChars: true,
+  },
+  bio: {
+    maxLength: 500,
+  },
+  fullName: {
+    maxLength: 100,
+  },
+  email: {
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  },
+  displayName: {
+    minLength: 3,
+    maxLength: 20,
+  },
+} as const;
+
+export type ValidationRules = typeof VALIDATION_RULES;
 
 // =============================================================================
 // DOMAIN TYPE RE-EXPORTS

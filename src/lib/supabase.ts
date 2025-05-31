@@ -1,5 +1,5 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import type { Database } from '../../types/database-types';
+import type { Database } from '../../types/database-generated';
 
 // Type definitions for cookie handling (kept for future use)
 interface _CookieOptions {

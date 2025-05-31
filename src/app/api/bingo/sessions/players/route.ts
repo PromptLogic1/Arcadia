@@ -1,6 +1,6 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import type { Database, QueueStatus } from '@/types';
+import type { Database } from '@/types';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
@@ -8,26 +8,21 @@ const rateLimiter = new RateLimiter();
 
 interface JoinSessionRequest {
   sessionId: string;
-  playerName: string;
+  displayName: string;
   color: string;
   team?: number | null;
 }
 
-interface JoinRequestDataForLog {
-  playerName?: string;
-  color?: string;
-  team?: number | null;
-}
 
 interface PlayerUpdatesForLog {
-  player_name?: string;
+  display_name?: string;
   color?: string;
   team?: number | null;
 }
 
 interface PatchPlayerRequest {
   sessionId: string;
-  playerName?: string;
+  displayName?: string;
   color?: string;
   team?: number | null;
 }
@@ -35,7 +30,6 @@ interface PatchPlayerRequest {
 export async function POST(request: Request): Promise<NextResponse> {
   let userIdForLog: string | undefined;
   let sessionIdForLog: string | undefined;
-  let joinRequestDataForLog: JoinRequestDataForLog = {};
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     if (await rateLimiter.isLimited(ip)) {
@@ -54,14 +48,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const body = (await request.json()) as JoinSessionRequest;
-    const { sessionId, playerName, color, team } = body;
+    const { sessionId, displayName, color, team } = body;
     sessionIdForLog = sessionId;
-    joinRequestDataForLog = { playerName, color, team };
 
-    // Validate player name
-    if (!playerName || playerName.length < 3 || playerName.length > 20) {
+    // Validate display name
+    if (!displayName || displayName.length < 3 || displayName.length > 20) {
       return NextResponse.json(
-        { error: 'Player name must be between 3 and 20 characters' },
+        { error: 'Display name must be between 3 and 20 characters' },
         { status: 400 }
       );
     }
@@ -77,116 +70,76 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    if (session.status !== 'active') {
+    if (session.status !== 'waiting') {
       return NextResponse.json(
-        { error: 'Session is not active' },
+        { error: 'Session is not accepting new players' },
         { status: 400 }
       );
     }
 
-    // Instead of directly adding player, add to queue
-    const { data: queueEntry, error: queueError } = await supabase
-      .from('bingo_session_queue')
+    // Check if player already exists in session
+    const { data: existingPlayer } = await supabase
+      .from('bingo_session_players')
+      .select()
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingPlayer) {
+      return NextResponse.json(
+        { error: 'Player already in session' },
+        { status: 409 }
+      );
+    }
+
+    // Check if color is already taken
+    const { data: colorCheck } = await supabase
+      .from('bingo_session_players')
+      .select('color')
+      .eq('session_id', sessionId)
+      .eq('color', color)
+      .single();
+
+    if (colorCheck) {
+      return NextResponse.json(
+        { error: 'Color already taken' },
+        { status: 409 }
+      );
+    }
+
+    // Add player directly to session
+    const { data: player, error: playerError } = await supabase
+      .from('bingo_session_players')
       .insert({
         session_id: sessionId,
         user_id: user.id,
-        player_name: playerName,
+        display_name: displayName,
         color,
         team: team ?? null,
-        status: 'pending' as QueueStatus,
-        requested_at: new Date().toISOString(),
+        joined_at: new Date().toISOString(),
       })
-      .select('id, status')
+      .select()
       .single();
 
-    if (queueError) {
-      log.error('Error adding to join queue', queueError, {
+    if (playerError) {
+      log.error('Error adding player to session', playerError, {
         metadata: {
           apiRoute: 'bingo/sessions/players',
           method: 'POST',
           userId: userIdForLog,
           sessionId: sessionIdForLog,
-          ...joinRequestDataForLog,
+          displayName,
+          color,
+          team,
         },
       });
-      return NextResponse.json({ error: queueError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: playerError.message },
+        { status: 500 }
+      );
     }
 
-    // Wait for queue processing (with timeout)
-    let attempts = 0;
-    const maxAttempts = 10;
-    while (attempts < maxAttempts) {
-      const { data: processedEntry, error: checkError } = await supabase
-        .from('bingo_session_queue')
-        .select('status, processed_at')
-        .eq('id', queueEntry?.id)
-        .single();
-
-      if (checkError) {
-        log.error('Error checking queue status', checkError, {
-          metadata: {
-            apiRoute: 'bingo/sessions/players',
-            method: 'POST',
-            userId: userIdForLog,
-            queueEntryId: queueEntry?.id,
-          },
-        });
-        return NextResponse.json(
-          { error: checkError.message },
-          { status: 500 }
-        );
-      }
-
-      if (processedEntry?.status === 'approved') {
-        // Successfully joined
-        const { data: player, error: playerFetchError } = await supabase
-          .from('bingo_session_players')
-          .select()
-          .eq('session_id', sessionId)
-          .eq('user_id', user.id)
-          .single();
-
-        if (playerFetchError) {
-          log.error(
-            'Error fetching player after approved join',
-            playerFetchError,
-            {
-              metadata: {
-                apiRoute: 'bingo/sessions/players',
-                method: 'POST',
-                userId: userIdForLog,
-                sessionId: sessionIdForLog,
-                playerName,
-                color,
-                team,
-              },
-            }
-          );
-          return NextResponse.json(
-            { error: playerFetchError.message },
-            { status: 500 }
-          );
-        }
-        return NextResponse.json(player);
-      } else if (processedEntry?.status === 'rejected') {
-        return NextResponse.json(
-          {
-            error:
-              'Failed to join session - color may be taken or session full',
-          },
-          { status: 409 }
-        );
-      }
-
-      // Wait before checking again
-      await new Promise(resolve => setTimeout(resolve, 500));
-      attempts++;
-    }
-
-    return NextResponse.json(
-      { error: 'Join request timed out' },
-      { status: 408 }
-    );
+    return NextResponse.json(player);
   } catch (error) {
     log.error(
       'Unhandled error in POST /api/bingo/sessions/players (join session)',
@@ -224,24 +177,24 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     }
 
     const body = (await request.json()) as PatchPlayerRequest;
-    const { sessionId, playerName, color, team } = body;
+    const { sessionId, displayName, color, team } = body;
     playerIdForLog = user?.id;
 
     // Prepare the update object for Supabase. This must match Supabase's expected type.
     const supabaseUpdatePayload: Database['public']['Tables']['bingo_session_players']['Update'] =
       {};
-    if (playerName !== undefined)
-      supabaseUpdatePayload.player_name = playerName;
+    if (displayName !== undefined)
+      supabaseUpdatePayload.display_name = displayName;
     if (color !== undefined) supabaseUpdatePayload.color = color;
     if (team !== undefined) supabaseUpdatePayload.team = team ?? null;
 
     // For logging, we can use a slightly different structure if needed, but here it's the same.
     updatesForLog = supabaseUpdatePayload;
 
-    // Validate player name
-    if (playerName && (playerName.length < 3 || playerName.length > 20)) {
+    // Validate display name
+    if (displayName && (displayName.length < 3 || displayName.length > 20)) {
       return NextResponse.json(
-        { error: 'Player name must be between 3 and 20 characters' },
+        { error: 'Display name must be between 3 and 20 characters' },
         { status: 400 }
       );
     }

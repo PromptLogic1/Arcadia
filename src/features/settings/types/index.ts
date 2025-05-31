@@ -1,9 +1,8 @@
-import type { Tables, TablesUpdate, Enums } from '@/types/database-types';
-
-// Database types
-export type User = Tables<'users'>;
-export type UserRole = Enums<'user_role'>;
-export type VisibilityType = Enums<'visibility_type'>;
+import type { 
+  TablesUpdate, 
+  ProfileFormData,
+  VisibilityType 
+} from '@/types';
 
 // Settings categories
 export interface UserSettings {
@@ -14,18 +13,10 @@ export interface UserSettings {
   security: SecuritySettings;
 }
 
-// Profile settings
-export interface ProfileSettings {
-  username: string;
-  full_name?: string;
-  bio?: string;
-  avatar_url?: string;
-  city?: string;
-  region?: string;
-  land?: string;
-}
+// Profile settings (use consolidated type)
+export type ProfileSettings = ProfileFormData;
 
-export interface ProfileSettingsFormData extends ProfileSettings {
+export interface ProfileSettingsFormData extends ProfileFormData {
   currentPassword?: string; // Required for sensitive changes
 }
 
@@ -336,34 +327,22 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   },
 ] as const;
 
-export const VALIDATION_RULES: SettingsValidationRules = {
-  username: {
-    minLength: 3,
-    maxLength: 20,
-    pattern: /^[a-zA-Z0-9_-]+$/,
-    reserved: [
-      'admin',
-      'moderator',
-      'support',
-      'api',
-      'www',
-      'app',
-      'root',
-      'system',
-    ],
+// Validation rules (moved locally since not used from @/types)
+export const VALIDATION_RULES = {
+  USERNAME: {
+    MIN_LENGTH: 3,
+    MAX_LENGTH: 20,
+    PATTERN: /^[a-zA-Z0-9_-]+$/,
   },
-  password: {
-    minLength: 8,
-    requireUppercase: true,
-    requireLowercase: true,
-    requireNumbers: true,
-    requireSpecialChars: true,
+  PASSWORD: {
+    MIN_LENGTH: 8,
+    MAX_LENGTH: 128,
   },
-  bio: {
-    maxLength: 500,
+  BIO: {
+    MAX_LENGTH: 500,
   },
-  fullName: {
-    maxLength: 100,
+  FULL_NAME: {
+    MAX_LENGTH: 100,
   },
 } as const;
 

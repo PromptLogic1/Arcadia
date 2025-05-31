@@ -4,11 +4,11 @@ export { useTimer } from './useTimer';
 export { useBingoGame } from './useBingoGame';
 export { useBingoBoard } from './useBingoBoard';
 export { useSessionQueue } from './useSessionQueue';
-export { useLayout } from './useLayout';
-export { useGameAnalytics } from './useGameAnalytics';
+// useLayout removed - was unused
+// useGameAnalytics removed - replaced with simple stub in usePlayerManagement
 export { useGameSettings } from './useGameSettings';
 export { usePresence } from './usePresence';
-export { useTagSystem } from './useTagSystem';
+// useTagSystem removed - was unused
 export { useBingoBoards } from './useBingoBoards';
 export { useBingoBoardEdit } from './useBingoBoardEdit';
 export { useGameState } from './useGameState';

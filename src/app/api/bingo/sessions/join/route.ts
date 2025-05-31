@@ -8,13 +8,13 @@ const rateLimiter = new RateLimiter();
 
 interface JoinSessionRequest {
   sessionId: string;
-  playerName: string;
+  displayName: string;
   color: string;
   team?: number | null;
 }
 
 interface JoinRoutePayloadForLog {
-  playerName?: string;
+  displayName?: string;
   color?: string;
   team?: number | null;
 }
@@ -40,9 +40,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const body = (await request.json()) as JoinSessionRequest;
-    const { sessionId, playerName, color, team } = body;
+    const { sessionId, displayName, color, team } = body;
     sessionIdForLog = sessionId;
-    joinPayloadForLog = { playerName, color, team };
+    joinPayloadForLog = { displayName, color, team };
 
     // Check if session exists and is active
     const { data: session, error: sessionError } = await supabase
@@ -60,9 +60,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    if (session.status !== 'active') {
+    if (session.status !== 'waiting') {
       return NextResponse.json(
-        { error: 'Session is not active' },
+        { error: 'Session is not accepting new players' },
         { status: 400 }
       );
     }
@@ -94,7 +94,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       .insert({
         session_id: sessionId,
         user_id: user.id,
-        player_name: playerName,
+        display_name: displayName,
         color,
         team: team ?? null,
         joined_at: new Date().toISOString(),

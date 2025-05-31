@@ -1,18 +1,11 @@
 import type {
-  Tables,
   TablesInsert,
   TablesUpdate,
-  Enums,
-} from '@/types/database-types';
-
-// Database types
-export type User = Tables<'users'>;
-export type UserAchievement = Tables<'user_achievements'>;
-export type UserFriend = Tables<'user_friends'>;
-export type UserSession = Tables<'user_sessions'>;
-
-export type UserRole = Enums<'user_role'>;
-export type VisibilityType = Enums<'visibility_type'>;
+  User,
+  UserAchievement,
+  UserRole,
+  VisibilityType,
+} from '@/types';
 
 // Extended user types
 export interface UserProfile extends User {

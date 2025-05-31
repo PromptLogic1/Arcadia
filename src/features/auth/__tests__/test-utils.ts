@@ -17,7 +17,7 @@ export const axe = configureAxe({
 });
 
 // Mock Supabase client type
-interface MockSupabaseClient {
+interface _MockSupabaseClient {
   auth: {
     getUser: jest.Mock;
     signInWithPassword: jest.Mock;

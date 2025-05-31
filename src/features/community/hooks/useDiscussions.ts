@@ -32,7 +32,7 @@ export interface UseDiscussionsReturn {
     >
   ) => Promise<Discussion>;
   addComment: (
-    discussionId: number,
+    discussionId: string,
     commentData: Omit<
       BaseComment,
       | 'id'
@@ -43,7 +43,7 @@ export interface UseDiscussionsReturn {
       | 'author_id'
     >
   ) => Promise<Comment>;
-  upvoteDiscussion: (discussionId: number) => Promise<void>;
+  upvoteDiscussion: (discussionId: string) => Promise<void>;
 }
 
 type DatabaseDiscussion = Database['public']['Tables']['discussions']['Row'];
@@ -112,7 +112,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
       id: dbDiscussion.id,
       title: dbDiscussion.title,
       content: dbDiscussion.content,
-      game: dbDiscussion.game,
+      game: dbDiscussion.game_type,
       challenge_type: dbDiscussion.challenge_type,
       upvotes: dbDiscussion.upvotes || 0,
       created_at: dbDiscussion.created_at,
@@ -277,6 +277,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
           content: commentData.content,
           author_id: userData.user.id,
           upvotes: 0,
+          parent_id: null,
         };
 
         const { data, error: supabaseError } = await supabase
@@ -314,7 +315,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
   );
 
   const upvoteDiscussion = useCallback(
-    async (discussionId: number) => {
+    async (discussionId: string) => {
       setIsLoading(true);
       setError(null);
 

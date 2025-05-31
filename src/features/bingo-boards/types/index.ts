@@ -99,7 +99,7 @@ export interface QueueEntry {
   id: string;
   sessionId: string;
   userId: string;
-  playerName: string;
+  displayName: string;
   color: string;
   status: 'pending' | 'approved' | 'rejected';
   requestedAt: string;
@@ -139,14 +139,19 @@ export interface BoardStatistics {
 
 export interface BingoSession {
   id: string;
-  board_id: string;
-  host_id: string;
-  players: Player[];
-  status: SessionStatus;
-  current_state?: BoardCell[];
-  win_conditions: WinConditions;
-  winner_id?: string;
-  started_at?: Date;
+  board_id: string | null;
+  host_id: string | null;
+  session_code: string | null;
+  players?: Player[];
+  status: SessionStatus | null;
+  current_state?: BoardCell[] | null;
+  settings?: SessionSettings | null;
+  version: number | null;
+  winner_id?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   completed_at?: Date;
   settings: SessionSettings;
 }
@@ -328,3 +333,6 @@ export const DEFAULT_FILTER_STATE: FilterState = {
 
 // Re-export all constants
 export * from './constants';
+
+// Re-export win pattern types
+export * from './win-patterns.types';

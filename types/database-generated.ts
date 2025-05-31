@@ -98,6 +98,13 @@ export type Database = {
             foreignKeyName: "bingo_boards_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_boards_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -147,6 +154,92 @@ export type Database = {
           {
             foreignKeyName: "bingo_cards_creator_id_fkey"
             columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_cards_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bingo_queue_entries: {
+        Row: {
+          board_id: string | null
+          created_at: string | null
+          id: string
+          matched_at: string | null
+          matched_session_id: string | null
+          preferences: Json | null
+          status: Database["public"]["Enums"]["queue_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          board_id?: string | null
+          created_at?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_session_id?: string | null
+          preferences?: Json | null
+          status?: Database["public"]["Enums"]["queue_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          board_id?: string | null
+          created_at?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_session_id?: string | null
+          preferences?: Json | null
+          status?: Database["public"]["Enums"]["queue_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bingo_queue_entries_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "bingo_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_queue_entries_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_queue_entries_matched_session_id_fkey"
+            columns: ["matched_session_id"]
+            isOneToOne: false
+            referencedRelation: "bingo_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_queue_entries_matched_session_id_fkey"
+            columns: ["matched_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_queue_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_queue_entries_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -215,38 +308,47 @@ export type Database = {
       bingo_session_events: {
         Row: {
           board_id: string | null
+          cell_position: number | null
           created_at: string | null
           data: Json | null
+          event_data: Json | null
           event_type: string
           id: string
           player_id: string | null
           session_id: string | null
           timestamp: number
           updated_at: string | null
+          user_id: string | null
           version: number | null
         }
         Insert: {
           board_id?: string | null
+          cell_position?: number | null
           created_at?: string | null
           data?: Json | null
+          event_data?: Json | null
           event_type: string
           id?: string
           player_id?: string | null
           session_id?: string | null
           timestamp: number
           updated_at?: string | null
+          user_id?: string | null
           version?: number | null
         }
         Update: {
           board_id?: string | null
+          cell_position?: number | null
           created_at?: string | null
           data?: Json | null
+          event_data?: Json | null
           event_type?: string
           id?: string
           player_id?: string | null
           session_id?: string | null
           timestamp?: number
           updated_at?: string | null
+          user_id?: string | null
           version?: number | null
         }
         Relationships: [
@@ -262,6 +364,13 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_events_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -285,34 +394,69 @@ export type Database = {
             referencedRelation: "session_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bingo_session_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bingo_session_players: {
         Row: {
+          avatar_url: string | null
           color: string
           created_at: string | null
+          display_name: string
+          id: string | null
+          is_host: boolean | null
+          is_ready: boolean | null
           joined_at: string | null
-          player_name: string
+          left_at: string | null
+          position: number | null
+          score: number | null
           session_id: string
           team: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           color: string
           created_at?: string | null
+          display_name: string
+          id?: string | null
+          is_host?: boolean | null
+          is_ready?: boolean | null
           joined_at?: string | null
-          player_name: string
+          left_at?: string | null
+          position?: number | null
+          score?: number | null
           session_id: string
           team?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           color?: string
           created_at?: string | null
+          display_name?: string
+          id?: string | null
+          is_host?: boolean | null
+          is_ready?: boolean | null
           joined_at?: string | null
-          player_name?: string
+          left_at?: string | null
+          position?: number | null
+          score?: number | null
           session_id?: string
           team?: number | null
           updated_at?: string | null
@@ -331,6 +475,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "session_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -401,6 +552,13 @@ export type Database = {
             foreignKeyName: "bingo_session_queue_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -416,12 +574,14 @@ export type Database = {
           ended_at: string | null
           host_id: string | null
           id: string
+          session_code: string | null
           settings:
             | Database["public"]["CompositeTypes"]["session_settings"]
             | null
           started_at: string | null
           status: Database["public"]["Enums"]["session_status"] | null
           updated_at: string | null
+          version: number | null
           winner_id: string | null
         }
         Insert: {
@@ -433,12 +593,14 @@ export type Database = {
           ended_at?: string | null
           host_id?: string | null
           id?: string
+          session_code?: string | null
           settings?:
             | Database["public"]["CompositeTypes"]["session_settings"]
             | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["session_status"] | null
           updated_at?: string | null
+          version?: number | null
           winner_id?: string | null
         }
         Update: {
@@ -450,12 +612,14 @@ export type Database = {
           ended_at?: string | null
           host_id?: string | null
           id?: string
+          session_code?: string | null
           settings?:
             | Database["public"]["CompositeTypes"]["session_settings"]
             | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["session_status"] | null
           updated_at?: string | null
+          version?: number | null
           winner_id?: string | null
         }
         Relationships: [
@@ -477,7 +641,21 @@ export type Database = {
             foreignKeyName: "bingo_sessions_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -518,6 +696,13 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -570,6 +755,13 @@ export type Database = {
             foreignKeyName: "board_votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -603,6 +795,13 @@ export type Database = {
             columns: ["card_id"]
             isOneToOne: false
             referencedRelation: "bingo_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -738,6 +937,13 @@ export type Database = {
             foreignKeyName: "challenges_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -748,8 +954,9 @@ export type Database = {
           author_id: string | null
           content: string
           created_at: string | null
-          discussion_id: number | null
-          id: number
+          discussion_id: string | null
+          id: string
+          parent_id: string | null
           updated_at: string | null
           upvotes: number | null
         }
@@ -757,8 +964,9 @@ export type Database = {
           author_id?: string | null
           content: string
           created_at?: string | null
-          discussion_id?: number | null
-          id?: number
+          discussion_id?: string | null
+          id?: string
+          parent_id?: string | null
           updated_at?: string | null
           upvotes?: number | null
         }
@@ -766,12 +974,20 @@ export type Database = {
           author_id?: string | null
           content?: string
           created_at?: string | null
-          discussion_id?: number | null
-          id?: number
+          discussion_id?: string | null
+          id?: string
+          parent_id?: string | null
           updated_at?: string | null
           upvotes?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_author_id_fkey"
             columns: ["author_id"]
@@ -794,41 +1010,125 @@ export type Database = {
           challenge_type: string | null
           content: string
           created_at: string | null
-          game: string
-          id: number
+          game_type: Database["public"]["Enums"]["game_category"] | null
+          id: string
+          is_locked: boolean | null
+          is_pinned: boolean | null
           tags: string[] | null
           title: string
           updated_at: string | null
           upvotes: number | null
+          view_count: number | null
         }
         Insert: {
           author_id?: string | null
           challenge_type?: string | null
           content: string
           created_at?: string | null
-          game: string
-          id?: number
+          game_type?: Database["public"]["Enums"]["game_category"] | null
+          id?: string
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
           tags?: string[] | null
           title: string
           updated_at?: string | null
           upvotes?: number | null
+          view_count?: number | null
         }
         Update: {
           author_id?: string | null
           challenge_type?: string | null
           content?: string
           created_at?: string | null
-          game?: string
-          id?: number
+          game_type?: Database["public"]["Enums"]["game_category"] | null
+          id?: string
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
           tags?: string[] | null
           title?: string
           updated_at?: string | null
           upvotes?: number | null
+          view_count?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "discussions_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_results: {
+        Row: {
+          bonus_points: number | null
+          created_at: string | null
+          final_score: number
+          id: string
+          mistake_count: number | null
+          patterns_achieved: Json | null
+          placement: number | null
+          session_id: string | null
+          time_to_win: number | null
+          user_id: string | null
+        }
+        Insert: {
+          bonus_points?: number | null
+          created_at?: string | null
+          final_score?: number
+          id?: string
+          mistake_count?: number | null
+          patterns_achieved?: Json | null
+          placement?: number | null
+          session_id?: string | null
+          time_to_win?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          bonus_points?: number | null
+          created_at?: string | null
+          final_score?: number
+          id?: string
+          mistake_count?: number | null
+          patterns_achieved?: Json | null
+          placement?: number | null
+          session_id?: string | null
+          time_to_win?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "bingo_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_results_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -881,6 +1181,13 @@ export type Database = {
             foreignKeyName: "submissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -916,6 +1223,13 @@ export type Database = {
             foreignKeyName: "tag_history_performed_by_fkey"
             columns: ["performed_by"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tag_history_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -930,25 +1244,37 @@ export type Database = {
       }
       tag_reports: {
         Row: {
+          created_at: string | null
+          description: string | null
           id: string
           reason: string
+          reporter_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
           tag_id: string | null
-          timestamp: string | null
-          user_id: string | null
         }
         Insert: {
+          created_at?: string | null
+          description?: string | null
           id?: string
           reason: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
           tag_id?: string | null
-          timestamp?: string | null
-          user_id?: string | null
         }
         Update: {
+          created_at?: string | null
+          description?: string | null
           id?: string
           reason?: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
           tag_id?: string | null
-          timestamp?: string | null
-          user_id?: string | null
         }
         Relationships: [
           {
@@ -959,8 +1285,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tag_reports_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "tag_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tag_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -995,6 +1328,13 @@ export type Database = {
             columns: ["tag_id"]
             isOneToOne: false
             referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tag_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -1057,6 +1397,13 @@ export type Database = {
             foreignKeyName: "tags_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tags_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1101,6 +1448,13 @@ export type Database = {
             foreignKeyName: "user_achievements_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1132,6 +1486,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_activity_user_id_fkey"
             columns: ["user_id"]
@@ -1168,7 +1529,21 @@ export type Database = {
             foreignKeyName: "user_friends_friend_id_fkey"
             columns: ["friend_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_friends_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_friends_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -1216,6 +1591,82 @@ export type Database = {
             foreignKeyName: "user_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_statistics: {
+        Row: {
+          average_score: number | null
+          current_win_streak: number | null
+          fastest_win: number | null
+          favorite_pattern: string | null
+          games_completed: number | null
+          games_won: number | null
+          highest_score: number | null
+          last_game_at: string | null
+          longest_win_streak: number | null
+          patterns_completed: Json | null
+          total_games: number | null
+          total_playtime: number | null
+          total_score: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_score?: number | null
+          current_win_streak?: number | null
+          fastest_win?: number | null
+          favorite_pattern?: string | null
+          games_completed?: number | null
+          games_won?: number | null
+          highest_score?: number | null
+          last_game_at?: string | null
+          longest_win_streak?: number | null
+          patterns_completed?: Json | null
+          total_games?: number | null
+          total_playtime?: number | null
+          total_score?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_score?: number | null
+          current_win_streak?: number | null
+          fastest_win?: number | null
+          favorite_pattern?: string | null
+          games_completed?: number | null
+          games_won?: number | null
+          highest_score?: number | null
+          last_game_at?: string | null
+          longest_win_streak?: number | null
+          patterns_completed?: Json | null
+          total_games?: number | null
+          total_playtime?: number | null
+          total_score?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_statistics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_statistics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1301,6 +1752,24 @@ export type Database = {
       }
     }
     Views: {
+      leaderboards: {
+        Row: {
+          avatar_url: string | null
+          avg_score: number | null
+          best_streak: number | null
+          fastest_win: number | null
+          games_played: number | null
+          id: string | null
+          last_game_at: string | null
+          points_per_game: number | null
+          total_score: number | null
+          updated_at: string | null
+          username: string | null
+          win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
       public_boards: {
         Row: {
           board_state:
@@ -1341,6 +1810,13 @@ export type Database = {
             columns: ["cloned_from"]
             isOneToOne: false
             referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_boards_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -1392,7 +1868,21 @@ export type Database = {
             foreignKeyName: "bingo_sessions_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
@@ -1408,14 +1898,18 @@ export type Database = {
     Functions: {
       add_comment: {
         Args: {
-          p_discussion_id: number
+          p_discussion_id: string
           p_content: string
           p_author_id: string
         }
-        Returns: number
+        Returns: string
+      }
+      cleanup_expired_queue_entries: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       increment_discussion_upvotes: {
-        Args: { discussion_id: number }
+        Args: { discussion_id: string }
         Returns: undefined
       }
       is_admin: {

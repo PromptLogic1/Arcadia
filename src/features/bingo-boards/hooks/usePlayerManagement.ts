@@ -8,7 +8,7 @@ import type {
   JoinSessionForm,
 } from '@/types/domains/bingo';
 import { PLAYER_COLORS } from '@/types';
-import { useGameAnalytics } from './useGameAnalytics';
+// Removed useGameAnalytics import - replaced with simple stub
 import { useGameSettings } from './useGameSettings';
 import { usePresence } from './usePresence';
 import { logger } from '@/src/lib/logger';
@@ -68,8 +68,10 @@ export const usePlayerManagement = ({
   const [_loading, _setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Hook Integration
-  const { updateStats: _updateStats, trackMove } = useGameAnalytics();
+  // Analytics stub - replaced complex useGameAnalytics
+  const trackMove = useCallback((_playerId: string, _moveType: string, _position: number) => {
+    // TODO: Implement analytics when needed
+  }, []);
   const { settings } = useGameSettings(sessionId);
   const { presenceState } = usePresence(sessionId);
 

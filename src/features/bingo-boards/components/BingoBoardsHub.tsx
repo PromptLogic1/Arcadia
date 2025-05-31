@@ -2,16 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { Filter } from '@/components/filter/filter';
-import {
-  DIFFICULTY_OPTIONS,
-  DEFAULT_SORT_OPTIONS,
-} from '@/components/filter/types';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DIFFICULTY_OPTIONS } from '@/types';
 import { default as BoardCard } from './board-card';
 import { CreateBoardForm } from './CreateBoardForm';
 import { NeonText } from '@/components/ui/NeonText';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
-import { Constants, type GameCategory } from '@/types';
+import { Constants as _Constants, type GameCategory as _GameCategory } from '@/types';
 
 export default function BingoBoardsHub() {
   const {
@@ -23,29 +21,59 @@ export default function BingoBoardsHub() {
     handleCreateBoard,
   } = useBingoBoardsHub();
 
-  // Convert game categories to filter options format
-  const categoryOptions = [
-    { value: '__all__', label: 'All Games' },
-    ...Constants.public.Enums.game_category
-      .filter((game: GameCategory) => game !== 'All Games')
-      .map((game: GameCategory) => ({
-        value: game,
-        label: game,
-      })),
+  // Sort options for the select
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'popular', label: 'Most Popular' },
+    { value: 'rating', label: 'Highest Rated' },
   ];
 
   return (
     <div className="space-y-6">
-      <Filter
-        filterOptions={{
-          categories: categoryOptions,
-          difficulties: DIFFICULTY_OPTIONS,
-          sortOptions: DEFAULT_SORT_OPTIONS,
-          enableSearch: true,
-        }}
-        selections={filterSelections}
-        onFilterChange={handleFilterChange}
-      />
+      {/* Simple Filter Bar */}
+      <div className="flex flex-wrap gap-4 p-4 bg-card rounded-lg border">
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            placeholder="Search boards..."
+            value={filterSelections.search}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+          />
+        </div>
+        
+        <Select
+          value={filterSelections.difficulty}
+          onValueChange={(value) => handleFilterChange('difficulty', value)}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Difficulty" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Difficulties</SelectItem>
+            {DIFFICULTY_OPTIONS.map((difficulty) => (
+              <SelectItem key={difficulty.value} value={difficulty.value}>
+                {difficulty.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Select
+          value={filterSelections.sort}
+          onValueChange={(value) => handleFilterChange('sort', value)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold">

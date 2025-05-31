@@ -144,11 +144,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         title,
         creator_id: user.id,
         size,
-        settings,
+        settings: settings as any,
         game_type,
         difficulty,
         is_public,
-        board_state,
+        board_state: board_state as any,
         status: 'draft' as const,
         cloned_from: null,
       })

@@ -1,16 +1,11 @@
 import { z as _z } from 'zod';
 import type {
-  Tables,
   TablesInsert,
   TablesUpdate,
-  Enums,
-} from '@/types/database-types';
-
-// Database types
-export type User = Tables<'users'>;
-export type UserSession = Tables<'user_sessions'>;
-export type UserRole = Enums<'user_role'>;
-export type VisibilityType = Enums<'visibility_type'>;
+  User,
+  UserRole,
+  VisibilityType,
+} from '@/types';
 
 // Auth state types
 export interface AuthUser extends User {
