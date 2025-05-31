@@ -61,7 +61,7 @@ const UpcomingEventsSection: React.FC = () => {
                     src={event.imageUrl}
                     alt={event.title}
                     fill
-                    className="absolute left-0 top-0 rounded-t-lg object-cover"
+                    className="absolute top-0 left-0 rounded-t-lg object-cover"
                     placeholder="blur"
                     blurDataURL="/images/placeholder-blur.jpg"
                   />

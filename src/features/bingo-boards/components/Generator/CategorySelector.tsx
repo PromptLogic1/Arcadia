@@ -52,7 +52,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   const useAllCategories = formData.useAllCategories;
 
   return (
-    <div className={cn(SPACING.FORM_GROUP, "@container")}>
+    <div className={cn(SPACING.FORM_GROUP, '@container')}>
       {/* Use All Categories Checkbox with Enhanced Styling */}
       <FormField
         name="useAllCategories"
@@ -65,7 +65,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
       {/* Category Selection - Only show when not using all categories */}
       {!useAllCategories && (
-        <div className="space-y-4 animate-fade">
+        <div className="animate-fade space-y-4">
           <Select onValueChange={onCategoryToggle}>
             <SelectTrigger className={GENERATOR_STYLES.SELECT_TRIGGER}>
               <SelectValue placeholder={GENERATOR_LABELS.SELECT_CATEGORY} />
@@ -87,11 +87,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
           {/* Selected Categories Display with Enhanced Animations */}
           {selectedCategories.length > 0 && (
-            <div className={cn(
-              SPACING.BADGE_GAP,
-              "animate-fade @container"
-            )}>
-              <div className="grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3 gap-2">
+            <div className={cn(SPACING.BADGE_GAP, 'animate-fade @container')}>
+              <div className="grid grid-cols-1 gap-2 @sm:grid-cols-2 @lg:grid-cols-3">
                 {selectedCategories.map((category, index) => (
                   <CategoryBadge
                     key={category}
@@ -106,8 +103,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
           {/* Enhanced Error Display */}
           {errors.categories && (
-            <div className="flex items-center gap-2 mt-2 animate-fade">
-              <div className="h-1 w-1 rounded-full bg-destructive animate-glow" />
+            <div className="animate-fade mt-2 flex items-center gap-2">
+              <div className="bg-destructive animate-glow h-1 w-1 rounded-full" />
               <p className={GENERATOR_STYLES.ERROR_TEXT}>
                 {errors.categories.message}
               </p>
@@ -140,31 +137,31 @@ const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   index = 0,
 }) => {
   return (
-    <div 
+    <div
       className="animate-scale-in hover-lift"
       style={{ animationDelay: `${index * 0.1}s` }}
     >
-      <Badge 
-        variant="secondary" 
+      <Badge
+        variant="secondary"
         className={cn(
           GENERATOR_STYLES.BADGE_SELECTED,
-          "group cursor-pointer transition-all duration-200 w-full justify-between"
+          'group w-full cursor-pointer justify-between transition-all duration-200'
         )}
       >
-        <span className="text-shadow-xs truncate">{category}</span>
+        <span className="truncate text-shadow-xs">{category}</span>
         <button
           type="button"
           className={cn(
-            "ml-2 p-1 rounded-full touch-target",
-            "transition-all duration-200",
-            "hover:bg-destructive/20 hover:text-destructive",
-            "focus:outline-none focus:ring-2 focus:ring-destructive/30",
-            "group-hover:scale-110"
+            'touch-target ml-2 rounded-full p-1',
+            'transition-all duration-200',
+            'hover:bg-destructive/20 hover:text-destructive',
+            'focus:ring-destructive/30 focus:ring-2 focus:outline-none',
+            'group-hover:scale-110'
           )}
           onClick={onRemove}
           aria-label={`Remove ${category} category`}
         >
-          <X className="h-3 w-3 pointer-events-none" />
+          <X className="pointer-events-none h-3 w-3" />
         </button>
       </Badge>
     </div>

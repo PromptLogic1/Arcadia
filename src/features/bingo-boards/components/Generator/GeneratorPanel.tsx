@@ -175,7 +175,7 @@ export function GeneratorPanel({
 
           {/* Card Sources Section */}
           <div className={SPACING.FORM_GROUP}>
-            <div className={cn("mb-2", GENERATOR_STYLES.SUBTITLE)}>
+            <div className={cn('mb-2', GENERATOR_STYLES.SUBTITLE)}>
               {GENERATOR_LABELS.CARD_SOURCES}
             </div>
             <div className={SPACING.FLEX_GAP}>
@@ -210,7 +210,9 @@ export function GeneratorPanel({
             {isLoading ? (
               <div className={GENERATOR_STYLES.LOADING_OVERLAY}>
                 <LoadingSpinner className={GENERATOR_STYLES.LOADING_SPINNER} />
-                <span className="ml-2 text-shadow-sm">{GENERATOR_LABELS.GENERATING}</span>
+                <span className="ml-2 text-shadow-sm">
+                  {GENERATOR_LABELS.GENERATING}
+                </span>
               </div>
             ) : (
               <>

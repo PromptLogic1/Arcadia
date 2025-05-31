@@ -33,7 +33,7 @@ export function BoardHeader({
       <div className="flex flex-col">
         <h1
           className={cn(
-            'break-words bg-clip-text text-5xl font-bold text-transparent',
+            'bg-clip-text text-5xl font-bold break-words text-transparent',
             STYLES.GRADIENT_TITLE
           )}
           style={{ wordBreak: 'break-word' }}

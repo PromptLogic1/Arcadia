@@ -36,7 +36,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div className={`group relative ${className}`}>
       <Search
-        className={`absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform ${isFocused ? 'text-cyan-400' : 'text-cyan-300'} transition-colors duration-200`}
+        className={`absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform ${isFocused ? 'text-cyan-400' : 'text-cyan-300'} transition-colors duration-200`}
       />
       <Input
         ref={inputRef}
@@ -46,7 +46,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         onChange={e => onValueChangeAction(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="h-12 min-w-[300px] rounded-lg border-2 border-gray-700 bg-gray-800/90 pl-10 pr-10 text-base font-medium text-white shadow-lg shadow-black/10 transition-all duration-200 placeholder:text-cyan-300/50 hover:border-cyan-500/70 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
+        className="h-12 min-w-[300px] rounded-lg border-2 border-gray-700 bg-gray-800/90 pr-10 pl-10 text-base font-medium text-white shadow-lg shadow-black/10 transition-all duration-200 placeholder:text-cyan-300/50 hover:border-cyan-500/70 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
         aria-label={placeholder}
       />
       <AnimatePresence>
@@ -56,7 +56,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 transform text-cyan-300 transition-colors hover:text-cyan-400"
+            className="absolute top-1/2 right-3 -translate-y-1/2 transform text-cyan-300 transition-colors hover:text-cyan-400"
             onClick={() => onValueChangeAction('')}
             aria-label="Clear search"
           >
@@ -69,7 +69,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           exit={{ scaleX: 0 }}
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+          className="absolute right-0 bottom-0 left-0 h-0.5 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
         />
       )}
       <div

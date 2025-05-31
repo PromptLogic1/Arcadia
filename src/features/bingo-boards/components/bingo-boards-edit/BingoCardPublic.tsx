@@ -98,7 +98,7 @@ export function BingoCardPublic({
                   Title:
                 </span>
                 <p
-                  className="line-clamp-3 break-words text-sm text-gray-300"
+                  className="line-clamp-3 text-sm break-words text-gray-300"
                   style={{ wordBreak: 'break-word' }}
                 >
                   {card.title}
@@ -131,7 +131,7 @@ export function BingoCardPublic({
                   <span className="block text-xs font-medium text-cyan-400">
                     Difficulty:
                   </span>
-                  <p className="text-sm capitalize text-gray-300">
+                  <p className="text-sm text-gray-300 capitalize">
                     {card.difficulty}
                   </p>
                 </div>
@@ -142,7 +142,7 @@ export function BingoCardPublic({
                   <span className="block text-xs font-medium text-cyan-400">
                     Tags:
                   </span>
-                  <p className="break-words text-sm text-gray-300">
+                  <p className="text-sm break-words text-gray-300">
                     {card.tags.join(', ')}
                   </p>
                 </div>

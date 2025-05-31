@@ -31,11 +31,7 @@ interface MockSupabaseClient {
   from: jest.Mock;
 }
 
-// Add global type declaration for mockSupabaseClient
-declare global {
-  // eslint-disable-next-line no-var
-  var mockSupabaseClient: MockSupabaseClient;
-}
+// Global mockSupabaseClient is declared in jest.setup.ts
 
 // Mock data factories following the data contracts
 export const createMockUser = (overrides?: Partial<User>): User => ({

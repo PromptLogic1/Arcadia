@@ -64,43 +64,44 @@ type FormFieldProps<T extends FieldValues = GeneratorFormData> = {
 export function FormField<T extends FieldValues = GeneratorFormData>(
   props: FormFieldProps<T>
 ) {
-  const { 
-    name, 
-    label, 
-    control, 
-    error, 
+  const {
+    name,
+    label,
+    control,
+    error,
     isValid = false,
     helpText,
-    className = '', 
-    ...fieldProps 
+    className = '',
+    ...fieldProps
   } = props;
 
   const getValidationClasses = (hasError: boolean, isFieldValid: boolean) => {
-    return cn(
-      GENERATOR_STYLES.SELECT_TRIGGER,
-      {
-        // Error states with enhanced visual feedback
-        'user-invalid:border-destructive user-invalid:ring-destructive/20 border-destructive/50 bg-destructive/5': hasError,
-        // Valid states with subtle positive feedback
-        'user-valid:border-green-500 user-valid:ring-green-500/20 border-green-500/30': isFieldValid && !hasError,
-        // Default state
-        'border-border/30 focus:border-primary/50': !hasError && !isFieldValid,
-      }
-    );
+    return cn(GENERATOR_STYLES.SELECT_TRIGGER, {
+      // Error states with enhanced visual feedback
+      'user-invalid:border-destructive user-invalid:ring-destructive/20 border-destructive/50 bg-destructive/5':
+        hasError,
+      // Valid states with subtle positive feedback
+      'user-valid:border-green-500 user-valid:ring-green-500/20 border-green-500/30':
+        isFieldValid && !hasError,
+      // Default state
+      'border-border/30 focus:border-primary/50': !hasError && !isFieldValid,
+    });
   };
 
   const renderValidationIcon = () => {
     if (error) {
       return (
-        <AlertCircle className={cn(
-          "h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2",
-          GENERATOR_STYLES.ERROR_ICON
-        )} />
+        <AlertCircle
+          className={cn(
+            'absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2',
+            GENERATOR_STYLES.ERROR_ICON
+          )}
+        />
       );
     }
     if (isValid && !error) {
       return (
-        <CheckCircle2 className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-green-500 drop-shadow-sm drop-shadow-green-500/30" />
+        <CheckCircle2 className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-green-500 drop-shadow-sm drop-shadow-green-500/30" />
       );
     }
     return null;
@@ -144,7 +145,10 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
             control={control}
             render={({ field }) => (
               <div className="relative">
-                <Select value={field.value || ''} onValueChange={field.onChange}>
+                <Select
+                  value={field.value || ''}
+                  onValueChange={field.onChange}
+                >
                   <SelectTrigger
                     className={getValidationClasses(!!error, isValid)}
                   >
@@ -170,7 +174,7 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
 
       case 'checkbox':
         return (
-          <div className="flex items-start space-x-3 group">
+          <div className="group flex items-start space-x-3">
             <Controller
               name={name}
               control={control}
@@ -180,10 +184,11 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
                   checked={field.value || false}
                   onCheckedChange={field.onChange}
                   className={cn(
-                    "touch-target mt-0.5",
-                    "data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
-                    "hover-lift transition-all duration-200",
-                    error && "border-destructive data-[state=checked]:bg-destructive"
+                    'touch-target mt-0.5',
+                    'data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground',
+                    'hover-lift transition-all duration-200',
+                    error &&
+                      'border-destructive data-[state=checked]:bg-destructive'
                   )}
                 />
               )}
@@ -192,16 +197,16 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
               <label
                 htmlFor={name}
                 className={cn(
-                  "text-sm font-medium leading-none cursor-pointer select-none",
-                  "group-hover:text-foreground/90 transition-colors",
-                  "peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+                  'cursor-pointer text-sm leading-none font-medium select-none',
+                  'group-hover:text-foreground/90 transition-colors',
+                  'peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
                   GENERATOR_STYLES.LABEL
                 )}
               >
                 {label}
               </label>
               {fieldProps.description && (
-                <span className="text-xs text-muted-foreground leading-relaxed">
+                <span className="text-muted-foreground text-xs leading-relaxed">
                   {fieldProps.description}
                 </span>
               )}
@@ -217,7 +222,7 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
   const renderHelpText = () => {
     if (helpText && !error) {
       return (
-        <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+        <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
           {helpText}
         </p>
       );
@@ -229,11 +234,13 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
     if (error) {
       return (
         <div className="mt-1.5 flex items-center gap-1.5">
-          <AlertCircle className="h-3 w-3 text-destructive drop-shadow-sm drop-shadow-destructive/30 flex-shrink-0" />
-          <p className={cn(
-            "text-xs leading-relaxed",
-            GENERATOR_STYLES.ERROR_TEXT
-          )}>
+          <AlertCircle className="text-destructive drop-shadow-destructive/30 h-3 w-3 flex-shrink-0 drop-shadow-sm" />
+          <p
+            className={cn(
+              'text-xs leading-relaxed',
+              GENERATOR_STYLES.ERROR_TEXT
+            )}
+          >
             {error.message}
           </p>
         </div>
@@ -255,12 +262,12 @@ export function FormField<T extends FieldValues = GeneratorFormData>(
 
   return (
     <div className={cn(SPACING.FORM_GROUP, className)}>
-      <Label 
+      <Label
         htmlFor={name}
         className={cn(
           GENERATOR_STYLES.LABEL,
-          "cursor-pointer transition-colors",
-          error && "text-destructive"
+          'cursor-pointer transition-colors',
+          error && 'text-destructive'
         )}
       >
         {label}

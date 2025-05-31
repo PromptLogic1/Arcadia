@@ -83,7 +83,7 @@ function GridCard({ card, index, gridSize, onClick, onRemove }: GridCardProps) {
       onClick={onClick}
     >
       {/* Grid Position Indicator */}
-      <div className="absolute left-1 top-1 z-10 rounded bg-gray-900/50 px-1 font-mono text-xs text-gray-500">
+      <div className="absolute top-1 left-1 z-10 rounded bg-gray-900/50 px-1 font-mono text-xs text-gray-500">
         {gridPosition}
       </div>
 
@@ -125,7 +125,7 @@ function CardContent({ card }: { card: BingoCard }) {
 
       {/* Card title */}
       <div
-        className="overflow-break-word flex flex-1 items-center justify-center break-words px-1 text-center text-sm"
+        className="overflow-break-word flex flex-1 items-center justify-center px-1 text-center text-sm break-words"
         style={{ wordBreak: 'break-word' }}
       >
         {card.title}

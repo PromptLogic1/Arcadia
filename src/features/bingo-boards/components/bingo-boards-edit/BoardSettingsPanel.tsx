@@ -115,7 +115,7 @@ export function BoardSettingsPanel({
             value={formData.board_description}
             onChange={e => onUpdateField('board_description', e.target.value)}
             placeholder="Enter board description"
-            className="min-h-[100px] break-words border-cyan-500/20 bg-gray-800/50"
+            className="min-h-[100px] border-cyan-500/20 bg-gray-800/50 break-words"
           />
           {fieldErrors.description && (
             <p className="mt-1 text-xs text-red-400">

@@ -19,7 +19,7 @@ export const Toast: React.FC<ToastProps> = ({
   return (
     <div
       className={cn(
-        'fixed bottom-4 right-4 z-50',
+        'fixed right-4 bottom-4 z-50',
         'flex items-start gap-4 rounded-lg p-4',
         'bg-gray-800/95 backdrop-blur-sm',
         'border transition-all duration-200',

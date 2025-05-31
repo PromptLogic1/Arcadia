@@ -123,7 +123,7 @@ const EventCard = React.memo(
     };
 
     return (
-      <CardWrapper 
+      <CardWrapper
         onClick={onToggle}
         className="transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10"
       >
@@ -131,7 +131,7 @@ const EventCard = React.memo(
           <CardHeader className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 p-5">
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
-                <h2 className="mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-xl font-bold leading-tight text-transparent">
+                <h2 className="mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-xl leading-tight font-bold text-transparent">
                   {event.title}
                 </h2>
                 <div className="flex items-center space-x-3 text-sm text-gray-400">

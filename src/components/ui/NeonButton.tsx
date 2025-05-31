@@ -50,16 +50,20 @@ const neonEffectVariants = cva(
 );
 
 export interface NeonButtonProps
-  extends Omit<ButtonProps, 'asChild'>,
+  extends Omit<ButtonProps, 'asChild' | 'glow'>,
     VariantProps<typeof neonEffectVariants> {
   children: React.ReactNode;
 }
 
 const NeonButton = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
   ({ children, className, intensity, glow, overlay, ...buttonProps }, ref) => {
+    // Map neon glow variants to button glow prop
+    const buttonGlow = glow === 'cyan' || glow === 'fuchsia' || glow === 'rainbow' || glow === 'primary' ? 'intense' : 'normal';
+    
     return (
       <Button
         ref={ref}
+        glow={buttonGlow}
         className={cn(
           neonEffectVariants({ intensity, glow, overlay }),
           className

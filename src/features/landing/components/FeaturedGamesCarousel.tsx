@@ -56,7 +56,7 @@ const GameCard: React.FC<GameCardProps> = memo(({ game }) => (
           className="transition-transform duration-300 hover:scale-110"
           priority
         />
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
+        <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
           <h3 className="text-2xl font-bold text-cyan-300">{game.title}</h3>
         </div>
       </div>
@@ -117,7 +117,7 @@ const FeaturedGamesCarousel: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 transform rounded-full border border-cyan-500/20 bg-gray-800/70 text-cyan-400 shadow-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            className="absolute top-1/2 left-2 -translate-y-1/2 transform rounded-full border border-cyan-500/20 bg-gray-800/70 text-cyan-400 shadow-lg hover:bg-cyan-500/20 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
             onClick={scrollPrev}
             aria-label="Previous Game"
           >
@@ -127,7 +127,7 @@ const FeaturedGamesCarousel: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 transform rounded-full border border-cyan-500/20 bg-gray-800/70 text-cyan-400 shadow-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            className="absolute top-1/2 right-2 -translate-y-1/2 transform rounded-full border border-cyan-500/20 bg-gray-800/70 text-cyan-400 shadow-lg hover:bg-cyan-500/20 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
             onClick={scrollNext}
             aria-label="Next Game"
           >
@@ -139,7 +139,7 @@ const FeaturedGamesCarousel: React.FC = () => {
           {featuredGames.map((_, index) => (
             <button
               key={index}
-              className={`h-5 w-5 rounded-full border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
+              className={`h-5 w-5 rounded-full border-2 transition-all duration-200 focus:ring-2 focus:ring-cyan-400 focus:outline-none ${
                 index === selectedIndex
                   ? 'scale-110 border-cyan-300 bg-cyan-400 shadow-lg'
                   : 'border-gray-400 bg-gray-600 hover:bg-cyan-300/60'

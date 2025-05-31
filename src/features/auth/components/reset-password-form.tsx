@@ -119,7 +119,7 @@ export function ResetPasswordForm() {
           />
 
           {isPasswordFocused && (
-            <div className="absolute left-full top-0 ml-4 w-72 space-y-2 rounded-lg border border-cyan-500/20 bg-gray-800/95 p-4 backdrop-blur-sm">
+            <div className="absolute top-0 left-full ml-4 w-72 space-y-2 rounded-lg border border-cyan-500/20 bg-gray-800/95 p-4 backdrop-blur-sm">
               <p className="mb-3 text-sm font-medium text-gray-300">
                 Password Requirements:
               </p>

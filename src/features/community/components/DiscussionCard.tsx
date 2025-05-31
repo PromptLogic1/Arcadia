@@ -85,10 +85,10 @@ const DiscussionCard = React.memo(
                   <AvatarImage src="/avatars/default.jpg" alt="User" />
                   <AvatarFallback>U</AvatarFallback>
                 </Avatar>
-                <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-gray-800 bg-green-500" />
+                <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full border-2 border-gray-800 bg-green-500" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="mb-1 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-xl font-bold leading-tight text-transparent">
+                <h2 className="mb-1 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-xl leading-tight font-bold text-transparent">
                   {discussion.title}
                 </h2>
                 <div className="flex items-center space-x-2 text-sm text-gray-400">

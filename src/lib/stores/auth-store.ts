@@ -16,9 +16,10 @@ export interface SignInCredentials {
   password: string;
 }
 
-interface AuthResponse {
+export interface AuthResponse {
   error?: Error;
   needsVerification?: boolean;
+  user?: AuthUser;
 }
 
 interface UpdateUserDataParams {

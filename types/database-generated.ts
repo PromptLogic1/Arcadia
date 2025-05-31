@@ -88,6 +88,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bingo_boards_cloned_from_fkey"
+            columns: ["cloned_from"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bingo_boards_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
@@ -183,10 +190,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bingo_session_cells_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bingo_session_cells_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "bingo_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_cells_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -237,6 +258,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bingo_session_events_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bingo_session_events_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
@@ -248,6 +276,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "bingo_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_stats"
             referencedColumns: ["id"]
           },
         ]
@@ -289,6 +324,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "bingo_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_players_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_stats"
             referencedColumns: ["id"]
           },
           {
@@ -346,6 +388,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "bingo_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_session_queue_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_stats"
             referencedColumns: ["id"]
           },
           {
@@ -418,6 +467,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bingo_sessions_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bingo_sessions_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: false
@@ -458,6 +514,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "board_bookmarks_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "board_bookmarks_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -494,6 +557,13 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "bingo_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_votes_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
             referencedColumns: ["id"]
           },
           {
@@ -546,24 +616,36 @@ export type Database = {
       }
       categories: {
         Row: {
+          color: string | null
           created_at: string | null
           description: string | null
+          icon_url: string | null
           id: string
+          is_active: boolean | null
           name: string
+          sort_order: number | null
           updated_at: string | null
         }
         Insert: {
+          color?: string | null
           created_at?: string | null
           description?: string | null
+          icon_url?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
+          color?: string | null
           created_at?: string | null
           description?: string | null
+          icon_url?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          sort_order?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -927,6 +1009,7 @@ export type Database = {
       tags: {
         Row: {
           category: Database["public"]["CompositeTypes"]["tag_category"] | null
+          color: string | null
           created_at: string | null
           created_by: string | null
           description: string
@@ -941,6 +1024,7 @@ export type Database = {
         }
         Insert: {
           category?: Database["public"]["CompositeTypes"]["tag_category"] | null
+          color?: string | null
           created_at?: string | null
           created_by?: string | null
           description: string
@@ -948,13 +1032,14 @@ export type Database = {
           id?: string
           name: string
           status?: Database["public"]["Enums"]["tag_status"] | null
-          type: Database["public"]["Enums"]["tag_type"]
+          type?: Database["public"]["Enums"]["tag_type"]
           updated_at?: string | null
           usage_count?: number | null
           votes?: number | null
         }
         Update: {
           category?: Database["public"]["CompositeTypes"]["tag_category"] | null
+          color?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string
@@ -1014,6 +1099,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activity: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at: string | null
+          data: Json | null
+          id: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1101,41 +1221,6 @@ export type Database = {
           },
         ]
       }
-      user_activity: {
-        Row: {
-          id: string
-          user_id: string | null
-          activity_type: Database["public"]["Enums"]["activity_type"]
-          data: Json | null
-          timestamp: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          activity_type: Database["public"]["Enums"]["activity_type"]
-          data?: Json | null
-          timestamp?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          activity_type?: Database["public"]["Enums"]["activity_type"]
-          data?: Json | null
-          timestamp?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_activity_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       users: {
         Row: {
           achievements_visibility:
@@ -1216,7 +1301,109 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_boards: {
+        Row: {
+          board_state:
+            | Database["public"]["CompositeTypes"]["board_cell"][]
+            | null
+          bookmark_count: number | null
+          bookmarked_count: number | null
+          cloned_from: string | null
+          created_at: string | null
+          creator_avatar: string | null
+          creator_id: string | null
+          creator_username: string | null
+          description: string | null
+          difficulty: Database["public"]["Enums"]["difficulty_level"] | null
+          game_type: Database["public"]["Enums"]["game_category"] | null
+          id: string | null
+          is_public: boolean | null
+          settings:
+            | Database["public"]["CompositeTypes"]["board_settings"]
+            | null
+          size: number | null
+          status: Database["public"]["Enums"]["board_status"] | null
+          title: string | null
+          updated_at: string | null
+          version: number | null
+          votes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bingo_boards_cloned_from_fkey"
+            columns: ["cloned_from"]
+            isOneToOne: false
+            referencedRelation: "bingo_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_boards_cloned_from_fkey"
+            columns: ["cloned_from"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_boards_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_stats: {
+        Row: {
+          board_id: string | null
+          board_title: string | null
+          created_at: string | null
+          current_player_count: number | null
+          current_state:
+            | Database["public"]["CompositeTypes"]["board_cell"][]
+            | null
+          ended_at: string | null
+          host_id: string | null
+          host_username: string | null
+          id: string | null
+          settings:
+            | Database["public"]["CompositeTypes"]["session_settings"]
+            | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["session_status"] | null
+          updated_at: string | null
+          winner_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bingo_sessions_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "bingo_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bingo_sessions_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_comment: {
@@ -1269,18 +1456,65 @@ export type Database = {
         | "Overwatch"
         | "Call of Duty: Warzone"
         | "Valorant"
-      queue_status:
-        | "pending"
-        | "approved"
-        | "rejected"
-        | "processing"
-        | "completed"
-        | "failed"
+        | "CS:GO"
+        | "Dota 2"
+        | "Rocket League"
+        | "Fall Guys"
+        | "Dead by Daylight"
+        | "Cyberpunk 2077"
+        | "The Witcher 3"
+        | "Elden Ring"
+        | "Dark Souls"
+        | "Bloodborne"
+        | "Sekiro"
+        | "Hollow Knight"
+        | "Celeste"
+        | "Hades"
+        | "The Binding of Isaac"
+        | "Risk of Rain 2"
+        | "Deep Rock Galactic"
+        | "Valheim"
+        | "Subnautica"
+        | "No Man's Sky"
+        | "Terraria"
+        | "Stardew Valley"
+        | "Animal Crossing"
+        | "Splatoon 3"
+        | "Super Mario Odyssey"
+        | "The Legend of Zelda: Breath of the Wild"
+        | "Super Smash Bros. Ultimate"
+      queue_status: "waiting" | "matched" | "cancelled"
       session_status: "waiting" | "active" | "completed" | "cancelled"
       submission_status: "pending" | "running" | "completed" | "failed"
-      tag_action: "create" | "update" | "delete" | "vote" | "verify" | "archive"
-      tag_status: "active" | "proposed" | "verified" | "archived" | "suspended"
-      tag_type: "core" | "game" | "community"
+      tag_action:
+        | "created"
+        | "updated"
+        | "deleted"
+        | "voted"
+        | "reported"
+        | "create"
+        | "update"
+        | "delete"
+        | "vote"
+        | "verify"
+        | "archive"
+      tag_status:
+        | "active"
+        | "pending"
+        | "rejected"
+        | "archived"
+        | "proposed"
+        | "verified"
+        | "suspended"
+      tag_type:
+        | "category"
+        | "difficulty"
+        | "theme"
+        | "mechanic"
+        | "custom"
+        | "core"
+        | "game"
+        | "community"
       user_role: "user" | "premium" | "moderator" | "admin"
       visibility_type: "public" | "friends" | "private"
       vote_type: "up" | "down"
@@ -1462,20 +1696,69 @@ export const Constants = {
         "Overwatch",
         "Call of Duty: Warzone",
         "Valorant",
+        "CS:GO",
+        "Dota 2",
+        "Rocket League",
+        "Fall Guys",
+        "Dead by Daylight",
+        "Cyberpunk 2077",
+        "The Witcher 3",
+        "Elden Ring",
+        "Dark Souls",
+        "Bloodborne",
+        "Sekiro",
+        "Hollow Knight",
+        "Celeste",
+        "Hades",
+        "The Binding of Isaac",
+        "Risk of Rain 2",
+        "Deep Rock Galactic",
+        "Valheim",
+        "Subnautica",
+        "No Man's Sky",
+        "Terraria",
+        "Stardew Valley",
+        "Animal Crossing",
+        "Splatoon 3",
+        "Super Mario Odyssey",
+        "The Legend of Zelda: Breath of the Wild",
+        "Super Smash Bros. Ultimate",
       ],
-      queue_status: [
-        "pending",
-        "approved",
-        "rejected",
-        "processing",
-        "completed",
-        "failed",
-      ],
+      queue_status: ["waiting", "matched", "cancelled"],
       session_status: ["waiting", "active", "completed", "cancelled"],
       submission_status: ["pending", "running", "completed", "failed"],
-      tag_action: ["create", "update", "delete", "vote", "verify", "archive"],
-      tag_status: ["active", "proposed", "verified", "archived", "suspended"],
-      tag_type: ["core", "game", "community"],
+      tag_action: [
+        "created",
+        "updated",
+        "deleted",
+        "voted",
+        "reported",
+        "create",
+        "update",
+        "delete",
+        "vote",
+        "verify",
+        "archive",
+      ],
+      tag_status: [
+        "active",
+        "pending",
+        "rejected",
+        "archived",
+        "proposed",
+        "verified",
+        "suspended",
+      ],
+      tag_type: [
+        "category",
+        "difficulty",
+        "theme",
+        "mechanic",
+        "custom",
+        "core",
+        "game",
+        "community",
+      ],
       user_role: ["user", "premium", "moderator", "admin"],
       visibility_type: ["public", "friends", "private"],
       vote_type: ["up", "down"],

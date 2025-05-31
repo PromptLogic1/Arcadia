@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Trophy, Grid, Zap, Puzzle } from 'lucide-react';
 import { BingoBoards } from '@/features/bingo-boards/components/BingoBoards';
-import { SpeedRuns } from '@/features/speedruns/SpeedRuns';
+import { SpeedRuns } from '@/features/Speedruns/SpeedRuns';
 import { AchievementHunt } from '@/features/achievement-hunt/AchievementHunt';
 import { PuzzleQuests } from '@/features/puzzle-quests/PuzzleQuests';
 import { cn } from '@/lib/utils';

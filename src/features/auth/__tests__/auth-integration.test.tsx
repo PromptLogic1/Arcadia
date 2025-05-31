@@ -11,9 +11,9 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import type { AuthUser } from '@/lib/stores/types';
+import type { AuthUser, UserData } from '@/lib/stores/types';
+import type { AuthResponse } from '@/lib/stores/auth-store';
 import {
-  createMockUser,
   createMockAuthUser,
   mockAuthStates,
 } from './test-utils';
@@ -35,11 +35,7 @@ interface UpdateUserDataParams {
   bio?: string;
 }
 
-interface AuthResponse {
-  user?: any;
-  error?: Error;
-  needsVerification?: boolean;
-}
+// AuthResponse is imported from auth-store
 
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -77,7 +73,7 @@ const mockAuthActions = {
   >,
   signOut: jest.fn() as jest.MockedFunction<() => Promise<AuthResponse>>,
   updateUserDataService: jest.fn() as jest.MockedFunction<
-    (userId: string, params: UpdateUserDataParams) => Promise<AuthResponse>
+    (userId: string, params: UpdateUserDataParams) => Promise<UserData>
   >,
   resetPasswordForEmail: jest.fn() as jest.MockedFunction<
     (email: string) => Promise<AuthResponse>
@@ -91,11 +87,33 @@ const mockAuthActions = {
   clearUser: jest.fn() as jest.MockedFunction<() => void>,
 };
 
+// Mock data factory for UserData
+const createMockUserData = (overrides: Partial<UserData> = {}): UserData => ({
+  id: 'user-1',
+  username: 'testuser',
+  full_name: 'Test User',
+  avatar_url: null,
+  experience_points: 0,
+  land: null,
+  region: null,
+  city: null,
+  bio: null,
+  role: 'user',
+  last_login_at: null,
+  created_at: new Date().toISOString(),
+  achievements_visibility: 'public',
+  auth_id: 'user-1',
+  profile_visibility: 'public',
+  submissions_visibility: 'public',
+  updated_at: new Date().toISOString(),
+  ...overrides,
+});
+
 // Reset mock implementations with default resolved values
 mockAuthActions.signIn.mockResolvedValue({});
 mockAuthActions.signUp.mockResolvedValue({});
 mockAuthActions.signOut.mockResolvedValue({});
-mockAuthActions.updateUserDataService.mockResolvedValue({});
+mockAuthActions.updateUserDataService.mockResolvedValue(createMockUserData());
 mockAuthActions.resetPasswordForEmail.mockResolvedValue({});
 
 jest.mock('@/lib/stores', () => ({
@@ -382,7 +400,7 @@ describe('Authentication Integration Tests', () => {
       const { user } = renderWithUserEvent(<AuthTestComponent />);
 
       // Mock successful authentication
-      mockAuthActions.signIn.mockResolvedValue({ user: createMockUser() });
+      mockAuthActions.signIn.mockResolvedValue({ user: createMockAuthUser() });
 
       // Click sign in using semantic query
       const signInButton = screen.getByRole('button', { name: /sign in/i });
@@ -412,7 +430,7 @@ describe('Authentication Integration Tests', () => {
       const { user } = renderWithUserEvent(<AuthTestComponent />);
 
       // Start with authenticated state
-      mockAuthActions.signIn.mockResolvedValue({ user: createMockUser() });
+      mockAuthActions.signIn.mockResolvedValue({ user: createMockAuthUser() });
 
       // Sign in first
       const signInButton = screen.getByRole('button', { name: /sign in/i });
@@ -448,13 +466,29 @@ describe('Authentication Integration Tests', () => {
       const { user } = renderWithUserEvent(<AuthTestComponent />);
 
       // Setup authenticated state
-      mockAuthActions.signIn.mockResolvedValue({ user: createMockUser() });
+      mockAuthActions.signIn.mockResolvedValue({ user: createMockAuthUser() });
 
-      // Mock profile update
-      mockAuthActions.updateUserDataService.mockResolvedValue({
+      // Mock profile update - updateUserDataService returns UserData
+      const mockUserData: UserData = {
+        id: 'user-1',
         username: 'updateduser',
+        full_name: 'Updated User',
         bio: 'Updated bio',
-      });
+        avatar_url: null,
+        experience_points: 0,
+        land: null,
+        region: null,
+        city: null,
+        role: 'user',
+        last_login_at: null,
+        created_at: new Date().toISOString(),
+        achievements_visibility: 'public',
+        auth_id: 'user-1',
+        profile_visibility: 'public',
+        submissions_visibility: 'public',
+        updated_at: new Date().toISOString(),
+      };
+      mockAuthActions.updateUserDataService.mockResolvedValue(mockUserData);
 
       // Sign in first
       const signInButton = screen.getByRole('button', { name: /sign in/i });
@@ -585,8 +619,8 @@ describe('Authentication Integration Tests', () => {
       const { user } = renderWithUserEvent(<AuthTestComponent />);
 
       // Mock a promise that resolves after a short delay
-      let resolvePromise: (value: any) => void;
-      const authPromise = new Promise(resolve => {
+      let resolvePromise: (value: AuthResponse) => void;
+      const authPromise = new Promise<AuthResponse>(resolve => {
         resolvePromise = resolve;
       });
 
@@ -604,7 +638,7 @@ describe('Authentication Integration Tests', () => {
       expect(signInButton).toBeDisabled();
 
       // Resolve the promise
-      resolvePromise!({ user: createMockUser() });
+      resolvePromise!({ user: createMockAuthUser() });
 
       // Wait for loading to disappear
       await waitFor(
@@ -650,7 +684,7 @@ describe('Authentication Integration Tests', () => {
       const { user } = renderWithUserEvent(<AuthTestComponent />);
 
       // Mock fast resolving action
-      mockAuthActions.signIn.mockResolvedValue({ user: createMockUser() });
+      mockAuthActions.signIn.mockResolvedValue({ user: createMockAuthUser() });
 
       const signInButton = screen.getByRole('button', { name: /sign in/i });
 

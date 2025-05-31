@@ -75,7 +75,7 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
                   Title:
                 </span>
                 <p
-                  className="overflow-break-word line-clamp-3 break-words text-sm text-gray-300"
+                  className="overflow-break-word line-clamp-3 text-sm break-words text-gray-300"
                   style={{ wordBreak: 'break-word' }}
                 >
                   {card.title}
@@ -101,7 +101,7 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
                   <span className="block text-xs font-medium text-cyan-400">
                     Game:
                   </span>
-                  <p className="break-words text-sm text-gray-300">
+                  <p className="text-sm break-words text-gray-300">
                     {card.game_type}
                   </p>
                 </div>
@@ -110,7 +110,7 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
                   <span className="block text-xs font-medium text-cyan-400">
                     Difficulty:
                   </span>
-                  <p className="truncate text-sm capitalize text-gray-300">
+                  <p className="truncate text-sm text-gray-300 capitalize">
                     {card.difficulty}
                   </p>
                 </div>
@@ -139,7 +139,7 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
                   <span className="block text-xs font-medium text-cyan-400">
                     Tags:
                   </span>
-                  <p className="break-words text-sm text-gray-300">
+                  <p className="text-sm break-words text-gray-300">
                     {card.tags.join(', ')}
                   </p>
                 </div>

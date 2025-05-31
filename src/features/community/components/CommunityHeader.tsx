@@ -30,7 +30,7 @@ export function CommunityHeader({
   return (
     <header className="relative">
       <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 via-fuchsia-500/5 to-transparent" />
-      <div className="container relative mx-auto px-4 py-8">
+      <div className="relative container mx-auto px-4 py-8">
         {/* Main Title */}
         <h1 className="mb-6 text-center text-4xl font-bold">
           <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg">

@@ -320,7 +320,7 @@ export function BingoBoardEdit({
 
       {/* Success Message */}
       {uiState.showSaveSuccess && (
-        <div className="animate-fade-in fixed bottom-4 right-4 rounded-md border border-green-500/50 bg-green-500/20 px-4 py-2 text-green-400 shadow-lg">
+        <div className="animate-fade-in fixed right-4 bottom-4 rounded-md border border-green-500/50 bg-green-500/20 px-4 py-2 text-green-400 shadow-lg">
           {UI_MESSAGES.SAVE.SUCCESS}
         </div>
       )}

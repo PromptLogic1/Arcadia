@@ -35,7 +35,12 @@ export interface UseDiscussionsReturn {
     discussionId: number,
     commentData: Omit<
       BaseComment,
-      'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
+      | 'id'
+      | 'discussion_id'
+      | 'upvotes'
+      | 'created_at'
+      | 'updated_at'
+      | 'author_id'
     >
   ) => Promise<Comment>;
   upvoteDiscussion: (discussionId: number) => Promise<void>;
@@ -252,7 +257,12 @@ export const useDiscussions = (): UseDiscussionsReturn => {
       discussionId: number,
       commentData: Omit<
         BaseComment,
-        'id' | 'discussion_id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
+        | 'id'
+        | 'discussion_id'
+        | 'upvotes'
+        | 'created_at'
+        | 'updated_at'
+        | 'author_id'
       >
     ) => {
       setIsLoading(true);

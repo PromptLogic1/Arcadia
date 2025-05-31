@@ -22,7 +22,7 @@ declare module '@jest/expect' {
     toBeChecked(): R;
     toBePartiallyChecked(): R;
     toHaveDisplayValue(value: string | RegExp | (string | RegExp)[]): R;
-    toHaveFormValues(expectedValues: Record<string, any>): R;
+    toHaveFormValues(expectedValues: Record<string, unknown>): R;
     toBeInvalid(): R;
     toBeValid(): R;
     toHaveErrorMessage(text?: string | RegExp): R;

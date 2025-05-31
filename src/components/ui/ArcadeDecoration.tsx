@@ -270,8 +270,8 @@ const ArcadeDecoration = React.forwardRef<
               animation,
             }),
             // Corner-specific pseudo-element classes
-            'before:absolute before:left-0 before:top-0 before:h-4 before:w-4 before:border-l-2 before:border-t-2',
-            'after:absolute after:bottom-0 after:right-0 after:h-4 after:w-4 after:border-b-2 after:border-r-2',
+            'before:absolute before:top-0 before:left-0 before:h-4 before:w-4 before:border-t-2 before:border-l-2',
+            'after:absolute after:right-0 after:bottom-0 after:h-4 after:w-4 after:border-r-2 after:border-b-2',
             className
           )}
           aria-label={decorative ? undefined : ariaLabel}

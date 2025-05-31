@@ -52,7 +52,7 @@ export function CommunityFilters({
   return (
     <div className="mb-8 flex flex-col items-center justify-between rounded-lg border border-gray-700/50 bg-gray-800/30 p-4 md:flex-row">
       {/* Left side: Search and Filters */}
-      <div className="mb-4 flex flex-col space-y-2 md:mb-0 md:flex-row md:space-x-4 md:space-y-0">
+      <div className="mb-4 flex flex-col space-y-2 md:mb-0 md:flex-row md:space-y-0 md:space-x-4">
         {/* Search Input */}
         <SearchInput
           value={filters.searchQuery}

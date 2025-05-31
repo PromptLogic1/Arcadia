@@ -185,7 +185,7 @@ const Header: React.FC = () => {
                 aria-label="Notifications"
               >
                 <Bell className="h-6 w-6" aria-hidden="true" />
-                <span className="absolute right-0 top-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-gray-900" />
+                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-gray-900" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 border-cyan-500/50 bg-gray-800 p-4 text-white">

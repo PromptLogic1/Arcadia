@@ -28,9 +28,14 @@ export interface UseCommunityDataReturn {
   isEventsLoading: boolean;
   isInitialLoad: boolean;
 
-  handleCreateDiscussion: (formData: CreateDiscussionFormData) => Promise<Discussion>;
+  handleCreateDiscussion: (
+    formData: CreateDiscussionFormData
+  ) => Promise<Discussion>;
   handleUpvote: (discussionId: number) => Promise<void>;
-  handleComment: (discussionId: number, commentData: CommentFormData) => Promise<Comment>;
+  handleComment: (
+    discussionId: number,
+    commentData: CommentFormData
+  ) => Promise<Comment>;
   setSelectedDiscussion: (discussion: StoreDiscussion | null) => void;
 }
 
@@ -65,10 +70,8 @@ export function useCommunityData(): UseCommunityDataReturn {
   // Zustand store integration for UI state like selectedDiscussion and for Events (mocked)
   const { selectedDiscussion: storeSelectedDiscussion, events: storeEvents } =
     useCommunity();
-  const {
-    setEvents,
-    setSelectedDiscussion: setStoreSelectedDiscussion,
-  } = useCommunityActions();
+  const { setEvents, setSelectedDiscussion: setStoreSelectedDiscussion } =
+    useCommunityActions();
 
   // Real data fetching for discussions and comments via useDiscussions
   const {
@@ -110,7 +113,10 @@ export function useCommunityData(): UseCommunityDataReturn {
     async (formData: CreateDiscussionFormData) => {
       return realAddDiscussion({
         ...formData,
-        challenge_type: formData.challenge_type === undefined ? null : formData.challenge_type,
+        challenge_type:
+          formData.challenge_type === undefined
+            ? null
+            : formData.challenge_type,
         tags: formData.tags === undefined ? null : formData.tags,
       });
     },
@@ -130,7 +136,7 @@ export function useCommunityData(): UseCommunityDataReturn {
     },
     [realAddComment]
   );
-  
+
   const combinedError = discussionsError ? discussionsError.message : null;
 
   return {

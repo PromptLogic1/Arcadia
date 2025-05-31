@@ -93,7 +93,10 @@ const DiscussionsList = memo(function DiscussionsList({
   if (discussions.length === 0) {
     return (
       <div className="flex h-[calc(100vh-300px)] items-center justify-center">
-        <p className="text-xl text-gray-500">No discussions found. Try adjusting your filters or creating a new one!</p>
+        <p className="text-xl text-gray-500">
+          No discussions found. Try adjusting your filters or creating a new
+          one!
+        </p>
       </div>
     );
   }
@@ -175,7 +178,9 @@ const EventsList = memo(function EventsList({
   if (events.length === 0) {
     return (
       <div className="flex h-[calc(100vh-300px)] items-center justify-center">
-        <p className="text-xl text-gray-500">No events found. Check back later or broaden your search!</p>
+        <p className="text-xl text-gray-500">
+          No events found. Check back later or broaden your search!
+        </p>
       </div>
     );
   }

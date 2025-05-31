@@ -127,7 +127,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
               'flex h-9 flex-1 items-center justify-between px-3',
               'rounded-md transition-all duration-200',
               'hover:bg-gray-700/30',
-              'focus:outline-none focus:ring-2 focus:ring-cyan-500/50',
+              'focus:ring-2 focus:ring-cyan-500/50 focus:outline-none',
               settings.win_conditions?.line
                 ? 'bg-cyan-500/10'
                 : 'bg-gray-900/50'
@@ -160,7 +160,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
               'flex h-9 flex-1 items-center justify-between px-3',
               'rounded-md transition-all duration-200',
               'hover:bg-gray-700/30',
-              'focus:outline-none focus:ring-2 focus:ring-cyan-500/50',
+              'focus:ring-2 focus:ring-cyan-500/50 focus:outline-none',
               settings.win_conditions?.majority
                 ? 'bg-cyan-500/10'
                 : 'bg-gray-900/50'
@@ -195,7 +195,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
               'flex h-9 flex-1 items-center justify-between px-3',
               'rounded-md transition-all duration-200',
               'hover:bg-gray-700/30',
-              'focus:outline-none focus:ring-2 focus:ring-cyan-500/50',
+              'focus:ring-2 focus:ring-cyan-500/50 focus:outline-none',
               settings.win_conditions?.diagonal
                 ? 'bg-cyan-500/10'
                 : 'bg-gray-900/50'
@@ -230,7 +230,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
               'flex h-9 flex-1 items-center justify-between px-3',
               'rounded-md transition-all duration-200',
               'hover:bg-gray-700/30',
-              'focus:outline-none focus:ring-2 focus:ring-cyan-500/50',
+              'focus:ring-2 focus:ring-cyan-500/50 focus:outline-none',
               settings.win_conditions?.corners
                 ? 'bg-cyan-500/10'
                 : 'bg-gray-900/50'

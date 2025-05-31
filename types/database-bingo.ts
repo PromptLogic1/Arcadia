@@ -10,73 +10,69 @@ import type {
   SessionSettings,
 } from './database-core';
 
-// Bingo Boards Table
+// =============================================================================
+// BINGO BOARDS TABLE - Exact match to migration schema
+// =============================================================================
+
 export interface BingoBoardsTable {
   Row: {
+    id: string;
+    title: string;
+    description: string | null;
+    creator_id: string | null;
+    size: number | null;
+    settings: BoardSettings | null;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    is_public: boolean | null;
     board_state: BoardCell[] | null;
+    status: BoardStatus | null;
+    votes: number | null;
     bookmarked_count: number | null;
+    version: number | null;
     cloned_from: string | null;
     created_at: string | null;
-    creator_id: string | null;
-    description: string | null;
-    difficulty: DifficultyLevel;
-    game_type: GameCategory;
-    id: string;
-    is_public: boolean | null;
-    settings: BoardSettings | null;
-    size: number | null;
-    status: BoardStatus | null;
-    title: string;
     updated_at: string | null;
-    version: number | null;
-    votes: number | null;
   };
   Insert: {
+    id?: string;
+    title: string;
+    description?: string | null;
+    creator_id?: string | null;
+    size?: number | null;
+    settings?: BoardSettings | null;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    is_public?: boolean | null;
     board_state?: BoardCell[] | null;
+    status?: BoardStatus | null;
+    votes?: number | null;
     bookmarked_count?: number | null;
+    version?: number | null;
     cloned_from?: string | null;
     created_at?: string | null;
-    creator_id?: string | null;
-    description?: string | null;
-    difficulty: DifficultyLevel;
-    game_type: GameCategory;
-    id?: string;
-    is_public?: boolean | null;
-    settings?: BoardSettings | null;
-    size?: number | null;
-    status?: BoardStatus | null;
-    title: string;
     updated_at?: string | null;
-    version?: number | null;
-    votes?: number | null;
   };
   Update: {
+    id?: string;
+    title?: string;
+    description?: string | null;
+    creator_id?: string | null;
+    size?: number | null;
+    settings?: BoardSettings | null;
+    game_type?: GameCategory;
+    difficulty?: DifficultyLevel;
+    is_public?: boolean | null;
     board_state?: BoardCell[] | null;
+    status?: BoardStatus | null;
+    votes?: number | null;
     bookmarked_count?: number | null;
+    version?: number | null;
     cloned_from?: string | null;
     created_at?: string | null;
-    creator_id?: string | null;
-    description?: string | null;
-    difficulty?: DifficultyLevel;
-    game_type?: GameCategory;
-    id?: string;
-    is_public?: boolean | null;
-    settings?: BoardSettings | null;
-    size?: number | null;
-    status?: BoardStatus | null;
-    title?: string;
     updated_at?: string | null;
-    version?: number | null;
-    votes?: number | null;
   };
   Relationships: [
-    {
-      foreignKeyName: 'bingo_boards_cloned_from_fkey';
-      columns: ['cloned_from'];
-      isOneToOne: false;
-      referencedRelation: 'bingo_boards';
-      referencedColumns: ['id'];
-    },
     {
       foreignKeyName: 'bingo_boards_creator_id_fkey';
       columns: ['creator_id'];
@@ -84,49 +80,59 @@ export interface BingoBoardsTable {
       referencedRelation: 'users';
       referencedColumns: ['id'];
     },
+    {
+      foreignKeyName: 'bingo_boards_cloned_from_fkey';
+      columns: ['cloned_from'];
+      isOneToOne: false;
+      referencedRelation: 'bingo_boards';
+      referencedColumns: ['id'];
+    },
   ];
 }
 
-// Bingo Cards Table
+// =============================================================================
+// BINGO CARDS TABLE - Exact match to migration schema
+// =============================================================================
+
 export interface BingoCardsTable {
   Row: {
-    created_at: string | null;
-    creator_id: string | null;
-    description: string | null;
-    difficulty: DifficultyLevel;
-    game_type: GameCategory;
     id: string;
-    is_public: boolean | null;
-    tags: string[] | null;
     title: string;
-    updated_at: string | null;
+    description: string | null;
+    creator_id: string | null;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    tags: string[] | null;
+    is_public: boolean | null;
     votes: number | null;
+    created_at: string | null;
+    updated_at: string | null;
   };
   Insert: {
-    created_at?: string | null;
-    creator_id?: string | null;
-    description?: string | null;
-    difficulty: DifficultyLevel;
-    game_type: GameCategory;
     id?: string;
-    is_public?: boolean | null;
-    tags?: string[] | null;
     title: string;
-    updated_at?: string | null;
+    description?: string | null;
+    creator_id?: string | null;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    tags?: string[] | null;
+    is_public?: boolean | null;
     votes?: number | null;
+    created_at?: string | null;
+    updated_at?: string | null;
   };
   Update: {
-    created_at?: string | null;
-    creator_id?: string | null;
-    description?: string | null;
-    difficulty?: DifficultyLevel;
-    game_type?: GameCategory;
     id?: string;
-    is_public?: boolean | null;
-    tags?: string[] | null;
     title?: string;
-    updated_at?: string | null;
+    description?: string | null;
+    creator_id?: string | null;
+    game_type?: GameCategory;
+    difficulty?: DifficultyLevel;
+    tags?: string[] | null;
+    is_public?: boolean | null;
     votes?: number | null;
+    created_at?: string | null;
+    updated_at?: string | null;
   };
   Relationships: [
     {
@@ -139,46 +145,55 @@ export interface BingoCardsTable {
   ];
 }
 
-// Bingo Sessions Table
+// =============================================================================
+// BINGO SESSIONS TABLE - Exact match to migration schema
+// =============================================================================
+
 export interface BingoSessionsTable {
   Row: {
-    board_id: string | null;
-    created_at: string | null;
-    current_state: BoardCell[] | null;
-    ended_at: string | null;
-    host_id: string | null;
     id: string;
+    board_id: string | null;
+    host_id: string | null;
+    session_code: string;
     settings: SessionSettings | null;
-    started_at: string | null;
     status: SessionStatus | null;
-    updated_at: string | null;
+    max_players: number | null;
+    current_players: number | null;
     winner_id: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
   };
   Insert: {
-    board_id?: string | null;
-    created_at?: string | null;
-    current_state?: BoardCell[] | null;
-    ended_at?: string | null;
-    host_id?: string | null;
     id?: string;
+    board_id?: string | null;
+    host_id?: string | null;
+    session_code: string;
     settings?: SessionSettings | null;
-    started_at?: string | null;
     status?: SessionStatus | null;
-    updated_at?: string | null;
+    max_players?: number | null;
+    current_players?: number | null;
     winner_id?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
   };
   Update: {
-    board_id?: string | null;
-    created_at?: string | null;
-    current_state?: BoardCell[] | null;
-    ended_at?: string | null;
-    host_id?: string | null;
     id?: string;
+    board_id?: string | null;
+    host_id?: string | null;
+    session_code?: string;
     settings?: SessionSettings | null;
-    started_at?: string | null;
     status?: SessionStatus | null;
-    updated_at?: string | null;
+    max_players?: number | null;
+    current_players?: number | null;
     winner_id?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
   };
   Relationships: [
     {
@@ -205,37 +220,49 @@ export interface BingoSessionsTable {
   ];
 }
 
-// Bingo Session Players Table
+// =============================================================================
+// BINGO SESSION PLAYERS TABLE - Exact match to migration schema
+// =============================================================================
+
 export interface BingoSessionPlayersTable {
   Row: {
-    color: string;
-    created_at: string | null;
-    joined_at: string | null;
-    player_name: string;
+    id: string;
     session_id: string;
-    team: number | null;
-    updated_at: string | null;
     user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+    is_ready: boolean | null;
+    is_host: boolean | null;
+    score: number | null;
+    position: number | null;
+    joined_at: string | null;
+    left_at: string | null;
   };
   Insert: {
-    color: string;
-    created_at?: string | null;
-    joined_at?: string | null;
-    player_name: string;
+    id?: string;
     session_id: string;
-    team?: number | null;
-    updated_at?: string | null;
     user_id: string;
+    display_name: string;
+    avatar_url?: string | null;
+    is_ready?: boolean | null;
+    is_host?: boolean | null;
+    score?: number | null;
+    position?: number | null;
+    joined_at?: string | null;
+    left_at?: string | null;
   };
   Update: {
-    color?: string;
-    created_at?: string | null;
-    joined_at?: string | null;
-    player_name?: string;
+    id?: string;
     session_id?: string;
-    team?: number | null;
-    updated_at?: string | null;
     user_id?: string;
+    display_name?: string;
+    avatar_url?: string | null;
+    is_ready?: boolean | null;
+    is_host?: boolean | null;
+    score?: number | null;
+    position?: number | null;
+    joined_at?: string | null;
+    left_at?: string | null;
   };
   Relationships: [
     {
@@ -255,59 +282,91 @@ export interface BingoSessionPlayersTable {
   ];
 }
 
-// Bingo Session Events Table
-export interface BingoSessionEventsTable {
+// =============================================================================
+// BINGO SESSION QUEUE TABLE - Exact match to migration schema
+// =============================================================================
+
+export interface BingoSessionQueueTable {
   Row: {
-    board_id: string | null;
-    created_at: string | null;
-    data: Json | null;
-    event_type: string;
     id: string;
-    player_id: string | null;
-    session_id: string | null;
-    timestamp: number;
+    user_id: string | null;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    max_players: number | null;
+    status: QueueStatus | null;
+    priority: number | null;
+    estimated_wait_time: number | null;
+    created_at: string | null;
     updated_at: string | null;
-    version: number | null;
   };
   Insert: {
-    board_id?: string | null;
-    created_at?: string | null;
-    data?: Json | null;
-    event_type: string;
     id?: string;
-    player_id?: string | null;
-    session_id?: string | null;
-    timestamp: number;
+    user_id?: string | null;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    max_players?: number | null;
+    status?: QueueStatus | null;
+    priority?: number | null;
+    estimated_wait_time?: number | null;
+    created_at?: string | null;
     updated_at?: string | null;
-    version?: number | null;
   };
   Update: {
-    board_id?: string | null;
-    created_at?: string | null;
-    data?: Json | null;
-    event_type?: string;
     id?: string;
-    player_id?: string | null;
-    session_id?: string | null;
-    timestamp?: number;
+    user_id?: string | null;
+    game_type?: GameCategory;
+    difficulty?: DifficultyLevel;
+    max_players?: number | null;
+    status?: QueueStatus | null;
+    priority?: number | null;
+    estimated_wait_time?: number | null;
+    created_at?: string | null;
     updated_at?: string | null;
-    version?: number | null;
   };
   Relationships: [
     {
-      foreignKeyName: 'bingo_session_events_board_id_fkey';
-      columns: ['board_id'];
-      isOneToOne: false;
-      referencedRelation: 'bingo_boards';
-      referencedColumns: ['id'];
-    },
-    {
-      foreignKeyName: 'bingo_session_events_player_id_fkey';
-      columns: ['player_id'];
+      foreignKeyName: 'bingo_session_queue_user_id_fkey';
+      columns: ['user_id'];
       isOneToOne: false;
       referencedRelation: 'users';
       referencedColumns: ['id'];
     },
+  ];
+}
+
+// =============================================================================
+// BINGO SESSION EVENTS TABLE - Exact match to migration schema
+// =============================================================================
+
+export interface BingoSessionEventsTable {
+  Row: {
+    id: string;
+    session_id: string | null;
+    user_id: string | null;
+    event_type: string;
+    event_data: Json | null;
+    cell_position: number | null;
+    timestamp: string | null;
+  };
+  Insert: {
+    id?: string;
+    session_id?: string | null;
+    user_id?: string | null;
+    event_type: string;
+    event_data?: Json | null;
+    cell_position?: number | null;
+    timestamp?: string | null;
+  };
+  Update: {
+    id?: string;
+    session_id?: string | null;
+    user_id?: string | null;
+    event_type?: string;
+    event_data?: Json | null;
+    cell_position?: number | null;
+    timestamp?: string | null;
+  };
+  Relationships: [
     {
       foreignKeyName: 'bingo_session_events_session_id_fkey';
       columns: ['session_id'];
@@ -315,46 +374,52 @@ export interface BingoSessionEventsTable {
       referencedRelation: 'bingo_sessions';
       referencedColumns: ['id'];
     },
+    {
+      foreignKeyName: 'bingo_session_events_user_id_fkey';
+      columns: ['user_id'];
+      isOneToOne: false;
+      referencedRelation: 'users';
+      referencedColumns: ['id'];
+    },
   ];
 }
 
-// Bingo Session Cells Table
+// =============================================================================
+// BINGO SESSION CELLS TABLE - Exact match to migration schema
+// =============================================================================
+
 export interface BingoSessionCellsTable {
   Row: {
-    board_id: string | null;
-    cell_data: BoardCell | null;
-    created_at: string | null;
     id: string;
     session_id: string | null;
-    updated_at: string | null;
-    version: number | null;
+    cell_position: number;
+    card_id: string | null;
+    marked_by: string | null;
+    marked_at: string | null;
+    verified: boolean | null;
+    verification_data: Json | null;
   };
   Insert: {
-    board_id?: string | null;
-    cell_data?: BoardCell | null;
-    created_at?: string | null;
     id?: string;
     session_id?: string | null;
-    updated_at?: string | null;
-    version?: number | null;
+    cell_position: number;
+    card_id?: string | null;
+    marked_by?: string | null;
+    marked_at?: string | null;
+    verified?: boolean | null;
+    verification_data?: Json | null;
   };
   Update: {
-    board_id?: string | null;
-    cell_data?: BoardCell | null;
-    created_at?: string | null;
     id?: string;
     session_id?: string | null;
-    updated_at?: string | null;
-    version?: number | null;
+    cell_position?: number;
+    card_id?: string | null;
+    marked_by?: string | null;
+    marked_at?: string | null;
+    verified?: boolean | null;
+    verification_data?: Json | null;
   };
   Relationships: [
-    {
-      foreignKeyName: 'bingo_session_cells_board_id_fkey';
-      columns: ['board_id'];
-      isOneToOne: false;
-      referencedRelation: 'bingo_boards';
-      referencedColumns: ['id'];
-    },
     {
       foreignKeyName: 'bingo_session_cells_session_id_fkey';
       columns: ['session_id'];
@@ -362,61 +427,16 @@ export interface BingoSessionCellsTable {
       referencedRelation: 'bingo_sessions';
       referencedColumns: ['id'];
     },
-  ];
-}
-
-// Bingo Session Queue Table
-export interface BingoSessionQueueTable {
-  Row: {
-    color: string;
-    created_at: string | null;
-    id: string;
-    player_name: string;
-    processed_at: string | null;
-    requested_at: string | null;
-    session_id: string | null;
-    status: QueueStatus | null;
-    team: number | null;
-    updated_at: string | null;
-    user_id: string | null;
-  };
-  Insert: {
-    color: string;
-    created_at?: string | null;
-    id?: string;
-    player_name: string;
-    processed_at?: string | null;
-    requested_at?: string | null;
-    session_id?: string | null;
-    status?: QueueStatus | null;
-    team?: number | null;
-    updated_at?: string | null;
-    user_id?: string | null;
-  };
-  Update: {
-    color?: string;
-    created_at?: string | null;
-    id?: string;
-    player_name?: string;
-    processed_at?: string | null;
-    requested_at?: string | null;
-    session_id?: string | null;
-    status?: QueueStatus | null;
-    team?: number | null;
-    updated_at?: string | null;
-    user_id?: string | null;
-  };
-  Relationships: [
     {
-      foreignKeyName: 'bingo_session_queue_session_id_fkey';
-      columns: ['session_id'];
+      foreignKeyName: 'bingo_session_cells_card_id_fkey';
+      columns: ['card_id'];
       isOneToOne: false;
-      referencedRelation: 'bingo_sessions';
+      referencedRelation: 'bingo_cards';
       referencedColumns: ['id'];
     },
     {
-      foreignKeyName: 'bingo_session_queue_user_id_fkey';
-      columns: ['user_id'];
+      foreignKeyName: 'bingo_session_cells_marked_by_fkey';
+      columns: ['marked_by'];
       isOneToOne: false;
       referencedRelation: 'users';
       referencedColumns: ['id'];

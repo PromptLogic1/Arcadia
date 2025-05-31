@@ -12,7 +12,7 @@ export type Json =
   | Json[];
 
 // =============================================================================
-// ENUMS - Database enums (source of truth)
+// ENUMS - Database enums (source of truth from migration)
 // =============================================================================
 
 export type ActivityType =
@@ -25,19 +25,23 @@ export type ActivityType =
   | 'discussion_create'
   | 'comment_create'
   | 'achievement_unlock';
+
 export type BoardStatus =
   | 'draft'
   | 'active'
   | 'paused'
   | 'completed'
   | 'archived';
+
 export type ChallengeStatus = 'draft' | 'published' | 'archived';
+
 export type DifficultyLevel =
   | 'beginner'
   | 'easy'
   | 'medium'
   | 'hard'
   | 'expert';
+
 export type GameCategory =
   | 'All Games'
   | 'World of Warcraft'
@@ -48,82 +52,115 @@ export type GameCategory =
   | 'League of Legends'
   | 'Overwatch'
   | 'Call of Duty: Warzone'
-  | 'Valorant';
-export type QueueStatus =
-  | 'pending'
-  | 'approved'
-  | 'rejected'
-  | 'processing'
+  | 'Valorant'
+  | 'CS:GO'
+  | 'Dota 2'
+  | 'Rocket League'
+  | 'Fall Guys'
+  | 'Dead by Daylight'
+  | 'Cyberpunk 2077'
+  | 'The Witcher 3'
+  | 'Elden Ring'
+  | 'Dark Souls'
+  | 'Bloodborne'
+  | 'Sekiro'
+  | 'Hollow Knight'
+  | 'Celeste'
+  | 'Hades'
+  | 'The Binding of Isaac'
+  | 'Risk of Rain 2'
+  | 'Deep Rock Galactic'
+  | 'Valheim'
+  | 'Subnautica'
+  | "No Man's Sky"
+  | 'Terraria'
+  | 'Stardew Valley'
+  | 'Animal Crossing'
+  | 'Splatoon 3'
+  | 'Super Mario Odyssey'
+  | 'The Legend of Zelda: Breath of the Wild'
+  | 'Super Smash Bros. Ultimate';
+
+export type QueueStatus = 'waiting' | 'matched' | 'cancelled';
+
+export type SessionStatus =
+  | 'waiting'
+  | 'active'
+  | 'paused'
   | 'completed'
-  | 'failed';
-export type SessionStatus = 'waiting' | 'active' | 'completed' | 'cancelled';
-export type SubmissionStatus = 'pending' | 'running' | 'completed' | 'failed';
+  | 'cancelled';
+
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+
 export type TagAction =
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'vote'
-  | 'verify'
-  | 'archive';
+  | 'created'
+  | 'updated'
+  | 'deleted'
+  | 'voted'
+  | 'reported';
+
 export type TagStatus =
   | 'active'
-  | 'proposed'
-  | 'verified'
-  | 'archived'
-  | 'suspended';
-export type TagType = 'core' | 'game' | 'community';
+  | 'pending'
+  | 'rejected'
+  | 'archived';
+
+export type TagType =
+  | 'category'
+  | 'difficulty'
+  | 'theme'
+  | 'mechanic'
+  | 'custom';
+
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
+
 export type VisibilityType = 'public' | 'friends' | 'private';
+
 export type VoteType = 'up' | 'down';
 
 // =============================================================================
-// COMPOSITE TYPES - Database composite types
+// COMPOSITE TYPES - Database composite types (exact match to migration)
 // =============================================================================
 
 export interface BoardCell {
   text: string | null;
-  colors: string[] | null;
-  completed_by: string[] | null;
-  blocked: boolean | null;
-  is_marked: boolean | null;
-  cell_id: string | null;
-  version: number | null;
-  last_updated: number | null;
-  last_modified_by: string | null;
+  position_row: number | null;
+  position_col: number | null;
+  tags: string[] | null;
 }
 
 export interface WinConditions {
-  line: boolean | null;
-  majority: boolean | null;
-  diagonal: boolean | null;
-  corners: boolean | null;
+  single_line: boolean | null;
+  full_board: boolean | null;
+  pattern: boolean | null;
+  custom_pattern: Json | null;
 }
 
 export interface BoardSettings {
-  team_mode: boolean | null;
-  lockout: boolean | null;
-  sound_enabled: boolean | null;
+  timer_enabled: boolean | null;
+  timer_duration: number | null;
   win_conditions: WinConditions | null;
+  visibility: VisibilityType | null;
+  allow_guests: boolean | null;
+  max_players: number | null;
 }
 
 export interface SessionSettings {
-  max_players: number | null;
-  allow_spectators: boolean | null;
   auto_start: boolean | null;
+  allow_spectators: boolean | null;
+  min_players: number | null;
+  max_players: number | null;
   time_limit: number | null;
-  require_approval: boolean | null;
 }
 
 export interface TagCategory {
-  id: string | null;
   name: string | null;
-  is_required: boolean | null;
-  allow_multiple: boolean | null;
-  valid_for_games: string[] | null;
+  description: string | null;
+  color: string | null;
 }
 
 // =============================================================================
-// CONSTANTS - Runtime constants for enums
+// CONSTANTS - Runtime constants for enums (exact match to migration)
 // =============================================================================
 
 export const Constants = {
@@ -166,33 +203,63 @@ export const Constants = {
         'Overwatch',
         'Call of Duty: Warzone',
         'Valorant',
+        'CS:GO',
+        'Dota 2',
+        'Rocket League',
+        'Fall Guys',
+        'Dead by Daylight',
+        'Cyberpunk 2077',
+        'The Witcher 3',
+        'Elden Ring',
+        'Dark Souls',
+        'Bloodborne',
+        'Sekiro',
+        'Hollow Knight',
+        'Celeste',
+        'Hades',
+        'The Binding of Isaac',
+        'Risk of Rain 2',
+        'Deep Rock Galactic',
+        'Valheim',
+        'Subnautica',
+        "No Man's Sky",
+        'Terraria',
+        'Stardew Valley',
+        'Animal Crossing',
+        'Splatoon 3',
+        'Super Mario Odyssey',
+        'The Legend of Zelda: Breath of the Wild',
+        'Super Smash Bros. Ultimate',
       ] as const,
-      queue_status: [
-        'pending',
-        'approved',
-        'rejected',
-        'processing',
+      queue_status: ['waiting', 'matched', 'cancelled'] as const,
+      session_status: [
+        'waiting',
+        'active',
+        'paused',
         'completed',
-        'failed',
+        'cancelled',
       ] as const,
-      session_status: ['waiting', 'active', 'completed', 'cancelled'] as const,
-      submission_status: ['pending', 'running', 'completed', 'failed'] as const,
+      submission_status: ['pending', 'approved', 'rejected'] as const,
       tag_action: [
-        'create',
-        'update',
-        'delete',
-        'vote',
-        'verify',
-        'archive',
+        'created',
+        'updated',
+        'deleted',
+        'voted',
+        'reported',
       ] as const,
       tag_status: [
         'active',
-        'proposed',
-        'verified',
+        'pending',
+        'rejected',
         'archived',
-        'suspended',
       ] as const,
-      tag_type: ['core', 'game', 'community'] as const,
+      tag_type: [
+        'category',
+        'difficulty',
+        'theme',
+        'mechanic',
+        'custom',
+      ] as const,
       user_role: ['user', 'premium', 'moderator', 'admin'] as const,
       visibility_type: ['public', 'friends', 'private'] as const,
       vote_type: ['up', 'down'] as const,
