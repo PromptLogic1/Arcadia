@@ -1,19 +1,27 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles, Package, Globe } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { cn } from '@/lib/utils';
-import { BingoCardPreview } from './BingoCard';
+import { BingoCardPreview, CreateCardPlaceholder } from './BingoCard';
 import { BingoCardPublic } from './BingoCardPublic';
 import { FilterBingoCards } from './FilterBingoCards';
 import { GeneratorPanel } from '../Generator/GeneratorPanel';
 import { TemplateSelector } from './TemplateSelector';
-import { TABS, STYLES, BOARD_EDIT_LAYOUT, UI_MESSAGES } from './constants';
+import { TABS, UI_MESSAGES } from './constants';
 import type { BingoCard, FilterOptions, GameCategory } from '@/types';
 import type { TemplateCard } from '../../data/templates';
 import { useDroppable } from '@dnd-kit/core';
 import { Trash2, Archive } from 'lucide-react';
+import { 
+  layout, 
+  componentStyles, 
+  typography,
+  animations,
+  buttonVariants,
+  cardVariants,
+} from './design-system';
 
 interface CardManagementTabsProps {
   // Data
@@ -66,45 +74,48 @@ export function CardManagementTabs({
   onCardReturnToPrivate,
 }: CardManagementTabsProps) {
   return (
-    <div
-      className="flex flex-col"
-      style={{
-        maxWidth: BOARD_EDIT_LAYOUT.SIDEBAR_WIDTH.MAX,
-        minWidth: BOARD_EDIT_LAYOUT.SIDEBAR_WIDTH.MIN,
-      }}
-    >
+    <div className={cn(
+      "flex flex-col",
+      layout.sidebar.width,
+      layout.sidebar.minWidth,
+      layout.sidebar.maxWidth
+    )}>
       <Tabs
         defaultValue="templates"
         className="w-full"
         onValueChange={onTabChange}
       >
-        <TabsList className="mb-4 w-full border border-cyan-500/20 bg-gray-800/50">
-          <div
-            className="flex-start flex w-full"
-            style={{ justifyContent: 'space-around' }}
-          >
+        <TabsList className={cn(
+          "mb-4 w-full",
+          componentStyles.tab.list
+        )}>
+          <div className="flex w-full justify-around">
             <TabsTrigger
               value="templates"
-              className={cn(...STYLES.TAB_TRIGGER_CLASSES)}
+              className={componentStyles.tab.trigger}
             >
+              <Sparkles className="w-4 h-4 mr-1.5" />
               Templates
             </TabsTrigger>
             <TabsTrigger
               value={TABS.PRIVATE}
-              className={cn(...STYLES.TAB_TRIGGER_CLASSES)}
+              className={componentStyles.tab.trigger}
             >
-              Private Cards
+              <Package className="w-4 h-4 mr-1.5" />
+              Private
             </TabsTrigger>
             <TabsTrigger
               value={TABS.PUBLIC}
-              className={cn(...STYLES.TAB_TRIGGER_CLASSES)}
+              className={componentStyles.tab.trigger}
             >
+              <Globe className="w-4 h-4 mr-1.5" />
               Public Cards
             </TabsTrigger>
             <TabsTrigger
               value={TABS.GENERATOR}
-              className={cn(...STYLES.TAB_TRIGGER_CLASSES)}
+              className={componentStyles.tab.trigger}
             >
+              <Sparkles className="w-4 h-4 mr-1.5" />
               Generator
             </TabsTrigger>
           </div>
@@ -173,11 +184,10 @@ function PrivateCardsTab({
       <div className="mb-3 flex items-center">
         <Button
           onClick={onCreateNewCard}
-          size="sm"
-          className={cn('w-full', STYLES.GRADIENT_BUTTON)}
+          className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full')}
         >
           <Plus className="mr-1 h-4 w-4" />
-          New Card
+          Create New Card
         </Button>
       </div>
 
@@ -204,11 +214,21 @@ function PrivateCardsTab({
           ) : (
             <div>
               {cards.length === 0 && !isOver && (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                  <Archive className="h-8 w-8 mb-2 opacity-50" />
-                  <p className="text-sm text-center">
-                    No private cards yet.<br />
-                    Create new cards or drag them from the grid!
+                <div className={cn(
+                  "flex flex-col items-center justify-center py-12",
+                  "text-gray-400"
+                )}>
+                  <div className={cn(
+                    "w-16 h-16 rounded-full mb-3",
+                    "bg-gray-800/50 flex items-center justify-center"
+                  )}>
+                    <Archive className="h-8 w-8 opacity-50" />
+                  </div>
+                  <p className={cn(typography.body.normal, "text-center mb-1")}>
+                    No private cards yet
+                  </p>
+                  <p className={cn(typography.caption, "text-center")}>
+                    Create new cards or drag them from the grid
                   </p>
                 </div>
               )}

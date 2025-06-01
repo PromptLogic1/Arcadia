@@ -40,6 +40,7 @@ export const UI_MESSAGES = {
 
 // Tab configuration
 export const TABS = {
+  TEMPLATES: 'templates',
   PRIVATE: 'private',
   PUBLIC: 'public',
   GENERATOR: 'generator',

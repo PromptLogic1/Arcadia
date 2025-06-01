@@ -57,7 +57,7 @@ interface BingoBoardEditProps {
  * - Cleaner separation of concerns
  * - Better type safety and maintainability
  */
-export function BingoBoardEdit({
+export function BingoBoardEditOld({
   boardId,
   onSaveSuccess,
 }: BingoBoardEditProps) {
@@ -419,10 +419,12 @@ export function BingoBoardEdit({
             boardEdit.setGridCards(newGridCards);
             
             log.debug('Swapped grid cards', {
-              sourceIndex: draggedFromIndex,
-              targetIndex,
-              sourceCard: sourceCard?.title || 'empty',
-              targetCard: targetCard?.title || 'empty'
+              metadata: {
+                sourceIndex: draggedFromIndex,
+                targetIndex,
+                sourceCard: sourceCard?.title || 'empty',
+                targetCard: targetCard?.title || 'empty'
+              }
             });
           } else if (draggedFromIndex === null) {
             // Dragging from private cards
@@ -597,3 +599,6 @@ export function BingoBoardEdit({
 }
 
 // ✅ Ready for review
+
+// Re-export the redesigned version as the main component
+export { BingoBoardEdit } from './BingoBoardEditRedesigned';

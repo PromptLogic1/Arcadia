@@ -6,14 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { BingoCard as BingoCardType } from '@/types';
-import { DIFFICULTY_STYLES } from '@/types';
-import { Edit, ChevronDown, GripVertical } from 'lucide-react';
+import { Edit, ChevronDown, GripVertical, Plus, Hash } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useDraggable } from '@dnd-kit/core';
+import { 
+  cardVariants,
+  getDifficultyStyles,
+  typography,
+  animations,
+  buttonVariants,
+} from './design-system';
 
 interface BingoCardProps {
   card: BingoCardType;
@@ -43,175 +49,179 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
       ref={setNodeRef} 
       style={style}
       className={cn(
-        "w-full transition-opacity duration-200",
-        isDragging && "opacity-50"
+        "w-full",
+        animations.transition.default,
+        isDragging && "opacity-50 scale-95"
       )}
     >
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="w-full rounded-lg bg-gray-900/30"
+        className="w-full"
       >
         <CollapsibleTrigger asChild>
           <Card
             className={cn(
-              'bg-gradient-to-br from-gray-800/95 to-gray-800/75',
-              'border border-cyan-500/20 hover:border-cyan-500/40',
-              'group w-full cursor-pointer transition-all duration-300',
-              isOpen && 'rounded-b-none border-b-0 border-cyan-500/60'
+              cardVariants({ variant: 'interactive' }),
+              "group w-full",
+              isOpen && "rounded-b-none border-b-0 border-cyan-500/60"
             )}
           >
-            <CardContent className="flex items-center justify-between p-2">
-              <div className="flex items-center gap-2">
+            <CardContent className="flex items-center justify-between p-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <button
                   {...listeners}
                   {...attributes}
-                  className="cursor-grab text-gray-400 hover:text-cyan-300 active:cursor-grabbing"
+                  className={cn(
+                    "shrink-0 p-1 rounded",
+                    "text-gray-500 hover:text-cyan-400",
+                    "hover:bg-gray-700/50",
+                    "cursor-grab active:cursor-grabbing",
+                    animations.transition.fast
+                  )}
                   onClick={e => e.stopPropagation()}
                 >
                   <GripVertical className="h-4 w-4" />
                 </button>
-                <span
-                  className="flex-1 truncate text-sm text-cyan-300/90"
-                  style={{ wordBreak: 'break-word' }}
-                >
+                <span className={cn(
+                  typography.body.normal,
+                  "truncate text-gray-100"
+                )}>
                   {card.title}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <Badge
-                  variant="outline"
+                <Badge 
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-xs',
-                    DIFFICULTY_STYLES[card.difficulty]
+                    "text-[10px] px-1.5 py-0",
+                    getDifficultyStyles(card.difficulty)
                   )}
                 >
                   {card.difficulty}
                 </Badge>
                 <ChevronDown
                   className={cn(
-                    'h-4 w-4 text-cyan-400/70 transition-transform duration-200',
-                    isOpen && 'rotate-180 transform'
+                    "h-4 w-4 text-gray-500",
+                    animations.transition.default,
+                    isOpen && "rotate-180"
                   )}
                 />
               </div>
             </CardContent>
           </Card>
         </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <div className="rounded-b-lg border-x border-b border-cyan-500/20 p-3">
-            <div className="mb-4 space-y-2">
-              <div className="w-full">
-                <span className="block text-xs font-medium text-cyan-400">
-                  Title:
-                </span>
-                <p
-                  className="overflow-break-word line-clamp-3 text-sm break-words text-gray-300"
-                  style={{ wordBreak: 'break-word' }}
-                >
-                  {card.title}
-                </p>
-              </div>
-
+        
+        <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+          <Card className={cn(
+            cardVariants({ variant: 'default' }),
+            "rounded-t-none border-t-0 border-cyan-500/60"
+          )}>
+            <CardContent className="p-4 space-y-3">
+              {/* Description */}
               {card.description && (
-                <div className="w-full max-w-[270px]">
-                  <span className="block text-xs font-medium text-cyan-400">
-                    Description:
-                  </span>
-                  <p
-                    className="line-clamp-3 text-sm text-gray-300"
-                    style={{ wordBreak: 'break-word' }}
-                  >
+                <div className="space-y-1">
+                  <label className={cn(typography.label, "text-gray-500")}>
+                    Description
+                  </label>
+                  <p className={cn(typography.body.small, "text-gray-300")}>
                     {card.description}
                   </p>
                 </div>
               )}
 
-              <div className="grid w-[270px] grid-cols-2 gap-2">
-                <div className="overflow-hidden">
-                  <span className="block text-xs font-medium text-cyan-400">
-                    Game:
-                  </span>
-                  <p className="text-sm break-words text-gray-300">
-                    {card.game_type}
-                  </p>
-                </div>
-
-                <div className="overflow-hidden">
-                  <span className="block text-xs font-medium text-cyan-400">
-                    Difficulty:
-                  </span>
-                  <p className="truncate text-sm text-gray-300 capitalize">
-                    {card.difficulty}
-                  </p>
-                </div>
-
-                <div className="overflow-hidden">
-                  <span className="block text-xs font-medium text-cyan-400">
-                    Votes:
-                  </span>
-                  <p className="truncate text-sm text-gray-300">
-                    {card.votes || 0}
-                  </p>
-                </div>
-
-                <div className="overflow-hidden">
-                  <span className="block text-xs font-medium text-cyan-400">
-                    Public:
-                  </span>
-                  <p className="truncate text-sm text-gray-300">
-                    {card.is_public ? 'Yes' : 'No'}
-                  </p>
-                </div>
-              </div>
-
+              {/* Tags */}
               {card.tags && card.tags.length > 0 && (
-                <div className="w-full">
-                  <span className="block text-xs font-medium text-cyan-400">
-                    Tags:
-                  </span>
-                  <p className="text-sm break-words text-gray-300">
-                    {card.tags.join(', ')}
-                  </p>
+                <div className="space-y-1">
+                  <label className={cn(typography.label, "text-gray-500")}>
+                    Tags
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {card.tags.map((tag, i) => (
+                      <Badge
+                        key={i}
+                        variant="outline"
+                        className="text-xs border-gray-600 text-gray-400"
+                      >
+                        <Hash className="w-3 h-3 mr-1" />
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="w-full">
-                <span className="block text-xs font-medium text-cyan-400">
-                  Created:
-                </span>
-                <p className="w-[270px] truncate text-sm text-gray-400">
-                  {card.created_at
-                    ? new Date(card.created_at).toLocaleDateString()
-                    : 'Unknown'}
-                </p>
+              {/* Metadata */}
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                {card.votes !== null && card.votes > 0 && (
+                  <span>👍 {card.votes} votes</span>
+                )}
+                {card.is_public && (
+                  <span>🌍 Public</span>
+                )}
               </div>
-            </div>
 
-            <div className="flex gap-2 border-t border-gray-700 pt-2">
-              <Button
-                size="sm"
-                onClick={() => onSelect?.(card)}
-                className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
-              >
-                Use Card
-              </Button>
-              {card.id && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onEdit?.(card)}
-                  className="gap-1"
-                >
-                  <Edit className="h-3 w-3" />
-                  Edit
-                </Button>
-              )}
-            </div>
-          </div>
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                {onSelect && (
+                  <Button
+                    onClick={() => onSelect(card)}
+                    className={cn(buttonVariants({ variant: 'primary', size: 'sm' }))}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add to Grid
+                  </Button>
+                )}
+                {onEdit && (
+                  <Button
+                    onClick={() => onEdit(card)}
+                    className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </CollapsibleContent>
       </Collapsible>
     </div>
   );
 }
+
+// Create new card placeholder component
+export function CreateCardPlaceholder({ onClick }: { onClick: () => void }) {
+  return (
+    <Card
+      onClick={onClick}
+      className={cn(
+        cardVariants({ variant: 'ghost' }),
+        "border-2 border-dashed border-gray-600/40",
+        "hover:border-cyan-500/40 hover:bg-gray-800/40",
+        "cursor-pointer group",
+        animations.transition.default
+      )}
+    >
+      <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+        <div className={cn(
+          "w-12 h-12 rounded-full mb-3",
+          "bg-cyan-500/20 group-hover:bg-cyan-500/30",
+          "flex items-center justify-center",
+          animations.transition.default
+        )}>
+          <Plus className="w-6 h-6 text-cyan-400" />
+        </div>
+        <p className={cn(typography.body.normal, "text-gray-400 group-hover:text-gray-300")}>
+          Create New Card
+        </p>
+        <p className={cn(typography.caption, "mt-1")}>
+          Click to add a custom card
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// TODO: Ensure BingoCard type from database includes all necessary fields
+// TODO: Add optimistic updates for card voting when Supabase schema supports it
+// TODO: Consider adding card preview tooltips for better UX
