@@ -27,8 +27,8 @@ const connectionConfig = {
   user: 'postgres',
   password: DATABASE_PASSWORD,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 };
 
 async function inspectPostgreSQLSchema() {
@@ -45,7 +45,7 @@ async function inspectPostgreSQLSchema() {
 
     // Get all tables in public schema
     console.log('📋 Fetching all tables in public schema...\n');
-    
+
     const tablesQuery = `
       SELECT 
         table_name,
@@ -57,10 +57,10 @@ async function inspectPostgreSQLSchema() {
     `;
 
     const tablesResult = await client.query(tablesQuery);
-    
+
     if (tablesResult.rows.length > 0) {
       console.log(`📊 Found ${tablesResult.rows.length} tables:\n`);
-      
+
       tablesResult.rows.forEach(table => {
         console.log(`  • ${table.table_name} (${table.table_type})`);
       });
@@ -76,7 +76,7 @@ async function inspectPostgreSQLSchema() {
 
     // Get all enums
     console.log('\n🏷️  Fetching custom enums...\n');
-    
+
     const enumsQuery = `
       SELECT 
         t.typname as enum_name,
@@ -90,11 +90,13 @@ async function inspectPostgreSQLSchema() {
     `;
 
     const enumsResult = await client.query(enumsQuery);
-    
+
     if (enumsResult.rows.length > 0) {
       console.log('📋 Custom Enums:');
       enumsResult.rows.forEach(enumInfo => {
-        console.log(`  • ${enumInfo.enum_name}: [${enumInfo.enum_values.join(', ')}]`);
+        console.log(
+          `  • ${enumInfo.enum_name}: [${enumInfo.enum_values.join(', ')}]`
+        );
       });
       console.log('');
     } else {
@@ -103,7 +105,7 @@ async function inspectPostgreSQLSchema() {
 
     // Get all functions
     console.log('⚙️  Fetching custom functions...\n');
-    
+
     const functionsQuery = `
       SELECT 
         routine_name,
@@ -116,11 +118,13 @@ async function inspectPostgreSQLSchema() {
     `;
 
     const functionsResult = await client.query(functionsQuery);
-    
+
     if (functionsResult.rows.length > 0) {
       console.log('📋 Custom Functions:');
       functionsResult.rows.forEach(func => {
-        console.log(`  • ${func.routine_name}() -> ${func.return_type} (${func.routine_type})`);
+        console.log(
+          `  • ${func.routine_name}() -> ${func.return_type} (${func.routine_type})`
+        );
       });
       console.log('');
     } else {
@@ -129,7 +133,7 @@ async function inspectPostgreSQLSchema() {
 
     // Get indexes
     console.log('🔍 Fetching indexes...\n');
-    
+
     const indexesQuery = `
       SELECT 
         schemaname,
@@ -142,7 +146,7 @@ async function inspectPostgreSQLSchema() {
     `;
 
     const indexesResult = await client.query(indexesQuery);
-    
+
     if (indexesResult.rows.length > 0) {
       console.log('📋 Indexes:');
       indexesResult.rows.forEach(idx => {
@@ -151,10 +155,9 @@ async function inspectPostgreSQLSchema() {
       });
       console.log('');
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
-    
+
     // Provide helpful debugging info
     if (error.code === 'ENOTFOUND') {
       console.log('\n🔍 Debugging info:');
@@ -192,21 +195,25 @@ async function describeTableSchema(client, tableName) {
     `;
 
     const columnsResult = await client.query(columnsQuery, [tableName]);
-    
+
     if (columnsResult.rows.length > 0) {
       console.log('📊 Columns:');
       columnsResult.rows.forEach(col => {
         const nullable = col.is_nullable === 'YES' ? 'NULL' : 'NOT NULL';
-        const defaultVal = col.column_default ? ` DEFAULT ${col.column_default}` : '';
+        const defaultVal = col.column_default
+          ? ` DEFAULT ${col.column_default}`
+          : '';
         let dataType = col.data_type;
-        
+
         if (col.character_maximum_length) {
           dataType += `(${col.character_maximum_length})`;
         } else if (col.numeric_precision) {
           dataType += `(${col.numeric_precision}${col.numeric_scale ? `,${col.numeric_scale}` : ''})`;
         }
-        
-        console.log(`  • ${col.column_name}: ${dataType} ${nullable}${defaultVal}`);
+
+        console.log(
+          `  • ${col.column_name}: ${dataType} ${nullable}${defaultVal}`
+        );
       });
     }
 
@@ -231,7 +238,7 @@ async function describeTableSchema(client, tableName) {
     `;
 
     const constraintsResult = await client.query(constraintsQuery, [tableName]);
-    
+
     if (constraintsResult.rows.length > 0) {
       console.log('🔗 Constraints:');
       constraintsResult.rows.forEach(constraint => {
@@ -252,7 +259,6 @@ async function describeTableSchema(client, tableName) {
     console.log(`📈 Row count: ${countResult.rows[0].count}`);
 
     console.log(''); // Empty line for readability
-
   } catch (error) {
     console.log(`❌ Error analyzing table ${tableName}: ${error.message}\n`);
   }
@@ -263,7 +269,7 @@ inspectPostgreSQLSchema()
   .then(() => {
     console.log('✅ PostgreSQL database schema inspection complete');
   })
-  .catch((error) => {
+  .catch(error => {
     console.error('❌ Fatal error:', error);
     process.exit(1);
   });

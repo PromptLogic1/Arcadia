@@ -43,22 +43,36 @@ export const usePlayerManagement = ({
     // Initialize with 2 players by default
     return [
       {
+        id: `player-${Date.now()}`,
         user_id: `user-${Date.now()}`,
         session_id: sessionId,
-        player_name: 'Player 1',
+        display_name: 'Player 1',
         color: PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0],
         team: 0,
+        avatar_url: null,
+        is_host: false,
+        is_ready: false,
+        position: null,
+        score: null,
         joined_at: new Date().toISOString(),
+        left_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
       {
+        id: `player-${Date.now() + 1}`,
         user_id: `user-${Date.now() + 1}`,
         session_id: sessionId,
-        player_name: 'Player 2',
+        display_name: 'Player 2',
         color: PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[1],
         team: 1,
+        avatar_url: null,
+        is_host: false,
+        is_ready: false,
+        position: null,
+        score: null,
         joined_at: new Date().toISOString(),
+        left_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -69,9 +83,12 @@ export const usePlayerManagement = ({
   const [error, setError] = useState<Error | null>(null);
 
   // Analytics stub - replaced complex useGameAnalytics
-  const trackMove = useCallback((_playerId: string, _moveType: string, _position: number) => {
-    // TODO: Implement analytics when needed
-  }, []);
+  const trackMove = useCallback(
+    (_playerId: string, _moveType: string, _position: number) => {
+      // TODO: Implement analytics when needed
+    },
+    []
+  );
   const { settings } = useGameSettings(sessionId);
   const { presenceState } = usePresence(sessionId);
 
@@ -106,7 +123,8 @@ export const usePlayerManagement = ({
     (currentPlayers: GamePlayer[]): Record<number, number> => {
       return currentPlayers.reduce(
         (acc, p) => {
-          acc[p.team || 0] = (acc[p.team || 0] || 0) + 1;
+          const teamNumber = p.team || 0;
+          acc[teamNumber] = (acc[teamNumber] || 0) + 1;
           return acc;
         },
         {} as Record<number, number>
@@ -139,12 +157,19 @@ export const usePlayerManagement = ({
           PLAYER_COLORS[colorIndex]?.color || PLAYER_COLORS[0].color;
 
         const newPlayer: GamePlayer = {
+          id: `player-${Date.now()}`,
           user_id: `user-${Date.now()}`,
           session_id: sessionId,
-          player_name: player.player_name || `Player ${playerCount + 1}`,
+          display_name: player.display_name || `Player ${playerCount + 1}`,
           color: player.color || defaultColor,
           team: settings?.team_mode ? playerCount % 2 : player.team || 0,
+          avatar_url: player.avatar_url || null,
+          is_host: false,
+          is_ready: false,
+          position: null,
+          score: null,
           joined_at: new Date().toISOString(),
+          left_at: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -244,12 +269,19 @@ export const usePlayerManagement = ({
   useEffect(() => {
     if (players.length === 0) {
       const defaultPlayer: GamePlayer = {
+        id: `player-${Date.now()}`,
         user_id: `user-${Date.now()}`,
         session_id: sessionId,
-        player_name: 'Player 1',
+        display_name: 'Player 1',
         color: PLAYER_CONSTANTS.TEAMS.DEFAULT_COLORS[0],
         team: 0,
+        avatar_url: null,
+        is_host: false,
+        is_ready: false,
+        position: null,
+        score: null,
         joined_at: new Date().toISOString(),
+        left_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

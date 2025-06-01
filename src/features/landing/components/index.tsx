@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import HeroSection from './heroSection';
+import { TryDemoGame } from './TryDemoGame';
 import FeaturedChallenges from './FeaturedChallenges';
 import FeaturedGamesCarousel from './FeaturedGamesCarousel';
 import FAQSection from './FAQSection';
@@ -62,6 +63,14 @@ export default function LandingPage() {
         currentChallenge={currentChallenge}
         challenges={challenges}
       />
+
+      {/* Demo Game Section - High Priority for User Engagement */}
+      <section className="dark:to-background bg-gradient-to-b from-purple-50 to-white px-4 py-20 dark:from-purple-950/20">
+        <div className="container mx-auto">
+          <TryDemoGame />
+        </div>
+      </section>
+
       <FeaturedChallenges challenges={challenges} />
       <FeaturedGamesCarousel />
       <UpcomingEventsSection />

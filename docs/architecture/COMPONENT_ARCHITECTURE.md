@@ -1,6 +1,6 @@
 # 🏗️ Component Architecture
 
-*Frontend component structure and patterns for the Arcadia Gaming Platform*
+_Frontend component structure and patterns for the Arcadia Gaming Platform_
 
 ## 📁 **Directory Structure**
 
@@ -33,7 +33,9 @@ src/
 ## 🎨 **Component Patterns**
 
 ### **Feature-Based Organization**
+
 Each feature is self-contained with:
+
 ```
 feature/
 ├── components/       # Feature-specific components
@@ -44,6 +46,7 @@ feature/
 ```
 
 ### **Component Structure**
+
 ```typescript
 // components/MyComponent.tsx
 'use client';  // Only if needed
@@ -54,9 +57,9 @@ interface MyComponentProps extends ComponentProps {
   // Specific props
 }
 
-export function MyComponent({ 
+export function MyComponent({
   className,
-  ...props 
+  ...props
 }: MyComponentProps) {
   // Component logic
   return (
@@ -70,6 +73,7 @@ export function MyComponent({
 ## 🧩 **UI Component Library**
 
 ### **Base Components (Shadcn/ui)**
+
 Located in `/components/ui/`:
 
 - **Forms**: `input`, `select`, `checkbox`, `form-field`
@@ -79,6 +83,7 @@ Located in `/components/ui/`:
 - **Display**: `avatar`, `badge`, `skeleton`
 
 ### **Unified Form Components**
+
 ```typescript
 // CVA-based form field with variants
 <FormField
@@ -99,6 +104,7 @@ Located in `/components/ui/`:
 ```
 
 ### **Gaming-Specific Components**
+
 ```typescript
 // Neon-styled gaming components
 <NeonButton variant="primary" glow>
@@ -115,6 +121,7 @@ Located in `/components/ui/`:
 ## 🎮 **Feature Components**
 
 ### **Bingo Boards**
+
 ```
 bingo-boards/components/
 ├── BingoBoardsHub.tsx      # Main hub page
@@ -135,6 +142,7 @@ bingo-boards/components/
 ```
 
 ### **Authentication**
+
 ```
 auth/components/
 ├── LoginForm.tsx           # Complete login form
@@ -145,6 +153,7 @@ auth/components/
 ```
 
 ### **Community**
+
 ```
 community/components/
 ├── community.tsx           # Main community page
@@ -157,6 +166,7 @@ community/components/
 ## 🔄 **State Management**
 
 ### **Zustand Stores**
+
 Global state management in `/lib/stores/`:
 
 ```typescript
@@ -165,7 +175,7 @@ interface BingoBoardsStore {
   // State
   boards: Board[];
   loading: boolean;
-  
+
   // Actions
   fetchBoards: () => Promise<void>;
   createBoard: (data: CreateBoardData) => Promise<Board>;
@@ -174,6 +184,7 @@ interface BingoBoardsStore {
 ```
 
 ### **Context Providers**
+
 Feature-specific context for complex state:
 
 ```typescript
@@ -188,51 +199,64 @@ Feature-specific context for complex state:
 ## 🪝 **Hook Architecture**
 
 ### **Data Fetching Hooks**
+
 ```typescript
 // Pattern for data hooks
 export function useBoards() {
   const { boards, loading, error, fetchBoards } = useBingoBoardsStore();
-  
+
   useEffect(() => {
     fetchBoards();
   }, []);
-  
+
   return { boards, loading, error };
 }
 ```
 
 ### **Real-time Hooks**
+
 ```typescript
 // Pattern for real-time subscriptions
 export function useBingoGame(sessionId: string) {
   const [state, setState] = useState();
-  
+
   useEffect(() => {
     const channel = supabase
       .channel(`session:${sessionId}`)
-      .on('postgres_changes', { /* config */ }, handleUpdate)
+      .on(
+        'postgres_changes',
+        {
+          /* config */
+        },
+        handleUpdate
+      )
       .subscribe();
-      
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [sessionId]);
-  
-  return { state, /* methods */ };
+
+  return { state /* methods */ };
 }
 ```
 
 ### **UI State Hooks**
+
 ```typescript
 // Common UI patterns
 export function useDebounce<T>(value: T, delay: number): T;
-export function useVirtualList(items: T[], containerRef: RefObject<HTMLElement>);
-export function useErrorHandler(): { error, setError, clearError };
+export function useVirtualList(
+  items: T[],
+  containerRef: RefObject<HTMLElement>
+);
+export function useErrorHandler(): { error; setError; clearError };
 ```
 
 ## 🎯 **Best Practices**
 
 ### **Component Guidelines**
+
 1. **Server Components by Default**: Use client components only when needed
 2. **Composition over Props**: Break down complex components
 3. **Type Safety**: Full TypeScript coverage, no `any`
@@ -240,6 +264,7 @@ export function useErrorHandler(): { error, setError, clearError };
 5. **Performance**: Memoization, lazy loading, virtualization
 
 ### **Styling Patterns**
+
 ```typescript
 // Use Tailwind with cn() utility
 import { cn } from '@/lib/utils';
@@ -269,6 +294,7 @@ const buttonVariants = cva(
 ```
 
 ### **Testing Approach**
+
 ```typescript
 // Co-located test files
 MyComponent.tsx
@@ -278,9 +304,9 @@ MyComponent.test.tsx
 test('marks cell when clicked', async () => {
   const user = userEvent.setup();
   render(<BingoCell />);
-  
+
   await user.click(screen.getByRole('button'));
-  
+
   expect(screen.getByRole('button')).toHaveClass('marked');
 });
 ```
@@ -288,29 +314,31 @@ test('marks cell when clicked', async () => {
 ## 📚 **Component Documentation**
 
 ### **Props Documentation**
+
 ```typescript
 interface ComponentProps {
   /** Primary content */
   children: React.ReactNode;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Visual variant */
   variant?: 'default' | 'primary' | 'secondary';
-  
+
   /** Size variant */
   size?: 'sm' | 'md' | 'lg';
-  
+
   /** Loading state */
   loading?: boolean;
-  
+
   /** Disabled state */
   disabled?: boolean;
 }
 ```
 
 ### **Usage Examples**
+
 ```typescript
 // Basic usage
 <Button>Click me</Button>

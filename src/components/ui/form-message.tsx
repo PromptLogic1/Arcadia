@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { 
-  Check, 
-  X, 
-  Info, 
-  Clock, 
+import {
+  Check,
+  X,
+  Info,
+  Clock,
   ExternalLink,
-  AlertTriangle 
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -47,31 +47,30 @@ const formMessageVariants = cva(
   }
 );
 
-const iconVariants = cva(
-  'flex-shrink-0',
-  {
-    variants: {
-      size: {
-        sm: 'h-4 w-4 mt-0.5',
-        default: 'h-5 w-5 mt-0.5',
-        lg: 'h-6 w-6 mt-1',
-      },
-      type: {
-        success: 'text-green-400',
-        error: 'text-red-400',
-        warning: 'text-yellow-400',
-        info: 'text-blue-400',
-        loading: 'text-gray-400 animate-spin',
-      },
+const iconVariants = cva('flex-shrink-0', {
+  variants: {
+    size: {
+      sm: 'h-4 w-4 mt-0.5',
+      default: 'h-5 w-5 mt-0.5',
+      lg: 'h-6 w-6 mt-1',
     },
-    defaultVariants: {
-      size: 'default',
-      type: 'info',
+    type: {
+      success: 'text-green-400',
+      error: 'text-red-400',
+      warning: 'text-yellow-400',
+      info: 'text-blue-400',
+      loading: 'text-gray-400 animate-spin',
     },
-  }
-);
+  },
+  defaultVariants: {
+    size: 'default',
+    type: 'info',
+  },
+});
 
-const getIcon = (type: 'success' | 'error' | 'warning' | 'info' | 'loading') => {
+const getIcon = (
+  type: 'success' | 'error' | 'warning' | 'info' | 'loading'
+) => {
   switch (type) {
     case 'success':
       return Check;
@@ -88,7 +87,8 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info' | 'loading') => 
   }
 };
 
-export interface FormMessageProps extends VariantProps<typeof formMessageVariants> {
+export interface FormMessageProps
+  extends VariantProps<typeof formMessageVariants> {
   children: React.ReactNode;
   className?: string;
   icon?: React.ComponentType<{ className?: string }> | false;
@@ -99,21 +99,25 @@ export interface FormMessageProps extends VariantProps<typeof formMessageVariant
 }
 
 export const FormMessage = React.forwardRef<HTMLDivElement, FormMessageProps>(
-  ({ 
-    children,
-    type = 'info',
-    variant = 'default',
-    size = 'default',
-    className,
-    icon,
-    title,
-    actionLabel,
-    actionHref,
-    onAction,
-    ...props 
-  }, ref) => {
-    const IconComponent = icon !== false ? (icon || getIcon(type)) : null;
-    
+  (
+    {
+      children,
+      type = 'info',
+      variant = 'default',
+      size = 'default',
+      className,
+      icon,
+      title,
+      actionLabel,
+      actionHref,
+      onAction,
+      ...props
+    },
+    ref
+  ) => {
+    const IconComponent =
+      icon !== false ? icon || (type ? getIcon(type) : null) : null;
+
     return (
       <div
         ref={ref}
@@ -124,20 +128,16 @@ export const FormMessage = React.forwardRef<HTMLDivElement, FormMessageProps>(
         {IconComponent && (
           <IconComponent className={cn(iconVariants({ size, type }))} />
         )}
-        
+
         <div className="flex-1 space-y-2">
-          {title && (
-            <p className="font-semibold leading-tight">{title}</p>
-          )}
-          
-          <div className="leading-relaxed">
-            {children}
-          </div>
-          
-          {(actionLabel && (actionHref || onAction)) && (
+          {title && <p className="leading-tight font-semibold">{title}</p>}
+
+          <div className="leading-relaxed">{children}</div>
+
+          {actionLabel && (actionHref || onAction) && (
             <div className="mt-3">
               {actionHref ? (
-                <Link 
+                <Link
                   href={actionHref}
                   className="inline-flex items-center gap-1 text-sm font-medium underline hover:no-underline"
                 >
@@ -163,25 +163,30 @@ export const FormMessage = React.forwardRef<HTMLDivElement, FormMessageProps>(
 FormMessage.displayName = 'FormMessage';
 
 // Convenience components for specific message types
-export const SuccessMessage = React.forwardRef<HTMLDivElement, Omit<FormMessageProps, 'type'>>(
-  (props, ref) => <FormMessage ref={ref} type="success" {...props} />
-);
+export const SuccessMessage = React.forwardRef<
+  HTMLDivElement,
+  Omit<FormMessageProps, 'type'>
+>((props, ref) => <FormMessage ref={ref} type="success" {...props} />);
 
-export const ErrorMessage = React.forwardRef<HTMLDivElement, Omit<FormMessageProps, 'type'>>(
-  (props, ref) => <FormMessage ref={ref} type="error" {...props} />
-);
+export const ErrorMessage = React.forwardRef<
+  HTMLDivElement,
+  Omit<FormMessageProps, 'type'>
+>((props, ref) => <FormMessage ref={ref} type="error" {...props} />);
 
-export const WarningMessage = React.forwardRef<HTMLDivElement, Omit<FormMessageProps, 'type'>>(
-  (props, ref) => <FormMessage ref={ref} type="warning" {...props} />
-);
+export const WarningMessage = React.forwardRef<
+  HTMLDivElement,
+  Omit<FormMessageProps, 'type'>
+>((props, ref) => <FormMessage ref={ref} type="warning" {...props} />);
 
-export const InfoMessage = React.forwardRef<HTMLDivElement, Omit<FormMessageProps, 'type'>>(
-  (props, ref) => <FormMessage ref={ref} type="info" {...props} />
-);
+export const InfoMessage = React.forwardRef<
+  HTMLDivElement,
+  Omit<FormMessageProps, 'type'>
+>((props, ref) => <FormMessage ref={ref} type="info" {...props} />);
 
-export const LoadingMessage = React.forwardRef<HTMLDivElement, Omit<FormMessageProps, 'type'>>(
-  (props, ref) => <FormMessage ref={ref} type="loading" {...props} />
-);
+export const LoadingMessage = React.forwardRef<
+  HTMLDivElement,
+  Omit<FormMessageProps, 'type'>
+>((props, ref) => <FormMessage ref={ref} type="loading" {...props} />);
 
 SuccessMessage.displayName = 'SuccessMessage';
 ErrorMessage.displayName = 'ErrorMessage';
@@ -191,5 +196,11 @@ LoadingMessage.displayName = 'LoadingMessage';
 
 // Type definitions for external use
 export type MessageType = 'success' | 'error' | 'warning' | 'info' | 'loading';
-export type MessageVariant = 'default' | 'gaming' | 'neon' | 'cyber' | 'minimal' | 'inline';
+export type MessageVariant =
+  | 'default'
+  | 'gaming'
+  | 'neon'
+  | 'cyber'
+  | 'minimal'
+  | 'inline';
 export type MessageSize = 'sm' | 'default' | 'lg';

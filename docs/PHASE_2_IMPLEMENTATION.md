@@ -1,10 +1,11 @@
 # 🚀 Phase 2 Implementation Guide
 
-*Enhanced Multiplayer Features - Win Detection, Scoring & Queuing*
+_Enhanced Multiplayer Features - Win Detection, Scoring & Queuing_
 
 ## 🎯 **Overview**
 
 Phase 2 transforms the basic multiplayer bingo into a competitive gaming experience with:
+
 - Automatic win detection
 - Scoring system with leaderboards
 - Queue-based matchmaking
@@ -16,9 +17,10 @@ Phase 2 transforms the basic multiplayer bingo into a competitive gaming experie
 
 ---
 
-## 📋 **Task 1: Win Detection System** *(Week 1)*
+## 📋 **Task 1: Win Detection System** _(Week 1)_
 
 ### **Overview**
+
 Implement real-time detection of winning patterns with support for multiple win types.
 
 ### **Step 1.1: Define Win Patterns**
@@ -28,20 +30,20 @@ Create win pattern types and detection logic:
 ```typescript
 // src/features/bingo-boards/types/win-patterns.types.ts
 
-export type WinPatternType = 
-  | 'single-line'      // Any row, column, or diagonal
-  | 'double-line'      // Two lines
-  | 'four-corners'     // Four corner cells
-  | 'full-house'       // All cells
-  | 'letter-t'         // T shape
-  | 'letter-x'         // X shape
-  | 'custom';          // Custom patterns
+export type WinPatternType =
+  | 'single-line' // Any row, column, or diagonal
+  | 'double-line' // Two lines
+  | 'four-corners' // Four corner cells
+  | 'full-house' // All cells
+  | 'letter-t' // T shape
+  | 'letter-x' // X shape
+  | 'custom'; // Custom patterns
 
 export interface WinPattern {
   type: WinPatternType;
   name: string;
-  positions: number[];  // Cell positions that form the pattern
-  points: number;       // Points awarded for this pattern
+  positions: number[]; // Cell positions that form the pattern
+  points: number; // Points awarded for this pattern
 }
 
 export interface WinDetectionResult {
@@ -59,106 +61,106 @@ export interface WinDetectionResult {
 
 export class WinDetectionService {
   private boardSize: number;
-  
+
   constructor(size: number = 5) {
     this.boardSize = size;
   }
-  
+
   detectWin(boardState: BoardCell[]): WinDetectionResult {
     const markedPositions = boardState
-      .map((cell, index) => cell.isMarked ? index : -1)
+      .map((cell, index) => (cell.isMarked ? index : -1))
       .filter(pos => pos !== -1);
-    
+
     const detectedPatterns: WinPattern[] = [];
-    
+
     // Check all possible patterns
     if (this.checkRows(markedPositions)) {
       detectedPatterns.push(...this.getRowPatterns(markedPositions));
     }
-    
+
     if (this.checkColumns(markedPositions)) {
       detectedPatterns.push(...this.getColumnPatterns(markedPositions));
     }
-    
+
     if (this.checkDiagonals(markedPositions)) {
       detectedPatterns.push(...this.getDiagonalPatterns(markedPositions));
     }
-    
+
     if (this.checkFourCorners(markedPositions)) {
       detectedPatterns.push(this.getFourCornersPattern());
     }
-    
+
     if (this.checkFullHouse(markedPositions, boardState.length)) {
       detectedPatterns.push(this.getFullHousePattern(boardState.length));
     }
-    
+
     return {
       hasWin: detectedPatterns.length > 0,
       patterns: detectedPatterns,
       winningCells: [...new Set(detectedPatterns.flatMap(p => p.positions))],
-      totalPoints: detectedPatterns.reduce((sum, p) => sum + p.points, 0)
+      totalPoints: detectedPatterns.reduce((sum, p) => sum + p.points, 0),
     };
   }
-  
+
   private checkRows(marked: number[]): boolean {
     for (let row = 0; row < this.boardSize; row++) {
       const rowStart = row * this.boardSize;
       const rowPositions = Array.from(
-        { length: this.boardSize }, 
+        { length: this.boardSize },
         (_, i) => rowStart + i
       );
-      
+
       if (rowPositions.every(pos => marked.includes(pos))) {
         return true;
       }
     }
     return false;
   }
-  
+
   private checkColumns(marked: number[]): boolean {
     for (let col = 0; col < this.boardSize; col++) {
       const colPositions = Array.from(
-        { length: this.boardSize }, 
-        (_, i) => col + (i * this.boardSize)
+        { length: this.boardSize },
+        (_, i) => col + i * this.boardSize
       );
-      
+
       if (colPositions.every(pos => marked.includes(pos))) {
         return true;
       }
     }
     return false;
   }
-  
+
   private checkDiagonals(marked: number[]): boolean {
     // Top-left to bottom-right
     const diagonal1 = Array.from(
       { length: this.boardSize },
       (_, i) => i * (this.boardSize + 1)
     );
-    
+
     // Top-right to bottom-left
     const diagonal2 = Array.from(
       { length: this.boardSize },
       (_, i) => (i + 1) * (this.boardSize - 1)
     );
-    
+
     return (
       diagonal1.every(pos => marked.includes(pos)) ||
       diagonal2.every(pos => marked.includes(pos))
     );
   }
-  
+
   private checkFourCorners(marked: number[]): boolean {
     const corners = [
-      0,                                    // Top-left
-      this.boardSize - 1,                   // Top-right
+      0, // Top-left
+      this.boardSize - 1, // Top-right
       this.boardSize * (this.boardSize - 1), // Bottom-left
-      this.boardSize * this.boardSize - 1   // Bottom-right
+      this.boardSize * this.boardSize - 1, // Bottom-right
     ];
-    
+
     return corners.every(pos => marked.includes(pos));
   }
-  
+
   private checkFullHouse(marked: number[], totalCells: number): boolean {
     return marked.length === totalCells;
   }
@@ -174,10 +176,10 @@ Update the `useBingoGame` hook to check for wins after each move:
 
 const checkForWin = useCallback(async () => {
   if (!boardState || boardState.length === 0) return;
-  
+
   const winService = new WinDetectionService(5); // Assuming 5x5 board
   const result = winService.detectWin(boardState);
-  
+
   if (result.hasWin && session?.status === 'active') {
     // Update session with winner
     await fetch(`/api/bingo/sessions/${sessionId}/complete`, {
@@ -186,11 +188,11 @@ const checkForWin = useCallback(async () => {
       body: JSON.stringify({
         winner_id: userId,
         winning_patterns: result.patterns,
-        final_score: result.totalPoints
-      })
+        final_score: result.totalPoints,
+      }),
     });
   }
-  
+
   return result;
 }, [boardState, session, sessionId, userId]);
 
@@ -220,11 +222,11 @@ interface WinnerAnnouncementProps {
   onPlayAgain: () => void;
 }
 
-export function WinnerAnnouncement({ 
-  winner, 
-  result, 
-  onClose, 
-  onPlayAgain 
+export function WinnerAnnouncement({
+  winner,
+  result,
+  onClose,
+  onPlayAgain
 }: WinnerAnnouncementProps) {
   return (
     <AnimatePresence>
@@ -248,12 +250,12 @@ export function WinnerAnnouncement({
             >
               <Trophy className="w-24 h-24" />
             </motion.div>
-            
+
             <h2 className="text-4xl font-bold mb-2">BINGO!</h2>
             <p className="text-2xl font-semibold mb-4">
               {winner.displayName} Wins!
             </p>
-            
+
             <div className="bg-white/20 rounded-lg p-4 mb-6">
               <p className="text-lg font-medium mb-2">Winning Patterns:</p>
               {result.patterns.map((pattern, index) => (
@@ -269,7 +271,7 @@ export function WinnerAnnouncement({
                 </p>
               </div>
             </div>
-            
+
             <div className="flex gap-3">
               <Button
                 onClick={onClose}
@@ -295,7 +297,7 @@ export function WinnerAnnouncement({
 
 ---
 
-## 📋 **Task 2: Scoring System** *(Week 2)*
+## 📋 **Task 2: Scoring System** _(Week 2)_
 
 ### **Step 2.1: Database Schema for Scores**
 
@@ -316,7 +318,7 @@ CREATE TABLE game_results (
 
 -- Create leaderboards view
 CREATE VIEW leaderboards AS
-SELECT 
+SELECT
     u.id,
     u.username,
     u.avatar_url,
@@ -349,9 +351,9 @@ interface ScoringConfig {
     customPattern: 200;
   };
   multipliers: {
-    firstWin: 2.0;      // First to achieve pattern
-    speedBonus: 1.5;    // Win under 2 minutes
-    perfection: 1.3;    // No mistakes (no unmarking)
+    firstWin: 2.0; // First to achieve pattern
+    speedBonus: 1.5; // Win under 2 minutes
+    perfection: 1.3; // No mistakes (no unmarking)
   };
   timeBonus: {
     under30Seconds: 100;
@@ -378,9 +380,9 @@ export class ScoringService {
       under30Seconds: 100,
       under1Minute: 50,
       under2Minutes: 25,
-    }
+    },
   };
-  
+
   calculateScore(
     patterns: WinPattern[],
     timeElapsed: number,
@@ -389,20 +391,21 @@ export class ScoringService {
   ): number {
     // Base score from patterns
     let score = patterns.reduce((sum, pattern) => sum + pattern.points, 0);
-    
+
     // Apply multipliers
     if (isFirstWinner) {
       score *= this.config.multipliers.firstWin;
     }
-    
-    if (timeElapsed < 120) { // Under 2 minutes
+
+    if (timeElapsed < 120) {
+      // Under 2 minutes
       score *= this.config.multipliers.speedBonus;
     }
-    
+
     if (mistakeCount === 0) {
       score *= this.config.multipliers.perfection;
     }
-    
+
     // Add time bonuses
     if (timeElapsed < 30) {
       score += this.config.timeBonus.under30Seconds;
@@ -411,7 +414,7 @@ export class ScoringService {
     } else if (timeElapsed < 120) {
       score += this.config.timeBonus.under2Minutes;
     }
-    
+
     return Math.round(score);
   }
 }
@@ -444,25 +447,25 @@ export function Leaderboard() {
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [timeframe, setTimeframe] = useState<'all' | 'monthly' | 'weekly'>('all');
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     fetchLeaderboard();
   }, [timeframe]);
-  
+
   const fetchLeaderboard = async () => {
     const supabase = createClient();
-    
+
     const { data, error } = await supabase
       .from('leaderboards')
       .select('*')
       .limit(10);
-    
+
     if (!error && data) {
       setLeaders(data);
     }
     setLoading(false);
   };
-  
+
   const getRankIcon = (position: number) => {
     switch (position) {
       case 1: return <Trophy className="w-6 h-6 text-yellow-500" />;
@@ -471,18 +474,18 @@ export function Leaderboard() {
       default: return <span className="w-6 text-center">{position}</span>;
     }
   };
-  
+
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold mb-4">Leaderboard</h2>
-      
+
       <Tabs value={timeframe} onValueChange={(v) => setTimeframe(v as any)}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="weekly">This Week</TabsTrigger>
           <TabsTrigger value="monthly">This Month</TabsTrigger>
           <TabsTrigger value="all">All Time</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value={timeframe} className="mt-4">
           <div className="space-y-2">
             {leaders.map((leader, index) => (
@@ -518,7 +521,7 @@ export function Leaderboard() {
 
 ---
 
-## 📋 **Task 3: Queue System Automation** *(Week 3)*
+## 📋 **Task 3: Queue System Automation** _(Week 3)_
 
 ### **Step 3.1: Queue Matching Algorithm**
 
@@ -543,34 +546,37 @@ export class QueueMatcherService {
   private readonly MIN_PLAYERS = 2;
   private readonly MAX_PLAYERS = 8;
   private readonly MAX_SKILL_DIFF = 500; // ELO-style rating difference
-  
+
   findMatches(queue: QueueEntry[]): QueueEntry[][] {
     const matches: QueueEntry[][] = [];
     const processed = new Set<string>();
-    
+
     // Sort by wait time (longest waiting first)
     const sortedQueue = [...queue].sort((a, b) => b.waitTime - a.waitTime);
-    
+
     for (const entry of sortedQueue) {
       if (processed.has(entry.id)) continue;
-      
+
       const compatiblePlayers = this.findCompatiblePlayers(
         entry,
         sortedQueue.filter(e => !processed.has(e.id) && e.id !== entry.id)
       );
-      
+
       if (compatiblePlayers.length >= this.MIN_PLAYERS - 1) {
-        const match = [entry, ...compatiblePlayers.slice(0, this.MAX_PLAYERS - 1)];
+        const match = [
+          entry,
+          ...compatiblePlayers.slice(0, this.MAX_PLAYERS - 1),
+        ];
         matches.push(match);
-        
+
         // Mark all as processed
         match.forEach(player => processed.add(player.id));
       }
     }
-    
+
     return matches;
   }
-  
+
   private findCompatiblePlayers(
     anchor: QueueEntry,
     candidates: QueueEntry[]
@@ -579,26 +585,32 @@ export class QueueMatcherService {
       .filter(candidate => {
         // Must want the same board
         if (candidate.boardId !== anchor.boardId) return false;
-        
+
         // Check skill rating difference
         if (anchor.skillRating && candidate.skillRating) {
           const diff = Math.abs(anchor.skillRating - candidate.skillRating);
           if (diff > this.MAX_SKILL_DIFF) return false;
         }
-        
+
         // Check difficulty preference
         if (anchor.preferences.difficulty && candidate.preferences.difficulty) {
-          if (anchor.preferences.difficulty !== candidate.preferences.difficulty) {
+          if (
+            anchor.preferences.difficulty !== candidate.preferences.difficulty
+          ) {
             return false;
           }
         }
-        
+
         return true;
       })
       .sort((a, b) => {
         // Prioritize similar skill levels
-        const skillDiffA = Math.abs((a.skillRating || 1000) - (anchor.skillRating || 1000));
-        const skillDiffB = Math.abs((b.skillRating || 1000) - (anchor.skillRating || 1000));
+        const skillDiffA = Math.abs(
+          (a.skillRating || 1000) - (anchor.skillRating || 1000)
+        );
+        const skillDiffB = Math.abs(
+          (b.skillRating || 1000) - (anchor.skillRating || 1000)
+        );
         return skillDiffA - skillDiffB;
       });
   }
@@ -617,7 +629,7 @@ import { QueueMatcherService } from '@/features/bingo-boards/services/queue-matc
 export async function POST() {
   const supabase = createClient();
   const matcher = new QueueMatcherService();
-  
+
   try {
     // Get all waiting queue entries
     const { data: queueEntries, error } = await supabase
@@ -625,14 +637,14 @@ export async function POST() {
       .select('*')
       .eq('status', 'waiting')
       .order('created_at', { ascending: true });
-    
+
     if (error || !queueEntries || queueEntries.length < 2) {
       return NextResponse.json({ matched: 0 });
     }
-    
+
     // Find matches
     const matches = matcher.findMatches(queueEntries);
-    
+
     // Create sessions for each match
     for (const match of matches) {
       // Create session
@@ -645,12 +657,12 @@ export async function POST() {
           settings: {
             max_players: match.length,
             auto_start: true,
-            queue_match: true
-          }
+            queue_match: true,
+          },
         })
         .select()
         .single();
-      
+
       if (session) {
         // Add all players
         const playerInserts = match.map((entry, index) => ({
@@ -659,30 +671,31 @@ export async function POST() {
           display_name: `Player ${index + 1}`, // Should fetch real names
           color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'][index % 4],
           is_host: index === 0,
-          is_ready: true // Auto-ready for queue matches
+          is_ready: true, // Auto-ready for queue matches
         }));
-        
-        await supabase
-          .from('bingo_session_players')
-          .insert(playerInserts);
-        
+
+        await supabase.from('bingo_session_players').insert(playerInserts);
+
         // Update queue entries
         await supabase
           .from('bingo_queue_entries')
-          .update({ 
+          .update({
             status: 'matched',
             matched_session_id: session.id,
-            matched_at: new Date().toISOString()
+            matched_at: new Date().toISOString(),
           })
-          .in('id', match.map(e => e.id));
-        
+          .in(
+            'id',
+            match.map(e => e.id)
+          );
+
         // Notify players (would implement real-time notification here)
       }
     }
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       matched: matches.length,
-      totalPlayers: matches.reduce((sum, m) => sum + m.length, 0)
+      totalPlayers: matches.reduce((sum, m) => sum + m.length, 0),
     });
   } catch (error) {
     return NextResponse.json(
@@ -717,10 +730,10 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
   const { toast } = useToast();
   const router = useRouter();
   const supabase = createClient();
-  
+
   useEffect(() => {
     if (!inQueue) return;
-    
+
     // Subscribe to queue updates
     const channel = supabase
       .channel(`queue:${userId}`)
@@ -739,15 +752,15 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
         }
       })
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [inQueue, userId, router, supabase, toast]);
-  
+
   const joinQueue = async () => {
     setInQueue(true);
-    
+
     const { data, error } = await supabase
       .from('bingo_queue_entries')
       .insert({
@@ -758,7 +771,7 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
       })
       .select()
       .single();
-    
+
     if (error) {
       toast({
         title: 'Error',
@@ -768,32 +781,32 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
       setInQueue(false);
       return;
     }
-    
+
     // Start polling for position
     updateQueuePosition();
   };
-  
+
   const leaveQueue = async () => {
     await supabase
       .from('bingo_queue_entries')
       .update({ status: 'cancelled' })
       .eq('user_id', userId)
       .eq('status', 'waiting');
-    
+
     setInQueue(false);
     setQueuePosition(null);
   };
-  
+
   const updateQueuePosition = async () => {
     // Would implement queue position logic here
     setQueuePosition(3);
     setEstimatedWait('~30 seconds');
   };
-  
+
   if (inQueue) {
     return (
       <div className="space-y-2">
-        <Button 
+        <Button
           onClick={leaveQueue}
           variant="outline"
           className="w-full"
@@ -809,7 +822,7 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
       </div>
     );
   }
-  
+
   return (
     <Button onClick={joinQueue} className="w-full">
       <Users className="mr-2 h-4 w-4" />
@@ -824,6 +837,7 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
 ## ✅ **Phase 2 Completion Checklist**
 
 ### **Win Detection**
+
 - [ ] Pattern detection algorithms implemented
 - [ ] Real-time win checking after each move
 - [ ] Winner announcement UI
@@ -831,6 +845,7 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
 - [ ] Win validation on server
 
 ### **Scoring System**
+
 - [ ] Score calculation service
 - [ ] Points for different patterns
 - [ ] Time and performance bonuses
@@ -838,6 +853,7 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
 - [ ] Leaderboard views
 
 ### **Queue System**
+
 - [ ] Matching algorithm
 - [ ] Queue processing endpoint
 - [ ] Real-time queue updates
@@ -845,6 +861,7 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
 - [ ] Auto-start for matched games
 
 ### **Testing**
+
 - [ ] Win detection accuracy
 - [ ] Scoring calculations
 - [ ] Queue matching logic
@@ -856,16 +873,19 @@ export function QueueButton({ boardId, userId }: QueueButtonProps) {
 ## 🚨 **Implementation Order**
 
 1. **Week 1**: Win Detection
+
    - Core algorithm
    - UI components
    - Integration testing
 
 2. **Week 2**: Scoring System
+
    - Database schema
    - Score calculation
    - Leaderboards
 
 3. **Week 3**: Queue System
+
    - Matching algorithm
    - Background processing
    - UI integration

@@ -954,9 +954,8 @@ export type Database = {
           author_id: string | null
           content: string
           created_at: string | null
-          discussion_id: string | null
-          id: string
-          parent_id: string | null
+          discussion_id: number | null
+          id: number
           updated_at: string | null
           upvotes: number | null
         }
@@ -964,9 +963,8 @@ export type Database = {
           author_id?: string | null
           content: string
           created_at?: string | null
-          discussion_id?: string | null
-          id?: string
-          parent_id?: string | null
+          discussion_id?: number | null
+          id?: number
           updated_at?: string | null
           upvotes?: number | null
         }
@@ -974,9 +972,8 @@ export type Database = {
           author_id?: string | null
           content?: string
           created_at?: string | null
-          discussion_id?: string | null
-          id?: string
-          parent_id?: string | null
+          discussion_id?: number | null
+          id?: number
           updated_at?: string | null
           upvotes?: number | null
         }
@@ -1010,45 +1007,36 @@ export type Database = {
           challenge_type: string | null
           content: string
           created_at: string | null
-          game_type: Database["public"]["Enums"]["game_category"] | null
-          id: string
-          is_locked: boolean | null
-          is_pinned: boolean | null
+          game: string
+          id: number
           tags: string[] | null
           title: string
           updated_at: string | null
           upvotes: number | null
-          view_count: number | null
         }
         Insert: {
           author_id?: string | null
           challenge_type?: string | null
           content: string
           created_at?: string | null
-          game_type?: Database["public"]["Enums"]["game_category"] | null
-          id?: string
-          is_locked?: boolean | null
-          is_pinned?: boolean | null
+          game: string
+          id?: number
           tags?: string[] | null
           title: string
           updated_at?: string | null
           upvotes?: number | null
-          view_count?: number | null
         }
         Update: {
           author_id?: string | null
           challenge_type?: string | null
           content?: string
           created_at?: string | null
-          game_type?: Database["public"]["Enums"]["game_category"] | null
-          id?: string
-          is_locked?: boolean | null
-          is_pinned?: boolean | null
+          game?: string
+          id?: number
           tags?: string[] | null
           title?: string
           updated_at?: string | null
           upvotes?: number | null
-          view_count?: number | null
         }
         Relationships: [
           {
@@ -1244,37 +1232,25 @@ export type Database = {
       }
       tag_reports: {
         Row: {
-          created_at: string | null
-          description: string | null
           id: string
           reason: string
-          reporter_id: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string | null
           tag_id: string | null
+          timestamp: string | null
+          user_id: string | null
         }
         Insert: {
-          created_at?: string | null
-          description?: string | null
           id?: string
           reason: string
-          reporter_id?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string | null
           tag_id?: string | null
+          timestamp?: string | null
+          user_id?: string | null
         }
         Update: {
-          created_at?: string | null
-          description?: string | null
           id?: string
           reason?: string
-          reporter_id?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string | null
           tag_id?: string | null
+          timestamp?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1285,15 +1261,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tag_reports_reporter_id_fkey"
-            columns: ["reporter_id"]
+            foreignKeyName: "tag_reports_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "leaderboards"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tag_reports_reporter_id_fkey"
-            columns: ["reporter_id"]
+            foreignKeyName: "tag_reports_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1898,18 +1874,18 @@ export type Database = {
     Functions: {
       add_comment: {
         Args: {
-          p_discussion_id: string
+          p_discussion_id: number
           p_content: string
           p_author_id: string
         }
-        Returns: string
+        Returns: number
       }
       cleanup_expired_queue_entries: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
       increment_discussion_upvotes: {
-        Args: { discussion_id: string }
+        Args: { discussion_id: number }
         Returns: undefined
       }
       is_admin: {

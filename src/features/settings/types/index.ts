@@ -1,8 +1,4 @@
-import type { 
-  TablesUpdate, 
-  ProfileFormData,
-  VisibilityType 
-} from '@/types';
+import type { TablesUpdate, ProfileFormData, VisibilityType } from '@/types';
 
 // Settings categories
 export interface UserSettings {

@@ -8,35 +8,32 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 // 🎨 CVA Variant System - Unified Form Field
-const formFieldVariants = cva(
-  'space-y-2',
-  {
-    variants: {
-      variant: {
-        default: '',
-        gaming: 'relative',
-        neon: 'relative',
-        cyber: 'relative group',
-      },
-      size: {
-        sm: '',
-        default: '',
-        lg: 'space-y-3',
-      },
-      state: {
-        default: '',
-        error: '',
-        success: '',
-        loading: 'opacity-75',
-      },
+const formFieldVariants = cva('space-y-2', {
+  variants: {
+    variant: {
+      default: '',
+      gaming: 'relative',
+      neon: 'relative',
+      cyber: 'relative group',
     },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-      state: 'default',
+    size: {
+      sm: '',
+      default: '',
+      lg: 'space-y-3',
     },
-  }
-);
+    state: {
+      default: '',
+      error: '',
+      success: '',
+      loading: 'opacity-75',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+    size: 'default',
+    state: 'default',
+  },
+});
 
 const labelVariants = cva(
   'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
@@ -73,9 +70,11 @@ const inputVariants = cva(
     variants: {
       variant: {
         default: '',
-        gaming: 'border-cyan-500/20 bg-slate-800/50 text-cyan-100 placeholder:text-cyan-300/50',
+        gaming:
+          'border-cyan-500/20 bg-slate-800/50 text-cyan-100 placeholder:text-cyan-300/50',
         neon: 'border-blue-500/30 bg-blue-950/20 text-blue-100 placeholder:text-blue-300/50 shadow-blue-500/20',
-        cyber: 'border-green-500/30 bg-black/30 text-green-100 placeholder:text-green-300/50 font-mono',
+        cyber:
+          'border-green-500/30 bg-black/30 text-green-100 placeholder:text-green-300/50 font-mono',
       },
       state: {
         default: '',
@@ -100,83 +99,99 @@ export interface FormFieldProps extends VariantProps<typeof formFieldVariants> {
   className?: string;
   labelClassName?: string;
   inputClassName?: string;
-  type?: 'input' | 'textarea';
+  fieldType?: 'input' | 'textarea';
   children?: React.ReactNode;
 }
 
-export interface UnifiedInputProps extends Omit<InputProps, 'size'>, FormFieldProps {}
+export interface UnifiedInputProps
+  extends Omit<InputProps, 'size' | 'type'>,
+    Omit<FormFieldProps, 'fieldType'> {
+  type?: React.HTMLInputTypeAttribute;
+}
 
-export interface UnifiedTextareaProps 
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'>, 
-          FormFieldProps {}
+export interface UnifiedTextareaProps
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'>,
+    Omit<FormFieldProps, 'fieldType'> {}
 
 // Unified Form Field Component
 export const FormField = React.forwardRef<
   HTMLDivElement,
   FormFieldProps & { children: React.ReactNode }
->(({ 
-  label, 
-  description, 
-  error, 
-  required = false,
-  loading = false,
-  variant = 'default',
-  size = 'default',
-  state = 'default',
-  className,
-  labelClassName,
-  children,
-  ...props 
-}, ref) => {
-  const fieldState = error ? 'error' : loading ? 'loading' : state;
-  
-  return (
-    <div
-      ref={ref}
-      className={cn(formFieldVariants({ variant, size, state: fieldState }), className)}
-      {...props}
-    >
-      {label && (
-        <Label
-          className={cn(
-            labelVariants({ variant, state: fieldState, required }),
-            labelClassName
-          )}
-        >
-          {label}
-        </Label>
-      )}
-      {children}
-      {description && !error && (
-        <p className="text-sm text-muted-foreground">{description}</p>
-      )}
-      {error && (
-        <p className="text-sm text-red-400">{error}</p>
-      )}
-    </div>
-  );
-});
+>(
+  (
+    {
+      label,
+      description,
+      error,
+      required = false,
+      loading = false,
+      variant = 'default',
+      size = 'default',
+      state = 'default',
+      className,
+      labelClassName,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const fieldState = error ? 'error' : loading ? 'loading' : state;
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          formFieldVariants({ variant, size, state: fieldState }),
+          className
+        )}
+        {...props}
+      >
+        {label && (
+          <Label
+            className={cn(
+              labelVariants({ variant, state: fieldState, required }),
+              labelClassName
+            )}
+          >
+            {label}
+          </Label>
+        )}
+        {children}
+        {description && !error && (
+          <p className="text-muted-foreground text-sm">{description}</p>
+        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
+      </div>
+    );
+  }
+);
 
 FormField.displayName = 'FormField';
 
 // Unified Input Component
-export const UnifiedInput = React.forwardRef<HTMLInputElement, UnifiedInputProps>(
-  ({ 
-    label,
-    description,
-    error,
-    required = false,
-    loading = false,
-    variant = 'default',
-    size = 'default',
-    state = 'default',
-    className,
-    labelClassName,
-    inputClassName,
-    ...props 
-  }, ref) => {
+export const UnifiedInput = React.forwardRef<
+  HTMLInputElement,
+  UnifiedInputProps
+>(
+  (
+    {
+      label,
+      description,
+      error,
+      required = false,
+      loading = false,
+      variant = 'default',
+      size = 'default',
+      state = 'default',
+      className,
+      labelClassName,
+      inputClassName,
+      ...props
+    },
+    ref
+  ) => {
     const fieldState = error ? 'error' : loading ? 'loading' : state;
-    
+
     return (
       <FormField
         label={label}
@@ -198,7 +213,9 @@ export const UnifiedInput = React.forwardRef<HTMLInputElement, UnifiedInputProps
           )}
           disabled={loading}
           aria-invalid={!!error}
-          aria-describedby={error ? 'error-message' : description ? 'description' : undefined}
+          aria-describedby={
+            error ? 'error-message' : description ? 'description' : undefined
+          }
           {...props}
         />
       </FormField>
@@ -209,23 +226,29 @@ export const UnifiedInput = React.forwardRef<HTMLInputElement, UnifiedInputProps
 UnifiedInput.displayName = 'UnifiedInput';
 
 // Unified Textarea Component
-export const UnifiedTextarea = React.forwardRef<HTMLTextAreaElement, UnifiedTextareaProps>(
-  ({ 
-    label,
-    description,
-    error,
-    required = false,
-    loading = false,
-    variant = 'default',
-    size = 'default',
-    state = 'default',
-    className,
-    labelClassName,
-    inputClassName,
-    ...props 
-  }, ref) => {
+export const UnifiedTextarea = React.forwardRef<
+  HTMLTextAreaElement,
+  UnifiedTextareaProps
+>(
+  (
+    {
+      label,
+      description,
+      error,
+      required = false,
+      loading = false,
+      variant = 'default',
+      size = 'default',
+      state = 'default',
+      className,
+      labelClassName,
+      inputClassName,
+      ...props
+    },
+    ref
+  ) => {
     const fieldState = error ? 'error' : loading ? 'loading' : state;
-    
+
     return (
       <FormField
         label={label}
@@ -247,7 +270,9 @@ export const UnifiedTextarea = React.forwardRef<HTMLTextAreaElement, UnifiedText
           )}
           disabled={loading}
           aria-invalid={!!error}
-          aria-describedby={error ? 'error-message' : description ? 'description' : undefined}
+          aria-describedby={
+            error ? 'error-message' : description ? 'description' : undefined
+          }
           {...props}
         />
       </FormField>

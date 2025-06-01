@@ -12,13 +12,15 @@ This document provides guidance on migrating from duplicate form components to t
 As part of Phase C cleanup, we've created unified form components to replace the duplicate implementations across features:
 
 ### Unified Components Created:
+
 - `@/components/ui/form-field` - Unified form field component
 - `@/components/ui/form-message` - Unified message component
 
 ### Components Being Replaced:
-- `@/features/auth/components/form-field.tsx` *(can be deprecated)*
-- `@/features/auth/components/form-message.tsx` *(can be deprecated)*
-- `@/features/settings/components/ui/SettingsMessage.tsx` *(can be deprecated)*
+
+- `@/features/auth/components/form-field.tsx` _(can be deprecated)_
+- `@/features/auth/components/form-message.tsx` _(can be deprecated)_
+- `@/features/settings/components/ui/SettingsMessage.tsx` _(can be deprecated)_
 
 ---
 
@@ -27,6 +29,7 @@ As part of Phase C cleanup, we've created unified form components to replace the
 ### Basic Form Field Migration
 
 **Before (Auth Feature)**:
+
 ```typescript
 import { FormField } from '@/features/auth/components/form-field';
 
@@ -41,6 +44,7 @@ import { FormField } from '@/features/auth/components/form-field';
 ```
 
 **After (Unified)**:
+
 ```typescript
 import { UnifiedInput } from '@/components/ui/form-field';
 
@@ -55,10 +59,11 @@ import { UnifiedInput } from '@/components/ui/form-field';
 ### Message Component Migration
 
 **Before (Settings Feature)**:
+
 ```typescript
 import { SettingsMessage } from '@/features/settings/components/ui/SettingsMessage';
 
-<SettingsMessage 
+<SettingsMessage
   message={{
     text: "Settings saved successfully!",
     type: "success"
@@ -67,6 +72,7 @@ import { SettingsMessage } from '@/features/settings/components/ui/SettingsMessa
 ```
 
 **After (Unified)**:
+
 ```typescript
 import { SuccessMessage } from '@/components/ui/form-message';
 
@@ -78,12 +84,13 @@ import { SuccessMessage } from '@/components/ui/form-message';
 ### Advanced Form Message Migration
 
 **Before (Auth Feature)**:
+
 ```typescript
 import { FormMessage } from '@/features/auth/components/form-message';
 
 <FormMessage
   type="error"
-  variant="gaming" 
+  variant="gaming"
   title="Login Failed"
   actionLabel="Forgot Password?"
   actionHref="/auth/forgot-password"
@@ -93,12 +100,13 @@ import { FormMessage } from '@/features/auth/components/form-message';
 ```
 
 **After (Unified)**:
+
 ```typescript
 import { ErrorMessage } from '@/components/ui/form-message';
 
 <ErrorMessage
   variant="gaming"
-  title="Login Failed" 
+  title="Login Failed"
   actionLabel="Forgot Password?"
   actionHref="/auth/forgot-password"
 >
@@ -111,6 +119,7 @@ import { ErrorMessage } from '@/components/ui/form-message';
 ## 🎨 New Features Available
 
 ### Enhanced Variants
+
 The unified components support all previous variants plus new ones:
 
 ```typescript
@@ -124,6 +133,7 @@ variant: 'default' | 'gaming' | 'neon' | 'cyber'
 ```
 
 ### Better Accessibility
+
 ```typescript
 // Automatic ARIA attributes
 <UnifiedInput
@@ -136,6 +146,7 @@ variant: 'default' | 'gaming' | 'neon' | 'cyber'
 ```
 
 ### Flexible Composition
+
 ```typescript
 // Use FormField for custom components
 import { FormField } from '@/components/ui/form-field';
@@ -155,6 +166,7 @@ import { FormField } from '@/components/ui/form-field';
 ## 📦 Component API Reference
 
 ### `UnifiedInput`
+
 ```typescript
 interface UnifiedInputProps extends InputProps, FormFieldProps {
   label?: string;
@@ -168,6 +180,7 @@ interface UnifiedInputProps extends InputProps, FormFieldProps {
 ```
 
 ### `UnifiedTextarea`
+
 ```typescript
 interface UnifiedTextareaProps extends TextareaProps, FormFieldProps {
   // Same props as UnifiedInput
@@ -175,6 +188,7 @@ interface UnifiedTextareaProps extends TextareaProps, FormFieldProps {
 ```
 
 ### `FormMessage`
+
 ```typescript
 interface FormMessageProps {
   children: React.ReactNode;
@@ -190,6 +204,7 @@ interface FormMessageProps {
 ```
 
 ### Convenience Components
+
 ```typescript
 // Type-specific message components
 <SuccessMessage>Operation completed!</SuccessMessage>
@@ -204,16 +219,19 @@ interface FormMessageProps {
 ## 🔄 Migration Strategy
 
 ### Phase 1: New Components (Completed ✅)
+
 - ✅ Create unified form components
 - ✅ Ensure backward compatibility
 - ✅ Document migration patterns
 
 ### Phase 2: Gradual Migration (Optional)
+
 1. Update new features to use unified components
 2. Migrate critical forms one at a time
 3. Test thoroughly after each migration
 
 ### Phase 3: Deprecation (Future)
+
 1. Mark old components as deprecated
 2. Add migration warnings
 3. Eventually remove duplicate components
@@ -223,23 +241,26 @@ interface FormMessageProps {
 ## ⚠️ Important Notes
 
 ### Backward Compatibility
+
 - **Existing components continue to work** - no breaking changes
 - Migration is **optional** for existing code
 - **New features should use unified components**
 
 ### CSS Class Changes
+
 - Unified components use different CSS classes
 - Custom styling may need adjustment
 - Test visual appearance after migration
 
 ### Props Mapping
+
 Most props map directly, but some differences exist:
 
-| Old (Auth) | New (Unified) | Notes |
-|------------|---------------|-------|
-| `state="error"` | `error="message"` | Pass error message directly |
-| `children` required | `children` optional | Can use label prop instead |
-| Manual icon handling | Automatic icons | Icons chosen based on type |
+| Old (Auth)           | New (Unified)       | Notes                       |
+| -------------------- | ------------------- | --------------------------- |
+| `state="error"`      | `error="message"`   | Pass error message directly |
+| `children` required  | `children` optional | Can use label prop instead  |
+| Manual icon handling | Automatic icons     | Icons chosen based on type  |
 
 ---
 
@@ -262,6 +283,7 @@ After migrating components:
 ### Common Issues
 
 **Styling Differences**:
+
 ```typescript
 // If custom styles are not applying
 <UnifiedInput
@@ -271,6 +293,7 @@ After migrating components:
 ```
 
 **Missing Icons**:
+
 ```typescript
 // If icons don't appear
 import { AlertCircle } from 'lucide-react';
@@ -281,6 +304,7 @@ import { AlertCircle } from 'lucide-react';
 ```
 
 **Complex Layouts**:
+
 ```typescript
 // For complex form layouts, use FormField wrapper
 <FormField label="Complex Field" variant="gaming">
@@ -296,6 +320,7 @@ import { AlertCircle } from 'lucide-react';
 ## 📞 Support
 
 For questions about migration:
+
 1. Check this guide first
 2. Review the unified component source code
 3. Test changes in development environment

@@ -1,10 +1,11 @@
 # 🗄️ Database Schema Documentation
 
-*Complete reference for the Arcadia Gaming Platform database structure*
+_Complete reference for the Arcadia Gaming Platform database structure_
 
 ## 📊 **Overview**
 
 The database consists of **25 tables** organized into logical domains:
+
 - **Core**: Users, authentication, profiles
 - **Gaming**: Boards, cards, sessions, players
 - **Social**: Discussions, comments, votes
@@ -13,7 +14,9 @@ The database consists of **25 tables** organized into logical domains:
 ## 🔐 **Core Tables**
 
 ### **users**
+
 Central user authentication and profile table.
+
 ```sql
 - id: UUID (primary key)
 - email: TEXT (unique)
@@ -29,7 +32,9 @@ Central user authentication and profile table.
 ```
 
 ### **user_profiles**
+
 Extended user information and statistics.
+
 ```sql
 - user_id: UUID (foreign key → users)
 - total_games_played: INTEGER
@@ -42,7 +47,9 @@ Extended user information and statistics.
 ## 🎮 **Gaming Tables**
 
 ### **bingo_boards**
+
 Master table for all bingo board templates.
+
 ```sql
 - id: UUID (primary key)
 - title: TEXT
@@ -61,7 +68,9 @@ Master table for all bingo board templates.
 ```
 
 ### **bingo_cards**
+
 Individual challenge cards that can be used in boards.
+
 ```sql
 - id: UUID (primary key)
 - title: TEXT
@@ -75,7 +84,9 @@ Individual challenge cards that can be used in boards.
 ```
 
 ### **bingo_sessions**
+
 Active game sessions for multiplayer play.
+
 ```sql
 - id: UUID (primary key)
 - board_id: UUID (foreign key → bingo_boards)
@@ -90,7 +101,9 @@ Active game sessions for multiplayer play.
 ```
 
 ### **bingo_session_players**
+
 Players participating in sessions.
+
 ```sql
 - id: UUID (primary key)
 - session_id: UUID (foreign key → bingo_sessions)
@@ -108,7 +121,9 @@ Players participating in sessions.
 ```
 
 ### **bingo_session_events**
+
 Event log for game actions and history.
+
 ```sql
 - id: UUID (primary key)
 - session_id: UUID (foreign key → bingo_sessions)
@@ -120,7 +135,9 @@ Event log for game actions and history.
 ```
 
 ### **bingo_queue_entries**
+
 Queue system for finding games.
+
 ```sql
 - id: UUID (primary key)
 - board_id: UUID (foreign key → bingo_boards)
@@ -135,7 +152,9 @@ Queue system for finding games.
 ## 💬 **Social Tables**
 
 ### **discussions**
+
 Community discussion threads.
+
 ```sql
 - id: UUID (primary key)
 - title: TEXT
@@ -151,7 +170,9 @@ Community discussion threads.
 ```
 
 ### **comments**
+
 Comments on discussions.
+
 ```sql
 - id: UUID (primary key)
 - discussion_id: UUID (foreign key → discussions)
@@ -162,7 +183,9 @@ Comments on discussions.
 ```
 
 ### **board_votes**
+
 Voting system for boards.
+
 ```sql
 - id: UUID (primary key)
 - board_id: UUID (foreign key → bingo_boards)
@@ -173,7 +196,9 @@ Voting system for boards.
 ## 🏷️ **Content Management**
 
 ### **categories**
+
 Game categories for organization.
+
 ```sql
 - id: UUID (primary key)
 - name: TEXT (unique)
@@ -185,7 +210,9 @@ Game categories for organization.
 ```
 
 ### **tags**
+
 Flexible tagging system.
+
 ```sql
 - id: UUID (primary key)
 - name: TEXT (unique)
@@ -196,7 +223,9 @@ Flexible tagging system.
 ```
 
 ### **challenges**
+
 Special challenge events.
+
 ```sql
 - id: UUID (primary key)
 - title: TEXT
@@ -214,30 +243,39 @@ Special challenge events.
 ## 🔑 **Enums**
 
 ### **user_role**
+
 - `user`, `moderator`, `admin`
 
 ### **board_size**
+
 - `3x3`, `4x4`, `5x5`
 
 ### **difficulty_level**
+
 - `easy`, `medium`, `hard`, `expert`
 
 ### **visibility_type**
+
 - `public`, `private`, `unlisted`, `friends_only`
 
 ### **board_status**
+
 - `draft`, `active`, `archived`
 
 ### **session_status**
+
 - `waiting`, `active`, `completed`, `cancelled`
 
 ### **queue_status**
+
 - `waiting`, `matched`, `cancelled`, `expired`
 
 ### **vote_type**
+
 - `upvote`, `downvote`
 
 ### **game_category**
+
 - 37+ categories including:
   - `world_of_warcraft`, `minecraft`, `fortnite`
   - `league_of_legends`, `valorant`, `apex_legends`
@@ -247,19 +285,24 @@ Special challenge events.
 ## 🛡️ **Security**
 
 ### **Row Level Security (RLS)**
+
 All tables have RLS policies for:
+
 - Read access based on visibility
 - Write access for owners
 - Moderation capabilities
 
 ### **Indexes**
+
 Performance indexes on:
+
 - Foreign keys
 - Frequently queried fields
 - Search fields (tags, titles)
 - Timestamp fields
 
 ### **Triggers**
+
 - Auto-generate session codes
 - Update timestamps
 - Increment version numbers
@@ -268,17 +311,21 @@ Performance indexes on:
 ## 📈 **Views**
 
 ### **active_sessions_view**
+
 Combined view of sessions with player counts and board info.
 
 ### **popular_boards_view**
+
 Boards ranked by play count and ratings.
 
 ### **user_stats_view**
+
 Aggregated user statistics and achievements.
 
 ## 🔄 **Real-time**
 
 Tables enabled for real-time subscriptions:
+
 - `bingo_sessions` - Game state updates
 - `bingo_session_players` - Player joins/leaves
 - `bingo_session_events` - Game events

@@ -1,6 +1,6 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import type { Database } from '@/types';
+import type { Database } from '@/types/database-generated';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
@@ -12,7 +12,6 @@ interface JoinSessionRequest {
   color: string;
   team?: number | null;
 }
-
 
 interface PlayerUpdatesForLog {
   display_name?: string;
@@ -133,10 +132,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           team,
         },
       });
-      return NextResponse.json(
-        { error: playerError.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: playerError.message }, { status: 500 });
     }
 
     return NextResponse.json(player);

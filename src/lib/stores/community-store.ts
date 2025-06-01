@@ -1,29 +1,11 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
+import type { Tables } from '@/types/database-generated';
 
-export interface Discussion {
-  id: number;
-  title: string;
-  content: string;
-  author_id: string | null;
-  game: string;
-  challenge_type: string | null;
-  upvotes: number | null;
-  tags: string[] | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-export interface Comment {
-  id: number;
-  content: string;
-  author_id: string | null;
-  discussion_id: number | null;
-  upvotes: number | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+// Use the actual database-generated types
+export type Discussion = Tables<'discussions'>;
+export type Comment = Tables<'comments'>;
 
 export interface Event {
   id: number;

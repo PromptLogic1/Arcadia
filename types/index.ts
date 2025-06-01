@@ -263,7 +263,7 @@ export const VALIDATION_RULES = {
     pattern: /^[a-zA-Z0-9_-]+$/,
     reserved: [
       'admin',
-      'moderator', 
+      'moderator',
       'support',
       'api',
       'www',

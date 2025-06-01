@@ -5,15 +5,15 @@ import { NextResponse } from 'next/server';
 export async function POST() {
   // const supabase = createClient();
   // const matcher = new QueueMatcherService();
-  
+
   try {
     // TODO: Implement proper queue system with bingo_queue_entries table
     // For now, return a simple response as the queue table doesn't exist yet
-    return NextResponse.json({ 
-      matched: 0, 
-      message: 'Queue system not yet implemented - missing bingo_queue_entries table' 
+    return NextResponse.json({
+      matched: 0,
+      message:
+        'Queue system not yet implemented - missing bingo_queue_entries table',
     });
-    
   } catch (_error) {
     console.error('Queue processing error:', _error);
     return NextResponse.json(
@@ -36,14 +36,14 @@ export async function POST() {
 //     '#FFB347', // Orange
 //     '#98D8C8'  // Mint
 //   ];
-//   
+//
 //   return colors[index % colors.length];
 // }
 
 // GET endpoint for queue stats
 export async function GET() {
   // const supabase = createClient();
-  
+
   try {
     // TODO: Implement proper queue stats with bingo_queue_entries table
     // For now, return empty stats as the queue table doesn't exist yet
@@ -53,11 +53,12 @@ export async function GET() {
       expired: 0,
       averageWaitTime: 0,
       popularBoards: {} as Record<string, number>,
-      message: 'Queue system not yet implemented - missing bingo_queue_entries table'
+      message:
+        'Queue system not yet implemented - missing bingo_queue_entries table',
     };
-    
+
     return NextResponse.json(stats);
-  } catch (_error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to get queue stats' },
       { status: 500 }

@@ -1,9 +1,11 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 import { RateLimiter } from '@/lib/rate-limiter';
-import type { BoardCell } from '@/features/bingo-boards/types';
 import { log } from '@/lib/logger';
-import type { SessionStatus } from '@/types/database-core';
+import type { Database } from '@/types/database-generated';
+
+type DbBoardCell = Database['public']['CompositeTypes']['board_cell'];
+type DbSessionStatus = Database['public']['Enums']['session_status'];
 
 const rateLimiter = new RateLimiter();
 
@@ -15,16 +17,16 @@ interface CreateSessionRequest {
 }
 
 interface UpdatesForLog {
-  currentState?: BoardCell[] | null;
+  currentState?: DbBoardCell[] | null;
   winnerId?: string | null;
-  status?: SessionStatus | null;
+  status?: DbSessionStatus | null;
 }
 
 interface PatchSessionRequest {
   sessionId: string;
-  currentState?: BoardCell[] | null;
+  currentState?: DbBoardCell[] | null;
   winnerId?: string | null;
-  status?: SessionStatus | null;
+  status?: DbSessionStatus | null;
 }
 
 export async function POST(request: Request): Promise<NextResponse> {

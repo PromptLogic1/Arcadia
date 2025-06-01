@@ -3,11 +3,17 @@
 import { useState, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import type {
-  BingoSessionQueue,
-  BingoSessionQueueInsert,
-  BingoSessionQueueUpdate,
-  QueueStatus,
-} from '@/types';
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+} from '@/types/database-generated';
+
+type QueueStatus = Enums<'queue_status'>;
+
+type BingoSessionQueue = Tables<'bingo_session_queue'>;
+type BingoSessionQueueInsert = TablesInsert<'bingo_session_queue'>;
+type BingoSessionQueueUpdate = TablesUpdate<'bingo_session_queue'>;
 
 // =============================================================================
 // APPLICATION TYPES (Built on database types)
@@ -29,10 +35,10 @@ interface QueueState {
 
 interface QueueStats {
   totalEntries: number;
-  pendingEntries: number;
+  waitingEntries: number;
   processingEntries: number;
-  completedEntries: number;
-  failedEntries: number;
+  matchedEntries: number;
+  cancelledEntries: number;
   averageProcessingTime: number;
   queueWaitTime: number;
 }
@@ -205,7 +211,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
         .from('bingo_session_queue')
         .delete()
         .lt('requested_at', cutoffTime.toISOString())
-        .in('status', ['approved', 'rejected'] as QueueStatus[]);
+        .in('status', ['matched', 'cancelled'] as QueueStatus[]);
 
       if (cleanupError) throw cleanupError;
     } catch (err) {
@@ -241,7 +247,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
           player_name: player.playerName,
           color: player.color,
           team: player.team ?? null,
-          status: 'pending',
+          status: 'waiting',
           requested_at: new Date().toISOString(),
         };
 
@@ -264,17 +270,17 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
   const _processQueue = useCallback(async () => {
     try {
       setIsProcessing(true);
-      const { data: pendingEntries } = await supabase
+      const { data: waitingEntries } = await supabase
         .from('bingo_session_queue')
         .select('*')
         .eq('session_id', sessionId)
-        .eq('status', 'pending')
+        .eq('status', 'waiting')
         .order('requested_at', { ascending: true });
 
-      if (!pendingEntries?.length) return;
+      if (!waitingEntries?.length) return;
 
       // Process each entry
-      for (const entry of pendingEntries) {
+      for (const entry of waitingEntries) {
         // Check player count
         const { count: playerCount } = await supabase
           .from('bingo_session_players')
@@ -283,7 +289,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
 
         if ((playerCount || 0) >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
           await updateQueueEntry(entry.id, {
-            status: 'failed',
+            status: 'cancelled',
             processed_at: new Date().toISOString(),
           });
           continue;
@@ -299,7 +305,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
 
         if (colorCheck) {
           await updateQueueEntry(entry.id, {
-            status: 'failed',
+            status: 'cancelled',
             processed_at: new Date().toISOString(),
           });
           continue;
@@ -311,7 +317,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
           .insert({
             session_id: sessionId,
             user_id: entry.user_id || '',
-            player_name: entry.player_name,
+            display_name: entry.player_name,
             color: entry.color,
             team: entry.team,
             joined_at: new Date().toISOString(),
@@ -319,14 +325,14 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
 
         if (playerError) {
           await updateQueueEntry(entry.id, {
-            status: 'failed',
+            status: 'cancelled',
             processed_at: new Date().toISOString(),
           });
           continue;
         }
 
         await updateQueueEntry(entry.id, {
-          status: 'completed',
+          status: 'matched',
           processed_at: new Date().toISOString(),
         });
       }
@@ -341,13 +347,12 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
   // Calculate stats
   const stats: QueueStats = {
     totalEntries: queueEntries.length,
-    pendingEntries: queueEntries.filter(e => e.status === 'pending').length,
-    processingEntries: queueEntries.filter(e => e.status === 'processing')
-      .length,
-    completedEntries: queueEntries.filter(e => e.status === 'completed').length,
-    failedEntries: queueEntries.filter(e => e.status === 'failed').length,
+    waitingEntries: queueEntries.filter(e => e.status === 'waiting').length,
+    processingEntries: 0, // No separate processing status in queue_status enum
+    matchedEntries: queueEntries.filter(e => e.status === 'matched').length,
+    cancelledEntries: queueEntries.filter(e => e.status === 'cancelled').length,
     averageProcessingTime: 0, // TODO: Calculate based on processed_at - requested_at
-    queueWaitTime: 0, // TODO: Calculate based on oldest pending entry
+    queueWaitTime: 0, // TODO: Calculate based on oldest waiting entry
   };
 
   return {
@@ -371,7 +376,7 @@ export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
       return true;
     },
     processQueueEntry: async (entryId: string) => {
-      await updateQueueEntry(entryId, { status: 'processing' });
+      await updateQueueEntry(entryId, { status: 'waiting' });
       return true;
     },
     updateQueueEntry, // Added for backward compatibility

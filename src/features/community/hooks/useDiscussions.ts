@@ -6,8 +6,8 @@ import { logger as _logger } from '@/lib/logger';
 import type {
   Discussion as BaseDiscussion,
   Comment as BaseComment,
-} from '@/src/lib/stores/community-store';
-import type { Database } from '@/types/database-types';
+} from '@/lib/stores/community-store';
+import type { Database } from '@/types/database-generated';
 
 // Extended Discussion type that includes UI-specific properties
 export interface Discussion extends BaseDiscussion {
@@ -32,7 +32,7 @@ export interface UseDiscussionsReturn {
     >
   ) => Promise<Discussion>;
   addComment: (
-    discussionId: string,
+    discussionId: number,
     commentData: Omit<
       BaseComment,
       | 'id'
@@ -43,7 +43,7 @@ export interface UseDiscussionsReturn {
       | 'author_id'
     >
   ) => Promise<Comment>;
-  upvoteDiscussion: (discussionId: string) => Promise<void>;
+  upvoteDiscussion: (discussionId: number) => Promise<void>;
 }
 
 type DatabaseDiscussion = Database['public']['Tables']['discussions']['Row'];
@@ -95,13 +95,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
         author: { username: string; avatar_url: string | null };
       }
     ): Comment => ({
-      id: dbComment.id,
-      content: dbComment.content,
-      created_at: dbComment.created_at,
-      discussion_id: dbComment.discussion_id,
-      updated_at: dbComment.updated_at,
-      upvotes: dbComment.upvotes || 0,
-      author_id: dbComment.author_id,
+      ...dbComment,
       author: dbComment.author,
     }),
     []
@@ -109,16 +103,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
 
   const transformDatabaseDiscussion = useCallback(
     (dbDiscussion: DiscussionWithRelations): Discussion => ({
-      id: dbDiscussion.id,
-      title: dbDiscussion.title,
-      content: dbDiscussion.content,
-      game: dbDiscussion.game_type,
-      challenge_type: dbDiscussion.challenge_type,
-      upvotes: dbDiscussion.upvotes || 0,
-      created_at: dbDiscussion.created_at,
-      updated_at: dbDiscussion.updated_at,
-      tags: dbDiscussion.tags || [],
-      author_id: dbDiscussion.author_id,
+      ...dbDiscussion,
       author: dbDiscussion.author,
       comments_count: dbDiscussion.comments.count,
       commentList: (dbDiscussion.commentList || []).map(
@@ -315,7 +300,7 @@ export const useDiscussions = (): UseDiscussionsReturn => {
   );
 
   const upvoteDiscussion = useCallback(
-    async (discussionId: string) => {
+    async (discussionId: number) => {
       setIsLoading(true);
       setError(null);
 

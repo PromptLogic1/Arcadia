@@ -14,6 +14,7 @@ This guide explains how the multiplayer bingo game system works in Arcadia, incl
 ## 🎯 Overview
 
 The multiplayer bingo system allows multiple players to:
+
 - Create a game session from any bingo board
 - Join sessions using a 6-character code
 - Play together in real-time
@@ -21,6 +22,7 @@ The multiplayer bingo system allows multiple players to:
 - Track scores and determine winners
 
 ### Key Features
+
 - **Session Codes**: Auto-generated 6-character alphanumeric codes
 - **Real-time Sync**: Powered by Supabase's real-time subscriptions
 - **Optimistic Locking**: Version control prevents race conditions
@@ -29,6 +31,7 @@ The multiplayer bingo system allows multiple players to:
 ## 🔄 Session Lifecycle
 
 ### 1. Session Creation
+
 ```typescript
 POST /api/bingo/sessions
 {
@@ -40,12 +43,14 @@ POST /api/bingo/sessions
 ```
 
 **Process:**
+
 1. Creates session with status `waiting`
 2. Generates unique session code (e.g., "ABC123")
 3. Copies board state to session
 4. Adds creator as host
 
 ### 2. Joining a Session
+
 ```typescript
 POST /api/bingo/sessions/join-by-code
 {
@@ -57,22 +62,26 @@ POST /api/bingo/sessions/join-by-code
 ```
 
 **Process:**
+
 1. Validates session code
 2. Checks if session is accepting players
 3. Assigns player color
 4. Adds to session
 
 ### 3. Starting the Game
+
 ```typescript
-POST /api/bingo/sessions/[id]/start
+POST / api / bingo / sessions / [id] / start;
 ```
 
 **Requirements:**
+
 - Must be the host
 - Minimum 2 players
 - Session in `waiting` status
 
 ### 4. Playing the Game
+
 ```typescript
 POST /api/bingo/sessions/[id]/mark-cell
 {
@@ -84,6 +93,7 @@ POST /api/bingo/sessions/[id]/mark-cell
 ```
 
 **Features:**
+
 - Version control prevents conflicts
 - Real-time updates via subscriptions
 - Event logging for replay/analytics
@@ -92,33 +102,34 @@ POST /api/bingo/sessions/[id]/mark-cell
 
 ### Session Management
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/bingo/sessions` | POST | Create new session |
-| `/api/bingo/sessions` | GET | List sessions for a board |
-| `/api/bingo/sessions` | PATCH | Update session state |
-| `/api/bingo/sessions/join-by-code` | POST | Join session with code |
-| `/api/bingo/sessions/[id]/start` | POST | Start game (host only) |
+| Endpoint                           | Method | Description               |
+| ---------------------------------- | ------ | ------------------------- |
+| `/api/bingo/sessions`              | POST   | Create new session        |
+| `/api/bingo/sessions`              | GET    | List sessions for a board |
+| `/api/bingo/sessions`              | PATCH  | Update session state      |
+| `/api/bingo/sessions/join-by-code` | POST   | Join session with code    |
+| `/api/bingo/sessions/[id]/start`   | POST   | Start game (host only)    |
 
 ### Game State
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/bingo/sessions/[id]/board-state` | GET | Get current board state |
-| `/api/bingo/sessions/[id]/board-state` | PATCH | Update board state |
-| `/api/bingo/sessions/[id]/mark-cell` | POST | Mark/unmark a cell |
+| Endpoint                               | Method | Description             |
+| -------------------------------------- | ------ | ----------------------- |
+| `/api/bingo/sessions/[id]/board-state` | GET    | Get current board state |
+| `/api/bingo/sessions/[id]/board-state` | PATCH  | Update board state      |
+| `/api/bingo/sessions/[id]/mark-cell`   | POST   | Mark/unmark a cell      |
 
 ### Player Management
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/bingo/sessions/players` | POST | Add player to session |
-| `/api/bingo/sessions/players` | PATCH | Update player info |
-| `/api/bingo/sessions/players` | DELETE | Remove player |
+| Endpoint                      | Method | Description           |
+| ----------------------------- | ------ | --------------------- |
+| `/api/bingo/sessions/players` | POST   | Add player to session |
+| `/api/bingo/sessions/players` | PATCH  | Update player info    |
+| `/api/bingo/sessions/players` | DELETE | Remove player         |
 
 ## 🔄 Real-time Synchronization
 
 ### Setting up Subscriptions
+
 ```typescript
 const channel = supabase
   .channel(`session:${sessionId}`)
@@ -128,9 +139,9 @@ const channel = supabase
       event: 'UPDATE',
       schema: 'public',
       table: 'bingo_sessions',
-      filter: `id=eq.${sessionId}`
+      filter: `id=eq.${sessionId}`,
     },
-    (payload) => {
+    payload => {
       // Handle state update
       setBoardState(payload.new.current_state);
       setVersion(payload.new.version);
@@ -140,6 +151,7 @@ const channel = supabase
 ```
 
 ### Handling Conflicts
+
 The system uses optimistic locking with version numbers:
 
 1. Each state change increments the version
@@ -150,16 +162,10 @@ The system uses optimistic locking with version numbers:
 ## 🎨 Frontend Integration
 
 ### Using the useBingoGame Hook
+
 ```typescript
-const {
-  session,
-  boardState,
-  version,
-  loading,
-  error,
-  markCell,
-  unmarkCell
-} = useBingoGame(sessionId);
+const { session, boardState, version, loading, error, markCell, unmarkCell } =
+  useBingoGame(sessionId);
 
 // Mark a cell
 const handleCellClick = async (position: number) => {
@@ -168,13 +174,9 @@ const handleCellClick = async (position: number) => {
 ```
 
 ### Session Context
+
 ```typescript
-const { 
-  session, 
-  players, 
-  isHost,
-  sessionCode 
-} = useSession();
+const { session, players, isHost, sessionCode } = useSession();
 ```
 
 ## 🧪 Testing Guide
@@ -182,20 +184,24 @@ const {
 ### Manual Testing Steps
 
 1. **Create a Session**
+
    - Create/select a bingo board
    - Click "Start Multiplayer Session"
    - Note the session code
 
 2. **Join from Another Browser**
+
    - Open incognito/different browser
    - Enter session code
    - Verify player appears in lobby
 
 3. **Start Game**
+
    - Host clicks "Start Game"
    - All players see status change
 
 4. **Test Synchronization**
+
    - Player 1 marks a cell
    - Verify Player 2 sees it instantly
    - Test unmarking cells
@@ -207,12 +213,12 @@ const {
 
 ### Common Issues & Solutions
 
-| Issue | Solution |
-|-------|----------|
+| Issue                    | Solution                       |
+| ------------------------ | ------------------------------ |
 | Session code not working | Ensure uppercase, check expiry |
-| Players not syncing | Check WebSocket connection |
-| Version conflicts | Implement retry logic |
-| Host disconnected | Transfer host or pause session |
+| Players not syncing      | Check WebSocket connection     |
+| Version conflicts        | Implement retry logic          |
+| Host disconnected        | Transfer host or pause session |
 
 ## 🔒 Security Considerations
 
@@ -225,6 +231,7 @@ const {
 ## 📊 Database Schema
 
 ### bingo_sessions
+
 ```sql
 - id: UUID (PK)
 - board_id: UUID (FK)
@@ -239,6 +246,7 @@ const {
 ```
 
 ### bingo_session_players
+
 ```sql
 - session_id: UUID (FK)
 - user_id: UUID (FK)
@@ -252,6 +260,7 @@ const {
 ```
 
 ### bingo_session_events
+
 ```sql
 - id: UUID (PK)
 - session_id: UUID (FK)

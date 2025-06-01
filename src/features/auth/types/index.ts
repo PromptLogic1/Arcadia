@@ -168,5 +168,5 @@ export const VISIBILITY_OPTIONS: Record<VisibilityType, string> = {
   private: 'Private',
 } as const;
 
-// TODO: Consider moving these to a more general location if used elsewhere
-// export type { UserRole, UserProfile, LoginFormInputs, SignUpFormInputs };
+// Re-export types for convenience
+export type { UserRole, VisibilityType };

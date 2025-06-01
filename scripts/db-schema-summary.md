@@ -1,6 +1,7 @@
 # Supabase Database Schema Analysis
 
 ## Connection Details
+
 - **Supabase URL**: `https://cnotiupdqbdxxxjrcqvb.supabase.co`
 - **Project Reference**: `cnotiupdqbdxxxjrcqvb`
 - **Database Host**: `db.cnotiupdqbdxxxjrcqvb.supabase.co`
@@ -8,7 +9,9 @@
 ## Analysis Results
 
 ### Connection Status
+
 ❌ **Unable to establish direct connection** due to:
+
 - Network connectivity issues (ENETUNREACH error)
 - Possible firewall restrictions in WSL2 environment
 - Authentication method limitations with anon key
@@ -20,6 +23,7 @@ Based on the migration file `/supabase/migrations/20250531160000_initial_schema.
 ## 📋 Tables (25 total)
 
 ### Core User Tables
+
 1. **users** - Main user profiles and authentication
 2. **user_sessions** - Authentication session management
 3. **user_friends** - Friend relationships
@@ -27,6 +31,7 @@ Based on the migration file `/supabase/migrations/20250531160000_initial_schema.
 5. **user_activity** - Activity logging
 
 ### Bingo Game Tables
+
 6. **bingo_boards** - Game boards/templates
 7. **bingo_cards** - Individual bingo cells/tasks
 8. **bingo_sessions** - Multiplayer game sessions
@@ -36,6 +41,7 @@ Based on the migration file `/supabase/migrations/20250531160000_initial_schema.
 12. **bingo_session_cells** - Individual cell states
 
 ### Community Tables
+
 13. **discussions** - Community discussions
 14. **comments** - Discussion comments
 15. **tags** - Tagging system
@@ -44,12 +50,14 @@ Based on the migration file `/supabase/migrations/20250531160000_initial_schema.
 18. **tag_history** - Tag change history
 
 ### Challenge System Tables
+
 19. **categories** - Game categories
 20. **challenges** - Challenge system
 21. **challenge_tags** - Challenge tagging
 22. **submissions** - User submissions
 
 ### Interaction Tables
+
 23. **board_bookmarks** - Board bookmarking
 24. **board_votes** - Board voting
 25. **card_votes** - Card voting
@@ -102,6 +110,7 @@ Based on the migration file `/supabase/migrations/20250531160000_initial_schema.
 ## 🎯 Key Features
 
 ### Game Categories Supported
+
 - 36 different games including:
   - World of Warcraft, Fortnite, Minecraft
   - Elden Ring, The Witcher 3, Cyberpunk 2077
@@ -109,17 +118,21 @@ Based on the migration file `/supabase/migrations/20250531160000_initial_schema.
   - And many more...
 
 ### Difficulty Levels
+
 - beginner, easy, medium, hard, expert
 
 ### User Roles
+
 - user, premium, moderator, admin
 
 ### Visibility Settings
+
 - public, friends, private
 
 ## 🔍 Current State Analysis
 
 From the initial connection attempts:
+
 - Some tables appear to have data (users, discussions, tags, etc.)
 - Other tables appear empty (bingo_boards, submissions, etc.)
 - The schema seems to be partially populated
@@ -142,5 +155,5 @@ From the initial connection attempts:
 
 ---
 
-*Generated on: 2025-05-31*
-*Migration File: 20250531160000_initial_schema.sql*
+_Generated on: 2025-05-31_
+_Migration File: 20250531160000_initial_schema.sql_

@@ -414,10 +414,13 @@ export const useBingoBoards = (
     [resetPagination]
   );
 
-  // Initial fetch and section changes
+  // Initial fetch - temporarily disabled to prevent infinite loops
   useEffect(() => {
-    refreshBoards();
-  }, [refreshBoards]);
+    // Only fetch on initial mount
+    if (boards.length === 0) {
+      fetchBoards(true);
+    }
+  }, []); // Empty dependency array - only run on mount
 
   // Realtime subscription
   useEffect(() => {
@@ -436,8 +439,8 @@ export const useBingoBoards = (
           logger.debug('Realtime update received for bingo_boards', {
             metadata: { hook: 'useBingoBoards', payload },
           });
-          // Handle realtime updates
-          refreshBoards();
+          // Handle realtime updates - disabled to prevent loops
+          // refreshBoards();
         }
       )
       .subscribe();

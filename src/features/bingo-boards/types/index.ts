@@ -36,20 +36,65 @@ export type {
 // GAME STATE TYPES
 // =============================================================================
 
-// Enhanced board cell for game state (extends database type)
-export interface BoardCell extends DbBoardCell {
-  colors: string[];
-  completedBy: string[];
-  blocked: boolean;
-  isMarked: boolean;
-  cellId: string;
+// Enhanced board cell for game state (with type conversion utilities)
+export interface BoardCell {
+  text: string | null;
+  colors: string[] | null;
+  completed_by: string[] | null;
+  blocked: boolean | null;
+  is_marked: boolean | null;
+  cell_id: string | null;
   version: number | null;
+  last_updated: number | null;
+  last_modified_by: string | null;
+  // Legacy frontend properties (deprecated - use snake_case above)
+  completedBy?: string[];
+  isMarked?: boolean;
+  cellId?: string;
   lastUpdated?: number;
   lastModifiedBy?: string;
   conflictResolution?: {
     timestamp: number;
     resolvedBy: string;
     originalValue: string;
+  };
+}
+
+// Type conversion utilities for BoardCell
+export function convertDbBoardCellToFrontend(dbCell: DbBoardCell): BoardCell {
+  return {
+    // Database properties (snake_case)
+    text: dbCell.text,
+    colors: dbCell.colors,
+    completed_by: dbCell.completed_by,
+    blocked: dbCell.blocked,
+    is_marked: dbCell.is_marked,
+    cell_id: dbCell.cell_id,
+    version: dbCell.version,
+    last_updated: dbCell.last_updated,
+    last_modified_by: dbCell.last_modified_by,
+    // Legacy frontend properties (for backward compatibility)
+    completedBy: dbCell.completed_by || [],
+    isMarked: dbCell.is_marked || false,
+    cellId: dbCell.cell_id || '',
+    lastUpdated: dbCell.last_updated || undefined,
+    lastModifiedBy: dbCell.last_modified_by || undefined,
+  };
+}
+
+export function convertFrontendBoardCellToDb(
+  frontendCell: BoardCell
+): DbBoardCell {
+  return {
+    text: frontendCell.text,
+    colors: frontendCell.colors,
+    completed_by: frontendCell.completed_by,
+    blocked: frontendCell.blocked,
+    is_marked: frontendCell.is_marked,
+    cell_id: frontendCell.cell_id,
+    version: frontendCell.version,
+    last_updated: frontendCell.last_updated,
+    last_modified_by: frontendCell.last_modified_by,
   };
 }
 
@@ -153,7 +198,6 @@ export interface BingoSession {
   created_at?: string | null;
   updated_at?: string | null;
   completed_at?: Date;
-  settings: SessionSettings;
 }
 
 // Use database SessionSettings type directly

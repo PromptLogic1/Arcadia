@@ -251,6 +251,7 @@ npm run migration:new    # Create new migration
 ### Bingo Game Endpoints
 
 **✅ Currently Working:**
+
 - `GET /api/bingo` - List bingo boards
 - `POST /api/bingo` - Create new board
 - `GET /api/bingo/sessions` - List game sessions
@@ -259,6 +260,7 @@ npm run migration:new    # Create new migration
 - `GET /api/bingo/sessions/players` - Get session players
 
 **🚧 Phase 1 - In Development:**
+
 - `POST /api/bingo/sessions/join-by-code` - Join session by code
 - `PATCH /api/bingo/sessions/[id]/board-state` - Update board state
 - `POST /api/bingo/sessions/[id]/mark-cell` - Mark/unmark cells real-time

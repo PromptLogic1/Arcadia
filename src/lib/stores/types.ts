@@ -30,6 +30,8 @@ export interface AuthUser {
   email: string | null;
   phone: string | null;
   auth_username: string | null;
+  username?: string;
+  avatar_url?: string | null;
   provider: string | null;
   userRole: UserRole;
 }

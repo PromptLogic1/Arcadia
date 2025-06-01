@@ -1,6 +1,6 @@
 /**
  * Comprehensive Error Handling Utility for Arcadia
- * 
+ *
  * This module provides a unified error handling system that standardizes
  * error management across the entire application.
  */
@@ -103,14 +103,17 @@ export class ArcadiaError extends Error {
 
   constructor(options: ArcadiaErrorOptions) {
     super(options.message);
-    
+
     this.name = 'ArcadiaError';
     this.code = options.code;
     this.severity = options.severity || ErrorSeverity.MEDIUM;
     this.metadata = options.metadata || {};
-    this.userMessage = options.userMessage || this.getDefaultUserMessage(options.code);
-    this.statusCode = options.statusCode || this.getDefaultStatusCode(options.code);
-    this.retryable = options.retryable ?? this.getDefaultRetryable(options.code);
+    this.userMessage =
+      options.userMessage || this.getDefaultUserMessage(options.code);
+    this.statusCode =
+      options.statusCode || this.getDefaultStatusCode(options.code);
+    this.retryable =
+      options.retryable ?? this.getDefaultRetryable(options.code);
     this.timestamp = new Date().toISOString();
     this.cause = options.cause;
 
@@ -126,27 +129,38 @@ export class ArcadiaError extends Error {
   private getDefaultUserMessage(code: ErrorCode): string {
     const userMessages: Record<ErrorCode, string> = {
       [ErrorCode.UNAUTHORIZED]: 'Please log in to continue.',
-      [ErrorCode.FORBIDDEN]: 'You do not have permission to perform this action.',
-      [ErrorCode.TOKEN_EXPIRED]: 'Your session has expired. Please log in again.',
+      [ErrorCode.FORBIDDEN]:
+        'You do not have permission to perform this action.',
+      [ErrorCode.TOKEN_EXPIRED]:
+        'Your session has expired. Please log in again.',
       [ErrorCode.INVALID_CREDENTIALS]: 'Invalid username or password.',
       [ErrorCode.VALIDATION_ERROR]: 'Please check your input and try again.',
       [ErrorCode.INVALID_INPUT]: 'Please check your input and try again.',
       [ErrorCode.MISSING_REQUIRED_FIELD]: 'Please fill in all required fields.',
-      [ErrorCode.DATABASE_ERROR]: 'A database error occurred. Please try again.',
+      [ErrorCode.DATABASE_ERROR]:
+        'A database error occurred. Please try again.',
       [ErrorCode.RECORD_NOT_FOUND]: 'The requested item was not found.',
       [ErrorCode.DUPLICATE_RECORD]: 'This item already exists.',
-      [ErrorCode.FOREIGN_KEY_VIOLATION]: 'Cannot perform this action due to related data.',
+      [ErrorCode.FOREIGN_KEY_VIOLATION]:
+        'Cannot perform this action due to related data.',
       [ErrorCode.BINGO_BOARD_FULL]: 'This bingo board is full.',
       [ErrorCode.SESSION_ALREADY_STARTED]: 'This session has already started.',
-      [ErrorCode.INVALID_GAME_STATE]: 'Invalid game state. Please refresh and try again.',
-      [ErrorCode.INSUFFICIENT_PERMISSIONS]: 'You do not have sufficient permissions.',
-      [ErrorCode.RATE_LIMIT_EXCEEDED]: 'Too many requests. Please wait a moment and try again.',
-      [ErrorCode.EXTERNAL_SERVICE_ERROR]: 'External service is temporarily unavailable.',
+      [ErrorCode.INVALID_GAME_STATE]:
+        'Invalid game state. Please refresh and try again.',
+      [ErrorCode.INSUFFICIENT_PERMISSIONS]:
+        'You do not have sufficient permissions.',
+      [ErrorCode.RATE_LIMIT_EXCEEDED]:
+        'Too many requests. Please wait a moment and try again.',
+      [ErrorCode.EXTERNAL_SERVICE_ERROR]:
+        'External service is temporarily unavailable.',
       [ErrorCode.NETWORK_ERROR]: 'Network error. Please check your connection.',
-      [ErrorCode.INTERNAL_SERVER_ERROR]: 'An internal error occurred. Please try again.',
+      [ErrorCode.INTERNAL_SERVER_ERROR]:
+        'An internal error occurred. Please try again.',
       [ErrorCode.NOT_IMPLEMENTED]: 'This feature is not yet implemented.',
-      [ErrorCode.MAINTENANCE_MODE]: 'The system is under maintenance. Please try again later.',
-      [ErrorCode.CLIENT_ERROR]: 'A client error occurred. Please refresh and try again.',
+      [ErrorCode.MAINTENANCE_MODE]:
+        'The system is under maintenance. Please try again later.',
+      [ErrorCode.CLIENT_ERROR]:
+        'A client error occurred. Please refresh and try again.',
       [ErrorCode.TIMEOUT_ERROR]: 'The request timed out. Please try again.',
     };
 
@@ -217,7 +231,10 @@ export class ArcadiaError extends Error {
 // =============================================================================
 
 export class ErrorFactory {
-  static unauthorized(message?: string, metadata?: ErrorMetadata): ArcadiaError {
+  static unauthorized(
+    message?: string,
+    metadata?: ErrorMetadata
+  ): ArcadiaError {
     return new ArcadiaError({
       code: ErrorCode.UNAUTHORIZED,
       message: message || 'Unauthorized access',
@@ -272,7 +289,11 @@ export class ErrorFactory {
     });
   }
 
-  static gameError(code: ErrorCode, message: string, metadata?: ErrorMetadata): ArcadiaError {
+  static gameError(
+    code: ErrorCode,
+    message: string,
+    metadata?: ErrorMetadata
+  ): ArcadiaError {
     return new ArcadiaError({
       code,
       message,
@@ -281,7 +302,11 @@ export class ErrorFactory {
     });
   }
 
-  static internal(message?: string, cause?: Error, metadata?: ErrorMetadata): ArcadiaError {
+  static internal(
+    message?: string,
+    cause?: Error,
+    metadata?: ErrorMetadata
+  ): ArcadiaError {
     return new ArcadiaError({
       code: ErrorCode.INTERNAL_SERVER_ERROR,
       message: message || 'Internal server error',
@@ -337,7 +362,10 @@ class ErrorHandler {
   /**
    * Handle Supabase-specific errors
    */
-  private handleSupabaseError(error: SupabaseError, context?: LogContext): ArcadiaError {
+  private handleSupabaseError(
+    error: SupabaseError,
+    context?: LogContext
+  ): ArcadiaError {
     let code: ErrorCode;
     let severity: ErrorSeverity;
 
@@ -350,13 +378,16 @@ class ErrorHandler {
         code = ErrorCode.UNAUTHORIZED;
       }
       severity = ErrorSeverity.HIGH;
-    } else if (error.code?.includes('23505')) { // Unique constraint violation
+    } else if (error.code?.includes('23505')) {
+      // Unique constraint violation
       code = ErrorCode.DUPLICATE_RECORD;
       severity = ErrorSeverity.LOW;
-    } else if (error.code?.includes('23503')) { // Foreign key violation
+    } else if (error.code?.includes('23503')) {
+      // Foreign key violation
       code = ErrorCode.FOREIGN_KEY_VIOLATION;
       severity = ErrorSeverity.MEDIUM;
-    } else if (error.code?.includes('42P01')) { // Table doesn't exist
+    } else if (error.code?.includes('42P01')) {
+      // Table doesn't exist
       code = ErrorCode.DATABASE_ERROR;
       severity = ErrorSeverity.CRITICAL;
     } else {
@@ -443,10 +474,16 @@ class ErrorHandler {
    * Send critical errors to monitoring service
    */
   private sendToMonitoring(error: ArcadiaError): void {
-    if (process.env.NODE_ENV === 'production' && error.severity === ErrorSeverity.CRITICAL) {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      error.severity === ErrorSeverity.CRITICAL
+    ) {
       // Placeholder for monitoring service integration
       // In a real scenario, this would send to Sentry, DataDog, etc.
-      console.error('[ErrorHandler] Critical error for monitoring:', error.toJSON());
+      console.error(
+        '[ErrorHandler] Critical error for monitoring:',
+        error.toJSON()
+      );
     }
   }
 
@@ -459,7 +496,8 @@ class ErrorHandler {
         error: {
           code: error.code,
           message: error.userMessage,
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          details:
+            process.env.NODE_ENV === 'development' ? error.message : undefined,
           retryable: error.retryable,
           timestamp: error.timestamp,
         },
@@ -492,11 +530,17 @@ class ErrorHandler {
 
 const errorHandler = ErrorHandler.getInstance();
 
-export const handleError = (error: unknown, context?: LogContext): ArcadiaError => {
+export const handleError = (
+  error: unknown,
+  context?: LogContext
+): ArcadiaError => {
   return errorHandler.handle(error, context);
 };
 
-export const toApiResponse = (error: unknown, context?: LogContext): NextResponse => {
+export const toApiResponse = (
+  error: unknown,
+  context?: LogContext
+): NextResponse => {
   const arcadiaError = errorHandler.handle(error, context);
   return errorHandler.toApiResponse(arcadiaError);
 };
@@ -519,7 +563,9 @@ export const isRetryableError = (error: unknown): boolean => {
 };
 
 export const isCriticalError = (error: unknown): boolean => {
-  return isArcadiaError(error) ? error.severity === ErrorSeverity.CRITICAL : false;
+  return isArcadiaError(error)
+    ? error.severity === ErrorSeverity.CRITICAL
+    : false;
 };
 
 // =============================================================================

@@ -22,15 +22,15 @@ interface JoinSessionDialogProps {
 
 export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
   const router = useRouter();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { authUser } = useAuth();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async () => {
     if (!code.trim()) {
-      toast({
+      showToast({
         title: 'Error',
         description: 'Please enter a session code',
         variant: 'destructive',
@@ -45,9 +45,9 @@ export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_code: code.toUpperCase(),
-          user_id: user?.id,
-          display_name: user?.username || 'Player',
-          avatar_url: user?.avatarUrl,
+          user_id: authUser?.id,
+          display_name: authUser?.username || 'Player',
+          avatar_url: authUser?.avatar_url,
         }),
       });
 
@@ -57,8 +57,8 @@ export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
       }
 
       const { session } = await response.json();
-      
-      toast({
+
+      showToast({
         title: 'Success!',
         description: 'Joined session successfully',
       });
@@ -67,9 +67,10 @@ export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
       router.push(`/play-area/bingo/${session.id}`);
       setOpen(false);
     } catch (error) {
-      toast({
+      showToast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to join session',
+        description:
+          error instanceof Error ? error.message : 'Failed to join session',
         variant: 'destructive',
       });
     } finally {
@@ -100,14 +101,14 @@ export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
               id="session-code"
               placeholder="ABC123"
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onChange={e => setCode(e.target.value.toUpperCase())}
               maxLength={6}
-              className="text-center text-2xl font-mono tracking-wider"
+              className="text-center font-mono text-2xl tracking-wider"
               disabled={loading}
-              onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+              onKeyDown={e => e.key === 'Enter' && handleJoin()}
             />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Ask the host for the session code to join their game
           </p>
         </div>

@@ -6,6 +6,7 @@ import type { BingoBoard, BingoCard, Difficulty } from '@/types';
 // import { useAuth } from '@/src/lib/stores'
 import { logger } from '@/src/lib/logger';
 import { notifications } from '@/src/lib/notifications';
+import { getTemplateCards, templateToBingoCard } from '../data/templates';
 
 export interface FormData {
   board_title: string;
@@ -26,11 +27,14 @@ interface BoardEditReturn {
   ) => void;
   fieldErrors: Record<string, string>;
   gridCards: BingoCard[];
+  setGridCards: (cards: BingoCard[]) => void;
   cards: BingoCard[];
+  privateCards: BingoCard[];
   updateFormField: (field: string, value: FieldValue) => void;
   handleSave: () => Promise<boolean>;
   placeCardInGrid: (card: BingoCard, index: number) => void;
   createNewCard: (formData: Partial<BingoCard>, index: number) => Promise<void>;
+  createPrivateCard: (formData: Partial<BingoCard>) => Promise<BingoCard | null>;
   updateExistingCard: (
     updates: Partial<BingoCard>,
     index: number
@@ -61,6 +65,7 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
   const [gridCards, setGridCards] = useState<BingoCard[]>([]);
   const [currentBoard, setCurrentBoard] = useState<BingoBoard | null>(null);
   const [cards] = useState<BingoCard[]>([]);
+  const [privateCards, setPrivateCards] = useState<BingoCard[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Mock user data - TODO: Replace with real auth hook
@@ -150,6 +155,53 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     },
     [validateBingoBoardField]
   );
+
+  const createPrivateCard = async (updates: Partial<BingoCard>): Promise<BingoCard | null> => {
+    try {
+      if (!currentBoard || !userData?.id) {
+        throw new Error('Board or user not found');
+      }
+
+      // Create a basic card structure using correct schema
+      const newCard: BingoCard = {
+        id: `card-${Date.now()}`, // Temporary ID generation
+        title: updates.title || '',
+        description: updates.description || null,
+        difficulty: updates.difficulty || 'medium',
+        game_type: currentBoard.game_type,
+        tags: updates.tags || [],
+        creator_id: userData.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_public: false, // Private cards are always private
+        votes: 0,
+      };
+
+      // Add to private cards list
+      setPrivateCards(prev => [...prev, newCard]);
+      
+      logger.debug('Created new private card', {
+        metadata: { hook: 'useBingoBoardEdit', cardId: newCard.id },
+      });
+      
+      return newCard;
+    } catch (error) {
+      logger.error('Failed to create new private card', error as Error, {
+        metadata: {
+          hook: 'useBingoBoardEdit',
+          currentBoardId: currentBoard?.id,
+          updates,
+        },
+      });
+      setError(
+        error instanceof Error ? error.message : 'Failed to create card'
+      );
+      notifications.error('Failed to create card', {
+        description: 'Please try again or contact support.',
+      });
+      return null;
+    }
+  };
 
   const createNewCard = async (updates: Partial<BingoCard>, index: number) => {
     try {
@@ -298,8 +350,8 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       // Mock board data for now
       const mockBoard: BingoBoard = {
         id: boardId,
-        title: 'Mock Board',
-        description: 'Mock Description',
+        title: 'New Gaming Bingo Board',
+        description: 'Customize this template to create your perfect gaming challenge!',
         game_type: 'World of Warcraft',
         difficulty: 'medium',
         size: 5,
@@ -317,6 +369,10 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       };
 
       setCurrentBoard(mockBoard);
+      
+      // Initialize template cards for the grid
+      await initializeTemplateCards(mockBoard);
+      
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to load board');
     } finally {
@@ -324,6 +380,53 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
       setIsLoadingCards(false);
     }
   }, [boardId]);
+
+  const initializeTemplateCards = useCallback(async (board: BingoBoard) => {
+    try {
+      const gridSize = board.size || 5;
+      const totalCells = gridSize * gridSize;
+      
+      // Get template cards for this game type
+      const templates = getTemplateCards(board.game_type, totalCells);
+      
+      // Convert templates to actual bingo cards and place in grid
+      const templateCards: BingoCard[] = templates.map(template => 
+        templateToBingoCard(template, userData.id)
+      );
+      
+      // Fill any remaining slots with empty cards
+      while (templateCards.length < totalCells) {
+        templateCards.push({
+          id: '',
+          title: '',
+          description: null,
+          difficulty: 'medium',
+          game_type: board.game_type,
+          tags: [],
+          creator_id: userData.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_public: false,
+          votes: 0,
+        });
+      }
+      
+      setGridCards(templateCards);
+      
+      logger.info('Initialized template cards for board', {
+        metadata: { 
+          hook: 'useBingoBoardEdit', 
+          boardId: board.id, 
+          templateCount: templates.length,
+          gameType: board.game_type
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to initialize template cards', error as Error, {
+        metadata: { hook: 'useBingoBoardEdit', boardId: board.id },
+      });
+    }
+  }, [userData.id]);
 
   return {
     isLoadingBoard,
@@ -334,11 +437,14 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     setFormData,
     fieldErrors,
     gridCards,
+    setGridCards,
     cards,
+    privateCards,
     updateFormField,
     handleSave,
     placeCardInGrid,
     createNewCard,
+    createPrivateCard,
     updateExistingCard,
     gridSize: currentBoard?.size || 0,
     editingCard,

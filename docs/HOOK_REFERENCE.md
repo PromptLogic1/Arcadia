@@ -14,9 +14,11 @@ This document provides comprehensive documentation for all React hooks used in t
 **Purpose**: Main hook for bingo game logic and real-time state synchronization.
 
 **Parameters**:
+
 - `sessionId: string` - ID of the bingo session
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -25,7 +27,7 @@ This document provides comprehensive documentation for all React hooks used in t
   version: number;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   markCell: (position: number) => Promise<void>;
   unmarkCell: (position: number) => Promise<void>;
@@ -34,12 +36,14 @@ This document provides comprehensive documentation for all React hooks used in t
 ```
 
 **Key Features**:
+
 - Real-time synchronization via Supabase subscriptions
 - Optimistic locking with version control
 - Conflict resolution for concurrent modifications
 - Automatic state updates when other players make moves
 
 **Usage Example**:
+
 ```typescript
 const { session, boardState, markCell, loading } = useBingoGame(sessionId);
 
@@ -57,16 +61,18 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Manages individual board data and metadata.
 
 **Parameters**:
+
 - `boardId: string` - ID of the bingo board
 
 **Returns**:
+
 ```typescript
 {
   // State
   board: BingoBoard | null;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   refreshBoard: () => Promise<void>;
   updateBoard: (updates: Partial<BingoBoard>) => Promise<void>;
@@ -74,6 +80,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Fetches board configuration and metadata
 - Handles board updates and validation
 - Caches board data for performance
@@ -85,6 +92,7 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Manages lists of bingo boards with filtering and pagination.
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -92,7 +100,7 @@ const handleCellClick = async (position: number) => {
   loading: boolean;
   error: string | null;
   hasMore: boolean;
-  
+
   // Actions
   loadBoards: () => Promise<void>;
   loadMore: () => Promise<void>;
@@ -102,6 +110,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Infinite scrolling support
 - Filtering by category, difficulty, and search terms
 - Optimistic updates for new board creation
@@ -113,6 +122,7 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Hub component logic for managing boards with filters and creation.
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -121,7 +131,7 @@ const handleCellClick = async (position: number) => {
   filterSelections: FilterState;
   loading: boolean;
   error: Error | null;
-  
+
   // Actions
   handleFilterChange: (type: keyof FilterState, value: string) => void;
   setIsCreateFormOpen: (open: boolean) => void;
@@ -130,6 +140,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Integrates filtering, creation, and board management
 - State management for UI components
 - Form handling for board creation
@@ -141,9 +152,11 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Handles editing of existing bingo boards.
 
 **Parameters**:
+
 - `boardId: string` - ID of the board being edited
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -151,7 +164,7 @@ const handleCellClick = async (position: number) => {
   isDirty: boolean;
   isSaving: boolean;
   error: string | null;
-  
+
   // Actions
   updateField: (field: string, value: any) => void;
   saveChanges: () => Promise<void>;
@@ -161,6 +174,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Track unsaved changes
 - Validation before saving
 - Optimistic updates with rollback on failure
@@ -174,9 +188,11 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Manages bingo session lifecycle and player coordination.
 
 **Parameters**:
+
 - `sessionId: string` - ID of the bingo session
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -185,7 +201,7 @@ const handleCellClick = async (position: number) => {
   isHost: boolean;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   joinSession: (data: JoinSessionData) => Promise<void>;
   leaveSession: () => Promise<void>;
@@ -195,6 +211,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Session status management (waiting, active, completed)
 - Player management and permissions
 - Host controls for session lifecycle
@@ -206,6 +223,7 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Manages session queue and matchmaking.
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -213,7 +231,7 @@ const handleCellClick = async (position: number) => {
   estimatedWait: number;
   position: number;
   isInQueue: boolean;
-  
+
   // Actions
   joinQueue: (preferences: QueuePreferences) => Promise<void>;
   leaveQueue: () => Promise<void>;
@@ -222,6 +240,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Automatic matchmaking based on preferences
 - Real-time queue position updates
 - Wait time estimation
@@ -233,16 +252,18 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Manages game configuration and preferences.
 
 **Parameters**:
+
 - `sessionId: string` - ID of the session
 
 **Returns**:
+
 ```typescript
 {
   // State
   settings: SessionSettings;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   updateSettings: (settings: Partial<SessionSettings>) => Promise<void>;
   resetToDefaults: () => Promise<void>;
@@ -250,6 +271,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Game difficulty and rule configuration
 - Player limits and team settings
 - Win condition customization
@@ -261,16 +283,18 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Manages overall game state and phase transitions.
 
 **Parameters**:
+
 - `sessionId: string` - ID of the session
 
 **Returns**:
+
 ```typescript
 {
   // State
   gamePhase: GamePhase;
   winner: string | null;
   gameStats: GameStats;
-  
+
   // Actions
   checkWinCondition: () => Promise<boolean>;
   declareWinner: (playerId: string) => Promise<void>;
@@ -279,6 +303,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Win condition detection
 - Game phase management
 - Statistics tracking
@@ -290,9 +315,11 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Handles player operations and team management.
 
 **Parameters**:
+
 - `sessionId: string` - ID of the session
 
 **Returns**:
+
 ```typescript
 {
   // State
@@ -300,7 +327,7 @@ const handleCellClick = async (position: number) => {
   currentPlayer: GamePlayer | null;
   loading: boolean;
   error: Error | null;
-  
+
   // Actions
   addPlayer: (player: JoinSessionForm) => Promise<void>;
   removePlayer: (playerId: string) => Promise<void>;
@@ -310,6 +337,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Player lifecycle management
 - Team assignment and balancing
 - Player status tracking
@@ -321,16 +349,18 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Game timer and time-based events.
 
 **Parameters**:
+
 - `duration?: number` - Timer duration in seconds
 
 **Returns**:
+
 ```typescript
 {
   // State
   timeRemaining: number;
   isRunning: boolean;
   isCompleted: boolean;
-  
+
   // Actions
   startTimer: () => void;
   pauseTimer: () => void;
@@ -340,6 +370,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Countdown timer functionality
 - Pause/resume capabilities
 - Time-based game events
@@ -351,16 +382,18 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Real-time presence tracking for multiplayer sessions.
 
 **Parameters**:
+
 - `sessionId: string` - ID of the session
 
 **Returns**:
+
 ```typescript
 {
   // State
   presenceState: PresenceState;
   onlineUsers: string[];
   typingUsers: string[];
-  
+
   // Actions
   updatePresence: (state: Partial<PresenceState>) => void;
   setTyping: (isTyping: boolean) => void;
@@ -368,6 +401,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Real-time user presence
 - Typing indicators
 - Connection status tracking
@@ -381,13 +415,14 @@ const handleCellClick = async (position: number) => {
 **Purpose**: Board generator UI and logic.
 
 **Returns**:
+
 ```typescript
 {
   // State
   isOpen: boolean;
   generatorOptions: GeneratorOptions;
   isGenerating: boolean;
-  
+
   // Actions
   openPanel: () => void;
   closePanel: () => void;
@@ -397,6 +432,7 @@ const handleCellClick = async (position: number) => {
 ```
 
 **Key Features**:
+
 - Board generation configuration
 - UI panel management
 - Template and category selection
@@ -418,6 +454,7 @@ These hooks can be re-implemented in the future if needed, but their removal imp
 ## 📖 Usage Patterns
 
 ### Basic Session Flow
+
 ```typescript
 // 1. Create or join session
 const { session, joinSession } = useSession(sessionId);
@@ -433,6 +470,7 @@ const { presenceState } = usePresence(sessionId);
 ```
 
 ### Board Management Flow
+
 ```typescript
 // 1. List boards
 const { boards, loadBoards } = useBingoBoards();
@@ -449,17 +487,21 @@ const { generateBoard } = useGeneratorPanel();
 ## 🔧 Implementation Notes
 
 ### Error Handling
+
 All hooks follow consistent error handling patterns:
+
 - Errors are stored in `error` state
 - Loading states prevent duplicate operations
 - Automatic retry logic for transient failures
 
 ### Performance Optimizations
+
 - Hooks use `useCallback` and `useMemo` appropriately
 - Real-time subscriptions are properly cleaned up
 - State updates are batched when possible
 
 ### Type Safety
+
 - All hooks are fully typed with TypeScript
 - Generated database types are used consistently
 - Return types are documented and exported

@@ -2,22 +2,22 @@
 // BINGO DOMAIN TYPES - Application types that extend database types
 // =============================================================================
 
-import type {
-  BingoBoard,
-  BingoCard,
-  BingoSession,
-  BingoSessionPlayer,
-  BingoSessionQueue,
-  BingoSessionEvent,
-  GameCategory,
-  Difficulty,
-  QueueStatus,
-  User,
-  Tag,
-  BoardCell as DbBoardCell,
-  SessionSettings as DbSessionSettings,
-} from '../index';
+import type { Tables, Enums, CompositeTypes } from '../database-generated';
+import type { User, Tag } from '../index';
 import { PLAYER_COLORS } from '../index'; // Value import
+
+// Type aliases for database types
+type BingoBoard = Tables<'bingo_boards'>;
+type BingoCard = Tables<'bingo_cards'>;
+type BingoSession = Tables<'bingo_sessions'>;
+type BingoSessionPlayer = Tables<'bingo_session_players'>;
+type BingoSessionQueue = Tables<'bingo_session_queue'>;
+type BingoSessionEvent = Tables<'bingo_session_events'>;
+type GameCategory = Enums<'game_category'>;
+type Difficulty = Enums<'difficulty_level'>;
+type QueueStatus = Enums<'queue_status'>;
+type DbBoardCell = CompositeTypes<'board_cell'>;
+type DbSessionSettings = CompositeTypes<'session_settings'>;
 
 // =============================================================================
 // ENHANCED GAME TYPES
@@ -180,9 +180,10 @@ export interface CreateSessionForm {
 }
 
 export interface JoinSessionForm {
-  player_name: string;
+  display_name: string;
   color: string;
   team?: number;
+  avatar_url?: string;
 }
 
 // =============================================================================

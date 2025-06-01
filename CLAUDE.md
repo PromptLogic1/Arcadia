@@ -16,6 +16,7 @@ This file provides guidance to AI assistants (like you!) when working with code 
 **Current Focus**: Complete Platform with Advanced Code Cleanup
 
 ### **What's Complete (95%)**
+
 - ✅ **Database Schema**: Production-ready with 25 tables, full RLS, proper indexing
 - ✅ **Authentication System**: Complete with OAuth, role-based access
 - ✅ **UI Framework**: Tailwind v4, shadcn/ui, modern React architecture
@@ -23,12 +24,14 @@ This file provides guidance to AI assistants (like you!) when working with code 
 - ✅ **Code Cleanup Complete**: 2,400+ lines removed, unified components, consolidated docs
 
 ### **What's Broken (CRITICAL)**
+
 - ❌ **Real-time Multiplayer Sessions**: Database schema exists but frontend integration incomplete
 - ❌ **Board State Synchronization**: No real-time sync during gameplay
 - ❌ **Session Joining**: Session codes exist in DB but no join-by-code API/UI
 - ❌ **Core Game Loop**: Users can create boards but can't play together
 
 ### **Immediate Priority (Phase 1)**
+
 **Goal**: Make multiplayer bingo game work end-to-end
 
 1. **Schema Alignment** (Days 1-3): Fix mismatches between database schema and frontend hooks
@@ -38,6 +41,7 @@ This file provides guidance to AI assistants (like you!) when working with code 
 **📋 See**: [IMMEDIATE_NEXT_STEPS.md](./docs/IMMEDIATE_NEXT_STEPS.md) and [PHASE_1_IMPLEMENTATION.md](./docs/PHASE_1_IMPLEMENTATION.md)
 
 ### **Context for AI Assistants**
+
 - **Don't create new features** - Focus on fixing existing broken core functionality
 - **Database is excellent** - The schema is comprehensive and production-ready
 - **Frontend hooks exist** - They just need to be aligned with the database schema
@@ -77,17 +81,19 @@ jest path/to/test     # Run specific test file (e.g., jest src/features/auth/__t
 ### Database & Migrations
 
 **Use Supabase MCP Server (Recommended)**:
+
 ```bash
 # Database operations are now handled via the Supabase MCP Server
 # Available through Claude Code's MCP integration:
 # - mcp__supabase__list_projects
-# - mcp__supabase__apply_migration  
+# - mcp__supabase__apply_migration
 # - mcp__supabase__generate_typescript_types
 # - mcp__supabase__execute_sql
 # - And more...
 ```
 
 **Legacy CLI Commands** (use MCP server instead):
+
 ```bash
 npm run db:start      # Start local Supabase (use MCP server instead)
 npm run db:types      # Generate TypeScript types (use mcp__supabase__generate_typescript_types)

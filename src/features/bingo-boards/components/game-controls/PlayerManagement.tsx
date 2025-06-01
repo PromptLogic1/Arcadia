@@ -308,13 +308,13 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-400" />
-                  <span>{entry.player_name}</span>
+                  <span>{entry.user_id || 'Unknown Player'}</span>
                 </div>
                 {isOwner && (
                   <div className="flex gap-2">
                     <Button
                       onClick={() =>
-                        queue.updateQueueEntry(entry.id, { status: 'approved' })
+                        queue.updateQueueEntry(entry.id, { status: 'matched' })
                       }
                       size="sm"
                       variant="default"
@@ -323,7 +323,9 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     </Button>
                     <Button
                       onClick={() =>
-                        queue.updateQueueEntry(entry.id, { status: 'rejected' })
+                        queue.updateQueueEntry(entry.id, {
+                          status: 'cancelled',
+                        })
                       }
                       size="sm"
                       variant="destructive"

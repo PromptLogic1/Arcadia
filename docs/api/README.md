@@ -1,6 +1,6 @@
 # 🔌 API Reference
 
-*Complete API documentation for the Arcadia Gaming Platform*
+_Complete API documentation for the Arcadia Gaming Platform_
 
 ## 📍 **Base URL**
 
@@ -25,11 +25,13 @@ headers: {
 ## 🎮 **Bingo Sessions API**
 
 ### **Create Session**
+
 ```http
 POST /api/bingo/sessions
 ```
 
 **Request Body:**
+
 ```json
 {
   "boardId": "uuid",
@@ -40,6 +42,7 @@ POST /api/bingo/sessions
 ```
 
 **Response:**
+
 ```json
 {
   "session": {
@@ -59,11 +62,13 @@ POST /api/bingo/sessions
 ```
 
 ### **Join Session by Code**
+
 ```http
 POST /api/bingo/sessions/join-by-code
 ```
 
 **Request Body:**
+
 ```json
 {
   "session_code": "ABC123",
@@ -74,6 +79,7 @@ POST /api/bingo/sessions/join-by-code
 ```
 
 **Response:**
+
 ```json
 {
   "session": { ... },
@@ -82,11 +88,13 @@ POST /api/bingo/sessions/join-by-code
 ```
 
 ### **Get Session Board State**
+
 ```http
 GET /api/bingo/sessions/{id}/board-state
 ```
 
 **Response:**
+
 ```json
 {
   "current_state": [
@@ -102,11 +110,13 @@ GET /api/bingo/sessions/{id}/board-state
 ```
 
 ### **Update Board State**
+
 ```http
 PATCH /api/bingo/sessions/{id}/board-state
 ```
 
 **Request Body:**
+
 ```json
 {
   "board_state": [...],
@@ -115,6 +125,7 @@ PATCH /api/bingo/sessions/{id}/board-state
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -124,11 +135,13 @@ PATCH /api/bingo/sessions/{id}/board-state
 ```
 
 ### **Mark/Unmark Cell**
+
 ```http
 POST /api/bingo/sessions/{id}/mark-cell
 ```
 
 **Request Body:**
+
 ```json
 {
   "cell_position": 4,
@@ -139,6 +152,7 @@ POST /api/bingo/sessions/{id}/mark-cell
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -148,11 +162,13 @@ POST /api/bingo/sessions/{id}/mark-cell
 ```
 
 ### **Start Session**
+
 ```http
 POST /api/bingo/sessions/{id}/start
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -162,15 +178,18 @@ POST /api/bingo/sessions/{id}/start
 ```
 
 ### **List Sessions**
+
 ```http
 GET /api/bingo/sessions?boardId={uuid}&status=active
 ```
 
 **Query Parameters:**
+
 - `boardId` (required): Board UUID
 - `status`: Filter by status (waiting/active/completed)
 
 **Response:**
+
 ```json
 [
   {
@@ -187,11 +206,13 @@ GET /api/bingo/sessions?boardId={uuid}&status=active
 ## 👥 **Players API**
 
 ### **Get Session Players**
+
 ```http
 GET /api/bingo/sessions/players?sessionId={uuid}
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -207,11 +228,13 @@ GET /api/bingo/sessions/players?sessionId={uuid}
 ```
 
 ### **Join Session**
+
 ```http
 POST /api/bingo/sessions/join
 ```
 
 **Request Body:**
+
 ```json
 {
   "sessionId": "uuid",
@@ -226,11 +249,13 @@ POST /api/bingo/sessions/join
 ## 📋 **Bingo Boards API**
 
 ### **Create Board**
+
 ```http
 POST /api/bingo
 ```
 
 **Request Body:**
+
 ```json
 {
   "title": "Board Title",
@@ -244,16 +269,19 @@ POST /api/bingo
 ```
 
 ### **Get Board**
+
 ```http
 GET /api/bingo/{id}
 ```
 
 ### **Update Board**
+
 ```http
 PATCH /api/bingo/{id}
 ```
 
 ### **Delete Board**
+
 ```http
 DELETE /api/bingo/{id}
 ```
@@ -263,11 +291,13 @@ DELETE /api/bingo/{id}
 ## 💬 **Discussions API**
 
 ### **Create Discussion**
+
 ```http
 POST /api/discussions
 ```
 
 **Request Body:**
+
 ```json
 {
   "title": "Discussion Title",
@@ -278,11 +308,13 @@ POST /api/discussions
 ```
 
 ### **List Discussions**
+
 ```http
 GET /api/discussions?game_type=minecraft&limit=20&offset=0
 ```
 
 **Query Parameters:**
+
 - `game_type`: Filter by game
 - `tags`: Filter by tags (comma-separated)
 - `limit`: Results per page (default: 20)
@@ -293,11 +325,13 @@ GET /api/discussions?game_type=minecraft&limit=20&offset=0
 ## 📝 **Submissions API**
 
 ### **Submit Board Completion**
+
 ```http
 POST /api/submissions
 ```
 
 **Request Body:**
+
 ```json
 {
   "board_id": "uuid",
@@ -311,19 +345,25 @@ POST /api/submissions
 ## ⚡ **Real-time Events**
 
 ### **WebSocket Connection**
+
 ```javascript
 const channel = supabase
   .channel('session:SESSION_ID')
-  .on('postgres_changes', {
-    event: 'UPDATE',
-    schema: 'public',
-    table: 'bingo_sessions',
-    filter: 'id=eq.SESSION_ID'
-  }, handleUpdate)
-  .subscribe()
+  .on(
+    'postgres_changes',
+    {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'bingo_sessions',
+      filter: 'id=eq.SESSION_ID',
+    },
+    handleUpdate
+  )
+  .subscribe();
 ```
 
 ### **Event Types**
+
 - `cell_marked`: Cell marked by player
 - `cell_unmarked`: Cell unmarked
 - `player_joined`: New player joined
@@ -336,6 +376,7 @@ const channel = supabase
 ## 🚨 **Error Responses**
 
 ### **400 Bad Request**
+
 ```json
 {
   "error": "Invalid request body"
@@ -343,6 +384,7 @@ const channel = supabase
 ```
 
 ### **401 Unauthorized**
+
 ```json
 {
   "error": "Unauthorized"
@@ -350,6 +392,7 @@ const channel = supabase
 ```
 
 ### **404 Not Found**
+
 ```json
 {
   "error": "Resource not found"
@@ -357,6 +400,7 @@ const channel = supabase
 ```
 
 ### **409 Conflict**
+
 ```json
 {
   "error": "Version conflict",
@@ -365,6 +409,7 @@ const channel = supabase
 ```
 
 ### **429 Rate Limited**
+
 ```json
 {
   "error": "Too many requests"
@@ -372,6 +417,7 @@ const channel = supabase
 ```
 
 ### **500 Internal Server Error**
+
 ```json
 {
   "error": "Internal server error"

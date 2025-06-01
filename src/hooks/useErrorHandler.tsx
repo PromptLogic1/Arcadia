@@ -4,13 +4,13 @@
 
 import React, { useCallback, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  handleError, 
-  toClientError, 
+import {
+  handleError,
+  toClientError,
   isRetryableError,
   isArcadiaError,
   ErrorCode,
-  type ArcadiaError
+  type ArcadiaError,
 } from '@/lib/error-handler';
 import { logger, type LogContext } from '@/lib/logger';
 
@@ -45,7 +45,9 @@ interface UseErrorHandlerReturn {
 /**
  * Main error handling hook for React components
  */
-export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorHandlerReturn {
+export function useErrorHandler(
+  options: UseErrorHandlerOptions = {}
+): UseErrorHandlerReturn {
   const {
     component,
     feature,
@@ -62,52 +64,54 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
     retryCount: 0,
   });
 
-  const [lastFailedAction, setLastFailedAction] = useState<(() => Promise<void>) | null>(null);
+  const [lastFailedAction, setLastFailedAction] = useState<
+    (() => Promise<void>) | null
+  >(null);
 
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null, retryCount: 0 }));
     setLastFailedAction(null);
   }, []);
 
-  const handleErrorInternal = useCallback((
-    error: unknown, 
-    context?: Partial<LogContext>
-  ) => {
-    const logContext: LogContext = {
-      component,
-      feature,
-      ...context,
-      metadata: {
-        ...context?.metadata,
-        retryCount: state.retryCount,
-      },
-    };
+  const handleErrorInternal = useCallback(
+    (error: unknown, context?: Partial<LogContext>) => {
+      const logContext: LogContext = {
+        component,
+        feature,
+        ...context,
+        metadata: {
+          ...context?.metadata,
+          retryCount: state.retryCount,
+        },
+      };
 
-    const arcadiaError = handleError(error, logContext);
-    
-    setState(prev => ({ 
-      ...prev, 
-      error: arcadiaError, 
-      isLoading: false 
-    }));
+      const arcadiaError = handleError(error, logContext);
 
-    // Show toast notification if enabled
-    if (enableToast) {
-      const clientError = toClientError(arcadiaError);
-      showToast({
-        title: getErrorTitle(arcadiaError.code),
-        description: clientError.message,
-        variant: 'destructive',
-      });
-    }
+      setState(prev => ({
+        ...prev,
+        error: arcadiaError,
+        isLoading: false,
+      }));
 
-    // Log component error
-    logger.error(
-      `Component error in ${component || 'unknown'}`,
-      arcadiaError,
-      logContext
-    );
-  }, [component, feature, state.retryCount, enableToast, showToast]);
+      // Show toast notification if enabled
+      if (enableToast) {
+        const clientError = toClientError(arcadiaError);
+        showToast({
+          title: getErrorTitle(arcadiaError.code),
+          description: clientError.message,
+          variant: 'destructive',
+        });
+      }
+
+      // Log component error
+      logger.error(
+        `Component error in ${component || 'unknown'}`,
+        arcadiaError,
+        logContext
+      );
+    },
+    [component, feature, state.retryCount, enableToast, showToast]
+  );
 
   const retry = useCallback(() => {
     if (!lastFailedAction || !state.error || !isRetryableError(state.error)) {
@@ -123,11 +127,11 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
       return;
     }
 
-    setState(prev => ({ 
-      ...prev, 
-      isLoading: true, 
-      error: null, 
-      retryCount: prev.retryCount + 1 
+    setState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      retryCount: prev.retryCount + 1,
     }));
 
     // Retry with exponential backoff
@@ -138,9 +142,9 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
           setState(prev => ({ ...prev, isLoading: false }));
           setLastFailedAction(null);
         })
-        .catch((error) => {
-          handleErrorInternal(error, { 
-            metadata: { isRetry: true, retryAttempt: state.retryCount + 1 } 
+        .catch(error => {
+          handleErrorInternal(error, {
+            metadata: { isRetry: true, retryAttempt: state.retryCount + 1 },
           });
         });
     }, delay);
@@ -155,34 +159,48 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
     handleErrorInternal,
   ]);
 
-  const executeWithErrorHandling = useCallback(async function<T>(
-    asyncFn: () => Promise<T>,
-    context?: Partial<LogContext>
-  ): Promise<T | null> {
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const result = await asyncFn();
-      
-      setState(prev => ({ ...prev, isLoading: false }));
-      
-      return result;
-    } catch (error) {
-      // Store the failed action for potential retry
-      setLastFailedAction(() => async () => {
-        await asyncFn();
-      });
+  const executeWithErrorHandling = useCallback(
+    async function <T>(
+      asyncFn: () => Promise<T>,
+      context?: Partial<LogContext>
+    ): Promise<T | null> {
+      try {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      handleErrorInternal(error, context);
+        const result = await asyncFn();
 
-      // Auto retry if enabled and error is retryable
-      if (autoRetry && isRetryableError(error) && state.retryCount < maxRetries) {
-        setTimeout(() => retry(), retryDelay);
+        setState(prev => ({ ...prev, isLoading: false }));
+
+        return result;
+      } catch (error) {
+        // Store the failed action for potential retry
+        setLastFailedAction(() => async () => {
+          await asyncFn();
+        });
+
+        handleErrorInternal(error, context);
+
+        // Auto retry if enabled and error is retryable
+        if (
+          autoRetry &&
+          isRetryableError(error) &&
+          state.retryCount < maxRetries
+        ) {
+          setTimeout(() => retry(), retryDelay);
+        }
+
+        return null;
       }
-
-      return null;
-    }
-  }, [autoRetry, maxRetries, retryDelay, state.retryCount, retry, handleErrorInternal]);
+    },
+    [
+      autoRetry,
+      maxRetries,
+      retryDelay,
+      state.retryCount,
+      retry,
+      handleErrorInternal,
+    ]
+  );
 
   return {
     error: state.error,
@@ -190,7 +208,10 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
     retryCount: state.retryCount,
     handleError: handleErrorInternal,
     clearError,
-    retry: (lastFailedAction && state.error && isRetryableError(state.error)) ? retry : null,
+    retry:
+      lastFailedAction && state.error && isRetryableError(state.error)
+        ? retry
+        : null,
     executeWithErrorHandling,
   };
 }
@@ -200,19 +221,22 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
  */
 export function useApiErrorHandler(options: UseErrorHandlerOptions = {}) {
   const errorHandler = useErrorHandler(options);
-  
-  const executeApiCall = useCallback(async function<T>(
-    apiCall: () => Promise<T>,
-    context?: Partial<LogContext>
-  ): Promise<T | null> {
-    return errorHandler.executeWithErrorHandling(apiCall, {
-      ...context,
-      metadata: {
-        ...context?.metadata,
-        apiCall: true,
-      },
-    });
-  }, [errorHandler]);
+
+  const executeApiCall = useCallback(
+    async function <T>(
+      apiCall: () => Promise<T>,
+      context?: Partial<LogContext>
+    ): Promise<T | null> {
+      return errorHandler.executeWithErrorHandling(apiCall, {
+        ...context,
+        metadata: {
+          ...context?.metadata,
+          apiCall: true,
+        },
+      });
+    },
+    [errorHandler]
+  );
 
   return {
     ...errorHandler,
@@ -225,7 +249,7 @@ export function useApiErrorHandler(options: UseErrorHandlerOptions = {}) {
  */
 export function useFormErrorHandler(formName: string) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  
+
   const errorHandler = useErrorHandler({
     component: 'Form',
     feature: formName,
@@ -248,15 +272,22 @@ export function useFormErrorHandler(formName: string) {
     setFieldErrors({});
   }, []);
 
-  const handleFormError = useCallback((error: unknown, field?: string) => {
-    if (isArcadiaError(error) && error.code === ErrorCode.VALIDATION_ERROR && field) {
-      setFieldError(field, error.userMessage);
-    } else {
-      errorHandler.handleError(error, {
-        metadata: { formName, field },
-      });
-    }
-  }, [errorHandler, formName, setFieldError]);
+  const handleFormError = useCallback(
+    (error: unknown, field?: string) => {
+      if (
+        isArcadiaError(error) &&
+        error.code === ErrorCode.VALIDATION_ERROR &&
+        field
+      ) {
+        setFieldError(field, error.userMessage);
+      } else {
+        errorHandler.handleError(error, {
+          metadata: { formName, field },
+        });
+      }
+    },
+    [errorHandler, formName, setFieldError]
+  );
 
   return {
     ...errorHandler,
@@ -339,7 +370,7 @@ export function withErrorBoundary<P extends object>(
           {errorHandler.retry && (
             <button
               onClick={errorHandler.retry}
-              className="bg-cyan-500 text-gray-900 hover:bg-cyan-600 px-4 py-2 rounded"
+              className="rounded bg-cyan-500 px-4 py-2 text-gray-900 hover:bg-cyan-600"
               disabled={errorHandler.isLoading}
             >
               {errorHandler.isLoading ? 'Retrying...' : 'Try Again'}

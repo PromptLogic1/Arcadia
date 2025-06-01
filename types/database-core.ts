@@ -90,7 +90,7 @@ export type SessionStatus =
   | 'completed'
   | 'cancelled';
 
-export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+export type SubmissionStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 export type TagAction =
   | 'created'
@@ -99,11 +99,7 @@ export type TagAction =
   | 'voted'
   | 'reported';
 
-export type TagStatus =
-  | 'active'
-  | 'pending'
-  | 'rejected'
-  | 'archived';
+export type TagStatus = 'active' | 'pending' | 'rejected' | 'archived';
 
 export type TagType =
   | 'category'
@@ -124,33 +120,36 @@ export type VoteType = 'up' | 'down';
 
 export interface BoardCell {
   text: string | null;
-  position_row: number | null;
-  position_col: number | null;
-  tags: string[] | null;
+  colors: string[] | null;
+  completed_by: string[] | null;
+  blocked: boolean | null;
+  is_marked: boolean | null;
+  cell_id: string | null;
+  version: number | null;
+  last_updated: number | null;
+  last_modified_by: string | null;
 }
 
 export interface WinConditions {
-  single_line: boolean | null;
-  full_board: boolean | null;
-  pattern: boolean | null;
-  custom_pattern: Json | null;
+  line: boolean | null;
+  majority: boolean | null;
+  diagonal: boolean | null;
+  corners: boolean | null;
 }
 
 export interface BoardSettings {
-  timer_enabled: boolean | null;
-  timer_duration: number | null;
+  team_mode: boolean | null;
+  lockout: boolean | null;
+  sound_enabled: boolean | null;
   win_conditions: WinConditions | null;
-  visibility: VisibilityType | null;
-  allow_guests: boolean | null;
-  max_players: number | null;
 }
 
 export interface SessionSettings {
-  auto_start: boolean | null;
-  allow_spectators: boolean | null;
-  min_players: number | null;
   max_players: number | null;
+  allow_spectators: boolean | null;
+  auto_start: boolean | null;
   time_limit: number | null;
+  require_approval: boolean | null;
 }
 
 export interface TagCategory {
@@ -247,12 +246,7 @@ export const Constants = {
         'voted',
         'reported',
       ] as const,
-      tag_status: [
-        'active',
-        'pending',
-        'rejected',
-        'archived',
-      ] as const,
+      tag_status: ['active', 'pending', 'rejected', 'archived'] as const,
       tag_type: [
         'category',
         'difficulty',

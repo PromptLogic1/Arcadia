@@ -13,10 +13,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import type { AuthUser, UserData } from '@/lib/stores/types';
 import type { AuthResponse } from '@/lib/stores/auth-store';
-import {
-  createMockAuthUser,
-  mockAuthStates,
-} from './test-utils';
+import { createMockAuthUser, mockAuthStates } from './test-utils';
 
 // Define proper types for mock functions
 interface SignInParams {

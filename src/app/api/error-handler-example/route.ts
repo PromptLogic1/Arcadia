@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server';
-import { 
-  toApiResponse, 
-  ErrorFactory, 
-  withErrorHandling 
+import {
+  toApiResponse,
+  ErrorFactory,
+  withErrorHandling,
 } from '@/lib/error-handler';
 import { createServerComponentClient } from '@/lib/supabase';
 
@@ -16,33 +16,32 @@ export async function GET(request: NextRequest) {
     if (testError === 'validation') {
       throw ErrorFactory.validation('Invalid test parameter');
     }
-    
+
     if (testError === 'unauthorized') {
       throw ErrorFactory.unauthorized('User not authenticated');
     }
-    
+
     if (testError === 'database') {
       throw ErrorFactory.database(new Error('Connection failed'));
     }
-    
+
     if (testError === 'rate-limit') {
       throw ErrorFactory.rateLimit({ apiRoute: 'error-handler-example' });
     }
 
     // Simulate a successful operation
-    return Response.json({ 
+    return Response.json({
       message: 'Error handler test successful',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     return toApiResponse(error, {
-      apiRoute: 'error-handler-example',
-      method: 'GET',
-      metadata: { 
+      component: 'error-handler-example',
+      metadata: {
+        method: 'GET',
         userAgent: request.headers.get('user-agent') || 'unknown',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      }
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
+      },
     });
   }
 }
@@ -50,8 +49,11 @@ export async function GET(request: NextRequest) {
 // Example of using withErrorHandling wrapper
 const protectedHandler = withErrorHandling(async (_request: NextRequest) => {
   const supabase = await createServerComponentClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
   if (error || !user) {
     throw ErrorFactory.unauthorized('Authentication required');
   }

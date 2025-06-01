@@ -3,13 +3,22 @@
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DIFFICULTY_OPTIONS } from '@/types';
 import { default as BoardCard } from './board-card';
 import { CreateBoardForm } from './CreateBoardForm';
 import { NeonText } from '@/components/ui/NeonText';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
-import { Constants as _Constants, type GameCategory as _GameCategory } from '@/types';
+import {
+  Constants as _Constants,
+  type GameCategory as _GameCategory,
+} from '@/types';
 
 export default function BingoBoardsHub() {
   const {
@@ -32,41 +41,41 @@ export default function BingoBoardsHub() {
   return (
     <div className="space-y-6">
       {/* Simple Filter Bar */}
-      <div className="flex flex-wrap gap-4 p-4 bg-card rounded-lg border">
-        <div className="flex-1 min-w-[200px]">
+      <div className="bg-card flex flex-wrap gap-4 rounded-lg border p-4">
+        <div className="min-w-[200px] flex-1">
           <Input
             placeholder="Search boards..."
             value={filterSelections.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
+            onChange={e => handleFilterChange('search', e.target.value)}
           />
         </div>
-        
+
         <Select
           value={filterSelections.difficulty}
-          onValueChange={(value) => handleFilterChange('difficulty', value)}
+          onValueChange={value => handleFilterChange('difficulty', value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Difficulty" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Difficulties</SelectItem>
-            {DIFFICULTY_OPTIONS.map((difficulty) => (
+            {DIFFICULTY_OPTIONS.map(difficulty => (
               <SelectItem key={difficulty.value} value={difficulty.value}>
                 {difficulty.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        
+
         <Select
           value={filterSelections.sort}
-          onValueChange={(value) => handleFilterChange('sort', value)}
+          onValueChange={value => handleFilterChange('sort', value)}
         >
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
-            {sortOptions.map((option) => (
+            {sortOptions.map(option => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

@@ -1,4 +1,4 @@
-import type { Discussion } from './types/types';
+import type { Discussion } from '@/lib/stores/community-store';
 
 export const GAMES = [
   'All Games',
@@ -19,50 +19,41 @@ export type ChallengeType = (typeof CHALLENGE_TYPES)[number];
 
 export const MOCK_DISCUSSIONS: readonly Discussion[] = [
   {
-    id: '1',
+    id: 1,
     title: 'Best strategy for Elden Ring boss',
     content:
       "Looking for tips on defeating Malenia. I've been struggling with her waterfowl dance attack. Any experienced players have advice on timing and positioning?",
     author_id: 'user_1',
-    game_type: 'Elden Ring',
+    game: 'Elden Ring',
     challenge_type: 'Win Challenge',
     upvotes: 45,
     tags: ['boss-fight', 'strategy', 'help'],
-    view_count: 120,
-    is_pinned: false,
-    is_locked: false,
     created_at: '2024-03-15T10:00:00Z',
     updated_at: '2024-03-15T10:00:00Z',
   },
   {
-    id: '2',
+    id: 2,
     title: 'Fortnite Building Meta Discussion',
     content:
       'What are your thoughts on the current building meta? The new update seems to have changed the flow significantly.',
     author_id: 'user_2',
-    game_type: 'Fortnite',
+    game: 'Fortnite',
     challenge_type: 'Speed Run',
     upvotes: 23,
     tags: ['building', 'meta', 'update'],
-    view_count: 78,
-    is_pinned: false,
-    is_locked: false,
     created_at: '2024-03-14T15:30:00Z',
     updated_at: '2024-03-14T15:30:00Z',
   },
   {
-    id: '3',
+    id: 3,
     title: 'WoW Raid Coordination Tips',
     content:
       'Looking for advice on leading raids effectively. How do you manage 20+ people and keep everyone focused?',
     author_id: 'user_3',
-    game_type: 'World of Warcraft',
+    game: 'World of Warcraft',
     challenge_type: 'Bingo Battle',
     upvotes: 67,
     tags: ['raid', 'leadership', 'coordination'],
-    view_count: 234,
-    is_pinned: false,
-    is_locked: false,
     created_at: '2024-03-13T20:15:00Z',
     updated_at: '2024-03-13T20:15:00Z',
   },
@@ -73,7 +64,7 @@ import type { Event as StoreEvent } from '@/lib/stores/community-store';
 // Note: Using store Event type which has different structure
 export const MOCK_EVENTS: StoreEvent[] = [
   {
-    id: '1',
+    id: 1,
     title: 'Fortnite Tournament',
     description:
       'Join our monthly Fortnite tournament with cash prizes! Registration opens March 25th.',
@@ -87,7 +78,7 @@ export const MOCK_EVENTS: StoreEvent[] = [
     updated_at: '2024-03-15T10:00:00Z',
   },
   {
-    id: '2',
+    id: 2,
     title: 'Elden Ring Community Speedrun Event',
     description:
       'Test your speedrunning skills in our weekly community event. All skill levels welcome!',

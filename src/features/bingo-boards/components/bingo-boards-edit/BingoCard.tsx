@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { BingoCard as BingoCardType } from '@/types';
 import { DIFFICULTY_STYLES } from '@/types';
-import { Edit, ChevronDown } from 'lucide-react';
+import { Edit, ChevronDown, GripVertical } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { useDraggable } from '@dnd-kit/core';
 
 interface BingoCardProps {
   card: BingoCardType;
@@ -22,9 +23,30 @@ interface BingoCardProps {
 
 export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: card.id,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
 
   return (
-    <div className="w-full">
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={cn(
+        "w-full transition-opacity duration-200",
+        isDragging && "opacity-50"
+      )}
+    >
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
@@ -40,12 +62,22 @@ export function BingoCardPreview({ card, onSelect, onEdit }: BingoCardProps) {
             )}
           >
             <CardContent className="flex items-center justify-between p-2">
-              <span
-                className="mr-2 flex-1 truncate text-sm text-cyan-300/90"
-                style={{ wordBreak: 'break-word' }}
-              >
-                {card.title}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  {...listeners}
+                  {...attributes}
+                  className="cursor-grab text-gray-400 hover:text-cyan-300 active:cursor-grabbing"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+                <span
+                  className="flex-1 truncate text-sm text-cyan-300/90"
+                  style={{ wordBreak: 'break-word' }}
+                >
+                  {card.title}
+                </span>
+              </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Badge
                   variant="outline"

@@ -98,7 +98,6 @@ export interface TagHistoryEntry extends TagHistory {
 export interface TagReportEntry extends TagReport {
   reporter?: Pick<User, 'id' | 'username'>;
   moderator?: Pick<User, 'id' | 'username'>;
-  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed' | null;
 }
 
 // =============================================================================

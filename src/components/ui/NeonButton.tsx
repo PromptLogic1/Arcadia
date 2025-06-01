@@ -58,8 +58,14 @@ export interface NeonButtonProps
 const NeonButton = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
   ({ children, className, intensity, glow, overlay, ...buttonProps }, ref) => {
     // Map neon glow variants to button glow prop
-    const buttonGlow = glow === 'cyan' || glow === 'fuchsia' || glow === 'rainbow' || glow === 'primary' ? 'intense' : 'normal';
-    
+    const buttonGlow =
+      glow === 'cyan' ||
+      glow === 'fuchsia' ||
+      glow === 'rainbow' ||
+      glow === 'primary'
+        ? 'intense'
+        : 'normal';
+
     return (
       <Button
         ref={ref}

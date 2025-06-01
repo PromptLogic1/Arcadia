@@ -15,11 +15,11 @@ interface WinnerAnnouncementProps {
   onPlayAgain: () => void;
 }
 
-export function WinnerAnnouncement({ 
-  winner, 
-  result, 
-  onClose, 
-  onPlayAgain 
+export function WinnerAnnouncement({
+  winner,
+  result,
+  onClose,
+  onPlayAgain,
 }: WinnerAnnouncementProps) {
   const [show, setShow] = useState(false);
 
@@ -30,47 +30,42 @@ export function WinnerAnnouncement({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div 
-        className={`
-          bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 
-          p-1 rounded-2xl shadow-2xl max-w-md w-full mx-4
-          transition-all duration-500 transform
-          ${show ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}
-        `}
+      <div
+        className={`mx-4 w-full max-w-md transform rounded-2xl bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-1 shadow-2xl transition-all duration-500 ${show ? 'scale-100 opacity-100' : 'scale-90 opacity-0'} `}
       >
-        <div className="bg-gray-900 rounded-xl p-8">
+        <div className="rounded-xl bg-gray-900 p-8">
           <div className="text-center text-white">
             {/* Animated Trophy */}
-            <div className="relative inline-block mb-4">
+            <div className="relative mb-4 inline-block">
               <div className="absolute inset-0 animate-ping">
-                <Trophy className="w-24 h-24 text-yellow-400 opacity-75" />
+                <Trophy className="h-24 w-24 text-yellow-400 opacity-75" />
               </div>
-              <Trophy className="relative w-24 h-24 text-yellow-400 animate-bounce" />
+              <Trophy className="relative h-24 w-24 animate-bounce text-yellow-400" />
             </div>
-            
+
             {/* Winner Text */}
-            <h2 className="text-5xl font-bold mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            <h2 className="mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-5xl font-bold text-transparent">
               BINGO!
             </h2>
-            <p className="text-2xl font-semibold mb-6 flex items-center justify-center gap-2">
-              <Crown className="w-6 h-6 text-yellow-400" />
+            <p className="mb-6 flex items-center justify-center gap-2 text-2xl font-semibold">
+              <Crown className="h-6 w-6 text-yellow-400" />
               {winner.displayName} Wins!
-              <Crown className="w-6 h-6 text-yellow-400" />
+              <Crown className="h-6 w-6 text-yellow-400" />
             </p>
-            
+
             {/* Winning Patterns */}
-            <div className="bg-gray-800 rounded-lg p-4 mb-6">
-              <p className="text-lg font-medium mb-3 text-yellow-400">
+            <div className="mb-6 rounded-lg bg-gray-800 p-4">
+              <p className="mb-3 text-lg font-medium text-yellow-400">
                 Winning Patterns:
               </p>
               <div className="space-y-2">
                 {result.patterns.map((pattern, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center justify-between bg-gray-700 rounded px-3 py-2"
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded bg-gray-700 px-3 py-2"
                   >
                     <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-400" />
+                      <Star className="h-5 w-5 text-yellow-400" />
                       <span className="text-white">{pattern.name}</span>
                     </div>
                     <span className="font-bold text-green-400">
@@ -79,29 +74,25 @@ export function WinnerAnnouncement({
                   </div>
                 ))}
               </div>
-              <div className="mt-3 pt-3 border-t border-gray-600">
+              <div className="mt-3 border-t border-gray-600 pt-3">
                 <div className="flex items-center justify-between">
                   <span className="text-lg text-gray-300">Total Score:</span>
-                  <span className="text-2xl font-bold text-yellow-400 flex items-center gap-1">
-                    <Sparkles className="w-6 h-6" />
+                  <span className="flex items-center gap-1 text-2xl font-bold text-yellow-400">
+                    <Sparkles className="h-6 w-6" />
                     {result.totalPoints}
                   </span>
                 </div>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <Button
-                onClick={onClose}
-                variant="secondary"
-                className="flex-1"
-              >
+              <Button onClick={onClose} variant="secondary" className="flex-1">
                 View Results
               </Button>
               <Button
                 onClick={onPlayAgain}
-                className="flex-1 bg-yellow-500 text-gray-900 hover:bg-yellow-400 font-semibold"
+                className="flex-1 bg-yellow-500 font-semibold text-gray-900 hover:bg-yellow-400"
               >
                 Play Again
               </Button>
