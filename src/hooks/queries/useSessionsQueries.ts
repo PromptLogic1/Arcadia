@@ -9,8 +9,8 @@ import { queryKeys } from './index';
 
 export function useSessionQuery(sessionId?: string) {
   return useQuery({
-    queryKey: queryKeys.sessions.byId(sessionId!),
-    queryFn: () => sessionsService.getSessionById(sessionId!),
+    queryKey: queryKeys.sessions.byId(sessionId || ''),
+    queryFn: () => sessionsService.getSessionById(sessionId || ''),
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds for active session data
   });
@@ -18,8 +18,8 @@ export function useSessionQuery(sessionId?: string) {
 
 export function useSessionByCodeQuery(sessionCode?: string) {
   return useQuery({
-    queryKey: queryKeys.sessions.byCode(sessionCode!),
-    queryFn: () => sessionsService.getSessionByCode(sessionCode!),
+    queryKey: queryKeys.sessions.byCode(sessionCode || ''),
+    queryFn: () => sessionsService.getSessionByCode(sessionCode || ''),
     enabled: !!sessionCode && sessionCode.length === 6, // Only fetch if we have a valid code
     staleTime: 30 * 1000,
   });
@@ -36,8 +36,8 @@ export function useActiveSessionsQuery(filters: SessionFilters = {}, page = 1, l
 
 export function useSessionPlayersQuery(sessionId?: string) {
   return useQuery({
-    queryKey: queryKeys.sessions.players(sessionId!),
-    queryFn: () => sessionsService.getSessionPlayers(sessionId!),
+    queryKey: queryKeys.sessions.players(sessionId || ''),
+    queryFn: () => sessionsService.getSessionPlayers(sessionId || ''),
     enabled: !!sessionId,
     staleTime: 10 * 1000, // 10 seconds for player data
     refetchInterval: 15 * 1000, // Auto-refetch every 15 seconds

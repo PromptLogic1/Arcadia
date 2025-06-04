@@ -53,7 +53,7 @@ export const LoginFormFields = React.forwardRef<
       onFieldBlur,
       loading = false,
       disabled = false,
-      variant = 'default',
+      variant = 'cyber',
       size = 'default',
       className,
       ...props

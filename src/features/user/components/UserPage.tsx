@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { Tables } from '@/types/database-types';
+import type { Tables } from '@/types/database-generated';
 import { USER_PAGE_CONSTANTS } from './constants';
 import { useUserProfileTabs } from '../hooks/useUserProfileTabs';
 import { ProfileHeader } from './ProfileHeader';
@@ -62,23 +62,25 @@ export default function UserPage({ userData }: UserPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Profile Header Section */}
-      <div className="mb-8">
-        <ProfileHeader userData={userData} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-950/95">
+      <div className="container mx-auto px-4 py-8">
+        {/* Profile Header Section */}
+        <div className="mb-8">
+          <ProfileHeader userData={userData} />
+        </div>
+
+        {/* Bio Section - Conditional */}
+        <BioSection userData={userData} />
+
+        {/* Stats Grid Section */}
+        <StatsGrid userData={userData} />
+
+        {/* Tab Navigation */}
+        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Tab Content */}
+        <TabContent activeTab={activeTab} />
       </div>
-
-      {/* Bio Section - Conditional */}
-      <BioSection userData={userData} />
-
-      {/* Stats Grid Section */}
-      <StatsGrid userData={userData} />
-
-      {/* Tab Navigation */}
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Tab Content */}
-      <TabContent activeTab={activeTab} />
     </div>
   );
 }

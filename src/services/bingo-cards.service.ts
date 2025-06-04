@@ -6,7 +6,12 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { BingoCard, GameCategory, DifficultyLevel } from '@/types';
+import type { Tables, Enums } from '@/types/database-generated';
+
+// Use types directly from database-generated (no duplicate exports)
+type BingoCard = Tables<'bingo_cards'>;
+type GameCategory = Enums<'game_category'>;
+type DifficultyLevel = Enums<'difficulty_level'>;
 
 export interface CreateCardData {
   title: string;

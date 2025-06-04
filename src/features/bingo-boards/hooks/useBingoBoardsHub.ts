@@ -1,32 +1,94 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBingoBoards } from './useBingoBoards';
-import { useAuth } from '@/hooks/useAuth';
-import type { CreateBoardFormData, FilterState as BoardFilter } from '../types';
-import { ROUTES } from '@/src/config/routes';
+import { useAuth } from '@/lib/stores/auth-store';
+// Note: Using a type that matches CreateBoardForm's expected props exactly
+type CreateBoardFormData = {
+  board_title: string;
+  board_description: string;
+  board_size: number;
+  board_game_type?: GameCategory; // Making optional to match the form's expectation
+  board_difficulty: DifficultyLevel;
+  is_public: boolean;
+  board_tags: string[];
+};
+import type { BoardFilters } from '../../../services/bingo-boards.service';
+import type { GameCategory, DifficultyLevel } from '@/types';
+import { ROUTES as _ROUTES } from '@/src/config/routes';
 import { log } from '@/lib/logger';
+
+// Legacy filter interface for backwards compatibility
+export interface LegacyFilterState {
+  category: string;
+  difficulty: string;
+  sort: string;
+  search: string;
+}
 
 // Hub hook for board management and filtering
 export function useBingoBoardsHub() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { boards } = useBingoBoards();
+  
+  // Use the modern hook pattern
+  const {
+    boards,
+    totalCount,
+    hasMore,
+    isLoading,
+    isFetching,
+    error,
+    currentSection,
+    filters,
+    currentPage,
+    switchToSection,
+    updateFilters,
+    createBoard,
+    isCreating,
+    goToNextPage,
+    goToPreviousPage,
+  } = useBingoBoards();
 
+  // UI state for the create form
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
-  const [filterSelections, setFilterSelections] = useState<BoardFilter>({
+
+  // Legacy filter state for backwards compatibility with existing components
+  const [legacyFilterSelections, setLegacyFilterSelections] = useState<LegacyFilterState>({
     category: 'All Games',
     difficulty: 'all',
     sort: 'newest',
     search: '',
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
+  // Handle legacy filter changes and translate to modern filters
   const handleFilterChange = useCallback(
-    (type: keyof BoardFilter, value: string) => {
-      setFilterSelections(prev => ({ ...prev, [type]: value }));
+    (type: keyof LegacyFilterState, value: string) => {
+      const newLegacyFilters = { ...legacyFilterSelections, [type]: value };
+      setLegacyFilterSelections(newLegacyFilters);
+
+      // Translate legacy filters to modern filter format
+      const modernFilters: Partial<BoardFilters> = {};
+
+      if (newLegacyFilters.category && newLegacyFilters.category !== 'All Games') {
+        modernFilters.gameType = newLegacyFilters.category as GameCategory;
+      }
+
+      if (newLegacyFilters.difficulty && newLegacyFilters.difficulty !== 'all') {
+        modernFilters.difficulty = newLegacyFilters.difficulty as DifficultyLevel;
+      }
+
+      if (newLegacyFilters.search) {
+        modernFilters.search = newLegacyFilters.search;
+      }
+
+      if (newLegacyFilters.sort) {
+        modernFilters.sortBy = newLegacyFilters.sort as 'newest' | 'oldest' | 'popular' | 'difficulty';
+      }
+
+      // Update the modern filters
+      updateFilters(modernFilters);
     },
-    []
+    [legacyFilterSelections, updateFilters]
   );
 
   const handleCreateBoard = useCallback(
@@ -36,105 +98,71 @@ export function useBingoBoardsHub() {
         return;
       }
 
-      setLoading(true);
-      setError(null);
       log.info('Board creation requested', {
         metadata: { hook: 'useBingoBoardsHub', formData },
       });
+
       try {
-        // TODO: Implement board creation through proper API
-        setIsCreateFormOpen(false);
-        // Temporary: redirect to board edit page
-        // router.push(`/challenge-hub/${newBoard.id}`)
-        setLoading(false);
+        // Map form data to service format
+        const createData = {
+          title: formData.board_title,
+          description: formData.board_description || '',
+          game_type: formData.board_game_type || 'World of Warcraft' as GameCategory,
+          difficulty: formData.board_difficulty,
+          size: formData.board_size,
+          tags: formData.board_tags,
+          is_public: formData.is_public,
+        };
+
+        const result = await createBoard(createData);
+        
+        if (result.board) {
+          setIsCreateFormOpen(false);
+          // Navigate to the new board for editing
+          router.push(`/challenge-hub/${result.board.id}`);
+        }
       } catch (error) {
         log.error('Failed to create board', error as Error, {
           metadata: { hook: 'useBingoBoardsHub', formData },
         });
-        setError(error as Error);
-        setLoading(false);
       }
     },
-    [isAuthenticated, router]
+    [isAuthenticated, router, createBoard]
   );
 
+  // Helper function to get filtered boards (now handled by server)
   const filteredAndSortedBoards = useCallback(() => {
-    if (!boards) return [];
-
-    // Filter boards
-    const filtered = boards.filter(board => {
-      if (
-        filterSelections.category !== 'All Games' &&
-        board.game_type !== filterSelections.category
-      ) {
-        return false;
-      }
-      if (
-        filterSelections.difficulty !== 'all' &&
-        board.difficulty !== filterSelections.difficulty
-      ) {
-        return false;
-      }
-      if (filterSelections.search) {
-        const searchTerm = filterSelections.search.toLowerCase();
-        const searchableContent = [
-          board.title,
-          board.description,
-          board.game_type,
-          board.difficulty,
-          String(board.size || 0),
-          String(board.votes || 0),
-        ].map(item => (item || '').toLowerCase());
-        return searchableContent.some(content => content.includes(searchTerm));
-      }
-      return true;
-    });
-
-    // Sort filtered boards
-    return [...filtered].sort((a, b) => {
-      switch (filterSelections.sort) {
-        case 'oldest':
-          return (
-            new Date(a.created_at || 0).getTime() -
-            new Date(b.created_at || 0).getTime()
-          );
-        case 'popular':
-          return (b.votes || 0) - (a.votes || 0);
-        case 'difficulty':
-          const difficultyOrder = {
-            beginner: 1,
-            easy: 2,
-            medium: 3,
-            hard: 4,
-            expert: 5,
-          };
-          return (
-            (difficultyOrder[a.difficulty] || 0) -
-            (difficultyOrder[b.difficulty] || 0)
-          );
-        case 'newest':
-        default:
-          return (
-            new Date(b.created_at || 0).getTime() -
-            new Date(a.created_at || 0).getTime()
-          );
-      }
-    });
-  }, [boards, filterSelections]);
-
-  const handleBoardSelect = (boardId: string) => {
-    router.push(`${ROUTES.CHALLENGE_HUB}/${boardId}/edit`);
-  };
+    // With the new pattern, filtering and sorting is handled by the server
+    // This function is kept for backwards compatibility but just returns the boards
+    return boards;
+  }, [boards]);
 
   return {
+    // Server state (from TanStack Query)
     boards: filteredAndSortedBoards(),
+    totalCount,
+    hasMore,
+    isLoading,
+    isFetching,
+    error,
+
+    // UI state
     isCreateFormOpen,
-    filterSelections,
+    filterSelections: legacyFilterSelections,
+    loading: isCreating, // Legacy loading state
+    currentPage,
+    currentSection,
+
+    // Actions
+    setIsCreateFormOpen,
     handleFilterChange,
     handleCreateBoard,
-    setIsCreateFormOpen,
-    handleBoardSelect,
-    loading,
-    error,
+    switchToSection,
+    goToNextPage,
+    goToPreviousPage,
+
+    // Modern filter access
+    modernFilters: filters,
+    updateModernFilters: updateFilters,
   };
 }

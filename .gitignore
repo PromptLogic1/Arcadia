@@ -85,4 +85,12 @@ public/images/placeholder*.jpg
 public/images/placeholder*.svg
 public/placeholder*.svg
 
+# Screenshots and temporary images
+public/images/Screenshot*.png
+public/images/screenshot*.png
+public/images/temp*.png
+
+# Development logs
+logs/
+
 .vercel

@@ -10,7 +10,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Gauge } from 'lucide-react';
-import { type DifficultyLevel, Constants } from '@/types/database-core';
+import type { Difficulty as _Difficulty } from '@/types';
+import type { Enums } from '@/types/database-generated';
+
+// Type alias for clean usage
+type DifficultyLevel = Enums<'difficulty_level'>;
+
+// Create constants from enum types
+const Constants = {
+  public: {
+    Enums: {
+      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+    }
+  }
+} as const;
 
 interface DifficultySelectorProps {
   difficulty: DifficultyLevel;

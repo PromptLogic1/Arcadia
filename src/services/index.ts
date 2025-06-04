@@ -6,11 +6,43 @@
  * They don't manage state - that's handled by Zustand stores.
  */
 
-export * from './auth.service';
-export * from './bingo-cards.service';
-export * from './bingo-boards.service';
-export * from './sessions.service';
-export * from './community.service';
+// Re-export database-generated types as the single source of truth for services
+export type {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  CompositeTypes,
+} from '@/types/database-generated';
+
+// Import for type aliases
+import type { Tables, Enums } from '@/types/database-generated';
+
+// Re-export common database table types
+export type BingoBoard = Tables<'bingo_boards'>;
+export type BingoCard = Tables<'bingo_cards'>;
+export type BingoSession = Tables<'bingo_sessions'>;
+export type BingoSessionPlayer = Tables<'bingo_session_players'>;
+export type GameCategory = Enums<'game_category'>;
+export type DifficultyLevel = Enums<'difficulty_level'>;
+export type SessionStatus = Enums<'session_status'>;
+export type QueueStatus = Enums<'queue_status'>;
+
+// Export service functions (not types) from individual services
+export { authService } from './auth.service';
+export { bingoCardsService } from './bingo-cards.service';
+export { bingoBoardsService } from './bingo-boards.service';
+export { bingoBoardEditService } from './bingo-board-edit.service';
+export { sessionsService } from './sessions.service';
+export { communityService } from './community.service';
+export { gameStateService } from './game-state.service';
+export { presenceService } from './presence.service';
+export { sessionStateService } from './session-state.service';
+export { queueService } from './queue.service';
+export { cardLibraryService } from './card-library.service';
+export { sessionJoinService } from './session-join.service';
+export { sessionQueueService } from './session-queue.service';
+export { settingsService } from './settings.service';
 
 // Common types used across services
 export interface ServiceResponse<T> {

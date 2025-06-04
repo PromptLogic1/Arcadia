@@ -1,180 +1,165 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
-import type { BingoBoard, GameCategory, DifficultyLevel } from './types';
 import { useShallow } from 'zustand/shallow';
+import type { BoardSection, BoardFilters } from '../../services/bingo-boards.service';
 
-interface BingoBoardsState {
-  // State
-  boards: BingoBoard[];
-  currentBoard: BingoBoard | null;
-  userBoards: BingoBoard[];
-  publicBoards: BingoBoard[];
-  loading: boolean;
-  error: string | null;
-  filters: {
-    gameType: GameCategory | null;
-    difficulty: DifficultyLevel | null;
-    tags: string[];
-    searchTerm: string;
-  };
-
-  // Actions
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  setBoards: (boards: BingoBoard[]) => void;
-  setCurrentBoard: (board: BingoBoard | null) => void;
-  setUserBoards: (boards: BingoBoard[]) => void;
-  setPublicBoards: (boards: BingoBoard[]) => void;
-  addBoard: (board: BingoBoard) => void;
-  updateBoard: (id: string, updates: Partial<BingoBoard>) => void;
-  removeBoard: (id: string) => void;
-  setFilters: (filters: Partial<BingoBoardsState['filters']>) => void;
-  clearFilters: () => void;
+// UI State Only - No Server Data!
+interface BingoBoardsUIState {
+  // Current UI state
+  currentSection: BoardSection;
+  currentPage: number;
+  
+  // Filters (UI state only)
+  filters: BoardFilters;
+  
+  // UI interaction state
+  selectedBoardId: string | null;
+  showCreateDialog: boolean;
+  showDeleteDialog: boolean;
+  showCloneDialog: boolean;
+  
+  // Grid layout preferences
+  viewMode: 'grid' | 'list';
+  itemsPerPage: number;
 }
+
+interface BingoBoardsUIActions {
+  // Section navigation
+  setCurrentSection: (section: BoardSection) => void;
+  setCurrentPage: (page: number) => void;
+  
+  // Filter management
+  setFilters: (filters: Partial<BoardFilters>) => void;
+  clearFilters: () => void;
+  resetFiltersToDefault: () => void;
+  
+  // UI interactions
+  setSelectedBoardId: (id: string | null) => void;
+  setShowCreateDialog: (show: boolean) => void;
+  setShowDeleteDialog: (show: boolean) => void;
+  setShowCloneDialog: (show: boolean) => void;
+  
+  // View preferences
+  setViewMode: (mode: 'grid' | 'list') => void;
+  setItemsPerPage: (count: number) => void;
+  
+  // Combined actions
+  resetToDefaults: () => void;
+}
+
+type BingoBoardsState = BingoBoardsUIState & BingoBoardsUIActions;
+
+const DEFAULT_FILTERS: BoardFilters = {
+  gameType: undefined,
+  difficulty: 'all',
+  search: '',
+  sortBy: 'newest',
+};
+
+const DEFAULT_STATE: BingoBoardsUIState = {
+  currentSection: 'all',
+  currentPage: 1,
+  filters: DEFAULT_FILTERS,
+  selectedBoardId: null,
+  showCreateDialog: false,
+  showDeleteDialog: false,
+  showCloneDialog: false,
+  viewMode: 'grid',
+  itemsPerPage: 12,
+};
 
 export const useBingoBoardsStore = createWithEqualityFn<BingoBoardsState>()(
   devtools(
-    (set, get) => ({
+    (set, _get) => ({
       // Initial state
-      boards: [],
-      currentBoard: null,
-      userBoards: [],
-      publicBoards: [],
-      loading: false,
-      error: null,
-      filters: {
-        gameType: null,
-        difficulty: null,
-        tags: [],
-        searchTerm: '',
-      },
+      ...DEFAULT_STATE,
 
-      // Actions
-      setLoading: loading => set({ loading }, false, 'bingoBoards/setLoading'),
+      // Section navigation
+      setCurrentSection: (section) => 
+        set({ currentSection: section, currentPage: 1 }), // Reset page when changing section
+      
+      setCurrentPage: (page) => 
+        set({ currentPage: page }),
 
-      setError: error => set({ error }, false, 'bingoBoards/setError'),
+      // Filter management
+      setFilters: (newFilters) => 
+        set((state) => ({ 
+          filters: { ...state.filters, ...newFilters },
+          currentPage: 1, // Reset page when filters change
+        })),
 
-      setBoards: boards =>
-        set({ boards, error: null }, false, 'bingoBoards/setBoards'),
+      clearFilters: () => 
+        set({ 
+          filters: { ...DEFAULT_FILTERS },
+          currentPage: 1,
+        }),
 
-      setCurrentBoard: currentBoard =>
-        set({ currentBoard }, false, 'bingoBoards/setCurrentBoard'),
+      resetFiltersToDefault: () => 
+        set({ 
+          filters: { ...DEFAULT_FILTERS },
+          currentPage: 1,
+        }),
 
-      setUserBoards: userBoards =>
-        set({ userBoards }, false, 'bingoBoards/setUserBoards'),
+      // UI interactions
+      setSelectedBoardId: (id) => 
+        set({ selectedBoardId: id }),
 
-      setPublicBoards: publicBoards =>
-        set({ publicBoards }, false, 'bingoBoards/setPublicBoards'),
+      setShowCreateDialog: (show) => 
+        set({ showCreateDialog: show }),
 
-      addBoard: board => {
-        const { boards, userBoards } = get();
-        set(
-          {
-            boards: [...boards, board],
-            userBoards: [...userBoards, board],
-          },
-          false,
-          'bingoBoards/addBoard'
-        );
-      },
+      setShowDeleteDialog: (show) => 
+        set({ showDeleteDialog: show }),
 
-      updateBoard: (id, updates) => {
-        const { boards, userBoards, publicBoards, currentBoard } = get();
+      setShowCloneDialog: (show) => 
+        set({ showCloneDialog: show }),
 
-        const updateBoards = (boardList: BingoBoard[]) =>
-          boardList.map(board =>
-            board.id === id ? { ...board, ...updates } : board
-          );
+      // View preferences
+      setViewMode: (mode) => 
+        set({ viewMode: mode }),
 
-        set(
-          {
-            boards: updateBoards(boards),
-            userBoards: updateBoards(userBoards),
-            publicBoards: updateBoards(publicBoards),
-            currentBoard:
-              currentBoard?.id === id
-                ? { ...currentBoard, ...updates }
-                : currentBoard,
-          },
-          false,
-          'bingoBoards/updateBoard'
-        );
-      },
+      setItemsPerPage: (count) => 
+        set({ itemsPerPage: count, currentPage: 1 }), // Reset page when changing items per page
 
-      removeBoard: id => {
-        const { boards, userBoards, publicBoards, currentBoard } = get();
-
-        const filterBoards = (boardList: BingoBoard[]) =>
-          boardList.filter(board => board.id !== id);
-
-        set(
-          {
-            boards: filterBoards(boards),
-            userBoards: filterBoards(userBoards),
-            publicBoards: filterBoards(publicBoards),
-            currentBoard: currentBoard?.id === id ? null : currentBoard,
-          },
-          false,
-          'bingoBoards/removeBoard'
-        );
-      },
-
-      setFilters: newFilters => {
-        const { filters } = get();
-        set(
-          { filters: { ...filters, ...newFilters } },
-          false,
-          'bingoBoards/setFilters'
-        );
-      },
-
-      clearFilters: () =>
-        set(
-          {
-            filters: {
-              gameType: null,
-              difficulty: null,
-              tags: [],
-              searchTerm: '',
-            },
-          },
-          false,
-          'bingoBoards/clearFilters'
-        ),
+      // Combined actions
+      resetToDefaults: () => 
+        set({ ...DEFAULT_STATE }),
     }),
     {
-      name: 'bingo-boards-store',
+      name: 'bingo-boards-ui-store',
     }
   )
 );
 
-// Selectors
-export const useBingoBoards = () =>
-  useBingoBoardsStore(
-    useShallow(state => ({
-      boards: state.boards,
-      currentBoard: state.currentBoard,
-      userBoards: state.userBoards,
-      publicBoards: state.publicBoards,
-      loading: state.loading,
-      error: state.error,
-      filters: state.filters,
-    }))
-  );
+// Selector hooks for performance
+export const useBingoBoardsState = () => 
+  useBingoBoardsStore(useShallow((state) => ({
+    currentSection: state.currentSection,
+    currentPage: state.currentPage,
+    filters: state.filters,
+    selectedBoardId: state.selectedBoardId,
+    viewMode: state.viewMode,
+    itemsPerPage: state.itemsPerPage,
+  })));
 
-export const useBingoBoardsActions = () =>
-  useBingoBoardsStore(
-    useShallow(state => ({
-      setLoading: state.setLoading,
-      setError: state.setError,
-      setBoards: state.setBoards,
-      setCurrentBoard: state.setCurrentBoard,
-      setUserBoards: state.setUserBoards,
-      setPublicBoards: state.setPublicBoards,
-      addBoard: state.addBoard,
-      updateBoard: state.updateBoard,
-      removeBoard: state.removeBoard,
-      setFilters: state.setFilters,
-      clearFilters: state.clearFilters,
-    }))
-  );
+export const useBingoBoardsDialogs = () => 
+  useBingoBoardsStore(useShallow((state) => ({
+    showCreateDialog: state.showCreateDialog,
+    showDeleteDialog: state.showDeleteDialog,
+    showCloneDialog: state.showCloneDialog,
+  })));
+
+export const useBingoBoardsActions = () => 
+  useBingoBoardsStore(useShallow((state) => ({
+    setCurrentSection: state.setCurrentSection,
+    setCurrentPage: state.setCurrentPage,
+    setFilters: state.setFilters,
+    clearFilters: state.clearFilters,
+    resetFiltersToDefault: state.resetFiltersToDefault,
+    setSelectedBoardId: state.setSelectedBoardId,
+    setShowCreateDialog: state.setShowCreateDialog,
+    setShowDeleteDialog: state.setShowDeleteDialog,
+    setShowCloneDialog: state.setShowCloneDialog,
+    setViewMode: state.setViewMode,
+    setItemsPerPage: state.setItemsPerPage,
+    resetToDefaults: state.resetToDefaults,
+  })));

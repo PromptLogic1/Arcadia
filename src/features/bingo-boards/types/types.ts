@@ -9,9 +9,9 @@ export * from './index';
 // Specific re-exports for common patterns
 export type {
   BoardCell,
-  Player,
+  GamePlayer,
   BingoBoard,
-  BingoSession,
+  BingoBoardSession,
   BingoCard,
   GameState,
   GameEvent,
@@ -33,4 +33,4 @@ export type {
 } from './index';
 
 // Game and Game-related types alias for backward compatibility
-export type { BingoSession as Game } from './index';
+export type { BingoBoardSession as Game } from './index';

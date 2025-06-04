@@ -101,7 +101,7 @@ export const LoginForm = React.forwardRef<HTMLDivElement, LoginFormProps>(
       enablePersistence = true,
 
       // Appearance
-      variant = 'default',
+      variant = 'cyber',
       size = 'default',
 
       // Content customization

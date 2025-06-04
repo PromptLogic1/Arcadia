@@ -5,7 +5,11 @@
 
 import type { BingoCard, GameCategory } from '@/types';
 
-export interface TemplateCard extends Omit<BingoCard, 'id' | 'creator_id' | 'created_at' | 'updated_at' | 'votes'> {
+export interface TemplateCard
+  extends Omit<
+    BingoCard,
+    'id' | 'creator_id' | 'created_at' | 'updated_at' | 'votes'
+  > {
   isTemplate: true;
   templateCategory: 'beginner' | 'common' | 'advanced' | 'expert';
 }
@@ -26,7 +30,7 @@ const AVAILABLE_TEMPLATES: Partial<Record<GameCategory, TemplateCard[]>> = {
     },
     {
       title: 'Visit Stormwind/Orgrimmar',
-      description: 'Visit your faction\'s capital city',
+      description: "Visit your faction's capital city",
       difficulty: 'easy',
       game_type: 'World of Warcraft',
       tags: ['exploration', 'cities'],
@@ -75,8 +79,8 @@ const AVAILABLE_TEMPLATES: Partial<Record<GameCategory, TemplateCard[]>> = {
       templateCategory: 'advanced',
     },
   ],
-  
-  'Fortnite': [
+
+  Fortnite: [
     {
       title: 'Victory Royale',
       description: 'Win a Battle Royale match',
@@ -138,8 +142,8 @@ const AVAILABLE_TEMPLATES: Partial<Record<GameCategory, TemplateCard[]>> = {
       templateCategory: 'common',
     },
   ],
-  
-  'Minecraft': [
+
+  Minecraft: [
     {
       title: 'Build a House',
       description: 'Construct your first shelter with a door and bed',
@@ -253,24 +257,29 @@ const GENERIC_TEMPLATES: TemplateCard[] = [
  * Get template cards for a specific game type
  * Falls back to generic templates if game-specific ones aren't available
  */
-export function getTemplateCards(gameType: GameCategory, count: number): TemplateCard[] {
+export function getTemplateCards(
+  gameType: GameCategory,
+  count: number
+): TemplateCard[] {
   const gameTemplates = AVAILABLE_TEMPLATES[gameType] || [];
   const allTemplates = [...gameTemplates];
-  
+
   // Add generic templates that can work for any game
   if (gameType !== 'All Games') {
-    allTemplates.push(...GENERIC_TEMPLATES.map(template => ({
-      ...template,
-      game_type: gameType,
-    })));
+    allTemplates.push(
+      ...GENERIC_TEMPLATES.map(template => ({
+        ...template,
+        game_type: gameType,
+      }))
+    );
   } else {
     allTemplates.push(...GENERIC_TEMPLATES);
   }
-  
+
   // Shuffle and return requested count
   const shuffled = [...allTemplates].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, count);
-  
+
   // If we don't have enough templates, create empty slots
   while (selected.length < count) {
     selected.push({
@@ -284,14 +293,17 @@ export function getTemplateCards(gameType: GameCategory, count: number): Templat
       templateCategory: 'common',
     });
   }
-  
+
   return selected;
 }
 
 /**
  * Convert a template card to a BingoCard
  */
-export function templateToBingoCard(template: TemplateCard, creatorId: string): BingoCard {
+export function templateToBingoCard(
+  template: TemplateCard,
+  creatorId: string
+): BingoCard {
   return {
     id: '', // Will be assigned by database
     title: template.title,
@@ -310,27 +322,30 @@ export function templateToBingoCard(template: TemplateCard, creatorId: string): 
 /**
  * Get a diverse set of templates ensuring good difficulty distribution
  */
-export function getDiverseTemplates(gameType: GameCategory, count: number): TemplateCard[] {
+export function getDiverseTemplates(
+  gameType: GameCategory,
+  count: number
+): TemplateCard[] {
   const templates = getTemplateCards(gameType, count * 2); // Get more than needed
-  
+
   // Group by difficulty
   const byDifficulty: Record<string, TemplateCard[]> = {
     easy: [],
     medium: [],
     hard: [],
   };
-  
+
   templates.forEach(template => {
     const difficultyList = byDifficulty[template.difficulty];
     if (template.title && difficultyList) {
       difficultyList.push(template);
     }
   });
-  
+
   // Try to get balanced distribution
   const result: TemplateCard[] = [];
   const targetPerDifficulty = Math.ceil(count / 3);
-  
+
   ['easy', 'medium', 'hard'].forEach(difficulty => {
     const cards = byDifficulty[difficulty];
     if (cards) {
@@ -338,13 +353,13 @@ export function getDiverseTemplates(gameType: GameCategory, count: number): Temp
       result.push(...cards.slice(0, toTake));
     }
   });
-  
+
   // Fill remaining slots with any available templates
   if (result.length < count) {
     const remaining = templates.filter(t => !result.includes(t) && t.title);
     result.push(...remaining.slice(0, count - result.length));
   }
-  
+
   // Add empty slots if needed
   while (result.length < count) {
     result.push({
@@ -358,6 +373,6 @@ export function getDiverseTemplates(gameType: GameCategory, count: number): Temp
       templateCategory: 'common',
     });
   }
-  
+
   return result.slice(0, count);
 }

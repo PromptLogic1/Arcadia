@@ -48,7 +48,7 @@ const signUpFormVariants = cva(SIGNUP_STYLES.CONTAINER, {
     },
   },
   defaultVariants: {
-    variant: 'default',
+    variant: 'cyber',
     size: 'default',
     state: 'idle',
   },

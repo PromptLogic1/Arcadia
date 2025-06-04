@@ -1,6 +1,6 @@
 /**
  * Unified Design System for Bingo Board Components
- * 
+ *
  * This file centralizes all design tokens, styles, and UI constants
  * to ensure visual consistency across all bingo board components.
  */
@@ -18,7 +18,7 @@ export const colors = {
     purple: 'purple-500',
     fuchsia: 'fuchsia-500',
   },
-  
+
   // Semantic colors
   semantic: {
     success: 'green-500',
@@ -26,7 +26,7 @@ export const colors = {
     error: 'red-500',
     info: 'blue-500',
   },
-  
+
   // Difficulty colors (matching database enum)
   difficulty: {
     beginner: 'green-400',
@@ -35,7 +35,7 @@ export const colors = {
     hard: 'orange-500',
     expert: 'red-500',
   },
-  
+
   // Background layers
   background: {
     card: 'bg-gray-800/50 backdrop-blur-sm',
@@ -44,7 +44,7 @@ export const colors = {
     overlay: 'bg-gray-900/50 backdrop-blur-sm',
     interactive: 'bg-gray-800/30',
   },
-  
+
   // Border colors
   border: {
     default: 'border-gray-700/50',
@@ -63,7 +63,7 @@ export const spacing = {
   // Component spacing
   cardGap: 'gap-3',
   sectionGap: 'gap-6',
-  
+
   // Padding scales
   padding: {
     xs: 'p-2',
@@ -71,7 +71,7 @@ export const spacing = {
     md: 'p-4',
     lg: 'p-6',
   },
-  
+
   // Margins
   margin: {
     xs: 'm-2',
@@ -88,14 +88,14 @@ export const layout = {
     minWidth: 'min-w-[320px]',
     maxWidth: 'max-w-[320px]',
   },
-  
+
   // Grid dimensions
   grid: {
     cardSize: 'w-44 h-44', // 176px × 176px
     gap: 'gap-3',
     maxWidth: 'max-w-4xl',
   },
-  
+
   // Responsive breakpoints
   breakpoints: {
     sm: '640px',
@@ -117,14 +117,14 @@ export const typography = {
     h3: 'text-lg font-medium',
     h4: 'text-base font-medium',
   },
-  
+
   // Body text
   body: {
     large: 'text-base',
     normal: 'text-sm',
     small: 'text-xs',
   },
-  
+
   // Special text
   label: 'text-xs font-medium uppercase tracking-wider',
   caption: 'text-xs text-gray-400',
@@ -142,14 +142,14 @@ export const animations = {
     fast: 'transition-all duration-150',
     slow: 'transition-all duration-300',
   },
-  
+
   // Transform animations
   transform: {
     scaleHover: 'hover:scale-[1.02]',
     scaleDrag: 'active:scale-95',
     rotate180: 'rotate-180',
   },
-  
+
   // Specific animations
   pulse: 'animate-pulse',
   bounce: 'animate-bounce',
@@ -163,10 +163,9 @@ export const animations = {
 
 // Card variants
 export const cardVariants = cva(
-  [
-    'rounded-lg border backdrop-blur-sm',
-    'transition-all duration-200',
-  ].join(' '),
+  ['rounded-lg border backdrop-blur-sm', 'transition-all duration-200'].join(
+    ' '
+  ),
   {
     variants: {
       variant: {
@@ -210,7 +209,8 @@ export const cardVariants = cva(
       state: {
         default: '',
         dragging: 'opacity-50 scale-95',
-        dragOver: 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/20',
+        dragOver:
+          'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/20',
         disabled: 'opacity-50 cursor-not-allowed',
         empty: 'border-2 border-dashed border-gray-600/40 bg-gray-800/20',
       },
@@ -315,8 +315,11 @@ export function getDifficultyStyles(difficulty: string) {
     hard: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
     expert: 'bg-red-500/20 text-red-300 border-red-500/30',
   };
-  
-  return difficultyMap[difficulty as keyof typeof difficultyMap] || difficultyMap.medium;
+
+  return (
+    difficultyMap[difficulty as keyof typeof difficultyMap] ||
+    difficultyMap.medium
+  );
 }
 
 /**
@@ -327,7 +330,7 @@ export function getGradientText(variant: 'primary' | 'secondary' = 'primary') {
     primary: 'bg-gradient-to-r from-cyan-400 to-purple-500',
     secondary: 'bg-gradient-to-r from-purple-400 to-fuchsia-500',
   };
-  
+
   return `${gradients[variant]} bg-clip-text text-transparent`;
 }
 
@@ -349,7 +352,7 @@ export const componentStyles = {
     ].join(' '),
     content: 'mt-4',
   },
-  
+
   // Dialog styles
   dialog: {
     overlay: 'bg-black/80 backdrop-blur-sm',
@@ -360,7 +363,7 @@ export const componentStyles = {
       'shadow-xl shadow-cyan-500/10',
     ].join(' '),
   },
-  
+
   // Input styles
   input: {
     base: [
@@ -375,12 +378,15 @@ export const componentStyles = {
       'transition-colors duration-200',
     ].join(' '),
   },
-  
+
   // Grid cell styles
   gridCell: {
-    empty: 'border-2 border-dashed border-gray-600/40 bg-gray-800/20 hover:border-gray-500/60 hover:bg-gray-800/40',
-    template: 'border border-blue-400/30 bg-gradient-to-br from-blue-900/20 to-blue-800/10',
-    custom: 'border border-cyan-500/30 bg-gradient-to-br from-cyan-900/20 to-cyan-800/10',
+    empty:
+      'border-2 border-dashed border-gray-600/40 bg-gray-800/20 hover:border-gray-500/60 hover:bg-gray-800/40',
+    template:
+      'border border-blue-400/30 bg-gradient-to-br from-blue-900/20 to-blue-800/10',
+    custom:
+      'border border-cyan-500/30 bg-gradient-to-br from-cyan-900/20 to-cyan-800/10',
   },
 } as const;
 

@@ -1,211 +1,231 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
-import { Card } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { PLAYER_COLORS, PLAYER_CONSTANTS } from '@/features/bingo-boards/types';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { useSessionJoinModern } from '@/features/play-area/hooks/useSessionJoinModern';
+import { Users, Crown, Gamepad2, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-interface SessionDetails {
-  teamMode: boolean;
-  currentPlayers: number;
-  settings: {
-    teamMode: boolean;
-  };
+interface ColorOption {
+  color: string;
+  name: string;
 }
 
-export default function JoinSession({
+const PLAYER_COLORS: ColorOption[] = [
+  { color: '#06b6d4', name: 'Cyan' },
+  { color: '#8b5cf6', name: 'Purple' },
+  { color: '#ec4899', name: 'Pink' },
+  { color: '#10b981', name: 'Green' },
+  { color: '#f59e0b', name: 'Orange' },
+  { color: '#ef4444', name: 'Red' },
+  { color: '#eab308', name: 'Yellow' },
+  { color: '#6366f1', name: 'Indigo' },
+  { color: '#14b8a6', name: 'Teal' },
+  { color: '#f43f5e', name: 'Rose' },
+  { color: '#84cc16', name: 'Lime' },
+  { color: '#0ea5e9', name: 'Sky' },
+];
+
+export default function JoinSessionModern({
   params,
 }: {
   params: { sessionId: string };
 }) {
-  const router = useRouter();
-  const [playerName, setPlayerName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(
-    PLAYER_COLORS[0]?.color || '#06b6d4'
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(
-    null
-  );
+  const {
+    // Server state
+    sessionDetails,
+    availableColors,
+    
+    // UI state
+    playerName,
+    selectedColor,
+    isFormValid,
+    
+    // Loading states
+    isLoading,
+    isJoining,
+    hasError,
+    errorMessage,
+    
+    // Derived state
+    canJoin,
+    currentPlayerCount,
+    maxPlayers,
+    sessionTitle,
+    gameType,
+    difficulty,
+    
+    // Actions
+    setPlayerName,
+    setSelectedColor,
+    handleJoinSession,
+  } = useSessionJoinModern({ sessionId: params.sessionId });
 
-  const supabase = createClient();
-
-  // Check authentication and session details on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        router.push(`/auth/login?redirect=/join/${params.sessionId}`);
-        return;
-      }
-
-      // Fetch session details
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('bingo_sessions')
-        .select(
-          `
-          *,
-          bingo_boards!inner(settings)
-        `
-        )
-        .eq('id', params.sessionId)
-        .single();
-
-      if (sessionError || !sessionData) {
-        setError('Session not found');
-        return;
-      }
-
-      if (sessionData.status !== 'active') {
-        setError('This session is no longer active');
-        return;
-      }
-
-      // Get player count separately
-      const { count: playerCount } = await supabase
-        .from('bingo_session_players')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', params.sessionId);
-
-      const boardSettings = sessionData.bingo_boards?.settings;
-      const teamMode = boardSettings?.team_mode ?? false;
-
-      setSessionDetails({
-        teamMode,
-        currentPlayers: playerCount ?? 0,
-        settings: {
-          teamMode,
-        },
-      });
-    };
-    checkAuth();
-  }, [supabase, router, params.sessionId]);
-
-  const handleJoin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/bingo/sessions/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: params.sessionId,
-          playerName,
-          color: selectedColor,
-          team: sessionDetails?.teamMode ? Math.floor(Math.random() * 2) : null,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to join session');
-      }
-
-      // Redirect to waiting room or board page
-      router.push(`/board/${params.sessionId}`);
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to join session'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (error) {
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900 p-4">
-        <Card className="w-full max-w-md border-red-500/20 bg-gray-800 p-6">
-          <h1 className="mb-4 text-2xl font-bold text-red-400">Error</h1>
-          <p className="mb-6 text-gray-300">{error}</p>
-          <Button onClick={() => router.push('/')} className="w-full">
-            Return Home
-          </Button>
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (hasError || !sessionDetails) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <CardTitle className="text-red-600">Cannot Join Session</CardTitle>
+            <CardDescription>
+              {typeof errorMessage === 'string' ? errorMessage : errorMessage?.message || 'Session not found or unavailable'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => window.history.back()} 
+              className="w-full"
+              variant="outline"
+            >
+              Go Back
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Get available color options
+  const colorOptions = PLAYER_COLORS.filter(option => 
+    availableColors.includes(option.color)
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900 p-4">
-      <Card className="w-full max-w-md border-cyan-500/20 bg-gray-800 p-6">
-        <h1 className="mb-6 text-2xl font-bold text-cyan-400">
-          Join Bingo Session
-        </h1>
-
-        {sessionDetails && (
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm text-gray-300">
-                Player Name
-              </label>
-              <Input
-                value={playerName}
-                onChange={e => setPlayerName(e.target.value)}
-                placeholder="Enter your name"
-                className="bg-gray-900/50"
-                maxLength={PLAYER_CONSTANTS.LIMITS.MAX_NAME_LENGTH}
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm text-gray-300">Color</label>
-              <Select value={selectedColor} onValueChange={setSelectedColor}>
-                <SelectTrigger className="bg-gray-900/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLAYER_COLORS.map(colorOption => (
-                    <SelectItem
-                      key={colorOption.color}
-                      value={colorOption.color}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-4 w-4 rounded-full"
-                          style={{ backgroundColor: colorOption.color }}
-                        />
-                        <span>{colorOption.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {sessionDetails.teamMode && (
-              <div className="rounded-lg bg-cyan-500/10 p-3">
-                <p className="text-sm text-cyan-300">
-                  This is a team mode session. You&apos;ll be automatically
-                  assigned to a team.
-                </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+      <div className="max-w-2xl mx-auto py-8">
+        {/* Session Info Header */}
+        <Card className="mb-6 bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Gamepad2 className="h-8 w-8 text-cyan-400" />
+              <div className="flex-1">
+                <CardTitle className="text-cyan-100">{sessionTitle}</CardTitle>
+                <CardDescription className="flex items-center gap-4 mt-1">
+                  <Badge variant="outline" className="border-cyan-500/30 text-cyan-300">
+                    {gameType}
+                  </Badge>
+                  <Badge variant="outline" className="border-purple-500/30 text-purple-300">
+                    {difficulty}
+                  </Badge>
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <Users className="h-4 w-4" />
+                    {currentPlayerCount}/{maxPlayers} players
+                  </div>
+                </CardDescription>
               </div>
-            )}
+            </div>
+          </CardHeader>
+        </Card>
 
-            <Button
-              onClick={handleJoin}
-              disabled={!playerName || loading}
-              className="w-full bg-cyan-500 hover:bg-cyan-600"
-            >
-              {loading ? 'Joining...' : 'Join Session'}
-            </Button>
-          </div>
-        )}
-      </Card>
+        {/* Join Form */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-cyan-100 flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              Join Session
+            </CardTitle>
+            <CardDescription>
+              {canJoin 
+                ? 'Enter your details to join this bingo session'
+                : 'This session is currently full'
+              }
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            {/* Player Name */}
+            <div className="space-y-2">
+              <Label htmlFor="playerName" className="text-cyan-200">
+                Player Name
+              </Label>
+              <Input
+                id="playerName"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Enter your display name"
+                className="bg-gray-900/50 border-gray-600 text-cyan-100"
+                maxLength={20}
+                disabled={!canJoin}
+              />
+              <p className="text-xs text-gray-400">
+                2-20 characters
+              </p>
+            </div>
+
+            {/* Color Selection */}
+            <div className="space-y-2">
+              <Label className="text-cyan-200">Player Color</Label>
+              <div className="grid grid-cols-6 gap-2">
+                {colorOptions.map((option) => (
+                  <button
+                    key={option.color}
+                    type="button"
+                    onClick={() => setSelectedColor(option.color)}
+                    disabled={!canJoin}
+                    className={cn(
+                      'w-12 h-12 rounded-lg border-2 transition-all',
+                      'hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed',
+                      selectedColor === option.color
+                        ? 'border-white ring-2 ring-cyan-400'
+                        : 'border-gray-600 hover:border-gray-400'
+                    )}
+                    style={{ backgroundColor: option.color }}
+                    title={option.name}
+                  />
+                ))}
+              </div>
+              {selectedColor && (
+                <p className="text-xs text-gray-400">
+                  Selected: {PLAYER_COLORS.find(c => c.color === selectedColor)?.name}
+                </p>
+              )}
+            </div>
+
+
+            {/* Join Button */}
+            <div className="pt-4">
+              <Button
+                onClick={handleJoinSession}
+                disabled={!canJoin || !isFormValid || isJoining}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+                size="lg"
+              >
+                {isJoining ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Joining Session...
+                  </>
+                ) : canJoin ? (
+                  'Join Session'
+                ) : (
+                  'Session Full'
+                )}
+              </Button>
+              
+              {!canJoin && (
+                <p className="text-center text-red-400 text-sm mt-2">
+                  This session has reached its maximum capacity
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

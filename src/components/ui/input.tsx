@@ -1,24 +1,42 @@
 import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils';
 
-export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
+const inputVariants = cva(
+  'flex h-9 w-full rounded-md border px-3 py-2 text-sm shadow-sm transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900',
+        cyber: 'cyber-input',
+        neon: 'border-cyan-400/50 bg-slate-900/70 text-cyan-100 placeholder:text-cyan-300/50 focus:border-cyan-300 focus:ring-cyan-300/30 focus:shadow-lg focus:shadow-cyan-500/20 backdrop-blur-sm',
+        holographic: 'holographic-effect border-fuchsia-500/40 bg-slate-900/80 text-fuchsia-100 placeholder:text-fuchsia-300/50 focus:border-fuchsia-400 focus:ring-fuchsia-400/30',
+        ghost: 'border-transparent bg-transparent text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20',
+      },
+      inputSize: {
+        default: 'h-9',
+        sm: 'h-8 text-xs',
+        lg: 'h-11',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      inputSize: 'default',
+    },
+  }
+);
+
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement>,
+    VariantProps<typeof inputVariants> {}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, variant, inputSize, type, ...props }, ref) => {
     return (
       <input
         type={type}
-        className={cn(
-          'flex h-9 w-full rounded-md border border-cyan-500/30',
-          'bg-gray-800/50 px-3 py-2 backdrop-blur-sm',
-          'text-sm text-gray-100 shadow-sm',
-          'placeholder:text-gray-400',
-          'focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900 focus:outline-none',
-          'transition-all duration-200',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          className
-        )}
+        className={cn(inputVariants({ variant, inputSize, className }))}
         ref={ref}
         {...props}
       />

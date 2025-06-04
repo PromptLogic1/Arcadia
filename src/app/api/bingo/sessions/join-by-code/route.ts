@@ -1,34 +1,62 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { createServerComponentClient } from '@/lib/supabase';
+import { log } from '@/lib/logger';
 import type { Database } from '@/types/database-generated';
 
 interface JoinByCodeRequest {
-  session_code: string;
-  user_id: string;
-  display_name: string;
-  avatar_url?: string | null;
+  sessionCode: string;
+  password?: string;
+  displayName?: string;
+  color?: string;
+  team?: number | null;
 }
 
 export async function POST(request: NextRequest) {
+  let userIdForLog: string | undefined;
+  let sessionCodeForLog: string | undefined;
+
   try {
     const supabase = await createServerComponentClient();
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    userIdForLog = user?.id;
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = (await request.json()) as JoinByCodeRequest;
-    const { session_code, user_id, display_name, avatar_url } = body;
+    const { sessionCode, password, displayName, color, team } = body;
+    sessionCodeForLog = sessionCode;
 
     // Validate required fields
-    if (!session_code || !user_id || !display_name) {
+    if (!sessionCode?.trim()) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Session code is required' },
         { status: 400 }
       );
     }
+
+    // Get user profile for display name fallback
+    const { data: profile } = await supabase
+      .from('users')
+      .select('username')
+      .eq('id', user.id)
+      .single();
+
+    const playerDisplayName = displayName || profile?.username || 'Anonymous';
+    const playerColor = color || '#3B82F6'; // Default blue
 
     // Find session by code
     const { data: session, error: sessionError } = await supabase
       .from('bingo_sessions')
       .select('*')
-      .eq('session_code', session_code.toUpperCase())
+      .eq('session_code', sessionCode.toUpperCase())
       .single();
 
     if (sessionError || !session) {
@@ -37,9 +65,20 @@ export async function POST(request: NextRequest) {
 
     if (session.status !== 'waiting') {
       return NextResponse.json(
-        { error: 'Session already started' },
+        { error: 'Session is no longer accepting players' },
         { status: 400 }
       );
+    }
+
+    // Check password if session is password protected
+    const sessionPassword = session.settings?.password;
+    if (sessionPassword && sessionPassword.trim()) {
+      if (!password || password.trim() !== sessionPassword.trim()) {
+        return NextResponse.json(
+          { error: 'Incorrect password' },
+          { status: 401 }
+        );
+      }
     }
 
     // Check if user already in session
@@ -47,11 +86,15 @@ export async function POST(request: NextRequest) {
       .from('bingo_session_players')
       .select('*')
       .eq('session_id', session.id)
-      .eq('user_id', user_id)
+      .eq('user_id', user.id)
       .single();
 
     if (existingPlayer) {
-      return NextResponse.json({ session, player: existingPlayer });
+      return NextResponse.json({
+        sessionId: session.id,
+        session,
+        player: existingPlayer,
+      });
     }
 
     // Check max players
@@ -60,31 +103,32 @@ export async function POST(request: NextRequest) {
       .select('*', { count: 'exact' })
       .eq('session_id', session.id);
 
-    const maxPlayers = session.settings?.max_players || 50;
+    const maxPlayers = session.settings?.max_players || 4;
     if ((playerCount || 0) >= maxPlayers) {
       return NextResponse.json({ error: 'Session is full' }, { status: 400 });
     }
 
-    // Add player to session
-    const colors = [
-      '#FF6B6B',
-      '#4ECDC4',
-      '#45B7D1',
-      '#96CEB4',
-      '#FFEAA7',
-      '#DDA0DD',
-    ] as const;
-    const playerColor = colors[(playerCount || 0) % colors.length] || colors[0];
+    // Check if host approval is required
+    if (session.settings?.require_approval) {
+      // For now, we'll just join directly. In a full implementation,
+      // this would add to a queue for host approval
+      // TODO: Implement approval queue system
+    }
 
+    const now = new Date().toISOString();
+
+    // Add player to session
     const playerInsert: Database['public']['Tables']['bingo_session_players']['Insert'] =
       {
         session_id: session.id,
-        user_id: user_id,
-        display_name: display_name,
-        avatar_url: avatar_url ?? null,
+        user_id: user.id,
+        display_name: playerDisplayName,
         color: playerColor,
-        team: null,
+        team: team ?? null,
         score: 0,
+        is_host: false,
+        is_ready: false,
+        joined_at: now,
       };
 
     const { data: newPlayer, error: playerError } = await supabase
@@ -94,13 +138,25 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (playerError) {
-      return NextResponse.json({ error: playerError.message }, { status: 400 });
+      throw playerError;
     }
 
-    return NextResponse.json({ session, player: newPlayer });
-  } catch {
+    return NextResponse.json({
+      sessionId: session.id,
+      session,
+      player: newPlayer,
+    });
+  } catch (error) {
+    log.error('Error joining session by code', error as Error, {
+      metadata: {
+        apiRoute: 'bingo/sessions/join-by-code',
+        method: 'POST',
+        userId: userIdForLog,
+        sessionCode: sessionCodeForLog,
+      },
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: (error as Error).message || 'Failed to join session' },
       { status: 500 }
     );
   }

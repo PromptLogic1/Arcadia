@@ -31,8 +31,8 @@ export function useCurrentUserQuery() {
  */
 export function useUserDataQuery(userId?: string) {
   return useQuery({
-    queryKey: queryKeys.auth.userData(userId!),
-    queryFn: () => authService.getUserData(userId!),
+    queryKey: queryKeys.auth.userData(userId || ''),
+    queryFn: () => authService.getUserData(userId || ''),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

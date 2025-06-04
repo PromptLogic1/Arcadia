@@ -8,8 +8,7 @@ import { SETTINGS_CONSTANTS } from './constants';
 import { SettingsMessage } from './ui/SettingsMessage';
 import { EmailUpdateSection } from './sections/EmailUpdateSection';
 import { PasswordUpdateSection } from './sections/PasswordUpdateSection';
-import { useEmailUpdate } from './hooks/useEmailUpdate';
-import { usePasswordUpdate } from './hooks/usePasswordUpdate';
+import { useSettingsModern } from '../hooks/useSettingsModern';
 
 /**
  * GeneralSettings Component
@@ -30,9 +29,8 @@ export function GeneralSettings() {
   const { userData, authUser, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  // Custom hooks for managing email and password update state
-  const { formState: emailFormState } = useEmailUpdate();
-  const { formState: passwordFormState } = usePasswordUpdate();
+  // Modern settings hook - replaces legacy useEmailUpdate and usePasswordUpdate
+  const settings = useSettingsModern();
 
   // Redirect if not authenticated
   if (!isAuthenticated || !userData) {
@@ -42,13 +40,19 @@ export function GeneralSettings() {
 
   const currentEmail = authUser?.email || '';
 
-  // Determine which message to show (email or password, prioritize errors)
+  // Determine which message to show (email or password success states)
   const getDisplayMessage = () => {
-    if (passwordFormState.message) {
-      return passwordFormState.message;
+    if (settings.showPasswordSuccess) {
+      return {
+        text: SETTINGS_CONSTANTS.MESSAGES.PASSWORD_UPDATE_SUCCESS,
+        type: 'success' as const,
+      };
     }
-    if (emailFormState.message) {
-      return emailFormState.message;
+    if (settings.showEmailSuccess) {
+      return {
+        text: SETTINGS_CONSTANTS.MESSAGES.EMAIL_UPDATE_SUCCESS,
+        type: 'success' as const,
+      };
     }
     return null;
   };

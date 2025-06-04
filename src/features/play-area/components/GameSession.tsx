@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,12 +24,12 @@ import {
   Clock,
   Share2,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
-import { createClient } from '@/lib/supabase';
+import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGameModern';
+import type { Player } from '../../../services/session-state.service';
 
-// Types
-import type { PlayAreaSession, PlayAreaPlayer } from '../types';
+// Types (for future reference - these types are no longer used in this component)
 
 interface GameSessionProps {
   sessionId: string;
@@ -42,197 +42,19 @@ interface GameSessionProps {
 export function GameSession({ sessionId }: GameSessionProps) {
   const router = useRouter();
   const { authUser, isAuthenticated } = useAuth();
-  const supabase = createClient();
-
-  // State management
-  const [session, setSession] = useState<PlayAreaSession | null>(null);
-  const [players, setPlayers] = useState<PlayAreaPlayer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState(false);
-  const [playerInSession, setPlayerInSession] = useState<PlayAreaPlayer | null>(
-    null
-  );
+  
+  // Use the modern hook for session management
+  const { session, initializeSession } = useSessionModern(sessionId);
+  
+  // UI state
   const [copySuccess, setCopySuccess] = useState(false);
-
-  // Load session data
-  const loadSession = useCallback(async () => {
-    try {
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('bingo_sessions')
-        .select(
-          `
-          *,
-          board:bingo_boards(
-            id, title, description, game_type, difficulty, size,
-            creator_id, board_state
-          )
-        `
-        )
-        .eq('id', sessionId)
-        .single();
-
-      if (sessionError || !sessionData) {
-        throw new Error('Session not found');
-      }
-
-      // Load players
-      const { data: playersData, error: playersError } = await supabase
-        .from('bingo_session_players')
-        .select(
-          `
-          *,
-          user:users(id, username, avatar_url)
-        `
-        )
-        .eq('session_id', sessionId)
-        .order('joined_at', { ascending: true });
-
-      if (playersError) {
-        throw playersError;
-      }
-
-      // Transform session data
-      const transformedSession: PlayAreaSession = {
-        id: sessionData.id,
-        board_id: sessionData.board_id,
-        host_id: sessionData.host_id,
-        session_code: sessionData.session_code,
-        status: sessionData.status,
-        current_state: sessionData.current_state,
-        settings: sessionData.settings,
-        started_at: sessionData.started_at,
-        ended_at: sessionData.ended_at,
-        created_at: sessionData.created_at,
-        updated_at: sessionData.updated_at,
-        version: sessionData.version,
-        winner_id: sessionData.winner_id,
-        board: sessionData.board
-          ? {
-              id: sessionData.board.id,
-              title: sessionData.board.title,
-              description: sessionData.board.description,
-              game_type: sessionData.board.game_type,
-              difficulty: sessionData.board.difficulty,
-              size: sessionData.board.size,
-              creator_id: sessionData.board.creator_id,
-              // Required properties with defaults
-              board_state: sessionData.board.board_state,
-              bookmarked_count: null,
-              cloned_from: null,
-              created_at: null,
-              is_public: null,
-              settings: null,
-              status: null,
-              updated_at: null,
-              version: null,
-              votes: null,
-            }
-          : undefined,
-        players: [],
-        current_player_count: playersData?.length || 0,
-        max_players: sessionData.settings?.max_players || 4,
-        spectators: [],
-        host: undefined,
-        winner: undefined,
-      };
-
-      // Transform players data
-      const transformedPlayers: PlayAreaPlayer[] = (playersData || []).map(
-        player => ({
-          id: player.id || '',
-          user_id: player.user_id,
-          session_id: player.session_id,
-          display_name: player.display_name,
-          color: player.color,
-          avatar_url: player.avatar_url,
-          is_host: player.is_host || false,
-          is_ready: player.is_ready || false,
-          joined_at: player.joined_at,
-          left_at: player.left_at,
-          position: player.position,
-          score: player.score,
-          team: player.team,
-          created_at: player.created_at,
-          updated_at: player.updated_at,
-          // Extended properties
-          user: player.user
-            ? {
-                id: player.user.id,
-                username: player.user.username,
-                avatar_url: player.user.avatar_url || undefined,
-              }
-            : undefined,
-          is_current_user: player.user_id === authUser?.id,
-          is_online: true, // We'll implement presence tracking later
-          completed_cells: 0, // We'll calculate this later
-        })
-      );
-
-      // Find host and current user
-      const hostPlayer = transformedPlayers.find(p => p.is_host);
-      const currentPlayer = transformedPlayers.find(
-        p => p.user_id === authUser?.id
-      );
-
-      transformedSession.host = hostPlayer;
-      transformedSession.players = transformedPlayers;
-
-      setSession(transformedSession);
-      setPlayers(transformedPlayers);
-      setIsHost(sessionData.host_id === authUser?.id);
-      setPlayerInSession(currentPlayer || null);
-    } catch (error) {
-      console.error('Failed to load session:', error);
-      setError((error as Error).message || 'Failed to load session');
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId, authUser?.id, supabase]);
-
-  // Initialize session data
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadSession();
-    }
-  }, [isAuthenticated, loadSession]);
-
-  // Real-time subscription for session updates
-  useEffect(() => {
-    if (!sessionId || !isAuthenticated) return;
-
-    const channel = supabase
-      .channel(`session:${sessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_sessions',
-          filter: `id=eq.${sessionId}`,
-        },
-        () => {
-          loadSession();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_session_players',
-          filter: `session_id=eq.${sessionId}`,
-        },
-        () => {
-          loadSession();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sessionId, isAuthenticated, supabase, loadSession]);
+  
+  // Derived state from the session
+  const players = session.players || [];
+  const isHost = session.players?.some(p => p.id === authUser?.id && p.is_host) || false;
+  const playerInSession = session.players?.find(p => p.id === authUser?.id) || null;
+  const loading = session.isLoading;
+  const error = session.error?.message || null;
 
   // Copy session code to clipboard
   const copySessionCode = useCallback(async () => {
@@ -253,8 +75,8 @@ export function GameSession({ sessionId }: GameSessionProps) {
     if (!session) return;
 
     const shareData = {
-      title: `Join ${session.board?.title || 'Gaming Session'}`,
-      text: `Join me in a ${session.board?.game_type || 'gaming'} session!`,
+      title: `Join ${session.board_title || 'Gaming Session'}`,
+      text: `Join me in a ${session.game_type || 'gaming'} session!`,
       url: window.location.href,
     };
 
@@ -294,30 +116,27 @@ export function GameSession({ sessionId }: GameSessionProps) {
   }, [isHost, session, sessionId]);
 
   // Join session (if not already in)
-  const joinSession = useCallback(async () => {
-    if (playerInSession || !session) return;
+  const joinSessionAction = useCallback(async () => {
+    if (playerInSession || !session || !authUser) return;
+
+    const player: Player = {
+      id: authUser.id,
+      display_name: authUser.username || authUser.email || 'Unknown',
+      avatar_url: authUser.avatar_url || undefined,
+      joined_at: new Date().toISOString(),
+      is_active: true,
+      color: '#' + Math.floor(Math.random()*16777215).toString(16), // Random color
+      is_host: false,
+      is_ready: true,
+    };
 
     try {
-      const response = await fetch('/api/bingo/sessions/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to join session');
-      }
-
-      notifications.success('Joined session successfully!');
-      loadSession(); // Reload to get updated data
+      await initializeSession(player);
     } catch (error) {
       console.error('Failed to join session:', error);
       notifications.error((error as Error).message || 'Failed to join session');
     }
-  }, [playerInSession, session, sessionId, loadSession]);
+  }, [playerInSession, session, authUser, initializeSession]);
 
   // Loading state
   if (loading) {
@@ -418,10 +237,10 @@ export function GameSession({ sessionId }: GameSessionProps) {
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold text-transparent">
-            {session.board?.title || 'Gaming Session'}
+            {session.board_title || 'Gaming Session'}
           </h1>
           <p className="mt-1 text-gray-300">
-            Hosted by {session.host?.display_name || 'Unknown'}
+            Hosted by {session.host_username || 'Unknown'}
           </p>
         </div>
 
@@ -477,10 +296,10 @@ export function GameSession({ sessionId }: GameSessionProps) {
                 <Badge
                   variant="outline"
                   className={getDifficultyColor(
-                    session.board?.difficulty || 'medium'
+                    session.difficulty || 'medium'
                   )}
                 >
-                  {session.board?.difficulty || 'Medium'}
+                  {session.difficulty || 'Medium'}
                 </Badge>
                 <Badge
                   variant="outline"
@@ -496,21 +315,17 @@ export function GameSession({ sessionId }: GameSessionProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {session.board?.description && (
-              <p className="text-gray-300">{session.board.description}</p>
-            )}
-
             <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
               <div>
                 <span className="text-gray-400">Game Type:</span>
                 <p className="font-medium text-gray-200">
-                  {session.board?.game_type || 'Unknown'}
+                  {session.game_type || 'Unknown'}
                 </p>
               </div>
               <div>
                 <span className="text-gray-400">Board Size:</span>
                 <p className="font-medium text-gray-200">
-                  {session.board?.size || 5}×{session.board?.size || 5}
+                  5×5
                 </p>
               </div>
               <div>
@@ -531,7 +346,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
             <div className="flex gap-2 pt-4">
               {!playerInSession && session.status === 'waiting' && (
                 <Button
-                  onClick={joinSession}
+                  onClick={joinSessionAction}
                   className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:from-cyan-600 hover:to-fuchsia-600"
                 >
                   <Users className="mr-2 h-4 w-4" />
@@ -569,9 +384,9 @@ export function GameSession({ sessionId }: GameSessionProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             {players.map(player => (
-              <div key={player.user_id} className="flex items-center gap-3">
+              <div key={player.id} className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={player.user?.avatar_url} />
+                  <AvatarImage src={player.avatar_url} />
                   <AvatarFallback className="bg-gray-700 text-xs text-gray-300">
                     {player.display_name[0]?.toUpperCase()}
                   </AvatarFallback>
@@ -581,7 +396,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-gray-200">
                       {player.display_name}
-                      {player.is_current_user && ' (You)'}
+                      {player.id === authUser?.id && ' (You)'}
                     </p>
                     {player.is_host && (
                       <Crown className="h-3 w-3 text-yellow-400" />
@@ -594,7 +409,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
                 <div
                   className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: (player as { color?: string }).color || '#666' }}
+                  style={{ backgroundColor: player.color || '#666' }}
                 />
               </div>
             ))}

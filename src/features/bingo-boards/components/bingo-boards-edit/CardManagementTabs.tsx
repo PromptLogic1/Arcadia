@@ -4,23 +4,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Plus, Sparkles, Package, Globe } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { cn } from '@/lib/utils';
-import { BingoCardPreview, CreateCardPlaceholder } from './BingoCard';
+import { BingoCardPreview } from './BingoCard';
 import { BingoCardPublic } from './BingoCardPublic';
 import { FilterBingoCards } from './FilterBingoCards';
 import { GeneratorPanel } from '../Generator/GeneratorPanel';
-import { TemplateSelector } from './TemplateSelector';
+import { CardLibrary } from './CardLibrary';
 import { TABS, UI_MESSAGES } from './constants';
 import type { BingoCard, FilterOptions, GameCategory } from '@/types';
-import type { TemplateCard } from '../../data/templates';
 import { useDroppable } from '@dnd-kit/core';
-import { Trash2, Archive } from 'lucide-react';
-import { 
-  layout, 
-  componentStyles, 
+import { Archive } from 'lucide-react';
+import {
+  layout,
+  componentStyles,
   typography,
-  animations,
   buttonVariants,
-  cardVariants,
 } from './design-system';
 
 interface CardManagementTabsProps {
@@ -41,12 +38,12 @@ interface CardManagementTabsProps {
   onFilterPublicCards: (filters: FilterOptions) => Promise<void>;
   onClearPublicFilters: () => Promise<void>;
   onVoteCard: (card: BingoCard) => Promise<void>;
-  
-  // Template handlers
-  onApplyTemplate?: (templates: TemplateCard[]) => void;
-  onRegenerateGrid?: () => void;
-  currentTemplateCount?: number;
-  
+
+  // Card Library handlers
+  onShuffle: (cards: BingoCard[]) => Promise<void>;
+  onUseCollection?: (cards: BingoCard[]) => Promise<void>;
+  onBulkAddCards?: (cards: BingoCard[]) => Promise<void>;
+
   // Drag and drop handlers
   onCardReturnToPrivate?: (card: BingoCard) => void;
 }
@@ -68,64 +65,65 @@ export function CardManagementTabs({
   onFilterPublicCards,
   onClearPublicFilters,
   onVoteCard,
-  onApplyTemplate,
-  onRegenerateGrid,
-  currentTemplateCount = 0,
+  onShuffle,
+  onUseCollection,
+  onBulkAddCards,
   onCardReturnToPrivate,
 }: CardManagementTabsProps) {
   return (
-    <div className={cn(
-      "flex flex-col",
-      layout.sidebar.width,
-      layout.sidebar.minWidth,
-      layout.sidebar.maxWidth
-    )}>
+    <div
+      className={cn(
+        'flex flex-col',
+        layout.sidebar.width,
+        layout.sidebar.minWidth,
+        layout.sidebar.maxWidth
+      )}
+    >
       <Tabs
-        defaultValue="templates"
+        defaultValue={TABS.TEMPLATES}
         className="w-full"
         onValueChange={onTabChange}
       >
-        <TabsList className={cn(
-          "mb-4 w-full",
-          componentStyles.tab.list
-        )}>
+        <TabsList className={cn('mb-4 w-full', componentStyles.tab.list)}>
           <div className="flex w-full justify-around">
             <TabsTrigger
-              value="templates"
+              value={TABS.TEMPLATES}
               className={componentStyles.tab.trigger}
             >
-              <Sparkles className="w-4 h-4 mr-1.5" />
-              Templates
+              <Sparkles className="mr-1.5 h-4 w-4" />
+              Card Library
             </TabsTrigger>
             <TabsTrigger
               value={TABS.PRIVATE}
               className={componentStyles.tab.trigger}
             >
-              <Package className="w-4 h-4 mr-1.5" />
+              <Package className="mr-1.5 h-4 w-4" />
               Private
             </TabsTrigger>
             <TabsTrigger
               value={TABS.PUBLIC}
               className={componentStyles.tab.trigger}
             >
-              <Globe className="w-4 h-4 mr-1.5" />
+              <Globe className="mr-1.5 h-4 w-4" />
               Public Cards
             </TabsTrigger>
             <TabsTrigger
               value={TABS.GENERATOR}
               className={componentStyles.tab.trigger}
             >
-              <Sparkles className="w-4 h-4 mr-1.5" />
+              <Sparkles className="mr-1.5 h-4 w-4" />
               Generator
             </TabsTrigger>
           </div>
         </TabsList>
 
-        <TemplatesTab
+        <CardLibraryTab
           gameType={currentBoard.game_type}
-          currentTemplateCount={currentTemplateCount}
-          onApplyTemplate={onApplyTemplate}
-          onRegenerateGrid={onRegenerateGrid}
+          gridSize={currentBoard.size}
+          onCardSelect={onCardSelect}
+          onShuffle={onShuffle}
+          onUseCollection={onUseCollection}
+          onBulkAddCards={onBulkAddCards}
         />
 
         <PrivateCardsTab
@@ -173,7 +171,7 @@ function PrivateCardsTab({
   onCardSelect,
   onCardEdit,
   onCreateNewCard,
-  onCardReturnToPrivate,
+  onCardReturnToPrivate: _onCardReturnToPrivate,
 }: PrivateCardsTabProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: 'private-cards-drop-zone',
@@ -184,7 +182,10 @@ function PrivateCardsTab({
       <div className="mb-3 flex items-center">
         <Button
           onClick={onCreateNewCard}
-          className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'w-full')}
+          className={cn(
+            buttonVariants({ variant: 'primary', size: 'sm' }),
+            'w-full'
+          )}
         >
           <Plus className="mr-1 h-4 w-4" />
           Create New Card
@@ -192,21 +193,24 @@ function PrivateCardsTab({
       </div>
 
       <div className="min-h-[calc(100vh-12rem)] overflow-y-auto">
-        <div 
+        <div
           ref={setNodeRef}
           className={cn(
-            "space-y-2 pr-3 min-h-[200px] transition-all duration-200 rounded-lg p-2",
-            isOver && "bg-purple-500/10 border-2 border-dashed border-purple-500/50"
+            'min-h-[200px] space-y-2 rounded-lg p-2 pr-3 transition-all duration-200',
+            isOver &&
+              'border-2 border-dashed border-purple-500/50 bg-purple-500/10'
           )}
         >
           {/* Drop zone indicator */}
           {isOver && (
             <div className="flex items-center justify-center py-8 text-purple-300">
               <Archive className="mr-2 h-5 w-5" />
-              <span className="text-sm font-medium">Drop card to save to private collection</span>
+              <span className="text-sm font-medium">
+                Drop card to save to private collection
+              </span>
             </div>
           )}
-          
+
           {isLoading ? (
             <div className="flex h-20 items-center justify-center">
               <LoadingSpinner />
@@ -214,25 +218,29 @@ function PrivateCardsTab({
           ) : (
             <div>
               {cards.length === 0 && !isOver && (
-                <div className={cn(
-                  "flex flex-col items-center justify-center py-12",
-                  "text-gray-400"
-                )}>
-                  <div className={cn(
-                    "w-16 h-16 rounded-full mb-3",
-                    "bg-gray-800/50 flex items-center justify-center"
-                  )}>
+                <div
+                  className={cn(
+                    'flex flex-col items-center justify-center py-12',
+                    'text-gray-400'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'mb-3 h-16 w-16 rounded-full',
+                      'flex items-center justify-center bg-gray-800/50'
+                    )}
+                  >
                     <Archive className="h-8 w-8 opacity-50" />
                   </div>
-                  <p className={cn(typography.body.normal, "text-center mb-1")}>
+                  <p className={cn(typography.body.normal, 'mb-1 text-center')}>
                     No private cards yet
                   </p>
-                  <p className={cn(typography.caption, "text-center")}>
+                  <p className={cn(typography.caption, 'text-center')}>
                     Create new cards or drag them from the grid
                   </p>
                 </div>
               )}
-              
+
               {cards.map((card, idx) => (
                 <BingoCardPreview
                   key={`private-${card.id || idx}`}
@@ -310,28 +318,34 @@ interface GeneratorTabProps {
 }
 
 /**
- * Templates tab content
+ * Card Library tab content (replaces templates)
  */
-interface TemplatesTabProps {
+interface CardLibraryTabProps {
   gameType: GameCategory;
-  currentTemplateCount: number;
-  onApplyTemplate?: (templates: TemplateCard[]) => void;
-  onRegenerateGrid?: () => void;
+  gridSize: number;
+  onCardSelect: (card: BingoCard) => void;
+  onShuffle: (cards: BingoCard[]) => Promise<void>;
+  onUseCollection?: (cards: BingoCard[]) => Promise<void>;
+  onBulkAddCards?: (cards: BingoCard[]) => Promise<void>;
 }
 
-function TemplatesTab({ 
-  gameType, 
-  currentTemplateCount, 
-  onApplyTemplate, 
-  onRegenerateGrid 
-}: TemplatesTabProps) {
+function CardLibraryTab({
+  gameType,
+  gridSize,
+  onCardSelect,
+  onShuffle,
+  onUseCollection,
+  onBulkAddCards,
+}: CardLibraryTabProps) {
   return (
-    <TabsContent value="templates" className="mt-2">
-      <TemplateSelector
+    <TabsContent value={TABS.TEMPLATES} className="mt-2">
+      <CardLibrary
         gameType={gameType}
-        currentTemplateCount={currentTemplateCount}
-        onApplyTemplate={onApplyTemplate || (() => {})}
-        onRegenerateGrid={onRegenerateGrid || (() => {})}
+        gridSize={gridSize}
+        onCardSelect={onCardSelect}
+        onShuffle={onShuffle}
+        onUseCollection={onUseCollection}
+        onBulkAddCards={onBulkAddCards}
       />
     </TabsContent>
   );

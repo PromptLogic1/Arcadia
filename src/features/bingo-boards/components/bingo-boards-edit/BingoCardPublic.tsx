@@ -56,7 +56,7 @@ export function BingoCardPublic({
                   variant="outline"
                   className={cn(
                     'rounded-full px-2 py-0.5 text-xs',
-                    DIFFICULTY_STYLES[card.difficulty]
+                    DIFFICULTY_STYLES[card.difficulty as keyof typeof DIFFICULTY_STYLES]
                   )}
                 >
                   {card.difficulty}

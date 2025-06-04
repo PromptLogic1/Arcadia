@@ -91,7 +91,7 @@ export function useVoteCardMutation() {
       queryClient.invalidateQueries({ queryKey: queryKeys.bingoCards.byIds([cardId]) });
       queryClient.invalidateQueries({ queryKey: queryKeys.bingoCards.public() });
     },
-    onError: (error: Error) => {
+    onError: (_error: Error) => {
       notifications.error('Failed to vote on card');
     },
   });

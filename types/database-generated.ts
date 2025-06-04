@@ -1806,6 +1806,10 @@ export type Database = {
       }
       session_stats: {
         Row: {
+          board_difficulty:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          board_game_type: Database["public"]["Enums"]["game_category"] | null
           board_id: string | null
           board_title: string | null
           created_at: string | null
@@ -1814,15 +1818,19 @@ export type Database = {
             | Database["public"]["CompositeTypes"]["board_cell"][]
             | null
           ended_at: string | null
+          has_password: boolean | null
           host_id: string | null
           host_username: string | null
           id: string | null
+          max_players: number | null
+          session_code: string | null
           settings:
             | Database["public"]["CompositeTypes"]["session_settings"]
             | null
           started_at: string | null
           status: Database["public"]["Enums"]["session_status"] | null
           updated_at: string | null
+          version: number | null
           winner_id: string | null
         }
         Relationships: [
@@ -2015,6 +2023,7 @@ export type Database = {
         auto_start: boolean | null
         time_limit: number | null
         require_approval: boolean | null
+        password: string | null
       }
       tag_category: {
         id: string | null

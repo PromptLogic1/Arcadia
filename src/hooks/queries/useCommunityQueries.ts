@@ -17,8 +17,8 @@ export function useDiscussionsQuery(filters: DiscussionFilters = {}, page = 1, l
 
 export function useDiscussionQuery(discussionId?: string) {
   return useQuery({
-    queryKey: queryKeys.community.discussion(discussionId!),
-    queryFn: () => communityService.getDiscussionById(discussionId!),
+    queryKey: queryKeys.community.discussion(discussionId || ''),
+    queryFn: () => communityService.getDiscussionById(discussionId || ''),
     enabled: !!discussionId,
     staleTime: 1 * 60 * 1000,
   });
@@ -43,6 +43,37 @@ export function useCreateDiscussionMutation() {
         return;
       }
       notifications.success('Discussion created successfully!');
+      queryClient.invalidateQueries({ queryKey: queryKeys.community.discussions() });
+    },
+  });
+}
+
+export function useCreateCommentMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: communityService.createComment,
+    onSuccess: (response) => {
+      if (response.error) {
+        notifications.error(response.error);
+        return;
+      }
+      notifications.success('Comment added successfully!');
+      queryClient.invalidateQueries({ queryKey: queryKeys.community.discussions() });
+    },
+  });
+}
+
+export function useUpvoteDiscussionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: communityService.upvoteDiscussion,
+    onSuccess: (response) => {
+      if (response.error) {
+        notifications.error(response.error);
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.community.discussions() });
     },
   });

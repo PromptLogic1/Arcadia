@@ -84,7 +84,7 @@ export function useCommunityData(): UseCommunityDataReturn {
   } = useDiscussions();
 
   // Combine comments from all discussions from useDiscussions
-  const allComments = realDiscussions.flatMap(d => d.commentList || []);
+  const allComments = realDiscussions.flatMap(_d => []);
 
   // Loading states
   const [isEventsLoading, setIsEventsLoading] = useState(true);
@@ -113,11 +113,8 @@ export function useCommunityData(): UseCommunityDataReturn {
     async (formData: CreateDiscussionFormData) => {
       return realAddDiscussion({
         ...formData,
-        challenge_type:
-          formData.challenge_type === undefined
-            ? null
-            : formData.challenge_type,
-        tags: formData.tags === undefined ? null : formData.tags,
+        challenge_type: formData.challenge_type || undefined,
+        tags: formData.tags || undefined,
       });
     },
     [realAddDiscussion]
@@ -132,7 +129,10 @@ export function useCommunityData(): UseCommunityDataReturn {
 
   const handleComment = useCallback(
     async (discussionId: number, commentData: CommentFormData) => {
-      return realAddComment(discussionId, commentData);
+      return realAddComment(discussionId, {
+        ...commentData,
+        discussion_id: discussionId.toString(),
+      });
     },
     [realAddComment]
   );

@@ -1,81 +1,62 @@
 // =============================================================================
-// CENTRALIZED TYPE SYSTEM - Single Source of Truth
+// APPLICATION TYPE SYSTEM - Single Source of Truth (Database-Generated Types)
 // =============================================================================
 
-// Database types are the source of truth (generated from actual DB schema)
+// Re-export everything from the root types (database-generated)
 export type {
-  // Core database types
   Database,
   Tables,
   TablesInsert,
   TablesUpdate,
   Enums,
   CompositeTypes,
-
-  // Core enums and types
-  BoardStatus,
-  ChallengeStatus,
-  GameCategory, // <- Single source, from database
+  // Type aliases
+  Difficulty,
+  DifficultyLevel,
+  GameCategory,
+  ActivityType,
   QueueStatus,
+  BoardStatus,
   SessionStatus,
-  SubmissionStatus,
-  TagAction,
-  TagStatus,
-  TagType,
   UserRole,
   VisibilityType,
   VoteType,
-
-  // Core composite types
-  BoardCell, // <- Database representation
+  TagAction,
+  TagStatus,
+  TagType,
+  ChallengeStatus,
+  SubmissionStatus,
+  BoardCell,
   BoardSettings,
   SessionSettings,
   TagCategory,
   WinConditions,
-  Json,
-} from '../../types/database-types';
-
-// Alias for consistency (eliminate Difficulty vs DifficultyLevel confusion)
-export type { DifficultyLevel as Difficulty } from '../../types/database-core';
+  // Table row types
+  BingoBoard,
+  BingoCard,
+  BingoSession,
+  BingoSessionPlayer,
+} from '../../types';
 
 // Application-specific product types
 export * from './product-types';
 
-// Import types we need to reference
-import type {
-  DifficultyLevel,
-  GameCategory as DbGameCategory,
-} from '../../types/database-core';
-
-// Type aliases for internal use
-type Difficulty = DifficultyLevel;
-type GameCategory = DbGameCategory;
-
-// =============================================================================
-// APPLICATION LAYER TYPES (extend database types for business logic)
-// =============================================================================
-
-// Application representation of a bingo card (different from database BoardCell)
-export interface BingoCard {
-  id: string;
-  title: string;
-  difficulty: Difficulty;
-  game_type: GameCategory;
-  description?: string | null;
-  tags?: string[] | null;
-  creator_id?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  is_public?: boolean | null;
-  votes?: number | null;
-}
+// Import the specific types we need for constants and helpers
+import type { Difficulty, GameCategory, BingoCard } from '../../types';
 
 // =============================================================================
 // CONSTANTS (derived from database types)
 // =============================================================================
 
-// Re-export database constants
-export { Constants } from '../../types/database-core';
+// Export constants for backward compatibility
+export const Constants = {
+  public: {
+    Enums: {
+      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+      game_category: ['All Games', 'World of Warcraft', 'Fortnite', 'Minecraft'] as const,
+    }
+  }
+} as const;
 
 // Application constants derived from database types
 export const DIFFICULTIES: Difficulty[] = [
@@ -156,16 +137,66 @@ export interface BingoCardStats {
   byCategory: Record<string, number>;
 }
 
-// Default bingo card
+// Default bingo card template (without ID for creating new cards)
 export const DEFAULT_BINGO_CARD: Omit<BingoCard, 'id'> = {
   title: '',
   difficulty: 'medium',
   game_type: 'All Games',
-  description: '',
-  tags: [],
+  description: null,
+  tags: null,
   is_public: false,
   votes: 0,
   creator_id: null,
   created_at: null,
   updated_at: null,
+};
+
+// Helper function to create an empty bingo card with ID
+export const createEmptyBingoCard = (
+  gameType: GameCategory = 'All Games',
+  creatorId = ''
+): BingoCard => ({
+  id: '', // Empty string represents an empty grid cell
+  title: '',
+  difficulty: 'medium',
+  game_type: gameType,
+  description: null,
+  tags: null,
+  is_public: false,
+  votes: 0,
+  creator_id: creatorId || null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+// Helper function to create a new bingo card with temporary ID
+export const createNewBingoCard = (
+  data: Partial<BingoCard>,
+  gameType: GameCategory = 'All Games',
+  creatorId = ''
+): BingoCard => ({
+  id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  title: data.title || '',
+  difficulty: data.difficulty || 'medium',
+  game_type: data.game_type || gameType,
+  description: data.description || null,
+  tags: data.tags || null,
+  is_public: data.is_public ?? false,
+  votes: data.votes ?? 0,
+  creator_id: data.creator_id || creatorId || null,
+  created_at: data.created_at || new Date().toISOString(),
+  updated_at: data.updated_at || new Date().toISOString(),
+});
+
+// Helper function to validate UUID format
+export const isValidUUID = (id: string | null): boolean => {
+  if (!id || id === '') return false;
+
+  // Skip temporary IDs
+  if (id.startsWith('temp-') || id.startsWith('cell-')) return false;
+
+  // Basic UUID format validation
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id
+  );
 };

@@ -5,18 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/useAuth';
+import { NeonText } from '@/components/ui/NeonText';
+import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
+import FloatingElements from '@/components/ui/FloatingElements';
+import { useAuth } from '@/lib/stores/auth-store';
 import { useRouter } from 'next/navigation';
-import {
-  Play,
-  Users,
-  Clock,
-  Trophy,
-  Zap,
-  Star,
-  GamepadIcon,
-  Loader2,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { 
+  GiPlayButton,
+  GiTeamIdea,
+  GiSandsOfTime,
+  GiTrophyCup,
+  GiLightningTrio,
+  GiStarMedal,
+  GiConsoleController
+} from 'react-icons/gi';
 
 interface DemoBoard {
   id: string;
@@ -36,7 +39,7 @@ const DEMO_BOARDS: DemoBoard[] = [
     game_type: 'World of Warcraft',
     difficulty: 'easy',
     votes: 42,
-    playerCount: 8,
+    // Remove playerCount as it's not tracked in real-time yet
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440002',
@@ -45,7 +48,6 @@ const DEMO_BOARDS: DemoBoard[] = [
     game_type: 'Fortnite',
     difficulty: 'medium',
     votes: 38,
-    playerCount: 6,
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440003',
@@ -54,15 +56,14 @@ const DEMO_BOARDS: DemoBoard[] = [
     game_type: 'Minecraft',
     difficulty: 'medium',
     votes: 35,
-    playerCount: 4,
   },
 ];
 
 const difficultyColors = {
-  easy: 'bg-green-100 text-green-800 border-green-200',
-  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  hard: 'bg-orange-100 text-orange-800 border-orange-200',
-  expert: 'bg-red-100 text-red-800 border-red-200',
+  easy: 'cyber' as const,
+  medium: 'cyber-purple' as const,
+  hard: 'cyber-fuchsia' as const,
+  expert: 'cyber-emerald' as const,
 };
 
 const gameTypeIcons = {
@@ -188,40 +189,37 @@ export function TryDemoGame() {
 
   if (selectedBoard) {
     return (
-      <Card className="mx-auto max-w-2xl p-8">
+      <Card variant="cyber" glow="subtle" className="mx-auto max-w-2xl p-8">
         <div className="space-y-6 text-center">
-          <div className="space-y-2">
-            <div className="text-4xl">
+          <div className="space-y-4">
+            <div className="text-6xl">
               {gameTypeIcons[
                 selectedBoard.game_type as keyof typeof gameTypeIcons
               ] || '🎮'}
             </div>
-            <h3 className="text-2xl font-bold">{selectedBoard.title}</h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <h3 className="text-3xl font-bold neon-glow-cyan">{selectedBoard.title}</h3>
+            <p className="text-cyan-200/80 text-lg">
               {selectedBoard.description}
             </p>
 
-            <div className="flex items-center justify-center gap-4 text-sm">
-              <Badge className={difficultyColors[selectedBoard.difficulty]}>
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <Badge variant={difficultyColors[selectedBoard.difficulty]} size="lg">
                 {selectedBoard.difficulty}
               </Badge>
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+              <div className="flex items-center gap-1 text-cyan-300">
+                <GiStarMedal className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 <span>{selectedBoard.votes} votes</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>{selectedBoard.playerCount || 0} playing</span>
               </div>
             </div>
           </div>
 
           {!authUser && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
+            <div className="space-y-3">
+              <label className="block text-lg font-medium text-cyan-200">
                 Choose your player name:
               </label>
               <Input
+                variant="cyber"
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
                 placeholder="Enter your name"
@@ -232,42 +230,43 @@ export function TryDemoGame() {
           )}
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:bg-red-900/20">
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <div className="cyber-card border-red-500/50 bg-red-500/10 p-4">
+              <p className="text-sm text-red-300">{error}</p>
             </div>
           )}
 
           <div className="flex justify-center gap-4">
             <Button
               onClick={() => setSelectedBoard(null)}
-              variant="outline"
+              variant="cyber-outline"
+              size="lg"
               disabled={isCreating}
             >
               Choose Different Board
             </Button>
             <Button
+              variant="cyber"
+              size="lg"
               onClick={createDemoSession}
               disabled={isCreating || (!authUser && !playerName.trim())}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             >
               {isCreating ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Creating Game...
                 </>
               ) : (
                 <>
-                  <Play className="mr-2 h-4 w-4" />
+                  <GiPlayButton className="mr-2 h-5 w-5" />
                   Start Playing Now!
                 </>
               )}
             </Button>
           </div>
 
-          <div className="border-t pt-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              🎮 Demo games are open to everyone • Real-time multiplayer • No
-              account required
+          <div className="border-t border-cyan-500/30 pt-4">
+            <p className="text-sm text-cyan-300/70">
+              🎮 Demo games are open to everyone • Real-time multiplayer • No account required
             </p>
           </div>
         </div>
@@ -276,135 +275,147 @@ export function TryDemoGame() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Quick Action Buttons */}
-      <div className="space-y-4 text-center">
-        <h2 className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-3xl font-bold text-transparent">
-          🎮 Try Multiplayer Bingo Now!
-        </h2>
-        <p className="mx-auto max-w-2xl text-gray-600 dark:text-gray-300">
-          Jump into live multiplayer games instantly. No account required - just
-          pick a game and start playing with others!
-        </p>
+    <CyberpunkBackground variant="circuit" intensity="strong" className="bg-gradient-to-b from-slate-950/90 via-slate-900/95 to-slate-950/90 py-24">
+      <FloatingElements variant="orbs" count={15} speed="fast" color="fuchsia" repositioning={true} />
+      <div className="relative z-20 container mx-auto px-4">
+        <div className="space-y-12">
+          {/* Section Header */}
+          <div className="space-y-6 text-center">
+            <h2 className="">
+              <NeonText variant="gradient" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">🎮 Try Multiplayer Bingo</NeonText>
+              <br />
+              <NeonText variant="solid" color="cyan" className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl">Right Now!</NeonText>
+            </h2>
+            <p className="mx-auto max-w-3xl text-base sm:text-lg md:text-xl text-cyan-200/80 leading-relaxed px-4 sm:px-0">
+              Jump into live multiplayer games instantly. No account required - just
+              pick a game and start playing with others around the world!
+            </p>
 
-        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Button
-            onClick={joinRandomSession}
-            disabled={isCreating}
-            size="lg"
-            className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600"
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Finding Game...
-              </>
-            ) : (
-              <>
-                <Zap className="mr-2 h-5 w-5" />
-                Quick Play (30s)
-              </>
-            )}
-          </Button>
-
-          <div className="text-sm text-gray-500">or</div>
-
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            Choose your game below ↓
-          </div>
-        </div>
-      </div>
-
-      {/* Demo Board Selection */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {DEMO_BOARDS.map(board => (
-          <Card
-            key={board.id}
-            className="cursor-pointer border-2 p-6 transition-all hover:border-purple-300 hover:shadow-lg"
-          >
-            <div className="space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="text-3xl">
-                  {gameTypeIcons[
-                    board.game_type as keyof typeof gameTypeIcons
-                  ] || '🎮'}
-                </div>
-                <Badge className={difficultyColors[board.difficulty]}>
-                  {board.difficulty}
-                </Badge>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">{board.title}</h3>
-                <p className="line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
-                  {board.description}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span>{board.votes}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  <span>{board.playerCount || 0} playing</span>
-                </div>
-              </div>
-
+            <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
               <Button
-                onClick={() => handleQuickPlay(board)}
-                className="w-full"
-                variant="outline"
+                onClick={joinRandomSession}
+                disabled={isCreating}
+                variant="cyber"
+                size="lg"
+                className="text-lg px-8 py-6"
+                aria-label="Join a random multiplayer bingo game session"
               >
-                <GamepadIcon className="mr-2 h-4 w-4" />
-                Play This Board
+                {isCreating ? (
+                  <>
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin" aria-hidden="true" />
+                    Finding Game...
+                  </>
+                ) : (
+                  <>
+                    <GiLightningTrio className="mr-2 h-6 w-6" aria-hidden="true" />
+                    Quick Play (30s)
+                  </>
+                )}
               </Button>
+
+              <div className="text-lg text-cyan-300/70 font-medium">or</div>
+
+              <div className="text-lg text-cyan-200/80">
+                Choose your game below ↓
+              </div>
             </div>
-          </Card>
-        ))}
+          </div>
+
+          {/* Demo Board Selection */}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {DEMO_BOARDS.map(board => (
+              <Card
+                key={board.id}
+                variant="cyber"
+                glow="subtle"
+                className="cursor-pointer p-8 transition-all hover:scale-105 group"
+                onClick={() => handleQuickPlay(board)}
+              >
+                <div className="space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div className="text-5xl">
+                      {gameTypeIcons[
+                        board.game_type as keyof typeof gameTypeIcons
+                      ] || '🎮'}
+                    </div>
+                    <Badge variant={difficultyColors[board.difficulty]} size="lg">
+                      {board.difficulty}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-xl font-bold neon-glow-cyan group-hover:text-cyan-300 transition-colors">
+                      {board.title}
+                    </h3>
+                    <p className="text-cyan-200/70 leading-relaxed">
+                      {board.description}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center text-cyan-300/80">
+                    <div className="flex items-center gap-2">
+                      <GiStarMedal className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                      <span className="font-medium">{board.votes} votes</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="cyber-outline"
+                    className="w-full group-hover:variant-cyber transition-all"
+                    size="lg"
+                    onClick={() => handleQuickPlay(board)}
+                    aria-label={`Play ${board.title} bingo board`}
+                  >
+                    <GiConsoleController className="mr-2 h-5 w-5" />
+                    Play This Board
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Features Preview */}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="space-y-4 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full cyber-card border-cyan-500/50">
+                <GiSandsOfTime className="h-8 w-8 text-cyan-400" />
+              </div>
+              <h4 className="text-xl font-bold neon-glow-cyan">Instant Multiplayer</h4>
+              <p className="text-cyan-200/70 leading-relaxed">
+                Join live games in seconds. Real-time sync with other players around the world.
+              </p>
+            </div>
+
+            <div className="space-y-4 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full cyber-card border-purple-500/50">
+                <GiTrophyCup className="h-8 w-8 text-purple-400" />
+              </div>
+              <h4 className="text-xl font-bold neon-glow-purple">Win Detection</h4>
+              <p className="text-cyan-200/70 leading-relaxed">
+                Automatic pattern recognition and victory celebrations with real-time scoring.
+              </p>
+            </div>
+
+            <div className="space-y-4 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full cyber-card border-emerald-500/50">
+                <GiTeamIdea className="h-8 w-8 text-emerald-400" />
+              </div>
+              <h4 className="text-xl font-bold neon-glow-emerald">Social Gaming</h4>
+              <p className="text-cyan-200/70 leading-relaxed">
+                Play with friends or meet new players in public games and tournaments.
+              </p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mx-auto max-w-2xl cyber-card border-red-500/50 bg-red-500/10 p-6">
+              <p className="text-center text-red-300 text-lg">
+                {error}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Features Preview */}
-      <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/20">
-            <Clock className="h-6 w-6 text-purple-600" />
-          </div>
-          <h4 className="font-semibold">Instant Multiplayer</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Join live games in seconds. Real-time sync with other players.
-          </p>
-        </div>
-
-        <div className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20">
-            <Trophy className="h-6 w-6 text-blue-600" />
-          </div>
-          <h4 className="font-semibold">Win Detection</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Automatic pattern recognition and victory celebrations.
-          </p>
-        </div>
-
-        <div className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-            <Users className="h-6 w-6 text-green-600" />
-          </div>
-          <h4 className="font-semibold">Social Gaming</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Play with friends or meet new players in public games.
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mx-auto max-w-2xl rounded-lg border border-red-200 bg-red-50 p-4 dark:bg-red-900/20">
-          <p className="text-center text-sm text-red-700 dark:text-red-300">
-            {error}
-          </p>
-        </div>
-      )}
-    </div>
+    </CyberpunkBackground>
   );
 }

@@ -11,9 +11,17 @@ const rateLimiter = new RateLimiter();
 
 interface CreateSessionRequest {
   boardId: string;
-  displayName: string;
-  color: string;
+  displayName?: string;
+  color?: string;
   team?: number | null;
+  settings?: {
+    max_players?: number;
+    allow_spectators?: boolean;
+    auto_start?: boolean;
+    time_limit?: number | null;
+    require_approval?: boolean;
+    password?: string;
+  };
 }
 
 interface UpdatesForLog {
@@ -50,47 +58,93 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const body = (await request.json()) as CreateSessionRequest;
-    const { boardId, displayName, color, team } = body;
+    const { boardId, displayName, color, team, settings } = body;
     boardIdForLog = boardId;
 
-    // Check if board exists and is published
-    const { data: board, error: boardError } = await supabase
-      .from('bingo_boards')
-      .select('id, status, board_state, size')
-      .eq('id', boardId)
-      .single();
+    // Batch queries using Promise.all for better performance
+    const [profileResult, boardResult] = await Promise.all([
+      supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('bingo_boards')
+        .select('id, status, board_state, size')
+        .eq('id', boardId)
+        .single()
+    ]);
+
+    const { data: profile } = profileResult;
+    const { data: board, error: boardError } = boardResult;
+
+    const playerDisplayName = displayName || profile?.username || 'Anonymous';
+    const playerColor = color || '#3B82F6'; // Default blue
 
     if (boardError || !board) {
       return NextResponse.json({ error: 'Board not found' }, { status: 404 });
     }
 
-    // A board must be 'active' to allow new sessions.
+    // Allow sessions for 'active' boards, or boards owned by the current user
     if (board.status !== 'active') {
-      return NextResponse.json(
-        {
-          error:
-            'Board is not active. Sessions can only be created for active boards.',
-        },
-        { status: 400 }
-      );
+      const { data: boardOwner } = await supabase
+        .from('bingo_boards')
+        .select('creator_id')
+        .eq('id', boardId)
+        .single();
+
+      if (boardOwner?.creator_id !== user.id) {
+        return NextResponse.json(
+          {
+            error:
+              'Board is not active. Sessions can only be created for active boards.',
+          },
+          { status: 400 }
+        );
+      }
     }
 
-    // Check for existing active or waiting session
-    const { data: existingSession } = await supabase
-      .from('bingo_sessions')
-      .select('id')
-      .eq('board_id', boardId)
-      .in('status', ['active', 'waiting'])
-      .single();
+    // Generate unique session code
+    const generateSessionCode = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = '';
+      for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
 
-    if (existingSession) {
-      return NextResponse.json(
-        { error: 'An active or waiting session already exists for this board' },
-        { status: 409 }
-      );
+    let sessionCode = generateSessionCode();
+
+    // Ensure session code is unique
+    let codeExists = true;
+    let attempts = 0;
+    while (codeExists && attempts < 10) {
+      const { data: existingCode } = await supabase
+        .from('bingo_sessions')
+        .select('id')
+        .eq('session_code', sessionCode)
+        .single();
+
+      if (!existingCode) {
+        codeExists = false;
+      } else {
+        sessionCode = generateSessionCode();
+        attempts++;
+      }
     }
 
     const now = new Date().toISOString();
+
+    // Prepare session settings
+    const sessionSettings = {
+      max_players: settings?.max_players || 4,
+      allow_spectators: settings?.allow_spectators ?? true,
+      auto_start: settings?.auto_start ?? false,
+      time_limit: settings?.time_limit || null,
+      require_approval: settings?.require_approval ?? false,
+      password: settings?.password || null,
+    };
 
     // Create new session with proper initialization
     const { data: session, error: sessionError } = await supabase
@@ -98,12 +152,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       .insert({
         board_id: boardId,
         host_id: user.id,
+        session_code: sessionCode,
         current_state: board.board_state || [],
         status: 'waiting',
         version: 1,
         winner_id: null,
         started_at: null,
         ended_at: null,
+        settings: sessionSettings,
       })
       .select()
       .single();
@@ -116,10 +172,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       .insert({
         session_id: session.id,
         user_id: user.id,
-        display_name: displayName,
-        color,
+        display_name: playerDisplayName,
+        color: playerColor,
         team: team ?? null,
         joined_at: now,
+        is_host: true,
+        is_ready: true,
       })
       .select()
       .single();

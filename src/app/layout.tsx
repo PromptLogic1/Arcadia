@@ -24,8 +24,17 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>
+          {/* Skip to main content link for accessibility */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-cyan-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg"
+          >
+            Skip to main content
+          </a>
           <Header />
-          <main>{children}</main>
+          <main id="main-content" tabIndex={-1} className="pt-20">
+            {children}
+          </main>
           <Footer />
           <ScrollToTop />
           <Analytics />

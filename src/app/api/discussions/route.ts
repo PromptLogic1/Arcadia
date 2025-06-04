@@ -8,30 +8,47 @@ interface DiscussionPostBody {
   game: string;
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
   try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const gameType = searchParams.get('gameType');
+    
+    // Validate pagination params
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(50, Math.max(1, limit)); // Max 50 items per page
+    const offset = (safePage - 1) * safeLimit;
+
     const supabase = await createServerComponentClient();
 
-    const { data, error } = await supabase
+    // Build query with pagination
+    let query = supabase
       .from('discussions')
       .select(
         `
         *,
-        author:users(username, avatar_url),
-        comments:comments(count),
-        commentList:comments(
-          id,
-          content,
-          created_at,
-          author:users(username, avatar_url)
-        )
-      `
-      )
-      .order('created_at', { ascending: false });
+        author:users!discussions_author_id_fkey(username, avatar_url),
+        comments:comments(count)
+      `,
+        { count: 'exact' }
+      );
+    
+    // Add game type filter if provided
+    if (gameType && gameType !== 'all') {
+      query = query.eq('game', gameType);
+    }
+    
+    // Add pagination and ordering
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + safeLimit - 1);
+
+    const { data, error, count } = await query;
 
     if (error) {
       log.error('Error fetching discussions', error, {
-        metadata: { apiRoute: 'discussions', method: 'GET' },
+        metadata: { apiRoute: 'discussions', method: 'GET', page: safePage, limit: safeLimit },
       });
       return NextResponse.json(
         { error: 'Failed to fetch discussions' },
@@ -39,7 +56,16 @@ export async function GET(): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json(data);
+    // Return paginated response with metadata
+    return NextResponse.json({
+      data: data || [],
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / safeLimit)
+      }
+    });
   } catch (error) {
     log.error('Error fetching discussions', error, {
       metadata: { apiRoute: 'discussions', method: 'GET' },

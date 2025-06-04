@@ -8,11 +8,11 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
-import type { SessionFilters } from '@/services/sessions.service';
+import type { SessionFilters, BingoSession } from '../../services/sessions.service';
 
 export interface SessionState {
   // Current session
-  currentSession: any | null;
+  currentSession: BingoSession | null;
   currentSessionId: string | null;
   
   // UI states
@@ -26,7 +26,7 @@ export interface SessionState {
 
 export interface SessionActions {
   // Session management
-  setCurrentSession: (session: any | null) => void;
+  setCurrentSession: (session: BingoSession | null) => void;
   setCurrentSessionId: (sessionId: string | null) => void;
   
   // UI state management
@@ -59,7 +59,7 @@ const initialState: SessionState = {
 
 const useSessionsStore = createWithEqualityFn<SessionState & SessionActions>()(
   devtools(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
       
       // Session management

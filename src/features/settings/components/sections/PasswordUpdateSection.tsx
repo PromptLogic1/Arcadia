@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SETTINGS_CONSTANTS } from '../constants';
-import { usePasswordUpdate } from '../hooks/usePasswordUpdate';
+import { SETTINGS_CONSTANTS, type PasswordCheck } from '../constants';
+import { useSettingsModern } from '../../hooks/useSettingsModern';
 import { PasswordRequirements } from '../ui/PasswordRequirements';
 
 // Zod schema for password update validation
@@ -35,14 +35,8 @@ const passwordUpdateSchema = z
 type PasswordUpdateFormData = z.infer<typeof passwordUpdateSchema>;
 
 export function PasswordUpdateSection() {
-  const {
-    formState: hookFormState,
-    isChangingPassword,
-    setIsChangingPassword,
-    handlePasswordUpdate,
-    resetPasswordForm,
-    checkPasswordRequirements,
-  } = usePasswordUpdate();
+  // Modern settings hook
+  const settings = useSettingsModern();
 
   const {
     register,
@@ -60,19 +54,31 @@ export function PasswordUpdateSection() {
   });
 
   const newPassword = watch('newPassword', '');
-  const passwordChecks = checkPasswordRequirements(newPassword);
+  const passwordValidation = settings.validatePassword(newPassword);
+  const passwordChecks: PasswordCheck = {
+    uppercase: passwordValidation.requirements.hasUppercase,
+    lowercase: passwordValidation.requirements.hasLowercase,
+    number: passwordValidation.requirements.hasNumber,
+    special: passwordValidation.requirements.hasSpecialChar,
+    length: passwordValidation.requirements.minLength,
+  };
 
   const onSubmit = async (data: PasswordUpdateFormData) => {
-    await handlePasswordUpdate(data);
-    reset(); // Reset form after successful submission
+    try {
+      await settings.handlePasswordUpdate(data);
+      reset(); // Reset form after successful submission
+    } catch (error) {
+      // Error handling is done by the modern hook
+      console.error('Password update failed:', error);
+    }
   };
 
   const handleCancel = () => {
     reset();
-    resetPasswordForm();
+    settings.resetPasswordForm();
   };
 
-  const isLoading = isSubmitting || hookFormState.isSubmitting;
+  const isLoading = isSubmitting || settings.isUpdatingPassword;
 
   return (
     <div className="space-y-4">
@@ -83,9 +89,9 @@ export function PasswordUpdateSection() {
             {SETTINGS_CONSTANTS.MESSAGES.PASSWORD_DESCRIPTION}
           </p>
         </div>
-        {!isChangingPassword && (
+        {!settings.isChangingPassword && (
           <Button
-            onClick={() => setIsChangingPassword(true)}
+            onClick={() => settings.setIsChangingPassword(true)}
             variant="outline"
             className={SETTINGS_CONSTANTS.STYLES.BUTTON_OUTLINE}
           >
@@ -94,7 +100,7 @@ export function PasswordUpdateSection() {
         )}
       </div>
 
-      {isChangingPassword && (
+      {settings.isChangingPassword && (
         <div className={SETTINGS_CONSTANTS.STYLES.SECTION_CONTAINER}>
           <button
             onClick={handleCancel}

@@ -26,7 +26,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/stores/auth-store';
 
 // New pattern imports
 import { useSessionsState, useSessionsActions } from '@/lib/stores/sessions-store';
@@ -42,8 +42,8 @@ import { SessionJoinDialog } from './SessionJoinDialog';
 import { SessionCard } from './SessionCard';
 import { SessionFilters } from './SessionFilters';
 
-// Types
-import type { SessionSettings } from '../types';
+// Types  
+import type { SessionSettings } from '../../../services/sessions.service';
 
 interface PlayAreaHubProps {
   className?: string;
@@ -113,7 +113,14 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       const result = await createSessionMutation.mutateAsync({ 
         board_id: boardId, 
         host_id: authUser?.id || '',
-        settings 
+        settings: {
+          max_players: settings.max_players ?? 8,
+          allow_spectators: settings.allow_spectators ?? true,
+          auto_start: settings.auto_start ?? false,
+          time_limit: settings.time_limit ?? undefined,
+          require_approval: settings.require_approval ?? false,
+          password: settings.password ?? undefined,
+        }
       });
       // Navigate to the session
       router.push(`/play-area/session/${result.session?.id}`);
@@ -166,11 +173,11 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
                     authUser.auth_username ||
                     authUser.email?.split('@')[0] || 
                     'Player',
-      color: randomColor,
+      color: randomColor || '#3B82F6', // Default to blue if somehow undefined
     };
 
     try {
-      const result = await joinSessionMutation.mutateAsync(joinData);
+      await joinSessionMutation.mutateAsync(joinData);
       // Navigate to the session
       router.push(`/play-area/session/${sessionId}`);
     } catch (error) {
@@ -270,7 +277,11 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           <CardContent>
             <div className="text-2xl font-bold neon-glow-cyan animate-glow">
               {sessions.reduce(
-                (total, session) => total + ((session as any).current_player_count || 0),
+                (total, session) => {
+                  const count = 'current_player_count' in session ? 
+                    (typeof session.current_player_count === 'number' ? session.current_player_count : 0) : 0;
+                  return total + count;
+                },
                 0
               )}
             </div>

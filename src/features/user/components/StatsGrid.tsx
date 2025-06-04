@@ -7,7 +7,7 @@ import {
   Clock,
   type LucideIcon,
 } from 'lucide-react';
-import type { Tables } from '@/types/database-types';
+import type { Tables } from '@/types/database-generated';
 import { Card, CardContent } from '@/components/ui/card';
 import { USER_PAGE_CONSTANTS, STAT_COLORS } from './constants';
 

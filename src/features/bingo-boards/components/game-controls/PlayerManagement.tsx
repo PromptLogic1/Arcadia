@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -22,16 +22,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { UserPlus, UserMinus, User, Users2, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Player } from '../../types/types';
+import type { GamePlayer } from '../../types';
 import { PLAYER_CONSTANTS } from '../../types/player-management.constants';
 import { useSession } from '../../hooks/useSession';
-import { useSessionQueue } from '../../hooks/useSessionQueue';
+import { useSessionQueueModern } from '../../hooks/useSessionQueueModern';
 
 interface PlayerManagementProps {
   isOwner: boolean;
-  players: Player[];
+  players: GamePlayer[];
   teamMode: boolean;
-  onPlayersChange: (players: Player[]) => void;
+  onPlayersChange: (players: GamePlayer[]) => void;
   sessionId?: string;
 }
 
@@ -42,30 +42,26 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
   onPlayersChange,
   sessionId = '',
 }) => {
-  // States
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [showQueueDialog, setShowQueueDialog] = useState(false);
-  const [inviteLink, setInviteLink] = useState('');
+  // States (now managed by modern hook)
+  // Removed local state - using queue.showInviteDialog, queue.showQueueDialog, queue.inviteLink
 
   // Hooks
   const session = useSession({
     boardId: sessionId,
+    sessionId: sessionId,
     _game: 'All Games',
-    initialPlayers: players,
   });
-  const queue = useSessionQueue(sessionId);
+  const queue = useSessionQueueModern(sessionId);
 
-  // Generate invite link
-  const generateInviteLink = useCallback(() => {
-    const link = `${window.location.origin}/join/${sessionId}`;
-    setInviteLink(link);
-    setShowInviteDialog(true);
-  }, [sessionId]);
+  // Generate invite link (now using modern hook)
+  const handleGenerateInviteLink = useCallback(() => {
+    queue.generateInviteLink();
+  }, [queue]);
 
-  // Copy invite link
-  const copyInviteLink = useCallback(() => {
-    navigator.clipboard.writeText(inviteLink);
-  }, [inviteLink]);
+  // Copy invite link (now using modern hook)
+  const handleCopyInviteLink = useCallback(() => {
+    queue.copyInviteLink();
+  }, [queue]);
 
   return (
     <div className="space-y-4">
@@ -84,9 +80,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
         {isOwner && (
           <div className="flex gap-2">
             <Button
-              onClick={generateInviteLink}
+              onClick={handleGenerateInviteLink}
               variant="outline"
               size="sm"
+              disabled={queue.isGeneratingLink}
               className={cn(
                 'h-8 px-3',
                 'bg-cyan-500/10 hover:bg-cyan-500/20',
@@ -95,10 +92,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
               )}
             >
               <UserPlus className="mr-2 h-4 w-4" />
-              Invite Players
+              {queue.isGeneratingLink ? 'Generating...' : 'Invite Players'}
             </Button>
             <Button
-              onClick={() => setShowQueueDialog(true)}
+              onClick={() => queue.setShowQueueDialog(true)}
               variant="outline"
               size="sm"
               className={cn(
@@ -186,7 +183,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     newPlayers[index] = { ...player, name: e.target.value };
                     onPlayersChange(newPlayers);
                   }}
-                  disabled={!isOwner && player.id !== session.currentPlayer?.id}
+                  disabled={!isOwner && player.id !== session.sessionState.currentPlayer?.id}
                   className={cn(
                     'h-8 bg-gray-800/50 text-sm',
                     'border-gray-700/50 focus:border-cyan-500/50',
@@ -208,7 +205,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     };
                     onPlayersChange(newPlayers);
                   }}
-                  disabled={!isOwner && player.id !== session.currentPlayer?.id}
+                  disabled={!isOwner && player.id !== session.sessionState.currentPlayer?.id}
                 >
                   <SelectTrigger
                     className={cn(
@@ -250,7 +247,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                   newPlayers[index] = { ...player, team: parseInt(team) };
                   onPlayersChange(newPlayers);
                 }}
-                disabled={!isOwner && player.id !== session.currentPlayer?.id}
+                disabled={!isOwner && player.id !== session.sessionState.currentPlayer?.id}
               >
                 <SelectTrigger
                   className={cn(
@@ -273,7 +270,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
       </div>
 
       {/* Invite Dialog */}
-      <AlertDialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+      <AlertDialog open={queue.showInviteDialog} onOpenChange={queue.setShowInviteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Invite Players</AlertDialogTitle>
@@ -282,8 +279,13 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2">
-            <Input value={inviteLink} readOnly />
-            <Button onClick={copyInviteLink}>Copy</Button>
+            <Input value={queue.inviteLink} readOnly />
+            <Button 
+              onClick={handleCopyInviteLink}
+              disabled={queue.isCopyingLink}
+            >
+              {queue.isCopyingLink ? 'Copying...' : 'Copy'}
+            </Button>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
@@ -292,7 +294,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
       </AlertDialog>
 
       {/* Queue Dialog */}
-      <AlertDialog open={showQueueDialog} onOpenChange={setShowQueueDialog}>
+      <AlertDialog open={queue.showQueueDialog} onOpenChange={queue.setShowQueueDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Player Queue</AlertDialogTitle>
@@ -301,34 +303,31 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            {queue.queueEntries.map(entry => (
+            {queue.waitingEntries.map(entry => (
               <div
                 key={entry.id}
                 className="flex items-center justify-between rounded-lg bg-gray-800/50 p-3"
               >
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-400" />
-                  <span>{entry.user_id || 'Unknown Player'}</span>
+                  <span>{entry.player_name || 'Unknown Player'}</span>
+                  <div className={cn('h-3 w-3 rounded-full', entry.color)} />
                 </div>
                 {isOwner && (
                   <div className="flex gap-2">
                     <Button
-                      onClick={() =>
-                        queue.updateQueueEntry(entry.id, { status: 'matched' })
-                      }
+                      onClick={() => queue.acceptPlayer(entry.id)}
                       size="sm"
                       variant="default"
+                      disabled={queue.isAcceptingPlayer}
                     >
                       Accept
                     </Button>
                     <Button
-                      onClick={() =>
-                        queue.updateQueueEntry(entry.id, {
-                          status: 'cancelled',
-                        })
-                      }
+                      onClick={() => queue.rejectPlayer(entry.id)}
                       size="sm"
                       variant="destructive"
+                      disabled={queue.isRejectingPlayer}
                     >
                       Reject
                     </Button>
@@ -336,7 +335,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                 )}
               </div>
             ))}
-            {queue.queueEntries.length === 0 && (
+            {queue.waitingEntries.length === 0 && (
               <p className="py-4 text-center text-sm text-gray-400">
                 No players in queue
               </p>

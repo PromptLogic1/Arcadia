@@ -9,14 +9,14 @@ export type Discussion = Tables<'discussions'>;
 export interface CommentWithAuthor extends Comment {
   author?: {
     username: string;
-    avatar_url?: string;
+    avatar_url?: string | null;
   };
 }
 
 export interface DiscussionWithAuthor extends Discussion {
   author?: {
     username: string;
-    avatar_url?: string;
+    avatar_url?: string | null;
   };
   comment_count?: number;
 }
@@ -54,15 +54,15 @@ export interface CreateDiscussionFormData {
 
 export interface CreateCommentFormData {
   content: string;
-  discussion_id: number;
+  discussion_id?: string;
 }
 
 // Filter and sort types
 export interface DiscussionFilters {
-  game?: string;
-  challenge_type?: string;
+  game?: string | null;
+  challengeType?: string | null;
   tags?: string[];
-  author_id?: string;
+  searchTerm?: string;
 }
 
 export type DiscussionSortBy =

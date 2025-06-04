@@ -8,6 +8,8 @@ import NeonBorder from '@/components/ui/NeonBorder';
 import { Card, CardContent } from '@/components/ui/card';
 import { NeonText } from '@/components/ui/NeonText';
 import { Button } from '@/components/ui/button';
+import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
+import FloatingElements from '@/components/ui/FloatingElements';
 
 // Define the FeaturedGame interface with proper image typing
 interface FeaturedGame {
@@ -45,7 +47,7 @@ interface GameCardProps {
 }
 
 const GameCard: React.FC<GameCardProps> = memo(({ game }) => (
-  <Card className="border-none bg-gray-800 transition-transform duration-300 hover:scale-105">
+  <Card variant="cyber" glow="subtle" className="transition-transform duration-300 hover:scale-105 group">
     <CardContent className="p-0">
       <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
         <OptimizedImage
@@ -54,10 +56,10 @@ const GameCard: React.FC<GameCardProps> = memo(({ game }) => (
           width={1920}
           height={1080}
           className="transition-transform duration-300 hover:scale-110"
-          priority
+          loading="lazy"
         />
-        <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
-          <h3 className="text-2xl font-bold text-cyan-300">{game.title}</h3>
+        <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-slate-950/90 to-transparent p-4">
+          <h3 className="text-2xl font-bold neon-glow-cyan">{game.title}</h3>
         </div>
       </div>
     </CardContent>
@@ -93,13 +95,14 @@ const FeaturedGamesCarousel: React.FC = () => {
   }, [emblaApi, onSelect]);
 
   return (
-    <section className="bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 py-24">
+    <CyberpunkBackground variant="circuit" intensity="medium" className="bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-900/95 py-24">
+      <FloatingElements variant="hexagons" count={15} speed="medium" color="cyan" repositioning={true} />
       <div className="container mx-auto flex flex-col items-center px-4">
-        <h2 className="mb-14 text-center text-4xl font-bold md:text-5xl">
-          <NeonText>Featured Games</NeonText>
+        <h2 className="mb-16 text-center">
+          <NeonText variant="gradient" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl">Featured Games</NeonText>
         </h2>
         <div className="relative flex w-full justify-center">
-          <NeonBorder className="w-full max-w-5xl overflow-hidden">
+          <NeonBorder className="w-full max-w-7xl overflow-hidden">
             <div className="overflow-hidden" ref={emblaRef}>
               <div className="flex">
                 {featuredGames.map(game => (
@@ -115,9 +118,9 @@ const FeaturedGamesCarousel: React.FC = () => {
           </NeonBorder>
           {/* Previous Button */}
           <Button
-            variant="ghost"
+            variant="cyber-ghost"
             size="icon"
-            className="absolute top-1/2 left-2 -translate-y-1/2 transform rounded-full border border-cyan-500/20 bg-gray-800/70 text-cyan-400 shadow-lg hover:bg-cyan-500/20 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+            className="absolute top-1/2 left-2 -translate-y-1/2 transform rounded-full"
             onClick={scrollPrev}
             aria-label="Previous Game"
           >
@@ -125,9 +128,9 @@ const FeaturedGamesCarousel: React.FC = () => {
           </Button>
           {/* Next Button */}
           <Button
-            variant="ghost"
+            variant="cyber-ghost"
             size="icon"
-            className="absolute top-1/2 right-2 -translate-y-1/2 transform rounded-full border border-cyan-500/20 bg-gray-800/70 text-cyan-400 shadow-lg hover:bg-cyan-500/20 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+            className="absolute top-1/2 right-2 -translate-y-1/2 transform rounded-full"
             onClick={scrollNext}
             aria-label="Next Game"
           >
@@ -150,7 +153,7 @@ const FeaturedGamesCarousel: React.FC = () => {
           ))}
         </div>
       </div>
-    </section>
+    </CyberpunkBackground>
   );
 };
 

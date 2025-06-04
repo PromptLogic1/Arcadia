@@ -10,7 +10,6 @@ import type { Difficulty, FilterOptions } from '@/types';
 import { DIFFICULTIES } from '@/types';
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { useBingoCardsActions } from '@/src/lib/stores';
 import { log } from '@/lib/logger';
 
 interface FilterBingoCardsProps {
@@ -21,10 +20,6 @@ interface FilterBingoCardsProps {
 export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
   const [filters, setFilters] = useState<FilterOptions>({});
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    filterPublicCards: _filterPublicCards,
-    initializePublicCards: _initializePublicCards,
-  } = useBingoCardsActions();
 
   const handleFilter = async () => {
     try {

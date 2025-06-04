@@ -18,7 +18,11 @@ import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
 import {
   Constants as _Constants,
   type GameCategory as _GameCategory,
+  type Tables,
 } from '@/types';
+
+// Use the database type directly to avoid conflicts
+type _BingoBoard = Tables<'bingo_boards'>;
 
 export default function BingoBoardsHub() {
   const {
@@ -98,7 +102,7 @@ export default function BingoBoardsHub() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {boards.map(board => (
+        {boards.map((board) => (
           <BoardCard key={board.id} board={board} />
         ))}
       </div>

@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GamepadIcon, Search, Bell, Menu, X, Download } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { GiGamepadCross } from 'react-icons/gi';
+import { BiSearchAlt } from 'react-icons/bi';
+import { IoNotificationsSharp } from 'react-icons/io5';
+import { FaDownload } from 'react-icons/fa';
 import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Input } from '../ui/input';
@@ -94,12 +98,13 @@ const Header: React.FC = () => {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-[9999] w-full transition-all duration-300 ${
         scrolled
-          ? 'bg-gray-900/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-gray-900/75'
-          : 'bg-transparent'
+          ? 'cyber-card border-b-2 border-cyan-400/30 shadow-2xl shadow-cyan-500/20 backdrop-blur-xl'
+          : 'bg-slate-950/90 backdrop-blur-md border-b border-cyan-500/10'
       }`}
       role="banner"
+      style={{ position: 'fixed', top: 0, zIndex: 9999 }}
     >
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* Logo */}
@@ -108,7 +113,7 @@ const Header: React.FC = () => {
           className="group flex items-center"
           aria-label="Arcadia Home"
         >
-          <GamepadIcon className="mr-2 h-8 w-8 text-cyan-400 transition-colors duration-300 group-hover:text-fuchsia-400" />
+          <GiGamepadCross className="mr-2 h-8 w-8 text-cyan-400 transition-colors duration-300 group-hover:text-fuchsia-400" />
           <NeonText
             variant="gradient"
             className="text-2xl transition-colors duration-300 group-hover:text-fuchsia-400"
@@ -127,11 +132,12 @@ const Header: React.FC = () => {
               key={item.href}
               href={item.href}
               className={cn(
-                'rounded-md px-4 py-2 text-base font-medium transition-all duration-200',
-                'hover:bg-cyan-500/10 hover:text-cyan-400',
+                'rounded-md px-4 py-2 text-base font-medium transition-all duration-300',
+                'hover:bg-cyan-500/20 hover:text-cyan-300 hover:shadow-lg hover:shadow-cyan-500/30',
+                'relative group border border-transparent hover:border-cyan-500/30',
                 isActive(item.href)
-                  ? 'bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text font-semibold text-transparent'
-                  : 'text-gray-200 hover:text-cyan-400'
+                  ? 'neon-glow-cyan font-semibold bg-cyan-500/15 border-cyan-400/50 text-cyan-300'
+                  : 'text-cyan-200/90 hover:text-cyan-300'
               )}
             >
               {item.label}
@@ -162,52 +168,43 @@ const Header: React.FC = () => {
             )}
           </AnimatePresence>
           <Button
-            variant="ghost"
+            variant="cyber-outline"
             size="sm"
             onClick={() => setIsSearchOpen(prev => !prev)}
-            className={cn(
-              'text-gray-200 hover:bg-cyan-500/10 hover:text-cyan-400',
-              'rounded-full transition-all duration-200',
-              'focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-800'
-            )}
+            className="rounded-full border-cyan-500/30 hover:border-cyan-400/60"
             aria-label="Toggle search"
           >
-            <Search className="h-5 w-5" />
+            <BiSearchAlt className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                variant="ghost"
+                variant="cyber-outline"
                 size="icon"
-                className="relative text-gray-300 transition-colors duration-200 hover:text-cyan-400"
+                className="relative border-cyan-500/30 hover:border-cyan-400/60"
                 aria-label="Notifications"
               >
-                <Bell className="h-6 w-6" aria-hidden="true" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-gray-900" />
+                <IoNotificationsSharp className="h-6 w-6" aria-hidden="true" />
+                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-slate-900 animate-cyberpunk-glow" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 border-cyan-500/50 bg-gray-800 p-4 text-white">
+            <PopoverContent className="w-80 cyber-card border-cyan-400/50 p-4 text-cyan-100 backdrop-blur-xl">
               <h3 className="mb-2 text-lg font-semibold">
                 <NeonText variant="gradient">Notifications</NeonText>
               </h3>
-              <p className="text-gray-400">No new notifications</p>
+              <p className="text-cyan-300/80">No new notifications</p>
             </PopoverContent>
           </Popover>
 
           {/* Download Button */}
           <Link href="/download">
             <Button
-              variant="outline"
-              className={cn(
-                'border-2 border-cyan-500 text-cyan-400',
-                'hover:bg-cyan-500 hover:text-white',
-                'rounded-full transition-all duration-200',
-                'shadow-lg shadow-cyan-500/20'
-              )}
+              variant="cyber"
+              className="rounded-full shadow-lg shadow-cyan-500/30 border-cyan-400/40"
             >
-              <Download className="mr-2 h-4 w-4" />
+              <FaDownload className="mr-2 h-4 w-4" />
               Download
             </Button>
           </Link>
@@ -237,7 +234,7 @@ const Header: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-56 border-cyan-500/50 bg-gray-800 text-white"
+                  className="w-56 cyber-card border-cyan-400/50 text-cyan-100 backdrop-blur-xl"
                   align="end"
                   forceMount
                 >
@@ -253,7 +250,7 @@ const Header: React.FC = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleSignOut}
-                    className="cursor-pointer text-red-400 hover:bg-red-500/10"
+                    className="cursor-pointer text-red-400 hover:bg-red-500/20 hover:text-red-300"
                   >
                     Log out
                   </DropdownMenuItem>
@@ -263,20 +260,16 @@ const Header: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Link href="/auth/login">
                   <Button
-                    variant="ghost"
-                    className="text-gray-200 hover:bg-cyan-500/10 hover:text-cyan-400"
+                    variant="cyber-outline"
+                    className="text-cyan-200 border-cyan-500/30 hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-300"
                   >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
                   <Button
-                    className={cn(
-                      'bg-gradient-to-r from-cyan-500 to-fuchsia-500',
-                      'rounded-full px-6 py-2 font-medium text-white',
-                      'transition-all duration-200 hover:opacity-90',
-                      'shadow-lg shadow-cyan-500/25'
-                    )}
+                    variant="cyber"
+                    className="rounded-full shadow-lg shadow-cyan-500/30"
                   >
                     Sign Up
                   </Button>
@@ -295,7 +288,7 @@ const Header: React.FC = () => {
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMenuOpen}
             aria-controls="mobile-menu"
-            className="text-gray-300 transition-colors duration-200 hover:text-cyan-400"
+            className="text-cyan-200 border border-cyan-500/30 transition-colors duration-200 hover:text-cyan-300 hover:border-cyan-400/60"
           >
             {isMenuOpen ? (
               <X className="h-6 w-6" aria-hidden="true" />
@@ -315,7 +308,7 @@ const Header: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden bg-gray-800 md:hidden"
+            className="overflow-hidden cyber-card border-t border-cyan-500/30 md:hidden backdrop-blur-xl"
             id="mobile-menu"
             aria-label="Mobile Navigation"
           >
@@ -324,10 +317,10 @@ const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-md px-3 py-2 text-lg font-medium transition-colors duration-200 ${
+                  className={`block rounded-md px-3 py-2 text-lg font-medium transition-colors duration-200 border ${
                     isActive(item.href)
-                      ? 'bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-transparent'
-                      : 'text-gray-300 hover:text-cyan-400'
+                      ? 'bg-cyan-500/15 border-cyan-400/50 neon-glow-cyan text-cyan-300'
+                      : 'text-cyan-200/90 border-transparent hover:text-cyan-300 hover:border-cyan-500/30 hover:bg-cyan-500/10'
                   }`}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                 >

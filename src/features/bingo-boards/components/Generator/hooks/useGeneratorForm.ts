@@ -2,8 +2,20 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect } from 'react';
 import { z } from 'zod';
-import type { GameCategory } from '@/features/bingo-boards/types';
-import { type DifficultyLevel, Constants } from '@/types/database-core';
+import type { GameCategory, Difficulty as _Difficulty } from '@/types';
+import type { Enums } from '@/types/database-generated';
+
+// Type alias for clean usage
+type DifficultyLevel = Enums<'difficulty_level'>;
+
+// Create constants from enum types
+const Constants = {
+  public: {
+    Enums: {
+      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+    }
+  }
+} as const;
 import {
   type CardCategory,
   CARD_CATEGORIES,

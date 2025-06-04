@@ -6,8 +6,25 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { BingoBoard, GameCategory, DifficultyLevel } from '@/types';
-import type { BoardCell } from '@/types/database-core';
+import type { Tables, TablesInsert, TablesUpdate, Enums, CompositeTypes } from '@/types/database-generated';
+
+// Type aliases for clean usage
+type BoardCell = CompositeTypes<'board_cell'>;
+export type BingoBoard = Tables<'bingo_boards'>;
+export type BingoBoardInsert = TablesInsert<'bingo_boards'>;
+export type BingoBoardUpdate = TablesUpdate<'bingo_boards'>;
+export type GameCategory = Enums<'game_category'>;
+export type DifficultyLevel = Enums<'difficulty_level'>;
+
+// Convert database board to application board type
+function convertDbBoardToAppBoard(dbBoard: Tables<'bingo_boards'>): BingoBoard {
+  return {
+    ...dbBoard,
+    created_at: dbBoard.created_at || new Date().toISOString(),
+    updated_at: dbBoard.updated_at || new Date().toISOString(),
+    // Ensure all fields match the BingoBoard type
+  } as BingoBoard;
+}
 
 export interface CreateBoardData {
   title: string;
@@ -17,7 +34,6 @@ export interface CreateBoardData {
   size?: number;
   tags?: string[];
   is_public?: boolean;
-  creator_id: string;
 }
 
 export interface UpdateBoardData {
@@ -36,6 +52,17 @@ export interface BoardFilters {
   search?: string;
   isPublic?: boolean;
   creatorId?: string;
+  sortBy?: 'newest' | 'oldest' | 'popular' | 'difficulty';
+}
+
+export type BoardSection = 'all' | 'my-boards' | 'bookmarked';
+
+export interface BoardsQueryParams {
+  section: BoardSection;
+  filters: BoardFilters;
+  page: number;
+  limit: number;
+  userId?: string;
 }
 
 export interface PaginatedBoardsResponse {
@@ -61,7 +88,7 @@ export const bingoBoardsService = {
         return { board: null, error: error.message };
       }
 
-      return { board: data as BingoBoard };
+      return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
       return { 
         board: null, 
@@ -118,7 +145,7 @@ export const bingoBoardsService = {
 
       return {
         response: {
-          boards: (data || []) as BingoBoard[],
+          boards: (data || []).map(convertDbBoardToAppBoard),
           totalCount,
           hasMore,
         }
@@ -184,7 +211,7 @@ export const bingoBoardsService = {
 
       return {
         response: {
-          boards: (data || []) as BingoBoard[],
+          boards: (data || []).map(convertDbBoardToAppBoard),
           totalCount,
           hasMore,
         }
@@ -203,6 +230,13 @@ export const bingoBoardsService = {
   async createBoard(boardData: CreateBoardData): Promise<{ board: BingoBoard | null; error?: string }> {
     try {
       const supabase = createClient();
+      
+      // Get current user for creator_id
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        return { board: null, error: 'Must be authenticated to create board' };
+      }
+      
       const gridSize = boardData.size || 5;
       const totalCells = gridSize * gridSize;
 
@@ -216,7 +250,7 @@ export const bingoBoardsService = {
         is_marked: false,
         version: 1,
         last_updated: Date.now(),
-        last_modified_by: boardData.creator_id,
+        last_modified_by: user.id,
       }));
 
       const { data, error } = await supabase
@@ -229,7 +263,7 @@ export const bingoBoardsService = {
           size: gridSize,
           tags: boardData.tags || [],
           is_public: boardData.is_public || false,
-          creator_id: boardData.creator_id,
+          creator_id: user.id,
           board_state: emptyBoardState,
           votes: 0,
           version: 1,
@@ -242,7 +276,7 @@ export const bingoBoardsService = {
         return { board: null, error: error.message };
       }
 
-      return { board: data as BingoBoard };
+      return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
       return { 
         board: null, 
@@ -289,7 +323,7 @@ export const bingoBoardsService = {
         return { board: null, error: error.message };
       }
 
-      return { board: data as BingoBoard };
+      return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
       return { 
         board: null, 
@@ -353,7 +387,7 @@ export const bingoBoardsService = {
         return { board: null, error: error.message };
       }
 
-      return { board: data as BingoBoard };
+      return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
       return { 
         board: null, 
@@ -393,7 +427,7 @@ export const bingoBoardsService = {
           game_type: originalBoard.game_type,
           difficulty: originalBoard.difficulty,
           size: originalBoard.size,
-          tags: originalBoard.tags || [],
+          // tags: (originalBoard.tags as string[]) || [], // TODO: Add tags when board_tags table is implemented
           is_public: false, // Cloned boards are private by default
           creator_id: userId,
           board_state: originalBoard.board_state,
@@ -401,18 +435,126 @@ export const bingoBoardsService = {
           version: 1,
           created_at: new Date().toISOString(),
         })
-        .select()
+        .select('*')
         .single();
 
       if (error) {
         return { board: null, error: error.message };
       }
 
-      return { board: data as BingoBoard };
+      return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
       return { 
         board: null, 
         error: error instanceof Error ? error.message : 'Failed to clone board' 
+      };
+    }
+  },
+
+  /**
+   * Unified method to get boards by section with filters and pagination
+   */
+  async getBoardsBySection(params: BoardsQueryParams): Promise<{ response: PaginatedBoardsResponse; error?: string }> {
+    try {
+      const supabase = createClient();
+      const { section, filters, page, limit, userId } = params;
+      
+      let query = supabase
+        .from('bingo_boards')
+        .select(`
+          *,
+          users!bingo_boards_creator_id_fkey(
+            username,
+            avatar_url,
+            id
+          )
+        `, { count: 'exact' });
+
+      // Apply section filters
+      switch (section) {
+        case 'my-boards':
+          if (!userId) {
+            return {
+              response: { boards: [], totalCount: 0, hasMore: false },
+              error: 'User ID required for my-boards section'
+            };
+          }
+          query = query.eq('creator_id', userId);
+          break;
+        case 'bookmarked':
+          // TODO: Implement bookmarks functionality when user_bookmarks table is added
+          return {
+            response: { boards: [], totalCount: 0, hasMore: false },
+            error: 'Bookmarks functionality not yet implemented'
+          };
+        case 'all':
+        default:
+          query = query.eq('is_public', true);
+          break;
+      }
+
+      // Apply user filters
+      if (filters.gameType) {
+        query = query.eq('game_type', filters.gameType);
+      }
+
+      if (filters.difficulty && filters.difficulty !== 'all') {
+        query = query.eq('difficulty', filters.difficulty);
+      }
+
+      if (filters.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      if (filters.isPublic !== undefined) {
+        query = query.eq('is_public', filters.isPublic);
+      }
+
+      // Apply sorting
+      switch (filters.sortBy) {
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'oldest':
+          query = query.order('created_at', { ascending: true });
+          break;
+        case 'popular':
+          query = query.order('votes', { ascending: false });
+          break;
+        case 'difficulty':
+          query = query.order('difficulty', { ascending: true });
+          break;
+        default:
+          query = query.order('created_at', { ascending: false });
+      }
+
+      // Apply pagination
+      const start = (page - 1) * limit;
+      const end = start + limit - 1;
+
+      const { data, error, count } = await query.range(start, end);
+
+      if (error) {
+        return {
+          response: { boards: [], totalCount: 0, hasMore: false },
+          error: error.message
+        };
+      }
+
+      const totalCount = count || 0;
+      const hasMore = totalCount > end + 1;
+
+      return {
+        response: {
+          boards: (data || []).map(convertDbBoardToAppBoard),
+          totalCount,
+          hasMore,
+        }
+      };
+    } catch (error) {
+      return {
+        response: { boards: [], totalCount: 0, hasMore: false },
+        error: error instanceof Error ? error.message : 'Failed to fetch boards'
       };
     }
   },

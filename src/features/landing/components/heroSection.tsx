@@ -3,11 +3,12 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Play, Users, Sparkles } from 'lucide-react';
+import { GiGamepad, GiTeamIdea, GiSparkles } from 'react-icons/gi';
 import NeonBorder from '@/components/ui/NeonBorder';
-import ArcadeDecoration from '@/components/ui/ArcadeDecoration';
 import { NeonText } from '@/components/ui/NeonText';
 import { Button } from '@/components/ui/button';
+import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
+import FloatingElements from '@/components/ui/FloatingElements';
 
 interface Challenge {
   id: string;
@@ -27,85 +28,107 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
     );
 
     return (
-      <section
-        className="bg-background relative flex min-h-screen items-center justify-center overflow-hidden py-24"
+      <CyberpunkBackground 
+        variant="circuit"
+        intensity="subtle"
+        className="relative flex min-h-screen items-center justify-center overflow-hidden py-24 bg-gradient-to-br from-slate-950 via-slate-900/95 to-cyan-950/30"
         id="home"
       >
-        <div className="from-background via-background/95 to-accent/5 absolute inset-0 bg-linear-to-br/oklch" />
-        <div className="gradient-radial-glow absolute inset-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-cyan-950/20 via-transparent to-slate-950/50" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent" />
 
-        <ArcadeDecoration className="animate-float top-10 left-10 opacity-10" />
-        <ArcadeDecoration
-          className="animate-float right-10 bottom-10 opacity-10"
-          style={{ animationDelay: '1s' }}
+        <FloatingElements 
+          variant="circuits" 
+          count={15}
+          speed="slow" 
+          color="cyan" 
+          repositioning={true}
         />
+        <FloatingElements 
+          variant="particles" 
+          count={15}
+          speed="medium" 
+          color="fuchsia" 
+          repositioning={true}
+        />
+        <FloatingElements 
+          variant="orbs" 
+          count={15}
+          speed="fast" 
+          color="emerald" 
+          repositioning={true}
+        />
+        
+        {/* Additional floating elements for enhanced movement - positioned at edges */}
+        <div className="absolute top-10 left-5 w-2 h-2 bg-cyan-400/30 rounded-full animate-float-smooth-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-10 right-5 w-1 h-1 bg-purple-400/40 rounded-full animate-float-smooth" style={{ animationDelay: '3s' }} />
+        <div className="absolute top-1/4 right-10 w-3 h-3 bg-fuchsia-400/20 rounded-full animate-float-smooth-fast" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute bottom-1/4 left-10 w-2 h-2 bg-emerald-400/25 rounded-full animate-float-smooth" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-2/3 left-5 w-1 h-1 bg-yellow-400/35 rounded-full animate-float-smooth-slow" style={{ animationDelay: '2.5s' }} />
 
-        <div className="relative z-10 container mx-auto flex flex-col items-center justify-center px-4">
+        <div className="relative z-20 container mx-auto flex flex-col items-center justify-center px-4">
           <motion.div
             className="w-full max-w-4xl text-center"
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.8 }}
           >
-            <h1 className="mb-8 text-6xl leading-tight font-extrabold tracking-tight md:text-7xl lg:text-8xl">
-              Welcome to{' '}
-              <span className="mt-2 block">
-                <NeonText intensity="high">
-                  <span className="text-hero animate-glow gradient-primary bg-clip-text text-transparent">
-                    Arcadia
-                  </span>
+            <h1 className="mb-12 leading-tight font-extrabold tracking-tight" role="banner">
+              <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-cyan-200 mb-4 sm:mb-6">Welcome to</span>
+              <span className="block text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[14rem]">
+                <NeonText variant="gradient" className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[14rem]">
+                  Arcadia
                 </NeonText>
               </span>
             </h1>
 
             <motion.p
-              className="text-muted-foreground text-glow mx-auto mb-12 max-w-3xl text-xl leading-relaxed md:text-2xl"
+              className="neon-glow-cyan mx-auto mb-12 sm:mb-16 max-w-4xl text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed px-4 sm:px-0"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
             >
               Experience the thrill of gaming with innovative challenges,
               enhanced graphics, and modern interactions
             </motion.p>
 
             <motion.div
-              className="flex flex-col items-center justify-center gap-6 sm:flex-row"
+              className="flex flex-col items-center justify-center gap-8 sm:flex-row"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
             >
               <Button
-                variant="gradient"
-                size="lg"
-                className="touch-target hover-glow animate-glow group"
-                shadow="colored"
-                glow="normal"
+                variant="cyber"
+                className="touch-target group px-12 py-6 text-xl"
+                onClick={() => window.location.href = '/play-area'}
+                aria-label="Start playing Arcadia games"
               >
-                <Play
-                  className="mr-3 h-6 w-6 group-hover:animate-pulse"
+                <GiGamepad
+                  className="mr-4 h-8 w-8 group-hover:animate-pulse"
                   aria-hidden="true"
                 />
                 Start Playing
-                <Sparkles className="ml-2 h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100" />
+                <GiSparkles className="ml-3 h-6 w-6 opacity-70 transition-opacity group-hover:opacity-100" />
               </Button>
 
               <Button
-                variant="glass"
-                size="lg"
-                className="touch-target hover-lift border-primary/30"
-                glow="subtle"
+                variant="cyber-outline"
+                className="touch-target px-12 py-6 text-xl"
+                onClick={() => window.location.href = '/community'}
+                aria-label="Join the Arcadia community"
               >
-                <Users className="mr-3 h-6 w-6" aria-hidden="true" />
+                <GiTeamIdea className="mr-4 h-8 w-8" aria-hidden="true" />
                 Join Community
               </Button>
             </motion.div>
           </motion.div>
 
           <motion.div
-            className="@container mt-16 w-full max-w-4xl"
+            className="@container mt-20 w-full max-w-6xl"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
           >
             <NeonBorder className="hover-lift p-0.5">
               <div className="glass-intense relative flex aspect-video items-center justify-center overflow-hidden rounded-lg">
@@ -113,22 +136,23 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
                   src="/placeholder.svg"
                   alt="Arcadia Gameplay"
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
                   className="object-cover transition-transform duration-700 hover:scale-105"
-                  priority
                 />
 
                 <div className="mask-fade-bottom from-background/80 absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
 
                 <div className="safe-center absolute right-8 bottom-8 left-8 text-center">
-                  <h2 className="mb-4 text-4xl font-bold md:text-5xl @sm:text-6xl">
+                  <h2 className="mb-6 text-5xl font-bold md:text-6xl lg:text-7xl @sm:text-8xl" aria-live="polite">
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={currentChallenge}
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                        transition={{ duration: 0.4 }}
+                        transition={{ duration: 0.6 }}
                         className="glass hover-glow inline-block rounded-lg p-4 text-shadow-lg"
+                        aria-label={`Featured challenge: ${currentChallengeName}`}
                       >
                         <NeonText intensity="high">
                           <span className="text-neon">
@@ -138,7 +162,7 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
                       </motion.span>
                     </AnimatePresence>
                   </h2>
-                  <p className="text-muted-foreground text-glow text-xl @sm:text-2xl">
+                  <p className="text-muted-foreground text-glow text-2xl @sm:text-3xl lg:text-4xl">
                     Challenge yourself and others
                   </p>
                 </div>
@@ -146,49 +170,8 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
             </NeonBorder>
           </motion.div>
 
-          <motion.div
-            className="mt-16 grid w-full max-w-4xl grid-cols-1 gap-6 @sm:grid-cols-3"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.8 }}
-          >
-            {[
-              {
-                icon: '🎮',
-                title: 'Interactive Gaming',
-                desc: 'Touch-optimized controls',
-              },
-              {
-                icon: '🌟',
-                title: 'Modern Effects',
-                desc: 'Enhanced visual feedback',
-              },
-              {
-                icon: '📱',
-                title: 'Cross-Device',
-                desc: 'Adaptive to your device',
-              },
-            ].map((feature, index) => (
-              <div
-                key={feature.title}
-                className="glass touch-target hover-lift rounded-lg p-6 text-center"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div
-                  className="animate-float mb-3 text-4xl"
-                  style={{ animationDelay: `${index * 0.5}s` }}
-                >
-                  {feature.icon}
-                </div>
-                <h3 className="text-glow mb-2 text-lg font-semibold">
-                  {feature.title}
-                </h3>
-                <p className="text-muted-foreground text-sm">{feature.desc}</p>
-              </div>
-            ))}
-          </motion.div>
         </div>
-      </section>
+      </CyberpunkBackground>
     );
   }
 );

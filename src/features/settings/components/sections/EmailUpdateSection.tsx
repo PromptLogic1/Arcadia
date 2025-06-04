@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS } from '../constants';
-import { useEmailUpdate } from '../hooks/useEmailUpdate';
+import { useSettingsModern } from '../../hooks/useSettingsModern';
 
 // Zod schema for email update validation
 const emailUpdateSchema = z
@@ -34,13 +34,8 @@ interface EmailUpdateSectionProps {
 }
 
 export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
-  const {
-    formState: hookFormState,
-    isChangingEmail,
-    setIsChangingEmail,
-    handleEmailUpdate,
-    resetEmailForm,
-  } = useEmailUpdate();
+  // Modern settings hook
+  const settings = useSettingsModern();
 
   const {
     register,
@@ -56,16 +51,21 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
   });
 
   const onSubmit = async (data: EmailUpdateFormData) => {
-    await handleEmailUpdate(data);
-    reset(); // Reset form after successful submission
+    try {
+      await settings.handleEmailUpdate(data);
+      reset(); // Reset form after successful submission
+    } catch (error) {
+      // Error handling is done by the modern hook
+      console.error('Email update failed:', error);
+    }
   };
 
   const handleCancel = () => {
     reset();
-    resetEmailForm();
+    settings.resetEmailForm();
   };
 
-  const isLoading = isSubmitting || hookFormState.isSubmitting;
+  const isLoading = isSubmitting || settings.isUpdatingEmail;
 
   return (
     <div className="space-y-4">
@@ -74,9 +74,9 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
           <Label>{SETTINGS_CONSTANTS.LABELS.EMAIL_ADDRESS}</Label>
           <p className="mt-1 text-sm text-gray-400">{currentEmail}</p>
         </div>
-        {!isChangingEmail && (
+        {!settings.isChangingEmail && (
           <Button
-            onClick={() => setIsChangingEmail(true)}
+            onClick={() => settings.setIsChangingEmail(true)}
             variant="outline"
             className={SETTINGS_CONSTANTS.STYLES.BUTTON_OUTLINE}
           >
@@ -85,7 +85,7 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
         )}
       </div>
 
-      {isChangingEmail && (
+      {settings.isChangingEmail && (
         <div className={SETTINGS_CONSTANTS.STYLES.SECTION_CONTAINER}>
           <button
             onClick={handleCancel}

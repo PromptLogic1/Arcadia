@@ -40,7 +40,7 @@ export const UI_MESSAGES = {
 
 // Tab configuration
 export const TABS = {
-  TEMPLATES: 'templates',
+  TEMPLATES: 'library', // Renamed from templates to library
   PRIVATE: 'private',
   PUBLIC: 'public',
   GENERATOR: 'generator',
@@ -51,6 +51,13 @@ export const FORM_LIMITS = {
   TITLE_MAX_LENGTH: 50,
   DESCRIPTION_MAX_LENGTH: 255,
   TAGS_MAX_COUNT: 5,
+} as const;
+
+// Collection size constraints
+export const COLLECTION_LIMITS = {
+  MIN_CARDS: 5,
+  MAX_CARDS: 100,
+  DEFAULT_GRID_SIZE: 5,
 } as const;
 
 // Component styling constants

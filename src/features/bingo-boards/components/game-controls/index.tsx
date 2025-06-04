@@ -5,17 +5,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { GameSettings } from './GameSettings';
 import { PlayerManagement } from './PlayerManagement';
 import { TimerControls } from './TimerControls';
-import { useGameState } from '../../hooks/useGameState';
+import { useGameModern } from '../../hooks/useSessionGameModern';
 import { cn } from '@/lib/utils';
 import { Gamepad2, Users2, Timer, AlertCircle } from 'lucide-react';
-import type { Player } from '../../types/types';
+import type { GamePlayer } from '../../types';
 import type { GameSettings as GameSettingsType } from '../../types/game-settings.types';
 import { useTransition } from 'react';
 
 interface GameControlsProps {
   className?: string;
   isOwner?: boolean;
-  onAddPlayer?: (player: Player) => void;
+  onAddPlayer?: (player: GamePlayer) => void;
   onRemovePlayer?: (playerId: string) => void;
   onSettingsChange?: (settings: Partial<GameSettingsType>) => void;
   onReset?: () => void;
@@ -25,19 +25,12 @@ export const GameControls: React.FC<GameControlsProps> = ({
   className,
   isOwner = false,
   onAddPlayer,
-  onRemovePlayer,
+  onRemovePlayer: _onRemovePlayer,
   onSettingsChange,
   onReset,
 }) => {
-  const {
-    settings,
-    isRunning,
-    players,
-    updateSettings,
-    setRunning,
-    resetGame,
-    updatePlayers,
-  } = useGameState();
+  const { game, updateSettings, setRunning, resetGame } = useGameModern();
+  const { settings, isRunning } = game;
 
   const [_isPending, startTransition] = useTransition();
 
@@ -140,19 +133,11 @@ export const GameControls: React.FC<GameControlsProps> = ({
             </div>
             <PlayerManagement
               isOwner={isOwner}
-              players={players}
+              players={[]} // Game state no longer manages players - this is handled by session state
               teamMode={Boolean(settings.team_mode)}
-              onPlayersChange={newPlayers => {
-                updatePlayers(newPlayers);
-                const addedPlayers = newPlayers.filter(
-                  p => !players.find(op => op.id === p.id)
-                );
-                const removedPlayers = players.filter(
-                  p => !newPlayers.find(np => np.id === p.id)
-                );
-
-                addedPlayers.forEach(player => onAddPlayer?.(player));
-                removedPlayers.forEach(player => onRemovePlayer?.(player.id));
+              onPlayersChange={(newPlayers) => {
+                // Legacy compatibility - convert GamePlayer to Player if needed
+                newPlayers.forEach(player => onAddPlayer?.(player));
               }}
             />
           </section>

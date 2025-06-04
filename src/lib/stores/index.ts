@@ -7,14 +7,15 @@ export { useAuthStore, useAuth, useAuthActions } from './auth-store';
 // Export Bingo Boards store
 export {
   useBingoBoardsStore,
-  useBingoBoards,
+  useBingoBoardsState,
   useBingoBoardsActions,
+  useBingoBoardsDialogs,
 } from './bingo-boards-store';
 
 // Export Bingo Cards store
 export {
   useBingoCardsStore,
-  useBingoCards,
+  useBingoCardsState,
   useBingoCardsActions,
 } from './bingo-cards-store';
 
@@ -31,3 +32,18 @@ export {
   useBingoGenerator,
   useBingoGeneratorActions,
 } from './bingo-generator-store';
+
+// Export Sessions store
+export {
+  useSessionsState,
+  useSessionsActions,
+} from './sessions-store';
+
+// Export Settings store
+export {
+  useSettingsState,
+  useSettingsModals,
+  useSettingsForms,
+  useSettingsPreferences,
+  useSettingsActions,
+} from './settings-store';

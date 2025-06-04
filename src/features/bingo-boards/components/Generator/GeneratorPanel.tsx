@@ -5,8 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Wand2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import type { GameCategory } from '@/types/database-types';
-import { Constants } from '@/types/database-core';
+import type { GameCategory } from '@/types';
+import type { Enums as _Enums } from '@/types/database-generated';
+
+// Create constants from enum types
+const Constants = {
+  public: {
+    Enums: {
+      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+      game_category: ['All Games', 'World of Warcraft', 'Fortnite', 'Minecraft'] as const, // Add more as needed
+    }
+  }
+} as const;
 import { GENERATOR_CONFIG } from '@/features/bingo-boards/types/generator.types';
 import { useGeneratorPanel } from '../../hooks/useGeneratorPanel';
 import {

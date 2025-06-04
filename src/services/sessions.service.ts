@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, Enums, CompositeTypes, TablesInsert } from '@/types/database-generated';
+import type { Tables, Enums, CompositeTypes } from '@/types/database-generated';
 
 // Use database types
 export type BingoSession = Tables<'bingo_sessions'>;

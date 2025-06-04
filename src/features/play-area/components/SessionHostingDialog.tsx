@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -31,9 +31,12 @@ import {
   Key,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
-import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
+import { 
+  useBoardsBySectionQuery,
+  usePublicBoardsQuery 
+} from '@/hooks/queries/useBingoBoardsQueries';
 
 // Types
 import type { GameCategory, SessionSettings } from '../types';
@@ -72,71 +75,66 @@ export function SessionHostingDialog({
   preSelectedBoardId,
 }: SessionHostingDialogProps) {
   const { authUser } = useAuth();
-  const supabase = createClient();
 
-  // State management
+  // UI state management (no server state!)
   const [selectedBoard, setSelectedBoard] = useState<BingoBoard | null>(null);
-  const [userBoards, setUserBoards] = useState<BingoBoard[]>([]);
-  const [publicBoards, setPublicBoards] = useState<BingoBoard[]>([]);
   const [loading, setLoading] = useState(false);
-  const [boardsLoading, setBoardsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Simple session settings (most moved to session page)
   const [sessionPassword, setSessionPassword] = useState('');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
 
-  // Load user's boards and popular public boards
-  const loadBoards = useCallback(async () => {
-    if (!authUser?.id) return;
+  // Server state via TanStack Query
+  const {
+    data: userBoardsResponse,
+    isLoading: userBoardsLoading,
+    error: userBoardsError,
+  } = useBoardsBySectionQuery(
+    'my-boards',
+    { search: searchQuery },
+    1,
+    20,
+    authUser?.id
+  );
 
-    setBoardsLoading(true);
-    try {
-      // Load user's boards
-      const { data: userBoardsData, error: userError } = await supabase
-        .from('bingo_boards')
-        .select('*')
-        .eq('creator_id', authUser.id)
-        .order('updated_at', { ascending: false })
-        .limit(20);
+  const {
+    data: publicBoardsResponse,
+    isLoading: publicBoardsLoading,
+    error: publicBoardsError,
+  } = usePublicBoardsQuery(
+    { search: searchQuery },
+    1,
+    30
+  );
 
-      if (userError) throw userError;
+  // Derived state - handle undefined and error states
+  const userBoards = useMemo(() => 
+    (userBoardsResponse && 'boards' in userBoardsResponse) ? userBoardsResponse.boards : [],
+    [userBoardsResponse]
+  );
+  const publicBoards = useMemo(() => 
+    (publicBoardsResponse && 'boards' in publicBoardsResponse) ? publicBoardsResponse.boards : [],
+    [publicBoardsResponse]
+  );
+  const boardsLoading = userBoardsLoading || publicBoardsLoading;
+  const boardsError = userBoardsError || publicBoardsError;
 
-      // Load popular public boards
-      const { data: publicBoardsData, error: publicError } = await supabase
-        .from('bingo_boards')
-        .select('*')
-        .eq('is_public', true)
-        .neq('creator_id', authUser.id) // Exclude user's own boards
-        .order('votes', { ascending: false })
-        .limit(30);
-
-      if (publicError) throw publicError;
-
-      setUserBoards(userBoardsData || []);
-      setPublicBoards(publicBoardsData || []);
-    } catch (error) {
-      console.error('Failed to load boards:', error);
-      notifications.error('Failed to load boards');
-    } finally {
-      setBoardsLoading(false);
-    }
-  }, [authUser?.id, supabase]);
-
-  // Load boards when dialog opens
+  // Handle error states
   useEffect(() => {
-    if (isOpen && authUser?.id) {
-      loadBoards();
+    if (boardsError) {
+      console.error('Failed to load boards:', boardsError);
+      notifications.error('Failed to load boards');
     }
-  }, [isOpen, authUser?.id, loadBoards]);
+  }, [boardsError]);
 
   // Handle pre-selected board
   useEffect(() => {
     if (preSelectedBoardId && (userBoards.length > 0 || publicBoards.length > 0)) {
       // Find the pre-selected board in user boards first, then public boards
       const preSelectedBoard = 
-        userBoards.find(board => board.id === preSelectedBoardId) ||
-        publicBoards.find(board => board.id === preSelectedBoardId);
+        userBoards.find((board: BingoBoard) => board.id === preSelectedBoardId) ||
+        publicBoards.find((board: BingoBoard) => board.id === preSelectedBoardId);
       
       if (preSelectedBoard) {
         setSelectedBoard(preSelectedBoard);

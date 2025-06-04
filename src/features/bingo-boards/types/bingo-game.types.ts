@@ -1,4 +1,4 @@
-import type { BoardCell, Player } from './index';
+import type { BoardCell, GamePlayer } from './index';
 
 // Game Phase Types
 export type GamePhase = 'waiting' | 'active' | 'paused' | 'ended';
@@ -47,7 +47,7 @@ export interface GameEndEvent {
   stats: {
     duration: number;
     totalMoves: number;
-    players: Player[];
+    players: GamePlayer[];
   };
 }
 
@@ -74,7 +74,7 @@ export interface PerformanceMetrics {
 export interface BingoSession {
   id: string;
   boardId: string;
-  players: Player[];
+  players: GamePlayer[];
   status: 'waiting' | 'active' | 'completed' | 'cancelled';
   createdAt: string;
   startedAt?: string;

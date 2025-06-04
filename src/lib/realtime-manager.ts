@@ -6,6 +6,26 @@
 import { createClient } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
+// Type definition for postgres_changes event configuration
+interface PostgresChangesConfig {
+  event: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  schema: string;
+  table: string;
+  filter?: string;
+}
+
+// Type assertion helper for Supabase channel postgres_changes method
+function onPostgresChanges(
+  channel: RealtimeChannel,
+  config: PostgresChangesConfig,
+  callback: (payload: Record<string, unknown>) => void
+): RealtimeChannel {
+  // Supabase channels support postgres_changes but TypeScript types are incomplete
+  return (channel as unknown as {
+    on(type: 'postgres_changes', config: PostgresChangesConfig, callback: (payload: Record<string, unknown>) => void): RealtimeChannel;
+  }).on('postgres_changes', config, callback);
+}
+
 interface BatchedUpdate {
   id: string;
   type: 'CELL_UPDATE' | 'PRESENCE_UPDATE' | 'BOARD_STATE';
@@ -82,8 +102,9 @@ class RealtimeManager {
 
     // Set up the actual Supabase subscription
     if (options.table) {
-      channel.on(
-        'postgres_changes' as any,
+      // Use our type-safe postgres_changes helper
+      onPostgresChanges(
+        channel,
         {
           event: (options.event as 'INSERT' | 'UPDATE' | 'DELETE' | '*') || '*',
           schema: options.schema || 'public',
@@ -348,6 +369,20 @@ class RealtimeManager {
       ...this.metrics,
       connectionUptime: Date.now() - this.metrics.connectionUptime,
     };
+  }
+
+  /**
+   * Get a channel for direct access (used by presence service)
+   */
+  getChannel(channelKey: string): RealtimeChannel {
+    return this.getOrCreateChannel(channelKey);
+  }
+
+  /**
+   * Remove a channel (public method for presence service)
+   */
+  removeChannelPublic(channelKey: string): void {
+    this.removeChannel(channelKey);
   }
 
   /**

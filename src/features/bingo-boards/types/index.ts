@@ -122,7 +122,7 @@ export interface GameEvent {
 // PLAYER MANAGEMENT TYPES
 // =============================================================================
 
-export interface Player {
+export interface GamePlayer {
   id: string;
   name: string;
   color: string;
@@ -182,12 +182,12 @@ export interface BoardStatistics {
   popularityScore: number;
 }
 
-export interface BingoSession {
+export interface BingoBoardSession {
   id: string;
   board_id: string | null;
   host_id: string | null;
   session_code: string | null;
-  players?: Player[];
+  players?: GamePlayer[];
   status: SessionStatus | null;
   current_state?: BoardCell[] | null;
   settings?: SessionSettings | null;
@@ -357,6 +357,7 @@ export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
   auto_start: false,
   time_limit: null,
   require_approval: false,
+  password: null,
 };
 
 export const DEFAULT_WIN_CONDITIONS: WinConditions = {

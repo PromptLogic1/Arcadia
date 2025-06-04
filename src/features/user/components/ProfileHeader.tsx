@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
-import type { Tables } from '@/types/database-types';
+import type { Tables } from '@/types/database-generated';
 import NeonBorder from '@/components/ui/NeonBorder';
 import { NeonText } from '@/components/ui/NeonText';
 import { Button } from '@/components/ui/button';
@@ -83,12 +83,12 @@ export function ProfileHeader({
               <NeonText>{userData.username}</NeonText>
             </h1>
             {userData.full_name && (
-              <h2 className="text-2xl text-cyan-400">{userData.full_name}</h2>
+              <h2 className="text-2xl neon-glow-cyan">{userData.full_name}</h2>
             )}
           </div>
 
           <Link href="/user/edit" className="mt-4 md:mt-0">
-            <Button className="flex w-full items-center gap-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white transition-all duration-200 hover:opacity-90 md:w-auto">
+            <Button variant="cyber" className="flex w-full items-center gap-2 md:w-auto">
               <Pencil className={USER_PAGE_CONSTANTS.UI.ICON_SIZE} />
               {USER_PAGE_CONSTANTS.MESSAGES.EDIT_PROFILE}
             </Button>

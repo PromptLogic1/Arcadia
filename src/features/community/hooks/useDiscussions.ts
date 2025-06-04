@@ -1,344 +1,98 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
-import { logger as _logger } from '@/lib/logger';
-import type {
-  Discussion as BaseDiscussion,
-  Comment as BaseComment,
-} from '@/lib/stores/community-store';
-import type { Database } from '@/types/database-generated';
+import { useCallback } from 'react';
+import { useDiscussionsQuery, useCreateDiscussionMutation, useCreateCommentMutation, useUpvoteDiscussionMutation } from '@/hooks/queries/useCommunityQueries';
+import { useCommunityState } from '@/lib/stores/community-store';
+import { useAuth } from '@/lib/stores/auth-store';
+import type { DiscussionWithAuthor as Discussion, CommentWithAuthor as Comment, CreateDiscussionFormData, CreateCommentFormData } from '@/features/community/types/types';
 
-// Extended Discussion type that includes UI-specific properties
-export interface Discussion extends BaseDiscussion {
-  author?: { username: string; avatar_url: string | null };
-  comments_count?: number;
-  commentList?: Comment[];
-}
-
-// Frontend Comment type, extending BaseComment if needed, or just defining fully
-export interface Comment extends BaseComment {
-  author?: { username: string; avatar_url: string | null };
-}
+// Re-export types for other hooks
+export type { Discussion, Comment };
 
 export interface UseDiscussionsReturn {
   discussions: Discussion[];
   error: Error | null;
   isLoading: boolean;
-  addDiscussion: (
-    discussionData: Omit<
-      BaseDiscussion,
-      'id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
-    >
-  ) => Promise<Discussion>;
-  addComment: (
-    discussionId: number,
-    commentData: Omit<
-      BaseComment,
-      | 'id'
-      | 'discussion_id'
-      | 'upvotes'
-      | 'created_at'
-      | 'updated_at'
-      | 'author_id'
-    >
-  ) => Promise<Comment>;
+  addDiscussion: (discussionData: CreateDiscussionFormData) => Promise<Discussion>;
+  addComment: (discussionId: number, commentData: CreateCommentFormData) => Promise<Comment>;
   upvoteDiscussion: (discussionId: number) => Promise<void>;
 }
 
-type DatabaseDiscussion = Database['public']['Tables']['discussions']['Row'];
-type DatabaseComment = Database['public']['Tables']['comments']['Row'];
+export function useDiscussions(): UseDiscussionsReturn {
+  const { authUser } = useAuth();
+  const { filters } = useCommunityState();
+  
+  // Use TanStack Query for data fetching
+  const { 
+    data: discussionsData, 
+    isLoading, 
+    error: queryError 
+  } = useDiscussionsQuery({
+    ...filters,
+    challengeType: filters.challengeType ?? undefined,
+  });
+  
+  const createDiscussionMutation = useCreateDiscussionMutation();
+  const createCommentMutation = useCreateCommentMutation();
+  const upvoteDiscussionMutation = useUpvoteDiscussionMutation();
 
-interface DiscussionWithRelations extends DatabaseDiscussion {
-  author: {
-    username: string;
-    avatar_url: string | null;
-  };
-  comments: {
-    count: number;
-  };
-  commentList: Array<
-    DatabaseComment & {
-      author: {
-        username: string;
-        avatar_url: string | null;
-      };
+  const addDiscussion = useCallback(async (discussionData: CreateDiscussionFormData): Promise<Discussion> => {
+    if (!authUser?.id) {
+      throw new Error('Must be authenticated to create discussion');
     }
-  >;
-}
 
-type PostgrestError = {
-  code: string;
-  message: string;
-  details: string;
-  hint?: string;
-};
+    const result = await createDiscussionMutation.mutateAsync({
+      ...discussionData,
+      author_id: authUser.id,
+    });
 
-type PostgrestResponse<T> = {
-  data: T | null;
-  error: PostgrestError | null;
-  count: number | null;
-  status: number;
-  statusText: string;
-};
+    if (result.error) {
+      throw new Error(result.error);
+    }
 
-export const useDiscussions = (): UseDiscussionsReturn => {
-  const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+    if (!result.discussion) {
+      throw new Error('Failed to create discussion');
+    }
 
-  const supabase = createClient();
+    return result.discussion;
+  }, [authUser?.id, createDiscussionMutation]);
 
-  const transformDatabaseComment = useCallback(
-    (
-      dbComment: DatabaseComment & {
-        author: { username: string; avatar_url: string | null };
-      }
-    ): Comment => ({
-      ...dbComment,
-      author: dbComment.author,
-    }),
-    []
-  );
+  const addComment = useCallback(async (discussionId: number, commentData: CreateCommentFormData): Promise<Comment> => {
+    if (!authUser?.id) {
+      throw new Error('Must be authenticated to create comment');
+    }
 
-  const transformDatabaseDiscussion = useCallback(
-    (dbDiscussion: DiscussionWithRelations): Discussion => ({
-      ...dbDiscussion,
-      author: dbDiscussion.author,
-      comments_count: dbDiscussion.comments.count,
-      commentList: (dbDiscussion.commentList || []).map(
-        transformDatabaseComment
-      ),
-    }),
-    [transformDatabaseComment]
-  );
+    const result = await createCommentMutation.mutateAsync({
+      ...commentData,
+      author_id: authUser.id,
+      discussion_id: discussionId.toString(), // Service expects string
+    });
 
-  useEffect(() => {
-    const fetchDiscussions = async () => {
-      try {
-        setIsLoading(true);
-        const response = await supabase
-          .from('discussions')
-          .select(
-            `
-            *,
-            author:users!author_id(username, avatar_url),
-            comments:comments(count),
-            commentList:comments(
-              *,
-              author:users!author_id(username, avatar_url)
-            )
-          `
-          )
-          .order('created_at', { ascending: false });
+    if (result.error) {
+      throw new Error(result.error);
+    }
 
-        const result = response as PostgrestResponse<DiscussionWithRelations[]>;
+    if (!result.comment) {
+      throw new Error('Failed to create comment');
+    }
 
-        if (result.error) throw result.error;
+    return result.comment;
+  }, [authUser?.id, createCommentMutation]);
 
-        const transformedDiscussions = (result.data || []).map(
-          transformDatabaseDiscussion
-        );
-
-        setDiscussions(transformedDiscussions);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error('Failed to fetch discussions')
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDiscussions();
-
-    const channel = supabase
-      .channel('discussions_realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'discussions' },
-        _payload => {
-          fetchDiscussions();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'comments' },
-        _payload => {
-          fetchDiscussions();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase, transformDatabaseDiscussion, transformDatabaseComment]);
-
-  const addDiscussion = useCallback(
-    async (
-      discussionData: Omit<
-        BaseDiscussion,
-        'id' | 'upvotes' | 'created_at' | 'updated_at' | 'author_id'
-      >
-    ) => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) throw new Error('Not authenticated');
-
-        const insertData = {
-          title: discussionData.title,
-          content: discussionData.content,
-          game: discussionData.game,
-          challenge_type: discussionData.challenge_type,
-          author_id: userData.user.id,
-          tags: discussionData.tags ? Array.from(discussionData.tags) : [],
-          upvotes: 0,
-        };
-
-        const { data, error: supabaseError } = await supabase
-          .from('discussions')
-          .insert(insertData)
-          .select(
-            `
-          *,
-          author:users!author_id(username, avatar_url),
-          comments:comments(count),
-          commentList:comments(
-            *,
-            author:users!author_id(username, avatar_url)
-          )
-        `
-          )
-          .single();
-
-        const result = {
-          data,
-          error: supabaseError,
-        } as PostgrestResponse<DiscussionWithRelations>;
-
-        if (result.error) throw result.error;
-        if (!result.data) throw new Error('No data returned from insert');
-
-        const transformedDiscussion = transformDatabaseDiscussion(result.data);
-        return transformedDiscussion;
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error('Failed to add discussion');
-        setError(error);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [supabase, transformDatabaseDiscussion]
-  );
-
-  const addComment = useCallback(
-    async (
-      discussionId: number,
-      commentData: Omit<
-        BaseComment,
-        | 'id'
-        | 'discussion_id'
-        | 'upvotes'
-        | 'created_at'
-        | 'updated_at'
-        | 'author_id'
-      >
-    ) => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) throw new Error('Not authenticated');
-
-        const insertData = {
-          discussion_id: discussionId,
-          content: commentData.content,
-          author_id: userData.user.id,
-          upvotes: 0,
-          parent_id: null,
-        };
-
-        const { data, error: supabaseError } = await supabase
-          .from('comments')
-          .insert(insertData)
-          .select(
-            `
-          *,
-          author:users!author_id(username, avatar_url)
-        `
-          )
-          .single();
-
-        const result = { data, error: supabaseError } as PostgrestResponse<
-          DatabaseComment & {
-            author: { username: string; avatar_url: string | null };
-          }
-        >;
-
-        if (result.error) throw result.error;
-        if (!result.data) throw new Error('No data returned from insert');
-
-        const transformedComment = transformDatabaseComment(result.data);
-        return transformedComment;
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error('Failed to add comment');
-        setError(error);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [supabase, transformDatabaseComment]
-  );
-
-  const upvoteDiscussion = useCallback(
-    async (discussionId: number) => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const { error: supabaseError } = await supabase.rpc(
-          'increment_discussion_upvotes',
-          {
-            discussion_id: discussionId,
-          } as const
-        );
-
-        if (supabaseError) throw supabaseError;
-
-        setDiscussions(prev =>
-          prev.map(discussion =>
-            discussion.id === discussionId
-              ? { ...discussion, upvotes: (discussion.upvotes || 0) + 1 }
-              : discussion
-          )
-        );
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error('Failed to upvote discussion');
-        setError(error);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [supabase]
-  );
+  const upvoteDiscussion = useCallback(async (discussionId: number): Promise<void> => {
+    const result = await upvoteDiscussionMutation.mutateAsync(discussionId.toString());
+    
+    if (result.error) {
+      throw new Error(result.error);
+    }
+  }, [upvoteDiscussionMutation]);
 
   return {
-    discussions,
-    error,
-    isLoading,
+    discussions: discussionsData?.discussions || [],
+    error: queryError || createDiscussionMutation.error || createCommentMutation.error || upvoteDiscussionMutation.error || null,
+    isLoading: isLoading || createDiscussionMutation.isPending || createCommentMutation.isPending || upvoteDiscussionMutation.isPending,
     addDiscussion,
     addComment,
     upvoteDiscussion,
   };
-};
+}

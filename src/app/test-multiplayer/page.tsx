@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/stores/auth-store';
 import { useBingoGame } from '@/features/bingo-boards/hooks/useBingoGame';
 
 export default function TestMultiplayerPage() {
@@ -66,7 +66,7 @@ export default function TestMultiplayerPage() {
     if (!authUser?.id) return;
 
     const cell = boardState[position];
-    if (cell?.isMarked) {
+    if (cell?.is_marked) {
       await unmarkCell(position, authUser.id);
     } else {
       await markCell(position, authUser.id);
@@ -121,13 +121,13 @@ export default function TestMultiplayerPage() {
                   key={index}
                   onClick={() => handleCellClick(index)}
                   className={`rounded border-2 p-4 transition-all ${
-                    cell?.isMarked
+                    cell?.is_marked
                       ? 'border-green-600 bg-green-500 text-white'
                       : 'border-gray-300 bg-white hover:border-blue-500 dark:bg-gray-800'
                   } `}
                 >
                   Cell {index + 1}
-                  {cell?.isMarked && <div className="text-xs">✓</div>}
+                  {cell?.is_marked && <div className="text-xs">✓</div>}
                 </button>
               );
             })}
@@ -135,7 +135,6 @@ export default function TestMultiplayerPage() {
 
           <div className="mt-4 rounded bg-gray-100 p-4 dark:bg-gray-800">
             <p className="text-sm">Session ID: {session.id}</p>
-            <p className="text-sm">Version: {session.version || 0}</p>
             <p className="text-sm">Status: {session.status}</p>
           </div>
         </Card>

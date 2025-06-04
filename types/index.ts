@@ -1,84 +1,99 @@
 // =============================================================================
-// CENTRALIZED TYPE SYSTEM - Single Source of Truth (Supabase First)
+// CENTRALIZED TYPE SYSTEM - Single Source of Truth (Supabase Generated)
 // =============================================================================
 
-// Re-export all database types as the primary source of truth
-export * from './database-types';
+// Import everything as namespace to avoid conflicts with re-exports
+import type * as DatabaseTypes from './database-generated';
 
-// Import what we need for application types
-import type {
-  Tables,
-  TablesInsert,
-  TablesUpdate,
-  Enums,
-  CompositeTypes,
-  GameCategory as DbGameCategory,
-  DifficultyLevel as DbDifficultyLevel,
-  QueueStatus as DbQueueStatus,
-  BoardCell as DbBoardCell,
-} from './database-types';
+// Re-export essential database types directly (primary source of truth)  
+export type { Database, Tables, TablesInsert, TablesUpdate, Enums, CompositeTypes } from './database-generated';
 
 // =============================================================================
 // TYPE ALIASES FOR CLEAN API
 // =============================================================================
 
-// Eliminate naming confusion with clean aliases
-export type Difficulty = DbDifficultyLevel;
-export type GameCategory = DbGameCategory;
-export type ActivityType = Enums<'activity_type'>;
+// Clean type aliases for application use
+export type Difficulty = DatabaseTypes.Enums<'difficulty_level'>;
+export type DifficultyLevel = Difficulty; // Backward compatibility
+export type GameCategory = DatabaseTypes.Enums<'game_category'>;
+export type ActivityType = DatabaseTypes.Enums<'activity_type'>;
+export type QueueStatus = DatabaseTypes.Enums<'queue_status'>;
+export type BoardStatus = DatabaseTypes.Enums<'board_status'>;
+export type SessionStatus = DatabaseTypes.Enums<'session_status'>;
+export type UserRole = DatabaseTypes.Enums<'user_role'>;
+export type VisibilityType = DatabaseTypes.Enums<'visibility_type'>;
+export type VoteType = DatabaseTypes.Enums<'vote_type'>;
+export type TagAction = DatabaseTypes.Enums<'tag_action'>;
+export type TagStatus = DatabaseTypes.Enums<'tag_status'>;
+export type TagType = DatabaseTypes.Enums<'tag_type'>;
+export type ChallengeStatus = DatabaseTypes.Enums<'challenge_status'>;
+export type SubmissionStatus = DatabaseTypes.Enums<'submission_status'>;
+
+// Composite types
+export type BoardCell = DatabaseTypes.CompositeTypes<'board_cell'>;
+export type BoardSettings = DatabaseTypes.CompositeTypes<'board_settings'>;
+export type SessionSettings = DatabaseTypes.CompositeTypes<'session_settings'>;
+export type TagCategory = DatabaseTypes.CompositeTypes<'tag_category'>;
+export type WinConditions = DatabaseTypes.CompositeTypes<'win_conditions'>;
+
+// JSON type for compatibility
+export type Json = DatabaseTypes.Database['public']['Tables']['bingo_boards']['Row']['board_state'];
 
 // =============================================================================
 // TABLE ROW TYPES (Convenience exports)
 // =============================================================================
 
 // Bingo domain
-export type BingoBoard = Tables<'bingo_boards'>;
-export type BingoCard = Tables<'bingo_cards'>;
-export type BingoSession = Tables<'bingo_sessions'>;
-export type BingoSessionPlayer = Tables<'bingo_session_players'>;
-export type BingoSessionQueue = Tables<'bingo_session_queue'>;
-export type BingoSessionEvent = Tables<'bingo_session_events'>;
-export type BingoSessionCell = Tables<'bingo_session_cells'>;
+export type BingoBoard = DatabaseTypes.Tables<'bingo_boards'>;
+export type BingoCard = DatabaseTypes.Tables<'bingo_cards'>;
+export type BingoSession = DatabaseTypes.Tables<'bingo_sessions'>;
+export type BingoSessionPlayer = DatabaseTypes.Tables<'bingo_session_players'>;
+export type BingoSessionQueue = DatabaseTypes.Tables<'bingo_session_queue'>;
+export type BingoSessionEvent = DatabaseTypes.Tables<'bingo_session_events'>;
+export type BingoSessionCell = DatabaseTypes.Tables<'bingo_session_cells'>;
+
+// View types - Extract from the database type directly to avoid type constraint issues
+export type SessionStats = DatabaseTypes.Database['public']['Views']['session_stats']['Row'];
 
 // User domain
-export type User = Tables<'users'>;
-export type UserSession = Tables<'user_sessions'>;
-export type UserFriend = Tables<'user_friends'>;
-export type UserAchievement = Tables<'user_achievements'>;
-export type UserActivity = Tables<'user_activity'>;
+export type User = DatabaseTypes.Tables<'users'>;
+export type UserSession = DatabaseTypes.Tables<'user_sessions'>;
+export type UserFriend = DatabaseTypes.Tables<'user_friends'>;
+export type UserAchievement = DatabaseTypes.Tables<'user_achievements'>;
+export type UserActivity = DatabaseTypes.Tables<'user_activity'>;
 
 // Community domain
-export type Discussion = Tables<'discussions'>;
-export type Comment = Tables<'comments'>;
-export type Tag = Tables<'tags'>;
-export type TagVote = Tables<'tag_votes'>;
-export type TagReport = Tables<'tag_reports'>;
-export type TagHistory = Tables<'tag_history'>;
+export type Discussion = DatabaseTypes.Tables<'discussions'>;
+export type Comment = DatabaseTypes.Tables<'comments'>;
+export type Tag = DatabaseTypes.Tables<'tags'>;
+export type TagVote = DatabaseTypes.Tables<'tag_votes'>;
+export type TagReport = DatabaseTypes.Tables<'tag_reports'>;
+export type TagHistory = DatabaseTypes.Tables<'tag_history'>;
 
 // Other domain
-export type Category = Tables<'categories'>;
-export type Challenge = Tables<'challenges'>;
-export type ChallengeTag = Tables<'challenge_tags'>;
-export type Submission = Tables<'submissions'>;
-export type BoardBookmark = Tables<'board_bookmarks'>;
-export type BoardVote = Tables<'board_votes'>;
-export type CardVote = Tables<'card_votes'>;
+export type Category = DatabaseTypes.Tables<'categories'>;
+export type Challenge = DatabaseTypes.Tables<'challenges'>;
+export type ChallengeTag = DatabaseTypes.Tables<'challenge_tags'>;
+export type Submission = DatabaseTypes.Tables<'submissions'>;
+export type BoardBookmark = DatabaseTypes.Tables<'board_bookmarks'>;
+export type BoardVote = DatabaseTypes.Tables<'board_votes'>;
+export type CardVote = DatabaseTypes.Tables<'card_votes'>;
 
 // =============================================================================
 // INSERT/UPDATE TYPES (Convenience exports)
 // =============================================================================
 
-export type BingoBoardInsert = TablesInsert<'bingo_boards'>;
-export type BingoBoardUpdate = TablesUpdate<'bingo_boards'>;
-export type BingoCardInsert = TablesInsert<'bingo_cards'>;
-export type BingoCardUpdate = TablesUpdate<'bingo_cards'>;
-export type BingoSessionInsert = TablesInsert<'bingo_sessions'>;
-export type BingoSessionUpdate = TablesUpdate<'bingo_sessions'>;
-export type BingoSessionPlayerInsert = TablesInsert<'bingo_session_players'>;
-export type BingoSessionQueueInsert = TablesInsert<'bingo_session_queue'>;
-export type BingoSessionQueueUpdate = TablesUpdate<'bingo_session_queue'>;
-export type UserActivityInsert = TablesInsert<'user_activity'>;
-export type UserActivityUpdate = TablesUpdate<'user_activity'>;
+export type BingoBoardInsert = DatabaseTypes.TablesInsert<'bingo_boards'>;
+export type BingoBoardUpdate = DatabaseTypes.TablesUpdate<'bingo_boards'>;
+export type BingoCardInsert = DatabaseTypes.TablesInsert<'bingo_cards'>;
+export type BingoCardUpdate = DatabaseTypes.TablesUpdate<'bingo_cards'>;
+export type BingoSessionInsert = DatabaseTypes.TablesInsert<'bingo_sessions'>;
+export type BingoSessionUpdate = DatabaseTypes.TablesUpdate<'bingo_sessions'>;
+export type BingoSessionPlayerInsert = DatabaseTypes.TablesInsert<'bingo_session_players'>;
+export type BingoSessionQueueInsert = DatabaseTypes.TablesInsert<'bingo_session_queue'>;
+export type BingoSessionQueueUpdate = DatabaseTypes.TablesUpdate<'bingo_session_queue'>;
+export type UserActivityInsert = DatabaseTypes.TablesInsert<'user_activity'>;
+export type UserActivityUpdate = DatabaseTypes.TablesUpdate<'user_activity'>;
 
 // =============================================================================
 // ENHANCED APPLICATION TYPES (extends database types)
@@ -129,9 +144,9 @@ export interface ProfileFormData {
   city?: string | null;
   region?: string | null;
   land?: string | null;
-  profile_visibility?: Enums<'visibility_type'>;
-  achievements_visibility?: Enums<'visibility_type'>;
-  submissions_visibility?: Enums<'visibility_type'>;
+  profile_visibility?: DatabaseTypes.Enums<'visibility_type'>;
+  achievements_visibility?: DatabaseTypes.Enums<'visibility_type'>;
+  submissions_visibility?: DatabaseTypes.Enums<'visibility_type'>;
 }
 
 // =============================================================================
@@ -169,6 +184,54 @@ export interface ProfileFormData {
 // =============================================================================
 // CONSTANTS FOR APPLICATION USE
 // =============================================================================
+
+// Constants object for backward compatibility
+export const Constants = {
+  public: {
+    Enums: {
+      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+      game_category: [
+        'All Games',
+        'World of Warcraft',
+        'Fortnite',
+        'Minecraft',
+        'Among Us',
+        'Apex Legends',
+        'League of Legends',
+        'Overwatch',
+        'Call of Duty: Warzone',
+        'Valorant',
+        'CS:GO',
+        'Dota 2',
+        'Rocket League',
+        'Fall Guys',
+        'Dead by Daylight',
+        'Cyberpunk 2077',
+        'The Witcher 3',
+        'Elden Ring',
+        'Dark Souls',
+        'Bloodborne',
+        'Sekiro',
+        'Hollow Knight',
+        'Celeste',
+        'Hades',
+        'The Binding of Isaac',
+        'Risk of Rain 2',
+        'Deep Rock Galactic',
+        'Valheim',
+        'Subnautica',
+        'No Man\'s Sky',
+        'Terraria',
+        'Stardew Valley',
+        'Animal Crossing',
+        'Splatoon 3',
+        'Super Mario Odyssey',
+        'The Legend of Zelda: Breath of the Wild',
+        'Super Smash Bros. Ultimate'
+      ] as const,
+    }
+  }
+} as const;
 
 export const DIFFICULTY_OPTIONS: {
   value: Difficulty;
@@ -303,3 +366,11 @@ export type ValidationRules = typeof VALIDATION_RULES;
 // Re-export domain-specific types for convenience
 export * from './domains/bingo';
 export * from './domains/community';
+
+// =============================================================================
+// TABLE TYPE HELPERS
+// =============================================================================
+
+// Type aliases for common table types  
+export type GameResult = DatabaseTypes.Tables<'game_results'>;
+// Tables type is already re-exported above

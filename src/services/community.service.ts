@@ -9,31 +9,31 @@ import { createClient } from '@/lib/supabase';
 import type { GameCategory } from '@/types';
 
 export interface Discussion {
-  id: string;
+  id: number;
   title: string;
   content: string;
-  author_id: string;
-  game_category: GameCategory;
+  author_id: string | null;
+  game: string;
   challenge_type: string | null;
-  upvotes: number;
-  comment_count: number;
+  upvotes: number | null;
   tags: string[] | null;
-  created_at: string;
+  created_at: string | null;
   updated_at: string | null;
   // Populated fields
   author?: {
     username: string;
     avatar_url: string | null;
   };
+  comment_count?: number;
 }
 
 export interface Comment {
-  id: string;
+  id: number;
   content: string;
-  author_id: string;
-  discussion_id: string;
-  upvotes: number;
-  created_at: string;
+  author_id: string | null;
+  discussion_id: number | null;
+  upvotes: number | null;
+  created_at: string | null;
   updated_at: string | null;
   // Populated fields
   author?: {
@@ -58,7 +58,7 @@ export interface CreateDiscussionData {
   title: string;
   content: string;
   author_id: string;
-  game_category: GameCategory;
+  game: string;
   challenge_type?: string | null;
   tags?: string[];
 }
@@ -148,7 +148,7 @@ export const communityService = {
           username: discussion.users.username,
           avatar_url: discussion.users.avatar_url,
         } : undefined,
-      })) as Discussion[];
+      }));
 
       return {
         discussions,
@@ -175,7 +175,7 @@ export const communityService = {
           *,
           users!author_id(username, avatar_url)
         `)
-        .eq('id', discussionId)
+        .eq('id', parseInt(discussionId))
         .single();
 
       if (error) {
@@ -188,7 +188,7 @@ export const communityService = {
           username: data.users.username,
           avatar_url: data.users.avatar_url,
         } : undefined,
-      } as Discussion;
+      };
 
       return { discussion };
     } catch (error) {
@@ -211,12 +211,9 @@ export const communityService = {
           title: discussionData.title,
           content: discussionData.content,
           author_id: discussionData.author_id,
-          game_category: discussionData.game_category,
+          game: discussionData.game,
           challenge_type: discussionData.challenge_type || null,
           tags: discussionData.tags || [],
-          upvotes: 0,
-          comment_count: 0,
-          created_at: new Date().toISOString(),
         })
         .select(`
           *,
@@ -234,7 +231,7 @@ export const communityService = {
           username: data.users.username,
           avatar_url: data.users.avatar_url,
         } : undefined,
-      } as Discussion;
+      };
 
       return { discussion };
     } catch (error) {
@@ -264,7 +261,7 @@ export const communityService = {
           *,
           users!author_id(username, avatar_url)
         `, { count: 'exact' })
-        .eq('discussion_id', discussionId)
+        .eq('discussion_id', parseInt(discussionId))
         .order('created_at', { ascending: true })
         .range(start, end);
 
@@ -283,7 +280,7 @@ export const communityService = {
           username: comment.users.username,
           avatar_url: comment.users.avatar_url,
         } : undefined,
-      })) as Comment[];
+      }));
 
       return {
         comments,
@@ -311,7 +308,7 @@ export const communityService = {
         .insert({
           content: commentData.content,
           author_id: commentData.author_id,
-          discussion_id: commentData.discussion_id,
+          discussion_id: parseInt(commentData.discussion_id),
           upvotes: 0,
           created_at: new Date().toISOString(),
         })
@@ -325,10 +322,10 @@ export const communityService = {
         return { comment: null, error: error.message };
       }
 
-      // Update discussion comment count (could be done with a trigger)
-      await supabase.rpc('increment_comment_count', {
-        discussion_id: commentData.discussion_id,
-      });
+      // TODO: Update discussion comment count (could be done with a trigger)
+      // await supabase.rpc('increment_comment_count', {
+      //   discussion_id: parseInt(commentData.discussion_id),
+      // });
 
       const comment = {
         ...data,
@@ -336,7 +333,7 @@ export const communityService = {
           username: data.users.username,
           avatar_url: data.users.avatar_url,
         } : undefined,
-      } as Comment;
+      };
 
       return { comment };
     } catch (error) {
@@ -355,27 +352,15 @@ export const communityService = {
       const supabase = createClient();
       
       // Use RPC function to atomically increment upvotes
-      const { data, error } = await supabase
-        .rpc('increment_discussion_upvotes', { discussion_id: discussionId })
-        .select(`
-          *,
-          users!author_id(username, avatar_url)
-        `)
-        .single();
+      const { error: rpcError } = await supabase
+        .rpc('increment_discussion_upvotes', { discussion_id: parseInt(discussionId) });
 
-      if (error) {
-        return { discussion: null, error: error.message };
+      if (rpcError) {
+        return { discussion: null, error: rpcError.message };
       }
 
-      const discussion = {
-        ...data,
-        author: data.users ? {
-          username: data.users.username,
-          avatar_url: data.users.avatar_url,
-        } : undefined,
-      } as Discussion;
-
-      return { discussion };
+      // Fetch the updated discussion
+      return this.getDiscussionById(discussionId);
     } catch (error) {
       return { 
         discussion: null, 
@@ -388,10 +373,14 @@ export const communityService = {
    * Get events with filtering
    */
   async getEvents(
-    filters: EventFilters = {},
-    page = 1,
-    limit = 20
+    _filters: EventFilters = {},
+    _page = 1,
+    _limit = 20
   ): Promise<{ events: Event[]; totalCount: number; error?: string }> {
+    // TODO: Events table not yet implemented in database
+    return { events: [], totalCount: 0 };
+    
+    /* Commented out until events table is created
     try {
       const supabase = createClient();
       let query = supabase
@@ -438,5 +427,6 @@ export const communityService = {
         error: error instanceof Error ? error.message : 'Failed to fetch events' 
       };
     }
+    */
   },
 };

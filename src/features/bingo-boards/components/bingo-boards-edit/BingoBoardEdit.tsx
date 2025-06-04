@@ -4,22 +4,23 @@ import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
-  DragEndEvent,
   DragOverlay,
-  DragStartEvent,
   closestCenter,
   useSensor,
   useSensors,
   MouseSensor,
   TouchSensor,
-  UniqueIdentifier,
 } from '@dnd-kit/core';
+import type { DragStartEvent, DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ROUTES } from '@/src/config/routes';
 import { notifications } from '@/lib/notifications';
 import { log } from '@/lib/logger';
-import { DEFAULT_BINGO_CARD } from '@/types';
-import { templateToBingoCard, type TemplateCard } from '../../data/templates';
+import {
+  DEFAULT_BINGO_CARD,
+  createEmptyBingoCard,
+  createNewBingoCard,
+} from '@/src/types';
 
 // Components
 import { BoardHeader } from './BoardHeader';
@@ -31,13 +32,13 @@ import { GridPositionSelectDialog } from './GridPositionSelectDialog';
 import { TrashDropZone } from './TrashDropZone';
 
 // Hooks
-import { useBoardEditState } from './hooks/useBoardEditState';
-import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit';
+import { useBingoBoardEditModern } from '../../hooks/useBingoBoardEditModern';
 import {
-  useBingoCardsStore,
+  useBingoCardsState,
   useBingoCardsActions,
 } from '@/lib/stores/bingo-cards-store';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/stores/auth-store';
+import { usePublicCardsQuery, useVoteCardMutation } from '@/hooks/queries';
 
 // Constants and Types
 import { UI_MESSAGES } from './constants';
@@ -57,17 +58,19 @@ interface BingoBoardEditProps {
  * - Cleaner separation of concerns
  * - Better type safety and maintainability
  */
-export function BingoBoardEditOld({
+export function BingoBoardEdit({
   boardId,
   onSaveSuccess,
 }: BingoBoardEditProps) {
   const router = useRouter();
-  
+
   // Drag and drop state
   const [activeId, setActiveId] = React.useState<UniqueIdentifier | null>(null);
   const [draggedCard, setDraggedCard] = React.useState<BingoCard | null>(null);
-  const [draggedFromIndex, setDraggedFromIndex] = React.useState<number | null>(null);
-  
+  const [draggedFromIndex, setDraggedFromIndex] = React.useState<number | null>(
+    null
+  );
+
   // Drag sensors
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -84,21 +87,32 @@ export function BingoBoardEditOld({
   );
   const { isAuthenticated, loading: isAuthLoading } = useAuth();
 
-  // Custom hooks for state management
-  const uiState = useBoardEditState();
-  const boardEdit = useBingoBoardEdit(boardId);
+  // Modern hook combining TanStack Query + Zustand
+  const boardEdit = useBingoBoardEditModern(boardId);
 
-  // Store hooks
-  const { publicCards, loading: isLoadingPublicCards } = useBingoCardsStore();
-  const { initializePublicCards, filterPublicCards, voteCard, updateGridCard } =
-    useBingoCardsActions();
+  // Store hooks for UI state only
+  const { filters } = useBingoCardsState();
+  const { setFilters, updateGridCard } = useBingoCardsActions();
+  
+  // Query hooks for server data
+  const { data: publicCardsData, isLoading: isLoadingPublicCards } = usePublicCardsQuery(
+    {
+      gameType: boardEdit.board?.game_type,
+      difficulty: filters.difficulty || undefined,
+      search: filters.searchTerm,
+    },
+    1, // page
+    50 // limit
+  );
+  const publicCards = publicCardsData?.response.cards || [];
+  const voteCardMutation = useVoteCardMutation();
 
   // Initialize board when authenticated
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
       boardEdit.initializeBoard();
     }
-  }, [isAuthLoading, isAuthenticated, boardId]); // Remove boardEdit from dependencies
+  }, [isAuthLoading, isAuthenticated, boardId, boardEdit]);
 
   // Navigation handlers
   const handleClose = useCallback(() => {
@@ -108,108 +122,105 @@ export function BingoBoardEditOld({
   // Save operation
   const handleSave = useCallback(async () => {
     try {
-      uiState.startSaving();
+      boardEdit.startSaving();
       const success = await boardEdit.handleSave();
-      uiState.completeSaving(success);
+      boardEdit.completeSaving(success);
       if (success) {
         onSaveSuccess?.();
       }
     } catch (error) {
-      uiState.completeSaving(false);
+      boardEdit.completeSaving(false);
       log.error('Failed to save board', error, { component: 'BingoBoardEdit' });
     }
-  }, [boardEdit, uiState, onSaveSuccess]);
+  }, [boardEdit, onSaveSuccess]);
 
   // Card selection with validation
   const handleCardSelect = useCallback(
     (card: BingoCard) => {
-      const isCardInGrid = boardEdit.gridCards.some(gc => gc.id === card.id && gc.id !== '');
-      if (isCardInGrid) {
-        notifications.error('This card is already in the grid!');
-        return;
-      }
-      uiState.handleCardSelect(card);
+      boardEdit.handleCardSelect(card);
     },
-    [boardEdit.gridCards, uiState]
+    [boardEdit]
   );
 
   // Card editing
   const handleCardEdit = useCallback(
     (card: BingoCard, index: number) => {
-      uiState.openCardEditor(card, index);
+      boardEdit.openCardEditor(card, index);
     },
-    [uiState]
+    [boardEdit]
   );
 
   // Position selection for grid placement
   const handlePositionSelect = useCallback(
     (index: number) => {
-      uiState.handlePositionSelect(index, boardEdit.placeCardInGrid);
+      boardEdit.handlePositionSelect(index);
     },
-    [uiState, boardEdit]
+    [boardEdit]
   );
 
   // Create new card
   const handleCreateNewCard = useCallback(() => {
-    if (!boardEdit.currentBoard) {
+    if (!boardEdit.board) {
       log.error('Cannot create card: Board not initialized', undefined, {
         component: 'BingoBoardEdit',
       });
       return;
     }
 
-    const newCard: BingoCard = {
-      id: '',
-      title: DEFAULT_BINGO_CARD.title || '',
-      difficulty: DEFAULT_BINGO_CARD.difficulty || 'medium',
-      game_type: boardEdit.currentBoard.game_type,
-      description: DEFAULT_BINGO_CARD.description ?? null,
-      tags: DEFAULT_BINGO_CARD.tags ?? null,
-      creator_id: DEFAULT_BINGO_CARD.creator_id ?? null,
-      created_at: DEFAULT_BINGO_CARD.created_at ?? null,
-      updated_at: DEFAULT_BINGO_CARD.updated_at ?? null,
-      is_public: DEFAULT_BINGO_CARD.is_public ?? null,
-      votes: DEFAULT_BINGO_CARD.votes ?? null,
-    };
+    const newCard = createNewBingoCard(
+      DEFAULT_BINGO_CARD,
+      boardEdit.board.game_type,
+      boardEdit.board.creator_id || ''
+    );
 
-    uiState.openCardEditor(newCard, -1);
-  }, [boardEdit, uiState]);
+    boardEdit.openCardEditor(newCard, -1);
+  }, [boardEdit]);
 
   // Tab change handler
   const handleTabChange = useCallback(
     async (value: string) => {
-      if (value === 'public' && boardEdit.currentBoard) {
-        await initializePublicCards(boardEdit.currentBoard.game_type);
+      // Query will automatically refetch when filters change
+      if (value === 'public') {
+        // Reset filters when switching to public tab
+        setFilters({ 
+          gameCategory: boardEdit.board?.game_type || null,
+          difficulty: null,
+          tags: [],
+          searchTerm: ''
+        });
       }
     },
-    [boardEdit, initializePublicCards]
+    [boardEdit, setFilters]
   );
 
   // Public card filtering
   const handleFilterPublicCards = useCallback(
-    async (filters: FilterOptions) => {
-      if (boardEdit.currentBoard) {
-        await filterPublicCards(filters, boardEdit.currentBoard.game_type);
-      }
+    async (filterOptions: FilterOptions) => {
+      setFilters({
+        gameCategory: boardEdit.board?.game_type || null,
+        difficulty: (filterOptions.difficulty === 'all' ? null : filterOptions.difficulty) || null,
+        tags: filterOptions.tags || [],
+        searchTerm: filterOptions.search || '',
+      });
     },
-    [boardEdit, filterPublicCards]
+    [boardEdit, setFilters]
   );
 
   const handleClearPublicFilters = useCallback(async () => {
-    if (boardEdit.currentBoard) {
-      await initializePublicCards(boardEdit.currentBoard.game_type);
-    }
-  }, [boardEdit, initializePublicCards]);
+    setFilters({
+      gameCategory: boardEdit.board?.game_type || null,
+      difficulty: null,
+      tags: [],
+      searchTerm: '',
+    });
+  }, [boardEdit, setFilters]);
 
   // Card voting
   const handleVoteCard = useCallback(
     async (card: BingoCard) => {
-      await voteCard(card.id);
-      if (boardEdit.currentBoard) {
-        await initializePublicCards(boardEdit.currentBoard.game_type);
-      }
+      await voteCardMutation.mutateAsync(card.id);
     },
-    [voteCard, boardEdit, initializePublicCards]
+    [voteCardMutation]
   );
 
   // Grid card removal
@@ -223,228 +234,300 @@ export function BingoBoardEditOld({
   // Card dialog save
   const handleCardDialogSave = useCallback(
     async (formData: Partial<BingoCard>, index: number) => {
-      if (!uiState.editingCard) return;
+      if (!boardEdit.editingCard) return;
 
-      if (!uiState.editingCard.card.id) {
+      if (!boardEdit.editingCard.card.id || boardEdit.editingCard.card.id.startsWith('temp-')) {
         // Creating a new card
         if (index === -1) {
           // Create private card (not placed in grid)
-          await boardEdit.createPrivateCard(formData);
+          const newCard = await boardEdit.createCard(formData);
+          if (newCard) {
+            boardEdit.addPrivateCard(newCard);
+          }
         } else {
           // Create card and place in grid
-          await boardEdit.createNewCard(formData, index);
+          const newCard = await boardEdit.createCard(formData);
+          if (newCard) {
+            boardEdit.placeCardInGrid(newCard, index);
+          }
         }
       } else {
         // Updating existing card
-        await boardEdit.updateExistingCard(formData, index);
+        await boardEdit.updateCard(boardEdit.editingCard.card.id, formData);
       }
-      
+
       // Close the dialog
-      uiState.closeCardEditor();
+      boardEdit.closeCardEditor();
     },
-    [uiState, boardEdit]
+    [boardEdit]
   );
 
   // Card return handler
-  const handleCardReturnToPrivate = useCallback((card: BingoCard) => {
-    // Add card to private collection if not already there
-    if (!boardEdit.privateCards.find(c => c.id === card.id)) {
-      boardEdit.createPrivateCard(card);
-    }
-  }, [boardEdit]);
+  const handleCardReturnToPrivate = useCallback(
+    (card: BingoCard) => {
+      // Add card to private collection if not already there
+      if (!boardEdit.localPrivateCards.find(c => c.id === card.id)) {
+        boardEdit.addPrivateCard(card);
+      }
+    },
+    [boardEdit]
+  );
 
-  // Template handlers
-  const handleApplyTemplate = useCallback(async (templates: TemplateCard[]) => {
-    if (!boardEdit.currentBoard) return;
-    
-    try {
-      // Convert templates to bingo cards
-      const templateCards = templates.map(template => 
-        templateToBingoCard(template, boardEdit.currentBoard?.creator_id || 'mock-user-id')
-      );
-      
-      // Fill grid with template cards
-      const gridSize = boardEdit.currentBoard.size || 5;
-      const totalCells = gridSize * gridSize;
-      
-      // Ensure we have enough cards
-      while (templateCards.length < totalCells) {
-        templateCards.push({
-          id: '',
-          title: '',
-          description: null,
-          difficulty: 'medium',
-          game_type: boardEdit.currentBoard.game_type,
-          tags: [],
-          creator_id: boardEdit.currentBoard.creator_id || 'mock-user-id',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_public: false,
-          votes: 0,
+  // Card Library handlers
+  const handleShuffle = useCallback(
+    async (cards: BingoCard[]) => {
+      if (!boardEdit.board) return;
+
+      try {
+        const gridSize = boardEdit.board.size || 5;
+        const totalCells = gridSize * gridSize;
+
+        // Shuffle cards and take the needed amount
+        const shuffledCards = [...cards].sort(() => Math.random() - 0.5);
+        const selectedCards = shuffledCards.slice(0, totalCells);
+
+        // Fill any remaining slots with empty cards
+        while (selectedCards.length < totalCells) {
+          selectedCards.push(
+            createEmptyBingoCard(
+              boardEdit.board.game_type,
+              boardEdit.board.creator_id || ''
+            )
+          );
+        }
+
+        // Update grid with shuffled cards
+        boardEdit.setLocalGridCards(selectedCards);
+
+        notifications.success('Board shuffled successfully!', {
+          description: `Applied ${selectedCards.length} shuffled cards to your board.`,
+        });
+      } catch (error) {
+        log.error('Failed to shuffle cards', error as Error);
+        notifications.error('Failed to shuffle cards', {
+          description: 'Please try again or contact support.',
         });
       }
-      
-      // Apply to grid (this would normally update via boardEdit.setGridCards or similar)
-      // For now, we'll trigger a board regeneration
-      notifications.success('Template applied successfully!', {
-        description: `Applied ${templates.length} template cards to your board.`,
-      });
-      
-    } catch (error) {
-      log.error('Failed to apply template', error as Error);
-      notifications.error('Failed to apply template', {
-        description: 'Please try again or contact support.',
-      });
-    }
-  }, [boardEdit]);
+    },
+    [boardEdit]
+  );
 
-  const handleRegenerateGrid = useCallback(() => {
-    if (!boardEdit.currentBoard) return;
-    
-    // This would regenerate the grid with shuffled templates
-    notifications.success('Grid regenerated!', {
-      description: 'Your template cards have been shuffled.',
-    });
-  }, [boardEdit]);
+  const handleUseCollection = useCallback(
+    async (cards: BingoCard[]) => {
+      if (!boardEdit.board) return;
+
+      try {
+        const gridSize = boardEdit.board.size || 5;
+        const totalCells = gridSize * gridSize;
+
+        // Take cards up to grid size, shuffle if we have more than needed
+        let selectedCards = cards.slice(0, totalCells);
+        if (cards.length > totalCells) {
+          selectedCards = [...cards]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, totalCells);
+        }
+
+        // Fill any remaining slots with empty cards
+        while (selectedCards.length < totalCells) {
+          selectedCards.push(
+            createEmptyBingoCard(
+              boardEdit.board.game_type,
+              boardEdit.board.creator_id || ''
+            )
+          );
+        }
+
+        // Update grid with collection cards
+        boardEdit.setLocalGridCards(selectedCards);
+
+        notifications.success('Collection applied successfully!', {
+          description: `Applied ${selectedCards.length} cards from collection to your board.`,
+        });
+      } catch (error) {
+        log.error('Failed to apply collection', error as Error);
+        notifications.error('Failed to apply collection', {
+          description: 'Please try again or contact support.',
+        });
+      }
+    },
+    [boardEdit]
+  );
+
+  const handleBulkAddCards = useCallback(
+    async (cards: BingoCard[]) => {
+      try {
+        // Add selected cards to private cards collection
+        for (const card of cards) {
+          boardEdit.addPrivateCard(card);
+        }
+
+        notifications.success('Cards added successfully!', {
+          description: `Added ${cards.length} cards to your private collection.`,
+        });
+      } catch (error) {
+        log.error('Failed to add cards', error as Error);
+        notifications.error('Failed to add cards', {
+          description: 'Please try again or contact support.',
+        });
+      }
+    },
+    [boardEdit]
+  );
 
   // Drag handlers
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    setActiveId(active.id);
-    
-    const activeIdStr = active.id.toString();
-    
-    // Check if dragging from grid
-    if (activeIdStr.startsWith('grid-')) {
-      const parts = activeIdStr.split('-');
-      if (parts[1]) {
-        const gridIndex = parseInt(parts[1]);
-        if (!isNaN(gridIndex)) {
-          const card = boardEdit.gridCards[gridIndex];
-          if (card && card.id) {
-            setDraggedCard(card);
-            setDraggedFromIndex(gridIndex);
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const { active } = event;
+      setActiveId(active.id);
+
+      const activeIdStr = active.id.toString();
+
+      // Check if dragging from grid
+      if (activeIdStr.startsWith('grid-')) {
+        const parts = activeIdStr.split('-');
+        if (parts[1]) {
+          const gridIndex = parseInt(parts[1]);
+          if (!isNaN(gridIndex)) {
+            const card = boardEdit.localGridCards[gridIndex];
+            if (card && card.id) {
+              setDraggedCard(card);
+              setDraggedFromIndex(gridIndex);
+              boardEdit.setDraggedCard(card);
+              boardEdit.setDraggedFromIndex(gridIndex);
+            }
+          }
+        }
+      } else {
+        // Dragging from private cards
+        const card = boardEdit.localPrivateCards.find(c => c.id === activeIdStr);
+        if (card) {
+          setDraggedCard(card);
+          setDraggedFromIndex(null);
+          boardEdit.setDraggedCard(card);
+          boardEdit.setDraggedFromIndex(null);
+        }
+      }
+    },
+    [boardEdit]
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { over } = event;
+
+      if (!over || !draggedCard) {
+        setActiveId(null);
+        setDraggedCard(null);
+        setDraggedFromIndex(null);
+        return;
+      }
+
+      const overId = over.id.toString();
+
+      // Create empty card helper
+      const createEmptyCard = (): BingoCard =>
+        createEmptyBingoCard(
+          boardEdit.board?.game_type || 'All Games',
+          boardEdit.board?.creator_id || ''
+        );
+
+      // Check if dropping on trash zone
+      if (overId === 'trash-drop-zone') {
+        if (draggedFromIndex !== null) {
+          // Remove from specific grid position
+          boardEdit.placeCardInGrid(createEmptyCard(), draggedFromIndex);
+          notifications.success('Card removed from grid!');
+        }
+      }
+      // Check if dropping on private cards area
+      else if (overId === 'private-cards-drop-zone') {
+        if (draggedFromIndex !== null) {
+          // Card is being moved from grid to private cards
+          boardEdit.placeCardInGrid(createEmptyCard(), draggedFromIndex);
+
+          // Add to private cards if not already there
+          if (
+            !boardEdit.localPrivateCards.find(card => card.id === draggedCard.id)
+          ) {
+            boardEdit.addPrivateCard(draggedCard);
+          }
+
+          notifications.success('Card moved to private collection!');
+        }
+      }
+      // Check if dropping on grid position
+      else if (overId.startsWith('grid-')) {
+        const parts = overId.split('-');
+        if (parts[1]) {
+          const targetIndex = parseInt(parts[1]);
+          if (!isNaN(targetIndex)) {
+            // Check if card already exists in grid (prevent duplicates)
+            const isAlreadyInGrid = boardEdit.localGridCards.some(
+              (card, idx) =>
+                card.id === draggedCard.id && idx !== draggedFromIndex
+            );
+
+            if (isAlreadyInGrid) {
+              notifications.error('This card is already in the grid!');
+            } else {
+              const existingCard = boardEdit.localGridCards[targetIndex];
+
+              // If dragging from another grid position
+              if (
+                draggedFromIndex !== null &&
+                draggedFromIndex !== targetIndex
+              ) {
+                // Get both cards
+                const sourceCard = boardEdit.localGridCards[draggedFromIndex];
+                const targetCard = boardEdit.localGridCards[targetIndex];
+
+                // Create a new grid array to update both positions at once
+                const newGridCards = [...boardEdit.localGridCards];
+
+                // Swap the cards
+                newGridCards[targetIndex] = sourceCard || createEmptyCard();
+                newGridCards[draggedFromIndex] =
+                  targetCard || createEmptyCard();
+
+                // Update the entire grid at once to prevent duplication
+                boardEdit.setLocalGridCards(newGridCards);
+
+                log.debug('Swapped grid cards', {
+                  metadata: {
+                    sourceIndex: draggedFromIndex,
+                    targetIndex,
+                    sourceCard: sourceCard?.title || 'empty',
+                    targetCard: targetCard?.title || 'empty',
+                  },
+                });
+              } else if (draggedFromIndex === null) {
+                // Dragging from private cards
+                if (existingCard?.id) {
+                  // Move existing card back to private cards if it's not empty
+                  if (
+                    !boardEdit.localPrivateCards.find(
+                      card => card.id === existingCard.id
+                    )
+                  ) {
+                    boardEdit.addPrivateCard(existingCard);
+                  }
+                }
+                boardEdit.placeCardInGrid(draggedCard, targetIndex);
+              }
+            }
           }
         }
       }
-    } else {
-      // Dragging from private cards
-      const card = boardEdit.privateCards.find(c => c.id === activeIdStr);
-      if (card) {
-        setDraggedCard(card);
-        setDraggedFromIndex(null);
-      }
-    }
-  }, [boardEdit.privateCards, boardEdit.gridCards]);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over || !draggedCard) {
       setActiveId(null);
       setDraggedCard(null);
       setDraggedFromIndex(null);
-      return;
-    }
-
-    const overId = over.id.toString();
-    
-    // Create empty card helper
-    const createEmptyCard = (): BingoCard => ({
-      id: '',
-      title: '',
-      description: null,
-      difficulty: 'medium',
-      game_type: boardEdit.currentBoard?.game_type || 'All Games',
-      tags: [],
-      creator_id: boardEdit.currentBoard?.creator_id || 'mock-user-id',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_public: false,
-      votes: 0,
-    });
-    
-    // Check if dropping on trash zone
-    if (overId === 'trash-drop-zone') {
-      if (draggedFromIndex !== null) {
-        // Remove from specific grid position
-        boardEdit.placeCardInGrid(createEmptyCard(), draggedFromIndex);
-        notifications.success('Card removed from grid!');
-      }
-    }
-    // Check if dropping on private cards area
-    else if (overId === 'private-cards-drop-zone') {
-      if (draggedFromIndex !== null) {
-        // Card is being moved from grid to private cards
-        boardEdit.placeCardInGrid(createEmptyCard(), draggedFromIndex);
-        
-        // Add to private cards if not already there
-        if (!boardEdit.privateCards.find(card => card.id === draggedCard.id)) {
-          boardEdit.createPrivateCard(draggedCard);
-        }
-        
-        notifications.success('Card moved to private collection!');
-      }
-    }
-    // Check if dropping on grid position
-    else if (overId.startsWith('grid-')) {
-      const parts = overId.split('-');
-      if (parts[1]) {
-        const targetIndex = parseInt(parts[1]);
-        if (!isNaN(targetIndex)) {
-        // Check if card already exists in grid (prevent duplicates)
-        const isAlreadyInGrid = boardEdit.gridCards.some((card, idx) => 
-          card.id === draggedCard.id && idx !== draggedFromIndex
-        );
-        
-        if (isAlreadyInGrid) {
-          notifications.error('This card is already in the grid!');
-        } else {
-          const existingCard = boardEdit.gridCards[targetIndex];
-          
-          // If dragging from another grid position
-          if (draggedFromIndex !== null && draggedFromIndex !== targetIndex) {
-            // Get both cards
-            const sourceCard = boardEdit.gridCards[draggedFromIndex];
-            const targetCard = boardEdit.gridCards[targetIndex];
-            
-            // Create a new grid array to update both positions at once
-            const newGridCards = [...boardEdit.gridCards];
-            
-            // Swap the cards
-            newGridCards[targetIndex] = sourceCard || createEmptyCard();
-            newGridCards[draggedFromIndex] = targetCard || createEmptyCard();
-            
-            // Update the entire grid at once to prevent duplication
-            boardEdit.setGridCards(newGridCards);
-            
-            log.debug('Swapped grid cards', {
-              metadata: {
-                sourceIndex: draggedFromIndex,
-                targetIndex,
-                sourceCard: sourceCard?.title || 'empty',
-                targetCard: targetCard?.title || 'empty'
-              }
-            });
-          } else if (draggedFromIndex === null) {
-            // Dragging from private cards
-            if (existingCard?.id) {
-              // Move existing card back to private cards if it's not empty
-              if (!boardEdit.privateCards.find(card => card.id === existingCard.id)) {
-                boardEdit.createPrivateCard(existingCard);
-              }
-            }
-            boardEdit.placeCardInGrid(draggedCard, targetIndex);
-          }
-        }
-        }
-      }
-    }
-    
-    setActiveId(null);
-    setDraggedCard(null);
-    setDraggedFromIndex(null);
-  }, [draggedCard, draggedFromIndex, boardEdit, notifications]);
+      boardEdit.setDraggedCard(null);
+      boardEdit.setDraggedFromIndex(null);
+    },
+    [draggedCard, draggedFromIndex, boardEdit]
+  );
 
   // Loading and error states
   if (isAuthLoading) {
@@ -469,7 +552,7 @@ export function BingoBoardEditOld({
     return <div className="text-red-500">Error: {boardEdit.error}</div>;
   }
 
-  if (!boardEdit.currentBoard || !boardEdit.formData) {
+  if (!boardEdit.board || !boardEdit.formData) {
     return null;
   }
 
@@ -486,119 +569,120 @@ export function BingoBoardEditOld({
       onDragEnd={handleDragEnd}
     >
       <div className="container mx-auto p-6">
-      {/* Header */}
-      <BoardHeader
-        board={boardEdit.currentBoard}
-        title={boardEdit.formData.board_title}
-        isSaving={uiState.isSaving}
-        hasErrors={hasErrors}
-        onClose={handleClose}
-        onSave={handleSave}
-      />
-
-      {/* Error Display */}
-      {boardEdit.error && (
-        <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 p-3">
-          <p className="text-sm text-red-400">{boardEdit.error}</p>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex flex-wrap justify-center gap-6">
-        {/* Sidebar - Card Management */}
-        <CardManagementTabs
-          privateCards={boardEdit.privateCards}
-          publicCards={publicCards}
-          currentBoard={{
-            game_type: boardEdit.currentBoard.game_type,
-            size: boardEdit.currentBoard.size || 5,
-          }}
-          isLoadingPrivateCards={boardEdit.isLoadingCards}
-          isLoadingPublicCards={isLoadingPublicCards}
-          onCardSelect={handleCardSelect}
-          onCardEdit={handleCardEdit}
-          onCreateNewCard={handleCreateNewCard}
-          onTabChange={handleTabChange}
-          onFilterPublicCards={handleFilterPublicCards}
-          onClearPublicFilters={handleClearPublicFilters}
-          onVoteCard={handleVoteCard}
-          onApplyTemplate={handleApplyTemplate}
-          onRegenerateGrid={handleRegenerateGrid}
-          currentTemplateCount={boardEdit.gridCards.filter(card => card.id).length}
-          onCardReturnToPrivate={handleCardReturnToPrivate}
+        {/* Header */}
+        <BoardHeader
+          board={boardEdit.board}
+          title={boardEdit.formData.board_title}
+          isSaving={boardEdit.isSaving}
+          hasErrors={hasErrors}
+          onClose={handleClose}
+          onSave={handleSave}
         />
 
-        {/* Main Content - Settings and Grid */}
-        <div className="flex-1">
-          {/* Board Settings */}
-          <BoardSettingsPanel
-            formData={boardEdit.formData}
-            fieldErrors={boardEdit.fieldErrors}
-            onUpdateField={boardEdit.updateFormField}
-            onFormDataChange={boardEdit.setFormData}
+        {/* Error Display */}
+        {boardEdit.error && (
+          <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 p-3">
+            <p className="text-sm text-red-400">{boardEdit.error}</p>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex flex-wrap justify-center gap-6">
+          {/* Sidebar - Card Management */}
+          <CardManagementTabs
+            privateCards={boardEdit.localPrivateCards}
+            publicCards={publicCards}
+            currentBoard={{
+              game_type: boardEdit.board.game_type,
+              size: boardEdit.board.size || 5,
+            }}
+            isLoadingPrivateCards={boardEdit.isLoadingCards}
+            isLoadingPublicCards={isLoadingPublicCards}
+            onCardSelect={handleCardSelect}
+            onCardEdit={handleCardEdit}
+            onCreateNewCard={handleCreateNewCard}
+            onTabChange={handleTabChange}
+            onFilterPublicCards={handleFilterPublicCards}
+            onClearPublicFilters={handleClearPublicFilters}
+            onVoteCard={handleVoteCard}
+            onShuffle={handleShuffle}
+            onUseCollection={handleUseCollection}
+            onBulkAddCards={handleBulkAddCards}
+            onCardReturnToPrivate={handleCardReturnToPrivate}
           />
 
-          {/* Bingo Grid */}
-          <div className="mt-4">
-            <BingoGrid
-              gridCards={boardEdit.gridCards}
-              gridSize={boardEdit.gridSize}
-              isLoading={boardEdit.isLoadingCards}
-              onCardClick={handleCardEdit}
-              onRemoveCard={handleRemoveGridCard}
+          {/* Main Content - Settings and Grid */}
+          <div className="flex-1">
+            {/* Board Settings */}
+            <BoardSettingsPanel
+              formData={boardEdit.formData}
+              fieldErrors={boardEdit.fieldErrors}
+              onUpdateField={boardEdit.updateFormField}
+              onFormDataChange={(updater) => {
+                const currentData = boardEdit.formData;
+                const newData = updater(currentData);
+                boardEdit.setFormData(newData);
+              }}
             />
+
+            {/* Bingo Grid */}
+            <div className="mt-4">
+              <BingoGrid
+                gridCards={boardEdit.localGridCards}
+                gridSize={boardEdit.board?.size || 5}
+                isLoading={boardEdit.isLoadingCards}
+                onCardClick={handleCardEdit}
+                onRemoveCard={handleRemoveGridCard}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Dialogs */}
+        {boardEdit.editingCard && (
+          <BingoCardEditDialog
+            card={boardEdit.editingCard.card}
+            index={boardEdit.editingCard.index}
+            isOpen={true}
+            onClose={boardEdit.closeCardEditor}
+            onSave={handleCardDialogSave}
+          />
+        )}
+
+        {boardEdit.selectedCard && (
+          <GridPositionSelectDialog
+            isOpen={true}
+            onClose={boardEdit.clearSelectedCard}
+            onSelect={handlePositionSelect}
+            gridSize={boardEdit.board?.size || 5}
+            takenPositions={boardEdit.localGridCards
+              .map((card, index) => (card.id ? index : -1))
+              .filter(index => index !== -1)}
+          />
+        )}
+
+        {/* Success Message */}
+        {boardEdit.showSaveSuccess && (
+          <div className="animate-fade-in fixed right-4 bottom-4 rounded-md border border-green-500/50 bg-green-500/20 px-4 py-2 text-green-400 shadow-lg">
+            {UI_MESSAGES.SAVE.SUCCESS}
+          </div>
+        )}
       </div>
 
-      {/* Dialogs */}
-      {uiState.editingCard && (
-        <BingoCardEditDialog
-          card={uiState.editingCard.card}
-          index={uiState.editingCard.index}
-          isOpen={true}
-          onClose={uiState.closeCardEditor}
-          onSave={handleCardDialogSave}
-        />
-      )}
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {draggedCard && (
+          <div className="rounded-lg border border-purple-500/50 bg-gray-800/90 p-3 shadow-lg">
+            <h4 className="font-medium text-purple-300">{draggedCard.title}</h4>
+            <p className="text-sm text-gray-400">{draggedCard.description}</p>
+          </div>
+        )}
+      </DragOverlay>
 
-      {uiState.selectedCard && (
-        <GridPositionSelectDialog
-          isOpen={true}
-          onClose={uiState.clearSelectedCard}
-          onSelect={handlePositionSelect}
-          gridSize={boardEdit.gridSize}
-          takenPositions={boardEdit.gridCards
-            .map((card, index) => (card.id ? index : -1))
-            .filter(index => index !== -1)}
-        />
-      )}
-
-      {/* Success Message */}
-      {uiState.showSaveSuccess && (
-        <div className="animate-fade-in fixed right-4 bottom-4 rounded-md border border-green-500/50 bg-green-500/20 px-4 py-2 text-green-400 shadow-lg">
-          {UI_MESSAGES.SAVE.SUCCESS}
-        </div>
-      )}
-    </div>
-
-    {/* Drag Overlay */}
-    <DragOverlay>
-      {draggedCard && (
-        <div className="rounded-lg border border-purple-500/50 bg-gray-800/90 p-3 shadow-lg">
-          <h4 className="font-medium text-purple-300">{draggedCard.title}</h4>
-          <p className="text-sm text-gray-400">{draggedCard.description}</p>
-        </div>
-      )}
-    </DragOverlay>
-
-    {/* Floating Trash Zone */}
-    {activeId && <TrashDropZone />}
-  </DndContext>
+      {/* Floating Trash Zone */}
+      {activeId && <TrashDropZone />}
+    </DndContext>
   );
 }
 
 // ✅ Ready for review
-
-// Re-export the redesigned version as the main component
-export { BingoBoardEdit } from './BingoBoardEditRedesigned';

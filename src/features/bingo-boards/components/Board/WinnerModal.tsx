@@ -4,15 +4,14 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Trophy, RotateCcw } from 'lucide-react';
-import { useGameState } from '../../hooks/useGameState';
+import { useGameModern } from '../../hooks/useSessionGameModern';
 import { cn } from '@/lib/utils';
 
 export const WinnerModal: React.FC = () => {
-  const { winner, players, resetGame, isRunning } = useGameState();
+  const { game, resetGame } = useGameModern();
+  const { winner, isRunning } = game;
 
   if (winner === null || isRunning) return null;
-
-  const winningPlayer = players[winner];
 
   return (
     <AnimatePresence>
@@ -41,7 +40,7 @@ export const WinnerModal: React.FC = () => {
             Congratulations!
           </h2>
           <p className="mb-6 text-lg text-gray-300">
-            {winningPlayer?.name || 'Unknown Player'} wins!
+            Player {winner + 1} wins!
           </p>
           <Button
             onClick={resetGame}

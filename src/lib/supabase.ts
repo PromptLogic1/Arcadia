@@ -53,13 +53,21 @@ const validateConfig = () => {
 // Validate configuration on module load
 const configValidation = validateConfig();
 
+// Singleton instance for browser client to improve performance
+let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
+
 // 🧼 Browser Client (Client Components)
 export function createClient() {
   if (!configValidation.isValid) {
     throw new Error(configValidation.error || 'Invalid Supabase configuration');
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  // Return singleton instance for better connection reuse
+  if (!browserClient) {
+    browserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  }
+
+  return browserClient;
 }
 
 // 🧼 Server Client (Server Components, Route Handlers, Server Actions)

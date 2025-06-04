@@ -1,5 +1,5 @@
 // Import database types
-import type { Tables } from '../../../types/database-types';
+import type { Tables, Enums } from '../../../types/database-generated';
 
 // User Types
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';
@@ -37,10 +37,9 @@ export interface AuthUser {
 }
 
 // Re-export types from database
-export type {
-  GameCategory,
-  DifficultyLevel,
-} from '../../../types/database-types';
+// Re-export types as aliases
+export type GameCategory = Enums<'game_category'>;
+export type DifficultyLevel = Enums<'difficulty_level'>;
 
 export interface BoardCell {
   id: string;

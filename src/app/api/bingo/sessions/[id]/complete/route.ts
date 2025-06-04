@@ -76,12 +76,10 @@ export async function POST(
     await supabase.from('game_results').insert({
       session_id: params.id,
       user_id: winner_id,
-      final_score,
-      patterns_achieved: winning_patterns as unknown as Json,
-      time_to_win: timeToWin,
       placement: 1,
-      mistake_count: 0, // TODO: Track this in the game
-      bonus_points: 0, // Calculated in scoring service
+      final_score,
+      time_to_win: timeToWin,
+      patterns_achieved: winning_patterns as unknown as Json,
     });
 
     return NextResponse.json({

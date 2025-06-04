@@ -3,13 +3,14 @@
 
 import type {
   GameCategory,
-  DifficultyLevel,
-  BoardSettings as DatabaseBoardSettings,
-  WinConditions as DatabaseWinConditions,
-  // Tables, // Removed unused
-  // Enums, // Removed unused
-  // Database // Removed unused
-} from '@/types/database-types';
+  Difficulty,
+  CompositeTypes,
+} from '@/types';
+
+// Type aliases for database composite types
+type DatabaseBoardSettings = CompositeTypes<'board_settings'>;
+type DatabaseWinConditions = CompositeTypes<'win_conditions'>;
+type DifficultyLevel = Difficulty;
 
 // GameSettings combines board settings, session settings, and additional app-specific settings
 export interface GameSettings extends DatabaseBoardSettings {

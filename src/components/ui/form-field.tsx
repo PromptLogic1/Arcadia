@@ -15,6 +15,8 @@ const formFieldVariants = cva('space-y-2', {
       gaming: 'relative',
       neon: 'relative',
       cyber: 'relative group',
+      ghost: 'relative',
+      holographic: 'relative group',
     },
     size: {
       sm: '',
@@ -44,6 +46,8 @@ const labelVariants = cva(
         gaming: 'text-cyan-400',
         neon: 'text-blue-400 font-semibold',
         cyber: 'text-green-400 font-bold uppercase tracking-wide',
+        ghost: 'text-muted-foreground',
+        holographic: 'text-fuchsia-400 font-semibold',
       },
       state: {
         default: '',
@@ -75,6 +79,8 @@ const inputVariants = cva(
         neon: 'border-blue-500/30 bg-blue-950/20 text-blue-100 placeholder:text-blue-300/50 shadow-blue-500/20',
         cyber:
           'border-green-500/30 bg-black/30 text-green-100 placeholder:text-green-300/50 font-mono',
+        ghost: '',
+        holographic: '',
       },
       state: {
         default: '',
@@ -104,9 +110,10 @@ export interface FormFieldProps extends VariantProps<typeof formFieldVariants> {
 }
 
 export interface UnifiedInputProps
-  extends Omit<InputProps, 'size' | 'type'>,
+  extends Omit<InputProps, 'size' | 'type' | 'variant'>,
     Omit<FormFieldProps, 'fieldType'> {
   type?: React.HTMLInputTypeAttribute;
+  inputVariant?: InputProps['variant'];
 }
 
 export interface UnifiedTextareaProps
@@ -186,6 +193,7 @@ export const UnifiedInput = React.forwardRef<
       className,
       labelClassName,
       inputClassName,
+      inputVariant = 'default',
       ...props
     },
     ref
@@ -207,6 +215,7 @@ export const UnifiedInput = React.forwardRef<
       >
         <Input
           ref={ref}
+          variant={inputVariant}
           className={cn(
             inputVariants({ variant, state: fieldState }),
             inputClassName

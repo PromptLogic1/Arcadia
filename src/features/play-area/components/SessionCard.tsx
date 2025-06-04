@@ -19,10 +19,26 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 // Types
-import type { PlayAreaSession } from '../types';
+import type { BingoSession } from '../../../services/sessions.service';
 
 interface SessionCardProps {
-  session: PlayAreaSession;
+  session: BingoSession & {
+    current_player_count?: number;
+    max_players?: number;
+    board?: {
+      title?: string;
+      description?: string;
+      difficulty?: string;
+      size?: number;
+      game_type?: string;
+    };
+    host?: {
+      display_name?: string;
+      user?: {
+        avatar_url?: string;
+      };
+    };
+  };
   onJoin: () => void;
   currentUserId?: string;
   className?: string;
@@ -56,11 +72,13 @@ export function SessionCard({
   className,
 }: SessionCardProps) {
   const isHost = session.host_id === currentUserId;
-  const isFull = session.current_player_count >= session.max_players;
+  const currentCount = session.current_player_count || 0;
+  const maxCount = session.max_players || session.settings?.max_players || 8;
+  const isFull = currentCount >= maxCount;
   const canJoin = !isHost && !isFull && session.status === 'waiting';
 
-  const difficultyColor = session.board?.difficulty
-    ? DIFFICULTY_COLORS[session.board.difficulty]
+  const difficultyColor = session.board?.difficulty && session.board.difficulty in DIFFICULTY_COLORS
+    ? DIFFICULTY_COLORS[session.board.difficulty as keyof typeof DIFFICULTY_COLORS]
     : 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
   const statusColor =
@@ -140,7 +158,7 @@ export function SessionCard({
                     isFull ? 'text-red-400' : 'text-gray-300'
                   )}
                 >
-                  {session.current_player_count}/{session.max_players}
+                  {currentCount}/{maxCount}
                 </span>
               </div>
 

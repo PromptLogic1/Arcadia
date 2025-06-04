@@ -1,6 +1,18 @@
 import { useState, useCallback } from 'react';
-import type { GameCategory } from '../types';
-import { type DifficultyLevel, Constants } from '@/types/database-core';
+import type { GameCategory, Difficulty as _Difficulty } from '@/types';
+import type { Enums } from '@/types/database-generated';
+
+// Type alias for clean usage
+type DifficultyLevel = Enums<'difficulty_level'>;
+
+// Create constants from enum types
+const Constants = {
+  public: {
+    Enums: {
+      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+    }
+  }
+} as const;
 import {
   type GENERATOR_CONFIG,
   CARD_CATEGORIES,

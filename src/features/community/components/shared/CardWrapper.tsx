@@ -34,7 +34,9 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
 }) => {
   return (
     <Card
-      className={cn('w-full transition-colors', className)}
+      variant="cyber"
+      glow="subtle"
+      className={cn('w-full transition-all duration-300 hover:scale-[1.02] group', className)}
       onClick={onClick}
     >
       {(title || description) && (

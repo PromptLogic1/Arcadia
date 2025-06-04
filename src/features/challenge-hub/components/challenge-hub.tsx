@@ -27,64 +27,76 @@ export default function Challenges() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-100">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-cyan-100">
       <main className="container mx-auto max-w-7xl flex-grow px-4 sm:px-6 lg:px-8">
-        {/* Navigation Tabs - flex-col auf Mobile, flex-row auf Desktop */}
-        <div className="mb-8 flex flex-col gap-2 sm:flex-row">
+        {/* Navigation Tabs - Enhanced Cyberpunk Design */}
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => setActiveTab('bingo')}
             className={cn(
-              'flex items-center justify-between rounded-md px-4 py-3 sm:py-2',
-              'w-full transition-all duration-200 ease-in-out',
+              'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
+              'w-full transition-all duration-300 ease-in-out group',
               activeTab === 'bingo'
-                ? 'border border-cyan-500/30 bg-cyan-500/20 text-cyan-300'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800/80 hover:text-cyan-300'
+                ? 'cyber-card-selected neon-glow-cyan'
+                : 'hover:border-cyan-400/60'
             )}
           >
-            <span className="font-medium">Bingo Boards</span>
-            <Grid className="ml-2 h-5 w-5" />
+            <span className="font-semibold">Bingo Boards</span>
+            <Grid className={cn(
+              "ml-2 h-5 w-5 transition-all duration-300",
+              activeTab === 'bingo' ? "text-cyan-400 drop-shadow-lg" : "group-hover:text-cyan-400"
+            )} />
           </button>
 
           <button
             onClick={() => setActiveTab('speedrun')}
             className={cn(
-              'flex items-center justify-between rounded-md px-4 py-3 sm:py-2',
-              'w-full transition-all duration-200 ease-in-out',
+              'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
+              'w-full transition-all duration-300 ease-in-out group',
               activeTab === 'speedrun'
-                ? 'border border-cyan-500/30 bg-cyan-500/20 text-cyan-300'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800/80 hover:text-cyan-300'
+                ? 'cyber-card-selected neon-glow-purple'
+                : 'hover:border-purple-400/60'
             )}
           >
-            <span className="font-medium">Speed Runs</span>
-            <Zap className="ml-2 h-5 w-5" />
+            <span className="font-semibold">Speed Runs</span>
+            <Zap className={cn(
+              "ml-2 h-5 w-5 transition-all duration-300",
+              activeTab === 'speedrun' ? "text-purple-400 drop-shadow-lg" : "group-hover:text-purple-400"
+            )} />
           </button>
 
           <button
             onClick={() => setActiveTab('achievements')}
             className={cn(
-              'flex items-center justify-between rounded-md px-4 py-3 sm:py-2',
-              'w-full transition-all duration-200 ease-in-out',
+              'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
+              'w-full transition-all duration-300 ease-in-out group',
               activeTab === 'achievements'
-                ? 'border border-cyan-500/30 bg-cyan-500/20 text-cyan-300'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800/80 hover:text-cyan-300'
+                ? 'cyber-card-selected neon-glow-fuchsia'
+                : 'hover:border-fuchsia-400/60'
             )}
           >
-            <span className="font-medium">Achievement Hunt</span>
-            <Trophy className="ml-2 h-5 w-5" />
+            <span className="font-semibold">Achievement Hunt</span>
+            <Trophy className={cn(
+              "ml-2 h-5 w-5 transition-all duration-300",
+              activeTab === 'achievements' ? "text-fuchsia-400 drop-shadow-lg" : "group-hover:text-fuchsia-400"
+            )} />
           </button>
 
           <button
             onClick={() => setActiveTab('puzzles')}
             className={cn(
-              'flex items-center justify-between rounded-md px-4 py-3 sm:py-2',
-              'w-full transition-all duration-200 ease-in-out',
+              'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
+              'w-full transition-all duration-300 ease-in-out group',
               activeTab === 'puzzles'
-                ? 'border border-cyan-500/30 bg-cyan-500/20 text-cyan-300'
-                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800/80 hover:text-cyan-300'
+                ? 'cyber-card-selected neon-glow-cyan'
+                : 'hover:border-emerald-400/60'
             )}
           >
-            <span className="font-medium">Puzzle Quests</span>
-            <Puzzle className="ml-2 h-5 w-5" />
+            <span className="font-semibold">Puzzle Quests</span>
+            <Puzzle className={cn(
+              "ml-2 h-5 w-5 transition-all duration-300",
+              activeTab === 'puzzles' ? "text-emerald-400 drop-shadow-lg" : "group-hover:text-emerald-400"
+            )} />
           </button>
         </div>
 

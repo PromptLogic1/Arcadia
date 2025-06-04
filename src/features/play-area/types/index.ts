@@ -1,4 +1,4 @@
-import type { Tables, Enums, CompositeTypes } from '@/types/database-types';
+import type { Tables, Enums, CompositeTypes } from '@/types/database-generated';
 
 // Database types
 export type BingoSession = Tables<'bingo_sessions'>;
@@ -15,13 +15,16 @@ export type WinConditions = CompositeTypes<'win_conditions'>;
 
 // Extended play area types
 export interface PlayAreaSession extends BingoSession {
+  // Extended properties
   board?: BingoBoard;
-  players: PlayAreaPlayer[];
+  players: PlayAreaPlayer[]; // Actual player objects (not from DB)
   host?: PlayAreaPlayer;
   winner?: PlayAreaPlayer;
   spectators?: PlayAreaSpectator[];
-  current_player_count: number;
-  max_players: number;
+  current_player_count: number; // Computed from players array
+  max_players: number; // From settings
+  password?: string; // From settings.password
+  has_password?: boolean; // Computed from settings.password
 }
 
 export interface PlayAreaPlayer extends BingoSessionPlayer {

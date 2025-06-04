@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { GeneralSettings } from './GeneralSettings';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/stores/auth-store';
 
 export default function SettingsComponent() {
   const { isAuthenticated } = useAuth();

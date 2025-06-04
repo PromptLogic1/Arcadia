@@ -2,7 +2,7 @@
 
 import React from 'react';
 import UserPage from './UserPage';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/stores/auth-store';
 
 export default function UserProfileComponent() {
   const { userData: ownUserData } = useAuth();

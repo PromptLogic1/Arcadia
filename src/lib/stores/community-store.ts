@@ -1,12 +1,21 @@
+/**
+ * Community Store (Zustand)
+ * 
+ * UI state management for community functionality.
+ * Server data (discussions, comments) is handled by TanStack Query hooks.
+ * This store only manages UI-specific state.
+ */
+
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
 import type { Tables } from '@/types/database-generated';
 
-// Use the actual database-generated types
+// Re-export types for backward compatibility
 export type Discussion = Tables<'discussions'>;
 export type Comment = Tables<'comments'>;
 
+// Mock events (until real events are implemented)
 export interface Event {
   id: number;
   title: string;
@@ -22,173 +31,99 @@ export interface Event {
 }
 
 interface CommunityState {
-  // State
-  discussions: Discussion[];
-  comments: Comment[];
-  events: Event[];
+  // UI state only - no server data!
   selectedDiscussion: Discussion | null;
-  loading: boolean;
-  error: string | null;
+  
+  // UI loading and error states (separate from TanStack Query states)
+  uiLoading: boolean;
+  uiError: string | null;
+  
+  // Filters for client-side filtering and search
   filters: {
     game: string | null;
     challengeType: string | null;
     tags: string[];
     searchTerm: string;
   };
-
-  // Actions
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  setDiscussions: (discussions: Discussion[]) => void;
-  setComments: (comments: Comment[]) => void;
-  setEvents: (events: Event[]) => void;
-  setSelectedDiscussion: (discussion: Discussion | null) => void;
-  addDiscussion: (discussion: Discussion) => void;
-  updateDiscussion: (id: number, updates: Partial<Discussion>) => void;
-  removeDiscussion: (id: number) => void;
-  addComment: (comment: Comment) => void;
-  updateComment: (id: number, updates: Partial<Comment>) => void;
-  removeComment: (id: number) => void;
-  upvoteDiscussion: (id: number) => void;
-  upvoteComment: (id: number) => void;
-  setFilters: (filters: Partial<CommunityState['filters']>) => void;
-  clearFilters: () => void;
+  
+  // Modal and dialog states
+  showCreateDiscussionDialog: boolean;
+  showDiscussionDetailsDialog: boolean;
+  
+  // Form states
+  createDiscussionForm: {
+    title: string;
+    content: string;
+    tags: string[];
+    game: string | null;
+  } | null;
+  
+  // Events (mock data - will be moved to TanStack Query when real)
+  events: Event[];
 }
 
-export const useCommunityStore = createWithEqualityFn<CommunityState>()(
+interface CommunityActions {
+  // Selected discussion management
+  setSelectedDiscussion: (discussion: Discussion | null) => void;
+  
+  // UI loading and error management
+  setUiLoading: (loading: boolean) => void;
+  setUiError: (error: string | null) => void;
+  
+  // Filter management
+  setFilters: (filters: Partial<CommunityState['filters']>) => void;
+  clearFilters: () => void;
+  
+  // Modal management
+  setShowCreateDiscussionDialog: (show: boolean) => void;
+  setShowDiscussionDetailsDialog: (show: boolean) => void;
+  
+  // Form management
+  setCreateDiscussionForm: (form: CommunityState['createDiscussionForm']) => void;
+  updateCreateDiscussionField: (field: keyof NonNullable<CommunityState['createDiscussionForm']>, value: string | string[] | null) => void;
+  resetCreateDiscussionForm: () => void;
+  
+  // Events management (mock data)
+  setEvents: (events: Event[]) => void;
+  
+  // Utility
+  reset: () => void;
+}
+
+const initialState: CommunityState = {
+  selectedDiscussion: null,
+  uiLoading: false,
+  uiError: null,
+  filters: {
+    game: null,
+    challengeType: null,
+    tags: [],
+    searchTerm: '',
+  },
+  showCreateDiscussionDialog: false,
+  showDiscussionDetailsDialog: false,
+  createDiscussionForm: null,
+  events: [], // Mock data
+};
+
+export const useCommunityStore = createWithEqualityFn<CommunityState & CommunityActions>()(
   devtools(
     (set, get) => ({
-      // Initial state
-      discussions: [],
-      comments: [],
-      events: [],
-      selectedDiscussion: null,
-      loading: false,
-      error: null,
-      filters: {
-        game: null,
-        challengeType: null,
-        tags: [],
-        searchTerm: '',
-      },
+      ...initialState,
 
-      // Actions
-      setLoading: loading => set({ loading }, false, 'community/setLoading'),
-
-      setError: error => set({ error }, false, 'community/setError'),
-
-      setDiscussions: discussions =>
-        set({ discussions, error: null }, false, 'community/setDiscussions'),
-
-      setComments: comments =>
-        set({ comments }, false, 'community/setComments'),
-
-      setEvents: events => set({ events }, false, 'community/setEvents'),
-
-      setSelectedDiscussion: selectedDiscussion =>
+      // Selected discussion management
+      setSelectedDiscussion: (selectedDiscussion) =>
         set({ selectedDiscussion }, false, 'community/setSelectedDiscussion'),
 
-      addDiscussion: discussion => {
-        const { discussions } = get();
-        set(
-          { discussions: [discussion, ...discussions] },
-          false,
-          'community/addDiscussion'
-        );
-      },
+      // UI loading and error management
+      setUiLoading: (uiLoading) =>
+        set({ uiLoading }, false, 'community/setUiLoading'),
 
-      updateDiscussion: (id, updates) => {
-        const { discussions, selectedDiscussion } = get();
-        set(
-          {
-            discussions: discussions.map(discussion =>
-              discussion.id === id ? { ...discussion, ...updates } : discussion
-            ),
-            selectedDiscussion:
-              selectedDiscussion?.id === id
-                ? { ...selectedDiscussion, ...updates }
-                : selectedDiscussion,
-          },
-          false,
-          'community/updateDiscussion'
-        );
-      },
+      setUiError: (uiError) =>
+        set({ uiError }, false, 'community/setUiError'),
 
-      removeDiscussion: id => {
-        const { discussions, selectedDiscussion } = get();
-        set(
-          {
-            discussions: discussions.filter(discussion => discussion.id !== id),
-            selectedDiscussion:
-              selectedDiscussion?.id === id ? null : selectedDiscussion,
-          },
-          false,
-          'community/removeDiscussion'
-        );
-      },
-
-      addComment: comment => {
-        const { comments } = get();
-        set(
-          { comments: [comment, ...comments] },
-          false,
-          'community/addComment'
-        );
-      },
-
-      updateComment: (id, updates) => {
-        const { comments } = get();
-        set(
-          {
-            comments: comments.map(comment =>
-              comment.id === id ? { ...comment, ...updates } : comment
-            ),
-          },
-          false,
-          'community/updateComment'
-        );
-      },
-
-      removeComment: id => {
-        const { comments } = get();
-        set(
-          { comments: comments.filter(comment => comment.id !== id) },
-          false,
-          'community/removeComment'
-        );
-      },
-
-      upvoteDiscussion: id => {
-        const { discussions } = get();
-        set(
-          {
-            discussions: discussions.map(discussion =>
-              discussion.id === id
-                ? { ...discussion, upvotes: (discussion.upvotes || 0) + 1 }
-                : discussion
-            ),
-          },
-          false,
-          'community/upvoteDiscussion'
-        );
-      },
-
-      upvoteComment: id => {
-        const { comments } = get();
-        set(
-          {
-            comments: comments.map(comment =>
-              comment.id === id
-                ? { ...comment, upvotes: (comment.upvotes || 0) + 1 }
-                : comment
-            ),
-          },
-          false,
-          'community/upvoteComment'
-        );
-      },
-
-      setFilters: newFilters => {
+      // Filter management
+      setFilters: (newFilters) => {
         const { filters } = get();
         set(
           { filters: { ...filters, ...newFilters } },
@@ -199,17 +134,43 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()(
 
       clearFilters: () =>
         set(
-          {
-            filters: {
-              game: null,
-              challengeType: null,
-              tags: [],
-              searchTerm: '',
-            },
-          },
+          { filters: initialState.filters },
           false,
           'community/clearFilters'
         ),
+
+      // Modal management
+      setShowCreateDiscussionDialog: (show) =>
+        set({ showCreateDiscussionDialog: show }, false, 'community/setShowCreateDiscussionDialog'),
+
+      setShowDiscussionDetailsDialog: (show) =>
+        set({ showDiscussionDetailsDialog: show }, false, 'community/setShowDiscussionDetailsDialog'),
+
+      // Form management
+      setCreateDiscussionForm: (createDiscussionForm) =>
+        set({ createDiscussionForm }, false, 'community/setCreateDiscussionForm'),
+
+      updateCreateDiscussionField: (field, value) =>
+        set(
+          (state) => ({
+            createDiscussionForm: state.createDiscussionForm
+              ? { ...state.createDiscussionForm, [field]: value }
+              : { title: '', content: '', tags: [], game: null, [field]: value },
+          }),
+          false,
+          'community/updateCreateDiscussionField'
+        ),
+
+      resetCreateDiscussionForm: () =>
+        set({ createDiscussionForm: null }, false, 'community/resetCreateDiscussionForm'),
+
+      // Events management (mock data - will be moved to TanStack Query when real)
+      setEvents: (events) =>
+        set({ events }, false, 'community/setEvents'),
+
+      // Utility
+      reset: () =>
+        set(initialState, false, 'community/reset'),
     }),
     {
       name: 'community-store',
@@ -217,38 +178,76 @@ export const useCommunityStore = createWithEqualityFn<CommunityState>()(
   )
 );
 
-// Selectors
-export const useCommunity = () =>
+// Selectors for UI state only
+export const useCommunityState = () =>
   useCommunityStore(
     useShallow(state => ({
-      discussions: state.discussions,
-      comments: state.comments,
-      events: state.events,
       selectedDiscussion: state.selectedDiscussion,
-      loading: state.loading,
-      error: state.error,
+      uiLoading: state.uiLoading,
+      uiError: state.uiError,
       filters: state.filters,
+      events: state.events, // Mock data until real implementation
+    }))
+  );
+
+export const useCommunityModals = () =>
+  useCommunityStore(
+    useShallow(state => ({
+      showCreateDiscussionDialog: state.showCreateDiscussionDialog,
+      showDiscussionDetailsDialog: state.showDiscussionDetailsDialog,
+    }))
+  );
+
+export const useCommunityForm = () =>
+  useCommunityStore(
+    useShallow(state => ({
+      createDiscussionForm: state.createDiscussionForm,
     }))
   );
 
 export const useCommunityActions = () =>
   useCommunityStore(
     useShallow(state => ({
-      setLoading: state.setLoading,
-      setError: state.setError,
-      setDiscussions: state.setDiscussions,
-      setComments: state.setComments,
-      setEvents: state.setEvents,
+      // Selected discussion management
       setSelectedDiscussion: state.setSelectedDiscussion,
-      addDiscussion: state.addDiscussion,
-      updateDiscussion: state.updateDiscussion,
-      removeDiscussion: state.removeDiscussion,
-      addComment: state.addComment,
-      updateComment: state.updateComment,
-      removeComment: state.removeComment,
-      upvoteDiscussion: state.upvoteDiscussion,
-      upvoteComment: state.upvoteComment,
+      
+      // UI loading and error management
+      setUiLoading: state.setUiLoading,
+      setUiError: state.setUiError,
+      
+      // Filter management
       setFilters: state.setFilters,
       clearFilters: state.clearFilters,
+      
+      // Modal management
+      setShowCreateDiscussionDialog: state.setShowCreateDiscussionDialog,
+      setShowDiscussionDetailsDialog: state.setShowDiscussionDetailsDialog,
+      
+      // Form management
+      setCreateDiscussionForm: state.setCreateDiscussionForm,
+      updateCreateDiscussionField: state.updateCreateDiscussionField,
+      resetCreateDiscussionForm: state.resetCreateDiscussionForm,
+      
+      // Events management (mock data)
+      setEvents: state.setEvents,
+      
+      // Utility
+      reset: state.reset,
+    }))
+  );
+
+// Backward compatibility selector (deprecated - use specific selectors above)
+export const useCommunity = () =>
+  useCommunityStore(
+    useShallow(state => ({
+      // UI state only - server data should come from TanStack Query
+      selectedDiscussion: state.selectedDiscussion,
+      loading: state.uiLoading, // Renamed for clarity
+      error: state.uiError, // Renamed for clarity
+      filters: state.filters,
+      events: state.events, // Mock data
+      
+      // Note: discussions and comments are now handled by TanStack Query
+      // Use useCommunityQueries hook for server data
     }))
   );
