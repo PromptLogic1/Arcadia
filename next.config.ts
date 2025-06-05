@@ -159,7 +159,7 @@ const nextConfig: NextConfig = {
     ];
   },
   // Simplified webpack configuration following Next.js best practices
-  webpack: (config, { dev, isServer, webpack }) => {
+  webpack: (config, { dev, isServer }) => {
     // Only add essential configurations
     if (!isServer) {
       // Minimal client-side fallbacks for Node.js modules

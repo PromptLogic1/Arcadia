@@ -6,7 +6,7 @@ import HeroSection from './heroSection';
 import { GiSpeedometer, GiPuzzle, GiTeamUpgrade } from 'react-icons/gi';
 
 // Lazy load heavy components
-const TryDemoGame = dynamic(() => import('./TryDemoGame').then(mod => ({ default: mod.TryDemoGame })), {
+const TryDemoGame = dynamic(() => import('./TryDemoGame'), {
   loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
   ssr: true
 });

@@ -1,9 +1,12 @@
-import * as Sentry from '@sentry/nextjs';
-
-// Only initialize if we have a DSN
-if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-  // Initialize Sentry for client-side
-  Sentry.init({
+// Lazy import to prevent module loading issues
+const initSentry = async () => {
+  try {
+    const Sentry = await import('@sentry/nextjs');
+    
+    // Only initialize if we have a DSN
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      // Initialize Sentry for client-side
+      Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   
   // Integrations
@@ -71,10 +74,28 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     return event;
   },
   
-  // Transport options are handled by withSentryConfig in next.config.ts
-  // which sets tunnelRoute: '/monitoring'
-  });
-}
+      // Transport options are handled by withSentryConfig in next.config.ts
+      // which sets tunnelRoute: '/monitoring'
+      });
+    }
+    
+    // Return Sentry for exports
+    return Sentry;
+  } catch (error) {
+    console.error('Failed to initialize Sentry:', error);
+    return null;
+  }
+};
 
-// Export required navigation hook
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+// Initialize Sentry
+let sentryInstance: typeof import('@sentry/nextjs') | null = null;
+initSentry().then(sentry => {
+  sentryInstance = sentry;
+});
+
+// Export required navigation hook with fallback
+export const onRouterTransitionStart = (href: string, navigationType: string) => {
+  if (sentryInstance?.captureRouterTransitionStart) {
+    return sentryInstance.captureRouterTransitionStart(href, navigationType);
+  }
+};

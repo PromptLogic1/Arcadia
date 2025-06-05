@@ -1,9 +1,12 @@
-import * as Sentry from '@sentry/nextjs';
-
-// Only initialize if we have a DSN
-if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-  // Initialize Sentry for server-side
-  Sentry.init({
+// Lazy initialization to prevent module loading issues
+const initSentry = async () => {
+  try {
+    const Sentry = await import('@sentry/nextjs');
+    
+    // Only initialize if we have a DSN
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      // Initialize Sentry for server-side
+      Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   
   // Performance Monitoring
@@ -30,7 +33,17 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
       return null;
     }
     
-    return event;
-  },
-  });
-}
+        return event;
+      },
+      });
+    }
+  } catch (error) {
+    console.error('Failed to initialize Sentry on server:', error);
+  }
+};
+
+// Initialize on module load
+initSentry();
+
+// Export to make it a module
+export {};

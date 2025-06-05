@@ -76,7 +76,7 @@ const gameTypeIcons = {
   'Apex Legends': '🎯',
 };
 
-export function TryDemoGame() {
+function TryDemoGame() {
   const [selectedBoard, setSelectedBoard] = useState<DemoBoard | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -419,3 +419,5 @@ export function TryDemoGame() {
     </CyberpunkBackground>
   );
 }
+
+export default TryDemoGame;

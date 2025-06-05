@@ -1,9 +1,7 @@
 export async function register() {
+  // Only import instrumentation-server for nodejs runtime
+  // Edge runtime doesn't need separate instrumentation
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('../instrumentation-server');
-  }
-
-  if (process.env.NEXT_RUNTIME === 'edge') {
     await import('../instrumentation-server');
   }
 }
