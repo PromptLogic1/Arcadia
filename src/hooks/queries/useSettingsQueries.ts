@@ -1,6 +1,6 @@
 /**
  * Settings TanStack Query Hooks
- * 
+ *
  * Server state management for user settings using TanStack Query.
  * Handles profile data, email updates, password changes, and preferences.
  */
@@ -19,14 +19,16 @@ import type {
 // Query Keys
 export const settingsKeys = {
   all: ['settings'] as const,
-  profile: (userId: string) => [...settingsKeys.all, 'profile', userId] as const,
-  notifications: (userId: string) => [...settingsKeys.all, 'notifications', userId] as const,
+  profile: (userId: string) =>
+    [...settingsKeys.all, 'profile', userId] as const,
+  notifications: (userId: string) =>
+    [...settingsKeys.all, 'notifications', userId] as const,
 };
 
 /**
- * Query for user profile
+ * Query for user profile (settings context)
  */
-export function useUserProfileQuery(userId: string, enabled = true) {
+export function useSettingsUserProfileQuery(userId: string, enabled = true) {
   return useQuery({
     queryKey: settingsKeys.profile(userId),
     queryFn: () => settingsService.getUserProfile(userId),
@@ -35,12 +37,17 @@ export function useUserProfileQuery(userId: string, enabled = true) {
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
       // Don't retry on 404 (profile not found)
-      if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        error.status === 404
+      ) {
         return false;
       }
       return failureCount < 3;
     },
-    select: (data) => data.profile,
+    select: data => data.profile,
   });
 }
 
@@ -51,36 +58,41 @@ export function useUpdateProfileMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, updates }: { userId: string; updates: ProfileUpdateData }) =>
-      settingsService.updateProfile(userId, updates),
+    mutationFn: ({
+      userId,
+      updates,
+    }: {
+      userId: string;
+      updates: ProfileUpdateData;
+    }) => settingsService.updateProfile(userId, updates),
     onSuccess: (data, variables) => {
       if (data && 'profile' in data && data.profile) {
         // Update the profile query cache
-        queryClient.setQueryData(
-          settingsKeys.profile(variables.userId),
-          { profile: data.profile }
-        );
+        queryClient.setQueryData(settingsKeys.profile(variables.userId), {
+          profile: data.profile,
+        });
 
         // Invalidate related queries
         queryClient.invalidateQueries({
-          queryKey: settingsKeys.profile(variables.userId)
+          queryKey: settingsKeys.profile(variables.userId),
         });
 
         notifications.success('Profile updated successfully');
-        
+
         logger.info('Profile updated', {
-          metadata: { userId: variables.userId, updates: variables.updates }
+          metadata: { userId: variables.userId, updates: variables.updates },
         });
       }
     },
     onError: (error, variables) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to update profile';
       notifications.error('Failed to update profile', {
-        description: errorMessage
+        description: errorMessage,
       });
-      
+
       logger.error('Profile update failed', error as Error, {
-        metadata: { userId: variables.userId, updates: variables.updates }
+        metadata: { userId: variables.userId, updates: variables.updates },
       });
     },
   });
@@ -93,19 +105,20 @@ export function useUpdateEmailMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (emailData: EmailUpdateData) => settingsService.updateEmail(emailData),
+    mutationFn: (emailData: EmailUpdateData) =>
+      settingsService.updateEmail(emailData),
     onSuccess: (data, variables) => {
       if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
           notifications.success('Email update initiated', {
-            description: 'Please check your new email for verification'
+            description: 'Please check your new email for verification',
           });
 
           // Invalidate auth-related queries
           queryClient.invalidateQueries({ queryKey: ['auth'] });
-          
+
           logger.info('Email update initiated', {
-            metadata: { newEmail: variables.newEmail }
+            metadata: { newEmail: variables.newEmail },
           });
         } else if ('error' in data && typeof data.error === 'string') {
           throw new Error(data.error);
@@ -113,13 +126,14 @@ export function useUpdateEmailMutation() {
       }
     },
     onError: (error, variables) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update email';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to update email';
       notifications.error('Failed to update email', {
-        description: errorMessage
+        description: errorMessage,
       });
-      
+
       logger.error('Email update failed', error as Error, {
-        metadata: { newEmail: variables.newEmail }
+        metadata: { newEmail: variables.newEmail },
       });
     },
   });
@@ -130,26 +144,28 @@ export function useUpdateEmailMutation() {
  */
 export function useUpdatePasswordMutation() {
   return useMutation({
-    mutationFn: (passwordData: PasswordUpdateData) => settingsService.updatePassword(passwordData),
-    onSuccess: (data) => {
+    mutationFn: (passwordData: PasswordUpdateData) =>
+      settingsService.updatePassword(passwordData),
+    onSuccess: data => {
       if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
           notifications.success('Password updated successfully', {
-            description: 'Your password has been changed'
+            description: 'Your password has been changed',
           });
-          
+
           logger.info('Password updated successfully');
         } else if ('error' in data && typeof data.error === 'string') {
           throw new Error(data.error);
         }
       }
     },
-    onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update password';
+    onError: error => {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to update password';
       notifications.error('Failed to update password', {
-        description: errorMessage
+        description: errorMessage,
       });
-      
+
       logger.error('Password update failed', error as Error);
     },
   });
@@ -162,20 +178,28 @@ export function useUpdateNotificationSettingsMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, settings }: { userId: string; settings: NotificationSettingsData }) =>
-      settingsService.updateNotificationSettings(userId, settings),
+    mutationFn: ({
+      userId,
+      settings,
+    }: {
+      userId: string;
+      settings: NotificationSettingsData;
+    }) => settingsService.updateNotificationSettings(userId, settings),
     onSuccess: (data, variables) => {
       if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
           // Invalidate profile query to refetch updated notification settings
           queryClient.invalidateQueries({
-            queryKey: settingsKeys.profile(variables.userId)
+            queryKey: settingsKeys.profile(variables.userId),
           });
 
           notifications.success('Notification settings updated');
-          
+
           logger.info('Notification settings updated', {
-            metadata: { userId: variables.userId, settings: variables.settings }
+            metadata: {
+              userId: variables.userId,
+              settings: variables.settings,
+            },
           });
         } else if ('error' in data && typeof data.error === 'string') {
           throw new Error(data.error);
@@ -183,13 +207,16 @@ export function useUpdateNotificationSettingsMutation() {
       }
     },
     onError: (error, variables) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update notification settings';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update notification settings';
       notifications.error('Failed to update notification settings', {
-        description: errorMessage
+        description: errorMessage,
       });
-      
+
       logger.error('Notification settings update failed', error as Error, {
-        metadata: { userId: variables.userId, settings: variables.settings }
+        metadata: { userId: variables.userId, settings: variables.settings },
       });
     },
   });
@@ -203,12 +230,12 @@ export function useDeleteAccountMutation() {
 
   return useMutation({
     mutationFn: () => settingsService.deleteAccount(),
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
           // Clear all cached data
           queryClient.clear();
-          
+
           notifications.success('Account deleted successfully');
           logger.info('Account deleted successfully');
         } else if ('error' in data && typeof data.error === 'string') {
@@ -216,12 +243,13 @@ export function useDeleteAccountMutation() {
         }
       }
     },
-    onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete account';
+    onError: error => {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to delete account';
       notifications.error('Failed to delete account', {
-        description: errorMessage
+        description: errorMessage,
       });
-      
+
       logger.error('Account deletion failed', error as Error);
     },
   });
@@ -231,7 +259,7 @@ export function useDeleteAccountMutation() {
  * Combined settings operations hook
  */
 export function useSettingsOperations(userId: string) {
-  const profileQuery = useUserProfileQuery(userId);
+  const profileQuery = useSettingsUserProfileQuery(userId);
   const updateProfileMutation = useUpdateProfileMutation();
   const updateEmailMutation = useUpdateEmailMutation();
   const updatePasswordMutation = useUpdatePasswordMutation();

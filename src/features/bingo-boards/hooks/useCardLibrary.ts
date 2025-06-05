@@ -1,15 +1,15 @@
 /**
- * Modern Card Library Hook
- * 
- * Combines TanStack Query (server state) with Zustand (UI state) 
+ * Card Library Hook
+ *
+ * Combines TanStack Query (server state) with Zustand (UI state)
  * following the new architecture pattern.
  */
 
 import { useCallback, useEffect } from 'react';
-import { 
-  useCardLibraryState, 
+import {
+  useCardLibraryState,
   useCardLibraryActions,
-  type CardLibraryFilters 
+  type CardLibraryFilters,
 } from '@/lib/stores/card-library-store';
 import {
   useCardLibraryPublicCardsQuery,
@@ -25,9 +25,9 @@ interface UseCardLibraryProps {
   initialFilters?: Partial<CardLibraryFilters>;
 }
 
-export function useCardLibraryModern({ 
-  gameType, 
-  initialFilters = {} 
+export function useCardLibrary({
+  gameType,
+  initialFilters = {},
 }: UseCardLibraryProps) {
   // Get UI state and actions from Zustand store
   const {
@@ -54,7 +54,7 @@ export function useCardLibraryModern({
   // Initialize gameType and filters
   useEffect(() => {
     setGameType(gameType);
-    
+
     // Apply initial filters if provided
     if (Object.keys(initialFilters).length > 0) {
       Object.entries(initialFilters).forEach(([key, value]) => {
@@ -81,68 +81,81 @@ export function useCardLibraryModern({
     false // Don't auto-fetch, only on demand
   );
 
-  const {
-    data: featuredCollections,
-    isLoading: isLoadingCollections,
-  } = useFeaturedCollectionsQuery(filters.gameType);
+  const { data: featuredCollections, isLoading: isLoadingCollections } =
+    useFeaturedCollectionsQuery(filters.gameType);
 
   // Mutations
   const createBulkCardsMutation = useCreateBulkCardsMutation();
   const shuffleCardsMutation = useShuffleCardsMutation();
 
   // Action handlers
-  const handleFilterChange = useCallback((
-    key: keyof CardLibraryFilters,
-    value: CardLibraryFilters[keyof CardLibraryFilters]
-  ) => {
-    updateFilter(key, value);
-  }, [updateFilter]);
+  const handleFilterChange = useCallback(
+    (
+      key: keyof CardLibraryFilters,
+      value: CardLibraryFilters[keyof CardLibraryFilters]
+    ) => {
+      updateFilter(key, value);
+    },
+    [updateFilter]
+  );
 
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, [setCurrentPage]);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+    },
+    [setCurrentPage]
+  );
 
-  const handleCardToggle = useCallback((cardId: string) => {
-    if (selectedCards.has(cardId)) {
-      removeSelectedCard(cardId);
-    } else {
-      addSelectedCard(cardId);
-    }
-  }, [selectedCards, addSelectedCard, removeSelectedCard]);
+  const handleCardToggle = useCallback(
+    (cardId: string) => {
+      if (selectedCards.has(cardId)) {
+        removeSelectedCard(cardId);
+      } else {
+        addSelectedCard(cardId);
+      }
+    },
+    [selectedCards, addSelectedCard, removeSelectedCard]
+  );
 
-  const handleBulkAdd = useCallback(async (cards: BingoCard[]) => {
-    if (cards.length === 0) return;
+  const handleBulkAdd = useCallback(
+    async (cards: BingoCard[]) => {
+      if (cards.length === 0) return;
 
-    const cardsToCreate = cards.map(card => ({
-      title: card.title,
-      description: card.description,
-      game_type: card.game_type,
-      difficulty: card.difficulty,
-      tags: card.tags,
-      creator_id: '', // Will be set by service
-      is_public: card.is_public || false,
-    }));
+      const cardsToCreate = cards.map(card => ({
+        title: card.title,
+        description: card.description,
+        game_type: card.game_type,
+        difficulty: card.difficulty,
+        tags: card.tags,
+        creator_id: '', // Will be set by service
+        is_public: card.is_public || false,
+      }));
 
-    await createBulkCardsMutation.mutateAsync(cardsToCreate);
-    clearSelectedCards();
-    setBulkMode(false);
-  }, [createBulkCardsMutation, clearSelectedCards, setBulkMode]);
+      await createBulkCardsMutation.mutateAsync(cardsToCreate);
+      clearSelectedCards();
+      setBulkMode(false);
+    },
+    [createBulkCardsMutation, clearSelectedCards, setBulkMode]
+  );
 
-  const handleShuffle = useCallback(async (count = 25) => {
-    setIsShuffling(true);
-    try {
-      const result = await shuffleCardsMutation.mutateAsync({
-        filters: { 
-          gameType: filters.gameType, 
-          difficulty: filters.difficulty 
-        },
-        count,
-      });
-      return result.cards || [];
-    } finally {
-      setIsShuffling(false);
-    }
-  }, [shuffleCardsMutation, filters, setIsShuffling]);
+  const handleShuffle = useCallback(
+    async (count = 25) => {
+      setIsShuffling(true);
+      try {
+        const result = await shuffleCardsMutation.mutateAsync({
+          filters: {
+            gameType: filters.gameType,
+            difficulty: filters.difficulty,
+          },
+          count,
+        });
+        return result.cards || [];
+      } finally {
+        setIsShuffling(false);
+      }
+    },
+    [shuffleCardsMutation, filters, setIsShuffling]
+  );
 
   const handleUseCollection = useCallback((collectionCards: BingoCard[]) => {
     // This would be handled by the parent component
@@ -165,7 +178,7 @@ export function useCardLibraryModern({
     hasMore: publicCardsResponse?.hasMore || false,
     randomCards: randomCards || [],
     featuredCollections: featuredCollections || [],
-    
+
     // Loading states
     isLoading,
     isLoadingCards,
@@ -173,7 +186,7 @@ export function useCardLibraryModern({
     isLoadingCollections,
     isShuffling,
     hasError,
-    
+
     // UI state (from Zustand)
     bulkMode,
     selectedCards,
@@ -181,7 +194,7 @@ export function useCardLibraryModern({
     activeTab,
     filters,
     currentPage,
-    
+
     // Actions
     handleFilterChange,
     handlePageChange,
@@ -193,7 +206,7 @@ export function useCardLibraryModern({
     setActiveTab,
     clearSelectedCards,
     refetchCards,
-    
+
     // Mutations
     isCreatingBulkCards: createBulkCardsMutation.isPending,
   };

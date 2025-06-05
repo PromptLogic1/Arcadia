@@ -1,56 +1,35 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Info, Mail, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useAuthActions } from '@/lib/stores';
-import { logger } from '@/lib/logger';
+import { useForgotPasswordForm } from './hooks/useForgotPasswordForm';
+import { useForgotPasswordSubmission } from './hooks/useForgotPasswordSubmission';
 
+/**
+ * Forgot Password Form Component
+ *
+ * Modern implementation using:
+ * - React Hook Form + Zod validation
+ * - TanStack Query mutations
+ * - Custom hooks for clean separation of concerns
+ */
 export function ForgotPasswordForm() {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const { setLoading, resetPasswordForEmail } = useAuthActions();
+  const { form, isValid, handleSubmit } = useForgotPasswordForm();
+  const { isSubmitting, isSuccess, error, submitForgotPassword } =
+    useForgotPasswordSubmission();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setStatus('loading');
-    setLoading(true);
+  const {
+    register,
+    formState: { errors },
+  } = form;
 
-    try {
-      const result = await resetPasswordForEmail(email);
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      setStatus('success');
-      // Note: The notification is already handled by the auth store
-      logger.info('Password reset email sent successfully', {
-        component: 'ForgotPasswordForm',
-        metadata: { email },
-      });
-    } catch (error) {
-      logger.error('Password reset request failed', error as Error, {
-        component: 'ForgotPasswordForm',
-        metadata: { email },
-      });
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'An error occurred. Please try again.'
-      );
-      // Note: The notification is already handled by the auth store
-      setStatus('idle');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const onSubmit = handleSubmit(async data => {
+    await submitForgotPassword(data);
+  });
 
   return (
     <div className="w-full max-w-md space-y-6 text-center">
@@ -64,13 +43,13 @@ export function ForgotPasswordForm() {
         </p>
       </div>
 
-      {status === 'success' ? (
+      {isSuccess ? (
         <div className="space-y-6">
           <div className="flex items-start gap-2 rounded-lg border border-green-500/20 bg-green-500/10 p-4">
             <Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-400" />
             <div className="text-left">
               <p className="text-sm text-green-400">
-                If an account exists with {email}, we&apos;ve sent you
+                If an account exists with that email, we&apos;ve sent you
                 instructions to reset your password.
               </p>
               <p className="mt-2 text-sm text-green-400">
@@ -87,7 +66,7 @@ export function ForgotPasswordForm() {
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={onSubmit} className="space-y-6">
           {error && (
             <div className="flex items-start gap-2 rounded-lg border-red-500/20 bg-red-500/10 p-3">
               <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
@@ -100,30 +79,34 @@ export function ForgotPasswordForm() {
             <Input
               id="email"
               type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              {...register('email')}
               className={cn(
                 'border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
-                error && 'border-red-500/50 focus:border-red-500'
+                (errors.email || error) &&
+                  'border-red-500/50 focus:border-red-500'
               )}
               placeholder="Enter your email"
-              disabled={status === 'loading'}
-              required
+              disabled={isSubmitting}
             />
+            {errors.email && (
+              <p className="text-left text-sm text-red-400">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <Button
             type="submit"
-            disabled={status === 'loading'}
+            disabled={isSubmitting || !isValid}
             className={cn(
               'w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500',
               'rounded-full py-2 font-medium text-white',
               'transition-all duration-200 hover:opacity-90',
               'shadow-lg shadow-cyan-500/25',
-              status === 'loading' && 'cursor-not-allowed opacity-50'
+              (isSubmitting || !isValid) && 'cursor-not-allowed opacity-50'
             )}
           >
-            {status === 'loading' ? 'Sending...' : 'Send Reset Link'}
+            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
           </Button>
 
           <Link

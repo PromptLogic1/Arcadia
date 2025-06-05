@@ -11,7 +11,11 @@ import {
   MouseSensor,
   TouchSensor,
 } from '@dnd-kit/core';
-import type { DragStartEvent, DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
+import type {
+  DragStartEvent,
+  DragEndEvent,
+  UniqueIdentifier,
+} from '@dnd-kit/core';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ROUTES } from '@/src/config/routes';
 import { notifications } from '@/lib/notifications';
@@ -32,7 +36,7 @@ import { GridPositionSelectDialog } from './GridPositionSelectDialog';
 import { TrashDropZone } from './TrashDropZone';
 
 // Hooks
-import { useBingoBoardEditModern } from '../../hooks/useBingoBoardEditModern';
+import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit';
 import {
   useBingoCardsState,
   useBingoCardsActions,
@@ -88,22 +92,23 @@ export function BingoBoardEdit({
   const { isAuthenticated, loading: isAuthLoading } = useAuth();
 
   // Modern hook combining TanStack Query + Zustand
-  const boardEdit = useBingoBoardEditModern(boardId);
+  const boardEdit = useBingoBoardEdit(boardId);
 
   // Store hooks for UI state only
   const { filters } = useBingoCardsState();
   const { setFilters, updateGridCard } = useBingoCardsActions();
-  
+
   // Query hooks for server data
-  const { data: publicCardsData, isLoading: isLoadingPublicCards } = usePublicCardsQuery(
-    {
-      gameType: boardEdit.board?.game_type,
-      difficulty: filters.difficulty || undefined,
-      search: filters.searchTerm,
-    },
-    1, // page
-    50 // limit
-  );
+  const { data: publicCardsData, isLoading: isLoadingPublicCards } =
+    usePublicCardsQuery(
+      {
+        gameType: boardEdit.board?.game_type,
+        difficulty: filters.difficulty || undefined,
+        search: filters.searchTerm,
+      },
+      1, // page
+      50 // limit
+    );
   const publicCards = publicCardsData?.response.cards || [];
   const voteCardMutation = useVoteCardMutation();
 
@@ -182,11 +187,11 @@ export function BingoBoardEdit({
       // Query will automatically refetch when filters change
       if (value === 'public') {
         // Reset filters when switching to public tab
-        setFilters({ 
+        setFilters({
           gameCategory: boardEdit.board?.game_type || null,
           difficulty: null,
           tags: [],
-          searchTerm: ''
+          searchTerm: '',
         });
       }
     },
@@ -198,7 +203,10 @@ export function BingoBoardEdit({
     async (filterOptions: FilterOptions) => {
       setFilters({
         gameCategory: boardEdit.board?.game_type || null,
-        difficulty: (filterOptions.difficulty === 'all' ? null : filterOptions.difficulty) || null,
+        difficulty:
+          (filterOptions.difficulty === 'all'
+            ? null
+            : filterOptions.difficulty) || null,
         tags: filterOptions.tags || [],
         searchTerm: filterOptions.search || '',
       });
@@ -236,7 +244,10 @@ export function BingoBoardEdit({
     async (formData: Partial<BingoCard>, index: number) => {
       if (!boardEdit.editingCard) return;
 
-      if (!boardEdit.editingCard.card.id || boardEdit.editingCard.card.id.startsWith('temp-')) {
+      if (
+        !boardEdit.editingCard.card.id ||
+        boardEdit.editingCard.card.id.startsWith('temp-')
+      ) {
         // Creating a new card
         if (index === -1) {
           // Create private card (not placed in grid)
@@ -400,7 +411,9 @@ export function BingoBoardEdit({
         }
       } else {
         // Dragging from private cards
-        const card = boardEdit.localPrivateCards.find(c => c.id === activeIdStr);
+        const card = boardEdit.localPrivateCards.find(
+          c => c.id === activeIdStr
+        );
         if (card) {
           setDraggedCard(card);
           setDraggedFromIndex(null);
@@ -448,7 +461,9 @@ export function BingoBoardEdit({
 
           // Add to private cards if not already there
           if (
-            !boardEdit.localPrivateCards.find(card => card.id === draggedCard.id)
+            !boardEdit.localPrivateCards.find(
+              card => card.id === draggedCard.id
+            )
           ) {
             boardEdit.addPrivateCard(draggedCard);
           }
@@ -618,7 +633,7 @@ export function BingoBoardEdit({
               formData={boardEdit.formData}
               fieldErrors={boardEdit.fieldErrors}
               onUpdateField={boardEdit.updateFormField}
-              onFormDataChange={(updater) => {
+              onFormDataChange={updater => {
                 const currentData = boardEdit.formData;
                 const newData = updater(currentData);
                 boardEdit.setFormData(newData);

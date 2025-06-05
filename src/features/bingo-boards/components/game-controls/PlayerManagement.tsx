@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 import type { GamePlayer } from '../../types';
 import { PLAYER_CONSTANTS } from '../../types/player-management.constants';
 import { useSession } from '../../hooks/useSession';
-import { useSessionQueueModern } from '../../hooks/useSessionQueueModern';
+import { useSessionQueue } from '../../hooks/useSessionQueue';
 
 interface PlayerManagementProps {
   isOwner: boolean;
@@ -51,7 +51,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
     sessionId: sessionId,
     _game: 'All Games',
   });
-  const queue = useSessionQueueModern(sessionId);
+  const queue = useSessionQueue(sessionId);
 
   // Generate invite link (now using modern hook)
   const handleGenerateInviteLink = useCallback(() => {
@@ -183,7 +183,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     newPlayers[index] = { ...player, name: e.target.value };
                     onPlayersChange(newPlayers);
                   }}
-                  disabled={!isOwner && player.id !== session.sessionState.currentPlayer?.id}
+                  disabled={
+                    !isOwner &&
+                    player.id !== session.sessionState.currentPlayer?.id
+                  }
                   className={cn(
                     'h-8 bg-gray-800/50 text-sm',
                     'border-gray-700/50 focus:border-cyan-500/50',
@@ -205,7 +208,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     };
                     onPlayersChange(newPlayers);
                   }}
-                  disabled={!isOwner && player.id !== session.sessionState.currentPlayer?.id}
+                  disabled={
+                    !isOwner &&
+                    player.id !== session.sessionState.currentPlayer?.id
+                  }
                 >
                   <SelectTrigger
                     className={cn(
@@ -247,7 +253,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                   newPlayers[index] = { ...player, team: parseInt(team) };
                   onPlayersChange(newPlayers);
                 }}
-                disabled={!isOwner && player.id !== session.sessionState.currentPlayer?.id}
+                disabled={
+                  !isOwner &&
+                  player.id !== session.sessionState.currentPlayer?.id
+                }
               >
                 <SelectTrigger
                   className={cn(
@@ -270,7 +279,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
       </div>
 
       {/* Invite Dialog */}
-      <AlertDialog open={queue.showInviteDialog} onOpenChange={queue.setShowInviteDialog}>
+      <AlertDialog
+        open={queue.showInviteDialog}
+        onOpenChange={queue.setShowInviteDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Invite Players</AlertDialogTitle>
@@ -280,7 +292,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
           </AlertDialogHeader>
           <div className="flex gap-2">
             <Input value={queue.inviteLink} readOnly />
-            <Button 
+            <Button
               onClick={handleCopyInviteLink}
               disabled={queue.isCopyingLink}
             >
@@ -294,7 +306,10 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
       </AlertDialog>
 
       {/* Queue Dialog */}
-      <AlertDialog open={queue.showQueueDialog} onOpenChange={queue.setShowQueueDialog}>
+      <AlertDialog
+        open={queue.showQueueDialog}
+        onOpenChange={queue.setShowQueueDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Player Queue</AlertDialogTitle>

@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 // Type definition for postgres_changes event configuration
 interface PostgresChangesConfig {
@@ -14,16 +15,29 @@ interface PostgresChangesConfig {
   filter?: string;
 }
 
-// Type assertion helper for Supabase channel postgres_changes method
+// Type guard to check if channel supports postgres_changes
+function supportsPostgresChanges(channel: RealtimeChannel): boolean {
+  return typeof (channel as any).on === 'function';
+}
+
+// Type-safe helper for Supabase channel postgres_changes method
+// This is a safer alternative to type assertions while working with incomplete external types
 function onPostgresChanges(
   channel: RealtimeChannel,
   config: PostgresChangesConfig,
   callback: (payload: Record<string, unknown>) => void
 ): RealtimeChannel {
-  // Supabase channels support postgres_changes but TypeScript types are incomplete
-  return (channel as unknown as {
-    on(type: 'postgres_changes', config: PostgresChangesConfig, callback: (payload: Record<string, unknown>) => void): RealtimeChannel;
-  }).on('postgres_changes', config, callback);
+  if (!supportsPostgresChanges(channel)) {
+    throw new Error('Channel does not support postgres_changes method');
+  }
+
+  // Use method with runtime validation instead of unsafe type assertion
+  const channelWithMethod = channel as any;
+  if (typeof channelWithMethod.on !== 'function') {
+    throw new Error('Channel.on method is not available');
+  }
+
+  return channelWithMethod.on('postgres_changes', config, callback);
 }
 
 interface BatchedUpdate {
@@ -63,7 +77,7 @@ class RealtimeManager {
   private supabase = createClient();
 
   private static instance: RealtimeManager;
-  
+
   static getInstance(): RealtimeManager {
     if (!RealtimeManager.instance) {
       RealtimeManager.instance = new RealtimeManager();
@@ -118,7 +132,7 @@ class RealtimeManager {
       );
     } else if (options.event?.startsWith('presence:')) {
       // Presence subscription - subscribe to presence events
-      channel.subscribe(async (status) => {
+      channel.subscribe(async status => {
         if (status === 'SUBSCRIBED') {
           // Track initial presence state
           const presenceState = channel.presenceState();
@@ -128,10 +142,14 @@ class RealtimeManager {
       });
     } else {
       // Custom broadcast event subscription
-      channel.on('broadcast', { event: options.event || 'custom' }, (payload: Record<string, unknown>) => {
-        this.metrics.messagesReceived++;
-        callback(payload);
-      });
+      channel.on(
+        'broadcast',
+        { event: options.event || 'custom' },
+        (payload: Record<string, unknown>) => {
+          this.metrics.messagesReceived++;
+          callback(payload);
+        }
+      );
     }
 
     // Return unsubscribe function
@@ -171,13 +189,21 @@ class RealtimeManager {
   private getOrCreateChannel(channelKey: string): RealtimeChannel {
     if (!this.channels.has(channelKey)) {
       const channel = this.supabase.channel(channelKey);
-      
+
       // Subscribe to the channel
-      channel.subscribe((status) => {
+      channel.subscribe(status => {
         if (status === 'SUBSCRIBED') {
-          console.log(`[RealtimeManager] Connected to channel: ${channelKey}`);
+          logger.info(`RealtimeManager connected to channel`, {
+            metadata: { channelKey, status },
+          });
         } else if (status === 'CHANNEL_ERROR') {
-          console.error(`[RealtimeManager] Error in channel: ${channelKey}`);
+          logger.error(
+            `RealtimeManager channel error`,
+            new Error(`Channel error: ${channelKey}`),
+            {
+              metadata: { channelKey, status },
+            }
+          );
           this.metrics.reconnectionCount++;
         }
       });
@@ -202,7 +228,7 @@ class RealtimeManager {
   ): void {
     // For high-frequency updates, we can debounce them
     const updateKey = `${channelKey}-${payload.table}-${(payload.new as Record<string, unknown>)?.id || 'unknown'}`;
-    
+
     // Simple debouncing - can be enhanced based on update type
     if (this.shouldBatchUpdate(payload)) {
       this.debounce(updateKey, () => callback(payload), 50);
@@ -216,10 +242,13 @@ class RealtimeManager {
    */
   private shouldBatchUpdate(payload: Record<string, unknown>): boolean {
     // Batch cell updates but not game completion or critical state changes
-    if (payload.table === 'bingo_sessions' && (payload.new as Record<string, unknown>)?.status === 'completed') {
+    if (
+      payload.table === 'bingo_sessions' &&
+      (payload.new as Record<string, unknown>)?.status === 'completed'
+    ) {
       return false; // Never batch game completion
     }
-    
+
     if (payload.eventType === 'UPDATE' && payload.table === 'bingo_sessions') {
       return true; // Batch board state updates
     }
@@ -231,7 +260,7 @@ class RealtimeManager {
    * Debounce utility for batching rapid updates
    */
   private debounceTimers = new Map<string, NodeJS.Timeout>();
-  
+
   private debounce(key: string, callback: () => void, delay: number): void {
     if (this.debounceTimers.has(key)) {
       const timer = this.debounceTimers.get(key);
@@ -268,7 +297,7 @@ class RealtimeManager {
 
     // Group updates by channel and type for optimization
     const groupedUpdates = this.groupUpdatesByChannel(this.updateQueue);
-    
+
     for (const [channelKey, updates] of groupedUpdates) {
       this.sendBatchedUpdates(channelKey, updates);
     }
@@ -279,9 +308,11 @@ class RealtimeManager {
   /**
    * Group updates by channel for efficient batching
    */
-  private groupUpdatesByChannel(updates: BatchedUpdate[]): Map<string, BatchedUpdate[]> {
+  private groupUpdatesByChannel(
+    updates: BatchedUpdate[]
+  ): Map<string, BatchedUpdate[]> {
     const grouped = new Map<string, BatchedUpdate[]>();
-    
+
     for (const update of updates) {
       // Extract channel key from update context (this is simplified)
       const channelKey = this.extractChannelKey(update);
@@ -309,7 +340,10 @@ class RealtimeManager {
   /**
    * Send batched updates to a specific channel
    */
-  private sendBatchedUpdates(channelKey: string, updates: BatchedUpdate[]): void {
+  private sendBatchedUpdates(
+    channelKey: string,
+    updates: BatchedUpdate[]
+  ): void {
     const channel = this.channels.get(channelKey);
     if (!channel) return;
 

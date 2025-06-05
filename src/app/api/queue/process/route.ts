@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 // import { createClient } from '@/lib/supabase';
 // import { QueueMatcherService } from '@/features/bingo-boards/services/queue-matcher.service';
 
@@ -15,7 +16,9 @@ export async function POST() {
         'Queue system not yet implemented - missing bingo_queue_entries table',
     });
   } catch (_error) {
-    console.error('Queue processing error:', _error);
+    logger.error('Queue processing error', _error as Error, {
+      metadata: { apiRoute: 'queue/process' },
+    });
     return NextResponse.json(
       { error: 'Failed to process queue' },
       { status: 500 }

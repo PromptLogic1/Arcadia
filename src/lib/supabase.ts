@@ -1,5 +1,6 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 import type { Database } from '../../types/database-generated';
+import { logger } from '@/lib/logger';
 
 // Type definitions for cookie handling (kept for future use)
 interface _CookieOptions {
@@ -38,11 +39,15 @@ const validateConfig = () => {
     const error = `Missing required environment variables in ${context} context: ${missing.join(', ')}`;
 
     // Log error but don't throw - this allows the app to still load
-    console.error(error);
-    console.error(
-      'Available env vars:',
-      Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_'))
-    );
+    logger.error(`Supabase configuration error: ${error}`, new Error(error), {
+      metadata: {
+        context: isServer ? 'server' : 'browser',
+        missingVars: missing,
+        availableVars: Object.keys(process.env).filter(k =>
+          k.startsWith('NEXT_PUBLIC_')
+        ),
+      },
+    });
 
     return { error, isValid: false };
   }
@@ -54,7 +59,8 @@ const validateConfig = () => {
 const configValidation = validateConfig();
 
 // Singleton instance for browser client to improve performance
-let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
+let browserClient: ReturnType<typeof createBrowserClient<Database>> | null =
+  null;
 
 // 🧼 Browser Client (Client Components)
 export function createClient() {

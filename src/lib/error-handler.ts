@@ -480,10 +480,12 @@ class ErrorHandler {
     ) {
       // Placeholder for monitoring service integration
       // In a real scenario, this would send to Sentry, DataDog, etc.
-      console.error(
-        '[ErrorHandler] Critical error for monitoring:',
-        error.toJSON()
-      );
+      logger.error('Critical error for monitoring', new Error(error.message), {
+        metadata: {
+          errorData: error.toJSON(),
+          context: 'ErrorHandler',
+        },
+      });
     }
   }
 

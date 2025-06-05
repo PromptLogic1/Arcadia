@@ -6,17 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Wand2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { GameCategory } from '@/types';
-import type { Enums as _Enums } from '@/types/database-generated';
-
-// Create constants from enum types
-const Constants = {
-  public: {
-    Enums: {
-      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
-      game_category: ['All Games', 'World of Warcraft', 'Fortnite', 'Minecraft'] as const, // Add more as needed
-    }
-  }
-} as const;
+import { DIFFICULTIES } from '@/src/types/index';
 import { GENERATOR_CONFIG } from '@/features/bingo-boards/types/generator.types';
 import { useGeneratorPanel } from '../../hooks/useGeneratorPanel';
 import {
@@ -90,7 +80,7 @@ export function GeneratorPanel({
   // Memoized form options to prevent recreation on every render
   const difficultyOptions = useMemo(
     () =>
-      Constants.public.Enums.difficulty_level.map(difficulty => ({
+      DIFFICULTIES.map(difficulty => ({
         value: difficulty,
         label: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
       })),

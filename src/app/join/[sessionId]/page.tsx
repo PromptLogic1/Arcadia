@@ -1,12 +1,18 @@
 'use client';
 
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { useSessionJoinModern } from '@/features/play-area/hooks/useSessionJoinModern';
+import { useSessionJoin } from '@/features/play-area/hooks/useSessionJoin';
 import { Users, Crown, Gamepad2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,18 +45,18 @@ export default function JoinSessionModern({
     // Server state
     sessionDetails,
     availableColors,
-    
+
     // UI state
     playerName,
     selectedColor,
     isFormValid,
-    
+
     // Loading states
     isLoading,
     isJoining,
     hasError,
     errorMessage,
-    
+
     // Derived state
     canJoin,
     currentPlayerCount,
@@ -58,17 +64,17 @@ export default function JoinSessionModern({
     sessionTitle,
     gameType,
     difficulty,
-    
+
     // Actions
     setPlayerName,
     setSelectedColor,
     handleJoinSession,
-  } = useSessionJoinModern({ sessionId: params.sessionId });
+  } = useSessionJoin({ sessionId: params.sessionId });
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -77,18 +83,20 @@ export default function JoinSessionModern({
   // Error state
   if (hasError || !sessionDetails) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
             <CardTitle className="text-red-600">Cannot Join Session</CardTitle>
             <CardDescription>
-              {typeof errorMessage === 'string' ? errorMessage : errorMessage?.message || 'Session not found or unavailable'}
+              {typeof errorMessage === 'string'
+                ? errorMessage
+                : errorMessage?.message || 'Session not found or unavailable'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => window.history.back()} 
+            <Button
+              onClick={() => window.history.back()}
               className="w-full"
               variant="outline"
             >
@@ -101,25 +109,31 @@ export default function JoinSessionModern({
   }
 
   // Get available color options
-  const colorOptions = PLAYER_COLORS.filter(option => 
+  const colorOptions = PLAYER_COLORS.filter(option =>
     availableColors.includes(option.color)
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
-      <div className="max-w-2xl mx-auto py-8">
+      <div className="mx-auto max-w-2xl py-8">
         {/* Session Info Header */}
-        <Card className="mb-6 bg-gray-800/50 border-gray-700">
+        <Card className="mb-6 border-gray-700 bg-gray-800/50">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Gamepad2 className="h-8 w-8 text-cyan-400" />
               <div className="flex-1">
                 <CardTitle className="text-cyan-100">{sessionTitle}</CardTitle>
-                <CardDescription className="flex items-center gap-4 mt-1">
-                  <Badge variant="outline" className="border-cyan-500/30 text-cyan-300">
+                <CardDescription className="mt-1 flex items-center gap-4">
+                  <Badge
+                    variant="outline"
+                    className="border-cyan-500/30 text-cyan-300"
+                  >
                     {gameType}
                   </Badge>
-                  <Badge variant="outline" className="border-purple-500/30 text-purple-300">
+                  <Badge
+                    variant="outline"
+                    className="border-purple-500/30 text-purple-300"
+                  >
                     {difficulty}
                   </Badge>
                   <div className="flex items-center gap-1 text-gray-400">
@@ -133,20 +147,19 @@ export default function JoinSessionModern({
         </Card>
 
         {/* Join Form */}
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800/50">
           <CardHeader>
-            <CardTitle className="text-cyan-100 flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-cyan-100">
               <Crown className="h-5 w-5" />
               Join Session
             </CardTitle>
             <CardDescription>
-              {canJoin 
+              {canJoin
                 ? 'Enter your details to join this bingo session'
-                : 'This session is currently full'
-              }
+                : 'This session is currently full'}
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {/* Player Name */}
             <div className="space-y-2">
@@ -156,30 +169,28 @@ export default function JoinSessionModern({
               <Input
                 id="playerName"
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={e => setPlayerName(e.target.value)}
                 placeholder="Enter your display name"
-                className="bg-gray-900/50 border-gray-600 text-cyan-100"
+                className="border-gray-600 bg-gray-900/50 text-cyan-100"
                 maxLength={20}
                 disabled={!canJoin}
               />
-              <p className="text-xs text-gray-400">
-                2-20 characters
-              </p>
+              <p className="text-xs text-gray-400">2-20 characters</p>
             </div>
 
             {/* Color Selection */}
             <div className="space-y-2">
               <Label className="text-cyan-200">Player Color</Label>
               <div className="grid grid-cols-6 gap-2">
-                {colorOptions.map((option) => (
+                {colorOptions.map(option => (
                   <button
                     key={option.color}
                     type="button"
                     onClick={() => setSelectedColor(option.color)}
                     disabled={!canJoin}
                     className={cn(
-                      'w-12 h-12 rounded-lg border-2 transition-all',
-                      'hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed',
+                      'h-12 w-12 rounded-lg border-2 transition-all',
+                      'hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50',
                       selectedColor === option.color
                         ? 'border-white ring-2 ring-cyan-400'
                         : 'border-gray-600 hover:border-gray-400'
@@ -191,11 +202,11 @@ export default function JoinSessionModern({
               </div>
               {selectedColor && (
                 <p className="text-xs text-gray-400">
-                  Selected: {PLAYER_COLORS.find(c => c.color === selectedColor)?.name}
+                  Selected:{' '}
+                  {PLAYER_COLORS.find(c => c.color === selectedColor)?.name}
                 </p>
               )}
             </div>
-
 
             {/* Join Button */}
             <div className="pt-4">
@@ -216,9 +227,9 @@ export default function JoinSessionModern({
                   'Session Full'
                 )}
               </Button>
-              
+
               {!canJoin && (
-                <p className="text-center text-red-400 text-sm mt-2">
+                <p className="mt-2 text-center text-sm text-red-400">
                   This session has reached its maximum capacity
                 </p>
               )}

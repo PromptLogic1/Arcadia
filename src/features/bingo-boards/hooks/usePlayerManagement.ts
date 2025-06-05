@@ -90,7 +90,7 @@ export const usePlayerManagement = ({
     []
   );
   const { settings } = useGameSettings(sessionId);
-  const { presenceState } = usePresence(sessionId);
+  const { presenceState } = usePresence({ boardId: sessionId });
 
   // Event Emitter
   const emitPlayerEvent = useCallback(

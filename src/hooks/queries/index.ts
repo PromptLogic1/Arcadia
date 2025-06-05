@@ -1,6 +1,6 @@
 /**
  * React Query Hooks Index
- * 
+ *
  * This file exports all query and mutation hooks for data fetching.
  * These hooks integrate TanStack Query with our service layer.
  */
@@ -33,6 +33,8 @@ export * from './useQueueQueries';
 export * from './useCardLibraryQueries';
 export * from './useSessionJoinQueries';
 export * from './useSettingsQueries';
+export * from './useBoardCollectionsQueries';
+export * from './useUserProfileQueries';
 
 // Export board edit queries with specific aliases to avoid conflicts
 export {
@@ -63,38 +65,51 @@ export const queryKeys = {
   bingoCards: {
     all: () => ['bingoCards'] as const,
     byIds: (ids: string[]) => ['bingoCards', 'byIds', ...ids] as const,
-    public: (filters?: FilterOptions, page?: number) => ['bingoCards', 'public', filters, page] as const,
-    user: (userId: string, filters?: FilterOptions, page?: number) => ['bingoCards', 'user', userId, filters, page] as const,
+    public: (filters?: FilterOptions, page?: number) =>
+      ['bingoCards', 'public', filters, page] as const,
+    user: (userId: string, filters?: FilterOptions, page?: number) =>
+      ['bingoCards', 'user', userId, filters, page] as const,
   },
   bingoBoards: {
     all: () => ['bingoBoards'] as const,
     byId: (id: string) => ['bingoBoards', 'byId', id] as const,
-    public: (filters?: FilterOptions, page?: number) => ['bingoBoards', 'public', filters, page] as const,
-    user: (userId: string, filters?: FilterOptions, page?: number) => ['bingoBoards', 'user', userId, filters, page] as const,
+    public: (filters?: FilterOptions, page?: number) =>
+      ['bingoBoards', 'public', filters, page] as const,
+    user: (userId: string, filters?: FilterOptions, page?: number) =>
+      ['bingoBoards', 'user', userId, filters, page] as const,
   },
   sessions: {
     all: () => ['sessions'] as const,
     byId: (id: string) => ['sessions', 'byId', id] as const,
     byCode: (code: string) => ['sessions', 'byCode', code] as const,
-    active: (filters?: SessionFilters, page?: number) => ['sessions', 'active', filters, page] as const,
+    active: (filters?: SessionFilters, page?: number) =>
+      ['sessions', 'active', filters, page] as const,
     players: (sessionId: string) => ['sessions', 'players', sessionId] as const,
     state: (sessionId: string) => ['sessions', 'state', sessionId] as const,
-    boardState: (sessionId: string) => ['sessions', 'boardState', sessionId] as const,
+    boardState: (sessionId: string) =>
+      ['sessions', 'boardState', sessionId] as const,
   },
   gameState: {
-    session: (sessionId: string) => ['gameState', 'session', sessionId] as const,
+    session: (sessionId: string) =>
+      ['gameState', 'session', sessionId] as const,
     board: (sessionId: string) => ['gameState', 'board', sessionId] as const,
-    results: (sessionId: string) => ['gameState', 'results', sessionId] as const,
+    results: (sessionId: string) =>
+      ['gameState', 'results', sessionId] as const,
   },
   presence: {
-    channel: (channelName: string) => ['presence', 'channel', channelName] as const,
-    user: (channelName: string, userId: string) => ['presence', 'user', channelName, userId] as const,
+    channel: (channelName: string) =>
+      ['presence', 'channel', channelName] as const,
+    user: (channelName: string, userId: string) =>
+      ['presence', 'user', channelName, userId] as const,
   },
   community: {
-    discussions: (filters?: CommunityFilters, page?: number) => ['community', 'discussions', filters, page] as const,
+    discussions: (filters?: CommunityFilters, page?: number) =>
+      ['community', 'discussions', filters, page] as const,
     discussion: (id: string) => ['community', 'discussion', id] as const,
-    comments: (discussionId: string, page?: number) => ['community', 'comments', discussionId, page] as const,
-    events: (filters?: CommunityFilters, page?: number) => ['community', 'events', filters, page] as const,
+    comments: (discussionId: string, page?: number) =>
+      ['community', 'comments', discussionId, page] as const,
+    events: (filters?: CommunityFilters, page?: number) =>
+      ['community', 'events', filters, page] as const,
   },
   queue: {
     all: () => ['queue'] as const,

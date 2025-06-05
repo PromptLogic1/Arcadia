@@ -8,7 +8,7 @@ import { SETTINGS_CONSTANTS } from './constants';
 import { SettingsMessage } from './ui/SettingsMessage';
 import { EmailUpdateSection } from './sections/EmailUpdateSection';
 import { PasswordUpdateSection } from './sections/PasswordUpdateSection';
-import { useSettingsModern } from '../hooks/useSettingsModern';
+import { useSettings } from '../hooks/useSettings';
 
 /**
  * GeneralSettings Component
@@ -30,7 +30,7 @@ export function GeneralSettings() {
   const router = useRouter();
 
   // Modern settings hook - replaces legacy useEmailUpdate and usePasswordUpdate
-  const settings = useSettingsModern();
+  const settings = useSettings();
 
   // Redirect if not authenticated
   if (!isAuthenticated || !userData) {

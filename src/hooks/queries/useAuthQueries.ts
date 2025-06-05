@@ -1,6 +1,6 @@
 /**
  * Authentication React Query Hooks
- * 
+ *
  * Hooks for authentication operations using TanStack Query.
  * Integrates with auth service and Zustand auth store.
  */
@@ -16,7 +16,7 @@ import { queryKeys } from './index';
  */
 export function useCurrentUserQuery() {
   const { authUser } = useAuth();
-  
+
   return useQuery({
     queryKey: queryKeys.auth.user(),
     queryFn: authService.getCurrentUser,
@@ -48,7 +48,7 @@ export function useSignInMutation() {
 
   return useMutation({
     mutationFn: authService.signIn,
-    onSuccess: async (response) => {
+    onSuccess: async response => {
       if (response.error) {
         notifications.error(response.error);
         return;
@@ -56,7 +56,7 @@ export function useSignInMutation() {
 
       if (response.user) {
         setAuthUser(response.user);
-        
+
         // Fetch user data after successful sign in
         try {
           const { userData } = await authService.getUserData(response.user.id);
@@ -69,8 +69,8 @@ export function useSignInMutation() {
 
         // Invalidate auth queries to refetch fresh data
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.user() });
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.auth.userData(response.user.id) 
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.auth.userData(response.user.id),
         });
 
         notifications.success('Signed in successfully!');
@@ -91,14 +91,16 @@ export function useSignUpMutation() {
 
   return useMutation({
     mutationFn: authService.signUp,
-    onSuccess: (response) => {
+    onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
         return;
       }
 
       if (response.needsVerification) {
-        notifications.success('Please check your email to verify your account.');
+        notifications.success(
+          'Please check your email to verify your account.'
+        );
         return;
       }
 
@@ -123,7 +125,7 @@ export function useSignOutMutation() {
 
   return useMutation({
     mutationFn: authService.signOut,
-    onSuccess: (response) => {
+    onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
         return;
@@ -131,10 +133,10 @@ export function useSignOutMutation() {
 
       // Clear auth state
       signOut();
-      
+
       // Clear all cached data
       queryClient.clear();
-      
+
       notifications.success('Signed out successfully!');
     },
     onError: (error: Error) => {
@@ -151,8 +153,9 @@ export function useUpdateUserDataMutation(userId: string) {
   const { setUserData } = useAuthActions();
 
   return useMutation({
-    mutationFn: (updates: UserUpdateData) => authService.updateUserData(userId, updates),
-    onSuccess: (response) => {
+    mutationFn: (updates: UserUpdateData) =>
+      authService.updateUserData(userId, updates),
+    onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
         return;
@@ -160,18 +163,59 @@ export function useUpdateUserDataMutation(userId: string) {
 
       if (response.userData) {
         setUserData(response.userData);
-        
+
         // Update cached user data
-        queryClient.setQueryData(
-          queryKeys.auth.userData(userId),
-          { userData: response.userData }
-        );
+        queryClient.setQueryData(queryKeys.auth.userData(userId), {
+          userData: response.userData,
+        });
 
         notifications.success('Profile updated successfully!');
       }
     },
     onError: (error: Error) => {
       notifications.error(error.message || 'Failed to update profile');
+    },
+  });
+}
+
+/**
+ * Reset password mutation
+ */
+export function useResetPasswordMutation() {
+  return useMutation({
+    mutationFn: authService.resetPassword,
+    onSuccess: response => {
+      if (response.error) {
+        notifications.error(response.error);
+        return;
+      }
+
+      notifications.success(
+        "If an account exists with that email, we've sent you instructions to reset your password."
+      );
+    },
+    onError: (error: Error) => {
+      notifications.error(error.message || 'Password reset failed');
+    },
+  });
+}
+
+/**
+ * Update password mutation (auth service)
+ */
+export function useAuthUpdatePasswordMutation() {
+  return useMutation({
+    mutationFn: authService.updatePassword,
+    onSuccess: response => {
+      if (response.error) {
+        notifications.error(response.error);
+        return;
+      }
+
+      notifications.success('Password updated successfully!');
+    },
+    onError: (error: Error) => {
+      notifications.error(error.message || 'Password update failed');
     },
   });
 }

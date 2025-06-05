@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,8 +27,12 @@ import {
 
 // Types
 import type { GameCategory, Difficulty } from '@/types';
-import { createClient } from '@/src/lib/supabase';
-import { notifications } from '@/lib/notifications';
+import { useBoardCollections } from '../../hooks/useBoardCollections';
+import type {
+  BoardCollection,
+  BoardCollectionFilters,
+  BoardStateCell,
+} from '../../../../services/board-collections.service';
 
 // Design System
 import {
@@ -41,36 +45,6 @@ import {
 // Constants
 import { COLLECTION_LIMITS } from './constants';
 
-// Database types for bingo boards used as collections
-interface BoardStateCell {
-  cell_id?: string;
-  text?: string;
-  position?: number;
-}
-
-interface BoardCollection {
-  id: string;
-  title: string;
-  description: string | null;
-  creator_id: string | null;
-  size: number | null;
-  game_type: GameCategory;
-  difficulty: Difficulty;
-  is_public: boolean | null;
-  votes: number | null;
-  bookmarked_count: number | null;
-  board_state: BoardStateCell[] | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-export interface BoardCollectionFilters {
-  search: string;
-  difficulty: Difficulty | 'all';
-  sortBy: 'newest' | 'popular' | 'trending' | 'bookmarks';
-  gameType?: GameCategory;
-}
-
 interface BoardCollectionsProps {
   gameType: GameCategory;
   onUseCollection: (collection: BoardCollection) => Promise<void>;
@@ -81,6 +55,8 @@ interface BoardCollectionsProps {
 /**
  * Board Collections Component
  * Displays public bingo boards that can be used as card collections/templates
+ *
+ * Now using the modern TanStack Query + Zustand architecture
  */
 export function BoardCollections({
   gameType,
@@ -88,117 +64,23 @@ export function BoardCollections({
   onShuffleFromCollections,
   gridSize,
 }: BoardCollectionsProps) {
-  const [collections, setCollections] = useState<BoardCollection[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [shuffling, setShuffling] = useState(false);
-  const [filters, setFilters] = useState<BoardCollectionFilters>({
-    search: '',
-    difficulty: 'all',
-    sortBy: 'popular',
-    gameType,
-  });
+  // Use modern hook for state management
+  const {
+    collections,
+    isLoading,
+    error: _error,
+    filters,
+    isShuffling,
+    updateFilter,
+    refresh,
+    shuffleFromCollections,
+    collectionCount,
+  } = useBoardCollections(gameType);
 
-  // Load public board collections based on filters
-  const loadCollections = useCallback(async () => {
-    setLoading(true);
-    try {
-      const supabase = createClient();
-      let query = supabase
-        .from('bingo_boards')
-        .select('*')
-        .eq('is_public', true)
-        .eq('game_type', gameType)
-        .not('board_state', 'is', null); // Only boards with actual card content
-
-      // Apply difficulty filter
-      if (filters.difficulty !== 'all') {
-        query = query.eq('difficulty', filters.difficulty);
-      }
-
-      // Apply search filter
-      if (filters.search) {
-        query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-        );
-      }
-
-      // Apply sorting
-      switch (filters.sortBy) {
-        case 'newest':
-          query = query.order('created_at', { ascending: false });
-          break;
-        case 'popular':
-          query = query.order('votes', { ascending: false });
-          break;
-        case 'bookmarks':
-          query = query.order('bookmarked_count', { ascending: false });
-          break;
-        case 'trending':
-          // For trending, combine votes and recent activity
-          query = query.order('votes', { ascending: false });
-          break;
-      }
-
-      const { data, error } = await query.limit(50);
-
-      if (error) {
-        throw error;
-      }
-
-      setCollections((data as BoardCollection[]) || []);
-    } catch (error) {
-      console.error('Failed to load board collections:', error);
-      notifications.error('Failed to load board collections');
-    } finally {
-      setLoading(false);
-    }
-  }, [gameType, filters]);
-
-  // Handle shuffle from multiple collections
-  const handleShuffleFromCollections = useCallback(async () => {
-    if (collections.length === 0) {
-      notifications.error('No board collections available for shuffling');
-      return;
-    }
-
-    setShuffling(true);
-    try {
-      // Filter collections based on current difficulty if set
-      let availableCollections = collections;
-      if (filters.difficulty !== 'all') {
-        availableCollections = collections.filter(
-          collection => collection.difficulty === filters.difficulty
-        );
-      }
-
-      if (availableCollections.length === 0) {
-        notifications.error(
-          'No collections available with the selected difficulty'
-        );
-        return;
-      }
-
-      await onShuffleFromCollections(availableCollections);
-    } catch (error) {
-      console.error('Failed to shuffle from collections:', error);
-      notifications.error('Failed to generate board from collections');
-    } finally {
-      setShuffling(false);
-    }
-  }, [collections, filters.difficulty, onShuffleFromCollections]);
-
-  // Update filters
-  const updateFilter = useCallback(
-    (key: keyof BoardCollectionFilters, value: string) => {
-      setFilters(prev => ({ ...prev, [key]: value }));
-    },
-    []
-  );
-
-  // Load collections when filters change
-  useEffect(() => {
-    loadCollections();
-  }, [loadCollections]);
+  // Handle shuffle with the provided callback
+  const handleShuffleFromCollections = async () => {
+    await shuffleFromCollections(onShuffleFromCollections);
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -212,7 +94,7 @@ export function BoardCollections({
             </h3>
           </div>
           <Badge variant="outline" className="text-xs">
-            {collections.length} collections
+            {collectionCount} collections
           </Badge>
         </div>
 
@@ -231,7 +113,9 @@ export function BoardCollections({
         <div className="flex flex-wrap gap-2">
           <Select
             value={filters.difficulty}
-            onValueChange={value => updateFilter('difficulty', value)}
+            onValueChange={(value: string) =>
+              updateFilter('difficulty', value as Difficulty | 'all')
+            }
           >
             <SelectTrigger className="w-32 border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Difficulty" />
@@ -286,11 +170,11 @@ export function BoardCollections({
           <Button
             size="sm"
             variant="outline"
-            onClick={loadCollections}
-            disabled={loading}
+            onClick={refresh}
+            disabled={isLoading}
             className="gap-2"
           >
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
             Refresh
           </Button>
         </div>
@@ -298,15 +182,15 @@ export function BoardCollections({
         {/* Shuffle Button */}
         <Button
           onClick={handleShuffleFromCollections}
-          disabled={shuffling || collections.length === 0}
+          disabled={isShuffling || collections.length === 0}
           className={cn(buttonVariants({ variant: 'primary' }), 'w-full gap-2')}
         >
-          {shuffling ? (
+          {isShuffling ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
           ) : (
             <Shuffle className="h-4 w-4" />
           )}
-          {shuffling
+          {isShuffling
             ? 'Generating...'
             : `Shuffle from Collections (${gridSize}x${gridSize})`}
         </Button>
@@ -315,7 +199,7 @@ export function BoardCollections({
       {/* Collections List */}
       <ScrollArea className="flex-1">
         <div className="p-4">
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <LoadingSpinner />
             </div>
@@ -357,8 +241,9 @@ interface CollectionCardProps {
 function CollectionCard({ collection, onUse }: CollectionCardProps) {
   const cardCount = collection.board_state?.length || 0;
   const filledCards =
-    collection.board_state?.filter(cell => cell.cell_id || cell.text).length ||
-    0;
+    collection.board_state?.filter(
+      (cell: BoardStateCell) => cell.cell_id || cell.text
+    ).length || 0;
   const isValidCollectionSize =
     filledCards >= COLLECTION_LIMITS.MIN_CARDS &&
     filledCards <= COLLECTION_LIMITS.MAX_CARDS;

@@ -1,6 +1,6 @@
 /**
  * Service Layer Index
- * 
+ *
  * This file exports all service modules that handle data fetching and mutations.
  * Services are pure functions that interact with external APIs (Supabase).
  * They don't manage state - that's handled by Zustand stores.
@@ -36,13 +36,21 @@ export { bingoBoardEditService } from './bingo-board-edit.service';
 export { sessionsService } from './sessions.service';
 export { communityService } from './community.service';
 export { gameStateService } from './game-state.service';
-export { presenceService } from './presence.service';
+export { presenceService as presenceServiceLegacy } from './presence.service';
 export { sessionStateService } from './session-state.service';
 export { queueService } from './queue.service';
 export { cardLibraryService } from './card-library.service';
 export { sessionJoinService } from './session-join.service';
 export { sessionQueueService } from './session-queue.service';
 export { settingsService } from './settings.service';
+export { boardCollectionsService } from './board-collections.service';
+export { userService } from './user.service';
+export { realtimeBoardService } from './realtime-board.service';
+export {
+  presenceService,
+  PRESENCE_CONSTANTS,
+  type PresenceState,
+} from './presence-modern.service';
 
 // Common types used across services
 export interface ServiceResponse<T> {

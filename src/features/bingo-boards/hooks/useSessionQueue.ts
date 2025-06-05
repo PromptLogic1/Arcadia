@@ -1,407 +1,389 @@
-'use client';
+/**
+ * Session Queue Hook
+ *
+ * Combines TanStack Query + Zustand + Service Layer pattern for session queue management.
+ * This replaces the legacy useSessionQueue hook with the modern architecture.
+ *
+ * - TanStack Query: Server state (queue entries, stats)
+ * - Zustand Store: UI state (modals, forms, settings)
+ * - Service Layer: Pure API functions
+ */
 
-import { useState, useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useCallback, useEffect } from 'react';
+import {
+  useSessionQueueOperations,
+  usePlayerQueueStatusQuery,
+  usePlayerQueuePositionQuery,
+} from '@/hooks/queries/useSessionQueueQueries';
+import {
+  useSessionQueueState,
+  useSessionQueueActions,
+  type SessionQueueState,
+} from '@/lib/stores/session-queue-store';
+import type { SessionQueueEntryUpdate } from '../../../services/session-queue.service';
+import { useAuth } from '@/lib/stores/auth-store';
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
 import type {
-  Tables,
-  TablesInsert,
-  TablesUpdate,
-  Enums,
-} from '@/types/database-generated';
+  SessionQueueEntry,
+  PlayerQueueData,
+  QueueStats,
+} from '../../../services/session-queue.service';
 
-type QueueStatus = Enums<'queue_status'>;
-
-type BingoSessionQueue = Tables<'bingo_session_queue'>;
-type BingoSessionQueueInsert = TablesInsert<'bingo_session_queue'>;
-type BingoSessionQueueUpdate = TablesUpdate<'bingo_session_queue'>;
-
-// =============================================================================
-// APPLICATION TYPES (Built on database types)
-// =============================================================================
-
-interface PlayerQueueData {
-  playerName: string;
-  color: string;
-  team?: number;
-}
-
-interface QueueState {
-  entries: BingoSessionQueue[];
-  isProcessing: boolean;
-  processingEntryId: string | null;
-  error: string | null;
-  lastUpdated: number;
-}
-
-interface QueueStats {
-  totalEntries: number;
-  waitingEntries: number;
-  processingEntries: number;
-  matchedEntries: number;
-  cancelledEntries: number;
-  averageProcessingTime: number;
-  queueWaitTime: number;
-}
-
-interface UseSessionQueueReturn {
-  queueState: QueueState;
-  queueEntries: BingoSessionQueue[]; // For backward compatibility
-  stats: QueueStats;
+export interface UseSessionQueueReturn {
+  // Server state (from TanStack Query)
+  queueEntries: SessionQueueEntry[];
+  stats: QueueStats | undefined;
   isLoading: boolean;
-  error: string | null;
-  addPlayerToQueue: (playerData: PlayerQueueData) => Promise<string | null>;
-  removePlayerFromQueue: (entryId: string) => Promise<boolean>;
-  processQueueEntry: (entryId: string) => Promise<boolean>;
+  error: Error | null;
+
+  // Current user queue status
+  playerQueueStatus: {
+    inQueue: boolean;
+    entry?: SessionQueueEntry;
+    position: number;
+    isLoading: boolean;
+  };
+
+  // UI state (from Zustand store)
+  showInviteDialog: boolean;
+  showQueueDialog: boolean;
+  inviteLink: string;
+  playerFormData: {
+    playerName: string;
+    color: string;
+    team?: number;
+  } | null;
+  isGeneratingLink: boolean;
+  isCopyingLink: boolean;
+  autoRefreshEnabled: boolean;
+  queueFilters: {
+    showOnlyWaiting: boolean;
+    sortBy: 'requested_at' | 'player_name' | 'status';
+    sortOrder: 'asc' | 'desc';
+  };
+
+  // Loading states for operations
+  isAddingToQueue: boolean;
+  isUpdatingEntry: boolean;
+  isRemovingFromQueue: boolean;
+  isAcceptingPlayer: boolean;
+  isRejectingPlayer: boolean;
+  isMutating: boolean;
+
+  // Actions - Modal management
+  setShowInviteDialog: (show: boolean) => void;
+  setShowQueueDialog: (show: boolean) => void;
+
+  // Actions - Invite link management
+  generateInviteLink: () => Promise<void>;
+  copyInviteLink: () => Promise<boolean>;
+
+  // Actions - Player form management
+  setPlayerFormData: (data: UseSessionQueueReturn['playerFormData']) => void;
+  updatePlayerFormField: (
+    field: keyof NonNullable<SessionQueueState['playerFormData']>,
+    value: string | number
+  ) => void;
+  resetPlayerForm: () => void;
+
+  // Actions - Queue operations
+  addToQueue: (playerData: PlayerQueueData) => Promise<void>;
+  removeFromQueue: (entryId: string) => Promise<void>;
+  acceptPlayer: (entryId: string) => Promise<void>;
+  rejectPlayer: (entryId: string) => Promise<void>;
   updateQueueEntry: (
     entryId: string,
-    updates: BingoSessionQueueUpdate
-  ) => Promise<void>; // Added for backward compatibility
-  clearSessionQueue: (sessionId: string) => Promise<void>;
-  getPlayerQueuePosition: (userId: string, sessionId: string) => number;
-  isPlayerInQueue: (userId: string, sessionId: string) => boolean;
-  getQueueEntries: (sessionId: string) => BingoSessionQueue[];
-  subscribeToQueue: (sessionId: string) => void;
-  unsubscribeFromQueue: () => void;
+    updates: SessionQueueEntryUpdate
+  ) => Promise<void>;
+
+  // Actions - Settings management
+  setAutoRefreshEnabled: (enabled: boolean) => void;
+  setQueueFilters: (
+    filters: Partial<UseSessionQueueReturn['queueFilters']>
+  ) => void;
+
+  // Utility actions
+  refreshQueue: () => void;
+  reset: () => void;
+
+  // Computed values
+  waitingEntries: SessionQueueEntry[];
+  matchedEntries: SessionQueueEntry[];
+  cancelledEntries: SessionQueueEntry[];
 }
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
+/**
+ * Modern session queue hook combining TanStack Query + Zustand
+ */
+export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
+  // TanStack Query for server state
+  const queueOperations = useSessionQueueOperations(sessionId);
 
-const QUEUE_CONSTANTS = {
-  LIMITS: {
-    MAX_WAIT_TIME: 5 * 60 * 1000, // 5 minutes
-    CLEANUP_INTERVAL: 60 * 1000, // 1 minute
-  },
-} as const;
+  // Auth state
+  const { authUser } = useAuth();
+  const userId = authUser?.id || '';
 
-const PLAYER_CONSTANTS = {
-  LIMITS: {
-    MAX_PLAYERS: 12,
-  },
-} as const;
-
-// =============================================================================
-// HOOK IMPLEMENTATION
-// =============================================================================
-
-export const useSessionQueue = (sessionId: string): UseSessionQueueReturn => {
-  const [queueEntries, setQueueEntries] = useState<BingoSessionQueue[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const supabase = createClient();
-
-  // Fetch queue entries
-  const fetchQueueEntries = useCallback(async () => {
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('bingo_session_queue')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('requested_at', { ascending: true });
-
-      if (fetchError) throw fetchError;
-      setQueueEntries(data || []);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch queue entries'
-      );
-    }
-  }, [sessionId, supabase]);
-
-  // Subscribe to queue updates
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const channel = supabase
-      .channel(`queue:${sessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bingo_session_queue',
-          filter: `session_id=eq.${sessionId}`,
-        },
-        payload => {
-          if (payload.eventType === 'INSERT') {
-            const newEntry = payload.new as BingoSessionQueue;
-            setQueueEntries(prev => [...prev, newEntry]);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedEntry = payload.new as BingoSessionQueue;
-            setQueueEntries(prev =>
-              prev.map(entry =>
-                entry.id === updatedEntry.id ? updatedEntry : entry
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setQueueEntries(prev =>
-              prev.filter(entry => entry.id !== payload.old.id)
-            );
-          }
-        }
-      )
-      .subscribe();
-
-    // Initial fetch
-    fetchQueueEntries();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sessionId, supabase, fetchQueueEntries]);
-
-  // Update queue entry
-  const updateQueueEntry = useCallback(
-    async (entryId: string, updates: BingoSessionQueueUpdate) => {
-      try {
-        setIsProcessing(true);
-
-        const { error: updateError } = await supabase
-          .from('bingo_session_queue')
-          .update(updates)
-          .eq('id', entryId);
-
-        if (updateError) throw updateError;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to update queue entry'
-        );
-        throw err;
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [supabase]
+  // Player queue status queries
+  const playerStatusQuery = usePlayerQueueStatusQuery(
+    userId,
+    sessionId,
+    !!userId
+  );
+  const playerPositionQuery = usePlayerQueuePositionQuery(
+    userId,
+    sessionId,
+    !!userId
   );
 
-  // Remove from queue
+  // Zustand store for UI state
+  const uiState = useSessionQueueState();
+  const uiActions = useSessionQueueActions();
+
+  // Derived server state
+  const queueEntries = queueOperations.queueEntries;
+  const stats = queueOperations.stats;
+  const isLoading = queueOperations.isLoading;
+  const error = queueOperations.error;
+
+  // Player queue status
+  const playerQueueStatus = {
+    inQueue: playerStatusQuery.data?.inQueue || false,
+    entry: playerStatusQuery.data?.entry,
+    position: playerPositionQuery.data || -1,
+    isLoading: playerStatusQuery.isLoading || playerPositionQuery.isLoading,
+  };
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!uiState.autoRefreshEnabled || !sessionId) return;
+
+    const interval = setInterval(() => {
+      queueOperations.refetch();
+    }, uiState.refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [
+    uiState.autoRefreshEnabled,
+    uiState.refreshInterval,
+    sessionId,
+    queueOperations,
+  ]);
+
+  // Enhanced invite link generation
+  const generateInviteLink = useCallback(async () => {
+    try {
+      await uiActions.generateInviteLink(sessionId);
+      logger.info('Invite link generated', {
+        metadata: { sessionId },
+      });
+    } catch (error) {
+      logger.error('Failed to generate invite link', error as Error, {
+        metadata: { sessionId },
+      });
+      notifications.error('Failed to generate invite link');
+      throw error;
+    }
+  }, [sessionId, uiActions]);
+
+  // Enhanced copy invite link
+  const copyInviteLink = useCallback(async (): Promise<boolean> => {
+    try {
+      const success = await uiActions.copyInviteLink();
+      if (success) {
+        notifications.success('Invite link copied to clipboard!');
+        logger.info('Invite link copied', {
+          metadata: { sessionId },
+        });
+      } else {
+        notifications.error('Failed to copy invite link');
+      }
+      return success;
+    } catch (error) {
+      logger.error('Failed to copy invite link', error as Error, {
+        metadata: { sessionId },
+      });
+      notifications.error('Failed to copy invite link');
+      return false;
+    }
+  }, [uiActions, sessionId]);
+
+  // Enhanced queue operations with validation and logging
+  const addToQueue = useCallback(
+    async (playerData: PlayerQueueData) => {
+      if (!authUser) {
+        notifications.error('Must be logged in to join queue');
+        return;
+      }
+
+      if (playerQueueStatus.inQueue) {
+        notifications.warning('You are already in the queue for this session');
+        return;
+      }
+
+      try {
+        await queueOperations.addToQueue(playerData);
+        logger.info('Player added to queue', {
+          metadata: { sessionId, playerData },
+        });
+      } catch (error) {
+        logger.error('Failed to add player to queue', error as Error, {
+          metadata: { sessionId, playerData },
+        });
+        throw error;
+      }
+    },
+    [authUser, playerQueueStatus.inQueue, queueOperations, sessionId]
+  );
+
   const removeFromQueue = useCallback(
     async (entryId: string) => {
       try {
-        setIsProcessing(true);
-        const { error: deleteError } = await supabase
-          .from('bingo_session_queue')
-          .delete()
-          .eq('id', entryId);
-
-        if (deleteError) throw deleteError;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to remove from queue'
-        );
-        throw err;
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [supabase]
-  );
-
-  // Cleanup expired entries
-  const cleanupQueue = useCallback(async () => {
-    try {
-      setIsProcessing(true);
-      const cutoffTime = new Date(
-        Date.now() - QUEUE_CONSTANTS.LIMITS.MAX_WAIT_TIME
-      );
-
-      const { error: cleanupError } = await supabase
-        .from('bingo_session_queue')
-        .delete()
-        .lt('requested_at', cutoffTime.toISOString())
-        .in('status', ['matched', 'cancelled'] as QueueStatus[]);
-
-      if (cleanupError) throw cleanupError;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cleanup queue');
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [supabase]);
-
-  // Auto cleanup
-  useEffect(() => {
-    const cleanup = setInterval(
-      cleanupQueue,
-      QUEUE_CONSTANTS.LIMITS.CLEANUP_INTERVAL
-    );
-    return () => clearInterval(cleanup);
-  }, [cleanupQueue]);
-
-  // Add to queue
-  const addToQueue = useCallback(
-    async (player: PlayerQueueData) => {
-      try {
-        setIsProcessing(true);
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
-        const queueEntry: BingoSessionQueueInsert = {
-          session_id: sessionId,
-          user_id: user.id,
-          player_name: player.playerName,
-          color: player.color,
-          team: player.team ?? null,
-          status: 'waiting',
-          requested_at: new Date().toISOString(),
-        };
-
-        const { error: addError } = await supabase
-          .from('bingo_session_queue')
-          .insert(queueEntry);
-
-        if (addError) throw addError;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to add to queue');
-        throw err;
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [sessionId, supabase]
-  );
-
-  // Process queue
-  const _processQueue = useCallback(async () => {
-    try {
-      setIsProcessing(true);
-      const { data: waitingEntries } = await supabase
-        .from('bingo_session_queue')
-        .select('*')
-        .eq('session_id', sessionId)
-        .eq('status', 'waiting')
-        .order('requested_at', { ascending: true });
-
-      if (!waitingEntries?.length) return;
-
-      // Process each entry
-      for (const entry of waitingEntries) {
-        // Check player count
-        const { count: playerCount } = await supabase
-          .from('bingo_session_players')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', sessionId);
-
-        if ((playerCount || 0) >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
-          await updateQueueEntry(entry.id, {
-            status: 'cancelled',
-            processed_at: new Date().toISOString(),
-          });
-          continue;
-        }
-
-        // Check if color is available
-        const { data: colorCheck } = await supabase
-          .from('bingo_session_players')
-          .select('id')
-          .eq('session_id', sessionId)
-          .eq('color', entry.color)
-          .single();
-
-        if (colorCheck) {
-          await updateQueueEntry(entry.id, {
-            status: 'cancelled',
-            processed_at: new Date().toISOString(),
-          });
-          continue;
-        }
-
-        // Add player to session
-        const { error: playerError } = await supabase
-          .from('bingo_session_players')
-          .insert({
-            session_id: sessionId,
-            user_id: entry.user_id || '',
-            display_name: entry.player_name,
-            color: entry.color,
-            team: entry.team,
-            joined_at: new Date().toISOString(),
-          });
-
-        if (playerError) {
-          await updateQueueEntry(entry.id, {
-            status: 'cancelled',
-            processed_at: new Date().toISOString(),
-          });
-          continue;
-        }
-
-        await updateQueueEntry(entry.id, {
-          status: 'matched',
-          processed_at: new Date().toISOString(),
+        await queueOperations.removeFromQueue(entryId);
+        logger.info('Player removed from queue', {
+          metadata: { sessionId, entryId },
         });
+      } catch (error) {
+        logger.error('Failed to remove player from queue', error as Error, {
+          metadata: { sessionId, entryId },
+        });
+        throw error;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process queue');
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [sessionId, supabase, updateQueueEntry]);
+    },
+    [queueOperations, sessionId]
+  );
 
-  // Calculate stats
-  const stats: QueueStats = {
-    totalEntries: queueEntries.length,
-    waitingEntries: queueEntries.filter(e => e.status === 'waiting').length,
-    processingEntries: 0, // No separate processing status in queue_status enum
-    matchedEntries: queueEntries.filter(e => e.status === 'matched').length,
-    cancelledEntries: queueEntries.filter(e => e.status === 'cancelled').length,
-    averageProcessingTime: 0, // TODO: Calculate based on processed_at - requested_at
-    queueWaitTime: 0, // TODO: Calculate based on oldest waiting entry
-  };
+  const acceptPlayer = useCallback(
+    async (entryId: string) => {
+      try {
+        await queueOperations.acceptPlayer(entryId);
+        logger.info('Player accepted from queue', {
+          metadata: { sessionId, entryId },
+        });
+      } catch (error) {
+        logger.error('Failed to accept player', error as Error, {
+          metadata: { sessionId, entryId },
+        });
+        throw error;
+      }
+    },
+    [queueOperations, sessionId]
+  );
+
+  const rejectPlayer = useCallback(
+    async (entryId: string) => {
+      try {
+        await queueOperations.rejectPlayer(entryId);
+        logger.info('Player rejected from queue', {
+          metadata: { sessionId, entryId },
+        });
+      } catch (error) {
+        logger.error('Failed to reject player', error as Error, {
+          metadata: { sessionId, entryId },
+        });
+        throw error;
+      }
+    },
+    [queueOperations, sessionId]
+  );
+
+  const updateQueueEntry = useCallback(
+    async (entryId: string, updates: SessionQueueEntryUpdate) => {
+      try {
+        await queueOperations.updateQueueEntry(entryId, updates);
+        logger.info('Queue entry updated', {
+          metadata: { sessionId, entryId, updates },
+        });
+      } catch (error) {
+        logger.error('Failed to update queue entry', error as Error, {
+          metadata: { sessionId, entryId, updates },
+        });
+        throw error;
+      }
+    },
+    [queueOperations, sessionId]
+  );
+
+  // Computed values
+  const waitingEntries = queueEntries.filter(
+    entry => entry.status === 'waiting'
+  );
+  const matchedEntries = queueEntries.filter(
+    entry => entry.status === 'matched'
+  );
+  const cancelledEntries = queueEntries.filter(
+    entry => entry.status === 'cancelled'
+  );
+
+  // Enhanced form field update with validation
+  const updatePlayerFormField = useCallback(
+    (
+      field: keyof NonNullable<SessionQueueState['playerFormData']>,
+      value: string | number
+    ) => {
+      // Add any validation logic here if needed
+      uiActions.updatePlayerFormField(field, value);
+    },
+    [uiActions]
+  );
 
   return {
-    queueState: {
-      entries: queueEntries,
-      isProcessing,
-      processingEntryId: null,
-      error,
-      lastUpdated: Date.now(),
-    },
-    queueEntries, // For backward compatibility
+    // Server state
+    queueEntries,
     stats,
-    isLoading: isProcessing,
+    isLoading,
     error,
-    addPlayerToQueue: async (playerData: PlayerQueueData) => {
-      await addToQueue(playerData);
-      return null;
-    },
-    removePlayerFromQueue: async (entryId: string) => {
-      await removeFromQueue(entryId);
-      return true;
-    },
-    processQueueEntry: async (entryId: string) => {
-      await updateQueueEntry(entryId, { status: 'waiting' });
-      return true;
-    },
-    updateQueueEntry, // Added for backward compatibility
-    clearSessionQueue: async () => {
-      await cleanupQueue();
-    },
-    getPlayerQueuePosition: (userId: string, sessionId: string) => {
-      const entry = queueEntries.find(
-        e => e.user_id === userId && e.session_id === sessionId
-      );
-      return entry ? queueEntries.indexOf(entry) + 1 : -1;
-    },
-    isPlayerInQueue: (userId: string, sessionId: string) => {
-      return queueEntries.some(
-        e => e.user_id === userId && e.session_id === sessionId
-      );
-    },
-    getQueueEntries: (sessionId: string) => {
-      return queueEntries.filter(e => e.session_id === sessionId);
-    },
-    subscribeToQueue: () => {
-      // Already handled in useEffect
-    },
-    unsubscribeFromQueue: () => {
-      // Already handled in useEffect cleanup
-    },
+    playerQueueStatus,
+
+    // UI state
+    showInviteDialog: uiState.showInviteDialog,
+    showQueueDialog: uiState.showQueueDialog,
+    inviteLink: uiState.inviteLink,
+    playerFormData: uiState.playerFormData,
+    isGeneratingLink: uiState.isGeneratingLink,
+    isCopyingLink: uiState.isCopyingLink,
+    autoRefreshEnabled: uiState.autoRefreshEnabled,
+    queueFilters: uiState.queueFilters,
+
+    // Loading states
+    isAddingToQueue: queueOperations.isAddingToQueue,
+    isUpdatingEntry: queueOperations.isUpdatingEntry,
+    isRemovingFromQueue: queueOperations.isRemovingFromQueue,
+    isAcceptingPlayer: queueOperations.isAcceptingPlayer,
+    isRejectingPlayer: queueOperations.isRejectingPlayer,
+    isMutating: queueOperations.isMutating,
+
+    // Modal management
+    setShowInviteDialog: uiActions.setShowInviteDialog,
+    setShowQueueDialog: uiActions.setShowQueueDialog,
+
+    // Invite link management
+    generateInviteLink,
+    copyInviteLink,
+
+    // Form management
+    setPlayerFormData: uiActions.setPlayerFormData,
+    updatePlayerFormField,
+    resetPlayerForm: uiActions.resetPlayerForm,
+
+    // Queue operations
+    addToQueue,
+    removeFromQueue,
+    acceptPlayer,
+    rejectPlayer,
+    updateQueueEntry,
+
+    // Settings management
+    setAutoRefreshEnabled: uiActions.setAutoRefreshEnabled,
+    setQueueFilters: uiActions.setQueueFilters,
+
+    // Utility actions
+    refreshQueue: queueOperations.refetch,
+    reset: uiActions.reset,
+
+    // Computed values
+    waitingEntries,
+    matchedEntries,
+    cancelledEntries,
   };
-};
+}

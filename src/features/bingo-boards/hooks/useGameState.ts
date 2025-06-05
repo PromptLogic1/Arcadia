@@ -1,4 +1,4 @@
-import { useGameModern } from './useSessionGameModern';
+import { useSessionGame } from './useSessionGame';
 import type { BoardCell } from '../types/types';
 import type { GameSettings } from '../types/game-settings.types';
 import type { Player } from '../../../services/session-state.service';
@@ -24,11 +24,18 @@ interface GameStateReturn {
 /**
  * Legacy compatibility hook for useGameState.
  * Uses the new modern architecture under the hood.
- * 
- * @deprecated Use useGameModern() or useSessionGameModern() instead for new code.
+ *
+ * @deprecated Use useSessionGame() or useSessionGameModern() instead for new code.
  */
-export function useGameState(): GameStateReturn {
-  const { game, updateSettings, setCurrentPlayer, setWinner, setRunning, resetGame } = useGameModern();
+export function useGameState(boardId = ''): GameStateReturn {
+  const {
+    game,
+    updateSettings,
+    setCurrentPlayer,
+    setWinner,
+    setRunning,
+    resetGame,
+  } = useSessionGame(boardId);
 
   return {
     boardState: [], // Game state doesn't manage board state anymore - that's handled by session

@@ -1,18 +1,10 @@
 import { useState, useCallback } from 'react';
 import type { GameCategory, Difficulty as _Difficulty } from '@/types';
 import type { Enums } from '@/types/database-generated';
+import { DIFFICULTIES } from '@/src/types/index';
 
 // Type alias for clean usage
 type DifficultyLevel = Enums<'difficulty_level'>;
-
-// Create constants from enum types
-const Constants = {
-  public: {
-    Enums: {
-      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
-    }
-  }
-} as const;
 import {
   type GENERATOR_CONFIG,
   CARD_CATEGORIES,
@@ -59,8 +51,8 @@ export function useGeneratorPanel(
     ...CARD_CATEGORIES,
   ]);
   const [difficulty, setDifficulty] = useState<GeneratorDifficulty>(
-    Constants.public.Enums.difficulty_level[2]
-  ); // Default to medium
+    DIFFICULTIES[2] || 'medium'
+  ); // Default to medium (index 2)
   const [minVotes, setMinVotes] = useState(0);
   const [poolSize, setPoolSize] =
     useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium');

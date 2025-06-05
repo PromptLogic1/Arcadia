@@ -12,18 +12,10 @@ import {
 import { Gauge } from 'lucide-react';
 import type { Difficulty as _Difficulty } from '@/types';
 import type { Enums } from '@/types/database-generated';
+import { DIFFICULTIES } from '@/src/types/index';
 
 // Type alias for clean usage
 type DifficultyLevel = Enums<'difficulty_level'>;
-
-// Create constants from enum types
-const Constants = {
-  public: {
-    Enums: {
-      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
-    }
-  }
-} as const;
 
 interface DifficultySelectorProps {
   difficulty: DifficultyLevel;
@@ -52,13 +44,11 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({
           <SelectValue placeholder="Select difficulty" />
         </SelectTrigger>
         <SelectContent>
-          {Constants.public.Enums.difficulty_level.map(
-            (level: DifficultyLevel) => (
-              <SelectItem key={level} value={level}>
-                {level.charAt(0).toUpperCase() + level.slice(1)}
-              </SelectItem>
-            )
-          )}
+          {DIFFICULTIES.map((level: DifficultyLevel) => (
+            <SelectItem key={level} value={level}>
+              {level.charAt(0).toUpperCase() + level.slice(1)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

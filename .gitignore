@@ -41,6 +41,7 @@ debug.log
 .env.development
 .env.test
 .env.production
+.env.sentry-build-plugin
 
 # vercel
 .vercel
@@ -94,3 +95,7 @@ public/images/temp*.png
 logs/
 
 .vercel
+
+# Sentry Config File
+.env.sentry-build-plugin
+.sentryclirc

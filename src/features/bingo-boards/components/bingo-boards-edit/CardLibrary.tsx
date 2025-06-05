@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 // Modern architecture imports
-import { useCardLibraryModern } from '../../hooks/useCardLibraryModern';
+import { useCardLibrary } from '../../hooks/useCardLibrary';
 
 // Types
 import type { BingoCard, GameCategory, Difficulty } from '@/types';
@@ -71,12 +71,12 @@ export function CardLibrary({
     totalCount,
     hasMore,
     featuredCollections,
-    
+
     // Loading states
     isLoading,
     isShuffling,
     hasError,
-    
+
     // UI state
     bulkMode,
     selectedCards,
@@ -84,7 +84,7 @@ export function CardLibrary({
     activeTab,
     filters,
     currentPage,
-    
+
     // Actions
     handleFilterChange,
     handlePageChange,
@@ -94,7 +94,7 @@ export function CardLibrary({
     clearSelectedCards,
     refetchCards,
     isCreatingBulkCards,
-  } = useCardLibraryModern({ gameType });
+  } = useCardLibrary({ gameType });
 
   // Handle shuffle action
   const handleShuffleClick = useCallback(async () => {
@@ -129,11 +129,14 @@ export function CardLibrary({
   }, [publicCards, filters.difficulty, gridSize, onShuffle]);
 
   // Handle collection use
-  const handleUseCollectionClick = useCallback(async (collectionCards: BingoCard[]) => {
-    if (onUseCollection) {
-      await onUseCollection(collectionCards);
-    }
-  }, [onUseCollection]);
+  const handleUseCollectionClick = useCallback(
+    async (collectionCards: BingoCard[]) => {
+      if (onUseCollection) {
+        await onUseCollection(collectionCards);
+      }
+    },
+    [onUseCollection]
+  );
 
   // Handle bulk add
   const handleBulkAddClick = useCallback(async () => {
@@ -149,10 +152,13 @@ export function CardLibrary({
       {/* Header */}
       <div className="border-b border-gray-700/50 p-4">
         <div className="mb-4 flex items-center gap-2">
-          <h3 className={cn(typography.heading, "text-cyan-100")}>
+          <h3 className={cn(typography.heading, 'text-cyan-100')}>
             Card Library
           </h3>
-          <Badge variant="outline" className="bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
+          <Badge
+            variant="outline"
+            className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+          >
             {totalCount} cards
           </Badge>
 
@@ -161,7 +167,7 @@ export function CardLibrary({
             size="sm"
             variant={bulkMode ? 'default' : 'outline'}
             onClick={() => setBulkMode(!bulkMode)}
-            className="gap-2 ml-auto"
+            className="ml-auto gap-2"
           >
             {bulkMode ? (
               <>
@@ -179,20 +185,22 @@ export function CardLibrary({
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px]">
+          <div className="min-w-[200px] flex-1">
             <Input
               placeholder="Search cards..."
               value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="bg-gray-800/50 border-gray-700"
+              onChange={e => handleFilterChange('search', e.target.value)}
+              className="border-gray-700 bg-gray-800/50"
             />
           </div>
 
           <Select
             value={filters.difficulty}
-            onValueChange={(value) => handleFilterChange('difficulty', value as Difficulty | 'all')}
+            onValueChange={value =>
+              handleFilterChange('difficulty', value as Difficulty | 'all')
+            }
           >
-            <SelectTrigger className="w-[140px] bg-gray-800/50 border-gray-700">
+            <SelectTrigger className="w-[140px] border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Difficulty" />
             </SelectTrigger>
             <SelectContent>
@@ -207,9 +215,14 @@ export function CardLibrary({
 
           <Select
             value={filters.sortBy}
-            onValueChange={(value) => handleFilterChange('sortBy', value as 'popular' | 'newest' | 'rating' | 'title')}
+            onValueChange={value =>
+              handleFilterChange(
+                'sortBy',
+                value as 'popular' | 'newest' | 'rating' | 'title'
+              )
+            }
           >
-            <SelectTrigger className="w-[120px] bg-gray-800/50 border-gray-700">
+            <SelectTrigger className="w-[120px] border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -222,7 +235,7 @@ export function CardLibrary({
           <Button
             onClick={handleShuffleClick}
             disabled={isShuffling || publicCards.length === 0}
-            className={cn(buttonVariants({ variant: 'primary' }), "gap-2")}
+            className={cn(buttonVariants({ variant: 'primary' }), 'gap-2')}
           >
             {isShuffling ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -235,7 +248,7 @@ export function CardLibrary({
 
         {/* Bulk Actions */}
         {bulkMode && (
-          <div className="mt-3 flex items-center justify-between rounded-lg bg-cyan-500/10 p-3 border border-cyan-500/30">
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3">
             <span className="text-sm text-cyan-300">
               {selectedCardsArray.length} cards selected
             </span>
@@ -246,9 +259,13 @@ export function CardLibrary({
               <Button
                 size="sm"
                 onClick={handleBulkAddClick}
-                disabled={selectedCardsArray.length === 0 || isCreatingBulkCards}
+                disabled={
+                  selectedCardsArray.length === 0 || isCreatingBulkCards
+                }
               >
-                {isCreatingBulkCards ? 'Adding...' : `Add ${selectedCardsArray.length} Cards`}
+                {isCreatingBulkCards
+                  ? 'Adding...'
+                  : `Add ${selectedCardsArray.length} Cards`}
               </Button>
             </div>
           </div>
@@ -257,34 +274,44 @@ export function CardLibrary({
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'library' | 'collections' | 'create')} className="h-full flex flex-col">
+        <Tabs
+          value={activeTab}
+          onValueChange={value =>
+            setActiveTab(value as 'library' | 'collections' | 'create')
+          }
+          className="flex h-full flex-col"
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="library">Card Library</TabsTrigger>
             <TabsTrigger value="collections">Collections</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="library" className="flex-1 mt-4 overflow-hidden">
+          <TabsContent value="library" className="mt-4 flex-1 overflow-hidden">
             {isLoading ? (
-              <div className="flex items-center justify-center h-64">
+              <div className="flex h-64 items-center justify-center">
                 <LoadingSpinner />
               </div>
             ) : hasError ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <div className="flex h-64 flex-col items-center justify-center text-gray-400">
                 <p>Failed to load cards</p>
-                <Button variant="outline" onClick={() => refetchCards()} className="mt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => refetchCards()}
+                  className="mt-2"
+                >
                   Retry
                 </Button>
               </div>
             ) : (
               <ScrollArea className="h-full">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
-                  {publicCards.map((card) => (
+                <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {publicCards.map(card => (
                     <div
                       key={card.id}
                       className={cn(
                         cardVariants({ variant: 'interactive' }),
-                        "cursor-pointer transition-all",
-                        selectedCards.has(card.id) && "ring-2 ring-cyan-400"
+                        'cursor-pointer transition-all',
+                        selectedCards.has(card.id) && 'ring-2 ring-cyan-400'
                       )}
                       onClick={() => {
                         if (bulkMode) {
@@ -295,8 +322,8 @@ export function CardLibrary({
                       }}
                     >
                       <div className="p-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-cyan-100 text-sm line-clamp-2">
+                        <div className="mb-2 flex items-start justify-between">
+                          <h4 className="line-clamp-2 text-sm font-medium text-cyan-100">
                             {card.title}
                           </h4>
                           {bulkMode && (
@@ -307,9 +334,9 @@ export function CardLibrary({
                             />
                           )}
                         </div>
-                        
+
                         {card.description && (
-                          <p className="text-xs text-gray-400 mb-2 line-clamp-2">
+                          <p className="mb-2 line-clamp-2 text-xs text-gray-400">
                             {card.description}
                           </p>
                         )}
@@ -347,25 +374,37 @@ export function CardLibrary({
             )}
           </TabsContent>
 
-          <TabsContent value="collections" className="flex-1 mt-4 overflow-hidden">
+          <TabsContent
+            value="collections"
+            className="mt-4 flex-1 overflow-hidden"
+          >
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-4">
+              <div className="space-y-4 p-4">
                 {featuredCollections.map((collection, index) => (
-                  <div key={index} className={cn(cardVariants({ variant: 'default' }), "p-4")}>
-                    <div className="flex items-center justify-between mb-3">
+                  <div
+                    key={index}
+                    className={cn(cardVariants({ variant: 'default' }), 'p-4')}
+                  >
+                    <div className="mb-3 flex items-center justify-between">
                       <div>
-                        <h4 className="font-medium text-cyan-100">{collection.name}</h4>
-                        <p className="text-sm text-gray-400">{collection.description}</p>
+                        <h4 className="font-medium text-cyan-100">
+                          {collection.name}
+                        </h4>
+                        <p className="text-sm text-gray-400">
+                          {collection.description}
+                        </p>
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => handleUseCollectionClick(collection.cards)}
+                        onClick={() =>
+                          handleUseCollectionClick(collection.cards)
+                        }
                         className={cn(buttonVariants({ variant: 'primary' }))}
                       >
                         Use Collection
                       </Button>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-gray-400">
                       <div className="flex items-center gap-1">
                         <Package2 className="h-4 w-4" />

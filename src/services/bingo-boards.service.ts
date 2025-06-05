@@ -1,12 +1,18 @@
 /**
  * Bingo Boards Service
- * 
+ *
  * Pure functions for bingo boards operations.
  * No state management - only data fetching and mutations.
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, TablesInsert, TablesUpdate, Enums, CompositeTypes } from '@/types/database-generated';
+import type {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  CompositeTypes,
+} from '@/types/database-generated';
 
 // Type aliases for clean usage
 type BoardCell = CompositeTypes<'board_cell'>;
@@ -75,7 +81,9 @@ export const bingoBoardsService = {
   /**
    * Get board by ID
    */
-  async getBoardById(boardId: string): Promise<{ board: BingoBoard | null; error?: string }> {
+  async getBoardById(
+    boardId: string
+  ): Promise<{ board: BingoBoard | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -90,9 +98,9 @@ export const bingoBoardsService = {
 
       return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
-      return { 
-        board: null, 
-        error: error instanceof Error ? error.message : 'Failed to fetch board' 
+      return {
+        board: null,
+        error: error instanceof Error ? error.message : 'Failed to fetch board',
       };
     }
   },
@@ -116,13 +124,15 @@ export const bingoBoardsService = {
       if (filters.gameType) {
         query = query.eq('game_type', filters.gameType);
       }
-      
+
       if (filters.difficulty && filters.difficulty !== 'all') {
         query = query.eq('difficulty', filters.difficulty);
       }
 
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
       }
 
       // Apply pagination
@@ -134,9 +144,9 @@ export const bingoBoardsService = {
         .range(start, end);
 
       if (error) {
-        return { 
-          response: { boards: [], totalCount: 0, hasMore: false }, 
-          error: error.message 
+        return {
+          response: { boards: [], totalCount: 0, hasMore: false },
+          error: error.message,
         };
       }
 
@@ -148,12 +158,15 @@ export const bingoBoardsService = {
           boards: (data || []).map(convertDbBoardToAppBoard),
           totalCount,
           hasMore,
-        }
+        },
       };
     } catch (error) {
-      return { 
+      return {
         response: { boards: [], totalCount: 0, hasMore: false },
-        error: error instanceof Error ? error.message : 'Failed to fetch public boards' 
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch public boards',
       };
     }
   },
@@ -178,13 +191,15 @@ export const bingoBoardsService = {
       if (filters.gameType) {
         query = query.eq('game_type', filters.gameType);
       }
-      
+
       if (filters.difficulty && filters.difficulty !== 'all') {
         query = query.eq('difficulty', filters.difficulty);
       }
 
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
       }
 
       if (typeof filters.isPublic === 'boolean') {
@@ -200,9 +215,9 @@ export const bingoBoardsService = {
         .range(start, end);
 
       if (error) {
-        return { 
-          response: { boards: [], totalCount: 0, hasMore: false }, 
-          error: error.message 
+        return {
+          response: { boards: [], totalCount: 0, hasMore: false },
+          error: error.message,
         };
       }
 
@@ -214,12 +229,15 @@ export const bingoBoardsService = {
           boards: (data || []).map(convertDbBoardToAppBoard),
           totalCount,
           hasMore,
-        }
+        },
       };
     } catch (error) {
-      return { 
+      return {
         response: { boards: [], totalCount: 0, hasMore: false },
-        error: error instanceof Error ? error.message : 'Failed to fetch user boards' 
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch user boards',
       };
     }
   },
@@ -227,31 +245,39 @@ export const bingoBoardsService = {
   /**
    * Create a new board
    */
-  async createBoard(boardData: CreateBoardData): Promise<{ board: BingoBoard | null; error?: string }> {
+  async createBoard(
+    boardData: CreateBoardData
+  ): Promise<{ board: BingoBoard | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // Get current user for creator_id
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         return { board: null, error: 'Must be authenticated to create board' };
       }
-      
+
       const gridSize = boardData.size || 5;
       const totalCells = gridSize * gridSize;
 
       // Create empty board state
-      const emptyBoardState: BoardCell[] = Array.from({ length: totalCells }, () => ({
-        cell_id: null,
-        text: null,
-        colors: null,
-        completed_by: null,
-        blocked: false,
-        is_marked: false,
-        version: 1,
-        last_updated: Date.now(),
-        last_modified_by: user.id,
-      }));
+      const emptyBoardState: BoardCell[] = Array.from(
+        { length: totalCells },
+        () => ({
+          cell_id: null,
+          text: null,
+          colors: null,
+          completed_by: null,
+          blocked: false,
+          is_marked: false,
+          version: 1,
+          last_updated: Date.now(),
+          last_modified_by: user.id,
+        })
+      );
 
       const { data, error } = await supabase
         .from('bingo_boards')
@@ -278,9 +304,10 @@ export const bingoBoardsService = {
 
       return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
-      return { 
-        board: null, 
-        error: error instanceof Error ? error.message : 'Failed to create board' 
+      return {
+        board: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to create board',
       };
     }
   },
@@ -289,13 +316,13 @@ export const bingoBoardsService = {
    * Update an existing board
    */
   async updateBoard(
-    boardId: string, 
+    boardId: string,
     updates: UpdateBoardData,
     currentVersion?: number
   ): Promise<{ board: BingoBoard | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       let query = supabase
         .from('bingo_boards')
         .update({
@@ -315,9 +342,10 @@ export const bingoBoardsService = {
       if (error) {
         // Handle version conflict
         if (error.code === 'PGRST116') {
-          return { 
-            board: null, 
-            error: 'Board was modified by another user. Please refresh and try again.' 
+          return {
+            board: null,
+            error:
+              'Board was modified by another user. Please refresh and try again.',
           };
         }
         return { board: null, error: error.message };
@@ -325,9 +353,10 @@ export const bingoBoardsService = {
 
       return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
-      return { 
-        board: null, 
-        error: error instanceof Error ? error.message : 'Failed to update board' 
+      return {
+        board: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to update board',
       };
     }
   },
@@ -349,8 +378,9 @@ export const bingoBoardsService = {
 
       return {};
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Failed to delete board' 
+      return {
+        error:
+          error instanceof Error ? error.message : 'Failed to delete board',
       };
     }
   },
@@ -358,10 +388,12 @@ export const bingoBoardsService = {
   /**
    * Vote on a board (increment vote count)
    */
-  async voteBoard(boardId: string): Promise<{ board: BingoBoard | null; error?: string }> {
+  async voteBoard(
+    boardId: string
+  ): Promise<{ board: BingoBoard | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // First get current vote count
       const { data: currentBoard, error: fetchError } = await supabase
         .from('bingo_boards')
@@ -389,9 +421,10 @@ export const bingoBoardsService = {
 
       return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
-      return { 
-        board: null, 
-        error: error instanceof Error ? error.message : 'Failed to vote on board' 
+      return {
+        board: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to vote on board',
       };
     }
   },
@@ -400,13 +433,13 @@ export const bingoBoardsService = {
    * Clone/duplicate a board
    */
   async cloneBoard(
-    boardId: string, 
-    userId: string, 
+    boardId: string,
+    userId: string,
     newTitle?: string
   ): Promise<{ board: BingoBoard | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // First get the original board
       const { data: originalBoard, error: fetchError } = await supabase
         .from('bingo_boards')
@@ -444,9 +477,173 @@ export const bingoBoardsService = {
 
       return { board: convertDbBoardToAppBoard(data) };
     } catch (error) {
-      return { 
-        board: null, 
-        error: error instanceof Error ? error.message : 'Failed to clone board' 
+      return {
+        board: null,
+        error: error instanceof Error ? error.message : 'Failed to clone board',
+      };
+    }
+  },
+
+  /**
+   * Update board state (for real-time game play)
+   */
+  async updateBoardState(
+    boardId: string,
+    boardState: BoardCell[],
+    currentVersion?: number
+  ): Promise<{ board: BingoBoard | null; error?: string }> {
+    try {
+      const supabase = createClient();
+
+      let query = supabase
+        .from('bingo_boards')
+        .update({
+          board_state: boardState,
+          version: (currentVersion || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', boardId);
+
+      // Optimistic concurrency control
+      if (currentVersion !== undefined) {
+        query = query.eq('version', currentVersion);
+      }
+
+      const { data, error } = await query.select().single();
+
+      if (error) {
+        // Handle version conflict
+        if (error.code === 'PGRST116') {
+          return {
+            board: null,
+            error:
+              'Board was modified by another user. Please refresh and try again.',
+          };
+        }
+        return { board: null, error: error.message };
+      }
+
+      return { board: convertDbBoardToAppBoard(data) };
+    } catch (error) {
+      return {
+        board: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update board state',
+      };
+    }
+  },
+
+  /**
+   * Update board settings only (title, description, etc.)
+   */
+  async updateBoardSettings(
+    boardId: string,
+    settings: Partial<
+      Pick<
+        BingoBoardUpdate,
+        'title' | 'description' | 'difficulty' | 'is_public'
+      >
+    >,
+    currentVersion?: number
+  ): Promise<{ board: BingoBoard | null; error?: string }> {
+    try {
+      const supabase = createClient();
+
+      let query = supabase
+        .from('bingo_boards')
+        .update({
+          ...settings,
+          version: (currentVersion || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', boardId);
+
+      // Optimistic concurrency control
+      if (currentVersion !== undefined) {
+        query = query.eq('version', currentVersion);
+      }
+
+      const { data, error } = await query.select().single();
+
+      if (error) {
+        // Handle version conflict
+        if (error.code === 'PGRST116') {
+          return {
+            board: null,
+            error:
+              'Board was modified by another user. Please refresh and try again.',
+          };
+        }
+        return { board: null, error: error.message };
+      }
+
+      return { board: convertDbBoardToAppBoard(data) };
+    } catch (error) {
+      return {
+        board: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update board settings',
+      };
+    }
+  },
+
+  /**
+   * Get board with creator information for display
+   */
+  async getBoardWithCreator(
+    boardId: string
+  ): Promise<{
+    board:
+      | (BingoBoard & {
+          creator?: { username: string; avatar_url: string | null };
+        })
+      | null;
+    error?: string;
+  }> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('bingo_boards')
+        .select(
+          `
+          *,
+          users!bingo_boards_creator_id_fkey(
+            username,
+            avatar_url
+          )
+        `
+        )
+        .eq('id', boardId)
+        .single();
+
+      if (error) {
+        return { board: null, error: error.message };
+      }
+
+      // Transform data to include creator information
+      const board = convertDbBoardToAppBoard(data);
+      const boardWithCreator = {
+        ...board,
+        creator: data.users
+          ? {
+              username: data.users.username,
+              avatar_url: data.users.avatar_url,
+            }
+          : undefined,
+      };
+
+      return { board: boardWithCreator };
+    } catch (error) {
+      return {
+        board: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch board with creator',
       };
     }
   },
@@ -454,21 +651,24 @@ export const bingoBoardsService = {
   /**
    * Unified method to get boards by section with filters and pagination
    */
-  async getBoardsBySection(params: BoardsQueryParams): Promise<{ response: PaginatedBoardsResponse; error?: string }> {
+  async getBoardsBySection(
+    params: BoardsQueryParams
+  ): Promise<{ response: PaginatedBoardsResponse; error?: string }> {
     try {
       const supabase = createClient();
       const { section, filters, page, limit, userId } = params;
-      
-      let query = supabase
-        .from('bingo_boards')
-        .select(`
+
+      let query = supabase.from('bingo_boards').select(
+        `
           *,
           users!bingo_boards_creator_id_fkey(
             username,
             avatar_url,
             id
           )
-        `, { count: 'exact' });
+        `,
+        { count: 'exact' }
+      );
 
       // Apply section filters
       switch (section) {
@@ -476,7 +676,7 @@ export const bingoBoardsService = {
           if (!userId) {
             return {
               response: { boards: [], totalCount: 0, hasMore: false },
-              error: 'User ID required for my-boards section'
+              error: 'User ID required for my-boards section',
             };
           }
           query = query.eq('creator_id', userId);
@@ -485,7 +685,7 @@ export const bingoBoardsService = {
           // TODO: Implement bookmarks functionality when user_bookmarks table is added
           return {
             response: { boards: [], totalCount: 0, hasMore: false },
-            error: 'Bookmarks functionality not yet implemented'
+            error: 'Bookmarks functionality not yet implemented',
           };
         case 'all':
         default:
@@ -503,7 +703,9 @@ export const bingoBoardsService = {
       }
 
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
       }
 
       if (filters.isPublic !== undefined) {
@@ -537,7 +739,7 @@ export const bingoBoardsService = {
       if (error) {
         return {
           response: { boards: [], totalCount: 0, hasMore: false },
-          error: error.message
+          error: error.message,
         };
       }
 
@@ -549,12 +751,13 @@ export const bingoBoardsService = {
           boards: (data || []).map(convertDbBoardToAppBoard),
           totalCount,
           hasMore,
-        }
+        },
       };
     } catch (error) {
       return {
         response: { boards: [], totalCount: 0, hasMore: false },
-        error: error instanceof Error ? error.message : 'Failed to fetch boards'
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch boards',
       };
     }
   },

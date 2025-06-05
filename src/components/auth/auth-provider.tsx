@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase';
 import { useAuthActions } from '@/lib/stores';
 import type { User } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { setSentryUser, addSentryContext } from '@/lib/sentry-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -54,6 +55,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         setStoreLoading(true);
 
+        // Initialize Sentry context (once per app load)
+        addSentryContext();
+
         // Initialize the auth store first
         await initializeApp();
 
@@ -75,6 +79,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLoading(false);
           setInitialized(true);
           setStoreLoading(false);
+          
+          // Set Sentry user context
+          if (session?.user) {
+            setSentryUser({
+              id: session.user.id,
+              email: session.user.email,
+            });
+          }
         }
 
         // Listen for auth changes
@@ -91,6 +103,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (mounted) {
               setUser(session?.user ?? null);
               setLoading(false);
+              
+              // Update Sentry user context on auth changes
+              if (session?.user) {
+                setSentryUser({
+                  id: session.user.id,
+                  email: session.user.email,
+                });
+              } else {
+                setSentryUser(null);
+              }
             }
 
             // Handle auth events
@@ -110,6 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             } else if (event === 'SIGNED_OUT') {
               // Clear user state and redirect to home
               setUser(null);
+              setSentryUser(null); // Clear Sentry user context
               router.push('/');
             } else if (event === 'TOKEN_REFRESHED') {
               // Session refreshed, no action needed

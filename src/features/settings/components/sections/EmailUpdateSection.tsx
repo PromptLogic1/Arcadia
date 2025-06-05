@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS } from '../constants';
-import { useSettingsModern } from '../../hooks/useSettingsModern';
+import { useSettings } from '../../hooks/useSettings';
 
 // Zod schema for email update validation
 const emailUpdateSchema = z
@@ -35,7 +35,7 @@ interface EmailUpdateSectionProps {
 
 export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
   // Modern settings hook
-  const settings = useSettingsModern();
+  const settings = useSettings();
 
   const {
     register,

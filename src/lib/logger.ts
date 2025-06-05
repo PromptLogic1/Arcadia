@@ -3,6 +3,9 @@
  * Custom implementation without pino to avoid thread-stream dependency issues in Next.js
  */
 
+import * as Sentry from '@sentry/nextjs';
+import { addBreadcrumb } from './sentry-utils';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogContext {
@@ -197,12 +200,23 @@ class Logger {
   info(message: string, context?: LogContext): void {
     if (this.shouldLog('info')) {
       activeLogger.info({ context }, message);
+      
+      // Add Sentry breadcrumb for info logs
+      addBreadcrumb(message, 'logger', context?.metadata, 'info');
     }
   }
 
   warn(message: string, context?: LogContext): void {
     if (this.shouldLog('warn')) {
       activeLogger.warn({ context }, message);
+      
+      // Add Sentry breadcrumb for warnings
+      addBreadcrumb(message, 'logger', context?.metadata, 'warning');
+      
+      // Also capture warnings as Sentry messages in production
+      if (this.isProduction) {
+        Sentry.captureMessage(message, 'warning');
+      }
     }
   }
 
@@ -213,6 +227,33 @@ class Logger {
         { ...(context && { context }), ...(error && { err: error }) },
         message
       );
+
+      // Send to Sentry
+      if (error) {
+        Sentry.withScope((scope) => {
+          // Add context
+          if (context) {
+            scope.setContext('logger', context as Record<string, any>);
+          }
+          
+          // Set level
+          scope.setLevel('error');
+          
+          // Add breadcrumb
+          scope.addBreadcrumb({
+            category: 'logger',
+            message,
+            level: 'error',
+            data: context,
+          });
+          
+          // Capture exception
+          Sentry.captureException(error);
+        });
+      } else {
+        // For errors without an Error object, capture as message
+        Sentry.captureMessage(message, 'error');
+      }
 
       // In production, you might want to send errors to a monitoring service
       if (this.isProduction && error) {

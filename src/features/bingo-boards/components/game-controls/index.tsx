@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { GameSettings } from './GameSettings';
 import { PlayerManagement } from './PlayerManagement';
 import { TimerControls } from './TimerControls';
-import { useGameModern } from '../../hooks/useSessionGameModern';
+import { useGameModern } from '../../hooks/useSessionGame';
 import { cn } from '@/lib/utils';
 import { Gamepad2, Users2, Timer, AlertCircle } from 'lucide-react';
 import type { GamePlayer } from '../../types';
@@ -135,7 +135,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
               isOwner={isOwner}
               players={[]} // Game state no longer manages players - this is handled by session state
               teamMode={Boolean(settings.team_mode)}
-              onPlayersChange={(newPlayers) => {
+              onPlayersChange={newPlayers => {
                 // Legacy compatibility - convert GamePlayer to Player if needed
                 newPlayers.forEach(player => onAddPlayer?.(player));
               }}

@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { createServerComponentClient } from '@/lib/supabase';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 
 // Types
 interface SessionPageProps {
@@ -79,19 +80,21 @@ async function SessionData({ sessionId }: { sessionId: string }) {
 
 export default function SessionPage({ params }: SessionPageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
-      <Suspense
-        fallback={
-          <div className="flex min-h-screen items-center justify-center">
-            <div className="space-y-4 text-center">
-              <LoadingSpinner className="mx-auto h-8 w-8" />
-              <p className="text-gray-300">Loading game session...</p>
+    <RouteErrorBoundary routeName="GameSession">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center">
+              <div className="space-y-4 text-center">
+                <LoadingSpinner className="mx-auto h-8 w-8" />
+                <p className="text-gray-300">Loading game session...</p>
+              </div>
             </div>
-          </div>
-        }
-      >
-        <SessionData sessionId={params.id} />
-      </Suspense>
-    </div>
+          }
+        >
+          <SessionData sessionId={params.id} />
+        </Suspense>
+      </div>
+    </RouteErrorBoundary>
   );
 }

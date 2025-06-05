@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS, type PasswordCheck } from '../constants';
-import { useSettingsModern } from '../../hooks/useSettingsModern';
+import { useSettings } from '../../hooks/useSettings';
 import { PasswordRequirements } from '../ui/PasswordRequirements';
 
 // Zod schema for password update validation
@@ -36,7 +36,7 @@ type PasswordUpdateFormData = z.infer<typeof passwordUpdateSchema>;
 
 export function PasswordUpdateSection() {
   // Modern settings hook
-  const settings = useSettingsModern();
+  const settings = useSettings();
 
   const {
     register,

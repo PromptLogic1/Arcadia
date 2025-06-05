@@ -8,8 +8,39 @@ import {
 } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from './types';
+import type { Tables } from '../../../types/database-generated';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
+
+/**
+ * Type guard for validating user role values
+ * Follows RULE T2: ZERO TYPE ASSERTIONS
+ */
+function isValidUserRole(
+  role: unknown
+): role is 'user' | 'admin' | 'moderator' | 'premium' {
+  return (
+    typeof role === 'string' &&
+    ['user', 'admin', 'moderator', 'premium'].includes(role)
+  );
+}
+
+/**
+ * Type-safe transformation function: Database Users -> UserData
+ * Follows RULE T3: NO MANUAL OBJECT MAPPING
+ * Single source of truth for user data transformation
+ */
+export const transformDbUserToUserData = (dbUser: Tables<'users'>): UserData =>
+  ({
+    ...dbUser,
+    // Handle required fields with proper fallbacks
+    experience_points: dbUser.experience_points ?? 0,
+    created_at: dbUser.created_at ?? new Date().toISOString(),
+    // Default visibility settings with proper null coalescing
+    achievements_visibility: dbUser.achievements_visibility ?? 'public',
+    profile_visibility: dbUser.profile_visibility ?? 'public',
+    submissions_visibility: dbUser.submissions_visibility ?? 'public',
+  }) satisfies UserData;
 
 export interface SignInCredentials {
   email: string;
@@ -185,35 +216,16 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               phone: user.phone ?? null,
               auth_username: user.user_metadata?.username ?? null,
               provider: user.app_metadata?.provider ?? null,
-              userRole:
-                (userData?.role as
-                  | 'user'
-                  | 'admin'
-                  | 'moderator'
-                  | 'premium') ?? 'user',
+              userRole: isValidUserRole(userData?.role)
+                ? userData.role
+                : 'user',
             });
 
-            // Update Userdata with proper null handling
+            // Transform database user to UserData using type-safe transformation
             get().setUserData({
-              id: userData.id,
-              username: userData.username,
-              full_name: userData.full_name,
-              avatar_url: userData.avatar_url,
-              role: userData.role,
-              experience_points: userData.experience_points ?? 0,
-              land: userData.land,
-              region: userData.region,
-              city: userData.city,
-              bio: userData.bio,
-              last_login_at: userData.last_login_at,
-              created_at: userData.created_at ?? new Date().toISOString(),
-              achievements_visibility:
-                userData.achievements_visibility ?? 'public',
+              ...transformDbUserToUserData(userData),
+              // Override auth_id with fallback to user.id if null
               auth_id: userData.auth_id ?? user.id,
-              profile_visibility: userData.profile_visibility ?? 'public',
-              submissions_visibility:
-                userData.submissions_visibility ?? 'public',
-              updated_at: userData.updated_at,
             });
           } catch (error) {
             logger.error('Auth initialization failed', error as Error, {
@@ -408,28 +420,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             if (dbError) throw dbError;
 
-            // Update store with user data
-            get().setUserData({
-              id: userData.id,
-              username: userData.username,
-              full_name: userData.full_name,
-              avatar_url: userData.avatar_url,
-              role: userData.role,
-              experience_points: userData.experience_points ?? 0,
-              land: userData.land,
-              region: userData.region,
-              city: userData.city,
-              bio: userData.bio,
-              last_login_at: userData.last_login_at,
-              created_at: userData.created_at ?? new Date().toISOString(),
-              achievements_visibility:
-                userData.achievements_visibility ?? 'public',
-              auth_id: userData.auth_id,
-              profile_visibility: userData.profile_visibility ?? 'public',
-              submissions_visibility:
-                userData.submissions_visibility ?? 'public',
-              updated_at: userData.updated_at,
-            });
+            // Transform database user to UserData using type-safe transformation
+            get().setUserData(transformDbUserToUserData(userData));
 
             return userData;
           } catch (error) {
@@ -455,26 +447,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             if (error) throw error;
 
-            // Update store with the returned data
-            get().setUserData({
-              id: data.id,
-              username: data.username,
-              full_name: data.full_name,
-              avatar_url: data.avatar_url,
-              role: data.role,
-              experience_points: data.experience_points ?? 0,
-              land: data.land,
-              region: data.region,
-              city: data.city,
-              bio: data.bio,
-              last_login_at: data.last_login_at,
-              created_at: data.created_at ?? new Date().toISOString(),
-              achievements_visibility: data.achievements_visibility ?? 'public',
-              auth_id: data.auth_id,
-              profile_visibility: data.profile_visibility ?? 'public',
-              submissions_visibility: data.submissions_visibility ?? 'public',
-              updated_at: data.updated_at,
-            });
+            // Transform database user to UserData using type-safe transformation
+            get().setUserData(transformDbUserToUserData(data));
             notifications.success('Profile updated successfully!');
             logger.info('User data updated successfully', {
               metadata: { store: 'AuthStore', userId },

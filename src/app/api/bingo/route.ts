@@ -7,7 +7,7 @@ import type {
   BoardSettings,
   Database,
 } from '@/types';
-import { Constants } from '@/types';
+import { DIFFICULTIES, GAME_CATEGORIES } from '@/src/types/index';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
@@ -23,21 +23,15 @@ interface CreateBoardRequest {
   board_state: BoardCell[];
 }
 
-// Helper function to validate enum values
+// Helper function to validate enum values (using database-derived constants)
 function isValidGameCategory(value: string | null): value is GameCategory {
-  return (
-    value !== null &&
-    Constants.public.Enums.game_category.includes(value as GameCategory)
-  );
+  return value !== null && GAME_CATEGORIES.includes(value as GameCategory);
 }
 
 function isValidDifficultyLevel(
   value: string | null
 ): value is DifficultyLevel {
-  return (
-    value !== null &&
-    Constants.public.Enums.difficulty_level.includes(value as DifficultyLevel)
-  );
+  return value !== null && DIFFICULTIES.includes(value as DifficultyLevel);
 }
 
 export async function GET(request: Request): Promise<NextResponse> {

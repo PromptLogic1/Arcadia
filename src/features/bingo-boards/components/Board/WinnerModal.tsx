@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Trophy, RotateCcw } from 'lucide-react';
-import { useGameModern } from '../../hooks/useSessionGameModern';
+import { useGameModern } from '../../hooks/useSessionGame';
 import { cn } from '@/lib/utils';
 
 export const WinnerModal: React.FC = () => {

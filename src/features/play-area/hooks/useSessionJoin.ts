@@ -1,6 +1,6 @@
 /**
- * Modern Session Join Hook
- * 
+ * Session Join Hook
+ *
  * Combines TanStack Query for server state with clean UI logic
  * following the new architecture pattern.
  */
@@ -19,7 +19,7 @@ interface UseSessionJoinProps {
   sessionId: string;
 }
 
-export function useSessionJoinModern({ sessionId }: UseSessionJoinProps) {
+export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
   // UI state
   const [playerName, setPlayerName] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -35,22 +35,22 @@ export function useSessionJoinModern({ sessionId }: UseSessionJoinProps) {
     error: sessionError,
   } = useSessionJoinDetailsQuery(sessionId);
 
-  const {
-    data: userStatus,
-    isLoading: isCheckingUser,
-  } = useUserInSessionQuery(sessionId);
+  const { data: userStatus, isLoading: isCheckingUser } =
+    useUserInSessionQuery(sessionId);
 
-  const {
-    data: colorData,
-    isLoading: isLoadingColors,
-  } = useAvailableColorsQuery(sessionId);
+  const { data: colorData, isLoading: isLoadingColors } =
+    useAvailableColorsQuery(sessionId);
 
   // Mutations
   const joinSessionMutation = useSessionJoinMutation();
 
   // Auto-select first available color
   useEffect(() => {
-    if (colorData?.available && colorData.available.length > 0 && !selectedColor) {
+    if (
+      colorData?.available &&
+      colorData.available.length > 0 &&
+      !selectedColor
+    ) {
       setSelectedColor(colorData.available[0] || '');
     }
   }, [colorData?.available, selectedColor]);
@@ -59,7 +59,7 @@ export function useSessionJoinModern({ sessionId }: UseSessionJoinProps) {
   useEffect(() => {
     const nameValid = playerName.trim().length >= 2;
     const colorValid = !!selectedColor;
-    
+
     setIsFormValid(nameValid && colorValid);
   }, [playerName, selectedColor]);
 
@@ -85,26 +85,30 @@ export function useSessionJoinModern({ sessionId }: UseSessionJoinProps) {
 
     await joinSessionMutation.mutateAsync(joinData);
   }, [
-    isFormValid, 
-    sessionDetails?.canJoin, 
-    sessionId, 
-    playerName, 
-    selectedColor, 
+    isFormValid,
+    sessionDetails?.canJoin,
+    sessionId,
+    playerName,
+    selectedColor,
     teamName,
-    joinSessionMutation
+    joinSessionMutation,
   ]);
 
   // Handle color selection with validation
-  const handleColorChange = useCallback((color: string) => {
-    if (colorData?.available.includes(color)) {
-      setSelectedColor(color);
-    }
-  }, [colorData?.available]);
+  const handleColorChange = useCallback(
+    (color: string) => {
+      if (colorData?.available.includes(color)) {
+        setSelectedColor(color);
+      }
+    },
+    [colorData?.available]
+  );
 
   // Derived state
   const isLoading = isLoadingSession || isCheckingUser || isLoadingColors;
   const hasError = !!sessionError;
-  const errorMessage = sessionError || (!sessionDetails?.canJoin ? sessionDetails?.reason : null);
+  const errorMessage =
+    sessionError || (!sessionDetails?.canJoin ? sessionDetails?.reason : null);
   const isJoining = joinSessionMutation.isPending;
 
   return {
@@ -113,30 +117,30 @@ export function useSessionJoinModern({ sessionId }: UseSessionJoinProps) {
     userStatus,
     availableColors: colorData?.available || [],
     usedColors: colorData?.used || [],
-    
+
     // UI state
     playerName,
     selectedColor,
     teamName,
     isFormValid,
-    
+
     // Loading states
     isLoading,
     isJoining,
     hasError,
     errorMessage,
-    
+
     // Derived state
     canJoin: sessionDetails?.canJoin || false,
     currentPlayerCount: sessionDetails?.currentPlayerCount || 0,
     maxPlayers: sessionDetails?.session.settings?.max_players || 4,
-    
+
     // Actions
     setPlayerName,
     setSelectedColor: handleColorChange,
     setTeamName,
     handleJoinSession,
-    
+
     // Session info
     sessionTitle: 'Session',
     gameType: 'All Games',

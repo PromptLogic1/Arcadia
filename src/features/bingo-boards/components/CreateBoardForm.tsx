@@ -23,7 +23,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Controller } from 'react-hook-form';
-import { Constants } from '@/types';
+import { GAME_CATEGORIES } from '@/src/types/index';
 import type { GameCategory } from '@/types';
 import { log } from '@/lib/logger';
 
@@ -63,7 +63,7 @@ const createBoardSchema = z.object({
       }
     ),
   board_game_type: z.custom<GameCategory>(
-    game => Constants.public.Enums.game_category.includes(game as GameCategory),
+    game => GAME_CATEGORIES.includes(game as GameCategory),
     {
       message: 'Invalid game type',
     }
@@ -96,7 +96,7 @@ interface CreateBoardFormProps {
 // FORM CONSTANTS & UTILITIES
 // =============================================================================
 
-const sortedGames = [...Constants.public.Enums.game_category]
+const sortedGames = [...GAME_CATEGORIES]
   .filter((game: GameCategory) => game !== 'All Games')
   .sort((a, b) => a.localeCompare(b));
 

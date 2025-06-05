@@ -1,6 +1,7 @@
 'use client';
 
 import { BingoBoardEdit } from '@/src/features/bingo-boards/components/bingo-boards-edit/BingoBoardEdit';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 
@@ -21,11 +22,13 @@ export default function BoardPage({ params }: BoardPageProps) {
   }
 
   return (
-    <BingoBoardEdit
-      boardId={resolvedParams.boardId}
-      onSaveSuccess={() => {
-        // Handle success state if needed
-      }}
-    />
+    <RouteErrorBoundary routeName="BoardEdit">
+      <BingoBoardEdit
+        boardId={resolvedParams.boardId}
+        onSaveSuccess={() => {
+          // Handle success state if needed
+        }}
+      />
+    </RouteErrorBoundary>
   );
 }

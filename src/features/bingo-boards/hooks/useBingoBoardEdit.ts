@@ -1,224 +1,171 @@
 /**
- * Modern Bingo Board Edit Hook
- * 
- * This replaces the legacy useBingoBoardEdit hook using the TanStack Query + Zustand pattern.
- * - Service layer for all API calls
- * - TanStack Query for server state management
- * - Zustand for UI state only
- * - Proper error handling and loading states
- * - Type safety throughout
+ * Bingo Board Edit Hook
+ *
+ * Combines TanStack Query + Zustand + Service Layer pattern.
+ * This replaces the legacy useBoardEditState hook with the modern architecture.
+ *
+ * - TanStack Query: Server state (board data, cards)
+ * - Zustand Store: UI state (modals, forms, loading states)
+ * - Service Layer: Pure API functions
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useShallow as _useShallow } from 'zustand/react/shallow';
-import type { Tables, Enums, CompositeTypes } from '@/types/database-generated';
-import {
-  createEmptyBingoCard,
-  createNewBingoCard,
-  isValidUUID,
-} from '@/src/types';
-
-// Type aliases from database-generated
-type BingoBoard = Tables<'bingo_boards'>;
-type BingoCard = Tables<'bingo_cards'>;
-type Difficulty = Enums<'difficulty_level'>;
-type BoardCell = CompositeTypes<'board_cell'>;
+import { useCallback, useEffect } from 'react';
+import type { BingoCard, BingoBoard, Difficulty } from '@/types';
+import type {
+  CardInsertData,
+  BoardEditData,
+} from '../../../services/bingo-board-edit.service';
 import { useBoardEditOperations } from '@/hooks/queries/useBingoBoardEditQueries';
+import {
+  useBoardEditState,
+  useBoardEditActions,
+  type BoardEditFormData,
+} from '@/lib/stores/board-edit-store';
 import { useAuth } from '@/lib/stores/auth-store';
-import { logger } from '@/src/lib/logger';
-import { notifications } from '@/src/lib/notifications';
-// Template imports removed as they're not used in this hook
-import type { CardInsertData, BoardEditData } from '../../../services/bingo-board-edit.service';
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
 
-export interface FormData {
-  board_title: string;
-  board_description: string;
-  board_tags: string[];
-  board_difficulty: Difficulty;
-  is_public: boolean;
-}
-
-interface BoardEditReturn {
-  // Loading states
+export interface UseBingoBoardEditReturn {
+  // Server state (from TanStack Query)
+  board: BingoBoard | null;
+  cards: BingoCard[];
   isLoadingBoard: boolean;
   isLoadingCards: boolean;
   isSaving: boolean;
-  
-  // Data states
-  error?: string | null;
-  currentBoard: BingoBoard | null;
-  formData: FormData | null;
-  gridCards: BingoCard[];
-  privateCards: BingoCard[];
-  gridSize: number;
-  
-  // Form state
-  fieldErrors: Record<string, string>;
+  error: string | null;
+
+  // UI state (from Zustand store)
   editingCard: { card: BingoCard; index: number } | null;
-  
-  // Actions - form management
-  setFormData: (data: FormData | ((prev: FormData | null) => FormData | null)) => void;
-  updateFormField: (field: string, value: FieldValue) => void;
-  setEditingCard: (card: { card: BingoCard; index: number } | null) => void;
-  
-  // Actions - card management
-  setGridCards: (cards: BingoCard[]) => void;
+  selectedCard: BingoCard | null;
+  showPositionSelectDialog: boolean;
+  showCardEditDialog: boolean;
+  showSaveSuccess: boolean;
+  formData: BoardEditFormData | null;
+  fieldErrors: Record<string, string>;
+  localGridCards: BingoCard[];
+  localPrivateCards: BingoCard[];
+  draggedCard: BingoCard | null;
+  draggedFromIndex: number | null;
+
+  // Actions - Modal management
+  openCardEditor: (card: BingoCard, index: number) => void;
+  closeCardEditor: () => void;
+  setSelectedCard: (card: BingoCard | null) => void;
+  clearSelectedCard: () => void;
+  handleCardSelect: (card: BingoCard) => void;
+  setShowPositionSelectDialog: (show: boolean) => void;
+
+  // Actions - Form management
+  setFormData: (data: BoardEditFormData | null) => void;
+  updateFormField: (
+    field: keyof BoardEditFormData,
+    value: string | string[] | boolean | Difficulty
+  ) => void;
+  setFieldErrors: (errors: Record<string, string>) => void;
+  clearFieldError: (field: string) => void;
+
+  // Actions - Grid management
+  setLocalGridCards: (cards: BingoCard[]) => void;
+  setLocalPrivateCards: (cards: BingoCard[]) => void;
+  updateGridCard: (index: number, card: BingoCard) => void;
+  addPrivateCard: (card: BingoCard) => void;
+  removePrivateCard: (cardId: string) => void;
   placeCardInGrid: (card: BingoCard, index: number) => void;
-  createNewCard: (formData: Partial<BingoCard>, index: number) => Promise<void>;
-  createPrivateCard: (formData: Partial<BingoCard>) => Promise<BingoCard | null>;
-  updateExistingCard: (updates: Partial<BingoCard>, index: number) => Promise<void>;
-  
-  // Actions - board operations
+
+  // Actions - Drag state
+  setDraggedCard: (card: BingoCard | null) => void;
+  setDraggedFromIndex: (index: number | null) => void;
+
+  // Actions - Position selection
+  handlePositionSelect: (index: number) => void;
+
+  // Actions - Save operations
+  startSaving: () => void;
+  completeSaving: (success: boolean) => void;
   handleSave: () => Promise<boolean>;
+
+  // Actions - Board operations
   initializeBoard: () => Promise<void>;
-  
+  createCard: (cardData: Partial<BingoCard>) => Promise<BingoCard | null>;
+  updateCard: (
+    cardId: string,
+    updates: Partial<BingoCard>
+  ) => Promise<BingoCard | null>;
+
   // Validation
-  validateBingoCardField: (field: string, value: string | string[] | boolean) => string | null;
+  validateField: (
+    field: string,
+    value: string | string[] | boolean
+  ) => string | null;
+
+  // Utility
+  reset: () => void;
 }
 
-type FieldKey = 'board_title' | 'board_description' | 'board_difficulty' | 'is_public' | 'board_tags';
-type FieldValue = string | number | boolean | string[];
-
-export function useBingoBoardEdit(boardId: string): BoardEditReturn {
-  // TanStack Query for server state management
+/**
+ * Modern board edit hook combining TanStack Query + Zustand
+ */
+export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
+  // TanStack Query for server state
   const {
     board,
-    cards: _cards,
+    cards,
     gridCards: serverGridCards,
     privateCards: serverPrivateCards,
     isLoading,
     error: queryError,
     saveCards,
     updateBoard,
-    createCard,
-    updateCard: _updateCard,
-    isSavingCards: _isSavingCards,
-    isUpdatingBoard,
-    isCreatingCard: _isCreatingCard,
-    isUpdatingCard: _isUpdatingCard,
+    createCard: createCardMutation,
+    updateCard: updateCardMutation,
     isMutating,
     refetch,
   } = useBoardEditOperations(boardId);
 
-  // Auth context
-  const { authUser } = useAuth();
-  const userData = useMemo(
-    () => (authUser ? { id: authUser.id } : null),
-    [authUser]
-  );
+  // Zustand store for UI state
+  const uiState = useBoardEditState();
+  const uiActions = useBoardEditActions();
 
-  // Local UI state (not managed by Zustand since it's component-specific)
-  const [formData, setFormData] = useState<FormData | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [editingCard, setEditingCard] = useState<{
-    card: BingoCard;
-    index: number;
-  } | null>(null);
-  const [gridCards, setGridCards] = useState<BingoCard[]>([]);
-  const [privateCards, setPrivateCards] = useState<BingoCard[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Auth
+  const { authUser } = useAuth();
+
+  // Derived state
+  const isLoadingBoard = isLoading;
+  const isLoadingCards = isLoading;
+  const isSaving = uiState.isSaving || isMutating;
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'An error occurred'
+    : null;
 
   // Initialize form data when board loads
   useEffect(() => {
-    if (board && !formData) {
-      setFormData({
+    if (board && !uiState.formData) {
+      const formData: BoardEditFormData = {
         board_title: board.title,
         board_description: board.description || '',
+        board_tags: [], // Tags not in current database schema
         board_difficulty: board.difficulty,
         is_public: board.is_public || false,
-        board_tags: [],  // tags not in database schema
-      });
+      };
+      uiActions.setFormData(formData);
     }
-  }, [board, formData]);
+  }, [board, uiState.formData, uiActions]);
 
-  // Helper function to initialize from board state (legacy data)
-  const initializeFromBoardState = useCallback(async (board: BingoBoard) => {
-    if (!board.board_state) return;
-
-    const gridCards: BingoCard[] = board.board_state.map((cell: BoardCell) => {
-      // For cells with text but no valid card ID, create a card from the text
-      if (cell.text && cell.text.trim() !== '') {
-        return createNewBingoCard(
-          {
-            title: cell.text,
-            description: null,
-            difficulty: 'medium',
-            tags: [],
-            is_public: false,
-            votes: 0,
-          },
-          board.game_type,
-          userData?.id || board.creator_id || ''
-        );
-      }
-      // Return empty card for empty cells
-      return createEmptyBingoCard(
-        board.game_type,
-        userData?.id || board.creator_id || ''
-      );
-    });
-
-    setGridCards(gridCards);
-  }, [userData?.id]);
-
-  // Helper function to initialize template cards
-  const initializeTemplateCards = useCallback(async (board: BingoBoard) => {
-    // Create empty grid based on board size
-    const gridSize = board.size || 25;
-    const emptyCards: BingoCard[] = Array.from({ length: gridSize }, () =>
-      createEmptyBingoCard(board.game_type, userData?.id || board.creator_id || '')
-    );
-    setGridCards(emptyCards);
-  }, [userData?.id]);
-
-  // Initialize cards from server data or templates
-  const initializeFromServerData = useCallback(async () => {
-    if (!board) return;
-
-    try {
-      if (serverGridCards && serverGridCards.length > 0) {
-        // Use server-provided grid cards
-        setGridCards(serverGridCards);
-      } else if (board.board_state && board.board_state.length > 0) {
-        // Initialize from board state (legacy data)
-        await initializeFromBoardState(board);
-      } else {
-        // New board - initialize with templates
-        await initializeTemplateCards(board);
-      }
-
-      if (serverPrivateCards) {
-        setPrivateCards(serverPrivateCards);
-      }
-    } catch (error) {
-      logger.error('Failed to initialize board data', error as Error, {
-        metadata: { hook: 'useBingoBoardEdit', boardId },
-      });
-    }
-  }, [board, serverGridCards, serverPrivateCards, boardId, initializeFromBoardState, initializeTemplateCards]);
-
-  // Initialize grid and private cards from server data
+  // Initialize local grid and private cards from server data
   useEffect(() => {
-    if (board && !isInitialized) {
-      initializeFromServerData();
-      setIsInitialized(true);
+    if (serverGridCards && serverGridCards.length > 0) {
+      uiActions.setLocalGridCards(serverGridCards);
     }
-  }, [board, isInitialized, initializeFromServerData]);
+    if (serverPrivateCards && serverPrivateCards.length > 0) {
+      uiActions.setLocalPrivateCards(serverPrivateCards);
+    }
+  }, [serverGridCards, serverPrivateCards, uiActions]);
 
-  // Derived states
-  const isLoadingBoard = isLoading;
-  const isLoadingCards = isLoading;
-  const isSaving = isMutating || isUpdatingBoard;
-  const currentBoard = board || null;
-  const gridSize = board?.size || 0;
-  const error = queryError ? 
-    (queryError instanceof Error ? queryError.message : 'An error occurred') 
-    : null;
-
-
-  // Validation functions
-  const validateBingoBoardField = useCallback(
-    (field: string, value: FieldValue): string | null => {
+  // Validation
+  const validateField = useCallback(
+    (field: string, value: string | string[] | boolean): string | null => {
       switch (field) {
         case 'board_title':
           if (
@@ -238,15 +185,6 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
             return 'Maximum of 5 tags allowed';
           }
           break;
-      }
-      return null;
-    },
-    []
-  );
-
-  const validateBingoCardField = useCallback(
-    (field: string, value: string | string[] | boolean): string | null => {
-      switch (field) {
         case 'title':
           if (
             typeof value === 'string' &&
@@ -271,198 +209,107 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     []
   );
 
-  // Form management
+  // Enhanced form field update with validation
   const updateFormField = useCallback(
-    (field: string, value: FieldValue) => {
-      const error = validateBingoBoardField(field, value);
+    (
+      field: keyof BoardEditFormData,
+      value: string | string[] | boolean | Difficulty
+    ) => {
+      const error = validateField(field, value);
 
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        if (error) {
-          newErrors[field as FieldKey] = error;
-        } else {
-          delete newErrors[field as FieldKey];
-        }
-        return newErrors;
-      });
+      if (error) {
+        uiActions.setFieldErrors({ ...uiState.fieldErrors, [field]: error });
+      } else {
+        uiActions.clearFieldError(field);
+      }
 
-      setFormData(prev => (prev ? { ...prev, [field]: value } : null));
+      uiActions.updateFormField(field, value);
     },
-    [validateBingoBoardField]
+    [validateField, uiActions, uiState.fieldErrors]
   );
 
-  // Card management actions
-  const createPrivateCard = useCallback(async (
-    updates: Partial<BingoCard>
-  ): Promise<BingoCard | null> => {
-    try {
-      if (!currentBoard || !userData) {
-        throw new Error('You must be logged in to create cards');
+  // Position selection handler
+  const handlePositionSelect = useCallback(
+    (index: number) => {
+      if (uiState.selectedCard) {
+        uiActions.updateGridCard(index, uiState.selectedCard);
+        uiActions.setSelectedCard(null);
+        uiActions.setShowPositionSelectDialog(false);
+
+        // Close any open dropdown (minimal DOM manipulation)
+        const cardElement = document.querySelector(
+          `[data-card-id="${uiState.selectedCard.id}"]`
+        );
+        if (cardElement) {
+          const trigger = cardElement.querySelector('[data-state="open"]');
+          if (trigger instanceof HTMLElement) {
+            trigger.click();
+          }
+        }
       }
+    },
+    [uiState.selectedCard, uiActions]
+  );
 
-      const cardData: CardInsertData = {
-        title: updates.title || '',
-        description: updates.description || null,
-        game_type: currentBoard.game_type,
-        difficulty: updates.difficulty || currentBoard.difficulty,
-        tags: updates.tags || [],
-        creator_id: userData.id,
-        is_public: false, // Private cards are always private
-        // Note: requirements and reward_type not in current database schema
-      };
-
-      const result = await createCard(cardData);
-      
-      if (result.card) {
-        // Add to local state immediately (optimistic update)
-        setPrivateCards(prev => result.card ? [...prev, result.card] : prev);
-        
-        logger.debug('Created new private card', {
-          metadata: { hook: 'useBingoBoardEdit', cardId: result.card.id },
-        });
-        
-        return result.card;
-      } else if (result.error) {
-        throw new Error(result.error);
-      }
-
-      return null;
-    } catch (error) {
-      logger.error('Failed to create new private card', error as Error, {
-        metadata: {
-          hook: 'useBingoBoardEdit',
-          currentBoardId: currentBoard?.id,
-          updates,
-        },
-      });
-      notifications.error('Failed to create card', {
-        description: 'Please try again or contact support.',
-      });
-      return null;
-    }
-  }, [currentBoard, userData, createCard]);
-
-  const createNewCard = useCallback(async (
-    updates: Partial<BingoCard>, 
-    index: number
-  ) => {
-    try {
-      if (!currentBoard || !userData) {
-        throw new Error('You must be logged in to create cards');
-      }
-
-      // Create a local card for immediate UI update
-      const newCard = createNewBingoCard(
-        updates,
-        currentBoard.game_type,
-        userData.id
+  // Enhanced card selection with validation
+  const handleCardSelect = useCallback(
+    (card: BingoCard) => {
+      // Check if card is already in grid
+      const isCardInGrid = uiState.localGridCards.some(
+        gc => gc.id === card.id && gc.id !== ''
       );
 
-      if (index >= 0) {
-        const updatedCards = [...gridCards];
-        updatedCards[index] = newCard;
-        setGridCards(updatedCards);
+      if (isCardInGrid) {
+        notifications.error('This card is already in the grid!');
+        return;
       }
-      
-      logger.debug('Created new card', {
-        metadata: { hook: 'useBingoBoardEdit', cardId: newCard.id, index },
-      });
-    } catch (error) {
-      logger.error('Failed to create new card', error as Error, {
-        metadata: {
-          hook: 'useBingoBoardEdit',
-          currentBoardId: currentBoard?.id,
-          updates,
-          index,
-        },
-      });
-      notifications.error('Failed to create card', {
-        description: 'Please try again or contact support.',
-      });
-    }
-  }, [currentBoard, userData, gridCards]);
 
-  const updateExistingCard = useCallback(async (
-    updates: Partial<BingoCard>,
-    index: number
-  ) => {
-    try {
-      if (!currentBoard) throw new Error('Board not found');
-      if (!updates.id) throw new Error('Card ID is required');
+      uiActions.handleCardSelect(card);
+      uiActions.setShowPositionSelectDialog(true);
+    },
+    [uiState.localGridCards, uiActions]
+  );
 
-      const currentCard = gridCards[index];
-      if (!currentCard) throw new Error('Card not found');
+  // Place card in grid
+  const placeCardInGrid = useCallback(
+    (card: BingoCard, index: number) => {
+      uiActions.updateGridCard(index, card);
 
-      const updatedCard: BingoCard = {
-        ...currentCard,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (index >= 0) {
-        const updatedCards = [...gridCards];
-        updatedCards[index] = updatedCard;
-        setGridCards(updatedCards);
-      }
-      
-      logger.debug('Updated existing card in grid', {
-        metadata: { hook: 'useBingoBoardEdit', cardId: updates.id, index },
-      });
-    } catch (error) {
-      logger.error('Failed to update existing card', error as Error, {
-        metadata: { hook: 'useBingoBoardEdit', updates, index },
-      });
-      notifications.error('Failed to update card', {
-        description: 'Please try again or contact support.',
-      });
-    }
-  }, [currentBoard, gridCards]);
-
-  const placeCardInGrid = useCallback((card: BingoCard, index: number) => {
-    try {
-      const updatedCards = [...gridCards];
-      updatedCards[index] = card;
-      setGridCards(updatedCards);
       logger.debug('Placed card in grid', {
-        metadata: { hook: 'useBingoBoardEdit', cardId: card.id, index },
+        metadata: { hook: 'useBingoBoardEditModern', cardId: card.id, index },
       });
-    } catch (error) {
-      logger.error('Failed to place card in grid', error as Error, {
-        metadata: { hook: 'useBingoBoardEdit', index },
-      });
-      notifications.error('Failed to place card', {
-        description: 'Please try again or contact support.',
-      });
-    }
-  }, [gridCards]);
+    },
+    [uiActions]
+  );
 
   // Save operation
   const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!currentBoard || !formData || !userData) return false;
+    if (!board || !uiState.formData || !authUser) {
+      logger.error('Cannot save: missing required data', undefined, {
+        metadata: {
+          hook: 'useBingoBoardEditModern',
+          hasBoard: !!board,
+          hasFormData: !!uiState.formData,
+          hasUser: !!authUser,
+        },
+      });
+      return false;
+    }
 
     try {
-      // Convert grid cards to board cells for board_state
-      const boardCells: BoardCell[] = gridCards.map((card) => ({
-        cell_id: isValidUUID(card.id) ? card.id : null,
-        text: card.title || null,
-        colors: null,
-        completed_by: null,
-        blocked: false,
-        is_marked: false,
-        version: (currentBoard.version || 0) + 1,
-        last_updated: Date.now(),
-        last_modified_by: userData.id,
-      }));
+      uiActions.setIsSaving(true);
 
-      // First, save any new cards that have temporary IDs
+      // Save any new cards first
       const cardsToSave = [
-        ...privateCards.filter(card => card.id.startsWith('temp-')),
-        ...gridCards.filter(
+        ...uiState.localPrivateCards.filter(card =>
+          card.id.startsWith('temp-')
+        ),
+        ...uiState.localGridCards.filter(
           card => card.id.startsWith('temp-') && card.title.trim() !== ''
         ),
       ];
 
-      // Remove duplicates based on title
+      // Remove duplicates
       const uniqueCardsToSave = cardsToSave.filter(
         (card, index, self) =>
           index ===
@@ -480,23 +327,22 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
             game_type: card.game_type,
             difficulty: card.difficulty,
             tags: card.tags || [],
-            creator_id: userData.id,
+            creator_id: authUser.id,
             is_public: card.is_public || false,
-            // Note: requirements and reward_type not in current database schema
           }));
 
         if (cardInsertData.length > 0) {
           const saveResult = await saveCards(cardInsertData);
-          
+
           if (saveResult.error) {
             throw new Error(saveResult.error);
           }
 
           // Update local state with saved cards
           const savedCards = saveResult.savedCards;
-          
+
           // Update grid cards with new IDs
-          const updatedGridCards = gridCards.map(card => {
+          const updatedGridCards = uiState.localGridCards.map(card => {
             if (card.id?.startsWith('temp-')) {
               const savedCard = savedCards.find(
                 sc => sc.title === card.title && sc.game_type === card.game_type
@@ -505,73 +351,96 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
             }
             return card;
           });
-          setGridCards(updatedGridCards);
+          uiActions.setLocalGridCards(updatedGridCards);
 
           // Update private cards with new IDs
-          setPrivateCards(prev => 
-            prev.map(card => {
-              if (card.id.startsWith('temp-')) {
-                const saved = savedCards.find(
-                  sc => sc.title === card.title && sc.game_type === card.game_type
-                );
-                return saved || card;
-              }
-              return card;
-            })
-          );
+          const updatedPrivateCards = uiState.localPrivateCards.map(card => {
+            if (card.id.startsWith('temp-')) {
+              const saved = savedCards.find(
+                sc => sc.title === card.title && sc.game_type === card.game_type
+              );
+              return saved || card;
+            }
+            return card;
+          });
+          uiActions.setLocalPrivateCards(updatedPrivateCards);
         }
       }
 
+      // Convert grid cards to board cells for board_state
+      const boardCells = uiState.localGridCards.map(card => ({
+        cell_id: card.id.startsWith('temp-') ? null : card.id,
+        text: card.title || null,
+        colors: null,
+        completed_by: null,
+        blocked: false,
+        is_marked: false,
+        version: (board.version || 0) + 1,
+        last_updated: Date.now(),
+        last_modified_by: authUser.id,
+      }));
+
       // Update the board
       const boardData: BoardEditData = {
-        title: formData.board_title,
-        description: formData.board_description || null,
-        difficulty: formData.board_difficulty,
-        is_public: formData.is_public,
+        title: uiState.formData.board_title,
+        description: uiState.formData.board_description || null,
+        difficulty: uiState.formData.board_difficulty,
+        is_public: uiState.formData.is_public,
         board_state: boardCells,
       };
 
-      const updateResult = await updateBoard(boardData, currentBoard.version || 0);
-      
+      const updateResult = await updateBoard(boardData, board.version || 0);
+
       if (updateResult.error) {
         throw new Error(updateResult.error);
       }
 
+      uiActions.setShowSaveSuccess(true);
       notifications.success('Board saved successfully!');
+
       logger.info('Board saved successfully', {
-        metadata: {
-          hook: 'useBingoBoardEdit',
-          boardId: currentBoard.id,
-        },
+        metadata: { hook: 'useBingoBoardEditModern', boardId: board.id },
       });
 
       return true;
     } catch (error) {
       logger.error('Failed to save board changes', error as Error, {
-        metadata: {
-          hook: 'useBingoBoardEdit',
-          boardId: currentBoard.id,
-          formData,
-        },
+        metadata: { hook: 'useBingoBoardEditModern', boardId },
       });
+
       notifications.error('Failed to save board', {
-        description: error instanceof Error ? error.message : 'Please try again or contact support.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Please try again or contact support.',
       });
+
       return false;
+    } finally {
+      uiActions.setIsSaving(false);
     }
-  }, [currentBoard, formData, userData, gridCards, privateCards, saveCards, updateBoard]);
+  }, [
+    board,
+    uiState.formData,
+    uiState.localGridCards,
+    uiState.localPrivateCards,
+    authUser,
+    saveCards,
+    updateBoard,
+    uiActions,
+    boardId,
+  ]);
 
   // Initialize board (refresh data)
   const initializeBoard = useCallback(async () => {
     try {
-      setIsInitialized(false);
       await refetch();
       logger.info('Board data refreshed', {
-        metadata: { hook: 'useBingoBoardEdit', boardId },
+        metadata: { hook: 'useBingoBoardEditModern', boardId },
       });
     } catch (error) {
       logger.error('Failed to refresh board data', error as Error, {
-        metadata: { hook: 'useBingoBoardEdit', boardId },
+        metadata: { hook: 'useBingoBoardEditModern', boardId },
       });
       notifications.error('Failed to refresh board data', {
         description: 'Please try again or contact support.',
@@ -579,41 +448,146 @@ export function useBingoBoardEdit(boardId: string): BoardEditReturn {
     }
   }, [refetch, boardId]);
 
+  // Create card wrapper
+  const createCard = useCallback(
+    async (cardData: Partial<BingoCard>): Promise<BingoCard | null> => {
+      if (!board || !authUser) return null;
+
+      try {
+        const insertData: CardInsertData = {
+          title: cardData.title || '',
+          description: cardData.description || null,
+          game_type: board.game_type,
+          difficulty: cardData.difficulty || board.difficulty,
+          tags: cardData.tags || [],
+          creator_id: authUser.id,
+          is_public: cardData.is_public || false,
+        };
+
+        const result = await createCardMutation(insertData);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        return result.card;
+      } catch (error) {
+        logger.error('Failed to create card', error as Error, {
+          metadata: { hook: 'useBingoBoardEditModern', cardData },
+        });
+        notifications.error('Failed to create card');
+        return null;
+      }
+    },
+    [board, authUser, createCardMutation]
+  );
+
+  // Update card wrapper
+  const updateCard = useCallback(
+    async (
+      cardId: string,
+      updates: Partial<BingoCard>
+    ): Promise<BingoCard | null> => {
+      try {
+        const result = await updateCardMutation(cardId, updates);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        return result.card;
+      } catch (error) {
+        logger.error('Failed to update card', error as Error, {
+          metadata: { hook: 'useBingoBoardEditModern', cardId, updates },
+        });
+        notifications.error('Failed to update card');
+        return null;
+      }
+    },
+    [updateCardMutation]
+  );
+
+  // Start saving wrapper
+  const startSaving = useCallback(() => {
+    uiActions.setIsSaving(true);
+  }, [uiActions]);
+
+  // Complete saving wrapper
+  const completeSaving = useCallback(
+    (success: boolean) => {
+      uiActions.setIsSaving(false);
+      if (success) {
+        uiActions.setShowSaveSuccess(true);
+      }
+    },
+    [uiActions]
+  );
+
   return {
-    // Loading states
+    // Server state
+    board: board || null,
+    cards,
     isLoadingBoard,
     isLoadingCards,
     isSaving,
-    
-    // Data states
     error,
-    currentBoard,
-    formData,
-    gridCards,
-    privateCards,
-    gridSize,
-    
-    // Form state
-    fieldErrors,
-    editingCard,
-    
-    // Actions - form management
-    setFormData,
+
+    // UI state
+    editingCard: uiState.editingCard,
+    selectedCard: uiState.selectedCard,
+    showPositionSelectDialog: uiState.showPositionSelectDialog,
+    showCardEditDialog: uiState.showCardEditDialog,
+    showSaveSuccess: uiState.showSaveSuccess,
+    formData: uiState.formData,
+    fieldErrors: uiState.fieldErrors,
+    localGridCards: uiState.localGridCards,
+    localPrivateCards: uiState.localPrivateCards,
+    draggedCard: uiState.draggedCard,
+    draggedFromIndex: uiState.draggedFromIndex,
+
+    // Modal management
+    openCardEditor: uiActions.openCardEditor,
+    closeCardEditor: uiActions.closeCardEditor,
+    setSelectedCard: uiActions.setSelectedCard,
+    clearSelectedCard: uiActions.clearSelectedCard,
+    handleCardSelect,
+    setShowPositionSelectDialog: uiActions.setShowPositionSelectDialog,
+
+    // Form management
+    setFormData: uiActions.setFormData,
     updateFormField,
-    setEditingCard,
-    
-    // Actions - card management
-    setGridCards,
+    setFieldErrors: uiActions.setFieldErrors,
+    clearFieldError: uiActions.clearFieldError,
+
+    // Grid management
+    setLocalGridCards: uiActions.setLocalGridCards,
+    setLocalPrivateCards: uiActions.setLocalPrivateCards,
+    updateGridCard: uiActions.updateGridCard,
+    addPrivateCard: uiActions.addPrivateCard,
+    removePrivateCard: uiActions.removePrivateCard,
     placeCardInGrid,
-    createNewCard,
-    createPrivateCard,
-    updateExistingCard,
-    
-    // Actions - board operations
+
+    // Drag state
+    setDraggedCard: uiActions.setDraggedCard,
+    setDraggedFromIndex: uiActions.setDraggedFromIndex,
+
+    // Position selection
+    handlePositionSelect,
+
+    // Save operations
+    startSaving,
+    completeSaving,
     handleSave,
+
+    // Board operations
     initializeBoard,
-    
+    createCard,
+    updateCard,
+
     // Validation
-    validateBingoCardField,
+    validateField,
+
+    // Utility
+    reset: uiActions.reset,
   };
 }

@@ -4,18 +4,10 @@ import { useCallback, useEffect } from 'react';
 import { z } from 'zod';
 import type { GameCategory, Difficulty as _Difficulty } from '@/types';
 import type { Enums } from '@/types/database-generated';
+import { DIFFICULTIES } from '@/src/types/index';
 
 // Type alias for clean usage
 type DifficultyLevel = Enums<'difficulty_level'>;
-
-// Create constants from enum types
-const Constants = {
-  public: {
-    Enums: {
-      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
-    }
-  }
-} as const;
 import {
   type CardCategory,
   CARD_CATEGORIES,
@@ -27,7 +19,7 @@ const generatorFormSchema = z
   .object({
     categories: z.array(z.string()).min(1, 'At least one category is required'),
     useAllCategories: z.boolean(),
-    difficulty: z.enum([...Constants.public.Enums.difficulty_level] as [
+    difficulty: z.enum([...DIFFICULTIES] as [
       DifficultyLevel,
       ...DifficultyLevel[],
     ]),
@@ -56,7 +48,7 @@ export type GeneratorFormData = z.infer<typeof generatorFormSchema>;
 const getDefaultValues = (): GeneratorFormData => ({
   categories: [...CARD_CATEGORIES],
   useAllCategories: true,
-  difficulty: Constants.public.Enums.difficulty_level[2] || 'medium', // Default to medium
+  difficulty: DIFFICULTIES[2] || 'medium', // Default to medium (index 2)
   poolSize: 'Medium',
   minVotes: GENERATOR_UI_CONFIG.MIN_VOTES_DEFAULT,
   usePrivateCards: true,

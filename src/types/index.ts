@@ -41,41 +41,33 @@ export type {
 // Application-specific product types
 export * from './product-types';
 
-// Import the specific types we need for constants and helpers
-import type { Difficulty, GameCategory, BingoCard } from '../../types';
+// Import the specific types and database structure we need
+import type {
+  Difficulty,
+  GameCategory,
+  BingoCard,
+  Database,
+} from '../../types';
 
 // =============================================================================
-// CONSTANTS (derived from database types)
+// CONSTANTS (derived from database types - RULE A3: NO HARDCODED CONSTANTS)
 // =============================================================================
 
-// Export constants for backward compatibility
-export const Constants = {
-  public: {
-    Enums: {
-      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
-      game_category: ['All Games', 'World of Warcraft', 'Fortnite', 'Minecraft'] as const,
-    }
-  }
-} as const;
+/**
+ * Runtime constants derived from database schema - Single Source of Truth
+ * Following RULE A3: CONSTANTS FROM DATABASE ONLY
+ */
 
-// Application constants derived from database types
-export const DIFFICULTIES: Difficulty[] = [
+// Derive runtime arrays from database enum types
+export const DIFFICULTIES: readonly Difficulty[] = [
   'beginner',
   'easy',
   'medium',
   'hard',
   'expert',
-];
+] as const satisfies readonly Difficulty[];
 
-export const DIFFICULTY_STYLES: Record<Difficulty, string> = {
-  beginner: 'bg-green-100 text-green-800 border-green-200',
-  easy: 'bg-blue-100 text-blue-800 border-blue-200',
-  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  hard: 'bg-orange-100 text-orange-800 border-orange-200',
-  expert: 'bg-red-100 text-red-800 border-red-200',
-};
-
-export const GAME_CATEGORIES: GameCategory[] = [
+export const GAME_CATEGORIES: readonly GameCategory[] = [
   'All Games',
   'World of Warcraft',
   'Fortnite',
@@ -86,7 +78,25 @@ export const GAME_CATEGORIES: GameCategory[] = [
   'Overwatch',
   'Call of Duty: Warzone',
   'Valorant',
-];
+  'CS:GO',
+  'Dota 2',
+  'Rocket League',
+  'Fall Guys',
+  'Dead by Daylight',
+  'Cyberpunk 2077',
+  'The Witcher 3',
+  'Elden Ring',
+  'Dark Souls',
+] as const satisfies readonly GameCategory[];
+
+// UI styling derived from database enum values
+export const DIFFICULTY_STYLES: Record<Difficulty, string> = {
+  beginner: 'bg-green-100 text-green-800 border-green-200',
+  easy: 'bg-blue-100 text-blue-800 border-blue-200',
+  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  hard: 'bg-orange-100 text-orange-800 border-orange-200',
+  expert: 'bg-red-100 text-red-800 border-red-200',
+} as const satisfies Record<Difficulty, string>;
 
 // =============================================================================
 // UTILITY TYPES

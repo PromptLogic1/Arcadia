@@ -34,10 +34,7 @@ export {
 } from './bingo-generator-store';
 
 // Export Sessions store
-export {
-  useSessionsState,
-  useSessionsActions,
-} from './sessions-store';
+export { useSessionsState, useSessionsActions } from './sessions-store';
 
 // Export Settings store
 export {
@@ -47,3 +44,20 @@ export {
   useSettingsPreferences,
   useSettingsActions,
 } from './settings-store';
+
+// Export Board Collections store
+export {
+  useBoardCollectionsStore,
+  useBoardCollectionsState,
+  useBoardCollectionsActions,
+} from './board-collections-store';
+
+// Export User Profile store
+export {
+  useUserProfileStore,
+  useUserProfileState,
+  useUserProfileActions,
+  useUserProfileTabState,
+  useUserProfileEditState,
+  useUserProfileActivityState,
+} from './user-profile-store';

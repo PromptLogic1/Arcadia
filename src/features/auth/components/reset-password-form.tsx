@@ -1,93 +1,67 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Info, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuthActions } from '@/lib/stores';
-import { logger } from '@/lib/logger';
-import { notifications } from '@/lib/notifications';
+import { useResetPasswordForm } from './hooks/useResetPasswordForm';
+import { useResetPasswordSubmission } from './hooks/useResetPasswordSubmission';
+import { usePasswordRequirements } from './hooks/usePasswordRequirements';
 
+/**
+ * Reset Password Form Component
+ *
+ * Modern implementation using:
+ * - React Hook Form + Zod validation
+ * - TanStack Query mutations
+ * - Custom hooks for clean separation of concerns
+ */
 export function ResetPasswordForm() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const router = useRouter();
-  const { setLoading, resetPassword, checkPasswordRequirements } =
-    useAuthActions();
+  const { form, isValid, password, handleSubmit } = useResetPasswordForm();
+  const { isSubmitting, isSuccess, error, submitResetPassword } =
+    useResetPasswordSubmission();
+  const { requirements, allMet } = usePasswordRequirements(password);
 
-  // Use Zustand auth store for password checks
-  const passwordChecks = checkPasswordRequirements(password);
+  const {
+    register,
+    formState: { errors },
+  } = form;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setStatus('loading');
-    setLoading(true);
+  const onSubmit = handleSubmit(async data => {
+    await submitResetPassword(data);
+  });
 
-    try {
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match');
-      }
-
-      if (!Object.values(passwordChecks).every(Boolean)) {
-        throw new Error('Password does not meet all requirements');
-      }
-
-      const result = await resetPassword(password);
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      setStatus('success');
-      // Redirect to home page after successful password reset
-      setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 2000);
-      notifications.success('Password reset successfully!');
-      logger.info('Password reset successfully', {
-        component: 'ResetPasswordForm',
-      });
-    } catch (error) {
-      logger.error('Password reset failed', error as Error, {
-        component: 'ResetPasswordForm',
-      });
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to reset password. Please try again.'
-      );
-      notifications.error('Failed to reset password', {
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Please try again or contact support.',
-      });
-      setStatus('idle');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (isSuccess) {
+    return (
+      <div className="w-full max-w-md space-y-6 text-center">
+        <div className="mb-8 text-center">
+          <h2 className="bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+            Password Reset Successful
+          </h2>
+          <p className="mt-2 text-sm text-gray-400">
+            Your password has been updated successfully. Redirecting you now...
+          </p>
+        </div>
+        <div className="flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-green-400 border-t-transparent"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-md space-y-6 text-center">
+    <div className="w-full max-w-md space-y-6">
       <div className="mb-8 text-center">
         <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
-          Reset your password
+          Set new password
         </h2>
         <p className="mt-2 text-sm text-gray-400">
-          Please enter your new password
+          Choose a strong password for your account
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         {error && (
           <div className="flex items-start gap-2 rounded-lg border-red-500/20 bg-red-500/10 p-3">
             <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
@@ -95,87 +69,108 @@ export function ResetPasswordForm() {
           </div>
         )}
 
-        {status === 'success' && (
-          <div className="flex items-start gap-2 rounded-lg border-green-500/20 bg-green-500/10 p-3">
-            <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-400" />
-            <p className="text-sm text-green-400">
-              Password successfully reset. Redirecting to home page...
-            </p>
-          </div>
-        )}
-
-        <div className="relative space-y-2">
+        <div className="space-y-2">
           <Label htmlFor="password">New Password</Label>
           <Input
             id="password"
             type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onFocus={() => setIsPasswordFocused(true)}
-            onBlur={() => setIsPasswordFocused(false)}
-            className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500"
-            disabled={status === 'loading'}
-            required
+            {...register('password')}
+            className={cn(
+              'border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
+              (errors.password || error) &&
+                'border-red-500/50 focus:border-red-500'
+            )}
+            placeholder="Enter new password"
+            disabled={isSubmitting}
           />
-
-          {isPasswordFocused && (
-            <div className="absolute top-0 left-full ml-4 w-72 space-y-2 rounded-lg border border-cyan-500/20 bg-gray-800/95 p-4 backdrop-blur-sm">
-              <p className="mb-3 text-sm font-medium text-gray-300">
-                Password Requirements:
-              </p>
-              {[
-                { label: 'Uppercase letter', check: passwordChecks.uppercase },
-                { label: 'Lowercase letter', check: passwordChecks.lowercase },
-                { label: 'Number', check: passwordChecks.number },
-                { label: 'Special character', check: passwordChecks.special },
-                { label: '8 characters or more', check: passwordChecks.length },
-              ].map(({ label, check }) => (
-                <div
-                  key={label}
-                  className={cn(
-                    'flex items-center gap-2 text-sm',
-                    check ? 'text-green-400' : 'text-gray-400'
-                  )}
-                >
-                  {check ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <X className="h-4 w-4" />
-                  )}
-                  {label}
-                </div>
-              ))}
-            </div>
+          {errors.password && (
+            <p className="text-left text-sm text-red-400">
+              {errors.password.message}
+            </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirm-password">Confirm New Password</Label>
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
           <Input
-            id="confirm-password"
+            id="confirmPassword"
             type="password"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500"
-            disabled={status === 'loading'}
-            required
+            {...register('confirmPassword')}
+            className={cn(
+              'border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
+              (errors.confirmPassword || error) &&
+                'border-red-500/50 focus:border-red-500'
+            )}
+            placeholder="Confirm new password"
+            disabled={isSubmitting}
           />
+          {errors.confirmPassword && (
+            <p className="text-left text-sm text-red-400">
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
+
+        {password && (
+          <div className="space-y-3 rounded-lg border border-gray-700/50 bg-gray-800/30 p-4">
+            <h4 className="text-sm font-medium text-gray-300">
+              Password Requirements
+            </h4>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <RequirementItem
+                met={requirements.length}
+                label="At least 8 characters"
+              />
+              <RequirementItem
+                met={requirements.uppercase}
+                label="One uppercase letter"
+              />
+              <RequirementItem
+                met={requirements.lowercase}
+                label="One lowercase letter"
+              />
+              <RequirementItem met={requirements.number} label="One number" />
+              <RequirementItem
+                met={requirements.special}
+                label="One special character"
+              />
+            </div>
+          </div>
+        )}
 
         <Button
           type="submit"
-          disabled={status === 'loading'}
+          disabled={isSubmitting || !isValid || !allMet}
           className={cn(
             'w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500',
             'rounded-full py-2 font-medium text-white',
             'transition-all duration-200 hover:opacity-90',
             'shadow-lg shadow-cyan-500/25',
-            status === 'loading' && 'cursor-not-allowed opacity-50'
+            (isSubmitting || !isValid || !allMet) &&
+              'cursor-not-allowed opacity-50'
           )}
         >
-          {status === 'loading' ? 'Resetting...' : 'Reset Password'}
+          {isSubmitting ? 'Updating Password...' : 'Update Password'}
         </Button>
       </form>
+    </div>
+  );
+}
+
+interface RequirementItemProps {
+  met: boolean;
+  label: string;
+}
+
+function RequirementItem({ met, label }: RequirementItemProps) {
+  return (
+    <div className="flex items-center gap-2">
+      {met ? (
+        <Check className="h-4 w-4 text-green-400" />
+      ) : (
+        <X className="h-4 w-4 text-red-400" />
+      )}
+      <span className={met ? 'text-green-400' : 'text-gray-400'}>{label}</span>
     </div>
   );
 }

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
-import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGameModern';
+import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGame';
 import type { Player } from '../../../services/session-state.service';
 
 // Types (for future reference - these types are no longer used in this component)
@@ -42,17 +42,19 @@ interface GameSessionProps {
 export function GameSession({ sessionId }: GameSessionProps) {
   const router = useRouter();
   const { authUser, isAuthenticated } = useAuth();
-  
+
   // Use the modern hook for session management
   const { session, initializeSession } = useSessionModern(sessionId);
-  
+
   // UI state
   const [copySuccess, setCopySuccess] = useState(false);
-  
+
   // Derived state from the session
   const players = session.players || [];
-  const isHost = session.players?.some(p => p.id === authUser?.id && p.is_host) || false;
-  const playerInSession = session.players?.find(p => p.id === authUser?.id) || null;
+  const isHost =
+    session.players?.some(p => p.id === authUser?.id && p.is_host) || false;
+  const playerInSession =
+    session.players?.find(p => p.id === authUser?.id) || null;
   const loading = session.isLoading;
   const error = session.error?.message || null;
 
@@ -125,7 +127,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
       avatar_url: authUser.avatar_url || undefined,
       joined_at: new Date().toISOString(),
       is_active: true,
-      color: '#' + Math.floor(Math.random()*16777215).toString(16), // Random color
+      color: '#' + Math.floor(Math.random() * 16777215).toString(16), // Random color
       is_host: false,
       is_ready: true,
     };
@@ -295,9 +297,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
               <div className="flex gap-2">
                 <Badge
                   variant="outline"
-                  className={getDifficultyColor(
-                    session.difficulty || 'medium'
-                  )}
+                  className={getDifficultyColor(session.difficulty || 'medium')}
                 >
                   {session.difficulty || 'Medium'}
                 </Badge>
@@ -324,9 +324,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
               </div>
               <div>
                 <span className="text-gray-400">Board Size:</span>
-                <p className="font-medium text-gray-200">
-                  5×5
-                </p>
+                <p className="font-medium text-gray-200">5×5</p>
               </div>
               <div>
                 <span className="text-gray-400">Players:</span>

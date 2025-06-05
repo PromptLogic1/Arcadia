@@ -1,159 +1,165 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { createClient } from '@/lib/supabase';
-import type { PresenceState } from '../types/presence.types';
-import { PRESENCE_CONSTANTS } from '../types/presence.constants';
-import type { RealtimePresenceState } from '@supabase/supabase-js';
+import { useState, useCallback, useEffect } from 'react';
+import {
+  presenceService,
+  PRESENCE_CONSTANTS,
+  type PresenceState,
+} from '../../../services/presence-modern.service';
 import { logger } from '@/lib/logger';
 
-interface PresenceStateWithRef extends PresenceState {
-  presence_ref: string;
+export interface UsePresenceProps {
+  boardId: string;
+  userId?: string;
 }
 
-// Helper function to convert presence state
-const convertPresence = (presence: PresenceStateWithRef): PresenceState => ({
-  user_id: presence.user_id,
-  online_at: presence.online_at,
-  last_seen_at: presence.last_seen_at,
-  status: presence.status,
-  activity: 'viewing', // Default activity when online
-});
+export interface UsePresenceReturn {
+  presenceState: Record<string, PresenceState>;
+  error: Error | null;
+  getOnlineUsers: () => PresenceState[];
+  updatePresence: (status: PresenceState['status']) => Promise<void>;
+  isConnected: boolean;
+}
 
-export const usePresence = (boardId: string, userId?: string) => {
+export const usePresence = ({
+  boardId,
+  userId: _userId,
+}: UsePresenceProps): UsePresenceReturn => {
+  // State for presence data
   const [presenceState, setPresenceState] = useState<
     Record<string, PresenceState>
   >({});
   const [error, setError] = useState<Error | null>(null);
-  const supabase = createClient();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [updatePresenceFunc, setUpdatePresenceFunc] = useState<
+    ((status: PresenceState['status']) => Promise<void>) | null
+  >(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  const updatePresence = useCallback(
-    async (status: PresenceState['status']) => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user || !channelRef.current) return;
-
-        await channelRef.current.track({
-          user_id: user.id,
-          online_at: Date.now(),
-          last_seen_at: Date.now(),
-          status,
-        });
-      } catch (err) {
-        logger.error('Error updating presence', err as Error, {
-          metadata: { hook: 'usePresence', boardId, userId },
-        });
-      }
-    },
-    [supabase, boardId, userId]
+  // Helper function to get online users
+  const getOnlineUsers = useCallback(
+    () =>
+      Object.values(presenceState).filter(
+        p => p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
+      ),
+    [presenceState]
   );
 
-  const handleVisibilityChange = useCallback(() => {
-    const status = document.hidden
-      ? PRESENCE_CONSTANTS.STATUS.AWAY
-      : PRESENCE_CONSTANTS.STATUS.ONLINE;
-    void updatePresence(status);
-  }, [updatePresence]);
-
-  const setupPresence = useCallback(async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current);
+  // Update presence status
+  const updatePresence = useCallback(
+    async (status: PresenceState['status']) => {
+      if (!updatePresenceFunc) {
+        logger.warn('Presence not initialized', { metadata: { boardId } });
+        return;
       }
 
-      const channel = supabase.channel(`presence:bingo:${boardId}`);
-      channelRef.current = channel;
-
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState<PresenceStateWithRef>();
-          const typedState = Object.entries(
-            state as RealtimePresenceState<PresenceStateWithRef>
-          ).reduce(
-            (acc, [key, value]) => {
-              if (Array.isArray(value) && value[0]) {
-                acc[key] = convertPresence(value[0]);
-              }
-              return acc;
-            },
-            {} as Record<string, PresenceState>
-          );
-          setPresenceState(typedState);
-        })
-        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          if (newPresences?.[0]) {
-            const presence = newPresences[0] as PresenceStateWithRef;
-            setPresenceState(prev => ({
-              ...prev,
-              [key]: convertPresence(presence),
-            }));
-          }
-        })
-        .on('presence', { event: 'leave' }, ({ key }) => {
-          setPresenceState(prev => {
-            const newState = { ...prev };
-            delete newState[key];
-            return newState;
-          });
+      try {
+        await updatePresenceFunc(status);
+      } catch (error) {
+        logger.error('Failed to update presence', error as Error, {
+          metadata: { boardId, status },
         });
+        setError(error as Error);
+      }
+    },
+    [updatePresenceFunc, boardId]
+  );
 
-      await channel.subscribe(async status => {
-        if (status === 'SUBSCRIBED') {
-          await updatePresence(PRESENCE_CONSTANTS.STATUS.ONLINE);
-        }
-      });
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      const heartbeatInterval = setInterval(() => {
-        updatePresence(
-          document.hidden
-            ? PRESENCE_CONSTANTS.STATUS.AWAY
-            : PRESENCE_CONSTANTS.STATUS.ONLINE
-        );
-      }, PRESENCE_CONSTANTS.TIMING.HEARTBEAT_INTERVAL);
-
-      return () => {
-        clearInterval(heartbeatInterval);
-        document.removeEventListener(
-          'visibilitychange',
-          handleVisibilityChange
-        );
-        supabase.removeChannel(channel);
-        channelRef.current = null;
-      };
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error('Failed to track presence')
-      );
-      return undefined;
-    }
-  }, [boardId, supabase, updatePresence, handleVisibilityChange]);
-
+  // Set up presence subscription
   useEffect(() => {
-    const cleanup = setupPresence();
-    return () => {
-      cleanup?.then(fn => fn?.());
+    if (!boardId) return;
+
+    logger.debug('Setting up presence subscription', { metadata: { boardId } });
+
+    let cleanup: (() => void) | null = null;
+
+    const setupPresence = async () => {
+      try {
+        setError(null);
+        setIsConnected(false);
+
+        const subscription = await presenceService.subscribeToPresence(
+          boardId,
+          {
+            onPresenceUpdate: (
+              newPresenceState: Record<string, PresenceState>
+            ) => {
+              logger.debug('Presence state updated', {
+                metadata: {
+                  boardId,
+                  userCount: Object.keys(newPresenceState).length,
+                },
+              });
+              setPresenceState(newPresenceState);
+            },
+
+            onUserJoin: (key: string, presence: PresenceState) => {
+              logger.debug('User joined presence', {
+                metadata: { boardId, userId: presence.user_id },
+              });
+              setPresenceState(prev => ({
+                ...prev,
+                [key]: presence,
+              }));
+            },
+
+            onUserLeave: (key: string) => {
+              logger.debug('User left presence', {
+                metadata: { boardId, key },
+              });
+              setPresenceState(prev => {
+                const newState = { ...prev };
+                delete newState[key];
+                return newState;
+              });
+            },
+
+            onError: (error: Error) => {
+              logger.error('Presence error', error, { metadata: { boardId } });
+              setError(error);
+              setIsConnected(false);
+            },
+          }
+        );
+
+        // Store update function and cleanup
+        setUpdatePresenceFunc(() => subscription.updatePresence);
+        cleanup = subscription.cleanup;
+        setIsConnected(true);
+
+        logger.debug('Presence subscription established', {
+          metadata: { boardId },
+        });
+      } catch (error) {
+        const err =
+          error instanceof Error
+            ? error
+            : new Error('Failed to setup presence');
+        logger.error('Presence setup failed', err, { metadata: { boardId } });
+        setError(err);
+        setIsConnected(false);
+      }
     };
-  }, [setupPresence]);
+
+    setupPresence();
+
+    // Cleanup function
+    return () => {
+      if (cleanup) {
+        logger.debug('Cleaning up presence subscription', {
+          metadata: { boardId },
+        });
+        cleanup();
+      }
+      setUpdatePresenceFunc(null);
+      setIsConnected(false);
+    };
+  }, [boardId]);
 
   return {
     presenceState,
     error,
-    getOnlineUsers: useCallback(
-      () =>
-        Object.values(presenceState).filter(
-          p => p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
-        ),
-      [presenceState]
-    ),
+    getOnlineUsers,
+    updatePresence,
+    isConnected,
   };
 };
