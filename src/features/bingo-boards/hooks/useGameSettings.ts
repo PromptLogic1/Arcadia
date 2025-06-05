@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { BoardSettings, WinConditions } from '@/types';
 import { log } from '@/lib/logger';
@@ -54,7 +54,17 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const supabase = createClient();
+  // Memoize supabase client to prevent recreation
+  const supabase = useMemo(() => createClient(), []);
+  
+  // Refs to prevent stale closures
+  const settingsRef = useRef(settings);
+  const saveSettingsRef = useRef<((settings: BoardSettings) => Promise<void>) | null>(null);
+  
+  // Update refs when dependencies change
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   // Load settings on mount
   useEffect(() => {
@@ -192,6 +202,11 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
     },
     [boardId, supabase]
   );
+  
+  // Update saveSettings ref when it changes
+  useEffect(() => {
+    saveSettingsRef.current = saveSettings;
+  }, [saveSettings]);
 
   // Update settings with validation
   const updateSettings = useCallback(
@@ -260,7 +275,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         handleExternalSettingsChange
       );
     };
-  }, [validateSettings]);
+  }, [validateSettings, setSettings]); // Added setSettings dependency
 
   // Load from localStorage
   useEffect(() => {
@@ -288,15 +303,15 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
   // Core Functions
   const resetSettings = useCallback(async () => {
     setSettings(DEFAULT_BOARD_SETTINGS);
-    if (boardId) {
-      saveSettings(DEFAULT_BOARD_SETTINGS).catch(err => {
+    if (boardId && saveSettingsRef.current) {
+      saveSettingsRef.current(DEFAULT_BOARD_SETTINGS).catch(err => {
         log.error('Error resetting settings:', err as Error, {
           metadata: { hook: 'useGameSettings', boardId },
         });
         setError(new Error('Failed to reset settings'));
       });
     }
-  }, [boardId, saveSettings]);
+  }, [boardId]); // Removed saveSettings dependency, use ref instead
 
   // Toggle Functions
   const toggleTeamMode = useCallback(async () => {

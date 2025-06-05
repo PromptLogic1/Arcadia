@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Check, User, Settings } from 'lucide-react';
 import { log } from '@/lib/logger';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 
-export default function OAuthSuccessPage() {
+function OAuthSuccessContent() {
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -113,5 +114,13 @@ export default function OAuthSuccessPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function OAuthSuccessPage() {
+  return (
+    <RouteErrorBoundary routeName="OAuthSuccess">
+      <OAuthSuccessContent />
+    </RouteErrorBoundary>
   );
 }

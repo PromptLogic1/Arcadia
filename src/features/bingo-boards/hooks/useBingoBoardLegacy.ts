@@ -6,6 +6,7 @@ import {
   useMemo,
   useReducer,
   useTransition,
+  useRef,
 } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { Database } from '@/types';
@@ -76,6 +77,31 @@ export const useBingoBoard = ({
   const [isPending, startTransition] = useTransition();
 
   const supabase = useMemo(() => createClient(), []);
+  
+  // Refs to prevent stale closures
+  const boardStateRef = useRef<GameBoardCell[] | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  
+  // Update boardStateRef when state changes
+  useEffect(() => {
+    boardStateRef.current = state.board?.board_state || null;
+  }, [state.board?.board_state]);
+  
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Validierung mit Fehler-Feedback
   const validateBoardState = useCallback(
@@ -116,11 +142,17 @@ export const useBingoBoard = ({
     []
   );
 
-  // Fetch board data mit Retry-Logik
+  // Fetch board data mit Retry-Logik (fixed stale closures)
   const fetchBoard = useCallback(
-    async (attempt = 1) => {
+    async (attempt = 1): Promise<void> => {
       const maxAttempts = BOARD_CONSTANTS.UPDATE.MAX_RETRIES;
       const retryDelay = BOARD_CONSTANTS.UPDATE.RETRY_DELAY;
+
+      // Clear any existing retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
 
       try {
         const { data, error: fetchError } = await supabase
@@ -139,10 +171,12 @@ export const useBingoBoard = ({
 
         if (fetchError) {
           if (attempt < maxAttempts) {
-            await new Promise(resolve =>
-              setTimeout(resolve, retryDelay * attempt)
-            );
-            return fetchBoard(attempt + 1);
+            return new Promise((resolve) => {
+              retryTimeoutRef.current = setTimeout(() => {
+                retryTimeoutRef.current = null;
+                fetchBoard(attempt + 1).then(resolve).catch(resolve);
+              }, retryDelay * attempt);
+            });
           }
           startTransition(() => {
             dispatch({
@@ -155,10 +189,12 @@ export const useBingoBoard = ({
 
         if (!data || !validateBoardState(data.board_state)) {
           if (attempt < maxAttempts) {
-            await new Promise(resolve =>
-              setTimeout(resolve, retryDelay * attempt)
-            );
-            return fetchBoard(attempt + 1);
+            return new Promise((resolve) => {
+              retryTimeoutRef.current = setTimeout(() => {
+                retryTimeoutRef.current = null;
+                fetchBoard(attempt + 1).then(resolve).catch(resolve);
+              }, retryDelay * attempt);
+            });
           }
           startTransition(() => {
             dispatch({
@@ -174,10 +210,12 @@ export const useBingoBoard = ({
         });
       } catch (err) {
         if (attempt < maxAttempts && isTemporaryError(err as Error)) {
-          await new Promise(resolve =>
-            setTimeout(resolve, retryDelay * attempt)
-          );
-          return fetchBoard(attempt + 1);
+          return new Promise((resolve) => {
+            retryTimeoutRef.current = setTimeout(() => {
+              retryTimeoutRef.current = null;
+              fetchBoard(attempt + 1).then(resolve).catch(resolve);
+            }, retryDelay * attempt);
+          });
         }
         startTransition(() => {
           dispatch({
@@ -295,12 +333,13 @@ export const useBingoBoard = ({
     }
   };
 
-  // Realtime subscriptions mit Merge-Logik
+  // Realtime subscriptions mit Merge-Logik (fixed stale closures)
   useEffect(() => {
-    let reconnectAttempts = 0;
+    // Reset reconnect attempts on effect re-run
+    reconnectAttemptsRef.current = 0;
+    
     const maxReconnectAttempts = BOARD_CONSTANTS.SYNC.RECONNECT_ATTEMPTS;
     const reconnectDelay = BOARD_CONSTANTS.SYNC.RECONNECT_DELAY;
-    const currentBoardState = state.board?.board_state;
 
     const channel = supabase
       .channel(`board_${boardId}`)
@@ -321,6 +360,9 @@ export const useBingoBoard = ({
               validateBoardState(updatedBoard.board_state)
             ) {
               const boardState = updatedBoard.board_state;
+              // Use ref to get current board state for merging
+              const currentBoardState = boardStateRef.current;
+              
               dispatch({
                 type: 'UPDATE_BOARD',
                 payload: {
@@ -344,18 +386,29 @@ export const useBingoBoard = ({
       )
       .on('system', 'disconnect', () => {
         const tryReconnect = () => {
-          if (reconnectAttempts >= maxReconnectAttempts) return;
-          reconnectAttempts++;
+          // Check current attempt count from ref
+          if (reconnectAttemptsRef.current >= maxReconnectAttempts) return;
+          
+          // Clear any existing timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+          }
+          
+          reconnectAttemptsRef.current++;
+          const currentAttempt = reconnectAttemptsRef.current;
 
-          setTimeout(() => {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectTimeoutRef.current = null;
+            
             channel.subscribe((status: string) => {
               if (status === 'SUBSCRIBED') {
-                reconnectAttempts = 0;
-              } else {
+                reconnectAttemptsRef.current = 0;
+              } else if (reconnectAttemptsRef.current < maxReconnectAttempts) {
                 tryReconnect();
               }
             });
-          }, reconnectDelay * reconnectAttempts);
+          }, reconnectDelay * currentAttempt);
         };
 
         tryReconnect();
@@ -363,9 +416,15 @@ export const useBingoBoard = ({
       .subscribe();
 
     return () => {
+      // Clear any pending reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      reconnectAttemptsRef.current = 0;
       supabase.removeChannel(channel);
     };
-  }, [boardId, supabase, validateBoardState, state.board?.board_state]);
+  }, [boardId, supabase, validateBoardState]); // Removed state.board?.board_state dependency
 
   return {
     board: state.board,

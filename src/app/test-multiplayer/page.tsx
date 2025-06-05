@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/lib/stores/auth-store';
 import { useBingoGame } from '@/features/bingo-boards/hooks/useBingoGame';
+import { RouteErrorBoundary, RealtimeErrorBoundary } from '@/components/error-boundaries';
 
-export default function TestMultiplayerPage() {
+function TestMultiplayerContent() {
   const { authUser } = useAuth();
   const [sessionId, setSessionId] = useState('');
   const [sessionCode, setSessionCode] = useState('');
@@ -140,5 +141,15 @@ export default function TestMultiplayerPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function TestMultiplayerPage() {
+  return (
+    <RouteErrorBoundary routeName="TestMultiplayer">
+      <RealtimeErrorBoundary componentName="TestMultiplayer">
+        <TestMultiplayerContent />
+      </RealtimeErrorBoundary>
+    </RouteErrorBoundary>
   );
 }

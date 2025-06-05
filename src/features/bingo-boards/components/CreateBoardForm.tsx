@@ -26,6 +26,7 @@ import { Controller } from 'react-hook-form';
 import { GAME_CATEGORIES } from '@/src/types/index';
 import type { GameCategory } from '@/types';
 import { log } from '@/lib/logger';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 // =============================================================================
 // VALIDATION SCHEMA - Centralized, type-safe validation rules
@@ -250,13 +251,14 @@ export function CreateBoardForm({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto bg-gray-900 text-gray-100 sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-2xl font-bold text-transparent">
-            Create New Bingo Board
-          </DialogTitle>
-        </DialogHeader>
+        <BaseErrorBoundary level="component">
+          <DialogHeader>
+            <DialogTitle className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-2xl font-bold text-transparent">
+              Create New Bingo Board
+            </DialogTitle>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-6">
           {/* Board Title */}
           <FormField
             label="Board Title"
@@ -459,6 +461,7 @@ export function CreateBoardForm({
             </Button>
           </div>
         </form>
+        </BaseErrorBoundary>
       </DialogContent>
     </Dialog>
   );

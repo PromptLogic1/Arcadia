@@ -11,6 +11,7 @@ import { Gamepad2, Users2, Timer, AlertCircle } from 'lucide-react';
 import type { GamePlayer } from '../../types';
 import type { GameSettings as GameSettingsType } from '../../types/game-settings.types';
 import { useTransition } from 'react';
+import { RealtimeErrorBoundary } from '@/components/error-boundaries';
 
 interface GameControlsProps {
   className?: string;
@@ -83,12 +84,14 @@ export const GameControls: React.FC<GameControlsProps> = ({
                 </span>
               </div>
             </div>
-            <TimerControls
-              isOwner={isOwner}
-              isRunning={isRunning}
-              timeLimit={(settings.timeLimit || 3600) * 1000}
-              onTimerToggle={() => setRunning(!isRunning)}
-            />
+            <RealtimeErrorBoundary componentName="TimerControls">
+              <TimerControls
+                isOwner={isOwner}
+                isRunning={isRunning}
+                timeLimit={(settings.timeLimit || 3600) * 1000}
+                onTimerToggle={() => setRunning(!isRunning)}
+              />
+            </RealtimeErrorBoundary>
           </section>
 
           {/* Game Settings Section */}
@@ -131,15 +134,17 @@ export const GameControls: React.FC<GameControlsProps> = ({
                 </span>
               )}
             </div>
-            <PlayerManagement
-              isOwner={isOwner}
-              players={[]} // Game state no longer manages players - this is handled by session state
-              teamMode={Boolean(settings.team_mode)}
-              onPlayersChange={newPlayers => {
-                // Legacy compatibility - convert GamePlayer to Player if needed
-                newPlayers.forEach(player => onAddPlayer?.(player));
-              }}
-            />
+            <RealtimeErrorBoundary componentName="PlayerManagement">
+              <PlayerManagement
+                isOwner={isOwner}
+                players={[]} // Game state no longer manages players - this is handled by session state
+                teamMode={Boolean(settings.team_mode)}
+                onPlayersChange={newPlayers => {
+                  // Legacy compatibility - convert GamePlayer to Player if needed
+                  newPlayers.forEach(player => onAddPlayer?.(player));
+                }}
+              />
+            </RealtimeErrorBoundary>
           </section>
         </CardContent>
       </Card>

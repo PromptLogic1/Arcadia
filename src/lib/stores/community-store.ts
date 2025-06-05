@@ -85,6 +85,8 @@ interface CommunityActions {
   
   // Events management (mock data)
   setEvents: (events: Event[]) => void;
+  addEvent: (event: Omit<Event, 'id' | 'participants'>) => void;
+  updateEventParticipants: (eventId: number, delta: number) => void;
   
   // Utility
   reset: () => void;
@@ -167,6 +169,31 @@ export const useCommunityStore = createWithEqualityFn<CommunityState & Community
       // Events management (mock data - will be moved to TanStack Query when real)
       setEvents: (events) =>
         set({ events }, false, 'community/setEvents'),
+        
+      addEvent: (event) => {
+        const { events } = get();
+        const newEvent: Event = {
+          ...event,
+          id: events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1,
+          participants: 0,
+        };
+        set({ events: [...events, newEvent] }, false, 'community/addEvent');
+      },
+      
+      updateEventParticipants: (eventId, delta) => {
+        const { events } = get();
+        set(
+          {
+            events: events.map(event =>
+              event.id === eventId
+                ? { ...event, participants: Math.max(0, event.participants + delta) }
+                : event
+            ),
+          },
+          false,
+          'community/updateEventParticipants'
+        );
+      },
 
       // Utility
       reset: () =>
@@ -230,6 +257,8 @@ export const useCommunityActions = () =>
       
       // Events management (mock data)
       setEvents: state.setEvents,
+      addEvent: state.addEvent,
+      updateEventParticipants: state.updateEventParticipants,
       
       // Utility
       reset: state.reset,

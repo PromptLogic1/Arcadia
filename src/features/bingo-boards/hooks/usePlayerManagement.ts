@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type {
   GamePlayer,
   UsePlayerManagementProps,
@@ -92,7 +92,25 @@ export const usePlayerManagement = ({
   const { settings } = useGameSettings(sessionId);
   const { presenceState } = usePresence({ boardId: sessionId });
 
-  // Event Emitter
+  // Refs to prevent stale closures
+  const trackMoveRef = useRef(trackMove);
+  const playersRef = useRef(players);
+  const settingsRef = useRef(settings);
+
+  // Update refs when dependencies change
+  useEffect(() => {
+    trackMoveRef.current = trackMove;
+  }, [trackMove]);
+
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  // Event Emitter - Fixed stale closure
   const emitPlayerEvent = useCallback(
     (event: PlayerEvent) => {
       try {
@@ -107,7 +125,7 @@ export const usePlayerManagement = ({
           event.playerId &&
           event.newTeam !== undefined
         ) {
-          trackMove(event.playerId, 'team_switch', event.newTeam);
+          trackMoveRef.current(event.playerId, 'team_switch', event.newTeam);
         }
       } catch (error) {
         logger.error('Error emitting player event', error as Error, {
@@ -115,7 +133,7 @@ export const usePlayerManagement = ({
         });
       }
     },
-    [trackMove]
+    [] // Removed trackMove dependency, using ref instead
   );
 
   // Helper Functions
@@ -147,22 +165,24 @@ export const usePlayerManagement = ({
       try {
         _setLoading(true);
 
-        if (players.length >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
+        const currentPlayers = playersRef.current;
+        if (currentPlayers.length >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
           throw new Error('Maximum players reached');
         }
 
-        const playerCount = players.length;
+        const playerCount = currentPlayers.length;
         const colorIndex = playerCount % PLAYER_COLORS.length;
         const defaultColor =
           PLAYER_COLORS[colorIndex]?.color || PLAYER_COLORS[0].color;
 
+        const currentSettings = settingsRef.current;
         const newPlayer: GamePlayer = {
           id: `player-${Date.now()}`,
           user_id: `user-${Date.now()}`,
           session_id: sessionId,
           display_name: player.display_name || `Player ${playerCount + 1}`,
           color: player.color || defaultColor,
-          team: settings?.team_mode ? playerCount % 2 : player.team || 0,
+          team: currentSettings?.team_mode ? playerCount % 2 : player.team || 0,
           avatar_url: player.avatar_url || null,
           is_host: false,
           is_ready: false,
@@ -186,7 +206,7 @@ export const usePlayerManagement = ({
         _setLoading(false);
       }
     },
-    [players.length, settings?.team_mode, emitPlayerEvent, sessionId]
+    [emitPlayerEvent, sessionId] // Removed players.length and settings dependencies
   );
 
   const removePlayer = useCallback(async (playerId: string): Promise<void> => {
@@ -224,7 +244,8 @@ export const usePlayerManagement = ({
 
   const _switchTeam = useCallback(
     (playerId: string, newTeam: number): void => {
-      if (!settings?.team_mode) return;
+      const currentSettings = settingsRef.current;
+      if (!currentSettings?.team_mode) return;
 
       setPlayers(prev => {
         if (!checkTeamSize(newTeam, prev)) return prev;
@@ -240,16 +261,19 @@ export const usePlayerManagement = ({
           return player;
         });
 
-        emitPlayerEvent({
-          type: PLAYER_CONSTANTS.EVENTS.TEAM_CHANGE,
-          playerId,
-          newTeam,
-        });
+        // Emit event after state update to avoid stale closure
+        setTimeout(() => {
+          emitPlayerEvent({
+            type: PLAYER_CONSTANTS.EVENTS.TEAM_CHANGE,
+            playerId,
+            newTeam,
+          });
+        }, 0);
 
         return newPlayers;
       });
     },
-    [settings?.team_mode, emitPlayerEvent, checkTeamSize]
+    [emitPlayerEvent, checkTeamSize] // Removed settings dependency
   );
 
   // Sync with presence
@@ -287,7 +311,7 @@ export const usePlayerManagement = ({
       };
       setPlayers([defaultPlayer]);
     }
-  }, [players.length, sessionId]);
+  }, [players.length, sessionId]); // This dependency is OK for initialization
 
   return {
     players,

@@ -2,6 +2,7 @@
 
 import React, { Suspense, lazy } from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 
 // Page Configuration
 export const runtime = 'edge';
@@ -15,8 +16,10 @@ const LandingPage = lazy(
 
 export default function Home() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <LandingPage />
-    </Suspense>
+    <RouteErrorBoundary routeName="Home">
+      <Suspense fallback={<LoadingSpinner />}>
+        <LandingPage />
+      </Suspense>
+    </RouteErrorBoundary>
   );
 }

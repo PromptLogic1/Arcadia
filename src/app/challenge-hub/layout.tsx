@@ -3,5 +3,5 @@ export default function ChallengeHubLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <><BaseErrorBoundary level="layout">{children}</BaseErrorBoundary></>;
 }

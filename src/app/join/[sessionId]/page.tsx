@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSessionJoin } from '@/features/play-area/hooks/useSessionJoin';
 import { Users, Crown, Gamepad2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
 
 interface ColorOption {
   color: string;
@@ -36,7 +37,7 @@ const PLAYER_COLORS: ColorOption[] = [
   { color: '#0ea5e9', name: 'Sky' },
 ];
 
-export default function JoinSessionModern({
+function JoinSessionContent({
   params,
 }: {
   params: { sessionId: string };
@@ -238,5 +239,19 @@ export default function JoinSessionModern({
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function JoinSessionPage({
+  params,
+}: {
+  params: { sessionId: string };
+}) {
+  return (
+    <RouteErrorBoundary routeName={`Join-${params.sessionId}`}>
+      <AsyncBoundary loadingMessage="Loading session details...">
+        <JoinSessionContent params={params} />
+      </AsyncBoundary>
+    </RouteErrorBoundary>
   );
 }

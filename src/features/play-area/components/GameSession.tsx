@@ -27,6 +27,7 @@ import {
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
 import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGame';
+import { RealtimeErrorBoundary } from '@/components/error-boundaries';
 import type { Player } from '../../../services/session-state.service';
 
 // Types (for future reference - these types are no longer used in this component)
@@ -234,17 +235,18 @@ export function GameSession({ sessionId }: GameSessionProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold text-transparent">
-            {session.board_title || 'Gaming Session'}
-          </h1>
-          <p className="mt-1 text-gray-300">
-            Hosted by {session.host_username || 'Unknown'}
-          </p>
-        </div>
+    <RealtimeErrorBoundary componentName="GameSession">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold text-transparent">
+              {session.board_title || 'Gaming Session'}
+            </h1>
+            <p className="mt-1 text-gray-300">
+              Hosted by {session.host_username || 'Unknown'}
+            </p>
+          </div>
 
         <div className="flex gap-2">
           {session.session_code && (
@@ -455,5 +457,6 @@ export function GameSession({ sessionId }: GameSessionProps) {
         </CardContent>
       </Card>
     </div>
+    </RealtimeErrorBoundary>
   );
 }

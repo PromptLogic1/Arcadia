@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic';
+import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
 
 // Dynamically import the UserPageEdit component
 const UserPageEdit = dynamic(
@@ -14,8 +15,12 @@ const UserPageEdit = dynamic(
 
 export default function EditProfilePage() {
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <UserPageEdit />
-    </div>
+    <RouteErrorBoundary routeName="EditProfile">
+      <div className="min-h-screen bg-gray-900 text-white">
+        <AsyncBoundary loadingMessage="Loading profile editor...">
+          <UserPageEdit />
+        </AsyncBoundary>
+      </div>
+    </RouteErrorBoundary>
   );
 }

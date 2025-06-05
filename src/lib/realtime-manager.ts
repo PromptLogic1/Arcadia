@@ -262,19 +262,41 @@ class RealtimeManager {
   private debounceTimers = new Map<string, NodeJS.Timeout>();
 
   private debounce(key: string, callback: () => void, delay: number): void {
-    if (this.debounceTimers.has(key)) {
-      const timer = this.debounceTimers.get(key);
-      if (timer) {
-        clearTimeout(timer);
-      }
+    // Clear existing timer if any
+    const existingTimer = this.debounceTimers.get(key);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      this.debounceTimers.delete(key);
     }
 
-    const timer = setTimeout(() => {
-      callback();
-      this.debounceTimers.delete(key);
-    }, delay);
+    // Create new timer with error handling
+    try {
+      const timer = setTimeout(() => {
+        try {
+          callback();
+        } catch (error) {
+          logger.error('Error in debounced callback', error as Error, {
+            metadata: {
+              component: 'RealtimeManager',
+              debounceKey: key,
+            },
+          });
+        } finally {
+          // Ensure timer is cleaned up
+          this.debounceTimers.delete(key);
+        }
+      }, delay);
 
-    this.debounceTimers.set(key, timer);
+      this.debounceTimers.set(key, timer);
+    } catch (error) {
+      logger.error('Error setting debounce timer', error as Error, {
+        metadata: {
+          component: 'RealtimeManager',
+          debounceKey: key,
+          delay,
+        },
+      });
+    }
   }
 
   /**
@@ -283,10 +305,29 @@ class RealtimeManager {
   private scheduleBatchFlush(): void {
     if (this.batchTimeout) return;
 
-    this.batchTimeout = setTimeout(() => {
-      this.flushBatchedUpdates();
+    try {
+      this.batchTimeout = setTimeout(() => {
+        try {
+          this.flushBatchedUpdates();
+        } catch (error) {
+          logger.error('Error flushing batched updates', error as Error, {
+            metadata: {
+              component: 'RealtimeManager',
+              queueLength: this.updateQueue.length,
+            },
+          });
+        } finally {
+          this.batchTimeout = null;
+        }
+      }, 100); // 100ms batch window
+    } catch (error) {
+      logger.error('Error scheduling batch flush', error as Error, {
+        metadata: {
+          component: 'RealtimeManager',
+        },
+      });
       this.batchTimeout = null;
-    }, 100); // 100ms batch window
+    }
   }
 
   /**
@@ -447,6 +488,30 @@ class RealtimeManager {
 
 // Export singleton instance
 export const realtimeManager = RealtimeManager.getInstance();
+
+// Add cleanup on process exit/termination
+if (typeof process !== 'undefined' && process.on) {
+  process.on('beforeExit', () => {
+    realtimeManager.cleanup();
+  });
+  
+  process.on('SIGINT', () => {
+    realtimeManager.cleanup();
+    process.exit(0);
+  });
+  
+  process.on('SIGTERM', () => {
+    realtimeManager.cleanup();
+    process.exit(0);
+  });
+}
+
+// Add cleanup on browser unload
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    realtimeManager.cleanup();
+  });
+}
 
 // Export types for consumers
 export type { BatchedUpdate, RealtimeMetrics };

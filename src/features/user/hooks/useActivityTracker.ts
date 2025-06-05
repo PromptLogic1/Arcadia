@@ -5,7 +5,7 @@
  * Replaces direct Supabase usage with the established architecture pattern.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/stores';
 import { useLogActivityMutation } from '@/hooks/queries/useUserProfileQueries';
 import type { ActivityLogRequest } from '../../../services/user.service';
@@ -58,6 +58,22 @@ export function useActivityTracker(
 
   const { userData } = useAuth();
   const logActivityMutation = useLogActivityMutation();
+  
+  // Ref to track if component is mounted
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      // Cancel any in-flight batch operations
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -109,7 +125,9 @@ export function useActivityTracker(
           result && typeof result === 'object' && 'data' in result
             ? result.data
             : null;
-        if (activityId && typeof activityId === 'string') {
+        
+        // Only call success callback if component is still mounted
+        if (isMountedRef.current && activityId && typeof activityId === 'string') {
           onSuccess?.(activityId);
         }
 
@@ -117,19 +135,26 @@ export function useActivityTracker(
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Unknown error occurred');
-        setError(error);
-        onError?.(error);
-        logger.error('Activity logging failed', error, {
-          component: 'useActivityTracker',
-          metadata: {
-            userId: userData.id,
-            activityType,
-            data,
-          },
-        });
+        
+        // Only update state and call callbacks if component is still mounted
+        if (isMountedRef.current) {
+          setError(error);
+          onError?.(error);
+          logger.error('Activity logging failed', error, {
+            component: 'useActivityTracker',
+            metadata: {
+              userId: userData.id,
+              activityType,
+              data,
+            },
+          });
+        }
         return null;
       } finally {
-        setIsLogging(false);
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setIsLogging(false);
+        }
       }
     },
     [enableAutoLogging, userData?.id, logActivityMutation, onError, onSuccess]
@@ -149,6 +174,14 @@ export function useActivityTracker(
       }
 
       try {
+        // Cancel any existing batch operation
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        
+        // Create new abort controller for this batch operation
+        abortControllerRef.current = new AbortController();
+        
         setIsLogging(true);
         setError(null);
 
@@ -161,6 +194,10 @@ export function useActivityTracker(
         let totalFailures = 0;
 
         for (const batch of batches) {
+          // Check if component is still mounted and operation wasn't aborted
+          if (!isMountedRef.current || abortControllerRef.current.signal.aborted) {
+            throw new Error('Operation cancelled');
+          }
           const promises = batch.map(async activity => {
             const activityData: ActivityLogRequest = {
               type: activity.activity_type,
@@ -216,21 +253,35 @@ export function useActivityTracker(
             `${totalFailures} out of ${activities.length} activities failed to log`
           );
         }
+        
+        // Clear abort controller on success
+        abortControllerRef.current = null;
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Unknown error occurred');
-        setError(error);
-        onError?.(error);
-        logger.error('Batch activity logging failed', error, {
-          component: 'useActivityTracker',
-          metadata: {
-            userId: userData.id,
-            activityCount: activities.length,
-            batchSize,
-          },
-        });
+        
+        // Only update state if component is still mounted
+        if (isMountedRef.current && err.message !== 'Operation cancelled') {
+          setError(error);
+          onError?.(error);
+          logger.error('Batch activity logging failed', error, {
+            component: 'useActivityTracker',
+            metadata: {
+              userId: userData.id,
+              activityCount: activities.length,
+              batchSize,
+            },
+          });
+        }
       } finally {
-        setIsLogging(false);
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setIsLogging(false);
+        }
+        // Clear abort controller reference
+        if (abortControllerRef.current?.signal.aborted) {
+          abortControllerRef.current = null;
+        }
       }
     },
     [enableAutoLogging, batchSize, userData?.id, logActivityMutation, onError]

@@ -1,41 +1,46 @@
-import { useState, useCallback } from 'react';
-import type { GameCategory, Difficulty as _Difficulty } from '@/types';
+/**
+ * Generator Panel Hook - Modern Implementation
+ * 
+ * Uses the established Zustand + TanStack Query pattern:
+ * - Zustand store for UI state (settings, selected categories, etc.)
+ * - TanStack Query for server operations (generate, reshuffle)
+ * - Service layer for pure API functions
+ */
+
+import { useCallback, useEffect } from 'react';
+import type { GameCategory } from '@/types';
+import { 
+  useBingoGeneratorSettings, 
+  useBingoGeneratorActions,
+  useBingoGenerator,
+} from '@/lib/stores/bingo-generator-store';
+import { 
+  useGenerateBoardMutation, 
+  useReshuffleCardsMutation 
+} from '@/hooks/queries/useBingoGeneratorQueries';
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
+import { useAuth } from '@/lib/stores/auth-store';
+import type { CardCategory } from '../types/generator.types';
 import type { Enums } from '@/types/database-generated';
-import { DIFFICULTIES } from '@/src/types/index';
 
-// Type alias for clean usage
 type DifficultyLevel = Enums<'difficulty_level'>;
-import {
-  type GENERATOR_CONFIG,
-  CARD_CATEGORIES,
-  type CardCategory,
-} from '../types/generator.types';
-import { log } from '@/lib/logger';
-
 type GeneratorDifficulty = DifficultyLevel;
 
-interface GeneratorSettings {
-  difficulty: GeneratorDifficulty;
-  cardPoolSize: 'Small' | 'Medium' | 'Large';
-  minVotes: number;
-  selectedCategories: CardCategory[];
-  gameCategory: GameCategory;
-  cardSource: 'public' | 'private' | 'publicprivate';
-}
-
 interface UseGeneratorPanel {
+  // State from Zustand
   isLoading: boolean;
   error: string | null;
   selectedCategories: CardCategory[];
   difficulty: GeneratorDifficulty;
   minVotes: number;
-  poolSize: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS;
+  poolSize: 'Small' | 'Medium' | 'Large';
+  
+  // Actions
   handleCategoriesChange: (selectedCategories: CardCategory[]) => void;
   handleDifficultyChange: (difficulty: GeneratorDifficulty) => void;
   handleMinVotesChange: (votes: number) => void;
-  handlePoolSizeChange: (
-    size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS
-  ) => void;
+  handlePoolSizeChange: (size: 'Small' | 'Medium' | 'Large') => void;
   generateBoard: () => Promise<void>;
   reshuffleBoard: (gridSize: number) => Promise<void>;
 }
@@ -46,90 +51,157 @@ export function useGeneratorPanel(
   usePublicCards: boolean,
   usePrivateCards: boolean
 ): UseGeneratorPanel {
-  // Local state for generator settings
-  const [selectedCategories, setSelectedCategories] = useState<CardCategory[]>([
-    ...CARD_CATEGORIES,
-  ]);
-  const [difficulty, setDifficulty] = useState<GeneratorDifficulty>(
-    DIFFICULTIES[2] || 'medium'
-  ); // Default to medium (index 2)
-  const [minVotes, setMinVotes] = useState(0);
-  const [poolSize, setPoolSize] =
-    useState<keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS>('Medium');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Handlers for settings changes
+  // Zustand store
+  const settings = useBingoGeneratorSettings();
+  const { isLoading, error, cardsForSelection } = useBingoGenerator();
+  const {
+    setSelectedCategories,
+    setDifficulty,
+    setMinVotes,
+    setCardPoolSize,
+    setGameCategory,
+    setCardSource,
+    setCardsForSelection,
+    setError,
+    setIsLoading,
+  } = useBingoGeneratorActions();
+  
+  // Auth for user ID
+  const { authUser } = useAuth();
+  
+  // TanStack Query mutations
+  const generateMutation = useGenerateBoardMutation();
+  const reshuffleMutation = useReshuffleCardsMutation();
+  
+  // Update game category when it changes
+  useEffect(() => {
+    setGameCategory(gameCategory);
+  }, [gameCategory, setGameCategory]);
+  
+  // Update card source based on props
+  useEffect(() => {
+    const cardSource = 
+      usePublicCards && usePrivateCards ? 'publicprivate' :
+      usePublicCards ? 'public' : 'private';
+    setCardSource(cardSource);
+  }, [usePublicCards, usePrivateCards, setCardSource]);
+  
+  // Handlers - these just update Zustand state
   const handleCategoriesChange = useCallback((categories: CardCategory[]) => {
     setSelectedCategories(categories);
-    log.info('Selected Categories:', {
-      metadata: { hook: 'useGeneratorPanel', categories: categories },
+    logger.info('Selected Categories updated', {
+      metadata: {
+        component: 'useGeneratorPanel',
+        categories,
+      },
     });
-  }, []);
-
+  }, [setSelectedCategories]);
+  
   const handleDifficultyChange = useCallback((diff: GeneratorDifficulty) => {
     setDifficulty(diff);
-  }, []);
-
+  }, [setDifficulty]);
+  
   const handleMinVotesChange = useCallback((votes: number) => {
     setMinVotes(votes);
-  }, []);
-
-  const handlePoolSizeChange = useCallback(
-    (size: keyof typeof GENERATOR_CONFIG.CARDPOOLSIZE_LIMITS) => {
-      setPoolSize(size);
-    },
-    []
-  );
-
-  // Generate new board
-  const generateBoard = async () => {
+  }, [setMinVotes]);
+  
+  const handlePoolSizeChange = useCallback((size: 'Small' | 'Medium' | 'Large') => {
+    setCardPoolSize(size);
+  }, [setCardPoolSize]);
+  
+  // Generate board - uses TanStack Query mutation
+  const generateBoard = useCallback(async () => {
     try {
-      setIsLoading(true);
-      const settings: GeneratorSettings = {
-        difficulty,
-        cardPoolSize: poolSize,
-        minVotes,
-        selectedCategories,
+      setError(null);
+      
+      if (!gameCategory) {
+        throw new Error('Game category is required');
+      }
+      
+      const result = await generateMutation.mutateAsync({
         gameCategory,
-        cardSource:
-          usePublicCards && usePrivateCards
-            ? 'publicprivate'
-            : usePublicCards
-              ? 'public'
-              : 'private',
-      };
-
-      log.info('Generating board with settings:', {
-        metadata: { hook: 'useGeneratorPanel', settings, gridSize },
+        difficulty: settings.difficulty,
+        cardPoolSize: settings.cardPoolSize,
+        minVotes: settings.minVotes,
+        selectedCategories: settings.selectedCategories,
+        cardSource: settings.cardSource,
+        gridSize,
+        userId: authUser?.id,
       });
-      // TODO: Implement bingo generator service
-      throw new Error('Bingo generator service not yet implemented');
+      
+      // Store the generated cards
+      setCardsForSelection(result.cards);
+      
+      notifications.success('Board generated successfully!', {
+        description: `Generated ${result.cards.length} cards from ${result.totalAvailable} available`,
+      });
+      
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to generate board'
-      );
-    } finally {
-      setIsLoading(false);
+      const message = error instanceof Error ? error.message : 'Failed to generate board';
+      setError(message);
+      notifications.error('Board generation failed', {
+        description: message,
+      });
     }
-  };
-
-  // Reshuffle existing board
+  }, [
+    gameCategory,
+    gridSize,
+    settings,
+    authUser?.id,
+    generateMutation,
+    setCardsForSelection,
+    setError,
+  ]);
+  
+  // Reshuffle board - uses TanStack Query mutation
   const reshuffleBoard = useCallback(async (gridSize: number) => {
-    log.info('Reshuffling board with gridSize:', {
-      metadata: { hook: 'useGeneratorPanel', gridSize },
-    });
-    // TODO: Implement bingo generator service
-    throw new Error('Bingo generator service not yet implemented');
-  }, []);
-
+    try {
+      setError(null);
+      
+      if (cardsForSelection.length === 0) {
+        throw new Error('No cards available to reshuffle');
+      }
+      
+      const result = await reshuffleMutation.mutateAsync({
+        cards: cardsForSelection,
+        gridSize,
+      });
+      
+      // Update the cards with reshuffled order
+      setCardsForSelection(result);
+      
+      notifications.success('Cards reshuffled!');
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to reshuffle cards';
+      setError(message);
+      notifications.error('Reshuffle failed', {
+        description: message,
+      });
+    }
+  }, [
+    cardsForSelection,
+    reshuffleMutation,
+    setCardsForSelection,
+    setError,
+  ]);
+  
+  // Update loading state based on mutations
+  useEffect(() => {
+    const loading = generateMutation.isPending || reshuffleMutation.isPending;
+    setIsLoading(loading);
+  }, [generateMutation.isPending, reshuffleMutation.isPending, setIsLoading]);
+  
   return {
-    isLoading,
+    // State
+    isLoading: isLoading || generateMutation.isPending || reshuffleMutation.isPending,
     error,
-    selectedCategories,
-    difficulty,
-    minVotes,
-    poolSize,
+    selectedCategories: settings.selectedCategories,
+    difficulty: settings.difficulty,
+    minVotes: settings.minVotes,
+    poolSize: settings.cardPoolSize,
+    
+    // Actions
     handleCategoriesChange,
     handleDifficultyChange,
     handleMinVotesChange,

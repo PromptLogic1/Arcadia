@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useForgotPasswordForm } from './hooks/useForgotPasswordForm';
 import { useForgotPasswordSubmission } from './hooks/useForgotPasswordSubmission';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 /**
  * Forgot Password Form Component
@@ -32,18 +33,19 @@ export function ForgotPasswordForm() {
   });
 
   return (
-    <div className="w-full max-w-md space-y-6 text-center">
-      <div className="mb-8 text-center">
-        <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
-          Reset your password
-        </h2>
-        <p className="mt-2 text-sm text-gray-400">
-          Enter your email address and we&apos;ll send you a link to reset your
-          password
-        </p>
-      </div>
+    <BaseErrorBoundary level="component">
+      <div className="w-full max-w-md space-y-6 text-center">
+        <div className="mb-8 text-center">
+          <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+            Reset your password
+          </h2>
+          <p className="mt-2 text-sm text-gray-400">
+            Enter your email address and we&apos;ll send you a link to reset your
+            password
+          </p>
+        </div>
 
-      {isSuccess ? (
+        {isSuccess ? (
         <div className="space-y-6">
           <div className="flex items-start gap-2 rounded-lg border border-green-500/20 bg-green-500/10 p-4">
             <Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-400" />
@@ -118,6 +120,7 @@ export function ForgotPasswordForm() {
           </Link>
         </form>
       )}
-    </div>
+      </div>
+    </BaseErrorBoundary>
   );
 }

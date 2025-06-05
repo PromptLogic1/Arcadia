@@ -20,6 +20,7 @@ import {
 import { BiGridAlt } from 'react-icons/bi';
 import { notifications } from '@/lib/notifications';
 import type { Difficulty } from '@/types';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 interface BoardCardProps {
   board: BingoBoard;
@@ -62,8 +63,9 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
   };
 
   return (
-    <Card variant="cyber" glow="subtle" className="group">
-      <CardHeader className="pb-3">
+    <BaseErrorBoundary level="component">
+      <Card variant="cyber" glow="subtle" className="group">
+        <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg font-semibold text-cyan-100 truncate neon-glow-cyan">
@@ -138,6 +140,7 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
         </div>
       </CardContent>
     </Card>
+    </BaseErrorBoundary>
   );
 };
 

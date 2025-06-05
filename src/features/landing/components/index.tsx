@@ -71,6 +71,8 @@ const challenges = [
   },
 ];
 
+import { BaseErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+
 export default function LandingPage() {
   // For HeroSection animation/demo
   const [currentChallenge, setCurrentChallenge] = useState(0);
@@ -84,31 +86,51 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-foreground">
-      {/* Skip to main content for accessibility */}
-      <a 
-        href="#main-content" 
-        className="sr-only focus:not-sr-only focus:absolute focus:top-24 focus:left-4 focus:z-[10000] focus:bg-cyan-600 focus:text-white focus:px-6 focus:py-3 focus:rounded-md focus:shadow-xl focus:border-2 focus:border-cyan-400"
-        aria-label="Skip to main content"
-      >
-        Skip to main content
-      </a>
+    <BaseErrorBoundary componentName="LandingPage">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-foreground">
+        {/* Skip to main content for accessibility */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-24 focus:left-4 focus:z-[10000] focus:bg-cyan-600 focus:text-white focus:px-6 focus:py-3 focus:rounded-md focus:shadow-xl focus:border-2 focus:border-cyan-400"
+          aria-label="Skip to main content"
+        >
+          Skip to main content
+        </a>
 
-      <main id="main-content" role="main" aria-label="Arcadia Gaming Platform">
-        <HeroSection
-          currentChallenge={currentChallenge}
-          challenges={challenges}
-        />
+        <main id="main-content" role="main" aria-label="Arcadia Gaming Platform">
+          <BaseErrorBoundary componentName="HeroSection">
+            <HeroSection
+              currentChallenge={currentChallenge}
+              challenges={challenges}
+            />
+          </BaseErrorBoundary>
 
-        {/* Demo Game Section - High Priority for User Engagement */}
-        <TryDemoGame />
+          {/* Demo Game Section - High Priority for User Engagement */}
+          <AsyncBoundary loadingMessage="Loading demo game...">
+            <TryDemoGame />
+          </AsyncBoundary>
 
-        <FeaturedChallenges challenges={challenges} />
-        <FeaturedGamesCarousel />
-        <UpcomingEventsSection />
-        <PartnersSection />
-        <FAQSection />
-      </main>
-    </div>
+          <AsyncBoundary loadingMessage="Loading featured challenges...">
+            <FeaturedChallenges challenges={challenges} />
+          </AsyncBoundary>
+          
+          <AsyncBoundary loadingMessage="Loading featured games...">
+            <FeaturedGamesCarousel />
+          </AsyncBoundary>
+          
+          <AsyncBoundary loadingMessage="Loading upcoming events...">
+            <UpcomingEventsSection />
+          </AsyncBoundary>
+          
+          <AsyncBoundary loadingMessage="Loading partners...">
+            <PartnersSection />
+          </AsyncBoundary>
+          
+          <AsyncBoundary loadingMessage="Loading FAQ...">
+            <FAQSection />
+          </AsyncBoundary>
+        </main>
+      </div>
+    </BaseErrorBoundary>
   );
 }

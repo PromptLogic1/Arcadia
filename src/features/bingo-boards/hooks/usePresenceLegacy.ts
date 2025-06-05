@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { PresenceState } from '../types/presence.types';
 import { PRESENCE_CONSTANTS } from '../types/presence.constants';
@@ -25,8 +25,23 @@ export const usePresence = (boardId: string, userId?: string) => {
     Record<string, PresenceState>
   >({});
   const [error, setError] = useState<Error | null>(null);
-  const supabase = createClient();
+  
+  // Memoize supabase client to prevent recreation on every render
+  const supabase = useMemo(() => createClient(), []);
+  
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const boardIdRef = useRef(boardId);
+  const userIdRef = useRef(userId);
+  
+  // Update refs when props change
+  useEffect(() => {
+    boardIdRef.current = boardId;
+  }, [boardId]);
+  
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   const updatePresence = useCallback(
     async (status: PresenceState['status']) => {
@@ -44,11 +59,15 @@ export const usePresence = (boardId: string, userId?: string) => {
         });
       } catch (err) {
         logger.error('Error updating presence', err as Error, {
-          metadata: { hook: 'usePresence', boardId, userId },
+          metadata: { 
+            hook: 'usePresence', 
+            boardId: boardIdRef.current, 
+            userId: userIdRef.current 
+          },
         });
       }
     },
-    [supabase, boardId, userId]
+    [supabase] // Only depend on stable supabase client
   );
 
   const handleVisibilityChange = useCallback(() => {
@@ -65,11 +84,18 @@ export const usePresence = (boardId: string, userId?: string) => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Clean up existing channel if any
       if (channelRef.current) {
         await supabase.removeChannel(channelRef.current);
       }
 
-      const channel = supabase.channel(`presence:bingo:${boardId}`);
+      // Clean up existing heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+
+      const channel = supabase.channel(`presence:bingo:${boardIdRef.current}`);
       channelRef.current = channel;
 
       channel
@@ -113,7 +139,9 @@ export const usePresence = (boardId: string, userId?: string) => {
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
 
-      const heartbeatInterval = setInterval(() => {
+      // Store interval ref to avoid stale closure
+      heartbeatIntervalRef.current = setInterval(() => {
+        // Use the current updatePresence function from closure
         updatePresence(
           document.hidden
             ? PRESENCE_CONSTANTS.STATUS.AWAY
@@ -122,7 +150,10 @@ export const usePresence = (boardId: string, userId?: string) => {
       }, PRESENCE_CONSTANTS.TIMING.HEARTBEAT_INTERVAL);
 
       return () => {
-        clearInterval(heartbeatInterval);
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
         document.removeEventListener(
           'visibilitychange',
           handleVisibilityChange
@@ -136,7 +167,7 @@ export const usePresence = (boardId: string, userId?: string) => {
       );
       return undefined;
     }
-  }, [boardId, supabase, updatePresence, handleVisibilityChange]);
+  }, [supabase, updatePresence, handleVisibilityChange]); // Remove boardId dependency
 
   useEffect(() => {
     const cleanup = setupPresence();

@@ -9,7 +9,7 @@
  * - Service Layer: Pure API functions
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   useSessionQueueOperations,
   usePlayerQueueStatusQuery,
@@ -140,6 +140,12 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
   const uiState = useSessionQueueState();
   const uiActions = useSessionQueueActions();
 
+  // Ref to hold latest refetch function to avoid stale closures
+  const refetchRef = useRef(queueOperations.refetch);
+  useEffect(() => {
+    refetchRef.current = queueOperations.refetch;
+  }, [queueOperations.refetch]);
+
   // Derived server state
   const queueEntries = queueOperations.queueEntries;
   const stats = queueOperations.stats;
@@ -154,12 +160,12 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
     isLoading: playerStatusQuery.isLoading || playerPositionQuery.isLoading,
   };
 
-  // Auto-refresh effect
+  // Auto-refresh effect - fixed stale closure issue
   useEffect(() => {
     if (!uiState.autoRefreshEnabled || !sessionId) return;
 
     const interval = setInterval(() => {
-      queueOperations.refetch();
+      refetchRef.current(); // Use ref to get latest refetch function
     }, uiState.refreshInterval);
 
     return () => clearInterval(interval);
@@ -167,7 +173,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
     uiState.autoRefreshEnabled,
     uiState.refreshInterval,
     sessionId,
-    queueOperations,
+    // Remove queueOperations from dependencies to prevent unnecessary effect reruns
   ]);
 
   // Enhanced invite link generation

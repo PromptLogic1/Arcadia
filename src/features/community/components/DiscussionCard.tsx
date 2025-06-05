@@ -11,6 +11,7 @@ import { MessageCircle, ChevronDown, Heart } from 'lucide-react';
 import { CardWrapper } from './shared/CardWrapper';
 import type { Discussion, Comment } from '@/lib/stores/community-store';
 import { format } from 'date-fns';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 interface DiscussionCardProps {
   discussion: Discussion;
@@ -76,8 +77,9 @@ const DiscussionCard = React.memo(
     );
 
     return (
-      <CardWrapper className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-fuchsia-500/10">
-        <div className="relative" onClick={onToggle}>
+      <BaseErrorBoundary level="component">
+        <CardWrapper className="cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-fuchsia-500/10">
+          <div className="relative" onClick={onToggle}>
           <CardHeader className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 p-5">
             <div className="flex items-start space-x-4">
               <div className="relative flex-shrink-0">
@@ -256,6 +258,7 @@ const DiscussionCard = React.memo(
           </CardFooter>
         </div>
       </CardWrapper>
+      </BaseErrorBoundary>
     );
   }
 );

@@ -5,7 +5,7 @@
  * Combines session state management with game state management.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   useSessionWithPlayersQuery,
   useInitializeSessionMutation,
@@ -122,8 +122,27 @@ export function useSessionGame(
     }
   }, []);
 
-  // Initialize game state from localStorage
-  const gameState = getPersistedGameState();
+  // Initialize game state from localStorage - only run once
+  const [gameState, setGameState] = useState<LocalGameState>(() => {
+    try {
+      const saved = localStorage.getItem('bingoGameState');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      log.error('Failed to restore game state', error as Error, {
+        metadata: { contextName: 'useSessionGameModern' },
+      });
+    }
+    return {
+      settings: DEFAULT_GAME_SETTINGS,
+      currentPlayer: 0,
+      winner: null,
+      isRunning: false,
+      lastUpdate: Date.now(),
+      version: 0,
+    };
+  });
 
   // Transform session state to match the old context interface
   const transformedSessionState = {
@@ -171,64 +190,79 @@ export function useSessionGame(
   // Game actions
   const updateBoard = useCallback(
     (_newBoardState: BoardCell[]) => {
-      const newGameState = {
-        ...gameState,
-        lastUpdate: Date.now(),
-        version: gameState.version + 1,
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          lastUpdate: Date.now(),
+          version: prevState.version + 1,
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
       // Note: Board state is managed by session, this is for local game state only
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const updateSettings = useCallback(
     (settings: Partial<GameSettings>) => {
-      const newGameState = {
-        ...gameState,
-        settings: { ...gameState.settings, ...settings },
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          settings: { ...prevState.settings, ...settings },
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const setCurrentPlayer = useCallback(
     (playerIndex: number) => {
-      const newGameState = {
-        ...gameState,
-        currentPlayer: playerIndex,
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          currentPlayer: playerIndex,
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const setWinner = useCallback(
     (playerIndex: number | null) => {
-      const newGameState = {
-        ...gameState,
-        winner: playerIndex,
-        isRunning: false,
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          winner: playerIndex,
+          isRunning: false,
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const setRunning = useCallback(
     (isRunning: boolean) => {
-      const newGameState = {
-        ...gameState,
-        isRunning,
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          isRunning,
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const resetGame = useCallback(() => {
@@ -240,6 +274,7 @@ export function useSessionGame(
       lastUpdate: Date.now(),
       version: 0,
     };
+    setGameState(newGameState);
     persistGameState(newGameState);
   }, [persistGameState]);
 
@@ -247,10 +282,7 @@ export function useSessionGame(
     return getPersistedGameState();
   }, [getPersistedGameState]);
 
-  // Auto-persist on changes
-  useEffect(() => {
-    persistGameState(gameState);
-  }, [gameState, persistGameState]);
+  // No auto-persist effect needed - persistence handled in each action
 
   return {
     // State
@@ -379,7 +411,16 @@ export function useGameModern(): {
   setRunning: (isRunning: boolean) => void;
   resetGame: () => void;
 } {
-  const getPersistedGameState = useCallback(() => {
+  const persistGameState = useCallback((gameState: LocalGameState) => {
+    try {
+      localStorage.setItem('bingoGameState', JSON.stringify(gameState));
+    } catch (error) {
+      log.error('Failed to persist game state', error as Error);
+    }
+  }, []);
+
+  // Initialize game state from localStorage - only run once
+  const [gameState, setGameState] = useState<LocalGameState>(() => {
     try {
       const saved = localStorage.getItem('bingoGameState');
       if (saved) {
@@ -396,65 +437,67 @@ export function useGameModern(): {
       lastUpdate: Date.now(),
       version: 0,
     };
-  }, []);
-
-  const persistGameState = useCallback((gameState: LocalGameState) => {
-    try {
-      localStorage.setItem('bingoGameState', JSON.stringify(gameState));
-    } catch (error) {
-      log.error('Failed to persist game state', error as Error);
-    }
-  }, []);
-
-  const gameState = getPersistedGameState();
+  });
 
   const updateSettings = useCallback(
     (settings: Partial<GameSettings>) => {
-      const newGameState = {
-        ...gameState,
-        settings: { ...gameState.settings, ...settings },
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          settings: { ...prevState.settings, ...settings },
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const setCurrentPlayer = useCallback(
     (playerIndex: number) => {
-      const newGameState = {
-        ...gameState,
-        currentPlayer: playerIndex,
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          currentPlayer: playerIndex,
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const setWinner = useCallback(
     (playerIndex: number | null) => {
-      const newGameState = {
-        ...gameState,
-        winner: playerIndex,
-        isRunning: false,
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          winner: playerIndex,
+          isRunning: false,
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const setRunning = useCallback(
     (isRunning: boolean) => {
-      const newGameState = {
-        ...gameState,
-        isRunning,
-        lastUpdate: Date.now(),
-      };
-      persistGameState(newGameState);
+      setGameState(prevState => {
+        const newGameState = {
+          ...prevState,
+          isRunning,
+          lastUpdate: Date.now(),
+        };
+        persistGameState(newGameState);
+        return newGameState;
+      });
     },
-    [gameState, persistGameState]
+    [persistGameState]
   );
 
   const resetGame = useCallback(() => {
@@ -466,6 +509,7 @@ export function useGameModern(): {
       lastUpdate: Date.now(),
       version: 0,
     };
+    setGameState(newGameState);
     persistGameState(newGameState);
   }, [persistGameState]);
 

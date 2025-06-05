@@ -27,6 +27,7 @@ import {
 import { Info, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserProfileEdit } from '../hooks/useUserProfileEdit';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 /**
  * User Profile Edit Component
@@ -119,8 +120,9 @@ export default function UserPageEdit() {
   const submissionsVisibilityValue = watch('submissions_visibility');
 
   return (
-    <>
-      <div className="container mx-auto px-4 py-8">
+    <BaseErrorBoundary level="component">
+      <>
+        <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-2xl">
           <div className="mb-8 flex items-center justify-between">
             <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
@@ -506,6 +508,7 @@ export default function UserPageEdit() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+      </>
+    </BaseErrorBoundary>
   );
 }

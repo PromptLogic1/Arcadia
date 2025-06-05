@@ -9,6 +9,7 @@ import { X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS } from '../constants';
 import { useSettings } from '../../hooks/useSettings';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 // Zod schema for email update validation
 const emailUpdateSchema = z
@@ -68,8 +69,9 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
   const isLoading = isSubmitting || settings.isUpdatingEmail;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <BaseErrorBoundary level="component">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
         <div>
           <Label>{SETTINGS_CONSTANTS.LABELS.EMAIL_ADDRESS}</Label>
           <p className="mt-1 text-sm text-gray-400">{currentEmail}</p>
@@ -179,6 +181,7 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
           </form>
         </div>
       )}
-    </div>
+      </div>
+    </BaseErrorBoundary>
   );
 }

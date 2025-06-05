@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { BingoCard } from '@/types';
 import { ANIMATIONS } from '../constants';
 
@@ -22,6 +22,19 @@ export function useBoardEditState() {
   // Loading and feedback states
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  
+  // Ref to track timeout for cleanup
+  const saveSuccessTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimeoutRef.current) {
+        clearTimeout(saveSuccessTimeoutRef.current);
+        saveSuccessTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Card selection handler
   const handleCardSelect = useCallback((card: BingoCard) => {
@@ -69,10 +82,20 @@ export function useBoardEditState() {
 
   const completeSaving = useCallback((success: boolean) => {
     setIsSaving(false);
+    
+    // Clear any existing timeout
+    if (saveSuccessTimeoutRef.current) {
+      clearTimeout(saveSuccessTimeoutRef.current);
+      saveSuccessTimeoutRef.current = null;
+    }
+    
     if (success) {
       setShowSaveSuccess(true);
-      setTimeout(
-        () => setShowSaveSuccess(false),
+      saveSuccessTimeoutRef.current = setTimeout(
+        () => {
+          setShowSaveSuccess(false);
+          saveSuccessTimeoutRef.current = null;
+        },
         ANIMATIONS.SAVE_SUCCESS_TIMEOUT
       );
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   useCommunity,
   useCommunityActions,
@@ -89,6 +89,19 @@ export function useCommunityData(): UseCommunityDataReturn {
   // Loading states
   const [isEventsLoading, setIsEventsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // Ref to track timeout for cleanup
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Initialize mock event data (discussions are now from useDiscussions)
   useEffect(() => {
@@ -99,14 +112,31 @@ export function useCommunityData(): UseCommunityDataReturn {
 
   // Simulate API loading for events and initial page perception
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isRealDiscussionsLoading) {
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    
+    // Capture current loading state to avoid stale closure
+    const currentIsRealDiscussionsLoading = isRealDiscussionsLoading;
+    
+    loadingTimeoutRef.current = setTimeout(() => {
+      loadingTimeoutRef.current = null;
+      
+      // Use the captured state to ensure consistency
+      if (!currentIsRealDiscussionsLoading) {
         setIsInitialLoad(false);
       }
       setIsEventsLoading(false);
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
   }, [isRealDiscussionsLoading]);
 
   const handleCreateDiscussion = useCallback(

@@ -14,6 +14,7 @@ import { CommunityGameFilters } from './CommunityGameFilters';
 
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 interface CreateDiscussionFormProps {
   onClose: () => void;
@@ -90,12 +91,13 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
         if (!open) onClose();
       }}
     >
-      <DialogHeader>
-        <DialogTitle className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-2xl font-bold text-transparent">
-          Create Discussion
-        </DialogTitle>
-      </DialogHeader>
-      <form onSubmit={handleSubmit} className="mt-4 space-y-6">
+      <BaseErrorBoundary level="component">
+        <DialogHeader>
+          <DialogTitle className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-2xl font-bold text-transparent">
+            Create Discussion
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-6">
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-200">Title</label>
           <Input
@@ -181,6 +183,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
           </Button>
         </DialogFooter>
       </form>
+      </BaseErrorBoundary>
     </DialogWrapper>
   );
 };

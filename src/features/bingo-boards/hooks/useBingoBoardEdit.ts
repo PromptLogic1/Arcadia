@@ -9,7 +9,7 @@
  * - Service Layer: Pure API functions
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { BingoCard, BingoBoard, Difficulty } from '@/types';
 import type {
   CardInsertData,
@@ -128,6 +128,24 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
 
   // Auth
   const { authUser } = useAuth();
+  
+  // Refs to prevent stale closures
+  const uiStateRef = useRef(uiState);
+  const boardRef = useRef(board);
+  const authUserRef = useRef(authUser);
+  
+  // Update refs when dependencies change
+  useEffect(() => {
+    uiStateRef.current = uiState;
+  }, [uiState]);
+  
+  useEffect(() => {
+    boardRef.current = board;
+  }, [board]);
+  
+  useEffect(() => {
+    authUserRef.current = authUser;
+  }, [authUser]);
 
   // Derived state
   const isLoadingBoard = isLoading;
@@ -231,24 +249,27 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
   // Position selection handler
   const handlePositionSelect = useCallback(
     (index: number) => {
-      if (uiState.selectedCard) {
-        uiActions.updateGridCard(index, uiState.selectedCard);
+      const currentSelectedCard = uiStateRef.current.selectedCard;
+      if (currentSelectedCard) {
+        uiActions.updateGridCard(index, currentSelectedCard);
         uiActions.setSelectedCard(null);
         uiActions.setShowPositionSelectDialog(false);
 
-        // Close any open dropdown (minimal DOM manipulation)
-        const cardElement = document.querySelector(
-          `[data-card-id="${uiState.selectedCard.id}"]`
-        );
-        if (cardElement) {
-          const trigger = cardElement.querySelector('[data-state="open"]');
-          if (trigger instanceof HTMLElement) {
-            trigger.click();
+        // Defer DOM manipulation to avoid React render conflicts
+        setTimeout(() => {
+          const cardElement = document.querySelector(
+            `[data-card-id="${currentSelectedCard.id}"]`
+          );
+          if (cardElement) {
+            const trigger = cardElement.querySelector('[data-state="open"]');
+            if (trigger instanceof HTMLElement) {
+              trigger.click();
+            }
           }
-        }
+        }, 0);
       }
     },
-    [uiState.selectedCard, uiActions]
+    [uiActions] // Removed uiState.selectedCard dependency
   );
 
   // Enhanced card selection with validation
@@ -282,15 +303,19 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
     [uiActions]
   );
 
-  // Save operation
+  // Save operation (fixed stale closures)
   const handleSave = useCallback(async (): Promise<boolean> => {
-    if (!board || !uiState.formData || !authUser) {
+    const currentBoard = boardRef.current;
+    const currentUiState = uiStateRef.current;
+    const currentAuthUser = authUserRef.current;
+    
+    if (!currentBoard || !currentUiState.formData || !currentAuthUser) {
       logger.error('Cannot save: missing required data', undefined, {
         metadata: {
           hook: 'useBingoBoardEditModern',
-          hasBoard: !!board,
-          hasFormData: !!uiState.formData,
-          hasUser: !!authUser,
+          hasBoard: !!currentBoard,
+          hasFormData: !!currentUiState.formData,
+          hasUser: !!currentAuthUser,
         },
       });
       return false;
@@ -301,10 +326,10 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
 
       // Save any new cards first
       const cardsToSave = [
-        ...uiState.localPrivateCards.filter(card =>
+        ...currentUiState.localPrivateCards.filter(card =>
           card.id.startsWith('temp-')
         ),
-        ...uiState.localGridCards.filter(
+        ...currentUiState.localGridCards.filter(
           card => card.id.startsWith('temp-') && card.title.trim() !== ''
         ),
       ];
@@ -327,7 +352,7 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
             game_type: card.game_type,
             difficulty: card.difficulty,
             tags: card.tags || [],
-            creator_id: authUser.id,
+            creator_id: currentAuthUser.id,
             is_public: card.is_public || false,
           }));
 
@@ -342,7 +367,7 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
           const savedCards = saveResult.savedCards;
 
           // Update grid cards with new IDs
-          const updatedGridCards = uiState.localGridCards.map(card => {
+          const updatedGridCards = currentUiState.localGridCards.map(card => {
             if (card.id?.startsWith('temp-')) {
               const savedCard = savedCards.find(
                 sc => sc.title === card.title && sc.game_type === card.game_type
@@ -354,7 +379,7 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
           uiActions.setLocalGridCards(updatedGridCards);
 
           // Update private cards with new IDs
-          const updatedPrivateCards = uiState.localPrivateCards.map(card => {
+          const updatedPrivateCards = currentUiState.localPrivateCards.map(card => {
             if (card.id.startsWith('temp-')) {
               const saved = savedCards.find(
                 sc => sc.title === card.title && sc.game_type === card.game_type
@@ -368,28 +393,28 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
       }
 
       // Convert grid cards to board cells for board_state
-      const boardCells = uiState.localGridCards.map(card => ({
+      const boardCells = currentUiState.localGridCards.map(card => ({
         cell_id: card.id.startsWith('temp-') ? null : card.id,
         text: card.title || null,
         colors: null,
         completed_by: null,
         blocked: false,
         is_marked: false,
-        version: (board.version || 0) + 1,
+        version: (currentBoard.version || 0) + 1,
         last_updated: Date.now(),
-        last_modified_by: authUser.id,
+        last_modified_by: currentAuthUser.id,
       }));
 
       // Update the board
       const boardData: BoardEditData = {
-        title: uiState.formData.board_title,
-        description: uiState.formData.board_description || null,
-        difficulty: uiState.formData.board_difficulty,
-        is_public: uiState.formData.is_public,
+        title: currentUiState.formData.board_title,
+        description: currentUiState.formData.board_description || null,
+        difficulty: currentUiState.formData.board_difficulty,
+        is_public: currentUiState.formData.is_public,
         board_state: boardCells,
       };
 
-      const updateResult = await updateBoard(boardData, board.version || 0);
+      const updateResult = await updateBoard(boardData, currentBoard.version || 0);
 
       if (updateResult.error) {
         throw new Error(updateResult.error);
@@ -399,7 +424,7 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
       notifications.success('Board saved successfully!');
 
       logger.info('Board saved successfully', {
-        metadata: { hook: 'useBingoBoardEditModern', boardId: board.id },
+        metadata: { hook: 'useBingoBoardEditModern', boardId: currentBoard.id },
       });
 
       return true;
@@ -420,16 +445,11 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
       uiActions.setIsSaving(false);
     }
   }, [
-    board,
-    uiState.formData,
-    uiState.localGridCards,
-    uiState.localPrivateCards,
-    authUser,
     saveCards,
     updateBoard,
     uiActions,
     boardId,
-  ]);
+  ]); // Removed all state dependencies, using refs instead
 
   // Initialize board (refresh data)
   const initializeBoard = useCallback(async () => {

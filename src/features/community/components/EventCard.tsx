@@ -19,6 +19,7 @@ import type { Event } from '@/lib/stores/community-store';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { log } from '@/lib/logger';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 interface EventCardProps {
   event: Event;
@@ -123,11 +124,12 @@ const EventCard = React.memo(
     };
 
     return (
-      <CardWrapper
-        onClick={onToggle}
-        className="transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10"
-      >
-        <div className="relative">
+      <BaseErrorBoundary level="component">
+        <CardWrapper
+          onClick={onToggle}
+          className="transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10"
+        >
+          <div className="relative">
           <CardHeader className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 p-5">
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
@@ -293,6 +295,7 @@ const EventCard = React.memo(
           </AnimatePresence>
         </div>
       </CardWrapper>
+      </BaseErrorBoundary>
     );
   }
 );

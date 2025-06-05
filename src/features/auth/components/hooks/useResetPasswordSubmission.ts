@@ -5,7 +5,7 @@
  * Integrates with TanStack Query mutation and manages submission state.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthUpdatePasswordMutation } from '@/hooks/queries/useAuthQueries';
 import { notifications } from '@/lib/notifications';
@@ -29,13 +29,32 @@ export function useResetPasswordSubmission(): UseResetPasswordSubmissionReturn {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  
+  // Ref to track timeout for cleanup
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const updatePasswordMutation = useAuthUpdatePasswordMutation();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const submitResetPassword = useCallback(
     async (data: ResetPasswordFormData) => {
       setError(null);
       setIsSuccess(false);
+
+      // Clear any existing timeout
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
 
       try {
         const result = await updatePasswordMutation.mutateAsync(data.password);
@@ -48,10 +67,11 @@ export function useResetPasswordSubmission(): UseResetPasswordSubmissionReturn {
         setIsSuccess(true);
         notifications.success('Password reset successfully!');
 
-        // Redirect to home page after successful password reset
-        setTimeout(() => {
+        // Redirect to home page after successful password reset with cleanup
+        redirectTimeoutRef.current = setTimeout(() => {
           router.push('/');
           router.refresh();
+          redirectTimeoutRef.current = null;
         }, 2000);
       } catch (error) {
         setError(

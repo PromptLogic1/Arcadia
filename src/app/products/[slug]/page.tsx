@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { notFound as _notFound } from 'next/navigation';
 import type { ProductRow } from '@/src/types/product-types';
 import type { QueryResultRow } from '@vercel/postgres';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 
 export async function generateStaticParams() {
   try {
@@ -28,7 +29,7 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function ProductPage({
+async function ProductContent({
   params,
 }: {
   params: { slug: string };
@@ -55,6 +56,18 @@ export default async function ProductPage({
     console.error('Database connection error:', error);
     return <div>Unable to load product. Please try again later.</div>;
   }
+}
+
+export default function ProductPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  return (
+    <RouteErrorBoundary routeName={`Product-${params.slug}`}>
+      <ProductContent params={params} />
+    </RouteErrorBoundary>
+  );
 }
 
 // Add on-demand revalidation

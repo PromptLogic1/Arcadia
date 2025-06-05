@@ -1,5 +1,10 @@
 import UserProfile from '@/src/features/user/components/user-profile-wrapper';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 
 export default function UserProfilePage() {
-  return <UserProfile />;
+  return (
+    <RouteErrorBoundary routeName="UserProfile">
+      <UserProfile />
+    </RouteErrorBoundary>
+  );
 }

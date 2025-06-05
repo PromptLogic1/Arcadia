@@ -112,11 +112,19 @@ export const useTimer = ({
   const startTime = useRef<number>(Date.now());
   const tickTimes = useRef<number[]>([]);
   const timerStateRef = useRef(timerState);
+  const onTimeEndRef = useRef(onTimeEnd);
+  // Initialize these refs as null first, will be updated after functions are declared
+  const emitTimerUpdateRef = useRef<((update: Omit<TimerUpdateEvent, 'timestamp'>) => void) | null>(null);
+  const emitTimerEventRef = useRef<((eventType: string, data?: TimerEventData) => void) | null>(null);
 
-  // Update ref whenever timerState changes
+  // Update refs whenever dependencies change
   useEffect(() => {
     timerStateRef.current = timerState;
   }, [timerState]);
+
+  useEffect(() => {
+    onTimeEndRef.current = onTimeEnd;
+  }, [onTimeEnd]);
 
   // Event-Emission mit konstanten Event-Namen
   const emitTimerUpdate = useCallback(
@@ -165,6 +173,15 @@ export const useTimer = ({
     },
     [timerState, timerStats]
   );
+  
+  // Update refs after functions are declared
+  useEffect(() => {
+    emitTimerUpdateRef.current = emitTimerUpdate;
+  }, [emitTimerUpdate]);
+
+  useEffect(() => {
+    emitTimerEventRef.current = emitTimerEvent;
+  }, [emitTimerEvent]);
 
   // Timer-Update mit Konstanten
   const updateTimer = useCallback(() => {
@@ -179,12 +196,13 @@ export const useTimer = ({
         );
       }
 
-      if (timerState.isRunning && timerState.time > 0) {
+      const currentState = timerStateRef.current;
+      if (currentState.isRunning && currentState.time > 0) {
         const missedTicks = Math.floor(delta / 1000);
 
         if (missedTicks >= 1) {
           const drift = Math.abs(delta % 1000);
-          const newTime = Math.max(0, timerState.time - missedTicks);
+          const newTime = Math.max(0, currentState.time - missedTicks);
 
           // Aktualisiere Timer-State
           setTimerState(prev => ({
@@ -212,17 +230,17 @@ export const useTimer = ({
           });
 
           // Emittiere Update-Event
-          emitTimerUpdate({
+          emitTimerUpdateRef.current?.({
             time: newTime,
             drift,
             isRunning: newTime > 0,
-            isPaused: timerState.isPaused,
+            isPaused: currentState.isPaused,
           });
 
           if (newTime === 0) {
-            onTimeEnd?.();
+            onTimeEndRef.current?.();
           }
-          emitTimerEvent('tick');
+          emitTimerEventRef.current?.('tick');
         }
       }
 
@@ -232,9 +250,9 @@ export const useTimer = ({
         metadata: { hook: 'useTimer' },
       });
       setTimerState(prev => ({ ...prev, isRunning: false }));
-      emitTimerEvent('stop');
+      emitTimerEventRef.current('stop');
     }
-  }, [timerState, onTimeEnd, emitTimerUpdate, emitTimerEvent]);
+  }, []); // Empty dependencies - use refs for all dynamic values
 
   // Haupttimer-Loop mit RAF
   useEffect(() => {
@@ -260,13 +278,15 @@ export const useTimer = ({
   useEffect(() => {
     let performanceCheckInterval: NodeJS.Timeout;
 
-    if (timerState.isRunning && !timerState.isPaused) {
+    const currentState = timerStateRef.current;
+    if (currentState.isRunning && !currentState.isPaused) {
       performanceCheckInterval = setInterval(() => {
         const now = Date.now();
         const expectedTime =
           initialStartTime.current -
           Math.floor((now - startTime.current) / TIMER_CONSTANTS.TICK_INTERVAL);
-        const drift = Math.abs(timerStateRef.current.time - expectedTime);
+        const currentTimerState = timerStateRef.current;
+        const drift = Math.abs(currentTimerState.time - expectedTime);
 
         if (drift > TIMER_CONSTANTS.MAX_DRIFT_THRESHOLD) {
           // Korrigiere große Abweichungen
@@ -292,30 +312,32 @@ export const useTimer = ({
 
   // Pause/Resume Funktionalität
   const pauseTimer = useCallback(() => {
-    if (timerState.isRunning) {
+    const currentState = timerStateRef.current;
+    if (currentState.isRunning) {
       setTimerState(prev => ({
         ...prev,
         isPaused: true,
-        pausedTime: timerState.time,
+        pausedTime: currentState.time,
       }));
       setTimerState(prev => ({ ...prev, isRunning: false }));
-      emitTimerEvent('pause');
+      emitTimerEventRef.current('pause');
     }
-  }, [timerState, emitTimerEvent]);
+  }, []);
 
   const resumeTimer = useCallback(() => {
-    if (timerState.isPaused && timerState.pausedTime !== null) {
+    const currentState = timerStateRef.current;
+    if (currentState.isPaused && currentState.pausedTime !== null) {
       setTimerState(prev => ({
         ...prev,
         isPaused: false,
-        time: timerState.pausedTime || prev.time,
+        time: currentState.pausedTime || prev.time,
       }));
       setTimerState(prev => ({ ...prev, isRunning: true }));
       lastTick.current = Date.now();
       startTime.current = Date.now();
-      emitTimerEvent('resume');
+      emitTimerEventRef.current('resume');
     }
-  }, [timerState, emitTimerEvent]);
+  }, []);
 
   // Zeit-Formatierung
   const formatTime = useCallback((seconds: number): string => {
@@ -349,8 +371,8 @@ export const useTimer = ({
       averageTickTime: 0,
       missedTicks: 0,
     });
-    emitTimerEvent('reset');
-  }, [initialTime, emitTimerEvent]);
+    emitTimerEventRef.current('reset');
+  }, [initialTime]);
 
   // Session-Synchronisation
   useEffect(() => {
@@ -402,11 +424,11 @@ export const useTimer = ({
     (isRunning: boolean) => {
       setTimerState(prev => {
         const newState = { ...prev, isRunning };
-        emitTimerEvent(isRunning ? 'start' : 'stop');
+        emitTimerEventRef.current(isRunning ? 'start' : 'stop');
         return newState;
       });
     },
-    [emitTimerEvent]
+    []
   );
 
   return {

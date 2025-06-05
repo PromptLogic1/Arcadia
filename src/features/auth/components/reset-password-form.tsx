@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useResetPasswordForm } from './hooks/useResetPasswordForm';
 import { useResetPasswordSubmission } from './hooks/useResetPasswordSubmission';
 import { usePasswordRequirements } from './hooks/usePasswordRequirements';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 /**
  * Reset Password Form Component
@@ -34,24 +35,27 @@ export function ResetPasswordForm() {
 
   if (isSuccess) {
     return (
-      <div className="w-full max-w-md space-y-6 text-center">
-        <div className="mb-8 text-center">
-          <h2 className="bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
-            Password Reset Successful
-          </h2>
-          <p className="mt-2 text-sm text-gray-400">
-            Your password has been updated successfully. Redirecting you now...
-          </p>
+      <BaseErrorBoundary level="component">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="mb-8 text-center">
+            <h2 className="bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+              Password Reset Successful
+            </h2>
+            <p className="mt-2 text-sm text-gray-400">
+              Your password has been updated successfully. Redirecting you now...
+            </p>
+          </div>
+          <div className="flex items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-green-400 border-t-transparent"></div>
+          </div>
         </div>
-        <div className="flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-green-400 border-t-transparent"></div>
-        </div>
-      </div>
+      </BaseErrorBoundary>
     );
   }
 
   return (
-    <div className="w-full max-w-md space-y-6">
+    <BaseErrorBoundary level="component">
+      <div className="w-full max-w-md space-y-6">
       <div className="mb-8 text-center">
         <h2 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
           Set new password
@@ -154,6 +158,7 @@ export function ResetPasswordForm() {
         </Button>
       </form>
     </div>
+    </BaseErrorBoundary>
   );
 }
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 // Types
 import type { BingoSession } from '../../../services/sessions.service';
@@ -92,13 +93,14 @@ export function SessionCard({
     : 'Unknown';
 
   return (
-    <Card
-      className={cn(
-        'border-gray-700 bg-gray-800/50 transition-all duration-200 hover:border-cyan-500/50',
-        'hover:shadow-lg hover:shadow-cyan-500/10',
-        className
-      )}
-    >
+    <BaseErrorBoundary level="component">
+      <Card
+        className={cn(
+          'border-gray-700 bg-gray-800/50 transition-all duration-200 hover:border-cyan-500/50',
+          'hover:shadow-lg hover:shadow-cyan-500/10',
+          className
+        )}
+      >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
@@ -286,5 +288,6 @@ export function SessionCard({
         )}
       </CardContent>
     </Card>
+    </BaseErrorBoundary>
   );
 }

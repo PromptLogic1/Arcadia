@@ -25,6 +25,7 @@ import {
   createEmptyBingoCard,
   createNewBingoCard,
 } from '@/src/types';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 // Components
 import { BoardHeader } from './BoardHeader';
@@ -577,25 +578,26 @@ export function BingoBoardEdit({
   );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="container mx-auto p-6">
-        {/* Header */}
-        <BoardHeader
-          board={boardEdit.board}
-          title={boardEdit.formData.board_title}
-          isSaving={boardEdit.isSaving}
-          hasErrors={hasErrors}
-          onClose={handleClose}
-          onSave={handleSave}
-        />
+    <BaseErrorBoundary componentName="BingoBoardEdit">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="container mx-auto p-6">
+          {/* Header */}
+          <BoardHeader
+            board={boardEdit.board}
+            title={boardEdit.formData.board_title}
+            isSaving={boardEdit.isSaving}
+            hasErrors={hasErrors}
+            onClose={handleClose}
+            onSave={handleSave}
+          />
 
-        {/* Error Display */}
-        {boardEdit.error && (
+          {/* Error Display */}
+          {boardEdit.error && (
           <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 p-3">
             <p className="text-sm text-red-400">{boardEdit.error}</p>
           </div>
@@ -697,6 +699,7 @@ export function BingoBoardEdit({
       {/* Floating Trash Zone */}
       {activeId && <TrashDropZone />}
     </DndContext>
+    </BaseErrorBoundary>
   );
 }
 
