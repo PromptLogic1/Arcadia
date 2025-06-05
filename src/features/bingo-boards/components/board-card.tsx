@@ -9,18 +9,25 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Edit3 } from 'lucide-react';
-import { 
+import {
   GiPlayButton,
   GiCrossedSwords,
   GiUpgrade,
-  GiImperialCrown
+  GiImperialCrown,
 } from 'react-icons/gi';
 import { BiGridAlt } from 'react-icons/bi';
 import { notifications } from '@/lib/notifications';
 import type { Difficulty } from '@/types';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import { logger } from '@/lib/logger';
 
 interface BoardCardProps {
   board: BingoBoard;
@@ -42,7 +49,9 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
       hard: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       expert: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
-    return colors[difficulty] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    return (
+      colors[difficulty] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    );
   };
 
   const handlePlayBoard = async () => {
@@ -51,11 +60,14 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
       // Navigate to play area with board pre-selected
       const searchParams = new URLSearchParams({
         boardId: board.id,
-        host: 'true'
+        host: 'true',
       });
       router.push(`/play-area?${searchParams.toString()}`);
     } catch (error) {
-      console.error('Failed to navigate to play area:', error);
+      logger.error('Failed to navigate to play area', error instanceof Error ? error : new Error(String(error)), {
+        component: 'BoardCard',
+        boardId: board.id,
+      });
       notifications.error('Failed to start session');
     } finally {
       setIsHosting(false);
@@ -66,80 +78,86 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
     <BaseErrorBoundary level="component">
       <Card variant="cyber" glow="subtle" className="group">
         <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-semibold text-cyan-100 truncate neon-glow-cyan">
-              {board.title}
-            </CardTitle>
-            <CardDescription className="text-cyan-300/70 text-sm line-clamp-2 mt-1">
-              {board.description || 'No description provided'}
-            </CardDescription>
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="neon-glow-cyan truncate text-lg font-semibold text-cyan-100">
+                {board.title}
+              </CardTitle>
+              <CardDescription className="mt-1 line-clamp-2 text-sm text-cyan-300/70">
+                {board.description || 'No description provided'}
+              </CardDescription>
+            </div>
+            {board.is_public && (
+              <GiImperialCrown className="ml-2 h-4 w-4 flex-shrink-0 text-yellow-400 drop-shadow-lg" />
+            )}
           </div>
-          {board.is_public && (
-            <GiImperialCrown className="h-4 w-4 text-yellow-400 flex-shrink-0 ml-2 drop-shadow-lg" />
-          )}
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Board Metadata */}
-        <div className="flex flex-wrap gap-2">
-          <Badge 
-            variant="outline" 
-            className={getDifficultyColor(board.difficulty)}
-          >
-            {board.difficulty}
-          </Badge>
-          <Badge variant="outline" className="border-cyan-500/30 text-cyan-300 bg-cyan-500/10">
-            <BiGridAlt className="mr-1 h-3 w-3" />
-            {board.size || 5}×{board.size || 5}
-          </Badge>
-          {board.game_type && board.game_type !== 'All Games' && (
-            <Badge variant="outline" className="border-purple-500/50 text-purple-400 bg-purple-500/10">
-              {board.game_type}
+        <CardContent className="space-y-4">
+          {/* Board Metadata */}
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant="outline"
+              className={getDifficultyColor(board.difficulty)}
+            >
+              {board.difficulty}
             </Badge>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="flex items-center justify-between text-sm text-cyan-300/70">
-          <div className="flex items-center gap-1">
-            <GiCrossedSwords className="h-4 w-4 text-cyan-400" />
-            <span>{participants} players</span>
+            <Badge
+              variant="outline"
+              className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+            >
+              <BiGridAlt className="mr-1 h-3 w-3" />
+              {board.size || 5}×{board.size || 5}
+            </Badge>
+            {board.game_type && board.game_type !== 'All Games' && (
+              <Badge
+                variant="outline"
+                className="border-purple-500/50 bg-purple-500/10 text-purple-400"
+              >
+                {board.game_type}
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-1">
-            <GiUpgrade className="h-4 w-4 text-cyan-400" />
-            <span>{completionRate}% completed</span>
-          </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
-          <Button
-            variant="cyber-outline"
-            size="sm"
-            asChild
-            className="flex-1"
-          >
-            <Link href={`/challenge-hub/${board.id}`}>
-              <Edit3 className="mr-2 h-4 w-4" />
-              Edit Board
-            </Link>
-          </Button>
-          
-          <Button
-            variant="cyber"
-            size="sm"
-            onClick={handlePlayBoard}
-            disabled={isHosting}
-            className="flex-1"
-          >
-            <GiPlayButton className="mr-2 h-4 w-4" />
-            {isHosting ? 'Starting...' : 'Play Board'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Stats */}
+          <div className="flex items-center justify-between text-sm text-cyan-300/70">
+            <div className="flex items-center gap-1">
+              <GiCrossedSwords className="h-4 w-4 text-cyan-400" />
+              <span>{participants} players</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <GiUpgrade className="h-4 w-4 text-cyan-400" />
+              <span>{completionRate}% completed</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="cyber-outline"
+              size="sm"
+              asChild
+              className="flex-1"
+            >
+              <Link href={`/challenge-hub/${board.id}`}>
+                <Edit3 className="mr-2 h-4 w-4" />
+                Edit Board
+              </Link>
+            </Button>
+
+            <Button
+              variant="cyber"
+              size="sm"
+              onClick={handlePlayBoard}
+              disabled={isHosting}
+              className="flex-1"
+            >
+              <GiPlayButton className="mr-2 h-4 w-4" />
+              {isHosting ? 'Starting...' : 'Play Board'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </BaseErrorBoundary>
   );
 };

@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import { 
-  useSessionStateQuery, 
-  useBoardStateQuery, 
+import { useCallback, useMemo, useRef, useEffect } from 'react';
+import {
+  useSessionStateQuery,
+  useBoardStateQuery,
   useMarkCellMutation,
   useCompleteGameMutation,
-  useStartSessionMutation
+  useStartSessionMutation,
 } from '@/hooks/queries/useGameStateQueries';
 import { WinDetectionService } from '../services/win-detection.service';
 import type { WinDetectionResult } from '../types';
@@ -14,17 +14,27 @@ import type { WinDetectionResult } from '../types';
 export function useBingoGame(sessionId: string) {
   const winDetector = useMemo(() => new WinDetectionService(5), []); // Assuming 5x5 board
 
+  // Mount tracking
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Queries
-  const { 
-    data: session, 
-    isLoading: sessionLoading, 
-    error: sessionError 
+  const {
+    data: session,
+    isLoading: sessionLoading,
+    error: sessionError,
   } = useSessionStateQuery(sessionId);
-  
-  const { 
-    data: boardData, 
-    isLoading: boardLoading, 
-    error: boardError 
+
+  const {
+    data: boardData,
+    isLoading: boardLoading,
+    error: boardError,
   } = useBoardStateQuery(sessionId);
 
   // Mutations
@@ -33,7 +43,10 @@ export function useBingoGame(sessionId: string) {
   const completeGameMutation = useCompleteGameMutation();
 
   // Derived state - memoize boardState to prevent dependency changes
-  const boardState = useMemo(() => boardData?.boardState || [], [boardData?.boardState]);
+  const boardState = useMemo(
+    () => boardData?.boardState || [],
+    [boardData?.boardState]
+  );
   const version = boardData?.version || 0;
   const loading = sessionLoading || boardLoading;
   const error = sessionError || boardError || null;
@@ -41,7 +54,11 @@ export function useBingoGame(sessionId: string) {
 
   // Win detection
   const winResult = useMemo<WinDetectionResult | null>(() => {
-    if (!boardState || boardState.length === 0 || session?.status !== 'active') {
+    if (
+      !boardState ||
+      boardState.length === 0 ||
+      session?.status !== 'active'
+    ) {
       return null;
     }
     return winDetector.detectWin(boardState);
@@ -50,44 +67,72 @@ export function useBingoGame(sessionId: string) {
   // Actions
   const markCell = useCallback(
     async (cellPosition: number, userId: string) => {
-      await markCellMutation.mutateAsync({
-        cell_position: cellPosition,
-        user_id: userId,
-        action: 'mark',
-        version,
-      });
+      try {
+        await markCellMutation.mutateAsync({
+          cell_position: cellPosition,
+          user_id: userId,
+          action: 'mark',
+          version,
+        });
+      } catch (error) {
+        // Only throw if component is still mounted
+        if (isMountedRef.current) {
+          throw error;
+        }
+      }
     },
     [markCellMutation, version]
   );
 
   const unmarkCell = useCallback(
     async (cellPosition: number, userId: string) => {
-      await markCellMutation.mutateAsync({
-        cell_position: cellPosition,
-        user_id: userId,
-        action: 'unmark',
-        version,
-      });
+      try {
+        await markCellMutation.mutateAsync({
+          cell_position: cellPosition,
+          user_id: userId,
+          action: 'unmark',
+          version,
+        });
+      } catch (error) {
+        // Only throw if component is still mounted
+        if (isMountedRef.current) {
+          throw error;
+        }
+      }
     },
     [markCellMutation, version]
   );
 
   const startGame = useCallback(async () => {
-    await startGameMutation.mutateAsync({ sessionId });
+    try {
+      await startGameMutation.mutateAsync({ sessionId });
+    } catch (error) {
+      // Only throw if component is still mounted
+      if (isMountedRef.current) {
+        throw error;
+      }
+    }
   }, [startGameMutation, sessionId]);
 
   const declareWinner = useCallback(
     async (userId: string) => {
       if (!winResult || !winResult.hasWin || isWinner) return;
 
-      await completeGameMutation.mutateAsync({
-        sessionId,
-        data: {
-          winner_id: userId,
-          winning_patterns: winResult.patterns.map(p => p.name),
-          final_score: winResult.totalPoints,
-        },
-      });
+      try {
+        await completeGameMutation.mutateAsync({
+          sessionId,
+          data: {
+            winner_id: userId,
+            winning_patterns: winResult.patterns.map(p => p.name),
+            final_score: winResult.totalPoints,
+          },
+        });
+      } catch (error) {
+        // Only throw if component is still mounted
+        if (isMountedRef.current) {
+          throw error;
+        }
+      }
     },
     [completeGameMutation, sessionId, winResult, isWinner]
   );
@@ -97,7 +142,11 @@ export function useBingoGame(sessionId: string) {
     boardState,
     version,
     loading,
-    error: error ? (typeof error === 'string' ? error : 'An error occurred') : null,
+    error: error
+      ? typeof error === 'string'
+        ? error
+        : 'An error occurred'
+      : null,
     markCell,
     unmarkCell,
     startGame,

@@ -5,12 +5,13 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuthActions } from '@/lib/stores';
-import type { User } from '@supabase/supabase-js';
+import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import { setSentryUser, addSentryContext } from '@/lib/sentry-utils';
 
@@ -45,11 +46,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
   const { initializeApp, setLoading: setStoreLoading } = useAuthActions();
 
+  // Use refs to avoid stale closures
+  const routerRef = useRef(router);
+  const initializeAppRef = useRef(initializeApp);
+
+  // Update refs when dependencies change
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
+
+  useEffect(() => {
+    initializeAppRef.current = initializeApp;
+  }, [initializeApp]);
+
   useEffect(() => {
     let mounted = true;
-    let authSubscription: {
-      data: { subscription: { unsubscribe: () => void } };
-    } | null = null;
+    let unsubscribe: (() => void) | null = null;
 
     const initializeAuth = async () => {
       try {
@@ -59,7 +71,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         addSentryContext();
 
         // Initialize the auth store first
-        await initializeApp();
+        await initializeAppRef.current();
 
         // Get initial session
         const supabase = createClient();
@@ -79,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLoading(false);
           setInitialized(true);
           setStoreLoading(false);
-          
+
           // Set Sentry user context
           if (session?.user) {
             setSentryUser({
@@ -89,9 +101,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
 
-        // Listen for auth changes
-        authSubscription = supabase.auth.onAuthStateChange(
-          async (event, session) => {
+        // Listen for auth changes - properly typed
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          async (event: AuthChangeEvent, session: Session | null) => {
             logger.info('Auth state changed', {
               metadata: {
                 component: 'AuthProvider',
@@ -100,26 +112,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
               },
             });
 
-            if (mounted) {
-              setUser(session?.user ?? null);
-              setLoading(false);
-              
-              // Update Sentry user context on auth changes
-              if (session?.user) {
-                setSentryUser({
-                  id: session.user.id,
-                  email: session.user.email,
-                });
-              } else {
-                setSentryUser(null);
-              }
+            if (!mounted) return;
+
+            setUser(session?.user ?? null);
+            setLoading(false);
+
+            // Update Sentry user context on auth changes
+            if (session?.user) {
+              setSentryUser({
+                id: session.user.id,
+                email: session.user.email,
+              });
+            } else {
+              setSentryUser(null);
             }
 
             // Handle auth events
             if (event === 'SIGNED_IN') {
               // Reinitialize app state with new user
               try {
-                await initializeApp();
+                await initializeAppRef.current();
               } catch (error) {
                 logger.error(
                   'Failed to initialize app after sign in',
@@ -133,14 +145,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
               // Clear user state and redirect to home
               setUser(null);
               setSentryUser(null); // Clear Sentry user context
-              router.push('/');
+              routerRef.current.push('/');
             } else if (event === 'TOKEN_REFRESHED') {
               // Session refreshed, no action needed
               logger.info('Auth token refreshed successfully');
             } else if (event === 'USER_UPDATED') {
               // User profile updated
               try {
-                await initializeApp(); // Refresh user data
+                await initializeAppRef.current(); // Refresh user data
               } catch (error) {
                 logger.error(
                   'Failed to refresh user data after update',
@@ -153,6 +165,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         );
+
+        // Store unsubscribe function
+        if (authListener?.subscription) {
+          unsubscribe = () => authListener.subscription.unsubscribe();
+        }
       } catch (error) {
         logger.error('Auth initialization failed', error as Error, {
           metadata: { component: 'AuthProvider' },
@@ -169,11 +186,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false;
-      if (authSubscription?.data?.subscription) {
-        authSubscription.data.subscription.unsubscribe();
-      }
+      unsubscribe?.();
     };
-  }, [initializeApp, setStoreLoading, router]);
+  }, [setStoreLoading]); // Only depend on stable setStoreLoading
 
   const contextValue: AuthContextType = {
     user,

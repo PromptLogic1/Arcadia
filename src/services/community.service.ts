@@ -1,6 +1,6 @@
 /**
  * Community Service
- * 
+ *
  * Pure functions for community features (discussions, events).
  * No state management - only data fetching and mutations.
  */
@@ -90,15 +90,20 @@ export const communityService = {
     filters: DiscussionFilters = {},
     page = 1,
     limit = 20
-  ): Promise<{ discussions: Discussion[]; totalCount: number; error?: string }> {
+  ): Promise<{
+    discussions: Discussion[];
+    totalCount: number;
+    error?: string;
+  }> {
     try {
       const supabase = createClient();
-      let query = supabase
-        .from('discussions')
-        .select(`
+      let query = supabase.from('discussions').select(
+        `
           *,
           users!author_id(username, avatar_url)
-        `, { count: 'exact' });
+        `,
+        { count: 'exact' }
+      );
 
       // Apply filters
       if (filters.gameCategory && filters.gameCategory !== 'All Games') {
@@ -110,7 +115,9 @@ export const communityService = {
       }
 
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,content.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,content.ilike.%${filters.search}%`
+        );
       }
 
       // Apply sorting
@@ -134,20 +141,22 @@ export const communityService = {
       const { data, error, count } = await query.range(start, end);
 
       if (error) {
-        return { 
-          discussions: [], 
-          totalCount: 0, 
-          error: error.message 
+        return {
+          discussions: [],
+          totalCount: 0,
+          error: error.message,
         };
       }
 
       // Transform the data
       const discussions = (data || []).map(discussion => ({
         ...discussion,
-        author: discussion.users ? {
-          username: discussion.users.username,
-          avatar_url: discussion.users.avatar_url,
-        } : undefined,
+        author: discussion.users
+          ? {
+              username: discussion.users.username,
+              avatar_url: discussion.users.avatar_url,
+            }
+          : undefined,
       }));
 
       return {
@@ -155,10 +164,13 @@ export const communityService = {
         totalCount: count || 0,
       };
     } catch (error) {
-      return { 
-        discussions: [], 
+      return {
+        discussions: [],
         totalCount: 0,
-        error: error instanceof Error ? error.message : 'Failed to fetch discussions' 
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch discussions',
       };
     }
   },
@@ -166,15 +178,19 @@ export const communityService = {
   /**
    * Get discussion by ID
    */
-  async getDiscussionById(discussionId: string): Promise<{ discussion: Discussion | null; error?: string }> {
+  async getDiscussionById(
+    discussionId: string
+  ): Promise<{ discussion: Discussion | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('discussions')
-        .select(`
+        .select(
+          `
           *,
           users!author_id(username, avatar_url)
-        `)
+        `
+        )
         .eq('id', parseInt(discussionId))
         .single();
 
@@ -184,17 +200,20 @@ export const communityService = {
 
       const discussion = {
         ...data,
-        author: data.users ? {
-          username: data.users.username,
-          avatar_url: data.users.avatar_url,
-        } : undefined,
+        author: data.users
+          ? {
+              username: data.users.username,
+              avatar_url: data.users.avatar_url,
+            }
+          : undefined,
       };
 
       return { discussion };
     } catch (error) {
-      return { 
-        discussion: null, 
-        error: error instanceof Error ? error.message : 'Failed to fetch discussion' 
+      return {
+        discussion: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch discussion',
       };
     }
   },
@@ -202,7 +221,9 @@ export const communityService = {
   /**
    * Create a new discussion
    */
-  async createDiscussion(discussionData: CreateDiscussionData): Promise<{ discussion: Discussion | null; error?: string }> {
+  async createDiscussion(
+    discussionData: CreateDiscussionData
+  ): Promise<{ discussion: Discussion | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -215,10 +236,12 @@ export const communityService = {
           challenge_type: discussionData.challenge_type || null,
           tags: discussionData.tags || [],
         })
-        .select(`
+        .select(
+          `
           *,
           users!author_id(username, avatar_url)
-        `)
+        `
+        )
         .single();
 
       if (error) {
@@ -227,17 +250,22 @@ export const communityService = {
 
       const discussion = {
         ...data,
-        author: data.users ? {
-          username: data.users.username,
-          avatar_url: data.users.avatar_url,
-        } : undefined,
+        author: data.users
+          ? {
+              username: data.users.username,
+              avatar_url: data.users.avatar_url,
+            }
+          : undefined,
       };
 
       return { discussion };
     } catch (error) {
-      return { 
-        discussion: null, 
-        error: error instanceof Error ? error.message : 'Failed to create discussion' 
+      return {
+        discussion: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create discussion',
       };
     }
   },
@@ -257,29 +285,34 @@ export const communityService = {
 
       const { data, error, count } = await supabase
         .from('comments')
-        .select(`
+        .select(
+          `
           *,
           users!author_id(username, avatar_url)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('discussion_id', parseInt(discussionId))
         .order('created_at', { ascending: true })
         .range(start, end);
 
       if (error) {
-        return { 
-          comments: [], 
-          totalCount: 0, 
-          error: error.message 
+        return {
+          comments: [],
+          totalCount: 0,
+          error: error.message,
         };
       }
 
       // Transform the data
       const comments = (data || []).map(comment => ({
         ...comment,
-        author: comment.users ? {
-          username: comment.users.username,
-          avatar_url: comment.users.avatar_url,
-        } : undefined,
+        author: comment.users
+          ? {
+              username: comment.users.username,
+              avatar_url: comment.users.avatar_url,
+            }
+          : undefined,
       }));
 
       return {
@@ -287,10 +320,11 @@ export const communityService = {
         totalCount: count || 0,
       };
     } catch (error) {
-      return { 
-        comments: [], 
+      return {
+        comments: [],
         totalCount: 0,
-        error: error instanceof Error ? error.message : 'Failed to fetch comments' 
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch comments',
       };
     }
   },
@@ -298,10 +332,12 @@ export const communityService = {
   /**
    * Create a new comment
    */
-  async createComment(commentData: CreateCommentData): Promise<{ comment: Comment | null; error?: string }> {
+  async createComment(
+    commentData: CreateCommentData
+  ): Promise<{ comment: Comment | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // Insert comment and increment discussion comment count
       const { data, error } = await supabase
         .from('comments')
@@ -312,10 +348,12 @@ export const communityService = {
           upvotes: 0,
           created_at: new Date().toISOString(),
         })
-        .select(`
+        .select(
+          `
           *,
           users!author_id(username, avatar_url)
-        `)
+        `
+        )
         .single();
 
       if (error) {
@@ -329,17 +367,20 @@ export const communityService = {
 
       const comment = {
         ...data,
-        author: data.users ? {
-          username: data.users.username,
-          avatar_url: data.users.avatar_url,
-        } : undefined,
+        author: data.users
+          ? {
+              username: data.users.username,
+              avatar_url: data.users.avatar_url,
+            }
+          : undefined,
       };
 
       return { comment };
     } catch (error) {
-      return { 
-        comment: null, 
-        error: error instanceof Error ? error.message : 'Failed to create comment' 
+      return {
+        comment: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to create comment',
       };
     }
   },
@@ -347,13 +388,17 @@ export const communityService = {
   /**
    * Upvote a discussion
    */
-  async upvoteDiscussion(discussionId: string): Promise<{ discussion: Discussion | null; error?: string }> {
+  async upvoteDiscussion(
+    discussionId: string
+  ): Promise<{ discussion: Discussion | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // Use RPC function to atomically increment upvotes
-      const { error: rpcError } = await supabase
-        .rpc('increment_discussion_upvotes', { discussion_id: parseInt(discussionId) });
+      const { error: rpcError } = await supabase.rpc(
+        'increment_discussion_upvotes',
+        { discussion_id: parseInt(discussionId) }
+      );
 
       if (rpcError) {
         return { discussion: null, error: rpcError.message };
@@ -362,9 +407,12 @@ export const communityService = {
       // Fetch the updated discussion
       return this.getDiscussionById(discussionId);
     } catch (error) {
-      return { 
-        discussion: null, 
-        error: error instanceof Error ? error.message : 'Failed to upvote discussion' 
+      return {
+        discussion: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to upvote discussion',
       };
     }
   },
@@ -379,7 +427,7 @@ export const communityService = {
   ): Promise<{ events: Event[]; totalCount: number; error?: string }> {
     // TODO: Events table not yet implemented in database
     return { events: [], totalCount: 0 };
-    
+
     /* Commented out until events table is created
     try {
       const supabase = createClient();

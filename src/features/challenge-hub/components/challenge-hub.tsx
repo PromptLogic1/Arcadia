@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Trophy, Grid, Zap, Puzzle } from 'lucide-react';
-import { BingoBoards } from '@/features/bingo-boards/components/BingoBoards';
+import BingoBoardsHub from '@/features/bingo-boards/components/BingoBoardsHub';
 import { SpeedRuns } from '@/features/Speedruns/SpeedRuns';
 import { AchievementHunt } from '@/features/achievement-hunt/AchievementHunt';
 import { PuzzleQuests } from '@/features/puzzle-quests/PuzzleQuests';
@@ -14,7 +14,7 @@ export default function Challenges() {
   const renderContent = () => {
     switch (activeTab) {
       case 'bingo':
-        return <BingoBoards />;
+        return <BingoBoardsHub />;
       case 'speedrun':
         return <SpeedRuns />;
       case 'achievements':
@@ -22,7 +22,7 @@ export default function Challenges() {
       case 'puzzles':
         return <PuzzleQuests />;
       default:
-        return <BingoBoards />;
+        return <BingoBoardsHub />;
     }
   };
 
@@ -35,68 +35,84 @@ export default function Challenges() {
             onClick={() => setActiveTab('bingo')}
             className={cn(
               'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
-              'w-full transition-all duration-300 ease-in-out group',
+              'group w-full transition-all duration-300 ease-in-out',
               activeTab === 'bingo'
                 ? 'cyber-card-selected neon-glow-cyan'
                 : 'hover:border-cyan-400/60'
             )}
           >
             <span className="font-semibold">Bingo Boards</span>
-            <Grid className={cn(
-              "ml-2 h-5 w-5 transition-all duration-300",
-              activeTab === 'bingo' ? "text-cyan-400 drop-shadow-lg" : "group-hover:text-cyan-400"
-            )} />
+            <Grid
+              className={cn(
+                'ml-2 h-5 w-5 transition-all duration-300',
+                activeTab === 'bingo'
+                  ? 'text-cyan-400 drop-shadow-lg'
+                  : 'group-hover:text-cyan-400'
+              )}
+            />
           </button>
 
           <button
             onClick={() => setActiveTab('speedrun')}
             className={cn(
               'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
-              'w-full transition-all duration-300 ease-in-out group',
+              'group w-full transition-all duration-300 ease-in-out',
               activeTab === 'speedrun'
                 ? 'cyber-card-selected neon-glow-purple'
                 : 'hover:border-purple-400/60'
             )}
           >
             <span className="font-semibold">Speed Runs</span>
-            <Zap className={cn(
-              "ml-2 h-5 w-5 transition-all duration-300",
-              activeTab === 'speedrun' ? "text-purple-400 drop-shadow-lg" : "group-hover:text-purple-400"
-            )} />
+            <Zap
+              className={cn(
+                'ml-2 h-5 w-5 transition-all duration-300',
+                activeTab === 'speedrun'
+                  ? 'text-purple-400 drop-shadow-lg'
+                  : 'group-hover:text-purple-400'
+              )}
+            />
           </button>
 
           <button
             onClick={() => setActiveTab('achievements')}
             className={cn(
               'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
-              'w-full transition-all duration-300 ease-in-out group',
+              'group w-full transition-all duration-300 ease-in-out',
               activeTab === 'achievements'
                 ? 'cyber-card-selected neon-glow-fuchsia'
                 : 'hover:border-fuchsia-400/60'
             )}
           >
             <span className="font-semibold">Achievement Hunt</span>
-            <Trophy className={cn(
-              "ml-2 h-5 w-5 transition-all duration-300",
-              activeTab === 'achievements' ? "text-fuchsia-400 drop-shadow-lg" : "group-hover:text-fuchsia-400"
-            )} />
+            <Trophy
+              className={cn(
+                'ml-2 h-5 w-5 transition-all duration-300',
+                activeTab === 'achievements'
+                  ? 'text-fuchsia-400 drop-shadow-lg'
+                  : 'group-hover:text-fuchsia-400'
+              )}
+            />
           </button>
 
           <button
             onClick={() => setActiveTab('puzzles')}
             className={cn(
               'cyber-card cyber-card-hover flex items-center justify-between rounded-lg px-6 py-4 sm:py-3',
-              'w-full transition-all duration-300 ease-in-out group',
+              'group w-full transition-all duration-300 ease-in-out',
               activeTab === 'puzzles'
                 ? 'cyber-card-selected neon-glow-cyan'
                 : 'hover:border-emerald-400/60'
             )}
           >
             <span className="font-semibold">Puzzle Quests</span>
-            <Puzzle className={cn(
-              "ml-2 h-5 w-5 transition-all duration-300",
-              activeTab === 'puzzles' ? "text-emerald-400 drop-shadow-lg" : "group-hover:text-emerald-400"
-            )} />
+            <Puzzle
+              className={cn(
+                'ml-2 h-5 w-5 transition-all duration-300',
+                activeTab === 'puzzles'
+                  ? 'text-emerald-400 drop-shadow-lg'
+                  : 'group-hover:text-emerald-400'
+              )}
+            />
           </button>
         </div>
 

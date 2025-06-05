@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
@@ -31,7 +31,23 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
     message: null,
   });
 
+  // Mount tracking and timeout ref for cleanup
+  const isMountedRef = useRef(true);
+  const tipTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
   const currentEmail = authUser?.email || '';
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      if (tipTimeoutRef.current) {
+        clearTimeout(tipTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const resetPasswordForm = () => {
     setIsChangingPassword(false);
@@ -68,6 +84,9 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
 
       if (updateResult.error) throw updateResult.error;
 
+      // Only update state if still mounted
+      if (!isMountedRef.current) return;
+
       setFormState({
         isSubmitting: false,
         message: {
@@ -76,15 +95,17 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
         },
       });
 
-      // Show additional tip after delay
-      setTimeout(() => {
-        setFormState(prev => ({
-          ...prev,
-          message: {
-            text: SETTINGS_CONSTANTS.MESSAGES.PASSWORD_TIP,
-            type: 'info',
-          },
-        }));
+      // Show additional tip after delay with cleanup
+      tipTimeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          setFormState(prev => ({
+            ...prev,
+            message: {
+              text: SETTINGS_CONSTANTS.MESSAGES.PASSWORD_TIP,
+              type: 'info',
+            },
+          }));
+        }
       }, SETTINGS_CONSTANTS.TIMING.TIP_DELAY);
 
       resetPasswordForm();
@@ -93,6 +114,9 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
         component: 'usePasswordUpdate',
         metadata: { userId: userData?.id },
       });
+
+      // Only update state if still mounted
+      if (!isMountedRef.current) return;
 
       const errorMessage =
         error instanceof Error

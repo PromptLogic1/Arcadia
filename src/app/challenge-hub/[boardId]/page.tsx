@@ -1,7 +1,10 @@
 'use client';
 
 import { BingoBoardEdit } from '@/src/features/bingo-boards/components/bingo-boards-edit/BingoBoardEdit';
-import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+import {
+  RouteErrorBoundary,
+  AsyncBoundary,
+} from '@/components/error-boundaries';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 

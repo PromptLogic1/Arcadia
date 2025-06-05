@@ -1,10 +1,13 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import type { BingoCard } from './types';
-import type { GameCategory, Difficulty } from '@/types';
+import type { GameCategory } from '@/types';
 import type { Enums } from '@/types/database-generated';
 import { DIFFICULTIES } from '@/src/types/index';
-import { CARD_CATEGORIES, type CardCategory } from '@/features/bingo-boards/types/generator.types';
+import {
+  CARD_CATEGORIES,
+  type CardCategory,
+} from '@/features/bingo-boards/types/generator.types';
 
 type DifficultyLevel = Enums<'difficulty_level'>;
 type GeneratorDifficulty = DifficultyLevel;
@@ -24,7 +27,7 @@ interface BingoGeneratorState {
   selectedCards: BingoCard[];
   isLoading: boolean;
   error: string | null;
-  
+
   // Generator Panel Settings
   settings: GeneratorSettings;
 }
@@ -38,7 +41,7 @@ interface BingoGeneratorActions {
   clearCardsForSelection: () => void;
   clearSelectedCards: () => void;
   reset: () => void;
-  
+
   // Generator Panel Actions
   updateSettings: (settings: Partial<GeneratorSettings>) => void;
   setDifficulty: (difficulty: GeneratorDifficulty) => void;
@@ -91,7 +94,7 @@ export const useBingoGeneratorStore =
           set({ selectedCards: [] }, false, 'clearSelectedCards'),
 
         reset: () => set(initialState, false, 'reset'),
-        
+
         // Generator Panel Actions
         updateSettings: settings =>
           set(
@@ -101,7 +104,7 @@ export const useBingoGeneratorStore =
             false,
             'updateSettings'
           ),
-          
+
         setDifficulty: difficulty =>
           set(
             state => ({
@@ -110,7 +113,7 @@ export const useBingoGeneratorStore =
             false,
             'setDifficulty'
           ),
-          
+
         setCardPoolSize: cardPoolSize =>
           set(
             state => ({
@@ -119,7 +122,7 @@ export const useBingoGeneratorStore =
             false,
             'setCardPoolSize'
           ),
-          
+
         setMinVotes: minVotes =>
           set(
             state => ({
@@ -128,7 +131,7 @@ export const useBingoGeneratorStore =
             false,
             'setMinVotes'
           ),
-          
+
         setSelectedCategories: selectedCategories =>
           set(
             state => ({
@@ -137,7 +140,7 @@ export const useBingoGeneratorStore =
             false,
             'setSelectedCategories'
           ),
-          
+
         setGameCategory: gameCategory =>
           set(
             state => ({
@@ -146,7 +149,7 @@ export const useBingoGeneratorStore =
             false,
             'setGameCategory'
           ),
-          
+
         setCardSource: cardSource =>
           set(
             state => ({
@@ -202,14 +205,20 @@ export const useBingoGeneratorActions = () => {
     state => state.clearSelectedCards
   );
   const reset = useBingoGeneratorStore(state => state.reset);
-  
+
   // Generator Panel Actions
   const updateSettings = useBingoGeneratorStore(state => state.updateSettings);
   const setDifficulty = useBingoGeneratorStore(state => state.setDifficulty);
-  const setCardPoolSize = useBingoGeneratorStore(state => state.setCardPoolSize);
+  const setCardPoolSize = useBingoGeneratorStore(
+    state => state.setCardPoolSize
+  );
   const setMinVotes = useBingoGeneratorStore(state => state.setMinVotes);
-  const setSelectedCategories = useBingoGeneratorStore(state => state.setSelectedCategories);
-  const setGameCategory = useBingoGeneratorStore(state => state.setGameCategory);
+  const setSelectedCategories = useBingoGeneratorStore(
+    state => state.setSelectedCategories
+  );
+  const setGameCategory = useBingoGeneratorStore(
+    state => state.setGameCategory
+  );
   const setCardSource = useBingoGeneratorStore(state => state.setCardSource);
 
   return {

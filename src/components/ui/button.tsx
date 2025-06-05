@@ -25,9 +25,12 @@ const buttonVariants = cva(
         glass:
           'glass text-foreground hover:bg-accent/10 hover-glow backdrop-blur-md',
         cyber: 'cyber-button hover:scale-105 active:scale-95',
-        'cyber-outline': 'border border-cyan-500/40 bg-transparent text-cyan-200 hover:bg-cyan-500/8 hover:border-cyan-400/60 hover:text-cyan-100 backdrop-blur-sm transition-all duration-200',
-        'cyber-ghost': 'bg-transparent text-cyan-200 hover:bg-cyan-500/8 hover:text-cyan-100 transition-all duration-200',
-        holographic: 'holographic-effect bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold border-0 hover:from-purple-700 hover:to-fuchsia-700',
+        'cyber-outline':
+          'border border-cyan-500/40 bg-transparent text-cyan-200 hover:bg-cyan-500/8 hover:border-cyan-400/60 hover:text-cyan-100 backdrop-blur-sm transition-all duration-200',
+        'cyber-ghost':
+          'bg-transparent text-cyan-200 hover:bg-cyan-500/8 hover:text-cyan-100 transition-all duration-200',
+        holographic:
+          'holographic-effect bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold border-0 hover:from-purple-700 hover:to-fuchsia-700',
       },
       size: {
         default: 'h-10 px-4 py-2 pointer-coarse:h-12 pointer-coarse:px-6',

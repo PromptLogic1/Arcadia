@@ -1,12 +1,13 @@
 /**
  * Settings Service
- * 
+ *
  * Service layer for user settings operations.
  * Handles email updates, password changes, and profile preferences.
  */
 
 import { createClient } from '@/lib/supabase';
 import type { Tables, TablesUpdate } from '@/types/database-generated';
+import { logger } from '@/lib/logger';
 
 export type UserProfile = Tables<'users'>;
 export type UserProfileUpdate = TablesUpdate<'users'>;
@@ -65,7 +66,8 @@ export const settingsService = {
     } catch (error) {
       return {
         profile: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch profile'
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch profile',
       };
     }
   },
@@ -98,7 +100,8 @@ export const settingsService = {
     } catch (error) {
       return {
         profile: null,
-        error: error instanceof Error ? error.message : 'Failed to update profile'
+        error:
+          error instanceof Error ? error.message : 'Failed to update profile',
       };
     }
   },
@@ -122,7 +125,7 @@ export const settingsService = {
 
       // Update email in Supabase Auth
       const { error } = await supabase.auth.updateUser({
-        email: newEmail
+        email: newEmail,
       });
 
       if (error) {
@@ -133,7 +136,8 @@ export const settingsService = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update email'
+        error:
+          error instanceof Error ? error.message : 'Failed to update email',
       };
     }
   },
@@ -156,7 +160,9 @@ export const settingsService = {
       const supabase = createClient();
 
       // First verify current password by attempting to sign in
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
       if (!currentUser?.email) {
         return { success: false, error: 'User not authenticated' };
       }
@@ -164,7 +170,7 @@ export const settingsService = {
       // Verify current password
       const { error: verifyError } = await supabase.auth.signInWithPassword({
         email: currentUser.email,
-        password: currentPassword
+        password: currentPassword,
       });
 
       if (verifyError) {
@@ -173,7 +179,7 @@ export const settingsService = {
 
       // Update password
       const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
 
       if (updateError) {
@@ -184,7 +190,8 @@ export const settingsService = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update password'
+        error:
+          error instanceof Error ? error.message : 'Failed to update password',
       };
     }
   },
@@ -204,12 +211,18 @@ export const settingsService = {
     try {
       // For now, just return success as notification settings
       // would need a dedicated table or JSON column
-      console.log('Notification settings update requested:', { userId, settings });
+      logger.info('Notification settings update requested', {
+        userId,
+        metadata: { settings },
+      });
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update notification settings'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update notification settings',
       };
     }
   },
@@ -225,12 +238,15 @@ export const settingsService = {
       // Note: This is a placeholder - actual account deletion would need
       // to be handled server-side for security and to clean up related data
       // For now, just return a placeholder response
-      console.log('Account deletion requested');
+      logger.warn('Account deletion requested but not implemented', {
+        feature: 'settings',
+      });
       return { success: false, error: 'Account deletion not yet implemented' };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete account'
+        error:
+          error instanceof Error ? error.message : 'Failed to delete account',
       };
     }
   },
@@ -271,12 +287,17 @@ export const settingsService = {
     try {
       // This would typically be handled by a database function
       // For now, we'll just return true (email validation happens in auth)
-      console.log('Email availability check requested:', email);
+      logger.debug('Email availability check requested', {
+        metadata: { email },
+      });
       return { available: true };
     } catch (error) {
       return {
         available: false,
-        error: error instanceof Error ? error.message : 'Failed to check email availability'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to check email availability',
       };
     }
   },

@@ -14,7 +14,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const gameType = searchParams.get('gameType');
-    
+
     // Validate pagination params
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(50, Math.max(1, limit)); // Max 50 items per page
@@ -23,22 +23,20 @@ export async function GET(request: Request): Promise<NextResponse> {
     const supabase = await createServerComponentClient();
 
     // Build query with pagination
-    let query = supabase
-      .from('discussions')
-      .select(
-        `
+    let query = supabase.from('discussions').select(
+      `
         *,
         author:users!discussions_author_id_fkey(username, avatar_url),
         comments:comments(count)
       `,
-        { count: 'exact' }
-      );
-    
+      { count: 'exact' }
+    );
+
     // Add game type filter if provided
     if (gameType && gameType !== 'all') {
       query = query.eq('game', gameType);
     }
-    
+
     // Add pagination and ordering
     query = query
       .order('created_at', { ascending: false })
@@ -48,7 +46,12 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     if (error) {
       log.error('Error fetching discussions', error, {
-        metadata: { apiRoute: 'discussions', method: 'GET', page: safePage, limit: safeLimit },
+        metadata: {
+          apiRoute: 'discussions',
+          method: 'GET',
+          page: safePage,
+          limit: safeLimit,
+        },
       });
       return NextResponse.json(
         { error: 'Failed to fetch discussions' },
@@ -63,8 +66,8 @@ export async function GET(request: Request): Promise<NextResponse> {
         page: safePage,
         limit: safeLimit,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / safeLimit)
-      }
+        totalPages: Math.ceil((count || 0) / safeLimit),
+      },
     });
   } catch (error) {
     log.error('Error fetching discussions', error, {

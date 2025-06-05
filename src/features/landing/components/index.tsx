@@ -7,33 +7,57 @@ import { GiSpeedometer, GiPuzzle, GiTeamUpgrade } from 'react-icons/gi';
 
 // Lazy load heavy components
 const TryDemoGame = dynamic(() => import('./TryDemoGame'), {
-  loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
-  ssr: true
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <div className="animate-pulse text-cyan-400">Loading...</div>
+    </div>
+  ),
+  ssr: true,
 });
 
 const FeaturedChallenges = dynamic(() => import('./FeaturedChallenges'), {
-  loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
-  ssr: true
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <div className="animate-pulse text-cyan-400">Loading...</div>
+    </div>
+  ),
+  ssr: true,
 });
 
 const FeaturedGamesCarousel = dynamic(() => import('./FeaturedGamesCarousel'), {
-  loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
-  ssr: true
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <div className="animate-pulse text-cyan-400">Loading...</div>
+    </div>
+  ),
+  ssr: true,
 });
 
 const FAQSection = dynamic(() => import('./FAQSection'), {
-  loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
-  ssr: true
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <div className="animate-pulse text-cyan-400">Loading...</div>
+    </div>
+  ),
+  ssr: true,
 });
 
 const PartnersSection = dynamic(() => import('./PartnersSection'), {
-  loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
-  ssr: true
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <div className="animate-pulse text-cyan-400">Loading...</div>
+    </div>
+  ),
+  ssr: true,
 });
 
 const UpcomingEventsSection = dynamic(() => import('./UpcomingEventsSection'), {
-  loading: () => <div className="h-96 flex items-center justify-center"><div className="animate-pulse text-cyan-400">Loading...</div></div>,
-  ssr: true
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <div className="animate-pulse text-cyan-400">Loading...</div>
+    </div>
+  ),
+  ssr: true,
 });
 
 // Example challenge data for HeroSection and FeaturedChallenges
@@ -71,7 +95,10 @@ const challenges = [
   },
 ];
 
-import { BaseErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+import {
+  BaseErrorBoundary,
+  AsyncBoundary,
+} from '@/components/error-boundaries';
 
 export default function LandingPage() {
   // For HeroSection animation/demo
@@ -86,19 +113,23 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <BaseErrorBoundary componentName="LandingPage">
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-foreground">
+    <BaseErrorBoundary level="page">
+      <div className="text-foreground min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         {/* Skip to main content for accessibility */}
-        <a 
-          href="#main-content" 
-          className="sr-only focus:not-sr-only focus:absolute focus:top-24 focus:left-4 focus:z-[10000] focus:bg-cyan-600 focus:text-white focus:px-6 focus:py-3 focus:rounded-md focus:shadow-xl focus:border-2 focus:border-cyan-400"
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-24 focus:left-4 focus:z-[10000] focus:rounded-md focus:border-2 focus:border-cyan-400 focus:bg-cyan-600 focus:px-6 focus:py-3 focus:text-white focus:shadow-xl"
           aria-label="Skip to main content"
         >
           Skip to main content
         </a>
 
-        <main id="main-content" role="main" aria-label="Arcadia Gaming Platform">
-          <BaseErrorBoundary componentName="HeroSection">
+        <main
+          id="main-content"
+          role="main"
+          aria-label="Arcadia Gaming Platform"
+        >
+          <BaseErrorBoundary level="component">
             <HeroSection
               currentChallenge={currentChallenge}
               challenges={challenges}
@@ -113,19 +144,19 @@ export default function LandingPage() {
           <AsyncBoundary loadingMessage="Loading featured challenges...">
             <FeaturedChallenges challenges={challenges} />
           </AsyncBoundary>
-          
+
           <AsyncBoundary loadingMessage="Loading featured games...">
             <FeaturedGamesCarousel />
           </AsyncBoundary>
-          
+
           <AsyncBoundary loadingMessage="Loading upcoming events...">
             <UpcomingEventsSection />
           </AsyncBoundary>
-          
+
           <AsyncBoundary loadingMessage="Loading partners...">
             <PartnersSection />
           </AsyncBoundary>
-          
+
           <AsyncBoundary loadingMessage="Loading FAQ...">
             <FAQSection />
           </AsyncBoundary>

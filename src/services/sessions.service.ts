@@ -1,6 +1,6 @@
 /**
  * Bingo Sessions Service
- * 
+ *
  * Pure functions for multiplayer bingo session operations.
  * No state management - only data fetching and mutations.
  */
@@ -50,7 +50,9 @@ export const sessionsService = {
   /**
    * Get session by ID
    */
-  async getSessionById(sessionId: string): Promise<{ session: BingoSession | null; error?: string }> {
+  async getSessionById(
+    sessionId: string
+  ): Promise<{ session: BingoSession | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -65,9 +67,10 @@ export const sessionsService = {
 
       return { session: data as BingoSession };
     } catch (error) {
-      return { 
-        session: null, 
-        error: error instanceof Error ? error.message : 'Failed to fetch session' 
+      return {
+        session: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch session',
       };
     }
   },
@@ -75,7 +78,9 @@ export const sessionsService = {
   /**
    * Get session by code
    */
-  async getSessionByCode(sessionCode: string): Promise<{ session: BingoSession | null; error?: string }> {
+  async getSessionByCode(
+    sessionCode: string
+  ): Promise<{ session: BingoSession | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -90,9 +95,12 @@ export const sessionsService = {
 
       return { session: data as BingoSession };
     } catch (error) {
-      return { 
-        session: null, 
-        error: error instanceof Error ? error.message : 'Failed to fetch session by code' 
+      return {
+        session: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch session by code',
       };
     }
   },
@@ -140,10 +148,10 @@ export const sessionsService = {
         .range(start, end);
 
       if (error) {
-        return { 
-          sessions: [], 
-          totalCount: 0, 
-          error: error.message 
+        return {
+          sessions: [],
+          totalCount: 0,
+          error: error.message,
         };
       }
 
@@ -152,10 +160,13 @@ export const sessionsService = {
         totalCount: count || 0,
       };
     } catch (error) {
-      return { 
-        sessions: [], 
+      return {
+        sessions: [],
         totalCount: 0,
-        error: error instanceof Error ? error.message : 'Failed to fetch active sessions' 
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch active sessions',
       };
     }
   },
@@ -163,12 +174,17 @@ export const sessionsService = {
   /**
    * Create a new session
    */
-  async createSession(sessionData: CreateSessionData): Promise<{ session: BingoSession | null; error?: string }> {
+  async createSession(
+    sessionData: CreateSessionData
+  ): Promise<{ session: BingoSession | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // Generate session code
-      const sessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const sessionCode = Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase();
 
       const { data, error } = await supabase
         .from('bingo_sessions')
@@ -196,9 +212,10 @@ export const sessionsService = {
 
       return { session: data as BingoSession };
     } catch (error) {
-      return { 
-        session: null, 
-        error: error instanceof Error ? error.message : 'Failed to create session' 
+      return {
+        session: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to create session',
       };
     }
   },
@@ -206,7 +223,9 @@ export const sessionsService = {
   /**
    * Join a session
    */
-  async joinSession(joinData: JoinSessionData): Promise<{ player: SessionPlayer | null; error?: string }> {
+  async joinSession(
+    joinData: JoinSessionData
+  ): Promise<{ player: SessionPlayer | null; error?: string }> {
     try {
       const supabase = createClient();
 
@@ -226,7 +245,10 @@ export const sessionsService = {
       }
 
       // Check password if required
-      if (session.settings?.password && session.settings.password !== joinData.password) {
+      if (
+        session.settings?.password &&
+        session.settings.password !== joinData.password
+      ) {
         return { player: null, error: 'Invalid session password' };
       }
 
@@ -263,9 +285,10 @@ export const sessionsService = {
 
       return { player: data as SessionPlayer };
     } catch (error) {
-      return { 
-        player: null, 
-        error: error instanceof Error ? error.message : 'Failed to join session' 
+      return {
+        player: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to join session',
       };
     }
   },
@@ -273,7 +296,10 @@ export const sessionsService = {
   /**
    * Leave a session
    */
-  async leaveSession(sessionId: string, userId: string): Promise<{ error?: string }> {
+  async leaveSession(
+    sessionId: string,
+    userId: string
+  ): Promise<{ error?: string }> {
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -288,8 +314,9 @@ export const sessionsService = {
 
       return {};
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Failed to leave session' 
+      return {
+        error:
+          error instanceof Error ? error.message : 'Failed to leave session',
       };
     }
   },
@@ -298,7 +325,7 @@ export const sessionsService = {
    * Update session status
    */
   async updateSessionStatus(
-    sessionId: string, 
+    sessionId: string,
     status: SessionStatus
   ): Promise<{ session: BingoSession | null; error?: string }> {
     try {
@@ -326,9 +353,12 @@ export const sessionsService = {
 
       return { session: data };
     } catch (error) {
-      return { 
-        session: null, 
-        error: error instanceof Error ? error.message : 'Failed to update session status' 
+      return {
+        session: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update session status',
       };
     }
   },
@@ -336,7 +366,9 @@ export const sessionsService = {
   /**
    * Get session players
    */
-  async getSessionPlayers(sessionId: string): Promise<{ players: SessionPlayer[]; error?: string }> {
+  async getSessionPlayers(
+    sessionId: string
+  ): Promise<{ players: SessionPlayer[]; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -351,9 +383,12 @@ export const sessionsService = {
 
       return { players: (data || []) as SessionPlayer[] };
     } catch (error) {
-      return { 
-        players: [], 
-        error: error instanceof Error ? error.message : 'Failed to fetch session players' 
+      return {
+        players: [],
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch session players',
       };
     }
   },
@@ -362,15 +397,15 @@ export const sessionsService = {
    * Update player ready status
    */
   async updatePlayerReady(
-    sessionId: string, 
-    userId: string, 
+    sessionId: string,
+    userId: string,
     isReady: boolean
   ): Promise<{ player: SessionPlayer | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('bingo_session_players')
-        .update({ 
+        .update({
           is_ready: isReady,
         })
         .eq('session_id', sessionId)
@@ -384,9 +419,12 @@ export const sessionsService = {
 
       return { player: data };
     } catch (error) {
-      return { 
-        player: null, 
-        error: error instanceof Error ? error.message : 'Failed to update player ready status' 
+      return {
+        player: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update player ready status',
       };
     }
   },

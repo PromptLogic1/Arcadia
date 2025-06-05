@@ -1,6 +1,6 @@
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import type { GameCategory, Difficulty as _Difficulty } from '@/types';
 import type { Enums } from '@/types/database-generated';
@@ -90,6 +90,9 @@ export function useGeneratorForm({
   _gridSize,
   onGenerate,
 }: UseGeneratorFormOptions): UseGeneratorFormReturn {
+  // Track mounted state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
   // Initialize React Hook Form with Zod validation
   const form = useForm<GeneratorFormData>({
     resolver: zodResolver(generatorFormSchema),
@@ -108,6 +111,14 @@ export function useGeneratorForm({
   const isGenerating = formState.isSubmitting;
   const generationError = formState.errors.root?.message || null;
 
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Handle form submission
   const onSubmit = useCallback(
     async (data: GeneratorFormData) => {
@@ -116,10 +127,13 @@ export function useGeneratorForm({
           await onGenerate(data);
         }
       } catch (error) {
-        // Set form-level error
-        form.setError('root', {
-          message: error instanceof Error ? error.message : 'Generation failed',
-        });
+        // Only set error if component is still mounted
+        if (isMountedRef.current) {
+          form.setError('root', {
+            message:
+              error instanceof Error ? error.message : 'Generation failed',
+          });
+        }
       }
     },
     [onGenerate, form]
@@ -128,6 +142,8 @@ export function useGeneratorForm({
   // Handle category toggle
   const handleCategoryToggle = useCallback(
     (category: CardCategory) => {
+      if (!isMountedRef.current) return;
+
       const currentCategories = formData.categories || [];
       const newCategories = currentCategories.includes(category)
         ? currentCategories.filter(c => c !== category)
@@ -141,6 +157,8 @@ export function useGeneratorForm({
   // Handle "use all categories" toggle
   const handleAllCategoriesToggle = useCallback(
     (checked: boolean) => {
+      if (!isMountedRef.current) return;
+
       setValue('useAllCategories', checked, { shouldValidate: true });
       if (checked) {
         setValue('categories', [...CARD_CATEGORIES], { shouldValidate: true });
@@ -153,6 +171,8 @@ export function useGeneratorForm({
 
   // Auto-update categories when useAllCategories changes
   useEffect(() => {
+    if (!isMountedRef.current) return;
+
     if (
       formData.useAllCategories &&
       formData.categories.length !== CARD_CATEGORIES.length

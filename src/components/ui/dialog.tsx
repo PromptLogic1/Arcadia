@@ -24,7 +24,8 @@ const dialogContentVariants = cva(
         cyber: 'cyber-card border-cyan-500/50 backdrop-blur-xl',
         glass: 'glass border-white/20 backdrop-blur-xl',
         neon: 'bg-slate-900/95 border-2 border-cyan-400/50 shadow-2xl shadow-cyan-500/20 backdrop-blur-xl',
-        holographic: 'bg-gradient-to-br from-slate-900/90 to-purple-900/50 border border-fuchsia-500/50 shadow-2xl shadow-fuchsia-500/20 backdrop-blur-xl',
+        holographic:
+          'bg-gradient-to-br from-slate-900/90 to-purple-900/50 border border-fuchsia-500/50 shadow-2xl shadow-fuchsia-500/20 backdrop-blur-xl',
       },
       size: {
         default: 'max-w-lg',
@@ -68,15 +69,12 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      className={cn(
-        dialogContentVariants({ variant, size }),
-        className
-      )}
+      className={cn(dialogContentVariants({ variant, size }), className)}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none group">
-        <Cross2Icon className="h-4 w-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+      <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground group absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+        <Cross2Icon className="h-4 w-4 text-cyan-400 transition-colors group-hover:text-cyan-300" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
@@ -133,7 +131,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-cyan-300/70 text-sm', className)}
+    className={cn('text-sm text-cyan-300/70', className)}
     {...props}
   />
 ));

@@ -1,7 +1,9 @@
-import { Suspense } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+// Suspense and LoadingSpinner removed - not currently used
 import Community from '@/features/community/components/community';
-import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+import {
+  RouteErrorBoundary,
+  AsyncBoundary,
+} from '@/components/error-boundaries';
 
 // Konfiguration für dynamisches Rendering
 export const dynamic = 'force-dynamic';

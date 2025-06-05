@@ -89,10 +89,10 @@ export function useCommunityData(): UseCommunityDataReturn {
   // Loading states
   const [isEventsLoading, setIsEventsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  
+
   // Ref to track timeout for cleanup
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -112,22 +112,20 @@ export function useCommunityData(): UseCommunityDataReturn {
 
   // Simulate API loading for events and initial page perception
   useEffect(() => {
+    // Skip if discussions are still loading
+    if (isRealDiscussionsLoading) {
+      return;
+    }
+
     // Clear any existing timeout
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
     }
-    
-    // Capture current loading state to avoid stale closure
-    const currentIsRealDiscussionsLoading = isRealDiscussionsLoading;
-    
+
     loadingTimeoutRef.current = setTimeout(() => {
       loadingTimeoutRef.current = null;
-      
-      // Use the captured state to ensure consistency
-      if (!currentIsRealDiscussionsLoading) {
-        setIsInitialLoad(false);
-      }
+      setIsInitialLoad(false);
       setIsEventsLoading(false);
     }, 1000);
 

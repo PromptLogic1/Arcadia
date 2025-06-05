@@ -113,9 +113,8 @@ export const useTimer = ({
   const tickTimes = useRef<number[]>([]);
   const timerStateRef = useRef(timerState);
   const onTimeEndRef = useRef(onTimeEnd);
-  // Initialize these refs as null first, will be updated after functions are declared
-  const emitTimerUpdateRef = useRef<((update: Omit<TimerUpdateEvent, 'timestamp'>) => void) | null>(null);
-  const emitTimerEventRef = useRef<((eventType: string, data?: TimerEventData) => void) | null>(null);
+  const onSessionTimerEndRef = useRef(onSessionTimerEnd);
+  const timerStatsRef = useRef(timerStats);
 
   // Update refs whenever dependencies change
   useEffect(() => {
@@ -125,6 +124,14 @@ export const useTimer = ({
   useEffect(() => {
     onTimeEndRef.current = onTimeEnd;
   }, [onTimeEnd]);
+
+  useEffect(() => {
+    onSessionTimerEndRef.current = onSessionTimerEnd;
+  }, [onSessionTimerEnd]);
+
+  useEffect(() => {
+    timerStatsRef.current = timerStats;
+  }, [timerStats]);
 
   // Event-Emission mit konstanten Event-Namen
   const emitTimerUpdate = useCallback(
@@ -157,10 +164,10 @@ export const useTimer = ({
         const event = new CustomEvent<TimerEvent>('timerEvent', {
           detail: {
             type: eventType,
-            time: timerState.time,
-            isRunning: timerState.isRunning,
-            isPaused: timerState.isPaused,
-            stats: timerStats,
+            time: timerStateRef.current.time,
+            isRunning: timerStateRef.current.isRunning,
+            isPaused: timerStateRef.current.isPaused,
+            stats: timerStatsRef.current,
           },
           bubbles: true,
         });
@@ -171,17 +178,8 @@ export const useTimer = ({
         });
       }
     },
-    [timerState, timerStats]
+    [] // No dependencies - use refs
   );
-  
-  // Update refs after functions are declared
-  useEffect(() => {
-    emitTimerUpdateRef.current = emitTimerUpdate;
-  }, [emitTimerUpdate]);
-
-  useEffect(() => {
-    emitTimerEventRef.current = emitTimerEvent;
-  }, [emitTimerEvent]);
 
   // Timer-Update mit Konstanten
   const updateTimer = useCallback(() => {
@@ -230,7 +228,7 @@ export const useTimer = ({
           });
 
           // Emittiere Update-Event
-          emitTimerUpdateRef.current?.({
+          emitTimerUpdate({
             time: newTime,
             drift,
             isRunning: newTime > 0,
@@ -240,7 +238,7 @@ export const useTimer = ({
           if (newTime === 0) {
             onTimeEndRef.current?.();
           }
-          emitTimerEventRef.current?.('tick');
+          emitTimerEvent('tick');
         }
       }
 
@@ -250,9 +248,9 @@ export const useTimer = ({
         metadata: { hook: 'useTimer' },
       });
       setTimerState(prev => ({ ...prev, isRunning: false }));
-      emitTimerEventRef.current('stop');
+      emitTimerEvent('stop');
     }
-  }, []); // Empty dependencies - use refs for all dynamic values
+  }, [emitTimerUpdate, emitTimerEvent]); // Include stable callbacks
 
   // Haupttimer-Loop mit RAF
   useEffect(() => {
@@ -318,11 +316,11 @@ export const useTimer = ({
         ...prev,
         isPaused: true,
         pausedTime: currentState.time,
+        isRunning: false,
       }));
-      setTimerState(prev => ({ ...prev, isRunning: false }));
-      emitTimerEventRef.current('pause');
+      emitTimerEvent('pause');
     }
-  }, []);
+  }, [emitTimerEvent]);
 
   const resumeTimer = useCallback(() => {
     const currentState = timerStateRef.current;
@@ -331,13 +329,13 @@ export const useTimer = ({
         ...prev,
         isPaused: false,
         time: currentState.pausedTime || prev.time,
+        isRunning: true,
       }));
-      setTimerState(prev => ({ ...prev, isRunning: true }));
       lastTick.current = Date.now();
       startTime.current = Date.now();
-      emitTimerEventRef.current('resume');
+      emitTimerEvent('resume');
     }
-  }, []);
+  }, [emitTimerEvent]);
 
   // Zeit-Formatierung
   const formatTime = useCallback((seconds: number): string => {
@@ -371,16 +369,16 @@ export const useTimer = ({
       averageTickTime: 0,
       missedTicks: 0,
     });
-    emitTimerEventRef.current('reset');
-  }, [initialTime]);
+    emitTimerEvent('reset');
+  }, [initialTime, emitTimerEvent]);
 
   // Session-Synchronisation
   useEffect(() => {
-    if (timerState.time === 0) {
+    if (timerState.time === 0 && timerState.isRunning) {
       // Benachrichtige Session über Timer-Ende
-      onSessionTimerEnd?.();
+      onSessionTimerEndRef.current?.();
     }
-  }, [timerState.time, onSessionTimerEnd]);
+  }, [timerState.time, timerState.isRunning]);
 
   // Browser-Refresh Persistenz mit konstanten Storage-Keys
   useEffect(() => {
@@ -424,11 +422,11 @@ export const useTimer = ({
     (isRunning: boolean) => {
       setTimerState(prev => {
         const newState = { ...prev, isRunning };
-        emitTimerEventRef.current(isRunning ? 'start' : 'stop');
         return newState;
       });
+      emitTimerEvent(isRunning ? 'start' : 'stop');
     },
-    []
+    [emitTimerEvent]
   );
 
   return {

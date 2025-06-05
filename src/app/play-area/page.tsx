@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+// Suspense and LoadingSpinner removed - not currently used
 import { PlayAreaHub } from '@/features/play-area/components';
-import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+import {
+  RouteErrorBoundary,
+  AsyncBoundary,
+} from '@/components/error-boundaries';
 
 export const metadata: Metadata = {
   title: 'Play Area | Arcadia',

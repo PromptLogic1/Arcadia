@@ -38,6 +38,16 @@ const PLAYER_CONSTANTS = {
 export const usePlayerManagement = ({
   sessionId,
 }: UsePlayerManagementProps): UsePlayerManagementReturn => {
+  // Mount tracking
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // States
   const [players, setPlayers] = useState<GamePlayer[]>(() => {
     // Initialize with 2 players by default
@@ -110,31 +120,28 @@ export const usePlayerManagement = ({
     settingsRef.current = settings;
   }, [settings]);
 
-  // Event Emitter - Fixed stale closure
-  const emitPlayerEvent = useCallback(
-    (event: PlayerEvent) => {
-      try {
-        const customEvent = new CustomEvent('playerManagement', {
-          detail: event,
-          bubbles: true,
-        });
-        window.dispatchEvent(customEvent);
+  // Event Emitter - Stable callback that uses refs
+  const emitPlayerEvent = useCallback((event: PlayerEvent) => {
+    try {
+      const customEvent = new CustomEvent('playerManagement', {
+        detail: event,
+        bubbles: true,
+      });
+      window.dispatchEvent(customEvent);
 
-        if (
-          event.type === 'team_change' &&
-          event.playerId &&
-          event.newTeam !== undefined
-        ) {
-          trackMoveRef.current(event.playerId, 'team_switch', event.newTeam);
-        }
-      } catch (error) {
-        logger.error('Error emitting player event', error as Error, {
-          metadata: { hook: 'usePlayerManagement', event },
-        });
+      if (
+        event.type === 'team_change' &&
+        event.playerId &&
+        event.newTeam !== undefined
+      ) {
+        trackMoveRef.current(event.playerId, 'team_switch', event.newTeam);
       }
-    },
-    [] // Removed trackMove dependency, using ref instead
-  );
+    } catch (error) {
+      logger.error('Error emitting player event', error as Error, {
+        metadata: { hook: 'usePlayerManagement', event },
+      });
+    }
+  }, []); // Empty deps since we use refs for all external values
 
   // Helper Functions
   const getTeamSizes = useCallback(
@@ -163,7 +170,9 @@ export const usePlayerManagement = ({
   const addPlayer = useCallback(
     async (player: JoinSessionForm): Promise<void> => {
       try {
-        _setLoading(true);
+        if (isMountedRef.current) {
+          _setLoading(true);
+        }
 
         const currentPlayers = playersRef.current;
         if (currentPlayers.length >= PLAYER_CONSTANTS.LIMITS.MAX_PLAYERS) {
@@ -194,16 +203,22 @@ export const usePlayerManagement = ({
           updated_at: new Date().toISOString(),
         };
 
-        setPlayers(prev => [...prev, newPlayer]);
-        emitPlayerEvent({
-          type: PLAYER_CONSTANTS.EVENTS.PLAYER_JOIN,
-          player: newPlayer,
-        });
+        if (isMountedRef.current) {
+          setPlayers(prev => [...prev, newPlayer]);
+          emitPlayerEvent({
+            type: PLAYER_CONSTANTS.EVENTS.PLAYER_JOIN,
+            player: newPlayer,
+          });
+        }
       } catch (err) {
-        setError(err as Error);
+        if (isMountedRef.current) {
+          setError(err as Error);
+        }
         throw err;
       } finally {
-        _setLoading(false);
+        if (isMountedRef.current) {
+          _setLoading(false);
+        }
       }
     },
     [emitPlayerEvent, sessionId] // Removed players.length and settings dependencies
@@ -211,32 +226,48 @@ export const usePlayerManagement = ({
 
   const removePlayer = useCallback(async (playerId: string): Promise<void> => {
     try {
-      _setLoading(true);
-      setPlayers(prev => prev.filter(p => p.user_id !== playerId));
+      if (isMountedRef.current) {
+        _setLoading(true);
+        setPlayers(prev => prev.filter(p => p.user_id !== playerId));
+      }
     } catch (err) {
-      setError(err as Error);
+      if (isMountedRef.current) {
+        setError(err as Error);
+      }
       throw err;
     } finally {
-      _setLoading(false);
+      if (isMountedRef.current) {
+        _setLoading(false);
+      }
     }
   }, []);
 
   const updatePlayer = useCallback(
     async (playerId: string, updates: Partial<GamePlayer>): Promise<void> => {
       try {
-        _setLoading(true);
-        setPlayers(prev =>
-          prev.map(player =>
-            player.user_id === playerId
-              ? { ...player, ...updates, updated_at: new Date().toISOString() }
-              : player
-          )
-        );
+        if (isMountedRef.current) {
+          _setLoading(true);
+          setPlayers(prev =>
+            prev.map(player =>
+              player.user_id === playerId
+                ? {
+                    ...player,
+                    ...updates,
+                    updated_at: new Date().toISOString(),
+                  }
+                : player
+            )
+          );
+        }
       } catch (err) {
-        setError(err as Error);
+        if (isMountedRef.current) {
+          setError(err as Error);
+        }
         throw err;
       } finally {
-        _setLoading(false);
+        if (isMountedRef.current) {
+          _setLoading(false);
+        }
       }
     },
     []
@@ -261,19 +292,19 @@ export const usePlayerManagement = ({
           return player;
         });
 
-        // Emit event after state update to avoid stale closure
-        setTimeout(() => {
+        // Use queueMicrotask instead of setTimeout for better performance
+        queueMicrotask(() => {
           emitPlayerEvent({
             type: PLAYER_CONSTANTS.EVENTS.TEAM_CHANGE,
             playerId,
             newTeam,
           });
-        }, 0);
+        });
 
         return newPlayers;
       });
     },
-    [emitPlayerEvent, checkTeamSize] // Removed settings dependency
+    [checkTeamSize, emitPlayerEvent]
   );
 
   // Sync with presence

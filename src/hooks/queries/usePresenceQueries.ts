@@ -1,5 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { presenceService, type PresenceData, type PresenceState } from '@/src/services/presence.service';
+import {
+  presenceService,
+  type PresenceData,
+  type PresenceState,
+} from '@/src/services/presence.service';
 import { useCurrentUserQuery } from './useAuthQueries';
 
 // Hook for tracking and subscribing to presence
@@ -22,14 +26,10 @@ export const usePresence = (sessionId: string) => {
 
     const startTracking = async () => {
       setIsTracking(true);
-      cleanup = await presenceService.trackPresence(
-        channelName,
-        user.id,
-        {
-          display_name: user.username || 'Anonymous',
-          avatar_url: user.avatar_url,
-        }
-      );
+      cleanup = await presenceService.trackPresence(channelName, user.id, {
+        display_name: user.username || 'Anonymous',
+        avatar_url: user.avatar_url,
+      });
     };
 
     startTracking();
@@ -60,7 +60,7 @@ export const usePresence = (sessionId: string) => {
   const updateMetadata = useCallback(
     async (metadata: PresenceState['metadata']) => {
       if (!user) return;
-      
+
       await presenceService.updatePresenceMetadata(
         channelName,
         user.id,
@@ -73,7 +73,9 @@ export const usePresence = (sessionId: string) => {
   // Get specific user's presence
   const getUserPresence = useCallback(
     (userId: string): PresenceState | undefined => {
-      return presenceData.presence.find((p: PresenceState) => p.userId === userId);
+      return presenceData.presence.find(
+        (p: PresenceState) => p.userId === userId
+      );
     },
     [presenceData.presence]
   );
@@ -100,15 +102,15 @@ export const usePresence = (sessionId: string) => {
 // Hook for cursor/hover tracking in collaborative environments
 export const usePresenceCursor = (sessionId: string) => {
   const { updateMetadata } = usePresence(sessionId);
-  const [cursors, setCursors] = useState<Map<string, { x: number; y: number; color: string }>>(
-    new Map()
-  );
+  const [cursors, setCursors] = useState<
+    Map<string, { x: number; y: number; color: string }>
+  >(new Map());
 
   // Update cursor position
   const updateCursorPosition = useCallback(
     (x: number, y: number) => {
-      updateMetadata({ 
-        currentCell: Math.floor(y * 5 + x), // Assuming 5x5 grid
+      updateMetadata({
+        currentCell: Math.floor(y * 5 + x).toString(), // Assuming 5x5 grid
       });
     },
     [updateMetadata]
@@ -122,11 +124,14 @@ export const usePresenceCursor = (sessionId: string) => {
     const unsubscribe = presenceService.subscribeToPresence(
       channelName,
       (data: PresenceData) => {
-        const newCursors = new Map<string, { x: number; y: number; color: string }>();
-        
+        const newCursors = new Map<
+          string,
+          { x: number; y: number; color: string }
+        >();
+
         data.presence.forEach((p: PresenceState) => {
           if (p.metadata?.currentCell !== undefined && p.metadata?.color) {
-            const cell = p.metadata.currentCell;
+            const cell = parseInt(p.metadata.currentCell, 10);
             const x = cell % 5;
             const y = Math.floor(cell / 5);
             newCursors.set(p.userId, { x, y, color: p.metadata.color });

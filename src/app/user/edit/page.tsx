@@ -1,5 +1,8 @@
 import dynamic from 'next/dynamic';
-import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+import {
+  RouteErrorBoundary,
+  AsyncBoundary,
+} from '@/components/error-boundaries';
 
 // Dynamically import the UserPageEdit component
 const UserPageEdit = dynamic(

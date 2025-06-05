@@ -1,9 +1,11 @@
 'use client';
 
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
 import { BaseErrorBoundary } from './BaseErrorBoundary';
 import { AlertTriangle, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -42,12 +44,14 @@ export class RealtimeErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error(
-      `RealtimeErrorBoundary caught error in ${this.props.componentName || 'component'}:`,
+    logger.error(
+      `RealtimeErrorBoundary caught error in ${this.props.componentName || 'component'}`,
+      error,
       {
-        error: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
+        component: this.props.componentName || 'unknown',
+        metadata: {
+          componentStack: errorInfo.componentStack,
+        },
       }
     );
   }
@@ -109,12 +113,15 @@ export class RealtimeErrorBoundary extends Component<Props, State> {
       <BaseErrorBoundary
         level="component"
         onError={(error, errorInfo, errorId) => {
-          console.error(
+          logger.error(
             `Realtime component error: ${this.props.componentName}`,
+            error,
             {
-              error,
-              errorInfo,
-              errorId,
+              component: this.props.componentName || 'unknown',
+              metadata: {
+                errorId,
+                errorInfo,
+              },
             }
           );
         }}

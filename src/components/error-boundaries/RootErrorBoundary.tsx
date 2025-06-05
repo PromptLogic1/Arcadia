@@ -1,6 +1,7 @@
 'use client';
 
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 
@@ -49,10 +50,10 @@ export class RootErrorBoundary extends Component<Props, State> {
     });
 
     // Send critical error to Sentry with maximum context
-    Sentry.withScope((scope) => {
+    Sentry.withScope(scope => {
       // Mark as critical
       scope.setLevel('fatal');
-      
+
       // Set context
       scope.setContext('rootErrorBoundary', {
         errorCount: this.state.errorCount + 1,
@@ -63,13 +64,9 @@ export class RootErrorBoundary extends Component<Props, State> {
       scope.setTag('errorBoundary', true);
       scope.setTag('errorBoundary.level', 'root');
       scope.setTag('critical', true);
-      
+
       // Set fingerprint for grouping critical errors
-      scope.setFingerprint([
-        'root-error-boundary',
-        error.name,
-        error.message,
-      ]);
+      scope.setFingerprint(['root-error-boundary', error.name, error.message]);
 
       // Add breadcrumb
       scope.addBreadcrumb({
@@ -119,43 +116,43 @@ export class RootErrorBoundary extends Component<Props, State> {
       // Critical error - show minimal UI
       return (
         <div className="min-h-screen bg-gray-900 text-gray-100">
-            <div className="flex min-h-screen items-center justify-center p-4">
-              <div className="w-full max-w-md space-y-6 text-center">
-                <div className="space-y-2">
-                  <h1 className="text-4xl font-bold text-red-500">
-                    Critical Error
-                  </h1>
-                  <p className="text-gray-400">
-                    The application encountered a critical error and cannot
-                    continue.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="w-full rounded-lg bg-cyan-600 px-6 py-3 font-medium text-white transition-colors hover:bg-cyan-700"
-                  >
-                    Reload Application
-                  </button>
-
-                  <p className="text-xs text-gray-500">
-                    If this problem persists, please contact support.
-                  </p>
-                </div>
-
-                {process.env.NODE_ENV === 'development' && this.state.error && (
-                  <details className="mt-8 text-left">
-                    <summary className="cursor-pointer text-sm text-gray-400">
-                      Developer Info
-                    </summary>
-                    <pre className="mt-2 overflow-auto rounded bg-gray-800 p-4 text-xs">
-                      {this.state.error.stack}
-                    </pre>
-                  </details>
-                )}
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="w-full max-w-md space-y-6 text-center">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold text-red-500">
+                  Critical Error
+                </h1>
+                <p className="text-gray-400">
+                  The application encountered a critical error and cannot
+                  continue.
+                </p>
               </div>
+
+              <div className="space-y-4">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full rounded-lg bg-cyan-600 px-6 py-3 font-medium text-white transition-colors hover:bg-cyan-700"
+                >
+                  Reload Application
+                </button>
+
+                <p className="text-xs text-gray-500">
+                  If this problem persists, please contact support.
+                </p>
+              </div>
+
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <details className="mt-8 text-left">
+                  <summary className="cursor-pointer text-sm text-gray-400">
+                    Developer Info
+                  </summary>
+                  <pre className="mt-2 overflow-auto rounded bg-gray-800 p-4 text-xs">
+                    {this.state.error.stack}
+                  </pre>
+                </details>
+              )}
             </div>
+          </div>
         </div>
       );
     }

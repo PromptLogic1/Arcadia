@@ -29,7 +29,9 @@ export function useResetPasswordSubmission(): UseResetPasswordSubmissionReturn {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  
+
+  // Mount tracking to prevent state updates after unmount
+  const isMountedRef = useRef(true);
   // Ref to track timeout for cleanup
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -37,7 +39,10 @@ export function useResetPasswordSubmission(): UseResetPasswordSubmissionReturn {
 
   // Cleanup timeout on unmount
   useEffect(() => {
+    isMountedRef.current = true;
+
     return () => {
+      isMountedRef.current = false;
       if (redirectTimeoutRef.current) {
         clearTimeout(redirectTimeoutRef.current);
         redirectTimeoutRef.current = null;
@@ -59,6 +64,9 @@ export function useResetPasswordSubmission(): UseResetPasswordSubmissionReturn {
       try {
         const result = await updatePasswordMutation.mutateAsync(data.password);
 
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
+
         if (result.error) {
           setError(result.error);
           return;
@@ -69,11 +77,16 @@ export function useResetPasswordSubmission(): UseResetPasswordSubmissionReturn {
 
         // Redirect to home page after successful password reset with cleanup
         redirectTimeoutRef.current = setTimeout(() => {
-          router.push('/');
-          router.refresh();
+          if (isMountedRef.current) {
+            router.push('/');
+            router.refresh();
+          }
           redirectTimeoutRef.current = null;
         }, 2000);
       } catch (error) {
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
+
         setError(
           error instanceof Error
             ? error.message

@@ -28,6 +28,7 @@ export * from './useBingoBoardsQueries';
 export * from './useSessionsQueries';
 export * from './useCommunityQueries';
 export * from './useGameStateQueries';
+export * from './useGameSettingsQueries';
 export * from './usePresenceQueries';
 export * from './useQueueQueries';
 export * from './useCardLibraryQueries';

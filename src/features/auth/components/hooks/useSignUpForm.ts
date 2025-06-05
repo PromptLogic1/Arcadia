@@ -93,6 +93,20 @@ export function useSignUpForm({
 }: UseSignUpFormProps = {}): UseSignUpFormReturn {
   const router = useRouter();
 
+  // Mount tracking
+  const isMountedRef = React.useRef(true);
+  const redirectTimerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
+
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
+  }, []);
+
   // 🧼 Configuration Merging
   const config = React.useMemo(
     () => ({
@@ -140,10 +154,10 @@ export function useSignUpForm({
 
   // 🧼 Load Saved Data Effect
   React.useEffect(() => {
-    if (!persistence) return;
+    if (!persistence || !isMountedRef.current) return;
 
     const savedData = persistence.load();
-    if (savedData) {
+    if (savedData && isMountedRef.current) {
       setFormData(prev => ({
         ...prev,
         username: savedData.username || prev.username,
@@ -172,14 +186,21 @@ export function useSignUpForm({
   // 🧼 Redirect Timer Effect
   React.useEffect(() => {
     if (status === 'success' && redirectTimer !== null) {
-      const timer = setTimeout(() => {
-        if (redirectTimer > 1) {
-          setRedirectTimer(redirectTimer - 1);
-        } else {
-          router.push(config.redirectPath);
+      redirectTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          if (redirectTimer > 1) {
+            setRedirectTimer(redirectTimer - 1);
+          } else {
+            router.push(config.redirectPath);
+          }
         }
       }, 1000);
-      return () => clearTimeout(timer);
+      return () => {
+        if (redirectTimerRef.current !== undefined) {
+          clearTimeout(redirectTimerRef.current);
+          redirectTimerRef.current = undefined;
+        }
+      };
     }
     return undefined;
   }, [redirectTimer, status, router, config.redirectPath]);
@@ -229,6 +250,10 @@ export function useSignUpForm({
   }, [persistence]);
 
   const resetFormState = React.useCallback(() => {
+    if (redirectTimerRef.current !== undefined) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = undefined;
+    }
     setStatus('idle');
     setMessage(null);
     setRedirectTimer(null);

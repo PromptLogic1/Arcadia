@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
+import {
   sessionJoinService,
   type SessionJoinData,
 } from '../../services/session-join.service';
@@ -26,7 +26,7 @@ export function useSessionJoinDetailsQuery(sessionId: string, enabled = true) {
       }
       return failureCount < 3;
     },
-    select: (data) => data.details,
+    select: data => data.details,
   });
 }
 
@@ -39,7 +39,7 @@ export function useUserInSessionQuery(sessionId: string, enabled = true) {
     queryFn: () => sessionJoinService.checkUserInSession(sessionId),
     enabled: enabled && !!sessionId,
     staleTime: 60 * 1000, // 1 minute
-    select: (data) => ({
+    select: data => ({
       isInSession: data.isInSession,
       player: data.player,
     }),
@@ -55,7 +55,7 @@ export function useAvailableColorsQuery(sessionId: string, enabled = true) {
     queryFn: () => sessionJoinService.getAvailableColors(sessionId),
     enabled: enabled && !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
-    select: (data) => ({
+    select: data => ({
       available: data.availableColors,
       used: data.usedColors,
     }),
@@ -76,27 +76,28 @@ export function useSessionJoinMutation() {
         notifications.error(result.error);
         return;
       }
-      
+
       if (result.player) {
         notifications.success('Successfully joined session!');
-        
+
         // Invalidate related queries
-        queryClient.invalidateQueries({ 
-          queryKey: ['sessionJoin', 'userStatus', variables.sessionId] 
+        queryClient.invalidateQueries({
+          queryKey: ['sessionJoin', 'userStatus', variables.sessionId],
         });
-        queryClient.invalidateQueries({ 
-          queryKey: ['sessionJoin', 'colors', variables.sessionId] 
+        queryClient.invalidateQueries({
+          queryKey: ['sessionJoin', 'colors', variables.sessionId],
         });
-        queryClient.invalidateQueries({ 
-          queryKey: ['sessions', 'players', variables.sessionId] 
+        queryClient.invalidateQueries({
+          queryKey: ['sessions', 'players', variables.sessionId],
         });
-        
+
         // Navigate to session
         router.push(`/play-area/session/${variables.sessionId}`);
       }
     },
-    onError: (error) => {
-      const message = error instanceof Error ? error.message : 'Failed to join session';
+    onError: error => {
+      const message =
+        error instanceof Error ? error.message : 'Failed to join session';
       notifications.error(message);
     },
   });

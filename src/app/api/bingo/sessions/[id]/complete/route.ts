@@ -60,26 +60,40 @@ export async function POST(
     }
 
     // Log the winning event
+    const eventData: Json = {
+      patterns: winning_patterns.map(p => ({
+        type: p.type,
+        name: p.name,
+        positions: p.positions,
+        points: p.points,
+      })),
+      final_score,
+      time_to_win: timeToWin,
+    };
+
     await supabase.from('bingo_session_events').insert({
       session_id: params.id,
       user_id: winner_id,
       event_type: 'game_won',
-      event_data: {
-        patterns: winning_patterns,
-        final_score,
-        time_to_win: timeToWin,
-      } as unknown as Json,
+      event_data: eventData,
       timestamp: Date.now(),
     });
 
     // Create game result entry for the winner
+    const patternsJson: Json = winning_patterns.map(p => ({
+      type: p.type,
+      name: p.name,
+      positions: p.positions,
+      points: p.points,
+    }));
+
     await supabase.from('game_results').insert({
       session_id: params.id,
       user_id: winner_id,
       placement: 1,
       final_score,
       time_to_win: timeToWin,
-      patterns_achieved: winning_patterns as unknown as Json,
+      patterns_achieved: patternsJson,
     });
 
     return NextResponse.json({

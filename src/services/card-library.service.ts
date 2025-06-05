@@ -1,6 +1,6 @@
 /**
  * Card Library Service
- * 
+ *
  * Pure functions for card library operations.
  * No state management - only data fetching and mutations.
  */
@@ -50,7 +50,9 @@ export const cardLibraryService = {
 
       // Apply search filter
       if (filters.search.trim()) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
       }
 
       // Apply sorting
@@ -80,7 +82,7 @@ export const cardLibraryService = {
       if (error) {
         return {
           response: { cards: [], totalCount: 0, hasMore: false },
-          error: error.message
+          error: error.message,
         };
       }
 
@@ -92,12 +94,15 @@ export const cardLibraryService = {
           cards: data || [],
           totalCount,
           hasMore,
-        }
+        },
       };
     } catch (error) {
       return {
         response: { cards: [], totalCount: 0, hasMore: false },
-        error: error instanceof Error ? error.message : 'Failed to fetch public cards'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch public cards',
       };
     }
   },
@@ -105,15 +110,20 @@ export const cardLibraryService = {
   /**
    * Create multiple cards at once
    */
-  async createBulkCards(cards: Omit<BingoCard, 'id' | 'created_at' | 'updated_at' | 'votes'>[]): Promise<{ 
-    cards: BingoCard[]; 
-    error?: string 
+  async createBulkCards(
+    cards: Omit<BingoCard, 'id' | 'created_at' | 'updated_at' | 'votes'>[]
+  ): Promise<{
+    cards: BingoCard[];
+    error?: string;
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get current user for creator_id
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         return { cards: [], error: 'Must be authenticated to create cards' };
       }
@@ -141,7 +151,8 @@ export const cardLibraryService = {
     } catch (error) {
       return {
         cards: [],
-        error: error instanceof Error ? error.message : 'Failed to create cards'
+        error:
+          error instanceof Error ? error.message : 'Failed to create cards',
       };
     }
   },
@@ -181,7 +192,8 @@ export const cardLibraryService = {
     } catch (error) {
       return {
         cards: [],
-        error: error instanceof Error ? error.message : 'Failed to get random cards'
+        error:
+          error instanceof Error ? error.message : 'Failed to get random cards',
       };
     }
   },
@@ -189,19 +201,19 @@ export const cardLibraryService = {
   /**
    * Get featured card collections
    */
-  async getFeaturedCollections(gameType: GameCategory): Promise<{ 
+  async getFeaturedCollections(gameType: GameCategory): Promise<{
     collections: Array<{
       name: string;
       description: string;
       difficulty: Difficulty;
       cardCount: number;
       cards: BingoCard[];
-    }>; 
-    error?: string 
+    }>;
+    error?: string;
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get top-rated cards grouped by difficulty
       const collections = await Promise.all([
         // Beginner collection
@@ -213,8 +225,8 @@ export const cardLibraryService = {
           .eq('difficulty', 'beginner')
           .order('votes', { ascending: false })
           .limit(25),
-        
-        // Medium collection  
+
+        // Medium collection
         supabase
           .from('bingo_cards')
           .select('*')
@@ -223,7 +235,7 @@ export const cardLibraryService = {
           .eq('difficulty', 'medium')
           .order('votes', { ascending: false })
           .limit(25),
-          
+
         // Expert collection
         supabase
           .from('bingo_cards')
@@ -263,7 +275,10 @@ export const cardLibraryService = {
     } catch (error) {
       return {
         collections: [],
-        error: error instanceof Error ? error.message : 'Failed to get featured collections'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get featured collections',
       };
     }
   },

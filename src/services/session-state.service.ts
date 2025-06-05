@@ -1,17 +1,18 @@
 /**
  * Session State Service
- * 
+ *
  * Pure functions for session state management.
  * Extends the game-state service with session lifecycle operations.
  */
 
 import { createClient } from '@/lib/supabase';
-import { realtimeManager } from '@/lib/realtime-manager';
-import type { 
-  BingoSession, 
-  BoardCell,
-  SessionStats,
-} from '@/types';
+import { safeRealtimeManager } from '@/lib/realtime-manager';
+import { logger } from '@/lib/logger';
+import type { BingoSession, BoardCell, SessionStats } from '@/types';
+import type { Tables } from '@/types/database-generated';
+
+// Type for session_stats view results
+type SessionStatsRow = Tables<'session_stats'>;
 
 export interface Player {
   id: string;
@@ -63,9 +64,13 @@ export const sessionStateService = {
   async initializeSession(
     boardId: string,
     player: Player
-  ): Promise<{ session: BingoSession | null; isNewSession: boolean; error?: string }> {
+  ): Promise<{
+    session: SessionStatsRow | null;
+    isNewSession: boolean;
+    error?: string;
+  }> {
     const supabase = createClient();
-    
+
     try {
       // First check if an active session exists for this board
       const { data: existingSession, error: findError } = await supabase
@@ -75,74 +80,104 @@ export const sessionStateService = {
         .eq('status', 'waiting')
         .single();
 
-      if (findError && findError.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (findError && findError.code !== 'PGRST116') {
+        // PGRST116 = no rows found
         return { session: null, isNewSession: false, error: findError.message };
       }
 
       if (existingSession) {
         // Join existing session
         if (!existingSession.id) {
-          return { session: null, isNewSession: false, error: 'Invalid session ID' };
+          return {
+            session: null,
+            isNewSession: false,
+            error: 'Invalid session ID',
+          };
         }
-        
+
         const { error: joinError } = await supabase
           .from('bingo_session_players')
-          .insert([{
-            session_id: existingSession.id,
-            user_id: player.id,
-            display_name: player.display_name,
-            avatar_url: player.avatar_url || null,
-            color: player.color,
-          }]);
+          .insert([
+            {
+              session_id: existingSession.id,
+              user_id: player.id,
+              display_name: player.display_name,
+              avatar_url: player.avatar_url || null,
+              color: player.color,
+            },
+          ]);
 
         if (joinError) {
-          return { session: null, isNewSession: false, error: joinError.message };
+          return {
+            session: null,
+            isNewSession: false,
+            error: joinError.message,
+          };
         }
 
-        return { session: existingSession as unknown as BingoSession, isNewSession: false };
+        return {
+          session: existingSession,
+          isNewSession: false,
+        };
       } else {
         // Create new session
         const { data: newSession, error: createError } = await supabase
           .from('bingo_sessions')
-          .insert([{
-            board_id: boardId,
-            host_id: player.id,
-            session_code: sessionStateService.generateSessionCode(),
-            status: 'waiting',
-            settings: {
-              max_players: 4,
-              auto_start: false,
-              time_limit: null,
-              allow_spectators: false,
-              require_approval: false,
-              password: null,
+          .insert([
+            {
+              board_id: boardId,
+              host_id: player.id,
+              session_code: sessionStateService.generateSessionCode(),
+              status: 'waiting',
+              settings: {
+                max_players: 4,
+                auto_start: false,
+                time_limit: null,
+                allow_spectators: false,
+                require_approval: false,
+                password: null,
+              },
             },
-          }])
+          ])
           .select()
           .single();
 
         if (createError) {
-          return { session: null, isNewSession: true, error: createError.message };
+          return {
+            session: null,
+            isNewSession: true,
+            error: createError.message,
+          };
         }
 
         // Add host as first player
         if (!newSession.id) {
-          return { session: null, isNewSession: true, error: 'Failed to create session with valid ID' };
+          return {
+            session: null,
+            isNewSession: true,
+            error: 'Failed to create session with valid ID',
+          };
         }
-        
+
         const { error: hostJoinError } = await supabase
           .from('bingo_session_players')
-          .insert([{
-            session_id: newSession.id,
-            user_id: player.id,
-            display_name: player.display_name,
-            avatar_url: player.avatar_url || null,
-            color: player.color,
-            is_host: true,
-          }]);
+          .insert([
+            {
+              session_id: newSession.id,
+              user_id: player.id,
+              display_name: player.display_name,
+              avatar_url: player.avatar_url || null,
+              color: player.color,
+              is_host: true,
+            },
+          ]);
 
         if (hostJoinError) {
-          return { session: null, isNewSession: true, error: hostJoinError.message };
+          return {
+            session: null,
+            isNewSession: true,
+            error: hostJoinError.message,
+          };
         }
 
         // Fetch the full session from session_stats view
@@ -151,11 +186,23 @@ export const sessionStateService = {
           .select('*')
           .eq('id', newSession.id)
           .single();
-          
-        return { session: (fullSession || newSession) as unknown as BingoSession, isNewSession: true };
+
+        if (!fullSession) {
+          return {
+            session: null,
+            isNewSession: true,
+            error: 'Failed to fetch created session details',
+          };
+        }
+
+        return {
+          session: fullSession,
+          isNewSession: true,
+        };
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to initialize session';
+      const message =
+        error instanceof Error ? error.message : 'Failed to initialize session';
       return { session: null, isNewSession: false, error: message };
     }
   },
@@ -163,9 +210,11 @@ export const sessionStateService = {
   /**
    * Get session players
    */
-  async getSessionPlayers(sessionId: string): Promise<{ players: Player[]; error?: string }> {
+  async getSessionPlayers(
+    sessionId: string
+  ): Promise<{ players: Player[]; error?: string }> {
     const supabase = createClient();
-    
+
     try {
       const { data, error } = await supabase
         .from('bingo_session_players')
@@ -179,7 +228,13 @@ export const sessionStateService = {
       }
 
       const players: Player[] = (data || [])
-        .filter(player => player.user_id && player.display_name && player.joined_at && player.color)
+        .filter(
+          player =>
+            player.user_id &&
+            player.display_name &&
+            player.joined_at &&
+            player.color
+        )
         .map(player => ({
           id: player.user_id as string,
           display_name: player.display_name as string,
@@ -195,7 +250,10 @@ export const sessionStateService = {
 
       return { players };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get session players';
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to get session players';
       return { players: [], error: message };
     }
   },
@@ -203,9 +261,12 @@ export const sessionStateService = {
   /**
    * Leave session
    */
-  async leaveSession(sessionId: string, playerId: string): Promise<{ success: boolean; error?: string }> {
+  async leaveSession(
+    sessionId: string,
+    playerId: string
+  ): Promise<{ success: boolean; error?: string }> {
     const supabase = createClient();
-    
+
     try {
       const { error } = await supabase
         .from('bingo_session_players')
@@ -219,7 +280,8 @@ export const sessionStateService = {
 
       return { success: true };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to leave session';
+      const message =
+        error instanceof Error ? error.message : 'Failed to leave session';
       return { success: false, error: message };
     }
   },
@@ -229,62 +291,83 @@ export const sessionStateService = {
    */
   subscribeToSession(
     sessionId: string,
-    onStateChange: (data: { session: BingoSession; players: Player[] }) => void
+    onStateChange: (data: {
+      session: SessionStatsRow;
+      players: Player[];
+    }) => void
   ): () => void {
     const channelName = `session:${sessionId}`;
-    const channel = realtimeManager.getChannel(channelName);
-
-    channel.on('postgres_changes', 
-      { 
-        event: '*', 
-        schema: 'public', 
-        table: 'bingo_sessions',
-        filter: `id=eq.${sessionId}`
-      }, 
-      async () => {
-        // Fetch updated session data
-        const supabase = createClient();
-        const { data: session } = await supabase
-          .from('session_stats')
-          .select('*')
-          .eq('id', sessionId)
-          .single();
-
-        const { players } = await sessionStateService.getSessionPlayers(sessionId);
-
-        if (session) {
-          onStateChange({ session: session as unknown as BingoSession, players });
-        }
-      }
-    );
-
-    channel.on('postgres_changes',
+    
+    // Subscribe to session changes
+    const unsubscribeSession = safeRealtimeManager.subscribe(
+      `${channelName}_sessions`,
       {
         event: '*',
-        schema: 'public', 
-        table: 'bingo_session_players',
-        filter: `session_id=eq.${sessionId}`
-      },
-      async () => {
-        // Fetch updated players
-        const { players } = await sessionStateService.getSessionPlayers(sessionId);
-        const supabase = createClient();
-        const { data: session } = await supabase
-          .from('session_stats')
-          .select('*')
-          .eq('id', sessionId)
-          .single();
+        schema: 'public',
+        table: 'bingo_sessions',
+        filter: `id=eq.${sessionId}`,
+        onUpdate: async () => {
+          // Fetch updated session data
+          const supabase = createClient();
+          const { data: session } = await supabase
+            .from('session_stats')
+            .select('*')
+            .eq('id', sessionId)
+            .single();
 
-        if (session) {
-          onStateChange({ session: session as unknown as BingoSession, players });
+          const { players } = await sessionStateService.getSessionPlayers(sessionId);
+
+          if (session) {
+            onStateChange({
+              session: session,
+              players,
+            });
+          }
+        },
+        onError: (error: Error) => {
+          logger.error('Session subscription error', error, {
+            metadata: { sessionId }
+          });
+        }
+      }
+    );
+    
+    // Subscribe to player changes
+    const unsubscribePlayers = safeRealtimeManager.subscribe(
+      `${channelName}_players`,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'bingo_session_players',
+        filter: `session_id=eq.${sessionId}`,
+        onUpdate: async () => {
+          // Fetch updated players
+          const { players } = await sessionStateService.getSessionPlayers(sessionId);
+          const supabase = createClient();
+          const { data: session } = await supabase
+            .from('session_stats')
+            .select('*')
+            .eq('id', sessionId)
+            .single();
+
+          if (session) {
+            onStateChange({
+              session: session,
+              players,
+            });
+          }
+        },
+        onError: (error: Error) => {
+          logger.error('Player subscription error', error, {
+            metadata: { sessionId }
+          });
         }
       }
     );
 
-    channel.subscribe();
-
     return () => {
-      realtimeManager.removeChannelPublic(channelName);
+      unsubscribeSession();
+      unsubscribePlayers();
     };
   },
 
@@ -304,21 +387,26 @@ export const sessionStateService = {
    * Transform session state for UI
    */
   transformSessionState(
-    session: BingoSession | SessionStats, 
-    players: Player[], 
+    session: BingoSession | SessionStats,
+    players: Player[],
     boardState: BoardCell[]
   ): SessionState | null {
     if (!session.id) {
       return null;
     }
-    
+
     return {
       id: session.id,
       isActive: session.status === 'active',
       isPaused: false, // Note: 'paused' status not in current schema
       isFinished: session.status === 'completed',
-      startTime: session.started_at ? new Date(session.started_at).getTime() : null,
-      endTime: ('ended_at' in session && session.ended_at ? new Date(session.ended_at).getTime() : null),
+      startTime: session.started_at
+        ? new Date(session.started_at).getTime()
+        : null,
+      endTime:
+        'ended_at' in session && session.ended_at
+          ? new Date(session.ended_at).getTime()
+          : null,
       currentPlayer: players[0] || null,
       players,
       boardState,

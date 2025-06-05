@@ -173,7 +173,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
                   metadata: {
                     store: 'AuthStore',
                     phase: 'client-creation',
-                    error: (clientError as Error).message,
+                    error: clientError instanceof Error ? clientError.message : 'Unknown client error',
                   },
                 }
               );
@@ -228,7 +228,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               auth_id: userData.auth_id ?? user.id,
             });
           } catch (error) {
-            logger.error('Auth initialization failed', error as Error, {
+            logger.error('Auth initialization failed', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore' },
             });
             get().clearUser();
@@ -250,7 +250,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               }
             });
           } catch (error) {
-            logger.error('Failed to setup auth listener', error as Error, {
+            logger.error('Failed to setup auth listener', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore' },
             });
             // Return a no-op unsubscribe function
@@ -288,7 +288,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             return {};
           } catch (error) {
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           } finally {
             get().setLoading(false);
           }
@@ -314,7 +314,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             return {};
           } catch (error) {
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           }
         },
 
@@ -360,7 +360,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             return {};
           } catch (error) {
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           }
         },
 
@@ -371,13 +371,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             const { error } = await supabase.auth.signOut();
 
             if (error) {
-              logger.error('Sign out failed', error as Error, {
+              logger.error('Sign out failed', error instanceof Error ? error : new Error('Unknown error'), {
                 metadata: { store: 'AuthStore' },
               });
               notifications.error('Sign out failed', {
                 description: 'Please try again or contact support.',
               });
-              return { error: error as Error };
+              return { error: error instanceof Error ? error : new Error('Unknown error') };
             }
 
             // Clear the user data from store
@@ -388,13 +388,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             return {};
           } catch (error) {
-            logger.error('Sign out failed', error as Error, {
+            logger.error('Sign out failed', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore' },
             });
             notifications.error('Sign out failed', {
               description: 'Please try again or contact support.',
             });
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           } finally {
             get().setLoading(false);
           }
@@ -425,7 +425,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             return userData;
           } catch (error) {
-            logger.error('Failed to refresh user data', error as Error, {
+            logger.error('Failed to refresh user data', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore' },
             });
             throw error;
@@ -455,7 +455,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
             return data;
           } catch (error) {
-            logger.error('Failed to update user data', error as Error, {
+            logger.error('Failed to update user data', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore', userId, updates },
             });
             notifications.error('Failed to update profile', {
@@ -480,7 +480,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               metadata: { store: 'AuthStore', newEmail },
             });
           } catch (error) {
-            logger.error('Failed to update email', error as Error, {
+            logger.error('Failed to update email', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore', newEmail },
             });
             notifications.error('Failed to update email', {
@@ -531,13 +531,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
             return {};
           } catch (error) {
-            logger.error('Failed to update password', error as Error, {
+            logger.error('Failed to update password', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore' },
             });
             notifications.error('Failed to update password', {
               description: 'Please try again or contact support.',
             });
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           }
         },
 
@@ -549,13 +549,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
 
             if (error) {
-              logger.error('Password reset failed', error as Error, {
+              logger.error('Password reset failed', error instanceof Error ? error : new Error('Unknown error'), {
                 metadata: { store: 'AuthStore' },
               });
               notifications.error('Password reset failed', {
                 description: error.message,
               });
-              return { error: error as Error };
+              return { error: error instanceof Error ? error : new Error('Unknown error') };
             }
 
             notifications.success('Password reset successfully!');
@@ -564,13 +564,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
             return {};
           } catch (error) {
-            logger.error('Password reset failed', error as Error, {
+            logger.error('Password reset failed', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore' },
             });
             notifications.error('Password reset failed', {
               description: 'Please try again or contact support.',
             });
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           }
         },
 
@@ -582,13 +582,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
 
             if (error) {
-              logger.error('Password reset email failed', error as Error, {
+              logger.error('Password reset email failed', error instanceof Error ? error : new Error('Unknown error'), {
                 metadata: { store: 'AuthStore', email },
               });
               notifications.error('Password reset email failed', {
                 description: error.message,
               });
-              return { error: error as Error };
+              return { error: error instanceof Error ? error : new Error('Unknown error') };
             }
 
             notifications.success(
@@ -599,13 +599,13 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
             return {};
           } catch (error) {
-            logger.error('Password reset email failed', error as Error, {
+            logger.error('Password reset email failed', error instanceof Error ? error : new Error('Unknown error'), {
               metadata: { store: 'AuthStore', email },
             });
             notifications.error('Password reset email failed', {
               description: 'Please try again or contact support.',
             });
-            return { error: error as Error };
+            return { error: error instanceof Error ? error : new Error('Unknown error') };
           }
         },
 

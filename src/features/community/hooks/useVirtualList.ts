@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
 
 interface UseVirtualListReturn {
@@ -15,10 +15,11 @@ export const useVirtualList = <T extends Element>(
   overscan = 5
 ): UseVirtualListReturn => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Memoize the size estimator function for better performance
   const sizeEstimator = useCallback(() => estimateSize, [estimateSize]);
-  
+
   // Memoize scroll element getter
   const getScrollElement = useCallback(() => parentRef.current, []);
 
@@ -27,11 +28,8 @@ export const useVirtualList = <T extends Element>(
     getScrollElement,
     estimateSize: sizeEstimator,
     overscan,
-    // Add performance optimization for better memory usage
-    measureElement: 
-      typeof ResizeObserver !== 'undefined'
-        ? (element) => element?.getBoundingClientRect()?.height ?? estimateSize
-        : undefined,
+    // Note: measureElement is handled by @tanstack/react-virtual internally
+    // It manages ResizeObserver lifecycle properly
   });
 
   const scrollToIndex = useCallback(
@@ -40,6 +38,49 @@ export const useVirtualList = <T extends Element>(
     },
     [virtualizer]
   );
+
+  // Ensure cleanup on unmount
+  useEffect(() => {
+    // The virtualizer handles its own cleanup, but we ensure our ref is cleared
+    return () => {
+      // Clear any stored ResizeObserver reference
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+
+      // Force cleanup of virtualizer if needed
+      if (virtualizer) {
+        // @tanstack/react-virtual handles cleanup internally
+        // but we can trigger a measure to ensure state is clean
+        virtualizer.measure();
+      }
+    };
+  }, [virtualizer]);
+
+  // Monitor parent element changes for proper cleanup
+  useEffect(() => {
+    const element = parentRef.current;
+    if (!element) return;
+
+    // Create our own ResizeObserver for monitoring parent
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserverRef.current = new ResizeObserver(() => {
+        // Trigger virtualizer remeasure on parent resize
+        virtualizer.measure();
+      });
+
+      resizeObserverRef.current.observe(element);
+    }
+
+    return () => {
+      if (resizeObserverRef.current && element) {
+        resizeObserverRef.current.unobserve(element);
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+    };
+  }, [virtualizer]);
 
   return {
     parentRef,

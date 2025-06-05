@@ -5,7 +5,7 @@
  * following the new architecture pattern.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   useSessionJoinDetailsQuery,
   useUserInSessionQuery,
@@ -27,6 +27,7 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
   const [isFormValid, setIsFormValid] = useState(false);
 
   const router = useRouter();
+  const isMountedRef = useRef(true);
 
   // TanStack Query hooks for server state
   const {
@@ -44,12 +45,21 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
   // Mutations
   const joinSessionMutation = useSessionJoinMutation();
 
+  // Track component mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Auto-select first available color
   useEffect(() => {
     if (
       colorData?.available &&
       colorData.available.length > 0 &&
-      !selectedColor
+      !selectedColor &&
+      isMountedRef.current
     ) {
       setSelectedColor(colorData.available[0] || '');
     }
@@ -65,7 +75,7 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
 
   // Redirect if user is already in session
   useEffect(() => {
-    if (userStatus?.isInSession && userStatus.player) {
+    if (userStatus?.isInSession && userStatus.player && isMountedRef.current) {
       router.push(`/play-area/session/${sessionId}`);
     }
   }, [userStatus?.isInSession, userStatus?.player, sessionId, router]);
@@ -76,6 +86,11 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
       return;
     }
 
+    // Don't proceed if component is unmounted
+    if (!isMountedRef.current) {
+      return;
+    }
+
     const joinData: SessionJoinData = {
       sessionId,
       playerName: playerName.trim(),
@@ -83,7 +98,15 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
       teamName: teamName.trim() || undefined,
     };
 
-    await joinSessionMutation.mutateAsync(joinData);
+    try {
+      await joinSessionMutation.mutateAsync(joinData);
+    } catch (error) {
+      // Error is handled by the mutation's onError callback
+      // Just prevent unhandled promise rejection
+      if (!isMountedRef.current) {
+        return;
+      }
+    }
   }, [
     isFormValid,
     sessionDetails?.canJoin,

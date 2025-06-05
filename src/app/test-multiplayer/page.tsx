@@ -6,7 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/lib/stores/auth-store';
 import { useBingoGame } from '@/features/bingo-boards/hooks/useBingoGame';
-import { RouteErrorBoundary, RealtimeErrorBoundary } from '@/components/error-boundaries';
+import {
+  RouteErrorBoundary,
+  RealtimeErrorBoundary,
+} from '@/components/error-boundaries';
 
 function TestMultiplayerContent() {
   const { authUser } = useAuth();

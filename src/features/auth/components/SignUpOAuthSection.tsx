@@ -7,6 +7,7 @@ import { Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OAuthProvider } from '../types/signup-form.types';
 import { SIGNUP_MESSAGES, SIGNUP_STYLES, COMPONENT_NAMES } from './constants';
+import { logger } from '@/lib/logger';
 
 // 🎨 CVA Variant System - OAuth Section Container
 const oauthSectionVariants = cva('space-y-4', {
@@ -157,7 +158,9 @@ export const SignUpOAuthSection = React.forwardRef<
           {supportedProviders.map(provider => {
             const config = providerConfigs[provider];
             if (!config) {
-              console.warn(`OAuth provider "${provider}" is not configured`);
+              logger.error('OAuth provider not configured', new Error(`Provider ${provider} is not configured`), {
+                metadata: { provider }
+              });
               return null;
             }
 

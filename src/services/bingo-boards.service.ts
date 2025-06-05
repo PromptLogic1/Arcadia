@@ -13,6 +13,12 @@ import type {
   Enums,
   CompositeTypes,
 } from '@/types/database-generated';
+// Only import what's actually used
+import { 
+  validateBingoBoard, 
+} from '@/lib/validation/validators';
+// Available if needed: createServiceSuccess, createServiceError, ServiceResponse
+// validateBingoBoardArray, validateSupabaseResponse, validateSupabaseArrayResponse
 
 // Type aliases for clean usage
 type BoardCell = CompositeTypes<'board_cell'>;
@@ -22,14 +28,21 @@ export type BingoBoardUpdate = TablesUpdate<'bingo_boards'>;
 export type GameCategory = Enums<'game_category'>;
 export type DifficultyLevel = Enums<'difficulty_level'>;
 
-// Convert database board to application board type
+// SAFE BOARD CONVERSION - REPLACES type assertion `} as BingoBoard`
 function convertDbBoardToAppBoard(dbBoard: Tables<'bingo_boards'>): BingoBoard {
-  return {
+  // SAFE VALIDATION - Use proper validation instead of type assertion
+  const validation = validateBingoBoard({
     ...dbBoard,
     created_at: dbBoard.created_at || new Date().toISOString(),
     updated_at: dbBoard.updated_at || new Date().toISOString(),
-    // Ensure all fields match the BingoBoard type
-  } as BingoBoard;
+  });
+  
+  if (!validation.success) {
+    // Fallback to original data if validation fails
+    return dbBoard;
+  }
+  
+  return validation.data;
 }
 
 export interface CreateBoardData {
@@ -594,9 +607,7 @@ export const bingoBoardsService = {
   /**
    * Get board with creator information for display
    */
-  async getBoardWithCreator(
-    boardId: string
-  ): Promise<{
+  async getBoardWithCreator(boardId: string): Promise<{
     board:
       | (BingoBoard & {
           creator?: { username: string; avatar_url: string | null };

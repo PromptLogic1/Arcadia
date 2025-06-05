@@ -36,6 +36,7 @@ export { bingoBoardEditService } from './bingo-board-edit.service';
 export { sessionsService } from './sessions.service';
 export { communityService } from './community.service';
 export { gameStateService } from './game-state.service';
+export { gameSettingsService } from './game-settings.service';
 export { presenceService as presenceServiceLegacy } from './presence.service';
 export { sessionStateService } from './session-state.service';
 export { queueService } from './queue.service';

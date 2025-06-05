@@ -5,7 +5,7 @@
  * Combines session state management with game state management.
  */
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import {
   useSessionWithPlayersQuery,
   useInitializeSessionMutation,
@@ -86,6 +86,16 @@ export function useSessionGame(
   const { currentSessionId } = useSessionsState();
   const { setCurrentSessionId } = useSessionsActions();
 
+  // Mount tracking to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Get session state from TanStack Query
   const { session, players, boardState, isLoading, error } =
     useSessionWithPlayersQuery(currentSessionId || '');
@@ -100,7 +110,11 @@ export function useSessionGame(
         return JSON.parse(saved);
       }
     } catch (error) {
-      log.error('Failed to restore game state', error as Error, {
+      const err =
+        error instanceof Error
+          ? error
+          : new Error('Failed to restore game state');
+      log.error('Failed to restore game state', err, {
         metadata: { contextName: 'useSessionGameModern' },
       });
     }
@@ -118,7 +132,11 @@ export function useSessionGame(
     try {
       localStorage.setItem('bingoGameState', JSON.stringify(gameState));
     } catch (error) {
-      log.error('Failed to persist game state', error as Error);
+      const err =
+        error instanceof Error
+          ? error
+          : new Error('Failed to persist game state');
+      log.error('Failed to persist game state', err);
     }
   }, []);
 
@@ -130,7 +148,11 @@ export function useSessionGame(
         return JSON.parse(saved);
       }
     } catch (error) {
-      log.error('Failed to restore game state', error as Error, {
+      const err =
+        error instanceof Error
+          ? error
+          : new Error('Failed to restore game state');
+      log.error('Failed to restore game state', err, {
         metadata: { contextName: 'useSessionGameModern' },
       });
     }
@@ -168,9 +190,22 @@ export function useSessionGame(
   // Session actions
   const initializeSession = useCallback(
     async (player: Player) => {
-      await initializeSessionMutation.mutateAsync({ boardId, player });
-      if (session?.id) {
-        setCurrentSessionId(session.id);
+      try {
+        await initializeSessionMutation.mutateAsync({ boardId, player });
+
+        // Only update state if still mounted
+        if (isMountedRef.current && session?.id) {
+          setCurrentSessionId(session.id);
+        }
+      } catch (error) {
+        const err =
+          error instanceof Error
+            ? error
+            : new Error('Failed to initialize session');
+        log.error('Failed to initialize session', err, {
+          metadata: { boardId, playerId: player.id },
+        });
+        throw err;
       }
     },
     [initializeSessionMutation, boardId, session?.id, setCurrentSessionId]
@@ -178,11 +213,24 @@ export function useSessionGame(
 
   const leaveSession = useCallback(
     async (playerId: string) => {
-      await leaveSessionMutation.mutateAsync({
-        sessionId: session?.id || '',
-        playerId,
-      });
-      setCurrentSessionId(null);
+      try {
+        await leaveSessionMutation.mutateAsync({
+          sessionId: session?.id || '',
+          playerId,
+        });
+
+        // Only update state if still mounted
+        if (isMountedRef.current) {
+          setCurrentSessionId(null);
+        }
+      } catch (error) {
+        const err =
+          error instanceof Error ? error : new Error('Failed to leave session');
+        log.error('Failed to leave session', err, {
+          metadata: { sessionId: session?.id, playerId },
+        });
+        throw err;
+      }
     },
     [leaveSessionMutation, session?.id, setCurrentSessionId]
   );
@@ -317,9 +365,19 @@ export function useSessionModern(sessionId: string) {
   const { currentSessionId } = useSessionsState();
   const { setCurrentSessionId } = useSessionsActions();
 
+  // Mount tracking to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Set the current session ID if provided and different
   useEffect(() => {
-    if (sessionId && sessionId !== currentSessionId) {
+    if (isMountedRef.current && sessionId && sessionId !== currentSessionId) {
       setCurrentSessionId(sessionId);
     }
   }, [sessionId, currentSessionId, setCurrentSessionId]);
@@ -352,26 +410,37 @@ export function useSessionModern(sessionId: string) {
     board_id: session?.board_id || '',
     host_id: session?.host_id || '',
     session_code: session?.session_code || '',
-    board_title:
-      ((session as Record<string, unknown>)?.board_title as string) || '',
-    difficulty:
-      ((session as Record<string, unknown>)?.difficulty as string) || 'medium',
-    game_type:
-      ((session as Record<string, unknown>)?.game_type as string) || 'gaming',
+    // These properties come from session_stats view, not bingo_sessions table
+    // For now, we'll use empty strings as defaults until we properly query session_stats
+    board_title: '',
+    difficulty: 'medium',
+    game_type: 'gaming',
     current_player_count: players?.length || 0,
     max_players: session?.settings?.max_players || 4,
-    host_username:
-      ((session as Record<string, unknown>)?.host_username as string) || '',
+    host_username: '',
   };
 
   const initializeSession = useCallback(
     async (player: Player) => {
-      await initializeMutation.mutateAsync({
-        boardId: session?.board_id || '',
-        player,
-      });
-      if (session?.id) {
-        setCurrentSessionId(session.id);
+      try {
+        await initializeMutation.mutateAsync({
+          boardId: session?.board_id || '',
+          player,
+        });
+
+        // Only update state if still mounted
+        if (isMountedRef.current && session?.id) {
+          setCurrentSessionId(session.id);
+        }
+      } catch (error) {
+        const err =
+          error instanceof Error
+            ? error
+            : new Error('Failed to initialize session');
+        log.error('Failed to initialize session', err, {
+          metadata: { boardId: session?.board_id, playerId: player.id },
+        });
+        throw err;
       }
     },
     [initializeMutation, session?.board_id, session?.id, setCurrentSessionId]
@@ -379,8 +448,21 @@ export function useSessionModern(sessionId: string) {
 
   const leaveSession = useCallback(
     async (playerId: string) => {
-      await leaveMutation.mutateAsync({ sessionId, playerId });
-      setCurrentSessionId(null);
+      try {
+        await leaveMutation.mutateAsync({ sessionId, playerId });
+
+        // Only update state if still mounted
+        if (isMountedRef.current) {
+          setCurrentSessionId(null);
+        }
+      } catch (error) {
+        const err =
+          error instanceof Error ? error : new Error('Failed to leave session');
+        log.error('Failed to leave session', err, {
+          metadata: { sessionId, playerId },
+        });
+        throw err;
+      }
     },
     [leaveMutation, sessionId, setCurrentSessionId]
   );
@@ -415,7 +497,11 @@ export function useGameModern(): {
     try {
       localStorage.setItem('bingoGameState', JSON.stringify(gameState));
     } catch (error) {
-      log.error('Failed to persist game state', error as Error);
+      const err =
+        error instanceof Error
+          ? error
+          : new Error('Failed to persist game state');
+      log.error('Failed to persist game state', err);
     }
   }, []);
 
@@ -427,7 +513,11 @@ export function useGameModern(): {
         return JSON.parse(saved);
       }
     } catch (error) {
-      log.error('Failed to restore game state', error as Error);
+      const err =
+        error instanceof Error
+          ? error
+          : new Error('Failed to restore game state');
+      log.error('Failed to restore game state', err);
     }
     return {
       settings: DEFAULT_GAME_SETTINGS,

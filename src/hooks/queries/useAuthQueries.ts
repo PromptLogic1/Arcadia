@@ -10,6 +10,7 @@ import { authService, type UserUpdateData } from '../../services/auth.service';
 import { useAuth, useAuthActions } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
+import { logger } from '@/lib/logger';
 
 /**
  * Get current user query
@@ -64,7 +65,9 @@ export function useSignInMutation() {
             setUserData(userData);
           }
         } catch (error) {
-          console.warn('Failed to fetch user data after sign in:', error);
+          logger.error('Failed to fetch user data after sign in', error instanceof Error ? error : new Error('Unknown error'), {
+            metadata: { userId: response.user.id }
+          });
         }
 
         // Invalidate auth queries to refetch fresh data

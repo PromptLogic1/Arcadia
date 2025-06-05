@@ -1,22 +1,18 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useCallback, useEffect, useRef } from 'react';
+import {
+  useGameSettingsQuery,
+  useUpdateGameSettings,
+} from '@/hooks/queries/useGameSettingsQueries';
+import {
+  DEFAULT_BOARD_SETTINGS,
+  useGameSettingsValidation,
+} from '@/lib/stores/game-settings-store';
+import { gameSettingsService } from '../../../services/game-settings.service';
 import type { BoardSettings, WinConditions } from '@/types';
-import { log } from '@/lib/logger';
-
-// Default settings aligned with database structure
-const DEFAULT_BOARD_SETTINGS: BoardSettings = {
-  team_mode: false,
-  lockout: false,
-  sound_enabled: true,
-  win_conditions: {
-    line: true,
-    majority: false,
-    diagonal: false,
-    corners: false,
-  },
-};
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
 
 // Event-System Types
 interface SettingsChangeEventDetail {
@@ -48,113 +44,68 @@ interface UseGameSettingsReturn {
 }
 
 export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
-  const [settings, setSettings] = useState<BoardSettings>(
-    DEFAULT_BOARD_SETTINGS
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  // Mount tracking
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
 
-  // Memoize supabase client to prevent recreation
-  const supabase = useMemo(() => createClient(), []);
-  
-  // Refs to prevent stale closures
-  const settingsRef = useRef(settings);
-  const saveSettingsRef = useRef<((settings: BoardSettings) => Promise<void>) | null>(null);
-  
-  // Update refs when dependencies change
+  // Server state via TanStack Query
+  const {
+    data: settingsResponse,
+    isLoading,
+    error: queryError,
+  } = useGameSettingsQuery(boardId);
+  const updateMutation = useUpdateGameSettings(boardId);
+
+  // UI state via Zustand
+  const { error: validationError, setError: setValidationError } =
+    useGameSettingsValidation();
+
+  // Derived state
+  const settings = settingsResponse?.data || DEFAULT_BOARD_SETTINGS;
+  const loading = isLoading;
+  const error =
+    queryError || validationError
+      ? new Error(validationError || 'Failed to load settings')
+      : null;
+
+  // Cleanup on unmount
   useEffect(() => {
-    settingsRef.current = settings;
-  }, [settings]);
-
-  // Load settings on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      if (!boardId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('bingo_boards')
-          .select('settings')
-          .eq('id', boardId)
-          .single();
-
-        if (fetchError) {
-          log.error('Fetch error:', fetchError, {
-            metadata: { hook: 'useGameSettings', boardId },
-          });
-          throw new Error('Failed to load settings');
-        }
-
-        if (data?.settings) {
-          setSettings(data.settings);
-        } else {
-          // If no settings exist, use defaults
-          setSettings(DEFAULT_BOARD_SETTINGS);
-        }
-
-        setError(null);
-      } catch (err) {
-        log.error('Error loading settings:', err as Error, {
-          metadata: { hook: 'useGameSettings', boardId },
-        });
-        // Still use default settings even if there's an error
-        setSettings(DEFAULT_BOARD_SETTINGS);
-        setError(
-          err instanceof Error ? err : new Error('Failed to load settings')
-        );
-      } finally {
-        setLoading(false);
-      }
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      abortControllerRef.current?.abort();
     };
-
-    loadSettings();
-  }, [boardId, supabase]);
-
-  // Error Handling
-  const setErrorMessage = useCallback((message: string) => {
-    setError(new Error(message));
   }, []);
 
-  // Validation for database settings
-  const validateSettings = useCallback(
-    (newSettings: BoardSettings): boolean => {
+  // Load from localStorage for non-board contexts
+  useEffect(() => {
+    if (!boardId && isMountedRef.current) {
       try {
-        // Team mode requires lockout
-        if (newSettings.team_mode && !newSettings.lockout) {
-          setErrorMessage('Team mode requires lockout to be enabled');
-          return false;
+        const savedSettings = window.localStorage.getItem('lastBoardSettings');
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings) as BoardSettings;
+          const validation = gameSettingsService.validateSettings(parsed);
+          if (validation.valid && isMountedRef.current) {
+            // For localStorage, we don't have a way to update the query cache
+            // This is a limitation of the current approach
+            logger.info('Loaded settings from localStorage', {
+              metadata: { settings: parsed },
+            });
+          }
         }
-
-        // At least one win condition must be active
-        const winConditions = newSettings.win_conditions;
-        if (
-          !winConditions?.line &&
-          !winConditions?.majority &&
-          !winConditions?.diagonal &&
-          !winConditions?.corners
-        ) {
-          setErrorMessage('At least one win condition must be active');
-          return false;
-        }
-
-        setError(null);
-        return true;
       } catch (error) {
-        log.error('Error validating settings:', error as Error, {
-          metadata: { hook: 'useGameSettings', boardId, newSettings },
+        logger.error('Error loading local settings', error as Error, {
+          metadata: { storageKey: 'lastBoardSettings' },
         });
-        return false;
       }
-    },
-    [setErrorMessage, setError, boardId]
-  );
+    }
+  }, [boardId]);
 
   // Event-Handling with all event types
   const emitSettingsEvent = useCallback(
     (type: 'change' | 'reset' | 'modeSwitch', newSettings: BoardSettings) => {
+      if (!isMountedRef.current) return;
+
       try {
         const event = new CustomEvent<SettingsChangeEventDetail>(
           'settingsChange',
@@ -170,7 +121,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         );
         window.dispatchEvent(event);
       } catch (error) {
-        log.error('Error emitting settings event:', error as Error, {
+        logger.error('Error emitting settings event', error as Error, {
           metadata: { hook: 'useGameSettings', boardId },
         });
       }
@@ -178,39 +129,14 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
     [boardId]
   );
 
-  // Save settings to database
-  const saveSettings = useCallback(
-    async (newSettings: BoardSettings) => {
-      if (!boardId) return;
-
-      try {
-        const { error: updateError } = await supabase
-          .from('bingo_boards')
-          .update({ settings: newSettings })
-          .eq('id', boardId);
-
-        if (updateError) throw updateError;
-
-        setError(null);
-      } catch (err) {
-        log.error('Error saving settings:', err as Error, {
-          metadata: { hook: 'useGameSettings', boardId, newSettings },
-        });
-        setError(new Error('Failed to save settings'));
-        throw err;
-      }
-    },
-    [boardId, supabase]
-  );
-  
-  // Update saveSettings ref when it changes
-  useEffect(() => {
-    saveSettingsRef.current = saveSettings;
-  }, [saveSettings]);
-
   // Update settings with validation
   const updateSettings = useCallback(
     async (updates: Partial<BoardSettings>) => {
+      if (!isMountedRef.current) return;
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
         let newSettings = {
           ...settings,
@@ -226,34 +152,46 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         }
 
         // Validate settings
-        const isValid = validateSettings(newSettings);
-        if (!isValid) {
+        const validation = gameSettingsService.validateSettings(newSettings);
+        if (!validation.valid) {
+          if (isMountedRef.current) {
+            setValidationError(validation.error || 'Invalid settings');
+          }
           return;
         }
 
-        // Update state
-        setSettings(newSettings);
-        setError(null);
+        setValidationError(null);
 
         // Persist settings
         if (boardId) {
-          await saveSettings(newSettings);
+          await updateMutation.mutateAsync(newSettings);
         } else {
+          // For non-board contexts, only save to localStorage
           window.localStorage.setItem(
             'lastBoardSettings',
             JSON.stringify(newSettings)
           );
+          notifications.success('Settings saved locally');
         }
 
-        emitSettingsEvent('change', newSettings);
-      } catch (err) {
-        log.error('Error updating settings:', err as Error, {
-          metadata: { hook: 'useGameSettings', boardId, updates },
-        });
-        setError(new Error('Failed to update settings'));
+        if (isMountedRef.current) {
+          emitSettingsEvent('change', newSettings);
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return;
+
+        if (isMountedRef.current) {
+          logger.error('Error updating settings', error as Error, {
+            metadata: { hook: 'useGameSettings', boardId, updates },
+          });
+
+          if (error instanceof Error && error.name !== 'AbortError') {
+            setValidationError(error.message);
+          }
+        }
       }
     },
-    [settings, validateSettings, emitSettingsEvent, boardId, saveSettings]
+    [settings, emitSettingsEvent, boardId, updateMutation, setValidationError]
   );
 
   // Event-Listener
@@ -261,9 +199,17 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
     const handleExternalSettingsChange = (event: SettingsChangeEvent) => {
       // Ignore own events
       if (event.detail.source === 'user') return;
+      if (!isMountedRef.current) return;
 
-      if (validateSettings(event.detail.settings)) {
-        setSettings(event.detail.settings);
+      const validation = gameSettingsService.validateSettings(
+        event.detail.settings
+      );
+      if (validation.valid) {
+        // For external changes, we might need to update our cache
+        // This is handled by TanStack Query's invalidation
+        logger.info('Received external settings change', {
+          metadata: { settings: event.detail.settings },
+        });
       }
     };
 
@@ -275,82 +221,86 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         handleExternalSettingsChange
       );
     };
-  }, [validateSettings, setSettings]); // Added setSettings dependency
-
-  // Load from localStorage
-  useEffect(() => {
-    if (!boardId) {
-      try {
-        const savedSettings = window.localStorage.getItem('lastBoardSettings');
-        if (savedSettings) {
-          const parsed = JSON.parse(savedSettings) as BoardSettings;
-          if (validateSettings(parsed)) {
-            setSettings(parsed);
-          }
-        }
-      } catch (error) {
-        log.error('Error loading local settings:', error as Error, {
-          metadata: {
-            hook: 'useGameSettings',
-            boardId,
-            storageKey: 'lastBoardSettings',
-          },
-        });
-      }
-    }
-  }, [boardId, validateSettings]);
+  }, []);
 
   // Core Functions
   const resetSettings = useCallback(async () => {
-    setSettings(DEFAULT_BOARD_SETTINGS);
-    if (boardId && saveSettingsRef.current) {
-      saveSettingsRef.current(DEFAULT_BOARD_SETTINGS).catch(err => {
-        log.error('Error resetting settings:', err as Error, {
+    if (!isMountedRef.current) return;
+
+    try {
+      if (boardId) {
+        await updateMutation.mutateAsync(DEFAULT_BOARD_SETTINGS);
+      } else {
+        window.localStorage.setItem(
+          'lastBoardSettings',
+          JSON.stringify(DEFAULT_BOARD_SETTINGS)
+        );
+        notifications.success('Settings reset to defaults');
+      }
+
+      if (isMountedRef.current) {
+        emitSettingsEvent('reset', DEFAULT_BOARD_SETTINGS);
+      }
+    } catch (error) {
+      if (isMountedRef.current) {
+        logger.error('Error resetting settings', error as Error, {
           metadata: { hook: 'useGameSettings', boardId },
         });
-        setError(new Error('Failed to reset settings'));
-      });
+      }
     }
-  }, [boardId]); // Removed saveSettings dependency, use ref instead
+  }, [boardId, updateMutation, emitSettingsEvent]);
 
   // Toggle Functions
   const toggleTeamMode = useCallback(async () => {
-    const newSettings = {
-      ...settings,
+    const newSettings: Partial<BoardSettings> = {
       team_mode: !settings.team_mode,
       lockout: !settings.team_mode || settings.lockout, // Force lockout when enabling team mode
     };
     await updateSettings(newSettings);
-    emitSettingsEvent('modeSwitch', newSettings);
+    if (isMountedRef.current) {
+      emitSettingsEvent('modeSwitch', { ...settings, ...newSettings });
+    }
   }, [settings, updateSettings, emitSettingsEvent]);
 
   const toggleLockout = useCallback(async () => {
     if (!settings.team_mode) {
       // Only allow toggle if not in team mode
       await updateSettings({ lockout: !settings.lockout });
+    } else if (isMountedRef.current) {
+      notifications.warning('Cannot disable lockout while in team mode');
     }
   }, [settings.team_mode, settings.lockout, updateSettings]);
 
   const toggleSound = useCallback(async () => {
     await updateSettings({ sound_enabled: !settings.sound_enabled });
-  }, [settings, updateSettings]);
+  }, [settings.sound_enabled, updateSettings]);
 
   const toggleWinCondition = useCallback(
     async (condition: keyof WinConditions) => {
       const currentConditions = settings.win_conditions || {
-        line: null,
-        majority: null,
-        diagonal: null,
-        corners: null,
+        line: true,
+        majority: false,
+        diagonal: false,
+        corners: false,
       };
+
+      // Check if this would disable all win conditions
+      const newConditions = {
+        ...currentConditions,
+        [condition]: !currentConditions[condition],
+      };
+
+      const hasActiveCondition = Object.values(newConditions).some(v => v);
+      if (!hasActiveCondition && isMountedRef.current) {
+        notifications.error('At least one win condition must be active');
+        return;
+      }
+
       await updateSettings({
-        win_conditions: {
-          ...currentConditions,
-          [condition]: !currentConditions[condition],
-        },
+        win_conditions: newConditions,
       });
     },
-    [settings, updateSettings]
+    [settings.win_conditions, updateSettings]
   );
 
   return {

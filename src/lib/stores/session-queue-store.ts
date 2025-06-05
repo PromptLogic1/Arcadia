@@ -1,6 +1,6 @@
 /**
  * Session Queue Store (Zustand)
- * 
+ *
  * UI state management for session queue functionality.
  * Server data is handled by TanStack Query hooks.
  */
@@ -13,25 +13,25 @@ export interface SessionQueueState {
   // Modal and dialog states
   showInviteDialog: boolean;
   showQueueDialog: boolean;
-  
+
   // Invite link state
   inviteLink: string;
-  
+
   // Player form state (for joining queue)
   playerFormData: {
     playerName: string;
     color: string;
     team?: number;
   } | null;
-  
+
   // UI feedback states
   isGeneratingLink: boolean;
   isCopyingLink: boolean;
-  
+
   // Auto-refresh settings
   autoRefreshEnabled: boolean;
   refreshInterval: number;
-  
+
   // Filter and sort options for queue display
   queueFilters: {
     showOnlyWaiting: boolean;
@@ -44,27 +44,32 @@ export interface SessionQueueActions {
   // Modal management
   setShowInviteDialog: (show: boolean) => void;
   setShowQueueDialog: (show: boolean) => void;
-  
+
   // Invite link management
   setInviteLink: (link: string) => void;
   setIsGeneratingLink: (generating: boolean) => void;
   setIsCopyingLink: (copying: boolean) => void;
   generateInviteLink: (sessionId: string) => Promise<void>;
   copyInviteLink: () => Promise<boolean>;
-  
+
   // Player form management
   setPlayerFormData: (data: SessionQueueState['playerFormData']) => void;
-  updatePlayerFormField: (field: keyof NonNullable<SessionQueueState['playerFormData']>, value: string | number) => void;
+  updatePlayerFormField: (
+    field: keyof NonNullable<SessionQueueState['playerFormData']>,
+    value: string | number
+  ) => void;
   resetPlayerForm: () => void;
-  
+
   // Auto-refresh management
   setAutoRefreshEnabled: (enabled: boolean) => void;
   setRefreshInterval: (interval: number) => void;
-  
+
   // Filter management
-  setQueueFilters: (filters: Partial<SessionQueueState['queueFilters']>) => void;
+  setQueueFilters: (
+    filters: Partial<SessionQueueState['queueFilters']>
+  ) => void;
   resetQueueFilters: () => void;
-  
+
   // Utility actions
   reset: () => void;
 }
@@ -85,56 +90,62 @@ const initialState: SessionQueueState = {
   },
 };
 
-const useSessionQueueStore = createWithEqualityFn<SessionQueueState & SessionQueueActions>()(
+const useSessionQueueStore = createWithEqualityFn<
+  SessionQueueState & SessionQueueActions
+>()(
   devtools(
     (set, get) => ({
       ...initialState,
-      
+
       // Modal management
-      setShowInviteDialog: (show) =>
+      setShowInviteDialog: show =>
         set({ showInviteDialog: show }, false, 'setShowInviteDialog'),
-      
-      setShowQueueDialog: (show) =>
+
+      setShowQueueDialog: show =>
         set({ showQueueDialog: show }, false, 'setShowQueueDialog'),
-      
+
       // Invite link management
-      setInviteLink: (inviteLink) =>
-        set({ inviteLink }, false, 'setInviteLink'),
-      
-      setIsGeneratingLink: (isGeneratingLink) =>
+      setInviteLink: inviteLink => set({ inviteLink }, false, 'setInviteLink'),
+
+      setIsGeneratingLink: isGeneratingLink =>
         set({ isGeneratingLink }, false, 'setIsGeneratingLink'),
-      
-      setIsCopyingLink: (isCopyingLink) =>
+
+      setIsCopyingLink: isCopyingLink =>
         set({ isCopyingLink }, false, 'setIsCopyingLink'),
-      
+
       generateInviteLink: async (sessionId: string) => {
         set({ isGeneratingLink: true }, false, 'generateInviteLink_start');
-        
+
         try {
           // Generate the invite link
-          const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+          const baseUrl =
+            typeof window !== 'undefined' ? window.location.origin : '';
           const link = `${baseUrl}/join/${sessionId}`;
-          
-          set({ 
-            inviteLink: link, 
-            showInviteDialog: true,
-            isGeneratingLink: false 
-          }, false, 'generateInviteLink_success');
+
+          set(
+            {
+              inviteLink: link,
+              showInviteDialog: true,
+              isGeneratingLink: false,
+            },
+            false,
+            'generateInviteLink_success'
+          );
         } catch (error) {
           set({ isGeneratingLink: false }, false, 'generateInviteLink_error');
           throw error;
         }
       },
-      
+
       copyInviteLink: async () => {
         const { inviteLink } = get();
-        
+
         if (!inviteLink) {
           return false;
         }
-        
+
         set({ isCopyingLink: true }, false, 'copyInviteLink_start');
-        
+
         try {
           if (typeof navigator !== 'undefined' && navigator.clipboard) {
             await navigator.clipboard.writeText(inviteLink);
@@ -147,7 +158,7 @@ const useSessionQueueStore = createWithEqualityFn<SessionQueueState & SessionQue
             document.execCommand('copy');
             document.body.removeChild(textArea);
           }
-          
+
           set({ isCopyingLink: false }, false, 'copyInviteLink_success');
           return true;
         } catch {
@@ -155,14 +166,14 @@ const useSessionQueueStore = createWithEqualityFn<SessionQueueState & SessionQue
           return false;
         }
       },
-      
+
       // Player form management
-      setPlayerFormData: (playerFormData) =>
+      setPlayerFormData: playerFormData =>
         set({ playerFormData }, false, 'setPlayerFormData'),
-      
+
       updatePlayerFormField: (field, value) =>
         set(
-          (state) => ({
+          state => ({
             playerFormData: state.playerFormData
               ? { ...state.playerFormData, [field]: value }
               : { playerName: '', color: '', [field]: value },
@@ -170,33 +181,36 @@ const useSessionQueueStore = createWithEqualityFn<SessionQueueState & SessionQue
           false,
           'updatePlayerFormField'
         ),
-      
+
       resetPlayerForm: () =>
         set({ playerFormData: null }, false, 'resetPlayerForm'),
-      
+
       // Auto-refresh management
-      setAutoRefreshEnabled: (autoRefreshEnabled) =>
+      setAutoRefreshEnabled: autoRefreshEnabled =>
         set({ autoRefreshEnabled }, false, 'setAutoRefreshEnabled'),
-      
-      setRefreshInterval: (refreshInterval) =>
+
+      setRefreshInterval: refreshInterval =>
         set({ refreshInterval }, false, 'setRefreshInterval'),
-      
+
       // Filter management
-      setQueueFilters: (newFilters) =>
+      setQueueFilters: newFilters =>
         set(
-          (state) => ({
+          state => ({
             queueFilters: { ...state.queueFilters, ...newFilters },
           }),
           false,
           'setQueueFilters'
         ),
-      
+
       resetQueueFilters: () =>
-        set({ queueFilters: initialState.queueFilters }, false, 'resetQueueFilters'),
-      
+        set(
+          { queueFilters: initialState.queueFilters },
+          false,
+          'resetQueueFilters'
+        ),
+
       // Utility actions
-      reset: () =>
-        set(initialState, false, 'reset'),
+      reset: () => set(initialState, false, 'reset'),
     }),
     {
       name: 'session-queue-store',

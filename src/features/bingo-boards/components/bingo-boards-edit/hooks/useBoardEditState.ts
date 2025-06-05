@@ -22,7 +22,7 @@ export function useBoardEditState() {
   // Loading and feedback states
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-  
+
   // Ref to track timeout for cleanup
   const saveSuccessTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -82,22 +82,19 @@ export function useBoardEditState() {
 
   const completeSaving = useCallback((success: boolean) => {
     setIsSaving(false);
-    
+
     // Clear any existing timeout
     if (saveSuccessTimeoutRef.current) {
       clearTimeout(saveSuccessTimeoutRef.current);
       saveSuccessTimeoutRef.current = null;
     }
-    
+
     if (success) {
       setShowSaveSuccess(true);
-      saveSuccessTimeoutRef.current = setTimeout(
-        () => {
-          setShowSaveSuccess(false);
-          saveSuccessTimeoutRef.current = null;
-        },
-        ANIMATIONS.SAVE_SUCCESS_TIMEOUT
-      );
+      saveSuccessTimeoutRef.current = setTimeout(() => {
+        setShowSaveSuccess(false);
+        saveSuccessTimeoutRef.current = null;
+      }, ANIMATIONS.SAVE_SUCCESS_TIMEOUT);
     }
   }, []);
 

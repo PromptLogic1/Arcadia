@@ -11,6 +11,7 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 interface LogContext {
   userId?: string;
   sessionId?: string;
+  boardId?: string;
   component?: string;
   feature?: string;
   metadata?: Record<string, unknown>;
@@ -200,7 +201,7 @@ class Logger {
   info(message: string, context?: LogContext): void {
     if (this.shouldLog('info')) {
       activeLogger.info({ context }, message);
-      
+
       // Add Sentry breadcrumb for info logs
       addBreadcrumb(message, 'logger', context?.metadata, 'info');
     }
@@ -209,10 +210,10 @@ class Logger {
   warn(message: string, context?: LogContext): void {
     if (this.shouldLog('warn')) {
       activeLogger.warn({ context }, message);
-      
+
       // Add Sentry breadcrumb for warnings
       addBreadcrumb(message, 'logger', context?.metadata, 'warning');
-      
+
       // Also capture warnings as Sentry messages in production
       if (this.isProduction) {
         Sentry.captureMessage(message, 'warning');
@@ -230,15 +231,23 @@ class Logger {
 
       // Send to Sentry
       if (error) {
-        Sentry.withScope((scope) => {
+        Sentry.withScope(scope => {
           // Add context
           if (context) {
-            scope.setContext('logger', context as Record<string, any>);
+            // Convert LogContext to the format Sentry expects
+            const sentryContext: { [key: string]: unknown } = {
+              userId: context.userId,
+              sessionId: context.sessionId,
+              component: context.component,
+              feature: context.feature,
+              ...context.metadata
+            };
+            scope.setContext('logger', sentryContext);
           }
-          
+
           // Set level
           scope.setLevel('error');
-          
+
           // Add breadcrumb
           scope.addBreadcrumb({
             category: 'logger',
@@ -246,7 +255,7 @@ class Logger {
             level: 'error',
             data: context,
           });
-          
+
           // Capture exception
           Sentry.captureException(error);
         });

@@ -19,6 +19,7 @@ import {
   typography,
   buttonVariants,
 } from './design-system';
+import { RealtimeErrorBoundary } from '@/components/error-boundaries';
 
 interface CardManagementTabsProps {
   // Data
@@ -357,7 +358,9 @@ function CardLibraryTab({
 function GeneratorTab({ gameCategory, gridSize }: GeneratorTabProps) {
   return (
     <TabsContent value={TABS.GENERATOR} className="mt-2">
-      <GeneratorPanel gameCategory={gameCategory} gridSize={gridSize} />
+      <RealtimeErrorBoundary componentName="GeneratorPanel">
+        <GeneratorPanel gameCategory={gameCategory} gridSize={gridSize} />
+      </RealtimeErrorBoundary>
     </TabsContent>
   );
 }

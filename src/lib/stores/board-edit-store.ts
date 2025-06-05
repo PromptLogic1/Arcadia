@@ -1,6 +1,6 @@
 /**
  * Board Edit Store (Zustand)
- * 
+ *
  * UI state management for board editing functionality.
  * Server data is handled by TanStack Query hooks.
  */
@@ -33,19 +33,19 @@ export interface BoardEditState {
   selectedCard: BingoCard | null;
   showPositionSelectDialog: boolean;
   showCardEditDialog: boolean;
-  
-  // Loading and feedback states  
+
+  // Loading and feedback states
   isSaving: boolean;
   showSaveSuccess: boolean;
-  
+
   // Form state (UI-specific, not persisted)
   formData: BoardEditFormData | null;
   fieldErrors: Record<string, string>;
-  
+
   // Grid state (local UI state before save)
   localGridCards: BingoCard[];
   localPrivateCards: BingoCard[];
-  
+
   // Active drag state
   draggedCard: BingoCard | null;
   draggedFromIndex: number | null;
@@ -57,28 +57,31 @@ export interface BoardEditActions {
   setSelectedCard: (card: BingoCard | null) => void;
   setShowPositionSelectDialog: (show: boolean) => void;
   setShowCardEditDialog: (show: boolean) => void;
-  
+
   // Loading states
   setIsSaving: (saving: boolean) => void;
   setShowSaveSuccess: (show: boolean) => void;
-  
+
   // Form management
   setFormData: (data: BoardEditFormData | null) => void;
-  updateFormField: (field: keyof BoardEditFormData, value: string | string[] | boolean | Difficulty) => void;
+  updateFormField: (
+    field: keyof BoardEditFormData,
+    value: string | string[] | boolean | Difficulty
+  ) => void;
   setFieldErrors: (errors: Record<string, string>) => void;
   clearFieldError: (field: string) => void;
-  
+
   // Grid management
   setLocalGridCards: (cards: BingoCard[]) => void;
   setLocalPrivateCards: (cards: BingoCard[]) => void;
   updateGridCard: (index: number, card: BingoCard) => void;
   addPrivateCard: (card: BingoCard) => void;
   removePrivateCard: (cardId: string) => void;
-  
+
   // Drag state
   setDraggedCard: (card: BingoCard | null) => void;
   setDraggedFromIndex: (index: number | null) => void;
-  
+
   // Utility actions
   reset: () => void;
   openCardEditor: (card: BingoCard, index: number) => void;
@@ -102,29 +105,34 @@ const initialState: BoardEditState = {
   draggedFromIndex: null,
 };
 
-const useBoardEditStore = createWithEqualityFn<BoardEditState & BoardEditActions>()(
+const useBoardEditStore = createWithEqualityFn<
+  BoardEditState & BoardEditActions
+>()(
   devtools(
     (set, get) => ({
       ...initialState,
-      
+
       // Modal management
-      setEditingCard: (editingCard) =>
+      setEditingCard: editingCard =>
         set({ editingCard }, false, 'setEditingCard'),
-      
-      setSelectedCard: (selectedCard) =>
+
+      setSelectedCard: selectedCard =>
         set({ selectedCard }, false, 'setSelectedCard'),
-      
-      setShowPositionSelectDialog: (show) =>
-        set({ showPositionSelectDialog: show }, false, 'setShowPositionSelectDialog'),
-      
-      setShowCardEditDialog: (show) =>
+
+      setShowPositionSelectDialog: show =>
+        set(
+          { showPositionSelectDialog: show },
+          false,
+          'setShowPositionSelectDialog'
+        ),
+
+      setShowCardEditDialog: show =>
         set({ showCardEditDialog: show }, false, 'setShowCardEditDialog'),
-      
+
       // Loading states
-      setIsSaving: (isSaving) =>
-        set({ isSaving }, false, 'setIsSaving'),
-      
-      setShowSaveSuccess: (show) => {
+      setIsSaving: isSaving => set({ isSaving }, false, 'setIsSaving'),
+
+      setShowSaveSuccess: show => {
         set({ showSaveSuccess: show }, false, 'setShowSaveSuccess');
         if (show) {
           // Auto-hide after 3 seconds
@@ -133,14 +141,13 @@ const useBoardEditStore = createWithEqualityFn<BoardEditState & BoardEditActions
           }, 3000);
         }
       },
-      
+
       // Form management
-      setFormData: (formData) =>
-        set({ formData }, false, 'setFormData'),
-      
+      setFormData: formData => set({ formData }, false, 'setFormData'),
+
       updateFormField: (field, value) =>
         set(
-          (state) => ({
+          state => ({
             formData: state.formData
               ? { ...state.formData, [field]: value }
               : null,
@@ -148,13 +155,13 @@ const useBoardEditStore = createWithEqualityFn<BoardEditState & BoardEditActions
           false,
           'updateFormField'
         ),
-      
-      setFieldErrors: (fieldErrors) =>
+
+      setFieldErrors: fieldErrors =>
         set({ fieldErrors }, false, 'setFieldErrors'),
-      
-      clearFieldError: (field) =>
+
+      clearFieldError: field =>
         set(
-          (state) => {
+          state => {
             const newErrors = { ...state.fieldErrors };
             delete newErrors[field];
             return { fieldErrors: newErrors };
@@ -162,17 +169,17 @@ const useBoardEditStore = createWithEqualityFn<BoardEditState & BoardEditActions
           false,
           'clearFieldError'
         ),
-      
+
       // Grid management
-      setLocalGridCards: (localGridCards) =>
+      setLocalGridCards: localGridCards =>
         set({ localGridCards }, false, 'setLocalGridCards'),
-      
-      setLocalPrivateCards: (localPrivateCards) =>
+
+      setLocalPrivateCards: localPrivateCards =>
         set({ localPrivateCards }, false, 'setLocalPrivateCards'),
-      
+
       updateGridCard: (index, card) =>
         set(
-          (state) => {
+          state => {
             const newGridCards = [...state.localGridCards];
             newGridCards[index] = card;
             return { localGridCards: newGridCards };
@@ -180,49 +187,58 @@ const useBoardEditStore = createWithEqualityFn<BoardEditState & BoardEditActions
           false,
           'updateGridCard'
         ),
-      
-      addPrivateCard: (card) =>
+
+      addPrivateCard: card =>
         set(
-          (state) => ({
+          state => ({
             localPrivateCards: [...state.localPrivateCards, card],
           }),
           false,
           'addPrivateCard'
         ),
-      
-      removePrivateCard: (cardId) =>
+
+      removePrivateCard: cardId =>
         set(
-          (state) => ({
-            localPrivateCards: state.localPrivateCards.filter(card => card.id !== cardId),
+          state => ({
+            localPrivateCards: state.localPrivateCards.filter(
+              card => card.id !== cardId
+            ),
           }),
           false,
           'removePrivateCard'
         ),
-      
+
       // Drag state
-      setDraggedCard: (draggedCard) =>
+      setDraggedCard: draggedCard =>
         set({ draggedCard }, false, 'setDraggedCard'),
-      
-      setDraggedFromIndex: (draggedFromIndex) =>
+
+      setDraggedFromIndex: draggedFromIndex =>
         set({ draggedFromIndex }, false, 'setDraggedFromIndex'),
-      
+
       // Utility actions
-      reset: () =>
-        set(initialState, false, 'reset'),
-      
+      reset: () => set(initialState, false, 'reset'),
+
       openCardEditor: (card, index) =>
-        set({ 
-          editingCard: { card, index },
-          showCardEditDialog: true
-        }, false, 'openCardEditor'),
-      
+        set(
+          {
+            editingCard: { card, index },
+            showCardEditDialog: true,
+          },
+          false,
+          'openCardEditor'
+        ),
+
       closeCardEditor: () =>
-        set({ 
-          editingCard: null,
-          showCardEditDialog: false
-        }, false, 'closeCardEditor'),
-      
-      handleCardSelect: (card) => {
+        set(
+          {
+            editingCard: null,
+            showCardEditDialog: false,
+          },
+          false,
+          'closeCardEditor'
+        ),
+
+      handleCardSelect: card => {
         const state = get();
         if (state.selectedCard?.id === card.id) {
           // Deselect if same card
@@ -231,7 +247,7 @@ const useBoardEditStore = createWithEqualityFn<BoardEditState & BoardEditActions
           set({ selectedCard: card }, false, 'selectCard');
         }
       },
-      
+
       clearSelectedCard: () =>
         set({ selectedCard: null }, false, 'clearSelectedCard'),
     }),

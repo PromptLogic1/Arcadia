@@ -120,7 +120,10 @@ export default function TestErrorBoundariesPage() {
             <ol className="list-inside list-decimal space-y-2 text-gray-300">
               <li>Click each button to trigger different types of errors</li>
               <li>Observe how each error boundary handles the error</li>
-              <li>Use the &quot;Try Again&quot; or &quot;Reset&quot; buttons to recover</li>
+              <li>
+                Use the &quot;Try Again&quot; or &quot;Reset&quot; buttons to
+                recover
+              </li>
               <li>Check the console for logged error details</li>
               <li>In production, error details won&apos;t be shown to users</li>
             </ol>

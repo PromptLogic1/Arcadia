@@ -57,22 +57,22 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await request.json()) as CreateSessionRequest;
-    const { boardId, displayName, color, team, settings } = body;
+    const body = await request.json();
+    // Validate request body structure
+    if (!body || typeof body !== 'object' || !body.boardId) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+    const { boardId, displayName, color, team, settings } = body as CreateSessionRequest;
     boardIdForLog = boardId;
 
     // Batch queries using Promise.all for better performance
     const [profileResult, boardResult] = await Promise.all([
-      supabase
-        .from('users')
-        .select('username')
-        .eq('id', user.id)
-        .single(),
+      supabase.from('users').select('username').eq('id', user.id).single(),
       supabase
         .from('bingo_boards')
         .select('id, status, board_state, size')
         .eq('id', boardId)
-        .single()
+        .single(),
     ]);
 
     const { data: profile } = profileResult;
@@ -186,7 +186,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ session, player });
   } catch (error) {
-    log.error('Error creating bingo session', error as Error, {
+    log.error('Error creating bingo session', error instanceof Error ? error : new Error('Unknown session creation error'), {
       metadata: {
         apiRoute: 'bingo/sessions',
         method: 'POST',
@@ -195,7 +195,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
     });
     return NextResponse.json(
-      { error: (error as Error).message || 'Failed to create bingo session' },
+      { error: error instanceof Error ? error.message : 'Failed to create bingo session' },
       { status: 500 }
     );
   }
@@ -217,8 +217,12 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await request.json()) as PatchSessionRequest;
-    const { sessionId, currentState, winnerId, status } = body;
+    const body = await request.json();
+    // Validate request body structure
+    if (!body || typeof body !== 'object' || !body.sessionId) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+    const { sessionId, currentState, winnerId, status } = body as PatchSessionRequest;
     sessionIdForLog = sessionId;
     updatesForLog = { currentState, winnerId, status };
 
@@ -240,7 +244,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
 
     return NextResponse.json(data);
   } catch (error) {
-    log.error('Error updating bingo session', error as Error, {
+    log.error('Error updating bingo session', error instanceof Error ? error : new Error('Unknown session update error'), {
       metadata: {
         apiRoute: 'bingo/sessions',
         method: 'PATCH',
@@ -250,7 +254,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       },
     });
     return NextResponse.json(
-      { error: (error as Error).message || 'Failed to update bingo session' },
+      { error: error instanceof Error ? error.message : 'Failed to update bingo session' },
       { status: 500 }
     );
   }
@@ -287,7 +291,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       statusParam &&
       (validStatuses as ReadonlyArray<string>).includes(statusParam)
     ) {
-      status = statusParam as ValidSessionStatus;
+      status = statusParam as ValidSessionStatus; // Safe: validated by includes check above
     } else if (statusParam) {
       log.warn(`Invalid status parameter received: ${statusParam}`, {
         metadata: {
@@ -345,7 +349,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     return NextResponse.json(sessions);
   } catch (error) {
-    log.error('Unhandled error in GET /api/bingo/sessions', error as Error, {
+    log.error('Unhandled error in GET /api/bingo/sessions', error instanceof Error ? error : new Error('Unknown GET error'), {
       metadata: {
         apiRoute: 'bingo/sessions',
         method: 'GET',
@@ -354,7 +358,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       },
     });
     return NextResponse.json(
-      { error: (error as Error).message || 'Failed to fetch bingo sessions' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch bingo sessions' },
       { status: 500 }
     );
   }

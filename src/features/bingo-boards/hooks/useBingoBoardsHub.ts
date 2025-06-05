@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBingoBoards } from './useBingoBoards';
 import { useAuth } from '@/lib/stores/auth-store';
@@ -29,7 +29,17 @@ export interface LegacyFilterState {
 export function useBingoBoardsHub() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  
+
+  // Mount tracking
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Use the modern hook pattern
   const {
     boards,
@@ -53,12 +63,13 @@ export function useBingoBoardsHub() {
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
 
   // Legacy filter state for backwards compatibility with existing components
-  const [legacyFilterSelections, setLegacyFilterSelections] = useState<LegacyFilterState>({
-    category: 'All Games',
-    difficulty: 'all',
-    sort: 'newest',
-    search: '',
-  });
+  const [legacyFilterSelections, setLegacyFilterSelections] =
+    useState<LegacyFilterState>({
+      category: 'All Games',
+      difficulty: 'all',
+      sort: 'newest',
+      search: '',
+    });
 
   // Handle legacy filter changes and translate to modern filters
   const handleFilterChange = useCallback(
@@ -69,12 +80,19 @@ export function useBingoBoardsHub() {
       // Translate legacy filters to modern filter format
       const modernFilters: Partial<BoardFilters> = {};
 
-      if (newLegacyFilters.category && newLegacyFilters.category !== 'All Games') {
+      if (
+        newLegacyFilters.category &&
+        newLegacyFilters.category !== 'All Games'
+      ) {
         modernFilters.gameType = newLegacyFilters.category as GameCategory;
       }
 
-      if (newLegacyFilters.difficulty && newLegacyFilters.difficulty !== 'all') {
-        modernFilters.difficulty = newLegacyFilters.difficulty as DifficultyLevel;
+      if (
+        newLegacyFilters.difficulty &&
+        newLegacyFilters.difficulty !== 'all'
+      ) {
+        modernFilters.difficulty =
+          newLegacyFilters.difficulty as DifficultyLevel;
       }
 
       if (newLegacyFilters.search) {
@@ -82,7 +100,11 @@ export function useBingoBoardsHub() {
       }
 
       if (newLegacyFilters.sort) {
-        modernFilters.sortBy = newLegacyFilters.sort as 'newest' | 'oldest' | 'popular' | 'difficulty';
+        modernFilters.sortBy = newLegacyFilters.sort as
+          | 'newest'
+          | 'oldest'
+          | 'popular'
+          | 'difficulty';
       }
 
       // Update the modern filters
@@ -107,7 +129,8 @@ export function useBingoBoardsHub() {
         const createData = {
           title: formData.board_title,
           description: formData.board_description || '',
-          game_type: formData.board_game_type || 'World of Warcraft' as GameCategory,
+          game_type:
+            formData.board_game_type || ('World of Warcraft' as GameCategory),
           difficulty: formData.board_difficulty,
           size: formData.board_size,
           tags: formData.board_tags,
@@ -115,16 +138,20 @@ export function useBingoBoardsHub() {
         };
 
         const result = await createBoard(createData);
-        
-        if (result.board) {
+
+        // Check if component is still mounted before updating state
+        if (isMountedRef.current && result.board) {
           setIsCreateFormOpen(false);
           // Navigate to the new board for editing
           router.push(`/challenge-hub/${result.board.id}`);
         }
       } catch (error) {
-        log.error('Failed to create board', error as Error, {
-          metadata: { hook: 'useBingoBoardsHub', formData },
-        });
+        // Only log error if component is still mounted
+        if (isMountedRef.current) {
+          log.error('Failed to create board', error as Error, {
+            metadata: { hook: 'useBingoBoardsHub', formData },
+          });
+        }
       }
     },
     [isAuthenticated, router, createBoard]

@@ -26,32 +26,31 @@ interface AvatarImageProps {
   className?: string;
 }
 
-const AvatarImage = React.forwardRef<
-  HTMLDivElement,
-  AvatarImageProps
->(({ className, src, alt = 'Avatar', ...props }, ref) => {
-  if (!src) return null;
-  
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'aspect-square h-full w-full relative overflow-hidden',
-        className
-      )}
-      {...props}
-    >
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="40px"
-        className="object-cover transition-opacity duration-300"
-        priority={false}
-      />
-    </div>
-  );
-});
+const AvatarImage = React.forwardRef<HTMLDivElement, AvatarImageProps>(
+  ({ className, src, alt = 'Avatar', ...props }, ref) => {
+    if (!src) return null;
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'relative aspect-square h-full w-full overflow-hidden',
+          className
+        )}
+        {...props}
+      >
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="40px"
+          className="object-cover transition-opacity duration-300"
+          priority={false}
+        />
+      </div>
+    );
+  }
+);
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
 const AvatarFallback = React.forwardRef<

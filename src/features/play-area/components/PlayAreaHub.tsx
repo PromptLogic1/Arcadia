@@ -26,14 +26,18 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
 
 // New pattern imports
-import { useSessionsState, useSessionsActions } from '@/lib/stores/sessions-store';
-import { 
-  useActiveSessionsQuery, 
+import {
+  useSessionsState,
+  useSessionsActions,
+} from '@/lib/stores/sessions-store';
+import {
+  useActiveSessionsQuery,
   useJoinSessionMutation,
-  useCreateSessionMutation 
+  useCreateSessionMutation,
 } from '@/hooks/queries/useSessionsQueries';
 
 // Components
@@ -42,7 +46,7 @@ import { SessionJoinDialog } from './SessionJoinDialog';
 import { SessionCard } from './SessionCard';
 import { SessionFilters } from './SessionFilters';
 
-// Types  
+// Types
 import type { SessionSettings } from '../../../services/sessions.service';
 
 interface PlayAreaHubProps {
@@ -52,7 +56,7 @@ interface PlayAreaHubProps {
 /**
  * Main Play Area Hub Component
  * Serves as the central interface for hosting and joining game sessions
- * 
+ *
  * Uses the new Zustand + TanStack Query pattern for clean state management
  */
 export function PlayAreaHub({ className }: PlayAreaHubProps) {
@@ -61,17 +65,13 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
   const { authUser, isAuthenticated, loading: authLoading } = useAuth();
 
   // Zustand state (UI state only)
-  const { 
-    filters, 
-    showHostDialog, 
-    showJoinDialog, 
-    joinSessionCode 
-  } = useSessionsState();
-  const { 
-    setFilters, 
-    setShowHostDialog, 
-    setShowJoinDialog, 
-    setJoinSessionCode 
+  const { filters, showHostDialog, showJoinDialog, joinSessionCode } =
+    useSessionsState();
+  const {
+    setFilters,
+    setShowHostDialog,
+    setShowJoinDialog,
+    setJoinSessionCode,
   } = useSessionsActions();
 
   // TanStack Query for data fetching
@@ -90,13 +90,12 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
   // Extract sessions from response
   const sessions = sessionsResponse?.sessions || [];
 
-
   // Handle URL parameters for seamless navigation from challenge hub
   useEffect(() => {
     if (isAuthenticated && searchParams) {
       const boardId = searchParams.get('boardId');
       const shouldHost = searchParams.get('host') === 'true';
-      
+
       if (boardId && shouldHost) {
         // Open hosting dialog with pre-selected board
         setShowHostDialog(true);
@@ -106,12 +105,14 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
     }
   }, [isAuthenticated, searchParams, router, setShowHostDialog]);
 
-
   // Handle session hosting
-  const handleCreateSession = async (boardId: string, settings: SessionSettings) => {
+  const handleCreateSession = async (
+    boardId: string,
+    settings: SessionSettings
+  ) => {
     try {
-      const result = await createSessionMutation.mutateAsync({ 
-        board_id: boardId, 
+      const result = await createSessionMutation.mutateAsync({
+        board_id: boardId,
         host_id: authUser?.id || '',
         settings: {
           max_players: settings.max_players ?? 8,
@@ -120,13 +121,16 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           time_limit: settings.time_limit ?? undefined,
           require_approval: settings.require_approval ?? false,
           password: settings.password ?? undefined,
-        }
+        },
       });
       // Navigate to the session
       router.push(`/play-area/session/${result.session?.id}`);
     } catch (error) {
       // Error handling is done in the mutation
-      console.error('Failed to create session:', error);
+      logger.error('Failed to create session', error, {
+        component: 'PlayAreaHub',
+        metadata: { userId: authUser?.id, settings },
+      });
     }
   };
 
@@ -140,12 +144,18 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       // TODO: First need to resolve session code to session_id
       // const sessionResult = await getSessionByCode(joinSessionCode.trim().toUpperCase());
       // const sessionId = sessionResult.session?.id;
-      
+
       setShowJoinDialog(false);
       setJoinSessionCode('');
-      console.log('Join by code not fully implemented yet');
+      logger.warn('Join by code not fully implemented yet', {
+        component: 'PlayAreaHub',
+        metadata: { joinSessionCode: joinSessionCode.trim(), userId: authUser?.id },
+      });
     } catch (error) {
-      console.error('Failed to join session by code:', error);
+      logger.error('Failed to join session by code', error, {
+        component: 'PlayAreaHub',
+        metadata: { joinSessionCode: joinSessionCode.trim(), userId: authUser?.id },
+      });
     }
   };
 
@@ -165,14 +175,15 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       '#F7DC6F', // Light Yellow
     ];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    
+
     const joinData = {
       session_id: sessionId,
       user_id: authUser.id,
-      display_name: authUser.username || 
-                    authUser.auth_username ||
-                    authUser.email?.split('@')[0] || 
-                    'Player',
+      display_name:
+        authUser.username ||
+        authUser.auth_username ||
+        authUser.email?.split('@')[0] ||
+        'Player',
       color: randomColor || '#3B82F6', // Default to blue if somehow undefined
     };
 
@@ -182,7 +193,10 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       router.push(`/play-area/session/${sessionId}`);
     } catch (error) {
       // Error handling is done in the mutation
-      console.error('Failed to join session:', error);
+      logger.error('Failed to join session', error, {
+        component: 'PlayAreaHub',
+        metadata: { sessionId, userId: authUser?.id, joinData },
+      });
     }
   };
 
@@ -236,7 +250,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
               <span>Play Area</span>
             </div>
           )}
-          
+
           <h1 className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-3xl font-bold text-transparent">
             Play Area
           </h1>
@@ -246,10 +260,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="cyber"
-            onClick={() => setShowHostDialog(true)}
-          >
+          <Button variant="cyber" onClick={() => setShowHostDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Host Session
           </Button>
@@ -268,22 +279,25 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card variant="cyber" glow="subtle">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg neon-glow-cyan">
+            <CardTitle className="neon-glow-cyan flex items-center gap-2 text-lg">
               <Users className="h-5 w-5 text-cyan-400 drop-shadow-lg" />
               Active Players
             </CardTitle>
-            <CardDescription className="text-cyan-200/70">Currently online and playing</CardDescription>
+            <CardDescription className="text-cyan-200/70">
+              Currently online and playing
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold neon-glow-cyan animate-glow">
-              {sessions.reduce(
-                (total, session) => {
-                  const count = 'current_player_count' in session ? 
-                    (typeof session.current_player_count === 'number' ? session.current_player_count : 0) : 0;
-                  return total + count;
-                },
-                0
-              )}
+            <div className="neon-glow-cyan animate-glow text-2xl font-bold">
+              {sessions.reduce((total, session) => {
+                const count =
+                  'current_player_count' in session
+                    ? typeof session.current_player_count === 'number'
+                      ? session.current_player_count
+                      : 0
+                    : 0;
+                return total + count;
+              }, 0)}
             </div>
             <p className="text-sm text-cyan-300/70">
               Across {sessions.length} sessions
@@ -293,11 +307,13 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
 
         <Card variant="cyber" glow="subtle">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg neon-glow-purple">
+            <CardTitle className="neon-glow-purple flex items-center gap-2 text-lg">
               <Clock className="h-5 w-5 text-purple-400 drop-shadow-lg" />
               Recent Activity
             </CardTitle>
-            <CardDescription className="text-cyan-200/70">Latest session updates</CardDescription>
+            <CardDescription className="text-cyan-200/70">
+              Latest session updates
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -349,7 +365,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
               <CardContent className="pt-6">
                 <div className="py-8 text-center">
                   <Gamepad2 className="mx-auto mb-4 h-16 w-16 text-cyan-400/60" />
-                  <h3 className="mb-2 text-xl font-semibold neon-glow-cyan">
+                  <h3 className="neon-glow-cyan mb-2 text-xl font-semibold">
                     No Active Sessions
                   </h3>
                   <p className="mb-4 text-cyan-300/70">
@@ -382,7 +398,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
         <TabsContent value="join-session" className="space-y-4">
           <Card variant="cyber" glow="subtle">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 neon-glow-purple">
+              <CardTitle className="neon-glow-purple flex items-center gap-2">
                 <Lock className="h-5 w-5 text-purple-400 drop-shadow-lg" />
                 Join Session by Code
               </CardTitle>
@@ -408,14 +424,19 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
                 <Button
                   variant="cyber"
                   onClick={handleJoinByCode}
-                  disabled={!joinSessionCode.trim() || joinSessionMutation.isPending}
+                  disabled={
+                    !joinSessionCode.trim() || joinSessionMutation.isPending
+                  }
                 >
-                  {joinSessionMutation.isPending ? 'Joining...' : 'Join Session'}
+                  {joinSessionMutation.isPending
+                    ? 'Joining...'
+                    : 'Join Session'}
                 </Button>
               </div>
               <p className="text-sm text-cyan-300/70">
-                Session codes are case-insensitive and typically 6 characters long.
-                Password-protected sessions will prompt for password after entering the code.
+                Session codes are case-insensitive and typically 6 characters
+                long. Password-protected sessions will prompt for password after
+                entering the code.
               </p>
             </CardContent>
           </Card>

@@ -9,7 +9,7 @@
  * - Service Layer: Pure API functions
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/stores/auth-store';
 import { useSettingsOperations } from '@/hooks/queries/useSettingsQueries';
 import {
@@ -129,6 +129,12 @@ export function useSettings(): UseSettingsReturn {
   const { authUser } = useAuth();
   const userId = authUser?.id || '';
 
+  // Mount tracking and timeout refs for cleanup
+  const isMountedRef = useRef(true);
+  const emailSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const passwordSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const profileSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
   // TanStack Query for server state
   const settingsOperations = useSettingsOperations(userId);
 
@@ -148,6 +154,25 @@ export function useSettings(): UseSettingsReturn {
   const forms = useSettingsForms();
   const preferences = useSettingsPreferences();
   const actions = useSettingsActions();
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      // Clear all timeouts
+      if (emailSuccessTimeoutRef.current) {
+        clearTimeout(emailSuccessTimeoutRef.current);
+      }
+      if (passwordSuccessTimeoutRef.current) {
+        clearTimeout(passwordSuccessTimeoutRef.current);
+      }
+      if (profileSuccessTimeoutRef.current) {
+        clearTimeout(profileSuccessTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Auto-refresh profile when user changes
   useEffect(() => {
@@ -171,13 +196,23 @@ export function useSettings(): UseSettingsReturn {
 
         await updateEmail(data);
 
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
+
         // UI feedback
         actions.setShowEmailSuccess(true);
         actions.resetEmailForm();
 
+        // Clear existing timeout
+        if (emailSuccessTimeoutRef.current) {
+          clearTimeout(emailSuccessTimeoutRef.current);
+        }
+
         // Auto-hide success message after delay
-        setTimeout(() => {
-          actions.setShowEmailSuccess(false);
+        emailSuccessTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            actions.setShowEmailSuccess(false);
+          }
         }, 5000);
 
         logger.info('Email update completed successfully', {
@@ -211,13 +246,23 @@ export function useSettings(): UseSettingsReturn {
 
         await updatePassword(data);
 
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
+
         // UI feedback
         actions.setShowPasswordSuccess(true);
         actions.resetPasswordForm();
 
+        // Clear existing timeout
+        if (passwordSuccessTimeoutRef.current) {
+          clearTimeout(passwordSuccessTimeoutRef.current);
+        }
+
         // Auto-hide success message after delay
-        setTimeout(() => {
-          actions.setShowPasswordSuccess(false);
+        passwordSuccessTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            actions.setShowPasswordSuccess(false);
+          }
         }, 5000);
 
         logger.info('Password update completed successfully', {
@@ -239,13 +284,23 @@ export function useSettings(): UseSettingsReturn {
       try {
         await updateProfile(data);
 
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
+
         // UI feedback
         actions.setShowProfileSuccess(true);
         actions.resetProfileForm();
 
+        // Clear existing timeout
+        if (profileSuccessTimeoutRef.current) {
+          clearTimeout(profileSuccessTimeoutRef.current);
+        }
+
         // Auto-hide success message after delay
-        setTimeout(() => {
-          actions.setShowProfileSuccess(false);
+        profileSuccessTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            actions.setShowProfileSuccess(false);
+          }
         }, 5000);
 
         logger.info('Profile update completed successfully', {

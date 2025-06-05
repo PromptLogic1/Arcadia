@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   presenceService,
   PRESENCE_CONSTANTS,
@@ -35,6 +35,9 @@ export const usePresence = ({
   >(null);
   const [isConnected, setIsConnected] = useState(false);
 
+  // Track mounted state to prevent updates after unmount
+  const isMountedRef = useRef(true);
+
   // Helper function to get online users
   const getOnlineUsers = useCallback(
     () =>
@@ -64,6 +67,14 @@ export const usePresence = ({
     [updatePresenceFunc, boardId]
   );
 
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Set up presence subscription
   useEffect(() => {
     if (!boardId) return;
@@ -71,9 +82,12 @@ export const usePresence = ({
     logger.debug('Setting up presence subscription', { metadata: { boardId } });
 
     let cleanup: (() => void) | null = null;
+    let isSubscriptionActive = true;
 
     const setupPresence = async () => {
       try {
+        if (!isMountedRef.current) return;
+
         setError(null);
         setIsConnected(false);
 
@@ -83,6 +97,8 @@ export const usePresence = ({
             onPresenceUpdate: (
               newPresenceState: Record<string, PresenceState>
             ) => {
+              if (!isMountedRef.current || !isSubscriptionActive) return;
+
               logger.debug('Presence state updated', {
                 metadata: {
                   boardId,
@@ -93,6 +109,8 @@ export const usePresence = ({
             },
 
             onUserJoin: (key: string, presence: PresenceState) => {
+              if (!isMountedRef.current || !isSubscriptionActive) return;
+
               logger.debug('User joined presence', {
                 metadata: { boardId, userId: presence.user_id },
               });
@@ -103,6 +121,8 @@ export const usePresence = ({
             },
 
             onUserLeave: (key: string) => {
+              if (!isMountedRef.current || !isSubscriptionActive) return;
+
               logger.debug('User left presence', {
                 metadata: { boardId, key },
               });
@@ -114,6 +134,8 @@ export const usePresence = ({
             },
 
             onError: (error: Error) => {
+              if (!isMountedRef.current || !isSubscriptionActive) return;
+
               logger.error('Presence error', error, { metadata: { boardId } });
               setError(error);
               setIsConnected(false);
@@ -122,14 +144,18 @@ export const usePresence = ({
         );
 
         // Store update function and cleanup
-        setUpdatePresenceFunc(() => subscription.updatePresence);
-        cleanup = subscription.cleanup;
-        setIsConnected(true);
+        if (isMountedRef.current && isSubscriptionActive) {
+          setUpdatePresenceFunc(() => subscription.updatePresence);
+          cleanup = subscription.cleanup;
+          setIsConnected(true);
 
-        logger.debug('Presence subscription established', {
-          metadata: { boardId },
-        });
+          logger.debug('Presence subscription established', {
+            metadata: { boardId },
+          });
+        }
       } catch (error) {
+        if (!isMountedRef.current || !isSubscriptionActive) return;
+
         const err =
           error instanceof Error
             ? error
@@ -144,14 +170,20 @@ export const usePresence = ({
 
     // Cleanup function
     return () => {
+      isSubscriptionActive = false;
+
       if (cleanup) {
         logger.debug('Cleaning up presence subscription', {
           metadata: { boardId },
         });
         cleanup();
       }
-      setUpdatePresenceFunc(null);
-      setIsConnected(false);
+
+      if (isMountedRef.current) {
+        setUpdatePresenceFunc(null);
+        setIsConnected(false);
+        setPresenceState({});
+      }
     };
   }, [boardId]);
 

@@ -92,19 +92,19 @@ export async function createServerComponentClient() {
       },
       setAll(cookiesToSet: unknown) {
         try {
-          (
-            cookiesToSet as Array<{
-              name: string;
-              value: string;
-              options?: unknown;
-            }>
-          ).forEach(({ name, value, options }) =>
-            cookieStore.set(
-              name,
-              value,
-              options as Parameters<typeof cookieStore.set>[2]
-            )
-          );
+          // Type guard for cookie validation
+          if (Array.isArray(cookiesToSet)) {
+            cookiesToSet.forEach((cookie) => {
+              if (cookie && typeof cookie === 'object' && 'name' in cookie && 'value' in cookie) {
+                const { name, value, options } = cookie as {
+                  name: string;
+                  value: string;
+                  options?: Parameters<typeof cookieStore.set>[2];
+                };
+                cookieStore.set(name, value, options);
+              }
+            });
+          }
         } catch {
           // The `setAll` method was called from a Server Component.
           // This can be ignored if you have middleware refreshing
@@ -156,11 +156,12 @@ export class SupabaseError extends Error {
 
 export const handleSupabaseError = (error: unknown): never => {
   if (error && typeof error === 'object' && 'message' in error) {
+    // Safe type guard for Supabase error structure
     const supabaseError = error as {
       message: string;
       code?: string;
       details?: string;
-    };
+    }; // Safe: validated by typeof checks above
     throw new SupabaseError(
       supabaseError.message,
       supabaseError.code,
@@ -200,34 +201,35 @@ export async function updateSession(request: Request) {
   const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
+        // Type assertion safe: middleware ensures request has cookies
         return (request as RequestWithCookies).cookies.getAll();
       },
       setAll(cookiesToSet: unknown) {
-        (
-          cookiesToSet as Array<{
-            name: string;
-            value: string;
-            options?: unknown;
-          }>
-        ).forEach(({ name, value }) =>
-          (request as RequestWithCookies).cookies.set(name, value)
-        );
+        // Type guard for cookies in middleware
+        if (Array.isArray(cookiesToSet)) {
+          cookiesToSet.forEach((cookie) => {
+            if (cookie && typeof cookie === 'object' && 'name' in cookie && 'value' in cookie) {
+              const { name, value } = cookie as { name: string; value: string };
+              (request as RequestWithCookies).cookies.set(name, value);
+            }
+          });
+        }
         supabaseResponse = NextResponse.next({
           request,
         });
-        (
-          cookiesToSet as Array<{
-            name: string;
-            value: string;
-            options?: unknown;
-          }>
-        ).forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(
-            name,
-            value,
-            options as Parameters<typeof supabaseResponse.cookies.set>[2]
-          )
-        );
+        // Type guard for response cookies
+        if (Array.isArray(cookiesToSet)) {
+          cookiesToSet.forEach((cookie) => {
+            if (cookie && typeof cookie === 'object' && 'name' in cookie && 'value' in cookie) {
+              const { name, value, options } = cookie as {
+                name: string;
+                value: string;
+                options?: Parameters<typeof supabaseResponse.cookies.set>[2];
+              };
+              supabaseResponse.cookies.set(name, value, options);
+            }
+          });
+        }
       },
     },
   });

@@ -86,14 +86,22 @@ export const useBingoCardsStore = createWithEqualityFn<BingoCardsState>()(
         const { gridCards } = get();
         const updatedGridCards = [...gridCards];
         updatedGridCards[index] = card;
-        set({ gridCards: updatedGridCards }, false, 'bingoCards/updateGridCard');
+        set(
+          { gridCards: updatedGridCards },
+          false,
+          'bingoCards/updateGridCard'
+        );
       },
 
       removeGridCard: (index: number): void => {
         const { gridCards } = get();
         const updatedGridCards = [...gridCards];
         updatedGridCards.splice(index, 1);
-        set({ gridCards: updatedGridCards }, false, 'bingoCards/removeGridCard');
+        set(
+          { gridCards: updatedGridCards },
+          false,
+          'bingoCards/removeGridCard'
+        );
       },
 
       setFilters: newFilters => {

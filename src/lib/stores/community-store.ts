@@ -1,6 +1,6 @@
 /**
  * Community Store (Zustand)
- * 
+ *
  * UI state management for community functionality.
  * Server data (discussions, comments) is handled by TanStack Query hooks.
  * This store only manages UI-specific state.
@@ -33,11 +33,11 @@ export interface Event {
 interface CommunityState {
   // UI state only - no server data!
   selectedDiscussion: Discussion | null;
-  
+
   // UI loading and error states (separate from TanStack Query states)
   uiLoading: boolean;
   uiError: string | null;
-  
+
   // Filters for client-side filtering and search
   filters: {
     game: string | null;
@@ -45,11 +45,11 @@ interface CommunityState {
     tags: string[];
     searchTerm: string;
   };
-  
+
   // Modal and dialog states
   showCreateDiscussionDialog: boolean;
   showDiscussionDetailsDialog: boolean;
-  
+
   // Form states
   createDiscussionForm: {
     title: string;
@@ -57,7 +57,7 @@ interface CommunityState {
     tags: string[];
     game: string | null;
   } | null;
-  
+
   // Events (mock data - will be moved to TanStack Query when real)
   events: Event[];
 }
@@ -65,29 +65,34 @@ interface CommunityState {
 interface CommunityActions {
   // Selected discussion management
   setSelectedDiscussion: (discussion: Discussion | null) => void;
-  
+
   // UI loading and error management
   setUiLoading: (loading: boolean) => void;
   setUiError: (error: string | null) => void;
-  
+
   // Filter management
   setFilters: (filters: Partial<CommunityState['filters']>) => void;
   clearFilters: () => void;
-  
+
   // Modal management
   setShowCreateDiscussionDialog: (show: boolean) => void;
   setShowDiscussionDetailsDialog: (show: boolean) => void;
-  
+
   // Form management
-  setCreateDiscussionForm: (form: CommunityState['createDiscussionForm']) => void;
-  updateCreateDiscussionField: (field: keyof NonNullable<CommunityState['createDiscussionForm']>, value: string | string[] | null) => void;
+  setCreateDiscussionForm: (
+    form: CommunityState['createDiscussionForm']
+  ) => void;
+  updateCreateDiscussionField: (
+    field: keyof NonNullable<CommunityState['createDiscussionForm']>,
+    value: string | string[] | null
+  ) => void;
   resetCreateDiscussionForm: () => void;
-  
+
   // Events management (mock data)
   setEvents: (events: Event[]) => void;
   addEvent: (event: Omit<Event, 'id' | 'participants'>) => void;
   updateEventParticipants: (eventId: number, delta: number) => void;
-  
+
   // Utility
   reset: () => void;
 }
@@ -108,24 +113,25 @@ const initialState: CommunityState = {
   events: [], // Mock data
 };
 
-export const useCommunityStore = createWithEqualityFn<CommunityState & CommunityActions>()(
+export const useCommunityStore = createWithEqualityFn<
+  CommunityState & CommunityActions
+>()(
   devtools(
     (set, get) => ({
       ...initialState,
 
       // Selected discussion management
-      setSelectedDiscussion: (selectedDiscussion) =>
+      setSelectedDiscussion: selectedDiscussion =>
         set({ selectedDiscussion }, false, 'community/setSelectedDiscussion'),
 
       // UI loading and error management
-      setUiLoading: (uiLoading) =>
+      setUiLoading: uiLoading =>
         set({ uiLoading }, false, 'community/setUiLoading'),
 
-      setUiError: (uiError) =>
-        set({ uiError }, false, 'community/setUiError'),
+      setUiError: uiError => set({ uiError }, false, 'community/setUiError'),
 
       // Filter management
-      setFilters: (newFilters) => {
+      setFilters: newFilters => {
         const { filters } = get();
         set(
           { filters: { ...filters, ...newFilters } },
@@ -135,42 +141,59 @@ export const useCommunityStore = createWithEqualityFn<CommunityState & Community
       },
 
       clearFilters: () =>
-        set(
-          { filters: initialState.filters },
-          false,
-          'community/clearFilters'
-        ),
+        set({ filters: initialState.filters }, false, 'community/clearFilters'),
 
       // Modal management
-      setShowCreateDiscussionDialog: (show) =>
-        set({ showCreateDiscussionDialog: show }, false, 'community/setShowCreateDiscussionDialog'),
+      setShowCreateDiscussionDialog: show =>
+        set(
+          { showCreateDiscussionDialog: show },
+          false,
+          'community/setShowCreateDiscussionDialog'
+        ),
 
-      setShowDiscussionDetailsDialog: (show) =>
-        set({ showDiscussionDetailsDialog: show }, false, 'community/setShowDiscussionDetailsDialog'),
+      setShowDiscussionDetailsDialog: show =>
+        set(
+          { showDiscussionDetailsDialog: show },
+          false,
+          'community/setShowDiscussionDetailsDialog'
+        ),
 
       // Form management
-      setCreateDiscussionForm: (createDiscussionForm) =>
-        set({ createDiscussionForm }, false, 'community/setCreateDiscussionForm'),
+      setCreateDiscussionForm: createDiscussionForm =>
+        set(
+          { createDiscussionForm },
+          false,
+          'community/setCreateDiscussionForm'
+        ),
 
       updateCreateDiscussionField: (field, value) =>
         set(
-          (state) => ({
+          state => ({
             createDiscussionForm: state.createDiscussionForm
               ? { ...state.createDiscussionForm, [field]: value }
-              : { title: '', content: '', tags: [], game: null, [field]: value },
+              : {
+                  title: '',
+                  content: '',
+                  tags: [],
+                  game: null,
+                  [field]: value,
+                },
           }),
           false,
           'community/updateCreateDiscussionField'
         ),
 
       resetCreateDiscussionForm: () =>
-        set({ createDiscussionForm: null }, false, 'community/resetCreateDiscussionForm'),
+        set(
+          { createDiscussionForm: null },
+          false,
+          'community/resetCreateDiscussionForm'
+        ),
 
       // Events management (mock data - will be moved to TanStack Query when real)
-      setEvents: (events) =>
-        set({ events }, false, 'community/setEvents'),
-        
-      addEvent: (event) => {
+      setEvents: events => set({ events }, false, 'community/setEvents'),
+
+      addEvent: event => {
         const { events } = get();
         const newEvent: Event = {
           ...event,
@@ -179,14 +202,17 @@ export const useCommunityStore = createWithEqualityFn<CommunityState & Community
         };
         set({ events: [...events, newEvent] }, false, 'community/addEvent');
       },
-      
+
       updateEventParticipants: (eventId, delta) => {
         const { events } = get();
         set(
           {
             events: events.map(event =>
               event.id === eventId
-                ? { ...event, participants: Math.max(0, event.participants + delta) }
+                ? {
+                    ...event,
+                    participants: Math.max(0, event.participants + delta),
+                  }
                 : event
             ),
           },
@@ -196,8 +222,7 @@ export const useCommunityStore = createWithEqualityFn<CommunityState & Community
       },
 
       // Utility
-      reset: () =>
-        set(initialState, false, 'community/reset'),
+      reset: () => set(initialState, false, 'community/reset'),
     }),
     {
       name: 'community-store',
@@ -237,29 +262,29 @@ export const useCommunityActions = () =>
     useShallow(state => ({
       // Selected discussion management
       setSelectedDiscussion: state.setSelectedDiscussion,
-      
+
       // UI loading and error management
       setUiLoading: state.setUiLoading,
       setUiError: state.setUiError,
-      
+
       // Filter management
       setFilters: state.setFilters,
       clearFilters: state.clearFilters,
-      
+
       // Modal management
       setShowCreateDiscussionDialog: state.setShowCreateDiscussionDialog,
       setShowDiscussionDetailsDialog: state.setShowDiscussionDetailsDialog,
-      
+
       // Form management
       setCreateDiscussionForm: state.setCreateDiscussionForm,
       updateCreateDiscussionField: state.updateCreateDiscussionField,
       resetCreateDiscussionForm: state.resetCreateDiscussionForm,
-      
+
       // Events management (mock data)
       setEvents: state.setEvents,
       addEvent: state.addEvent,
       updateEventParticipants: state.updateEventParticipants,
-      
+
       // Utility
       reset: state.reset,
     }))
@@ -275,7 +300,7 @@ export const useCommunity = () =>
       error: state.uiError, // Renamed for clarity
       filters: state.filters,
       events: state.events, // Mock data
-      
+
       // Note: discussions and comments are now handled by TanStack Query
       // Use useCommunityQueries hook for server data
     }))

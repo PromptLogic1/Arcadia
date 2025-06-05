@@ -29,7 +29,7 @@ export function CommunityHeader({
   onTabChange,
 }: CommunityHeaderProps) {
   return (
-    <header className="relative glass-subtle border-b border-cyan-500/20">
+    <header className="glass-subtle relative border-b border-cyan-500/20">
       <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 via-fuchsia-500/5 to-transparent" />
       <div className="relative container mx-auto px-4 py-12">
         {/* Main Title */}
@@ -46,9 +46,7 @@ export function CommunityHeader({
               variant={activeTab === 'discussions' ? 'cyber' : 'cyber-ghost'}
               size="lg"
               className={`mr-2 transition-all duration-300 ${
-                activeTab === 'discussions'
-                  ? 'neon-glow-cyan'
-                  : ''
+                activeTab === 'discussions' ? 'neon-glow-cyan' : ''
               }`}
               onClick={() => onTabChange('discussions')}
             >
@@ -59,9 +57,7 @@ export function CommunityHeader({
               variant={activeTab === 'events' ? 'cyber' : 'cyber-ghost'}
               size="lg"
               className={`transition-all duration-300 ${
-                activeTab === 'events'
-                  ? 'neon-glow-emerald'
-                  : ''
+                activeTab === 'events' ? 'neon-glow-emerald' : ''
               }`}
               onClick={() => onTabChange('events')}
             >
@@ -78,7 +74,7 @@ export function CommunityHeader({
           </div>
           <div className="relative flex justify-center">
             <div className="cyber-card bg-slate-900/90 px-4 py-2">
-              <div className="h-3 w-3 animate-glow rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 shadow-lg shadow-cyan-500/50" />
+              <div className="animate-glow h-3 w-3 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 shadow-lg shadow-cyan-500/50" />
             </div>
           </div>
         </div>

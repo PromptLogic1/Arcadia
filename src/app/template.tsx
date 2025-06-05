@@ -8,9 +8,9 @@ import { SafeRootWrapper } from '../components/error-boundaries/SafeRootWrapper'
 import { Suspense, lazy } from 'react';
 
 // Lazy load analytics to prevent blocking
-const AnalyticsWrapper = lazy(() => 
-  import('../components/analytics-wrapper').then(mod => ({ 
-    default: mod.AnalyticsWrapper 
+const AnalyticsWrapper = lazy(() =>
+  import('../components/analytics-wrapper').then(mod => ({
+    default: mod.AnalyticsWrapper,
   }))
 );
 

@@ -196,16 +196,19 @@ const ScrollToTop = React.forwardRef<HTMLButtonElement, ScrollToTopProps>(
 
     useEffect(() => {
       const scrollElement = scrollTarget?.current || window;
+      const options: AddEventListenerOptions = { passive: true };
 
-      scrollElement.addEventListener('scroll', checkScrollPosition, {
-        passive: true,
-      });
+      scrollElement.addEventListener('scroll', checkScrollPosition, options);
 
       // Check initial position
       checkScrollPosition();
 
       return () => {
-        scrollElement.removeEventListener('scroll', checkScrollPosition);
+        scrollElement.removeEventListener(
+          'scroll',
+          checkScrollPosition,
+          options
+        );
       };
     }, [checkScrollPosition, scrollTarget]);
 

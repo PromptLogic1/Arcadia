@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,28 +20,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import {
-  Gamepad2,
-  Grid3X3,
-  Search,
-  Plus,
-  Key,
-} from 'lucide-react';
+import { Gamepad2, Grid3X3, Search, Plus, Key } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
-import { 
+import {
   useBoardsBySectionQuery,
-  usePublicBoardsQuery 
+  usePublicBoardsQuery,
 } from '@/hooks/queries/useBingoBoardsQueries';
 
 // Types
@@ -85,6 +81,16 @@ export function SessionHostingDialog({
   const [sessionPassword, setSessionPassword] = useState('');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
 
+  // Mount tracking
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Server state via TanStack Query
   const {
     data: userBoardsResponse,
@@ -102,19 +108,21 @@ export function SessionHostingDialog({
     data: publicBoardsResponse,
     isLoading: publicBoardsLoading,
     error: publicBoardsError,
-  } = usePublicBoardsQuery(
-    { search: searchQuery },
-    1,
-    30
-  );
+  } = usePublicBoardsQuery({ search: searchQuery }, 1, 30);
 
   // Derived state - handle undefined and error states
-  const userBoards = useMemo(() => 
-    (userBoardsResponse && 'boards' in userBoardsResponse) ? userBoardsResponse.boards : [],
+  const userBoards = useMemo(
+    () =>
+      userBoardsResponse && 'boards' in userBoardsResponse
+        ? userBoardsResponse.boards
+        : [],
     [userBoardsResponse]
   );
-  const publicBoards = useMemo(() => 
-    (publicBoardsResponse && 'boards' in publicBoardsResponse) ? publicBoardsResponse.boards : [],
+  const publicBoards = useMemo(
+    () =>
+      publicBoardsResponse && 'boards' in publicBoardsResponse
+        ? publicBoardsResponse.boards
+        : [],
     [publicBoardsResponse]
   );
   const boardsLoading = userBoardsLoading || publicBoardsLoading;
@@ -123,19 +131,28 @@ export function SessionHostingDialog({
   // Handle error states
   useEffect(() => {
     if (boardsError) {
-      console.error('Failed to load boards:', boardsError);
+      logger.error('Failed to load boards', boardsError, {
+        userId: authUser?.id,
+      });
       notifications.error('Failed to load boards');
     }
-  }, [boardsError]);
+  }, [boardsError, authUser?.id]);
 
   // Handle pre-selected board
   useEffect(() => {
-    if (preSelectedBoardId && (userBoards.length > 0 || publicBoards.length > 0)) {
+    if (
+      preSelectedBoardId &&
+      (userBoards.length > 0 || publicBoards.length > 0)
+    ) {
       // Find the pre-selected board in user boards first, then public boards
-      const preSelectedBoard = 
-        userBoards.find((board: BingoBoard) => board.id === preSelectedBoardId) ||
-        publicBoards.find((board: BingoBoard) => board.id === preSelectedBoardId);
-      
+      const preSelectedBoard =
+        userBoards.find(
+          (board: BingoBoard) => board.id === preSelectedBoardId
+        ) ||
+        publicBoards.find(
+          (board: BingoBoard) => board.id === preSelectedBoardId
+        );
+
       if (preSelectedBoard) {
         setSelectedBoard(preSelectedBoard);
       }
@@ -159,25 +176,49 @@ export function SessionHostingDialog({
       return;
     }
 
+    if (!isMountedRef.current) return;
+
     setLoading(true);
-    try {
-      const settings: SessionSettings = {
+    
+    const sessionSettings: SessionSettings = {
         max_players: null,
         allow_spectators: null,
         auto_start: null,
         time_limit: null,
         require_approval: null,
-        password: isPasswordProtected && sessionPassword.trim() ? sessionPassword.trim() : null
+        password:
+          isPasswordProtected && sessionPassword.trim()
+            ? sessionPassword.trim()
+            : null,
       };
-      
-      await onCreateSession(selectedBoard.id, settings);
-      onClose();
+
+    try {
+      await onCreateSession(selectedBoard.id, sessionSettings);
+
+      if (isMountedRef.current) {
+        onClose();
+      }
     } catch (error) {
-      console.error('Failed to create session:', error);
+      if (isMountedRef.current) {
+        logger.error('Failed to create session', error, {
+          component: 'SessionHostingDialog',
+          metadata: { boardId: selectedBoard?.id, sessionSettings, userId: authUser?.id },
+        });
+        notifications.error('Failed to create session. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [selectedBoard, isPasswordProtected, sessionPassword, onCreateSession, onClose]);
+  }, [
+    selectedBoard,
+    isPasswordProtected,
+    sessionPassword,
+    onCreateSession,
+    onClose,
+    authUser?.id,
+  ]);
 
   // Filter boards based on search
   const filterBoards = (boards: BingoBoard[]) => {
@@ -216,10 +257,9 @@ export function SessionHostingDialog({
             Host New Session
           </DialogTitle>
           <DialogDescription className="text-cyan-100/80">
-            {preSelectedBoardId ? 
-              'Board selected from Challenge Hub. Configure your session settings below.' :
-              'Choose a board and configure your multiplayer gaming session'
-            }
+            {preSelectedBoardId
+              ? 'Board selected from Challenge Hub. Configure your session settings below.'
+              : 'Choose a board and configure your multiplayer gaming session'}
           </DialogDescription>
         </DialogHeader>
 
@@ -247,11 +287,17 @@ export function SessionHostingDialog({
 
             {/* Board Tabs */}
             <Tabs defaultValue="my-boards" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border-cyan-500/30 backdrop-blur-sm">
-                <TabsTrigger value="my-boards" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-cyan-100 data-[state=active]:border-cyan-400/50 text-cyan-200/70">
+              <TabsList className="grid w-full grid-cols-2 border-cyan-500/30 bg-slate-800/50 backdrop-blur-sm">
+                <TabsTrigger
+                  value="my-boards"
+                  className="text-cyan-200/70 data-[state=active]:border-cyan-400/50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-purple-500/20 data-[state=active]:text-cyan-100"
+                >
                   My Boards ({userBoards.length})
                 </TabsTrigger>
-                <TabsTrigger value="public-boards" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-fuchsia-500/20 data-[state=active]:text-cyan-100 data-[state=active]:border-purple-400/50 text-cyan-200/70">
+                <TabsTrigger
+                  value="public-boards"
+                  className="text-cyan-200/70 data-[state=active]:border-purple-400/50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/20 data-[state=active]:to-fuchsia-500/20 data-[state=active]:text-cyan-100"
+                >
                   Public Boards ({publicBoards.length})
                 </TabsTrigger>
               </TabsList>
@@ -266,14 +312,16 @@ export function SessionHostingDialog({
                     <ScrollArea className="h-[300px] pr-4">
                       {filteredUserBoards.length === 0 ? (
                         <div className="py-8 text-center text-cyan-300/60">
-                          <Gamepad2 className="mx-auto mb-3 h-12 w-12 opacity-50 text-cyan-400" />
+                          <Gamepad2 className="mx-auto mb-3 h-12 w-12 text-cyan-400 opacity-50" />
                           <p className="mb-2 text-cyan-200">No boards found</p>
                           {userBoards.length === 0 ? (
                             <p className="text-sm text-cyan-300/70">
                               Create your first board in the Challenge Hub!
                             </p>
                           ) : (
-                            <p className="text-sm text-cyan-300/70">Try adjusting your search</p>
+                            <p className="text-sm text-cyan-300/70">
+                              Try adjusting your search
+                            </p>
                           )}
                         </div>
                       ) : (
@@ -295,9 +343,13 @@ export function SessionHostingDialog({
                     <ScrollArea className="h-[300px] pr-4">
                       {filteredPublicBoards.length === 0 ? (
                         <div className="py-8 text-center text-cyan-300/60">
-                          <Gamepad2 className="mx-auto mb-3 h-12 w-12 opacity-50 text-purple-400" />
-                          <p className="mb-2 text-cyan-200">No public boards found</p>
-                          <p className="text-sm text-cyan-300/70">Try adjusting your search</p>
+                          <Gamepad2 className="mx-auto mb-3 h-12 w-12 text-purple-400 opacity-50" />
+                          <p className="mb-2 text-cyan-200">
+                            No public boards found
+                          </p>
+                          <p className="text-sm text-cyan-300/70">
+                            Try adjusting your search
+                          </p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -327,7 +379,7 @@ export function SessionHostingDialog({
               </h3>
             </div>
 
-            <Card className="border-purple-500/30 bg-gradient-to-br from-slate-800/50 to-purple-900/20 backdrop-blur-sm shadow-lg shadow-purple-500/10">
+            <Card className="border-purple-500/30 bg-gradient-to-br from-slate-800/50 to-purple-900/20 shadow-lg shadow-purple-500/10 backdrop-blur-sm">
               <CardContent className="space-y-4 p-4">
                 {/* Password Protection */}
                 <div className="space-y-3">
@@ -359,14 +411,15 @@ export function SessionHostingDialog({
                 </div>
 
                 <p className="text-sm text-cyan-300/70">
-                  Additional settings can be configured after creating the session.
+                  Additional settings can be configured after creating the
+                  session.
                 </p>
               </CardContent>
             </Card>
 
             {/* Selected Board Preview */}
             {selectedBoard && (
-              <Card className="border-cyan-500/30 bg-gradient-to-br from-slate-800/50 to-cyan-900/20 backdrop-blur-sm shadow-lg shadow-cyan-500/10">
+              <Card className="border-cyan-500/30 bg-gradient-to-br from-slate-800/50 to-cyan-900/20 shadow-lg shadow-cyan-500/10 backdrop-blur-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm text-cyan-200">
                     Selected Board
@@ -385,7 +438,7 @@ export function SessionHostingDialog({
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="border-cyan-500/30 text-cyan-300 bg-cyan-500/10"
+                      className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
                     >
                       <Grid3X3 className="mr-1 h-3 w-3" />
                       {selectedBoard.size || 5}×{selectedBoard.size || 5}
@@ -406,14 +459,14 @@ export function SessionHostingDialog({
           <Button
             variant="outline"
             onClick={onClose}
-            className="border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 backdrop-blur-sm"
+            className="border-cyan-500/30 text-cyan-300 backdrop-blur-sm hover:border-cyan-400 hover:bg-cyan-500/10"
           >
             Cancel
           </Button>
           <Button
             onClick={handleCreateSession}
             disabled={!selectedBoard || loading}
-            className="bg-gradient-to-r from-cyan-500 via-purple-500 to-fuchsia-500 hover:from-cyan-600 hover:via-purple-600 hover:to-fuchsia-600 text-white font-semibold shadow-lg shadow-cyan-500/25 border-0"
+            className="border-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-fuchsia-500 font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-600 hover:via-purple-600 hover:to-fuchsia-600"
           >
             {loading ? (
               <>
@@ -457,9 +510,9 @@ function BoardCard({ board, isSelected, onSelect }: BoardCardProps) {
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all duration-300 hover:border-cyan-400/60 backdrop-blur-sm',
+        'cursor-pointer backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/60',
         isSelected
-          ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 via-purple-500/5 to-fuchsia-500/10 shadow-lg shadow-cyan-500/30 ring-1 ring-cyan-400/30'
+          ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 via-purple-500/5 to-fuchsia-500/10 shadow-lg ring-1 shadow-cyan-500/30 ring-cyan-400/30'
           : 'border-slate-600/50 bg-gradient-to-br from-slate-800/30 to-slate-700/30 hover:bg-gradient-to-br hover:from-slate-700/40 hover:to-slate-600/40'
       )}
       onClick={onSelect}
@@ -478,7 +531,7 @@ function BoardCard({ board, isSelected, onSelect }: BoardCardProps) {
             </Badge>
             <Badge
               variant="outline"
-              className="border-cyan-500/30 text-xs text-cyan-300 bg-cyan-500/10"
+              className="border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-300"
             >
               <Grid3X3 className="mr-1 h-3 w-3" />
               {board.size || 5}×{board.size || 5}

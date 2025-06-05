@@ -7,7 +7,7 @@
 
 import { createClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-import type { RealtimePresenceState } from '@supabase/supabase-js';
+// RealtimePresenceState available if needed
 
 export interface PresenceState {
   user_id: string;
@@ -93,9 +93,7 @@ class PresenceService {
       channel
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState<PresenceStateWithRef>();
-          const typedState = Object.entries(
-            state as RealtimePresenceState<PresenceStateWithRef>
-          ).reduce(
+          const typedState = Object.entries(state).reduce(
             (acc, [key, value]) => {
               if (Array.isArray(value) && value[0]) {
                 acc[key] = convertPresence(value[0]);
@@ -112,7 +110,11 @@ class PresenceService {
         })
         .on('presence', { event: 'join' }, ({ key, newPresences }) => {
           if (newPresences?.[0]) {
-            const presence = newPresences[0] as PresenceStateWithRef;
+            // Type guard validation for presence state
+            const rawPresence = newPresences[0];
+            if (!rawPresence || typeof rawPresence !== 'object') return;
+            
+            const presence = rawPresence as PresenceStateWithRef; // Safe: validated above
             const convertedPresence = convertPresence(presence);
 
             logger.debug('User joined presence', {
@@ -162,7 +164,7 @@ class PresenceService {
             ? PRESENCE_CONSTANTS.STATUS.AWAY
             : PRESENCE_CONSTANTS.STATUS.ONLINE
         ).catch(error => {
-          logger.error('Heartbeat presence update failed', error as Error, {
+          logger.error('Heartbeat presence update failed', error instanceof Error ? error : new Error('Unknown heartbeat error'), {
             metadata: { boardId },
           });
         });
@@ -179,7 +181,7 @@ class PresenceService {
         this.updatePresence(boardId, user.id, status).catch(error => {
           logger.error(
             'Visibility change presence update failed',
-            error as Error,
+            error instanceof Error ? error : new Error('Unknown visibility error'),
             {
               metadata: { boardId },
             }
@@ -214,7 +216,7 @@ class PresenceService {
   /**
    * Update user presence status
    */
-  private async updatePresence(
+  async updatePresence(
     boardId: string,
     userId: string,
     status: PresenceState['status'],
@@ -234,7 +236,7 @@ class PresenceService {
         activity,
       });
     } catch (error) {
-      logger.error('Failed to update presence', error as Error, {
+      logger.error('Failed to update presence', error instanceof Error ? error : new Error('Unknown presence update error'), {
         metadata: { boardId, userId, status },
       });
       throw error;
@@ -269,7 +271,7 @@ class PresenceService {
 
       logger.debug('Presence cleaned up', { metadata: { boardId } });
     } catch (error) {
-      logger.error('Failed to cleanup presence', error as Error, {
+      logger.error('Failed to cleanup presence', error instanceof Error ? error : new Error('Unknown cleanup error'), {
         metadata: { boardId },
       });
     }
@@ -296,9 +298,7 @@ class PresenceService {
 
     try {
       const state = channel.presenceState<PresenceStateWithRef>();
-      return Object.entries(
-        state as RealtimePresenceState<PresenceStateWithRef>
-      ).reduce(
+      return Object.entries(state).reduce(
         (acc, [key, value]) => {
           if (Array.isArray(value) && value[0]) {
             acc[key] = convertPresence(value[0]);
@@ -308,7 +308,7 @@ class PresenceService {
         {} as Record<string, PresenceState>
       );
     } catch (error) {
-      logger.error('Failed to get current presence state', error as Error, {
+      logger.error('Failed to get current presence state', error instanceof Error ? error : new Error('Unknown state error'), {
         metadata: { boardId },
       });
       return null;

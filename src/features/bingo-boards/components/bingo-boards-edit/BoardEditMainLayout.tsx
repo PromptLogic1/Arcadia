@@ -103,14 +103,16 @@ export function BoardEditMainLayout({
                             )}
                             {card.tags && card.tags.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-1">
-                                {card.tags.slice(0, 3).map((tag: string, i: number) => (
-                                  <span
-                                    key={i}
-                                    className="rounded bg-gray-700/50 px-1.5 py-0.5 text-xs text-gray-400"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
+                                {card.tags
+                                  .slice(0, 3)
+                                  .map((tag: string, i: number) => (
+                                    <span
+                                      key={i}
+                                      className="rounded bg-gray-700/50 px-1.5 py-0.5 text-xs text-gray-400"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
                                 {card.tags.length > 3 && (
                                   <span className="text-xs text-gray-500">
                                     +{card.tags.length - 3}

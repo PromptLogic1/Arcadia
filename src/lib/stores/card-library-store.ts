@@ -1,6 +1,6 @@
 /**
  * Card Library Store (UI State Only)
- * 
+ *
  * Manages only UI state for the card library component.
  * Server data is handled by TanStack Query.
  */
@@ -27,10 +27,10 @@ interface CardLibraryState {
   selectedCards: Set<string>;
   isShuffling: boolean;
   activeTab: 'library' | 'collections' | 'create';
-  
+
   // Filter state
   filters: CardLibraryFilters;
-  
+
   // Pagination
   currentPage: number;
 }
@@ -44,7 +44,7 @@ interface CardLibraryActions {
   clearSelectedCards: () => void;
   setIsShuffling: (shuffling: boolean) => void;
   setActiveTab: (tab: CardLibraryState['activeTab']) => void;
-  
+
   // Filter actions
   setFilters: (filters: Partial<CardLibraryFilters>) => void;
   updateFilter: <K extends keyof CardLibraryFilters>(
@@ -52,11 +52,11 @@ interface CardLibraryActions {
     value: CardLibraryFilters[K]
   ) => void;
   resetFilters: (gameType: GameCategory) => void;
-  
+
   // Pagination actions
   setCurrentPage: (page: number) => void;
   resetPagination: () => void;
-  
+
   // Combined actions
   setGameType: (gameType: GameCategory) => void;
 }
@@ -68,9 +68,11 @@ const createDefaultFilters = (gameType: GameCategory): CardLibraryFilters => ({
   gameType,
 });
 
-export const useCardLibraryStore = createWithEqualityFn<CardLibraryState & CardLibraryActions>()(
+export const useCardLibraryStore = createWithEqualityFn<
+  CardLibraryState & CardLibraryActions
+>()(
   devtools(
-    (set) => ({
+    set => ({
       // Initial state
       bulkMode: false,
       selectedCards: new Set(),
@@ -80,66 +82,92 @@ export const useCardLibraryStore = createWithEqualityFn<CardLibraryState & CardL
       currentPage: 1,
 
       // UI actions
-      setBulkMode: (bulkMode) => 
-        set({ bulkMode, selectedCards: bulkMode ? new Set() : new Set() }, false, 'setBulkMode'),
-      
-      setSelectedCards: (cards) => 
+      setBulkMode: bulkMode =>
+        set(
+          { bulkMode, selectedCards: bulkMode ? new Set() : new Set() },
+          false,
+          'setBulkMode'
+        ),
+
+      setSelectedCards: cards =>
         set({ selectedCards: cards }, false, 'setSelectedCards'),
-      
-      addSelectedCard: (cardId) =>
-        set((state) => ({
-          selectedCards: new Set([...state.selectedCards, cardId])
-        }), false, 'addSelectedCard'),
-      
-      removeSelectedCard: (cardId) =>
-        set((state) => {
-          const newSet = new Set(state.selectedCards);
-          newSet.delete(cardId);
-          return { selectedCards: newSet };
-        }, false, 'removeSelectedCard'),
-      
+
+      addSelectedCard: cardId =>
+        set(
+          state => ({
+            selectedCards: new Set([...state.selectedCards, cardId]),
+          }),
+          false,
+          'addSelectedCard'
+        ),
+
+      removeSelectedCard: cardId =>
+        set(
+          state => {
+            const newSet = new Set(state.selectedCards);
+            newSet.delete(cardId);
+            return { selectedCards: newSet };
+          },
+          false,
+          'removeSelectedCard'
+        ),
+
       clearSelectedCards: () =>
         set({ selectedCards: new Set() }, false, 'clearSelectedCards'),
-      
-      setIsShuffling: (shuffling) =>
+
+      setIsShuffling: shuffling =>
         set({ isShuffling: shuffling }, false, 'setIsShuffling'),
-      
-      setActiveTab: (tab) =>
-        set({ activeTab: tab }, false, 'setActiveTab'),
+
+      setActiveTab: tab => set({ activeTab: tab }, false, 'setActiveTab'),
 
       // Filter actions
-      setFilters: (newFilters) =>
-        set((state) => ({ 
-          filters: { ...state.filters, ...newFilters },
-          currentPage: 1 // Reset pagination when filters change
-        }), false, 'setFilters'),
-      
+      setFilters: newFilters =>
+        set(
+          state => ({
+            filters: { ...state.filters, ...newFilters },
+            currentPage: 1, // Reset pagination when filters change
+          }),
+          false,
+          'setFilters'
+        ),
+
       updateFilter: (key, value) =>
-        set((state) => ({ 
-          filters: { ...state.filters, [key]: value },
-          currentPage: 1 // Reset pagination when filters change
-        }), false, 'updateFilter'),
-      
-      resetFilters: (gameType) =>
-        set({ 
-          filters: createDefaultFilters(gameType),
-          currentPage: 1 
-        }, false, 'resetFilters'),
+        set(
+          state => ({
+            filters: { ...state.filters, [key]: value },
+            currentPage: 1, // Reset pagination when filters change
+          }),
+          false,
+          'updateFilter'
+        ),
+
+      resetFilters: gameType =>
+        set(
+          {
+            filters: createDefaultFilters(gameType),
+            currentPage: 1,
+          },
+          false,
+          'resetFilters'
+        ),
 
       // Pagination actions
-      setCurrentPage: (page) =>
+      setCurrentPage: page =>
         set({ currentPage: page }, false, 'setCurrentPage'),
-      
-      resetPagination: () =>
-        set({ currentPage: 1 }, false, 'resetPagination'),
+
+      resetPagination: () => set({ currentPage: 1 }, false, 'resetPagination'),
 
       // Combined actions
-      setGameType: (gameType) =>
-        set((state) => ({
-          filters: { ...state.filters, gameType },
-          currentPage: 1,
-          selectedCards: new Set(), // Clear selections when changing game type
-        }), false, 'setGameType'),
+      setGameType: gameType =>
+        set(
+          state => ({
+            filters: { ...state.filters, gameType },
+            currentPage: 1,
+            selectedCards: new Set(), // Clear selections when changing game type
+          }),
+          false,
+          'setGameType'
+        ),
     }),
     {
       name: 'card-library-store',
@@ -153,29 +181,33 @@ export const useCardLibraryStore = createWithEqualityFn<CardLibraryState & CardL
 );
 
 // Selectors for performance optimization
-export const useCardLibraryState = () => 
-  useCardLibraryStore(useShallow((state) => ({
-    bulkMode: state.bulkMode,
-    selectedCards: state.selectedCards,
-    isShuffling: state.isShuffling,
-    activeTab: state.activeTab,
-    filters: state.filters,
-    currentPage: state.currentPage,
-  })));
+export const useCardLibraryState = () =>
+  useCardLibraryStore(
+    useShallow(state => ({
+      bulkMode: state.bulkMode,
+      selectedCards: state.selectedCards,
+      isShuffling: state.isShuffling,
+      activeTab: state.activeTab,
+      filters: state.filters,
+      currentPage: state.currentPage,
+    }))
+  );
 
 export const useCardLibraryActions = () =>
-  useCardLibraryStore(useShallow((state) => ({
-    setBulkMode: state.setBulkMode,
-    setSelectedCards: state.setSelectedCards,
-    addSelectedCard: state.addSelectedCard,
-    removeSelectedCard: state.removeSelectedCard,
-    clearSelectedCards: state.clearSelectedCards,
-    setIsShuffling: state.setIsShuffling,
-    setActiveTab: state.setActiveTab,
-    setFilters: state.setFilters,
-    updateFilter: state.updateFilter,
-    resetFilters: state.resetFilters,
-    setCurrentPage: state.setCurrentPage,
-    resetPagination: state.resetPagination,
-    setGameType: state.setGameType,
-  })));
+  useCardLibraryStore(
+    useShallow(state => ({
+      setBulkMode: state.setBulkMode,
+      setSelectedCards: state.setSelectedCards,
+      addSelectedCard: state.addSelectedCard,
+      removeSelectedCard: state.removeSelectedCard,
+      clearSelectedCards: state.clearSelectedCards,
+      setIsShuffling: state.setIsShuffling,
+      setActiveTab: state.setActiveTab,
+      setFilters: state.setFilters,
+      updateFilter: state.updateFilter,
+      resetFilters: state.resetFilters,
+      setCurrentPage: state.setCurrentPage,
+      resetPagination: state.resetPagination,
+      setGameType: state.setGameType,
+    }))
+  );

@@ -3,11 +3,19 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { communityService, type DiscussionFilters, type EventFilters } from '../../services/community.service';
+import {
+  communityService,
+  type DiscussionFilters,
+  type EventFilters,
+} from '../../services/community.service';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
 
-export function useDiscussionsQuery(filters: DiscussionFilters = {}, page = 1, limit = 20) {
+export function useDiscussionsQuery(
+  filters: DiscussionFilters = {},
+  page = 1,
+  limit = 20
+) {
   return useQuery({
     queryKey: queryKeys.community.discussions(filters, page),
     queryFn: () => communityService.getDiscussions(filters, page, limit),
@@ -24,7 +32,11 @@ export function useDiscussionQuery(discussionId?: string) {
   });
 }
 
-export function useEventsQuery(filters: EventFilters = {}, page = 1, limit = 20) {
+export function useEventsQuery(
+  filters: EventFilters = {},
+  page = 1,
+  limit = 20
+) {
   return useQuery({
     queryKey: queryKeys.community.events(filters, page),
     queryFn: () => communityService.getEvents(filters, page, limit),
@@ -37,13 +49,15 @@ export function useCreateDiscussionMutation() {
 
   return useMutation({
     mutationFn: communityService.createDiscussion,
-    onSuccess: (response) => {
+    onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
         return;
       }
       notifications.success('Discussion created successfully!');
-      queryClient.invalidateQueries({ queryKey: queryKeys.community.discussions() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.community.discussions(),
+      });
     },
   });
 }
@@ -53,13 +67,15 @@ export function useCreateCommentMutation() {
 
   return useMutation({
     mutationFn: communityService.createComment,
-    onSuccess: (response) => {
+    onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
         return;
       }
       notifications.success('Comment added successfully!');
-      queryClient.invalidateQueries({ queryKey: queryKeys.community.discussions() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.community.discussions(),
+      });
     },
   });
 }
@@ -69,12 +85,14 @@ export function useUpvoteDiscussionMutation() {
 
   return useMutation({
     mutationFn: communityService.upvoteDiscussion,
-    onSuccess: (response) => {
+    onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
         return;
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.community.discussions() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.community.discussions(),
+      });
     },
   });
 }

@@ -1,6 +1,6 @@
 /**
  * Bingo Cards Service
- * 
+ *
  * Pure functions for bingo cards operations.
  * No state management - only data fetching and mutations.
  */
@@ -49,10 +49,12 @@ export const bingoCardsService = {
   /**
    * Get cards by IDs
    */
-  async getCardsByIds(cardIds: string[]): Promise<{ cards: BingoCard[]; error?: string }> {
+  async getCardsByIds(
+    cardIds: string[]
+  ): Promise<{ cards: BingoCard[]; error?: string }> {
     try {
       const validIds = cardIds.filter(id => id && id !== '');
-      
+
       if (validIds.length === 0) {
         return { cards: [] };
       }
@@ -69,9 +71,9 @@ export const bingoCardsService = {
 
       return { cards: (data || []) as BingoCard[] };
     } catch (error) {
-      return { 
-        cards: [], 
-        error: error instanceof Error ? error.message : 'Failed to fetch cards' 
+      return {
+        cards: [],
+        error: error instanceof Error ? error.message : 'Failed to fetch cards',
       };
     }
   },
@@ -95,13 +97,15 @@ export const bingoCardsService = {
       if (filters.gameType) {
         query = query.eq('game_type', filters.gameType);
       }
-      
+
       if (filters.difficulty && filters.difficulty !== 'all') {
         query = query.eq('difficulty', filters.difficulty);
       }
 
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
       }
 
       // Apply pagination
@@ -113,9 +117,9 @@ export const bingoCardsService = {
         .range(start, end);
 
       if (error) {
-        return { 
-          response: { cards: [], totalCount: 0, hasMore: false }, 
-          error: error.message 
+        return {
+          response: { cards: [], totalCount: 0, hasMore: false },
+          error: error.message,
         };
       }
 
@@ -127,12 +131,15 @@ export const bingoCardsService = {
           cards: (data || []) as BingoCard[],
           totalCount,
           hasMore,
-        }
+        },
       };
     } catch (error) {
-      return { 
+      return {
         response: { cards: [], totalCount: 0, hasMore: false },
-        error: error instanceof Error ? error.message : 'Failed to fetch public cards' 
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch public cards',
       };
     }
   },
@@ -158,13 +165,15 @@ export const bingoCardsService = {
       if (filters.gameType) {
         query = query.eq('game_type', filters.gameType);
       }
-      
+
       if (filters.difficulty && filters.difficulty !== 'all') {
         query = query.eq('difficulty', filters.difficulty);
       }
 
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
       }
 
       // Apply pagination
@@ -176,9 +185,9 @@ export const bingoCardsService = {
         .range(start, end);
 
       if (error) {
-        return { 
-          response: { cards: [], totalCount: 0, hasMore: false }, 
-          error: error.message 
+        return {
+          response: { cards: [], totalCount: 0, hasMore: false },
+          error: error.message,
         };
       }
 
@@ -190,12 +199,13 @@ export const bingoCardsService = {
           cards: (data || []) as BingoCard[],
           totalCount,
           hasMore,
-        }
+        },
       };
     } catch (error) {
-      return { 
+      return {
         response: { cards: [], totalCount: 0, hasMore: false },
-        error: error instanceof Error ? error.message : 'Failed to fetch user cards' 
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch user cards',
       };
     }
   },
@@ -203,7 +213,9 @@ export const bingoCardsService = {
   /**
    * Create a new card
    */
-  async createCard(cardData: CreateCardData): Promise<{ card: BingoCard | null; error?: string }> {
+  async createCard(
+    cardData: CreateCardData
+  ): Promise<{ card: BingoCard | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -228,9 +240,9 @@ export const bingoCardsService = {
 
       return { card: data as BingoCard };
     } catch (error) {
-      return { 
-        card: null, 
-        error: error instanceof Error ? error.message : 'Failed to create card' 
+      return {
+        card: null,
+        error: error instanceof Error ? error.message : 'Failed to create card',
       };
     }
   },
@@ -239,7 +251,7 @@ export const bingoCardsService = {
    * Update an existing card
    */
   async updateCard(
-    cardId: string, 
+    cardId: string,
     updates: UpdateCardData
   ): Promise<{ card: BingoCard | null; error?: string }> {
     try {
@@ -260,9 +272,9 @@ export const bingoCardsService = {
 
       return { card: data as BingoCard };
     } catch (error) {
-      return { 
-        card: null, 
-        error: error instanceof Error ? error.message : 'Failed to update card' 
+      return {
+        card: null,
+        error: error instanceof Error ? error.message : 'Failed to update card',
       };
     }
   },
@@ -284,8 +296,8 @@ export const bingoCardsService = {
 
       return {};
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Failed to delete card' 
+      return {
+        error: error instanceof Error ? error.message : 'Failed to delete card',
       };
     }
   },
@@ -293,10 +305,12 @@ export const bingoCardsService = {
   /**
    * Vote on a card (increment vote count)
    */
-  async voteCard(cardId: string): Promise<{ card: BingoCard | null; error?: string }> {
+  async voteCard(
+    cardId: string
+  ): Promise<{ card: BingoCard | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       // First get current vote count
       const { data: currentCard, error: fetchError } = await supabase
         .from('bingo_cards')
@@ -324,9 +338,10 @@ export const bingoCardsService = {
 
       return { card: data as BingoCard };
     } catch (error) {
-      return { 
-        card: null, 
-        error: error instanceof Error ? error.message : 'Failed to vote on card' 
+      return {
+        card: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to vote on card',
       };
     }
   },
@@ -334,7 +349,9 @@ export const bingoCardsService = {
   /**
    * Bulk create cards
    */
-  async createCards(cardsData: CreateCardData[]): Promise<{ cards: BingoCard[]; error?: string }> {
+  async createCards(
+    cardsData: CreateCardData[]
+  ): Promise<{ cards: BingoCard[]; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -360,9 +377,10 @@ export const bingoCardsService = {
 
       return { cards: (data || []) as BingoCard[] };
     } catch (error) {
-      return { 
-        cards: [], 
-        error: error instanceof Error ? error.message : 'Failed to create cards' 
+      return {
+        cards: [],
+        error:
+          error instanceof Error ? error.message : 'Failed to create cards',
       };
     }
   },

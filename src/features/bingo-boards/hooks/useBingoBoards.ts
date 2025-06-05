@@ -1,6 +1,6 @@
 /**
  * Modern Bingo Boards Hook - TanStack Query + Zustand Pattern
- * 
+ *
  * This hook replaces the old useBingoBoards.ts with the modern architecture:
  * - Server state managed by TanStack Query
  * - UI state managed by Zustand
@@ -9,7 +9,7 @@
 
 import { useAuth } from '@/lib/stores/auth-store';
 import type { BingoBoard } from '@/types';
-import { 
+import {
   useBoardsBySectionQuery,
   useCreateBoardMutation,
   useUpdateBoardMutation,
@@ -17,26 +17,29 @@ import {
   useCloneBoardMutation,
   useVoteBoardMutation,
 } from '@/hooks/queries/useBingoBoardsQueries';
-import { 
+import {
   useBingoBoardsState,
   useBingoBoardsActions,
   useBingoBoardsDialogs,
 } from '@/lib/stores/bingo-boards-store';
-import type { CreateBoardData, UpdateBoardData } from '../../../services/bingo-boards.service';
+import type {
+  CreateBoardData,
+  UpdateBoardData,
+} from '../../../services/bingo-boards.service';
 
 export function useBingoBoards() {
   const { authUser } = useAuth();
-  
+
   // UI state from Zustand (no server data!)
-  const { 
-    currentSection, 
-    currentPage, 
-    filters, 
+  const {
+    currentSection,
+    currentPage,
+    filters,
     selectedBoardId,
     viewMode,
-    itemsPerPage 
+    itemsPerPage,
   } = useBingoBoardsState();
-  
+
   const {
     setCurrentSection,
     setCurrentPage,
@@ -48,11 +51,8 @@ export function useBingoBoards() {
     resetToDefaults,
   } = useBingoBoardsActions();
 
-  const {
-    showCreateDialog,
-    showDeleteDialog,
-    showCloneDialog,
-  } = useBingoBoardsDialogs();
+  const { showCreateDialog, showDeleteDialog, showCloneDialog } =
+    useBingoBoardsDialogs();
 
   // Server state from TanStack Query
   const {
@@ -82,7 +82,7 @@ export function useBingoBoards() {
   const totalCount = boardsResponse?.totalCount || 0;
   const hasMore = boardsResponse?.hasMore || false;
   const hasBoards = boards.length > 0;
-  
+
   // Calculate pagination info
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const canGoBack = currentPage > 1;
@@ -93,8 +93,16 @@ export function useBingoBoards() {
     return createBoardMutation.mutateAsync(boardData);
   };
 
-  const updateBoard = async (boardId: string, updates: UpdateBoardData, currentVersion?: number) => {
-    return updateBoardMutation.mutateAsync({ boardId, updates, currentVersion });
+  const updateBoard = async (
+    boardId: string,
+    updates: UpdateBoardData,
+    currentVersion?: number
+  ) => {
+    return updateBoardMutation.mutateAsync({
+      boardId,
+      updates,
+      currentVersion,
+    });
   };
 
   const deleteBoard = async (boardId: string) => {
@@ -105,7 +113,11 @@ export function useBingoBoards() {
     if (!authUser?.id) {
       throw new Error('Must be logged in to clone boards');
     }
-    return cloneBoardMutation.mutateAsync({ boardId, userId: authUser.id, newTitle });
+    return cloneBoardMutation.mutateAsync({
+      boardId,
+      userId: authUser.id,
+      newTitle,
+    });
   };
 
   const voteBoard = async (boardId: string) => {
@@ -202,7 +214,7 @@ export function useBingoBoards() {
     isVoting: voteBoardMutation.isPending,
 
     // Any mutation is pending
-    isMutating: 
+    isMutating:
       createBoardMutation.isPending ||
       updateBoardMutation.isPending ||
       deleteBoardMutation.isPending ||

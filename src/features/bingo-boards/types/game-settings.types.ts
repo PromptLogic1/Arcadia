@@ -1,11 +1,7 @@
 // import type { z } from 'zod'; // Removed unused import
 // import type { Tables, Enums, Database } from '@/types/database-types'; // Removed unused imports
 
-import type {
-  GameCategory,
-  Difficulty,
-  CompositeTypes,
-} from '@/types';
+import type { GameCategory, Difficulty, CompositeTypes } from '@/types';
 
 // Type aliases for database composite types
 type DatabaseBoardSettings = CompositeTypes<'board_settings'>;

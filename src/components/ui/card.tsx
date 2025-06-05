@@ -11,8 +11,10 @@ const cardVariants = cva(
         default: 'bg-card border-border shadow-sm',
         cyber: 'cyber-card cyber-card-hover',
         'cyber-selected': 'cyber-card cyber-card-selected',
-        geometric: 'geometric-border bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-cyan-500/40',
-        holographic: 'holographic-effect bg-gradient-to-br from-slate-900/80 to-purple-900/20 border-fuchsia-500/30',
+        geometric:
+          'geometric-border bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-cyan-500/40',
+        holographic:
+          'holographic-effect bg-gradient-to-br from-slate-900/80 to-purple-900/20 border-fuchsia-500/30',
         neon: 'bg-gradient-to-br from-slate-900 via-purple-900/30 to-slate-900 border-cyan-400/50 shadow-lg shadow-cyan-500/20',
         glass: 'glass border-border/30',
       },

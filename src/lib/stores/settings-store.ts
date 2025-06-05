@@ -1,6 +1,6 @@
 /**
  * Settings Store (Zustand)
- * 
+ *
  * UI state management for settings functionality.
  * Server data is handled by TanStack Query hooks.
  * This store only manages UI-specific state.
@@ -15,24 +15,24 @@ export interface SettingsState {
   showDeleteAccountDialog: boolean;
   showEmailChangeDialog: boolean;
   showPasswordChangeDialog: boolean;
-  
+
   // Form states - Track which forms are expanded/active
   isChangingEmail: boolean;
   isChangingPassword: boolean;
   isEditingProfile: boolean;
-  
+
   // Form data for controlled inputs
   emailForm: {
     newEmail: string;
     confirmEmail: string;
   } | null;
-  
+
   passwordForm: {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
   } | null;
-  
+
   profileForm: {
     username?: string;
     display_name?: string;
@@ -40,15 +40,20 @@ export interface SettingsState {
     timezone?: string;
     preferred_language?: string;
   } | null;
-  
+
   // UI feedback states
   showEmailSuccess: boolean;
   showPasswordSuccess: boolean;
   showProfileSuccess: boolean;
-  
+
   // Settings tab/section navigation
-  activeSection: 'general' | 'profile' | 'notifications' | 'privacy' | 'account';
-  
+  activeSection:
+    | 'general'
+    | 'profile'
+    | 'notifications'
+    | 'privacy'
+    | 'account';
+
   // Notification settings UI
   notificationSettings: {
     email_notifications: boolean;
@@ -57,7 +62,7 @@ export interface SettingsState {
     friend_requests: boolean;
     tournament_updates: boolean;
   };
-  
+
   // Privacy settings UI
   privacySettings: {
     profile_visibility: 'public' | 'friends' | 'private';
@@ -71,37 +76,50 @@ export interface SettingsActions {
   setShowDeleteAccountDialog: (show: boolean) => void;
   setShowEmailChangeDialog: (show: boolean) => void;
   setShowPasswordChangeDialog: (show: boolean) => void;
-  
+
   // Form state management
   setIsChangingEmail: (changing: boolean) => void;
   setIsChangingPassword: (changing: boolean) => void;
   setIsEditingProfile: (editing: boolean) => void;
-  
+
   // Form data management
   setEmailForm: (form: SettingsState['emailForm']) => void;
-  updateEmailField: (field: keyof NonNullable<SettingsState['emailForm']>, value: string) => void;
+  updateEmailField: (
+    field: keyof NonNullable<SettingsState['emailForm']>,
+    value: string
+  ) => void;
   resetEmailForm: () => void;
-  
+
   setPasswordForm: (form: SettingsState['passwordForm']) => void;
-  updatePasswordField: (field: keyof NonNullable<SettingsState['passwordForm']>, value: string) => void;
+  updatePasswordField: (
+    field: keyof NonNullable<SettingsState['passwordForm']>,
+    value: string
+  ) => void;
   resetPasswordForm: () => void;
-  
+
   setProfileForm: (form: SettingsState['profileForm']) => void;
-  updateProfileField: (field: keyof NonNullable<SettingsState['profileForm']>, value: string) => void;
+  updateProfileField: (
+    field: keyof NonNullable<SettingsState['profileForm']>,
+    value: string
+  ) => void;
   resetProfileForm: () => void;
-  
+
   // Success state management
   setShowEmailSuccess: (show: boolean) => void;
   setShowPasswordSuccess: (show: boolean) => void;
   setShowProfileSuccess: (show: boolean) => void;
-  
+
   // Section navigation
   setActiveSection: (section: SettingsState['activeSection']) => void;
-  
+
   // Settings management
-  setNotificationSettings: (settings: Partial<SettingsState['notificationSettings']>) => void;
-  setPrivacySettings: (settings: Partial<SettingsState['privacySettings']>) => void;
-  
+  setNotificationSettings: (
+    settings: Partial<SettingsState['notificationSettings']>
+  ) => void;
+  setPrivacySettings: (
+    settings: Partial<SettingsState['privacySettings']>
+  ) => void;
+
   // Utility actions
   resetAllForms: () => void;
   reset: () => void;
@@ -135,38 +153,47 @@ const initialState: SettingsState = {
   },
 };
 
-const useSettingsStore = createWithEqualityFn<SettingsState & SettingsActions>()(
+const useSettingsStore = createWithEqualityFn<
+  SettingsState & SettingsActions
+>()(
   devtools(
     (set, _get) => ({
       ...initialState,
 
       // Modal management
-      setShowDeleteAccountDialog: (show) =>
-        set({ showDeleteAccountDialog: show }, false, 'setShowDeleteAccountDialog'),
+      setShowDeleteAccountDialog: show =>
+        set(
+          { showDeleteAccountDialog: show },
+          false,
+          'setShowDeleteAccountDialog'
+        ),
 
-      setShowEmailChangeDialog: (show) =>
+      setShowEmailChangeDialog: show =>
         set({ showEmailChangeDialog: show }, false, 'setShowEmailChangeDialog'),
 
-      setShowPasswordChangeDialog: (show) =>
-        set({ showPasswordChangeDialog: show }, false, 'setShowPasswordChangeDialog'),
+      setShowPasswordChangeDialog: show =>
+        set(
+          { showPasswordChangeDialog: show },
+          false,
+          'setShowPasswordChangeDialog'
+        ),
 
       // Form state management
-      setIsChangingEmail: (isChangingEmail) =>
+      setIsChangingEmail: isChangingEmail =>
         set({ isChangingEmail }, false, 'setIsChangingEmail'),
 
-      setIsChangingPassword: (isChangingPassword) =>
+      setIsChangingPassword: isChangingPassword =>
         set({ isChangingPassword }, false, 'setIsChangingPassword'),
 
-      setIsEditingProfile: (isEditingProfile) =>
+      setIsEditingProfile: isEditingProfile =>
         set({ isEditingProfile }, false, 'setIsEditingProfile'),
 
       // Email form management
-      setEmailForm: (emailForm) =>
-        set({ emailForm }, false, 'setEmailForm'),
+      setEmailForm: emailForm => set({ emailForm }, false, 'setEmailForm'),
 
       updateEmailField: (field, value) =>
         set(
-          (state) => ({
+          state => ({
             emailForm: state.emailForm
               ? { ...state.emailForm, [field]: value }
               : { newEmail: '', confirmEmail: '', [field]: value },
@@ -176,33 +203,46 @@ const useSettingsStore = createWithEqualityFn<SettingsState & SettingsActions>()
         ),
 
       resetEmailForm: () =>
-        set({ emailForm: null, isChangingEmail: false }, false, 'resetEmailForm'),
+        set(
+          { emailForm: null, isChangingEmail: false },
+          false,
+          'resetEmailForm'
+        ),
 
       // Password form management
-      setPasswordForm: (passwordForm) =>
+      setPasswordForm: passwordForm =>
         set({ passwordForm }, false, 'setPasswordForm'),
 
       updatePasswordField: (field, value) =>
         set(
-          (state) => ({
+          state => ({
             passwordForm: state.passwordForm
               ? { ...state.passwordForm, [field]: value }
-              : { currentPassword: '', newPassword: '', confirmPassword: '', [field]: value },
+              : {
+                  currentPassword: '',
+                  newPassword: '',
+                  confirmPassword: '',
+                  [field]: value,
+                },
           }),
           false,
           'updatePasswordField'
         ),
 
       resetPasswordForm: () =>
-        set({ passwordForm: null, isChangingPassword: false }, false, 'resetPasswordForm'),
+        set(
+          { passwordForm: null, isChangingPassword: false },
+          false,
+          'resetPasswordForm'
+        ),
 
       // Profile form management
-      setProfileForm: (profileForm) =>
+      setProfileForm: profileForm =>
         set({ profileForm }, false, 'setProfileForm'),
 
       updateProfileField: (field, value) =>
         set(
-          (state) => ({
+          state => ({
             profileForm: state.profileForm
               ? { ...state.profileForm, [field]: value }
               : { [field]: value },
@@ -212,35 +252,42 @@ const useSettingsStore = createWithEqualityFn<SettingsState & SettingsActions>()
         ),
 
       resetProfileForm: () =>
-        set({ profileForm: null, isEditingProfile: false }, false, 'resetProfileForm'),
+        set(
+          { profileForm: null, isEditingProfile: false },
+          false,
+          'resetProfileForm'
+        ),
 
       // Success state management
-      setShowEmailSuccess: (showEmailSuccess) =>
+      setShowEmailSuccess: showEmailSuccess =>
         set({ showEmailSuccess }, false, 'setShowEmailSuccess'),
 
-      setShowPasswordSuccess: (showPasswordSuccess) =>
+      setShowPasswordSuccess: showPasswordSuccess =>
         set({ showPasswordSuccess }, false, 'setShowPasswordSuccess'),
 
-      setShowProfileSuccess: (showProfileSuccess) =>
+      setShowProfileSuccess: showProfileSuccess =>
         set({ showProfileSuccess }, false, 'setShowProfileSuccess'),
 
       // Section navigation
-      setActiveSection: (activeSection) =>
+      setActiveSection: activeSection =>
         set({ activeSection }, false, 'setActiveSection'),
 
       // Settings management
-      setNotificationSettings: (newSettings) =>
+      setNotificationSettings: newSettings =>
         set(
-          (state) => ({
-            notificationSettings: { ...state.notificationSettings, ...newSettings },
+          state => ({
+            notificationSettings: {
+              ...state.notificationSettings,
+              ...newSettings,
+            },
           }),
           false,
           'setNotificationSettings'
         ),
 
-      setPrivacySettings: (newSettings) =>
+      setPrivacySettings: newSettings =>
         set(
-          (state) => ({
+          state => ({
             privacySettings: { ...state.privacySettings, ...newSettings },
           }),
           false,
@@ -249,20 +296,23 @@ const useSettingsStore = createWithEqualityFn<SettingsState & SettingsActions>()
 
       // Utility actions
       resetAllForms: () =>
-        set({
-          emailForm: null,
-          passwordForm: null,
-          profileForm: null,
-          isChangingEmail: false,
-          isChangingPassword: false,
-          isEditingProfile: false,
-          showEmailSuccess: false,
-          showPasswordSuccess: false,
-          showProfileSuccess: false,
-        }, false, 'resetAllForms'),
+        set(
+          {
+            emailForm: null,
+            passwordForm: null,
+            profileForm: null,
+            isChangingEmail: false,
+            isChangingPassword: false,
+            isEditingProfile: false,
+            showEmailSuccess: false,
+            showPasswordSuccess: false,
+            showProfileSuccess: false,
+          },
+          false,
+          'resetAllForms'
+        ),
 
-      reset: () =>
-        set(initialState, false, 'reset'),
+      reset: () => set(initialState, false, 'reset'),
     }),
     {
       name: 'settings-store',
@@ -317,12 +367,12 @@ export const useSettingsActions = () =>
       setShowDeleteAccountDialog: state.setShowDeleteAccountDialog,
       setShowEmailChangeDialog: state.setShowEmailChangeDialog,
       setShowPasswordChangeDialog: state.setShowPasswordChangeDialog,
-      
+
       // Form state actions
       setIsChangingEmail: state.setIsChangingEmail,
       setIsChangingPassword: state.setIsChangingPassword,
       setIsEditingProfile: state.setIsEditingProfile,
-      
+
       // Form data actions
       setEmailForm: state.setEmailForm,
       updateEmailField: state.updateEmailField,
@@ -333,19 +383,19 @@ export const useSettingsActions = () =>
       setProfileForm: state.setProfileForm,
       updateProfileField: state.updateProfileField,
       resetProfileForm: state.resetProfileForm,
-      
+
       // Success state actions
       setShowEmailSuccess: state.setShowEmailSuccess,
       setShowPasswordSuccess: state.setShowPasswordSuccess,
       setShowProfileSuccess: state.setShowProfileSuccess,
-      
+
       // Navigation actions
       setActiveSection: state.setActiveSection,
-      
+
       // Settings actions
       setNotificationSettings: state.setNotificationSettings,
       setPrivacySettings: state.setPrivacySettings,
-      
+
       // Utility actions
       resetAllForms: state.resetAllForms,
       reset: state.reset,

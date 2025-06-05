@@ -29,8 +29,12 @@ interface FeaturedChallengesProps {
   challenges: readonly Challenge[];
 }
 
-const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) => {
-  const [selectedChallenge, setSelectedChallenge] = useState<number | null>(null);
+const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
+  challenges,
+}) => {
+  const [selectedChallenge, setSelectedChallenge] = useState<number | null>(
+    null
+  );
 
   const toggleSelectedChallenge = useCallback((index: number) => {
     setSelectedChallenge(prevIndex => (prevIndex === index ? null : index));
@@ -43,14 +47,25 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
       id="challenges"
       className="relative bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-900/95 py-24"
     >
-      <FloatingElements variant="hexagons" count={15} speed="medium" color="purple" repositioning={true} />
+      <FloatingElements
+        variant="hexagons"
+        count={15}
+        speed="medium"
+        color="purple"
+        repositioning={true}
+      />
       <div className="relative z-20 container mx-auto flex flex-col items-center px-4">
         <h2 className="mb-16 text-center">
-          <NeonText variant="gradient" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl">Featured Challenges</NeonText>
+          <NeonText
+            variant="gradient"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
+          >
+            Featured Challenges
+          </NeonText>
         </h2>
-        
+
         <div className="flex w-full justify-center">
-          <div className="grid w-full max-w-7xl grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 place-items-center">
+          <div className="grid w-full max-w-7xl grid-cols-1 place-items-center gap-10 sm:grid-cols-2 lg:grid-cols-3">
             {challenges.map((challenge, index) => (
               <motion.div
                 key={challenge.name}
@@ -62,17 +77,19 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                 <Card
                   variant="cyber"
                   glow="subtle"
-                  className={`h-[450px] w-full cursor-pointer transition-all duration-300 hover:scale-105 group flex flex-col ${
+                  className={`group flex h-[450px] w-full cursor-pointer flex-col transition-all duration-300 hover:scale-105 ${
                     selectedChallenge === index
                       ? 'cyber-card-selected'
                       : 'cyber-card-hover'
                   }`}
                   onClick={() => toggleSelectedChallenge(index)}
                 >
-                  <CardHeader className="flex flex-col items-center p-8 flex-shrink-0">
+                  <CardHeader className="flex flex-shrink-0 flex-col items-center p-8">
                     <div
-                      className={`mb-8 flex h-24 w-24 items-center justify-center rounded-full cyber-card border-cyan-500/50 transition-transform duration-300 ${
-                        selectedChallenge === index ? 'scale-110 border-cyan-400' : ''
+                      className={`cyber-card mb-8 flex h-24 w-24 items-center justify-center rounded-full border-cyan-500/50 transition-transform duration-300 ${
+                        selectedChallenge === index
+                          ? 'scale-110 border-cyan-400'
+                          : ''
                       }`}
                     >
                       <challenge.icon
@@ -80,12 +97,12 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                         aria-hidden="true"
                       />
                     </div>
-                    <CardTitle className="text-center text-3xl font-bold neon-glow-cyan h-20 flex items-center justify-center">
+                    <CardTitle className="neon-glow-cyan flex h-20 items-center justify-center text-center text-3xl font-bold">
                       {challenge.name}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 pt-0 flex-1 flex items-center">
-                    <p className="text-center text-cyan-200/80 leading-relaxed w-full">
+                  <CardContent className="flex flex-1 items-center p-6 pt-0">
+                    <p className="w-full text-center leading-relaxed text-cyan-200/80">
                       {challenge.description}
                     </p>
                   </CardContent>
@@ -104,17 +121,17 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
               transition={{ duration: 0.3 }}
               className="mt-16 flex w-full justify-center"
             >
-              <Card 
-                variant="cyber" 
-                glow="subtle" 
-                className="w-full max-w-4xl cyber-card-selected"
+              <Card
+                variant="cyber"
+                glow="subtle"
+                className="cyber-card-selected w-full max-w-4xl"
               >
                 <CardHeader className="flex flex-row items-start justify-between p-8">
                   <div className="flex-1">
-                    <CardTitle className="text-2xl sm:text-3xl md:text-4xl font-bold neon-glow-cyan mb-3">
+                    <CardTitle className="neon-glow-cyan mb-3 text-2xl font-bold sm:text-3xl md:text-4xl">
                       {challenges[selectedChallenge]?.name}
                     </CardTitle>
-                    <CardDescription className="text-base sm:text-lg md:text-xl text-cyan-200/80 leading-relaxed">
+                    <CardDescription className="text-base leading-relaxed text-cyan-200/80 sm:text-lg md:text-xl">
                       {challenges[selectedChallenge]?.description}
                     </CardDescription>
                   </div>
@@ -122,21 +139,21 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                     variant="cyber-ghost"
                     size="icon"
                     onClick={() => setSelectedChallenge(null)}
-                    className="rounded-full ml-4 flex-shrink-0"
+                    className="ml-4 flex-shrink-0 rounded-full"
                     aria-label="Close challenge details"
                   >
                     <X className="h-6 w-6" aria-hidden="true" />
                   </Button>
                 </CardHeader>
-                <CardContent className="grid gap-8 p-4 sm:p-6 md:p-8 pt-0 md:grid-cols-2">
+                <CardContent className="grid gap-8 p-4 pt-0 sm:p-6 md:grid-cols-2 md:p-8">
                   <div>
-                    <h3 className="mb-6 text-2xl font-semibold neon-glow-cyan">
+                    <h3 className="neon-glow-cyan mb-6 text-2xl font-semibold">
                       Challenge Details
                     </h3>
-                    <p className="mb-6 leading-relaxed text-cyan-200/90 text-lg">
+                    <p className="mb-6 text-lg leading-relaxed text-cyan-200/90">
                       {challenges[selectedChallenge]?.details}
                     </p>
-                    <h4 className="mb-4 text-xl font-semibold neon-glow-purple">
+                    <h4 className="neon-glow-purple mb-4 text-xl font-semibold">
                       Key Features:
                     </h4>
                     <ul className="mb-6 space-y-3 text-cyan-200/90">
@@ -146,51 +163,56 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
                             key={`${challenges[selectedChallenge]?.name}-feature-${idx}`}
                             className="flex items-center gap-3"
                           >
-                            <div className="h-2 w-2 rounded-full bg-cyan-400 flex-shrink-0" />
+                            <div className="h-2 w-2 flex-shrink-0 rounded-full bg-cyan-400" />
                             <span>{feature}</span>
                           </li>
                         )
                       )}
                     </ul>
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="cyber-card p-4 border-purple-500/30">
-                        <h4 className="text-lg font-semibold text-purple-300 mb-2">
+                      <div className="cyber-card border-purple-500/30 p-4">
+                        <h4 className="mb-2 text-lg font-semibold text-purple-300">
                           Difficulty
                         </h4>
-                        <p className="text-cyan-100 text-lg capitalize">
+                        <p className="text-lg text-cyan-100 capitalize">
                           {challenges[selectedChallenge]?.difficulty}
                         </p>
                       </div>
-                      <div className="cyber-card p-4 border-emerald-500/30">
-                        <h4 className="text-lg font-semibold text-emerald-300 mb-2">
+                      <div className="cyber-card border-emerald-500/30 p-4">
+                        <h4 className="mb-2 text-lg font-semibold text-emerald-300">
                           Duration
                         </h4>
-                        <p className="text-cyan-100 text-lg">
+                        <p className="text-lg text-cyan-100">
                           {challenges[selectedChallenge]?.estimatedTime}
                         </p>
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-col items-center justify-center">
-                    <div className="mb-8 cyber-card p-8 border-cyan-500/50 text-center">
-                      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full cyber-card border-cyan-500/50 mx-auto">
-                        {challenges[selectedChallenge]?.icon && 
-                          React.createElement(challenges[selectedChallenge].icon, {
-                            className: "h-10 w-10 text-cyan-400"
-                          })
-                        }
+                    <div className="cyber-card mb-8 border-cyan-500/50 p-8 text-center">
+                      <div className="cyber-card mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border-cyan-500/50">
+                        {challenges[selectedChallenge]?.icon &&
+                          React.createElement(
+                            challenges[selectedChallenge].icon,
+                            {
+                              className: 'h-10 w-10 text-cyan-400',
+                            }
+                          )}
                       </div>
-                      <h4 className="text-xl font-semibold neon-glow-cyan mb-3">
+                      <h4 className="neon-glow-cyan mb-3 text-xl font-semibold">
                         Ready to Start?
                       </h4>
-                      <p className="text-cyan-200/80 mb-6 leading-relaxed">
-                        Join this challenge and compete with players worldwide in real-time bingo games.
+                      <p className="mb-6 leading-relaxed text-cyan-200/80">
+                        Join this challenge and compete with players worldwide
+                        in real-time bingo games.
                       </p>
-                      <Button 
-                        variant="cyber" 
+                      <Button
+                        variant="cyber"
                         size="lg"
                         className="w-full max-w-sm"
-                        onClick={() => window.location.href = '/challenge-hub'}
+                        onClick={() =>
+                          (window.location.href = '/challenge-hub')
+                        }
                         aria-label={`Start ${challenges[selectedChallenge]?.name} challenge`}
                       >
                         <ChevronRight className="mr-2 h-5 w-5" />
@@ -209,7 +231,7 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({ challenges }) =
             variant="cyber-outline"
             size="lg"
             className="rounded-full px-8 py-4 text-lg"
-            onClick={() => window.location.href = '/challenge-hub'}
+            onClick={() => (window.location.href = '/challenge-hub')}
             aria-label="Explore all available challenges"
           >
             Explore All Challenges

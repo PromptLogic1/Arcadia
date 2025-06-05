@@ -1,8 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gameStateService, type MarkCellData, type CompleteGameData } from '@/src/services/game-state.service';
-import { realtimeManager } from '@/lib/realtime-manager';
+import {
+  gameStateService,
+  type MarkCellData,
+  type CompleteGameData,
+} from '@/src/services/game-state.service';
+import { safeRealtimeManager, type TypedPostgresPayload } from '@/lib/realtime-manager';
 import { useEffect } from 'react';
-import type { BingoSession, BoardCell } from '@/types';
+import type { BoardCell } from '@/types';
 
 // Query keys
 const gameStateKeys = {
@@ -20,21 +24,25 @@ export const useSessionStateQuery = (sessionId: string) => {
   useEffect(() => {
     if (!sessionId) return;
 
-    const unsubscribe = realtimeManager.subscribe(
+    const unsubscribe = safeRealtimeManager.subscribe(
       `session:${sessionId}`,
-      (payload) => {
-        const newSession = payload.new as BingoSession;
-        
-        // Update query cache with real-time data
-        queryClient.setQueryData(
-          gameStateKeys.session(sessionId),
-          { session: newSession }
-        );
-      },
       {
-        event: 'UPDATE',
+        event: '*',
+        schema: 'public',
         table: 'bingo_sessions',
-        filter: `id=eq.${sessionId}`,
+        onUpdate: (payload: TypedPostgresPayload) => {
+          // Safe validation of payload
+          if (!payload.new || typeof payload.new !== 'object') return;
+          
+          // Validate that the new data has the required BingoSession properties
+          const newData = payload.new;
+          if (!('id' in newData && 'session_code' in newData && 'board_id' in newData)) return;
+
+          // Update query cache with real-time data
+          queryClient.setQueryData(gameStateKeys.session(sessionId), {
+            session: newData,
+          });
+        },
       }
     );
 
@@ -46,7 +54,7 @@ export const useSessionStateQuery = (sessionId: string) => {
     queryFn: () => gameStateService.getSessionState(sessionId),
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
-    select: (data) => data.session,
+    select: data => data.session,
   });
 };
 
@@ -77,10 +85,12 @@ export const useStartSessionMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId }: { sessionId: string }) => 
+    mutationFn: ({ sessionId }: { sessionId: string }) =>
       gameStateService.startSession(sessionId),
     onSuccess: (_, { sessionId }) => {
-      queryClient.invalidateQueries({ queryKey: gameStateKeys.session(sessionId) });
+      queryClient.invalidateQueries({
+        queryKey: gameStateKeys.session(sessionId),
+      });
     },
   });
 };
@@ -90,11 +100,13 @@ export const useMarkCellMutation = (sessionId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: MarkCellData) => 
+    mutationFn: (data: MarkCellData) =>
       gameStateService.markCell(sessionId, data),
-    onMutate: async (data) => {
+    onMutate: async data => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: gameStateKeys.boardState(sessionId) });
+      await queryClient.cancelQueries({
+        queryKey: gameStateKeys.boardState(sessionId),
+      });
 
       // Get current board state
       const previousBoardState = queryClient.getQueryData(
@@ -102,32 +114,45 @@ export const useMarkCellMutation = (sessionId: string) => {
       );
 
       // Optimistically update board state
-      queryClient.setQueryData(gameStateKeys.boardState(sessionId), (old: { boardState: BoardCell[] | null; version: number; error?: string } | undefined) => {
-        if (!old?.boardState) return old;
+      queryClient.setQueryData(
+        gameStateKeys.boardState(sessionId),
+        (
+          old:
+            | {
+                boardState: BoardCell[] | null;
+                version: number;
+                error?: string;
+              }
+            | undefined
+        ) => {
+          if (!old?.boardState) return old;
 
-        const newBoardState = [...old.boardState];
-        const cell = newBoardState[data.cell_position];
-        
-        if (cell) {
-          if (data.action === 'mark') {
-            cell.completed_by = [...(cell.completed_by || []), data.user_id];
-            cell.last_modified_by = data.user_id;
-            cell.last_updated = Date.now();
-            cell.is_marked = true;
-          } else {
-            cell.completed_by = (cell.completed_by || []).filter(id => id !== data.user_id);
-            cell.last_modified_by = data.user_id;
-            cell.last_updated = Date.now();
-            cell.is_marked = cell.completed_by.length > 0;
+          const newBoardState = [...old.boardState];
+          const cell = newBoardState[data.cell_position];
+
+          if (cell) {
+            if (data.action === 'mark') {
+              cell.completed_by = [...(cell.completed_by || []), data.user_id];
+              cell.last_modified_by = data.user_id;
+              cell.last_updated = Date.now();
+              cell.is_marked = true;
+            } else {
+              cell.completed_by = (cell.completed_by || []).filter(
+                id => id !== data.user_id
+              );
+              cell.last_modified_by = data.user_id;
+              cell.last_updated = Date.now();
+              cell.is_marked = cell.completed_by.length > 0;
+            }
           }
-        }
 
-        return {
-          ...old,
-          boardState: newBoardState,
-          version: old.version + 1,
-        };
-      });
+          return {
+            ...old,
+            boardState: newBoardState,
+            version: old.version + 1,
+          };
+        }
+      );
 
       return { previousBoardState };
     },
@@ -143,12 +168,16 @@ export const useMarkCellMutation = (sessionId: string) => {
       // Handle version conflict
       if (error.message === 'VERSION_CONFLICT') {
         // Refetch the latest state
-        queryClient.invalidateQueries({ queryKey: gameStateKeys.boardState(sessionId) });
+        queryClient.invalidateQueries({
+          queryKey: gameStateKeys.boardState(sessionId),
+        });
       }
     },
     onSettled: () => {
       // Always refetch after mutation
-      queryClient.invalidateQueries({ queryKey: gameStateKeys.boardState(sessionId) });
+      queryClient.invalidateQueries({
+        queryKey: gameStateKeys.boardState(sessionId),
+      });
     },
   });
 };
@@ -158,11 +187,20 @@ export const useCompleteGameMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, data }: { sessionId: string; data: CompleteGameData }) => 
-      gameStateService.completeGame(sessionId, data),
+    mutationFn: ({
+      sessionId,
+      data,
+    }: {
+      sessionId: string;
+      data: CompleteGameData;
+    }) => gameStateService.completeGame(sessionId, data),
     onSuccess: (_, { sessionId }) => {
-      queryClient.invalidateQueries({ queryKey: gameStateKeys.session(sessionId) });
-      queryClient.invalidateQueries({ queryKey: gameStateKeys.results(sessionId) });
+      queryClient.invalidateQueries({
+        queryKey: gameStateKeys.session(sessionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: gameStateKeys.results(sessionId),
+      });
     },
   });
 };

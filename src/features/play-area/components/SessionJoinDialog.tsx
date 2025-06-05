@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,10 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Search,
   Lock,
@@ -50,6 +47,16 @@ export function SessionJoinDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Mount tracking
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Handle joining session
   const handleJoin = useCallback(async () => {
     if (!sessionCode.trim()) {
@@ -57,22 +64,32 @@ export function SessionJoinDialog({
       return;
     }
 
+    if (!isMountedRef.current) return;
+
     setLoading(true);
     setError(null);
 
     try {
       await onJoin();
     } catch (error) {
-      setError((error as Error).message || 'Failed to join session');
+      if (isMountedRef.current) {
+        const err =
+          error instanceof Error ? error : new Error('Failed to join session');
+        setError(err.message || 'Failed to join session');
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [sessionCode, onJoin]);
 
   // Handle input change
   const handleCodeChange = (value: string) => {
-    setError(null);
-    onSessionCodeChange(value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    if (isMountedRef.current) {
+      setError(null);
+      onSessionCodeChange(value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    }
   };
 
   // Handle key press

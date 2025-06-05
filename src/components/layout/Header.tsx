@@ -98,10 +98,10 @@ const Header: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-[9999] w-full transition-all duration-300 ${
+      className={`fixed top-0 right-0 left-0 z-[9999] w-full transition-all duration-300 ${
         scrolled
           ? 'cyber-card border-b-2 border-cyan-400/30 shadow-2xl shadow-cyan-500/20 backdrop-blur-xl'
-          : 'bg-slate-950/90 backdrop-blur-md border-b border-cyan-500/10'
+          : 'border-b border-cyan-500/10 bg-slate-950/90 backdrop-blur-md'
       }`}
       role="banner"
       style={{ position: 'fixed', top: 0, zIndex: 9999 }}
@@ -134,9 +134,9 @@ const Header: React.FC = () => {
               className={cn(
                 'rounded-md px-4 py-2 text-base font-medium transition-all duration-300',
                 'hover:bg-cyan-500/20 hover:text-cyan-300 hover:shadow-lg hover:shadow-cyan-500/30',
-                'relative group border border-transparent hover:border-cyan-500/30',
+                'group relative border border-transparent hover:border-cyan-500/30',
                 isActive(item.href)
-                  ? 'neon-glow-cyan font-semibold bg-cyan-500/15 border-cyan-400/50 text-cyan-300'
+                  ? 'neon-glow-cyan border-cyan-400/50 bg-cyan-500/15 font-semibold text-cyan-300'
                   : 'text-cyan-200/90 hover:text-cyan-300'
               )}
             >
@@ -187,10 +187,10 @@ const Header: React.FC = () => {
                 aria-label="Notifications"
               >
                 <IoNotificationsSharp className="h-6 w-6" aria-hidden="true" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-slate-900 animate-cyberpunk-glow" />
+                <span className="animate-cyberpunk-glow absolute top-0 right-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-slate-900" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 cyber-card border-cyan-400/50 p-4 text-cyan-100 backdrop-blur-xl">
+            <PopoverContent className="cyber-card w-80 border-cyan-400/50 p-4 text-cyan-100 backdrop-blur-xl">
               <h3 className="mb-2 text-lg font-semibold">
                 <NeonText variant="gradient">Notifications</NeonText>
               </h3>
@@ -202,7 +202,7 @@ const Header: React.FC = () => {
           <Link href="/download">
             <Button
               variant="cyber"
-              className="rounded-full shadow-lg shadow-cyan-500/30 border-cyan-400/40"
+              className="rounded-full border-cyan-400/40 shadow-lg shadow-cyan-500/30"
             >
               <FaDownload className="mr-2 h-4 w-4" />
               Download
@@ -234,7 +234,7 @@ const Header: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-56 cyber-card border-cyan-400/50 text-cyan-100 backdrop-blur-xl"
+                  className="cyber-card w-56 border-cyan-400/50 text-cyan-100 backdrop-blur-xl"
                   align="end"
                   forceMount
                 >
@@ -261,7 +261,7 @@ const Header: React.FC = () => {
                 <Link href="/auth/login">
                   <Button
                     variant="cyber-outline"
-                    className="text-cyan-200 border-cyan-500/30 hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-300"
+                    className="border-cyan-500/30 text-cyan-200 hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-300"
                   >
                     Sign In
                   </Button>
@@ -288,7 +288,7 @@ const Header: React.FC = () => {
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMenuOpen}
             aria-controls="mobile-menu"
-            className="text-cyan-200 border border-cyan-500/30 transition-colors duration-200 hover:text-cyan-300 hover:border-cyan-400/60"
+            className="border border-cyan-500/30 text-cyan-200 transition-colors duration-200 hover:border-cyan-400/60 hover:text-cyan-300"
           >
             {isMenuOpen ? (
               <X className="h-6 w-6" aria-hidden="true" />
@@ -308,7 +308,7 @@ const Header: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden cyber-card border-t border-cyan-500/30 md:hidden backdrop-blur-xl"
+            className="cyber-card overflow-hidden border-t border-cyan-500/30 backdrop-blur-xl md:hidden"
             id="mobile-menu"
             aria-label="Mobile Navigation"
           >
@@ -317,10 +317,10 @@ const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-md px-3 py-2 text-lg font-medium transition-colors duration-200 border ${
+                  className={`block rounded-md border px-3 py-2 text-lg font-medium transition-colors duration-200 ${
                     isActive(item.href)
-                      ? 'bg-cyan-500/15 border-cyan-400/50 neon-glow-cyan text-cyan-300'
-                      : 'text-cyan-200/90 border-transparent hover:text-cyan-300 hover:border-cyan-500/30 hover:bg-cyan-500/10'
+                      ? 'neon-glow-cyan border-cyan-400/50 bg-cyan-500/15 text-cyan-300'
+                      : 'border-transparent text-cyan-200/90 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300'
                   }`}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                 >

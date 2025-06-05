@@ -1,16 +1,16 @@
 /**
  * Session Queue Service
- * 
+ *
  * Service layer for managing player queue in specific bingo sessions.
  * Uses bingo_session_queue table for session-specific player management.
  */
 
 import { createClient } from '@/lib/supabase';
-import type { 
-  Tables, 
-  TablesInsert, 
+import type {
+  Tables,
+  TablesInsert,
   TablesUpdate,
-  Enums
+  Enums,
 } from '@/types/database-generated';
 
 export type SessionQueueEntry = Tables<'bingo_session_queue'>;
@@ -44,7 +44,7 @@ export const sessionQueueService = {
   }> {
     try {
       const supabase = createClient();
-      
+
       const { data, error } = await supabase
         .from('bingo_session_queue')
         .select('*')
@@ -57,9 +57,12 @@ export const sessionQueueService = {
 
       return { entries: data || [] };
     } catch (error) {
-      return { 
-        entries: [], 
-        error: error instanceof Error ? error.message : 'Failed to fetch queue entries' 
+      return {
+        entries: [],
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch queue entries',
       };
     }
   },
@@ -68,7 +71,7 @@ export const sessionQueueService = {
    * Add a player to the session queue
    */
   async addToQueue(
-    sessionId: string, 
+    sessionId: string,
     playerData: PlayerQueueData
   ): Promise<{
     entry: SessionQueueEntry | null;
@@ -76,9 +79,12 @@ export const sessionQueueService = {
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         return { entry: null, error: 'User not authenticated' };
       }
@@ -118,9 +124,10 @@ export const sessionQueueService = {
 
       return { entry: data as SessionQueueEntry };
     } catch (error) {
-      return { 
-        entry: null, 
-        error: error instanceof Error ? error.message : 'Failed to add to queue' 
+      return {
+        entry: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to add to queue',
       };
     }
   },
@@ -129,7 +136,7 @@ export const sessionQueueService = {
    * Update a queue entry
    */
   async updateQueueEntry(
-    entryId: string, 
+    entryId: string,
     updates: SessionQueueEntryUpdate
   ): Promise<{
     entry: SessionQueueEntry | null;
@@ -151,9 +158,12 @@ export const sessionQueueService = {
 
       return { entry: data as SessionQueueEntry };
     } catch (error) {
-      return { 
-        entry: null, 
-        error: error instanceof Error ? error.message : 'Failed to update queue entry' 
+      return {
+        entry: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update queue entry',
       };
     }
   },
@@ -179,9 +189,12 @@ export const sessionQueueService = {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to remove from queue' 
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to remove from queue',
       };
     }
   },
@@ -220,7 +233,8 @@ export const sessionQueueService = {
         return { success: false, error: 'Failed to check session capacity' };
       }
 
-      if ((playerCount || 0) >= 12) { // MAX_PLAYERS constant
+      if ((playerCount || 0) >= 12) {
+        // MAX_PLAYERS constant
         return { success: false, error: 'Session is full' };
       }
 
@@ -271,9 +285,10 @@ export const sessionQueueService = {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to accept player' 
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to accept player',
       };
     }
   },
@@ -297,9 +312,10 @@ export const sessionQueueService = {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to reject player' 
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to reject player',
       };
     }
   },
@@ -314,7 +330,7 @@ export const sessionQueueService = {
   }> {
     try {
       const supabase = createClient();
-      
+
       const cutoffTime = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes
 
       const { data, error } = await supabase
@@ -331,10 +347,11 @@ export const sessionQueueService = {
 
       return { success: true, removedCount: data?.length || 0 };
     } catch (error) {
-      return { 
-        success: false, 
+      return {
+        success: false,
         removedCount: 0,
-        error: error instanceof Error ? error.message : 'Failed to cleanup queue' 
+        error:
+          error instanceof Error ? error.message : 'Failed to cleanup queue',
       };
     }
   },
@@ -348,7 +365,7 @@ export const sessionQueueService = {
   }> {
     try {
       const { entries, error } = await this.getSessionQueue(sessionId);
-      
+
       if (error) {
         return {
           stats: {
@@ -360,7 +377,7 @@ export const sessionQueueService = {
             averageProcessingTime: 0,
             queueWaitTime: 0,
           },
-          error
+          error,
         };
       }
 
@@ -386,7 +403,8 @@ export const sessionQueueService = {
           averageProcessingTime: 0,
           queueWaitTime: 0,
         },
-        error: error instanceof Error ? error.message : 'Failed to get queue stats'
+        error:
+          error instanceof Error ? error.message : 'Failed to get queue stats',
       };
     }
   },
@@ -395,7 +413,7 @@ export const sessionQueueService = {
    * Get player position in queue
    */
   async getPlayerPosition(
-    userId: string, 
+    userId: string,
     sessionId: string
   ): Promise<{
     position: number;
@@ -403,7 +421,7 @@ export const sessionQueueService = {
   }> {
     try {
       const { entries, error } = await this.getSessionQueue(sessionId);
-      
+
       if (error) {
         return { position: -1, error };
       }
@@ -417,12 +435,15 @@ export const sessionQueueService = {
         });
 
       const position = waitingEntries.findIndex(e => e.user_id === userId);
-      
+
       return { position: position >= 0 ? position + 1 : -1 };
     } catch (error) {
-      return { 
-        position: -1, 
-        error: error instanceof Error ? error.message : 'Failed to get player position' 
+      return {
+        position: -1,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get player position',
       };
     }
   },
@@ -431,7 +452,7 @@ export const sessionQueueService = {
    * Check if player is in queue
    */
   async isPlayerInQueue(
-    userId: string, 
+    userId: string,
     sessionId: string
   ): Promise<{
     inQueue: boolean;
@@ -440,7 +461,7 @@ export const sessionQueueService = {
   }> {
     try {
       const supabase = createClient();
-      
+
       const { data, error } = await supabase
         .from('bingo_session_queue')
         .select('*')
@@ -453,11 +474,17 @@ export const sessionQueueService = {
         return { inQueue: false, error: error.message };
       }
 
-      return { inQueue: !!data, entry: data as SessionQueueEntry || undefined };
+      return {
+        inQueue: !!data,
+        entry: (data as SessionQueueEntry) || undefined,
+      };
     } catch (error) {
-      return { 
-        inQueue: false, 
-        error: error instanceof Error ? error.message : 'Failed to check queue status' 
+      return {
+        inQueue: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to check queue status',
       };
     }
   },

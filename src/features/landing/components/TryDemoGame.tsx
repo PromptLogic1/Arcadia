@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,15 +11,16 @@ import FloatingElements from '@/components/ui/FloatingElements';
 import { useAuth } from '@/lib/stores/auth-store';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { 
+import {
   GiPlayButton,
   GiTeamIdea,
   GiSandsOfTime,
   GiTrophyCup,
   GiLightningTrio,
   GiStarMedal,
-  GiConsoleController
+  GiConsoleController,
 } from 'react-icons/gi';
+import { logger } from '@/lib/logger';
 
 interface DemoBoard {
   id: string;
@@ -84,6 +85,22 @@ function TryDemoGame() {
   const { authUser } = useAuth();
   const router = useRouter();
 
+  // Mount tracking and abort controller for cleanup
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      // Abort any in-flight requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const handleQuickPlay = async (board: DemoBoard) => {
     setSelectedBoard(board);
     setError(null);
@@ -100,6 +117,10 @@ function TryDemoGame() {
     setIsCreating(true);
     setError(null);
 
+    // Create new abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       // Create a new session with the selected demo board
       const response = await fetch('/api/bingo/sessions', {
@@ -114,6 +135,7 @@ function TryDemoGame() {
           color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Random color
           team: null,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -123,15 +145,31 @@ function TryDemoGame() {
 
       const { session } = await response.json();
 
-      // Redirect to the game session
-      router.push(`/join/${session.id}?demo=true`);
+      // Only proceed if still mounted
+      if (isMountedRef.current) {
+        // Redirect to the game session
+        router.push(`/join/${session.id}?demo=true`);
+      }
     } catch (err) {
-      console.error('Error creating demo session:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to create demo session'
-      );
+      if (err instanceof Error && err.name === 'AbortError') {
+        // Request was aborted, ignore
+        return;
+      }
+
+      logger.error('Error creating demo session', err instanceof Error ? err : new Error(String(err)), {
+        component: 'TryDemoGame',
+        boardId: selectedBoard.id,
+      });
+
+      if (isMountedRef.current) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to create demo session'
+        );
+      }
     } finally {
-      setIsCreating(false);
+      if (isMountedRef.current) {
+        setIsCreating(false);
+      }
     }
   };
 
@@ -139,11 +177,19 @@ function TryDemoGame() {
     setIsCreating(true);
     setError(null);
 
+    // Create new abort controller for this operation
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       // Try to find an existing waiting session for any demo board
       for (const board of DEMO_BOARDS) {
+        // Check if aborted between iterations
+        if (controller.signal.aborted) return;
+
         const response = await fetch(
-          `/api/bingo/sessions?boardId=${board.id}&status=waiting`
+          `/api/bingo/sessions?boardId=${board.id}&status=waiting`,
+          { signal: controller.signal }
         );
         const sessions = await response.json();
 
@@ -163,9 +209,10 @@ function TryDemoGame() {
                 `Player${Math.floor(Math.random() * 1000)}`,
               avatar_url: authUser?.avatar_url || null,
             }),
+            signal: controller.signal,
           });
 
-          if (joinResponse.ok) {
+          if (joinResponse.ok && isMountedRef.current) {
             router.push(`/join/${session.id}?demo=true`);
             return;
           }
@@ -175,15 +222,28 @@ function TryDemoGame() {
       // No waiting sessions found, create a new one with a random board
       const randomBoard =
         DEMO_BOARDS[Math.floor(Math.random() * DEMO_BOARDS.length)];
-      if (randomBoard) {
+      if (randomBoard && isMountedRef.current) {
         setSelectedBoard(randomBoard);
         await createDemoSession();
       }
     } catch (err) {
-      console.error('Error joining random session:', err);
-      setError(err instanceof Error ? err.message : 'Failed to join session');
+      if (err instanceof Error && err.name === 'AbortError') {
+        // Request was aborted, ignore
+        return;
+      }
+
+      logger.error('Error joining random session', err instanceof Error ? err : new Error(String(err)), {
+        component: 'TryDemoGame',
+        feature: 'quick-play',
+      });
+
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to join session');
+      }
     } finally {
-      setIsCreating(false);
+      if (isMountedRef.current) {
+        setIsCreating(false);
+      }
     }
   };
 
@@ -197,13 +257,18 @@ function TryDemoGame() {
                 selectedBoard.game_type as keyof typeof gameTypeIcons
               ] || '🎮'}
             </div>
-            <h3 className="text-3xl font-bold neon-glow-cyan">{selectedBoard.title}</h3>
-            <p className="text-cyan-200/80 text-lg">
+            <h3 className="neon-glow-cyan text-3xl font-bold">
+              {selectedBoard.title}
+            </h3>
+            <p className="text-lg text-cyan-200/80">
               {selectedBoard.description}
             </p>
 
             <div className="flex items-center justify-center gap-6 text-sm">
-              <Badge variant={difficultyColors[selectedBoard.difficulty]} size="lg">
+              <Badge
+                variant={difficultyColors[selectedBoard.difficulty]}
+                size="lg"
+              >
                 {selectedBoard.difficulty}
               </Badge>
               <div className="flex items-center gap-1 text-cyan-300">
@@ -266,7 +331,8 @@ function TryDemoGame() {
 
           <div className="border-t border-cyan-500/30 pt-4">
             <p className="text-sm text-cyan-300/70">
-              🎮 Demo games are open to everyone • Real-time multiplayer • No account required
+              🎮 Demo games are open to everyone • Real-time multiplayer • No
+              account required
             </p>
           </div>
         </div>
@@ -275,20 +341,41 @@ function TryDemoGame() {
   }
 
   return (
-    <CyberpunkBackground variant="circuit" intensity="strong" className="bg-gradient-to-b from-slate-950/90 via-slate-900/95 to-slate-950/90 py-24">
-      <FloatingElements variant="orbs" count={15} speed="fast" color="fuchsia" repositioning={true} />
+    <CyberpunkBackground
+      variant="circuit"
+      intensity="strong"
+      className="bg-gradient-to-b from-slate-950/90 via-slate-900/95 to-slate-950/90 py-24"
+    >
+      <FloatingElements
+        variant="orbs"
+        count={15}
+        speed="fast"
+        color="fuchsia"
+        repositioning={true}
+      />
       <div className="relative z-20 container mx-auto px-4">
         <div className="space-y-12">
           {/* Section Header */}
           <div className="space-y-6 text-center">
             <h2 className="">
-              <NeonText variant="gradient" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">🎮 Try Multiplayer Bingo</NeonText>
+              <NeonText
+                variant="gradient"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
+              >
+                🎮 Try Multiplayer Bingo
+              </NeonText>
               <br />
-              <NeonText variant="solid" color="cyan" className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl">Right Now!</NeonText>
+              <NeonText
+                variant="solid"
+                color="cyan"
+                className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl"
+              >
+                Right Now!
+              </NeonText>
             </h2>
-            <p className="mx-auto max-w-3xl text-base sm:text-lg md:text-xl text-cyan-200/80 leading-relaxed px-4 sm:px-0">
-              Jump into live multiplayer games instantly. No account required - just
-              pick a game and start playing with others around the world!
+            <p className="mx-auto max-w-3xl px-4 text-base leading-relaxed text-cyan-200/80 sm:px-0 sm:text-lg md:text-xl">
+              Jump into live multiplayer games instantly. No account required -
+              just pick a game and start playing with others around the world!
             </p>
 
             <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
@@ -297,23 +384,29 @@ function TryDemoGame() {
                 disabled={isCreating}
                 variant="cyber"
                 size="lg"
-                className="text-lg px-8 py-6"
+                className="px-8 py-6 text-lg"
                 aria-label="Join a random multiplayer bingo game session"
               >
                 {isCreating ? (
                   <>
-                    <Loader2 className="mr-2 h-6 w-6 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="mr-2 h-6 w-6 animate-spin"
+                      aria-hidden="true"
+                    />
                     Finding Game...
                   </>
                 ) : (
                   <>
-                    <GiLightningTrio className="mr-2 h-6 w-6" aria-hidden="true" />
+                    <GiLightningTrio
+                      className="mr-2 h-6 w-6"
+                      aria-hidden="true"
+                    />
                     Quick Play (30s)
                   </>
                 )}
               </Button>
 
-              <div className="text-lg text-cyan-300/70 font-medium">or</div>
+              <div className="text-lg font-medium text-cyan-300/70">or</div>
 
               <div className="text-lg text-cyan-200/80">
                 Choose your game below ↓
@@ -328,7 +421,7 @@ function TryDemoGame() {
                 key={board.id}
                 variant="cyber"
                 glow="subtle"
-                className="cursor-pointer p-8 transition-all hover:scale-105 group"
+                className="group cursor-pointer p-8 transition-all hover:scale-105"
                 onClick={() => handleQuickPlay(board)}
               >
                 <div className="space-y-6">
@@ -338,16 +431,19 @@ function TryDemoGame() {
                         board.game_type as keyof typeof gameTypeIcons
                       ] || '🎮'}
                     </div>
-                    <Badge variant={difficultyColors[board.difficulty]} size="lg">
+                    <Badge
+                      variant={difficultyColors[board.difficulty]}
+                      size="lg"
+                    >
                       {board.difficulty}
                     </Badge>
                   </div>
 
                   <div className="space-y-3">
-                    <h3 className="text-xl font-bold neon-glow-cyan group-hover:text-cyan-300 transition-colors">
+                    <h3 className="neon-glow-cyan text-xl font-bold transition-colors group-hover:text-cyan-300">
                       {board.title}
                     </h3>
-                    <p className="text-cyan-200/70 leading-relaxed">
+                    <p className="leading-relaxed text-cyan-200/70">
                       {board.description}
                     </p>
                   </div>
@@ -361,7 +457,7 @@ function TryDemoGame() {
 
                   <Button
                     variant="cyber-outline"
-                    className="w-full group-hover:variant-cyber transition-all"
+                    className="group-hover:variant-cyber w-full transition-all"
                     size="lg"
                     onClick={() => handleQuickPlay(board)}
                     aria-label={`Play ${board.title} bingo board`}
@@ -377,41 +473,48 @@ function TryDemoGame() {
           {/* Features Preview */}
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="space-y-4 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full cyber-card border-cyan-500/50">
+              <div className="cyber-card mx-auto flex h-16 w-16 items-center justify-center rounded-full border-cyan-500/50">
                 <GiSandsOfTime className="h-8 w-8 text-cyan-400" />
               </div>
-              <h4 className="text-xl font-bold neon-glow-cyan">Instant Multiplayer</h4>
-              <p className="text-cyan-200/70 leading-relaxed">
-                Join live games in seconds. Real-time sync with other players around the world.
+              <h4 className="neon-glow-cyan text-xl font-bold">
+                Instant Multiplayer
+              </h4>
+              <p className="leading-relaxed text-cyan-200/70">
+                Join live games in seconds. Real-time sync with other players
+                around the world.
               </p>
             </div>
 
             <div className="space-y-4 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full cyber-card border-purple-500/50">
+              <div className="cyber-card mx-auto flex h-16 w-16 items-center justify-center rounded-full border-purple-500/50">
                 <GiTrophyCup className="h-8 w-8 text-purple-400" />
               </div>
-              <h4 className="text-xl font-bold neon-glow-purple">Win Detection</h4>
-              <p className="text-cyan-200/70 leading-relaxed">
-                Automatic pattern recognition and victory celebrations with real-time scoring.
+              <h4 className="neon-glow-purple text-xl font-bold">
+                Win Detection
+              </h4>
+              <p className="leading-relaxed text-cyan-200/70">
+                Automatic pattern recognition and victory celebrations with
+                real-time scoring.
               </p>
             </div>
 
             <div className="space-y-4 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full cyber-card border-emerald-500/50">
+              <div className="cyber-card mx-auto flex h-16 w-16 items-center justify-center rounded-full border-emerald-500/50">
                 <GiTeamIdea className="h-8 w-8 text-emerald-400" />
               </div>
-              <h4 className="text-xl font-bold neon-glow-emerald">Social Gaming</h4>
-              <p className="text-cyan-200/70 leading-relaxed">
-                Play with friends or meet new players in public games and tournaments.
+              <h4 className="neon-glow-emerald text-xl font-bold">
+                Social Gaming
+              </h4>
+              <p className="leading-relaxed text-cyan-200/70">
+                Play with friends or meet new players in public games and
+                tournaments.
               </p>
             </div>
           </div>
 
           {error && (
-            <div className="mx-auto max-w-2xl cyber-card border-red-500/50 bg-red-500/10 p-6">
-              <p className="text-center text-red-300 text-lg">
-                {error}
-              </p>
+            <div className="cyber-card mx-auto max-w-2xl border-red-500/50 bg-red-500/10 p-6">
+              <p className="text-center text-lg text-red-300">{error}</p>
             </div>
           )}
         </div>

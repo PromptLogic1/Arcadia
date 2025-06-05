@@ -5,7 +5,7 @@
  * following the new architecture pattern.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   useCardLibraryState,
   useCardLibraryActions,
@@ -18,6 +18,7 @@ import {
   useCreateBulkCardsMutation,
   useShuffleCardsMutation,
 } from '@/hooks/queries/useCardLibraryQueries';
+import { useDebounce } from '@/hooks/useDebounce';
 import type { BingoCard, GameCategory } from '@/types';
 
 interface UseCardLibraryProps {
@@ -51,17 +52,44 @@ export function useCardLibrary({
     setGameType,
   } = useCardLibraryActions();
 
+  // Track mounted state
+  const isMountedRef = useRef(true);
+
+  // Debounce search filter
+  const debouncedSearch = useDebounce(filters.search, 300);
+
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Initialize gameType and filters
   useEffect(() => {
+    if (!isMountedRef.current) return;
+
     setGameType(gameType);
 
     // Apply initial filters if provided
     if (Object.keys(initialFilters).length > 0) {
       Object.entries(initialFilters).forEach(([key, value]) => {
-        updateFilter(key as keyof CardLibraryFilters, value);
+        if (isMountedRef.current) {
+          updateFilter(key as keyof CardLibraryFilters, value);
+        }
       });
     }
   }, [gameType, initialFilters, setGameType, updateFilter]);
+
+  // Create filters with debounced search
+  const debouncedFilters = useMemo(
+    () => ({
+      ...filters,
+      search: debouncedSearch,
+    }),
+    [filters, debouncedSearch]
+  );
 
   // TanStack Query hooks for server state
   const {
@@ -69,7 +97,7 @@ export function useCardLibrary({
     isLoading: isLoadingCards,
     error: cardsError,
     refetch: refetchCards,
-  } = useCardLibraryPublicCardsQuery(filters, currentPage);
+  } = useCardLibraryPublicCardsQuery(debouncedFilters, currentPage);
 
   const {
     data: randomCards,
@@ -88,12 +116,13 @@ export function useCardLibrary({
   const createBulkCardsMutation = useCreateBulkCardsMutation();
   const shuffleCardsMutation = useShuffleCardsMutation();
 
-  // Action handlers
+  // Action handlers with mount checks
   const handleFilterChange = useCallback(
     (
       key: keyof CardLibraryFilters,
       value: CardLibraryFilters[keyof CardLibraryFilters]
     ) => {
+      if (!isMountedRef.current) return;
       updateFilter(key, value);
     },
     [updateFilter]
@@ -101,6 +130,7 @@ export function useCardLibrary({
 
   const handlePageChange = useCallback(
     (page: number) => {
+      if (!isMountedRef.current) return;
       setCurrentPage(page);
     },
     [setCurrentPage]
@@ -108,6 +138,8 @@ export function useCardLibrary({
 
   const handleCardToggle = useCallback(
     (cardId: string) => {
+      if (!isMountedRef.current) return;
+
       if (selectedCards.has(cardId)) {
         removeSelectedCard(cardId);
       } else {
@@ -119,7 +151,7 @@ export function useCardLibrary({
 
   const handleBulkAdd = useCallback(
     async (cards: BingoCard[]) => {
-      if (cards.length === 0) return;
+      if (cards.length === 0 || !isMountedRef.current) return;
 
       const cardsToCreate = cards.map(card => ({
         title: card.title,
@@ -131,15 +163,24 @@ export function useCardLibrary({
         is_public: card.is_public || false,
       }));
 
-      await createBulkCardsMutation.mutateAsync(cardsToCreate);
-      clearSelectedCards();
-      setBulkMode(false);
+      try {
+        await createBulkCardsMutation.mutateAsync(cardsToCreate);
+        if (isMountedRef.current) {
+          clearSelectedCards();
+          setBulkMode(false);
+        }
+      } catch (error) {
+        // Error handled by mutation onError
+        console.error('Failed to bulk add cards:', error);
+      }
     },
     [createBulkCardsMutation, clearSelectedCards, setBulkMode]
   );
 
   const handleShuffle = useCallback(
     async (count = 25) => {
+      if (!isMountedRef.current) return [];
+
       setIsShuffling(true);
       try {
         const result = await shuffleCardsMutation.mutateAsync({
@@ -150,11 +191,16 @@ export function useCardLibrary({
           count,
         });
         return result.cards || [];
+      } catch (error) {
+        console.error('Failed to shuffle cards:', error);
+        return [];
       } finally {
-        setIsShuffling(false);
+        if (isMountedRef.current) {
+          setIsShuffling(false);
+        }
       }
     },
-    [shuffleCardsMutation, filters, setIsShuffling]
+    [shuffleCardsMutation, filters.gameType, filters.difficulty, setIsShuffling]
   );
 
   const handleUseCollection = useCallback((collectionCards: BingoCard[]) => {

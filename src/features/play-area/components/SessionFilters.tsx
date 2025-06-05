@@ -156,7 +156,10 @@ export function SessionFilters({
         <Select
           value={filters.gameCategory || 'All Games'}
           onValueChange={value =>
-            updateFilter('gameCategory', value === 'All Games' ? undefined : value as GameCategory)
+            updateFilter(
+              'gameCategory',
+              value === 'All Games' ? undefined : (value as GameCategory)
+            )
           }
         >
           <SelectTrigger className="w-[180px] border-gray-600 bg-gray-900/50">
@@ -174,7 +177,10 @@ export function SessionFilters({
         <Select
           value={filters.difficulty || 'all'}
           onValueChange={value =>
-            updateFilter('difficulty', value === 'all' ? undefined : value as Difficulty)
+            updateFilter(
+              'difficulty',
+              value === 'all' ? undefined : (value as Difficulty)
+            )
           }
         >
           <SelectTrigger className="w-[140px] border-gray-600 bg-gray-900/50">
@@ -193,7 +199,10 @@ export function SessionFilters({
         <Select
           value={filters.status || 'all'}
           onValueChange={value =>
-            updateFilter('status', value === 'all' ? undefined : value as 'active' | 'waiting')
+            updateFilter(
+              'status',
+              value === 'all' ? undefined : (value as 'active' | 'waiting')
+            )
           }
         >
           <SelectTrigger className="w-[140px] border-gray-600 bg-gray-900/50">

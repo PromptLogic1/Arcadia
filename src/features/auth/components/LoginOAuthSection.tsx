@@ -10,6 +10,7 @@ import {
   LOGIN_FORM_CONFIG,
   COMPONENT_NAMES,
 } from './constants';
+import { logger } from '@/lib/logger';
 
 // 🧼 Types
 export interface LoginOAuthSectionProps {
@@ -110,7 +111,9 @@ export const LoginOAuthSection = React.forwardRef<
             const config =
               providerConfigs[provider as keyof typeof providerConfigs];
             if (!config) {
-              console.warn(`OAuth provider "${provider}" is not configured`);
+              logger.error('OAuth provider not configured', new Error(`Provider ${provider} is not configured`), {
+                metadata: { provider }
+              });
               return null;
             }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
@@ -24,6 +24,10 @@ export function useEmailUpdate(): UseEmailUpdateReturn {
   const { updateEmail } = useAuthActions();
   const _router = useRouter();
 
+  // Mount tracking to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  const tipTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [formState, setFormState] = useState<FormState>({
     isSubmitting: false,
@@ -31,6 +35,19 @@ export function useEmailUpdate(): UseEmailUpdateReturn {
   });
 
   const currentEmail = authUser?.email || '';
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      // Clear any pending timeout
+      if (tipTimeoutRef.current) {
+        clearTimeout(tipTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const resetEmailForm = () => {
     setIsChangingEmail(false);
@@ -59,6 +76,8 @@ export function useEmailUpdate(): UseEmailUpdateReturn {
 
       await updateEmail(newEmail);
 
+      if (!isMountedRef.current) return;
+
       setFormState({
         isSubmitting: false,
         message: {
@@ -67,9 +86,11 @@ export function useEmailUpdate(): UseEmailUpdateReturn {
         },
       });
 
-      // Show additional tip after delay
-      setTimeout(() => {
-        notifications.info(SETTINGS_CONSTANTS.MESSAGES.EMAIL_TIP);
+      // Show additional tip after delay with cleanup
+      tipTimeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          notifications.info(SETTINGS_CONSTANTS.MESSAGES.EMAIL_TIP);
+        }
       }, SETTINGS_CONSTANTS.TIMING.TIP_DELAY);
 
       resetEmailForm();
@@ -78,6 +99,8 @@ export function useEmailUpdate(): UseEmailUpdateReturn {
         component: 'useEmailUpdate',
         metadata: { userId: userData?.id, newEmail },
       });
+
+      if (!isMountedRef.current) return;
 
       const errorMessage =
         error instanceof Error

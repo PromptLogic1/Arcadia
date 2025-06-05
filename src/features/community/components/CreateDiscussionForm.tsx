@@ -98,91 +98,93 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-200">Title</label>
-          <Input
-            placeholder="What's on your mind?"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            className={`border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500 ${errors.title ? 'border-red-500' : ''}`}
-          />
-          {errors.title && (
-            <p className="text-sm text-red-500">{errors.title}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-200">
-            Game & Challenge Type
-          </label>
-          <CommunityGameFilters
-            selectedGame={selectedGame}
-            selectedChallenge={selectedChallenge}
-            onGameChange={setSelectedGame}
-            onChallengeChange={setSelectedChallenge}
-          />
-          {errors.game && <p className="text-sm text-red-500">{errors.game}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-200">Content</label>
-          <Textarea
-            placeholder="Share your thoughts, strategies, or questions..."
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            className={`min-h-[200px] border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500 ${errors.content ? 'border-red-500' : ''}`}
-          />
-          {errors.content && (
-            <p className="text-sm text-red-500">{errors.content}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-200">
-            Tags (max 5)
-          </label>
-          <Input
-            placeholder="Add tags (press Enter or comma to add)"
-            value={tagInput}
-            onChange={e => setTagInput(e.target.value)}
-            onKeyDown={handleAddTag}
-            disabled={tags.length >= 5}
-            className="border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500"
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
-            {tags.map(tag => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="group flex items-center gap-1 bg-gray-700/50 px-3 py-1 text-sm"
-              >
-                {tag}
-                <X
-                  className="h-3 w-3 cursor-pointer opacity-70 transition-opacity group-hover:opacity-100"
-                  onClick={() => removeTag(tag)}
-                />
-              </Badge>
-            ))}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-200">Title</label>
+            <Input
+              placeholder="What's on your mind?"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className={`border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500 ${errors.title ? 'border-red-500' : ''}`}
+            />
+            {errors.title && (
+              <p className="text-sm text-red-500">{errors.title}</p>
+            )}
           </div>
-        </div>
 
-        <DialogFooter className="gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="border-gray-600 bg-gray-700/50 transition-colors hover:bg-gray-600"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white transition-all hover:from-cyan-600 hover:to-fuchsia-600"
-          >
-            Create Discussion
-          </Button>
-        </DialogFooter>
-      </form>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-200">
+              Game & Challenge Type
+            </label>
+            <CommunityGameFilters
+              selectedGame={selectedGame}
+              selectedChallenge={selectedChallenge}
+              onGameChange={setSelectedGame}
+              onChallengeChange={setSelectedChallenge}
+            />
+            {errors.game && (
+              <p className="text-sm text-red-500">{errors.game}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-200">Content</label>
+            <Textarea
+              placeholder="Share your thoughts, strategies, or questions..."
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              className={`min-h-[200px] border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500 ${errors.content ? 'border-red-500' : ''}`}
+            />
+            {errors.content && (
+              <p className="text-sm text-red-500">{errors.content}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-200">
+              Tags (max 5)
+            </label>
+            <Input
+              placeholder="Add tags (press Enter or comma to add)"
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+              disabled={tags.length >= 5}
+              className="border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500"
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              {tags.map(tag => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="group flex items-center gap-1 bg-gray-700/50 px-3 py-1 text-sm"
+                >
+                  {tag}
+                  <X
+                    className="h-3 w-3 cursor-pointer opacity-70 transition-opacity group-hover:opacity-100"
+                    onClick={() => removeTag(tag)}
+                  />
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="border-gray-600 bg-gray-700/50 transition-colors hover:bg-gray-600"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white transition-all hover:from-cyan-600 hover:to-fuchsia-600"
+            >
+              Create Discussion
+            </Button>
+          </DialogFooter>
+        </form>
       </BaseErrorBoundary>
     </DialogWrapper>
   );

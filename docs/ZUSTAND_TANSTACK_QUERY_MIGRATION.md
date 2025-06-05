@@ -5,6 +5,7 @@ This document outlines the new architectural pattern implemented in Arcadia for 
 ## Architecture Overview
 
 The new pattern separates concerns between:
+
 - **Zustand**: Pure state management (UI state, local preferences)
 - **TanStack Query**: Data fetching, caching, and server synchronization
 - **Service Layer**: Pure functions for API calls
@@ -12,20 +13,25 @@ The new pattern separates concerns between:
 ## Before vs After
 
 ### Before: Mixed Pattern (Problematic)
+
 ```typescript
 // ❌ Old: Service methods in Zustand stores
 const authStore = {
   user: null,
-  initializeApp: async () => { /* complex API logic */ },
-  signIn: async () => { /* more API calls */ },
+  initializeApp: async () => {
+    /* complex API logic */
+  },
+  signIn: async () => {
+    /* more API calls */
+  },
   // State and service methods mixed together
-}
+};
 
 // ❌ Old: Manual loading states in components
 const Component = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -40,10 +46,11 @@ const Component = () => {
     };
     fetchData();
   }, []);
-}
+};
 ```
 
 ### After: Clean Separation (New Pattern)
+
 ```typescript
 // ✅ New: Clean state-only Zustand
 const authStore = {
@@ -73,7 +80,7 @@ export function useCurrentUserQuery() {
 // ✅ New: Clean component with automatic loading/error states
 const Component = () => {
   const { data, isLoading, error } = useCurrentUserQuery();
-  
+
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage />;
   return <UserProfile user={data.user} />;
@@ -101,6 +108,7 @@ src/
 ## Key Benefits
 
 ### 1. Automatic Caching
+
 ```typescript
 // ✅ Automatic caching - no manual cache management
 const { data } = useCardsQuery(['card1', 'card2']);
@@ -109,33 +117,37 @@ const { data: cached } = useCardsQuery(['card1', 'card2']);
 ```
 
 ### 2. Background Refetching
+
 ```typescript
 // ✅ Data stays fresh automatically
 const { data } = useActiveSessionsQuery(filters, {
   refetchInterval: 30 * 1000, // Auto-refresh every 30s
-  staleTime: 1 * 60 * 1000,   // Consider stale after 1 min
+  staleTime: 1 * 60 * 1000, // Consider stale after 1 min
 });
 ```
 
 ### 3. Optimistic Updates
+
 ```typescript
 // ✅ Instant UI updates with rollback on error
 const voteCardMutation = useMutation({
   mutationFn: voteCard,
-  onMutate: async (cardId) => {
+  onMutate: async cardId => {
     // Immediately update UI
     queryClient.setQueryData(['card', cardId], old => ({
-      ...old, votes: old.votes + 1
+      ...old,
+      votes: old.votes + 1,
     }));
   },
   onError: (error, cardId, context) => {
     // Rollback on error
     queryClient.setQueryData(['card', cardId], context.previousData);
-  }
+  },
 });
 ```
 
 ### 4. Error Boundaries & Retry Logic
+
 ```typescript
 // ✅ Centralized error handling
 const queryClient = new QueryClient({
@@ -155,6 +167,7 @@ const queryClient = new QueryClient({
 ### Example 1: Sessions (Complete Migration)
 
 **Service Layer:**
+
 ```typescript
 // src/services/sessions.service.ts
 export const sessionsService = {
@@ -162,24 +175,27 @@ export const sessionsService = {
     const supabase = createClient();
     // Pure data fetching logic
     return { sessions: data, totalCount: count };
-  }
-}
+  },
+};
 ```
 
 **Zustand Store (State Only):**
+
 ```typescript
 // src/lib/stores/sessions-store.ts
 const useSessionsStore = {
   showJoinDialog: false,
   filters: { search: '', gameType: 'all' },
-  setShowJoinDialog: (show) => set({ showJoinDialog: show }),
-  setFilters: (filters) => set(state => ({ 
-    filters: { ...state.filters, ...filters } 
-  })),
-}
+  setShowJoinDialog: show => set({ showJoinDialog: show }),
+  setFilters: filters =>
+    set(state => ({
+      filters: { ...state.filters, ...filters },
+    })),
+};
 ```
 
 **TanStack Query Hooks:**
+
 ```typescript
 // src/hooks/queries/useSessionsQueries.ts
 export function useActiveSessionsQuery(filters) {
@@ -193,19 +209,20 @@ export function useActiveSessionsQuery(filters) {
 ```
 
 **Component Usage:**
+
 ```typescript
 // src/components/PlayAreaHub.tsx
 const PlayAreaHub = () => {
   // UI state from Zustand
   const { filters, showJoinDialog } = useSessionsState();
   const { setFilters, setShowJoinDialog } = useSessionsActions();
-  
+
   // Data from TanStack Query
   const { data, isLoading, refetch } = useActiveSessionsQuery(filters);
   const joinMutation = useJoinSessionMutation();
-  
+
   // Clean, declarative component logic
-}
+};
 ```
 
 ## Integration with Supabase MCP
@@ -221,23 +238,25 @@ export const authService = {
     // OR
     // Use MCP functions for advanced operations
     return { user: data, error };
-  }
-}
+  },
+};
 ```
 
 ## Testing Strategy
 
 ### Mock Services (Easy)
+
 ```typescript
 // ✅ Easy to mock pure functions
 jest.mock('../services/auth.service', () => ({
   authService: {
-    getCurrentUser: jest.fn(() => ({ user: mockUser }))
-  }
+    getCurrentUser: jest.fn(() => ({ user: mockUser })),
+  },
 }));
 ```
 
 ### Mock TanStack Query
+
 ```typescript
 // ✅ Mock query responses
 const queryClient = new QueryClient({

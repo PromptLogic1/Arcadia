@@ -22,7 +22,9 @@ try {
     console.log('✅ Authentication successful');
     console.log(result);
   } catch (error) {
-    console.error('❌ Authentication failed. Please check your SENTRY_AUTH_TOKEN');
+    console.error(
+      '❌ Authentication failed. Please check your SENTRY_AUTH_TOKEN'
+    );
     process.exit(1);
   }
 
@@ -39,7 +41,6 @@ try {
   console.log('1. Start your dev server: npm run dev');
   console.log('2. Visit http://localhost:3000/test-sentry');
   console.log('3. Run the tests and check your Sentry dashboard');
-  
 } catch (error) {
   console.error('\n❌ Sentry verification failed:', error.message);
   process.exit(1);

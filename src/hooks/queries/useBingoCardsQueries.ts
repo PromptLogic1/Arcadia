@@ -1,6 +1,6 @@
 /**
  * Bingo Cards React Query Hooks
- * 
+ *
  * Hooks for bingo cards operations using TanStack Query.
  */
 
@@ -34,7 +34,7 @@ export function usePublicCardsQuery(
     queryKey: queryKeys.bingoCards.public(filters, page),
     queryFn: () => bingoCardsService.getPublicCards(filters, page, limit),
     staleTime: 1 * 60 * 1000, // 1 minute for public data
-    placeholderData: (previousData) => previousData, // Keep previous data while loading
+    placeholderData: previousData => previousData, // Keep previous data while loading
   });
 }
 
@@ -54,13 +54,13 @@ export function useCreateCardMutation() {
 
       if (response.card) {
         // Invalidate relevant queries
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.bingoCards.user(variables.creator_id) 
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.bingoCards.user(variables.creator_id),
         });
-        
+
         if (response.card.is_public) {
-          queryClient.invalidateQueries({ 
-            queryKey: queryKeys.bingoCards.public() 
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.bingoCards.public(),
           });
         }
 
@@ -88,8 +88,12 @@ export function useVoteCardMutation() {
       }
 
       // Invalidate queries to refetch latest data
-      queryClient.invalidateQueries({ queryKey: queryKeys.bingoCards.byIds([cardId]) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.bingoCards.public() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.bingoCards.byIds([cardId]),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.bingoCards.public(),
+      });
     },
     onError: (_error: Error) => {
       notifications.error('Failed to vote on card');

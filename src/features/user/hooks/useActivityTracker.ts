@@ -58,11 +58,11 @@ export function useActivityTracker(
 
   const { userData } = useAuth();
   const logActivityMutation = useLogActivityMutation();
-  
+
   // Ref to track if component is mounted
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -125,9 +125,13 @@ export function useActivityTracker(
           result && typeof result === 'object' && 'data' in result
             ? result.data
             : null;
-        
+
         // Only call success callback if component is still mounted
-        if (isMountedRef.current && activityId && typeof activityId === 'string') {
+        if (
+          isMountedRef.current &&
+          activityId &&
+          typeof activityId === 'string'
+        ) {
           onSuccess?.(activityId);
         }
 
@@ -135,7 +139,7 @@ export function useActivityTracker(
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Unknown error occurred');
-        
+
         // Only update state and call callbacks if component is still mounted
         if (isMountedRef.current) {
           setError(error);
@@ -178,10 +182,10 @@ export function useActivityTracker(
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        
+
         // Create new abort controller for this batch operation
         abortControllerRef.current = new AbortController();
-        
+
         setIsLogging(true);
         setError(null);
 
@@ -195,7 +199,10 @@ export function useActivityTracker(
 
         for (const batch of batches) {
           // Check if component is still mounted and operation wasn't aborted
-          if (!isMountedRef.current || abortControllerRef.current.signal.aborted) {
+          if (
+            !isMountedRef.current ||
+            abortControllerRef.current.signal.aborted
+          ) {
             throw new Error('Operation cancelled');
           }
           const promises = batch.map(async activity => {
@@ -253,13 +260,13 @@ export function useActivityTracker(
             `${totalFailures} out of ${activities.length} activities failed to log`
           );
         }
-        
+
         // Clear abort controller on success
         abortControllerRef.current = null;
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Unknown error occurred');
-        
+
         // Only update state if component is still mounted
         if (isMountedRef.current && err.message !== 'Operation cancelled') {
           setError(error);

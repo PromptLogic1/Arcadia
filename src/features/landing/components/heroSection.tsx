@@ -28,43 +28,58 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
     );
 
     return (
-      <CyberpunkBackground 
+      <CyberpunkBackground
         variant="circuit"
         intensity="subtle"
-        className="relative flex min-h-screen items-center justify-center overflow-hidden py-24 bg-gradient-to-br from-slate-950 via-slate-900/95 to-cyan-950/30"
+        className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900/95 to-cyan-950/30 py-24"
         id="home"
       >
         <div className="absolute inset-0 bg-gradient-to-t from-cyan-950/20 via-transparent to-slate-950/50" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent" />
 
-        <FloatingElements 
-          variant="circuits" 
+        <FloatingElements
+          variant="circuits"
           count={15}
-          speed="slow" 
-          color="cyan" 
+          speed="slow"
+          color="cyan"
           repositioning={true}
         />
-        <FloatingElements 
-          variant="particles" 
+        <FloatingElements
+          variant="particles"
           count={15}
-          speed="medium" 
-          color="fuchsia" 
+          speed="medium"
+          color="fuchsia"
           repositioning={true}
         />
-        <FloatingElements 
-          variant="orbs" 
+        <FloatingElements
+          variant="orbs"
           count={15}
-          speed="fast" 
-          color="emerald" 
+          speed="fast"
+          color="emerald"
           repositioning={true}
         />
-        
+
         {/* Additional floating elements for enhanced movement - positioned at edges */}
-        <div className="absolute top-10 left-5 w-2 h-2 bg-cyan-400/30 rounded-full animate-float-smooth-slow" style={{ animationDelay: '2s' }} />
-        <div className="absolute bottom-10 right-5 w-1 h-1 bg-purple-400/40 rounded-full animate-float-smooth" style={{ animationDelay: '3s' }} />
-        <div className="absolute top-1/4 right-10 w-3 h-3 bg-fuchsia-400/20 rounded-full animate-float-smooth-fast" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute bottom-1/4 left-10 w-2 h-2 bg-emerald-400/25 rounded-full animate-float-smooth" style={{ animationDelay: '4s' }} />
-        <div className="absolute top-2/3 left-5 w-1 h-1 bg-yellow-400/35 rounded-full animate-float-smooth-slow" style={{ animationDelay: '2.5s' }} />
+        <div
+          className="animate-float-smooth-slow absolute top-10 left-5 h-2 w-2 rounded-full bg-cyan-400/30"
+          style={{ animationDelay: '2s' }}
+        />
+        <div
+          className="animate-float-smooth absolute right-5 bottom-10 h-1 w-1 rounded-full bg-purple-400/40"
+          style={{ animationDelay: '3s' }}
+        />
+        <div
+          className="animate-float-smooth-fast absolute top-1/4 right-10 h-3 w-3 rounded-full bg-fuchsia-400/20"
+          style={{ animationDelay: '1.5s' }}
+        />
+        <div
+          className="animate-float-smooth absolute bottom-1/4 left-10 h-2 w-2 rounded-full bg-emerald-400/25"
+          style={{ animationDelay: '4s' }}
+        />
+        <div
+          className="animate-float-smooth-slow absolute top-2/3 left-5 h-1 w-1 rounded-full bg-yellow-400/35"
+          style={{ animationDelay: '2.5s' }}
+        />
 
         <div className="relative z-20 container mx-auto flex flex-col items-center justify-center px-4">
           <motion.div
@@ -73,17 +88,25 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="mb-12 leading-tight font-extrabold tracking-tight" role="banner">
-              <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-cyan-200 mb-4 sm:mb-6">Welcome to</span>
+            <h1
+              className="mb-12 leading-tight font-extrabold tracking-tight"
+              role="banner"
+            >
+              <span className="mb-4 block text-3xl text-cyan-200 sm:mb-6 sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
+                Welcome to
+              </span>
               <span className="block text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[14rem]">
-                <NeonText variant="gradient" className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[14rem]">
+                <NeonText
+                  variant="gradient"
+                  className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[14rem]"
+                >
                   Arcadia
                 </NeonText>
               </span>
             </h1>
 
             <motion.p
-              className="neon-glow-cyan mx-auto mb-12 sm:mb-16 max-w-4xl text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed px-4 sm:px-0"
+              className="neon-glow-cyan mx-auto mb-12 max-w-4xl px-4 text-lg leading-relaxed sm:mb-16 sm:px-0 sm:text-xl md:text-2xl lg:text-3xl"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -101,7 +124,7 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
               <Button
                 variant="cyber"
                 className="touch-target group px-12 py-6 text-xl"
-                onClick={() => window.location.href = '/play-area'}
+                onClick={() => (window.location.href = '/play-area')}
                 aria-label="Start playing Arcadia games"
               >
                 <GiGamepad
@@ -115,7 +138,7 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
               <Button
                 variant="cyber-outline"
                 className="touch-target px-12 py-6 text-xl"
-                onClick={() => window.location.href = '/community'}
+                onClick={() => (window.location.href = '/community')}
                 aria-label="Join the Arcadia community"
               >
                 <GiTeamIdea className="mr-4 h-8 w-8" aria-hidden="true" />
@@ -143,7 +166,10 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
                 <div className="mask-fade-bottom from-background/80 absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
 
                 <div className="safe-center absolute right-8 bottom-8 left-8 text-center">
-                  <h2 className="mb-6 text-5xl font-bold md:text-6xl lg:text-7xl @sm:text-8xl" aria-live="polite">
+                  <h2
+                    className="mb-6 text-5xl font-bold md:text-6xl lg:text-7xl @sm:text-8xl"
+                    aria-live="polite"
+                  >
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={currentChallenge}
@@ -162,14 +188,13 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(
                       </motion.span>
                     </AnimatePresence>
                   </h2>
-                  <p className="text-muted-foreground text-glow text-2xl @sm:text-3xl lg:text-4xl">
+                  <p className="text-muted-foreground text-glow text-2xl lg:text-4xl @sm:text-3xl">
                     Challenge yourself and others
                   </p>
                 </div>
               </div>
             </NeonBorder>
           </motion.div>
-
         </div>
       </CyberpunkBackground>
     );

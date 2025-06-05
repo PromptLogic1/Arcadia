@@ -69,6 +69,16 @@ export function useSignUpSubmission({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = React.useState(false);
 
+  // Mount tracking
+  const isMountedRef = React.useRef(true);
+
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // 🧼 Form Submit Handler
   const handleSubmit = React.useCallback(
     async (e: React.FormEvent) => {
@@ -87,9 +97,11 @@ export function useSignUpSubmission({
       }
 
       // Set loading states
-      setIsSubmitting(true);
-      formState.setStatus('loading');
-      setLoading(true);
+      if (isMountedRef.current) {
+        setIsSubmitting(true);
+        formState.setStatus('loading');
+        setLoading(true);
+      }
 
       try {
         logger.debug(LOG_MESSAGES.FORM.SIGNUP_START, {
@@ -116,7 +128,7 @@ export function useSignUpSubmission({
           }
 
           // Handle email verification requirement
-          if (result.needsVerification) {
+          if (result.needsVerification && isMountedRef.current) {
             formState.setStatus('verification_pending');
             formState.setMessage({
               text: SIGNUP_MESSAGES.FORM.EMAIL_VERIFICATION,
@@ -127,20 +139,22 @@ export function useSignUpSubmission({
         }
 
         // Success handling
-        formState.setStatus('success');
-        formState.setMessage({
-          text: SIGNUP_MESSAGES.FORM.SUCCESS,
-          type: 'success',
-        });
+        if (isMountedRef.current) {
+          formState.setStatus('success');
+          formState.setMessage({
+            text: SIGNUP_MESSAGES.FORM.SUCCESS,
+            type: 'success',
+          });
 
-        // Start redirect timer
-        formState.startRedirectTimer();
+          // Start redirect timer
+          formState.startRedirectTimer();
 
-        // Clear persistence on success
-        formState.persistence?.clear();
+          // Clear persistence on success
+          formState.persistence?.clear();
 
-        // Call success callback
-        onSuccess?.(formState.formData);
+          // Call success callback
+          onSuccess?.(formState.formData);
+        }
 
         logger.info(LOG_MESSAGES.FORM.SIGNUP_SUCCESS, {
           component: 'useSignUpSubmission',
@@ -150,16 +164,19 @@ export function useSignUpSubmission({
           },
         });
       } catch (error) {
-        const errorObj = error as Error;
+        const errorObj =
+          error instanceof Error ? error : new Error('Sign up failed');
 
-        formState.setStatus('error');
-        formState.setMessage({
-          text: errorObj.message || ERROR_MESSAGES.FORM.GENERAL,
-          type: 'error',
-          actionLabel: 'Try Again',
-        });
+        if (isMountedRef.current) {
+          formState.setStatus('error');
+          formState.setMessage({
+            text: errorObj.message || ERROR_MESSAGES.FORM.GENERAL,
+            type: 'error',
+            actionLabel: 'Try Again',
+          });
 
-        onError?.(errorObj, 'form_submit');
+          onError?.(errorObj, 'form_submit');
+        }
 
         logger.error(LOG_MESSAGES.FORM.SIGNUP_FAILED, errorObj, {
           component: 'useSignUpSubmission',
@@ -169,8 +186,10 @@ export function useSignUpSubmission({
           },
         });
       } finally {
-        setIsSubmitting(false);
-        setLoading(false);
+        if (isMountedRef.current) {
+          setIsSubmitting(false);
+          setLoading(false);
+        }
       }
     },
     [formState, onFormSubmit, onSuccess, onError, setLoading, signUp]
@@ -179,6 +198,8 @@ export function useSignUpSubmission({
   // 🧼 OAuth Handler
   const handleOAuthSignUp = React.useCallback(
     async (provider: OAuthProvider) => {
+      if (!isMountedRef.current) return;
+
       setIsOAuthLoading(true);
       setLoading(true);
       formState.setMessage(null);
@@ -205,10 +226,12 @@ export function useSignUpSubmission({
             throw result.error;
           }
 
-          formState.setMessage({
-            text: SIGNUP_MESSAGES.OAUTH.REDIRECTING(provider),
-            type: 'info',
-          });
+          if (isMountedRef.current) {
+            formState.setMessage({
+              text: SIGNUP_MESSAGES.OAUTH.REDIRECTING(provider),
+              type: 'info',
+            });
+          }
 
           // Note: OAuth will redirect away from page, so we don't need success handling here
         }
@@ -218,26 +241,32 @@ export function useSignUpSubmission({
           metadata: { provider },
         });
       } catch (error) {
-        const errorObj = error as Error;
+        const errorObj =
+          error instanceof Error ? error : new Error('OAuth sign up failed');
 
-        formState.setMessage({
-          text: SIGNUP_MESSAGES.OAUTH.ERROR(provider) + '. ' + errorObj.message,
-          type: 'error',
-        });
+        if (isMountedRef.current) {
+          formState.setMessage({
+            text:
+              SIGNUP_MESSAGES.OAUTH.ERROR(provider) + '. ' + errorObj.message,
+            type: 'error',
+          });
 
-        onError?.(errorObj, `oauth_${provider}`);
+          onError?.(errorObj, `oauth_${provider}`);
 
-        notifications.error(ERROR_MESSAGES.OAUTH.FAILED, {
-          description: ERROR_MESSAGES.OAUTH.DESCRIPTION,
-        });
+          notifications.error(ERROR_MESSAGES.OAUTH.FAILED, {
+            description: ERROR_MESSAGES.OAUTH.DESCRIPTION,
+          });
+        }
 
         logger.error(LOG_MESSAGES.OAUTH.FAILED, errorObj, {
           component: 'useSignUpSubmission',
           metadata: { provider },
         });
       } finally {
-        setIsOAuthLoading(false);
-        setLoading(false);
+        if (isMountedRef.current) {
+          setIsOAuthLoading(false);
+          setLoading(false);
+        }
       }
     },
     [onOAuthSignUp, onError, formState, setLoading, signInWithOAuth]

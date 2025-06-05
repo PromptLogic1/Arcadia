@@ -3,7 +3,11 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { sessionStateService, type Player, type SessionState } from '../../services/session-state.service';
+import {
+  sessionStateService,
+  type Player,
+  type SessionState,
+} from '../../services/session-state.service';
 import { gameStateService } from '../../services/game-state.service';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
@@ -61,16 +65,16 @@ export function useSessionWithPlayersQuery(sessionId: string) {
       sessionId,
       ({ session, players }) => {
         // Update session cache
-        queryClient.setQueryData(
-          queryKeys.sessions.state(sessionId),
-          { session, error: undefined }
-        );
+        queryClient.setQueryData(queryKeys.sessions.state(sessionId), {
+          session,
+          error: undefined,
+        });
 
         // Update players cache
-        queryClient.setQueryData(
-          queryKeys.sessions.players(sessionId),
-          { players, error: undefined }
-        );
+        queryClient.setQueryData(queryKeys.sessions.players(sessionId), {
+          players,
+          error: undefined,
+        });
       }
     );
 
@@ -88,7 +92,10 @@ export function useSessionWithPlayersQuery(sessionId: string) {
     session: sessionQuery.data?.session || null,
     players: playersQuery.data?.players || [],
     boardState: boardStateQuery.data?.boardState || [],
-    isLoading: sessionQuery.isLoading || playersQuery.isLoading || boardStateQuery.isLoading,
+    isLoading:
+      sessionQuery.isLoading ||
+      playersQuery.isLoading ||
+      boardStateQuery.isLoading,
     error: sessionQuery.error || playersQuery.error || boardStateQuery.error,
     refetch: () => {
       sessionQuery.refetch();
@@ -107,32 +114,34 @@ export function useInitializeSessionMutation() {
   return useMutation({
     mutationFn: ({ boardId, player }: { boardId: string; player: Player }) =>
       sessionStateService.initializeSession(boardId, player),
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data.error) {
         notifications.error(data.error);
         return;
       }
 
-      if (data.session) {
-        const message = data.isNewSession 
-          ? 'Session created successfully!' 
+      if (data.session && data.session.id) {
+        const message = data.isNewSession
+          ? 'Session created successfully!'
           : 'Joined session successfully!';
         notifications.success(message);
 
         // Update cache
-        queryClient.setQueryData(
-          queryKeys.sessions.state(data.session.id),
-          { session: data.session, error: undefined }
-        );
+        queryClient.setQueryData(queryKeys.sessions.state(data.session.id), {
+          session: data.session,
+          error: undefined,
+        });
 
         // Invalidate related queries
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.sessions.players(data.session.id) 
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.sessions.players(data.session.id),
         });
       }
     },
-    onError: (error) => {
-      notifications.error(error instanceof Error ? error.message : 'Failed to initialize session');
+    onError: error => {
+      notifications.error(
+        error instanceof Error ? error.message : 'Failed to initialize session'
+      );
     },
   });
 }
@@ -144,8 +153,13 @@ export function useLeaveSessionMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, playerId }: { sessionId: string; playerId: string }) =>
-      sessionStateService.leaveSession(sessionId, playerId),
+    mutationFn: ({
+      sessionId,
+      playerId,
+    }: {
+      sessionId: string;
+      playerId: string;
+    }) => sessionStateService.leaveSession(sessionId, playerId),
     onSuccess: (data, variables) => {
       if (data.error) {
         notifications.error(data.error);
@@ -155,12 +169,14 @@ export function useLeaveSessionMutation() {
       notifications.success('Left session successfully!');
 
       // Invalidate session queries
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.sessions.players(variables.sessionId) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sessions.players(variables.sessionId),
       });
     },
-    onError: (error) => {
-      notifications.error(error instanceof Error ? error.message : 'Failed to leave session');
+    onError: error => {
+      notifications.error(
+        error instanceof Error ? error.message : 'Failed to leave session'
+      );
     },
   });
 }
@@ -168,42 +184,51 @@ export function useLeaveSessionMutation() {
 /**
  * Combined session state for components
  */
-export function useSessionState(sessionId: string, boardId: string): {
+export function useSessionState(
+  sessionId: string,
+  boardId: string
+): {
   sessionState: SessionState;
   isLoading: boolean;
   error: Error | null;
   initializeSession: (player: Player) => Promise<void>;
   leaveSession: (playerId: string) => Promise<void>;
 } {
-  const { session, players, boardState, isLoading, error } = useSessionWithPlayersQuery(sessionId);
+  const { session, players, boardState, isLoading, error } =
+    useSessionWithPlayersQuery(sessionId);
   const initializeMutation = useInitializeSessionMutation();
   const leaveMutation = useLeaveSessionMutation();
 
-  const sessionState: SessionState = session && players
-    ? sessionStateService.transformSessionState(session, players, boardState) || {
-        id: '',
-        isActive: false,
-        isPaused: false,
-        isFinished: false,
-        startTime: null,
-        endTime: null,
-        currentPlayer: null,
-        players: [],
-        boardState: [],
-        version: 0,
-      }
-    : {
-        id: '',
-        isActive: false,
-        isPaused: false,
-        isFinished: false,
-        startTime: null,
-        endTime: null,
-        currentPlayer: null,
-        players: [],
-        boardState: [],
-        version: 0,
-      };
+  const sessionState: SessionState =
+    session && players
+      ? sessionStateService.transformSessionState(
+          session,
+          players,
+          boardState
+        ) || {
+          id: '',
+          isActive: false,
+          isPaused: false,
+          isFinished: false,
+          startTime: null,
+          endTime: null,
+          currentPlayer: null,
+          players: [],
+          boardState: [],
+          version: 0,
+        }
+      : {
+          id: '',
+          isActive: false,
+          isPaused: false,
+          isFinished: false,
+          startTime: null,
+          endTime: null,
+          currentPlayer: null,
+          players: [],
+          boardState: [],
+          version: 0,
+        };
 
   const initializeSession = async (player: Player) => {
     await initializeMutation.mutateAsync({ boardId, player });
@@ -215,7 +240,8 @@ export function useSessionState(sessionId: string, boardId: string): {
 
   return {
     sessionState,
-    isLoading: isLoading || initializeMutation.isPending || leaveMutation.isPending,
+    isLoading:
+      isLoading || initializeMutation.isPending || leaveMutation.isPending,
     error: error as Error | null,
     initializeSession,
     leaveSession,

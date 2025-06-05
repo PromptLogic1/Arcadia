@@ -1,6 +1,7 @@
 'use client';
 
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
@@ -30,7 +31,7 @@ export class BaseErrorBoundary extends Component<
   BaseErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  private resetTimeoutId: number | null = null;
+  private resetTimeoutId: NodeJS.Timeout | null = null;
   private errorCounter = 0;
 
   constructor(props: BaseErrorBoundaryProps) {
@@ -77,7 +78,7 @@ export class BaseErrorBoundary extends Component<
     });
 
     // Send to Sentry with additional context
-    Sentry.withScope((scope) => {
+    Sentry.withScope(scope => {
       // Set error boundary context
       scope.setContext('errorBoundary', {
         level,
@@ -88,7 +89,7 @@ export class BaseErrorBoundary extends Component<
       // Set tags for filtering
       scope.setTag('errorBoundary', true);
       scope.setTag('errorBoundary.level', level);
-      
+
       // Set fingerprint for grouping
       scope.setFingerprint([
         'error-boundary',
@@ -118,7 +119,7 @@ export class BaseErrorBoundary extends Component<
       });
 
       // Store Sentry event ID for user reference
-      this.setState({ 
+      this.setState({
         errorInfo,
         sentryEventId: sentryId,
       });
@@ -129,12 +130,16 @@ export class BaseErrorBoundary extends Component<
 
     // If we're getting too many errors, reload the page after a delay
     if (this.errorCounter > 3) {
-      logger.error('Too many errors detected, scheduling page reload', new Error('Excessive errors'), {
-        metadata: {
-          errorCount: this.errorCounter,
-        },
-      });
-      
+      logger.error(
+        'Too many errors detected, scheduling page reload',
+        new Error('Excessive errors'),
+        {
+          metadata: {
+            errorCount: this.errorCounter,
+          },
+        }
+      );
+
       // Report excessive errors to Sentry
       Sentry.captureMessage('Excessive errors detected, scheduling reload', {
         level: 'warning',
@@ -144,7 +149,7 @@ export class BaseErrorBoundary extends Component<
         },
       });
 
-      this.resetTimeoutId = window.setTimeout(() => {
+      this.resetTimeoutId = setTimeout(() => {
         window.location.reload();
       }, 5000);
     }
@@ -164,7 +169,7 @@ export class BaseErrorBoundary extends Component<
       if (
         resetKeys &&
         prevProps.resetKeys &&
-        resetKeys.some((key, idx) => key !== prevProps.resetKeys![idx])
+        resetKeys.some((key, idx) => prevProps.resetKeys && key !== prevProps.resetKeys[idx])
       ) {
         this.resetErrorBoundary();
       }

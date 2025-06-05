@@ -26,8 +26,8 @@ export default function QuickGamesPage() {
                 Under Development
               </h2>
               <p className="text-gray-300">
-                Quick games feature is currently being developed. Check back soon
-                for exciting gaming challenges!
+                Quick games feature is currently being developed. Check back
+                soon for exciting gaming challenges!
               </p>
             </div>
           </div>

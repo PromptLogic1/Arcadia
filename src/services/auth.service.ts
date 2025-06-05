@@ -1,12 +1,14 @@
 /**
  * Authentication Service
- * 
+ *
  * Pure functions for authentication operations.
  * No state management - only data fetching and mutations.
  */
 
 import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from '@/lib/stores/types';
+// Validation imports available if needed later
+import { transformDbUserToUserData } from '@/lib/stores/auth-store';
 
 export interface SignInCredentials {
   email: string;
@@ -42,7 +44,7 @@ export const authService = {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.getUser();
-      
+
       if (error) {
         return { user: null, error: error.message };
       }
@@ -65,9 +67,9 @@ export const authService = {
 
       return { user: authUser };
     } catch (error) {
-      return { 
-        user: null, 
-        error: error instanceof Error ? error.message : 'Failed to get user' 
+      return {
+        user: null,
+        error: error instanceof Error ? error.message : 'Failed to get user',
       };
     }
   },
@@ -75,7 +77,9 @@ export const authService = {
   /**
    * Get user profile data from users table
    */
-  async getUserData(userId: string): Promise<{ userData: UserData | null; error?: string }> {
+  async getUserData(
+    userId: string
+  ): Promise<{ userData: UserData | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -88,11 +92,14 @@ export const authService = {
         return { userData: null, error: error.message };
       }
 
-      return { userData: data as UserData };
+      // SAFE TRANSFORMATION - Use proper UserData transformation
+      const userData = transformDbUserToUserData(data);
+      return { userData };
     } catch (error) {
-      return { 
-        userData: null, 
-        error: error instanceof Error ? error.message : 'Failed to get user data' 
+      return {
+        userData: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to get user data',
       };
     }
   },
@@ -103,7 +110,8 @@ export const authService = {
   async signIn(credentials: SignInCredentials): Promise<AuthResponse> {
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword(credentials);
+      const { data, error } =
+        await supabase.auth.signInWithPassword(credentials);
 
       if (error) {
         return { error: error.message };
@@ -126,8 +134,8 @@ export const authService = {
 
       return { user: authUser };
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Sign in failed' 
+      return {
+        error: error instanceof Error ? error.message : 'Sign in failed',
       };
     }
   },
@@ -174,8 +182,8 @@ export const authService = {
 
       return { user: authUser };
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Sign up failed' 
+      return {
+        error: error instanceof Error ? error.message : 'Sign up failed',
       };
     }
   },
@@ -194,8 +202,8 @@ export const authService = {
 
       return {};
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Sign out failed' 
+      return {
+        error: error instanceof Error ? error.message : 'Sign out failed',
       };
     }
   },
@@ -203,7 +211,10 @@ export const authService = {
   /**
    * Update user profile data
    */
-  async updateUserData(userId: string, updates: UserUpdateData): Promise<{ userData: UserData | null; error?: string }> {
+  async updateUserData(
+    userId: string,
+    updates: UserUpdateData
+  ): Promise<{ userData: UserData | null; error?: string }> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -220,11 +231,14 @@ export const authService = {
         return { userData: null, error: error.message };
       }
 
-      return { userData: data as UserData };
+      // SAFE TRANSFORMATION - Use proper UserData transformation
+      const userData = transformDbUserToUserData(data);
+      return { userData };
     } catch (error) {
-      return { 
-        userData: null, 
-        error: error instanceof Error ? error.message : 'Failed to update user data' 
+      return {
+        userData: null,
+        error:
+          error instanceof Error ? error.message : 'Failed to update user data',
       };
     }
   },
@@ -243,8 +257,8 @@ export const authService = {
 
       return {};
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Password reset failed' 
+      return {
+        error: error instanceof Error ? error.message : 'Password reset failed',
       };
     }
   },
@@ -265,8 +279,9 @@ export const authService = {
 
       return {};
     } catch (error) {
-      return { 
-        error: error instanceof Error ? error.message : 'Password update failed' 
+      return {
+        error:
+          error instanceof Error ? error.message : 'Password update failed',
       };
     }
   },

@@ -83,12 +83,15 @@ export function ProfileHeader({
               <NeonText>{userData.username}</NeonText>
             </h1>
             {userData.full_name && (
-              <h2 className="text-2xl neon-glow-cyan">{userData.full_name}</h2>
+              <h2 className="neon-glow-cyan text-2xl">{userData.full_name}</h2>
             )}
           </div>
 
           <Link href="/user/edit" className="mt-4 md:mt-0">
-            <Button variant="cyber" className="flex w-full items-center gap-2 md:w-auto">
+            <Button
+              variant="cyber"
+              className="flex w-full items-center gap-2 md:w-auto"
+            >
               <Pencil className={USER_PAGE_CONSTANTS.UI.ICON_SIZE} />
               {USER_PAGE_CONSTANTS.MESSAGES.EDIT_PROFILE}
             </Button>

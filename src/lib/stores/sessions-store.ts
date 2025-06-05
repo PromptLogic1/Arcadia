@@ -1,6 +1,6 @@
 /**
  * Sessions Store (Zustand)
- * 
+ *
  * State-only store for session management.
  * Data fetching is handled by TanStack Query hooks.
  */
@@ -8,18 +8,21 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
-import type { SessionFilters, BingoSession } from '../../services/sessions.service';
+import type {
+  SessionFilters,
+  BingoSession,
+} from '../../services/sessions.service';
 
 export interface SessionState {
   // Current session
   currentSession: BingoSession | null;
   currentSessionId: string | null;
-  
+
   // UI states
   showHostDialog: boolean;
   showJoinDialog: boolean;
   joinSessionCode: string;
-  
+
   // Filters (local state)
   filters: SessionFilters;
 }
@@ -28,16 +31,16 @@ export interface SessionActions {
   // Session management
   setCurrentSession: (session: BingoSession | null) => void;
   setCurrentSessionId: (sessionId: string | null) => void;
-  
+
   // UI state management
   setShowHostDialog: (show: boolean) => void;
   setShowJoinDialog: (show: boolean) => void;
   setJoinSessionCode: (code: string) => void;
-  
+
   // Filter management
   setFilters: (filters: Partial<SessionFilters>) => void;
   resetFilters: () => void;
-  
+
   // Cleanup
   reset: () => void;
 }
@@ -59,39 +62,39 @@ const initialState: SessionState = {
 
 const useSessionsStore = createWithEqualityFn<SessionState & SessionActions>()(
   devtools(
-    (set) => ({
+    set => ({
       ...initialState,
-      
+
       // Session management
-      setCurrentSession: (session) =>
+      setCurrentSession: session =>
         set({ currentSession: session }, false, 'setCurrentSession'),
-      
-      setCurrentSessionId: (sessionId) =>
+
+      setCurrentSessionId: sessionId =>
         set({ currentSessionId: sessionId }, false, 'setCurrentSessionId'),
-      
+
       // UI state management
-      setShowHostDialog: (show) =>
+      setShowHostDialog: show =>
         set({ showHostDialog: show }, false, 'setShowHostDialog'),
-      
-      setShowJoinDialog: (show) =>
+
+      setShowJoinDialog: show =>
         set({ showJoinDialog: show }, false, 'setShowJoinDialog'),
-      
-      setJoinSessionCode: (code) =>
+
+      setJoinSessionCode: code =>
         set({ joinSessionCode: code }, false, 'setJoinSessionCode'),
-      
+
       // Filter management
-      setFilters: (newFilters) =>
+      setFilters: newFilters =>
         set(
-          (state) => ({
+          state => ({
             filters: { ...state.filters, ...newFilters },
           }),
           false,
           'setFilters'
         ),
-      
+
       resetFilters: () =>
         set({ filters: initialState.filters }, false, 'resetFilters'),
-      
+
       // Cleanup
       reset: () => set(initialState, false, 'reset'),
     }),

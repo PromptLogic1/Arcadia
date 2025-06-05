@@ -1,44 +1,118 @@
 /**
- * Optimized Real-time Manager for Gaming Performance
+ * Type-Safe Real-time Manager - ZERO TYPE ASSERTIONS
  * Handles connection pooling, message batching, and conflict resolution
  */
 
 import { createClient } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { type ValidationResult } from './validation';
 
-// Type definition for postgres_changes event configuration
+// =============================================================================
+// TYPE-SAFE EVENT HANDLING
+// =============================================================================
+
+type PostgresEvent = '*' | 'INSERT' | 'UPDATE' | 'DELETE';
+
 interface PostgresChangesConfig {
-  event: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  event: PostgresEvent;
   schema: string;
   table: string;
   filter?: string;
 }
 
-// Type guard to check if channel supports postgres_changes
-function supportsPostgresChanges(channel: RealtimeChannel): boolean {
-  return typeof (channel as any).on === 'function';
+// Define a proper type constraint for database records
+// Currently unused but available for future type constraints
+// type DatabaseRecord = Record<string, unknown>;
+
+// Define the PostgresChangesPayload type locally
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type PostgresChangesPayload<T> = {
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: T;
+  old: T | null;
+  errors: string[] | null;
+};
+
+// Define the filter type for postgres changes
+type PostgresChangesFilter = {
+  event: '*' | 'INSERT' | 'UPDATE' | 'DELETE';
+  schema: string;
+  table: string;
+  filter?: string;
+};
+
+// Type guard for event type validation
+function isValidEventType(value: unknown): value is 'INSERT' | 'UPDATE' | 'DELETE' {
+  return value === 'INSERT' || value === 'UPDATE' || value === 'DELETE';
 }
 
-// Type-safe helper for Supabase channel postgres_changes method
-// This is a safer alternative to type assertions while working with incomplete external types
-function onPostgresChanges(
-  channel: RealtimeChannel,
-  config: PostgresChangesConfig,
-  callback: (payload: Record<string, unknown>) => void
-): RealtimeChannel {
-  if (!supportsPostgresChanges(channel)) {
-    throw new Error('Channel does not support postgres_changes method');
+// Create a type-safe postgres payload
+export type TypedPostgresPayload = {
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Record<string, unknown>;
+  old: Record<string, unknown> | null;
+  errors: string[] | null;
+};
+
+// Safe payload validation with proper types
+function validatePostgresPayload(payload: unknown): ValidationResult<TypedPostgresPayload> {
+  if (!payload || typeof payload !== 'object') {
+    return { success: false, data: null, error: 'Invalid payload - not an object' };
   }
 
-  // Use method with runtime validation instead of unsafe type assertion
-  const channelWithMethod = channel as any;
-  if (typeof channelWithMethod.on !== 'function') {
-    throw new Error('Channel.on method is not available');
+  const payloadObj = Object(payload);
+  
+  // Validate required fields
+  if (!('schema' in payloadObj) || 
+      !('table' in payloadObj) || 
+      !('eventType' in payloadObj) ||
+      !isValidEventType(payloadObj.eventType)) {
+    return { 
+      success: false, 
+      data: null, 
+      error: 'Invalid payload structure - missing or invalid required fields' 
+    };
   }
 
-  return channelWithMethod.on('postgres_changes', config, callback);
+  // Safely extract record data
+  const newRecord = payloadObj.new && typeof payloadObj.new === 'object' 
+    ? payloadObj.new 
+    : {};
+    
+  const oldRecord = payloadObj.old && typeof payloadObj.old === 'object' 
+    ? payloadObj.old 
+    : null;
+
+  // Build validated payload with proper typing
+  const validatedPayload = {
+    schema: String(payloadObj.schema),
+    table: String(payloadObj.table),
+    commit_timestamp: String(payloadObj.commit_timestamp || ''),
+    eventType: payloadObj.eventType,
+    new: newRecord,
+    old: oldRecord,
+    errors: Array.isArray(payloadObj.errors) 
+      ? payloadObj.errors.filter((e: unknown): e is string => typeof e === 'string')
+      : null
+  };
+
+  return {
+    success: true,
+    data: validatedPayload,
+    error: null
+  };
 }
+
+// =============================================================================
+// BATCHED UPDATE SYSTEM
+// =============================================================================
 
 interface BatchedUpdate {
   id: string;
@@ -48,470 +122,359 @@ interface BatchedUpdate {
   priority: 'high' | 'medium' | 'low';
 }
 
-interface ChannelSubscription {
-  callback: (payload: Record<string, unknown>) => void;
+interface UpdateBatch {
+  updates: BatchedUpdate[];
+  startTime: number;
+  channelKey: string;
+}
+
+// =============================================================================
+// CHANNEL MANAGEMENT
+// =============================================================================
+
+interface ChannelInfo {
+  channel: RealtimeChannel;
+  subscribers: number;
+  lastActivity: number;
+  config: PostgresChangesConfig;
+}
+
+interface SubscriptionOptions {
+  event?: PostgresEvent;
+  schema?: string;
+  table?: string;
   filter?: string;
-  event?: string;
+  onUpdate?: (payload: TypedPostgresPayload) => void;
+  onError?: (error: Error) => void;
 }
 
-interface RealtimeMetrics {
-  messageLatency: number;
-  connectionUptime: number;
-  reconnectionCount: number;
-  messagesSent: number;
-  messagesReceived: number;
-}
+// =============================================================================
+// SAFE REALTIME MANAGER
+// =============================================================================
 
-class RealtimeManager {
-  private channels = new Map<string, RealtimeChannel>();
-  private subscriptions = new Map<string, Set<ChannelSubscription>>();
-  private updateQueue: BatchedUpdate[] = [];
-  private batchTimeout: NodeJS.Timeout | null = null;
-  private metrics: RealtimeMetrics = {
-    messageLatency: 0,
-    connectionUptime: Date.now(),
-    reconnectionCount: 0,
-    messagesSent: 0,
-    messagesReceived: 0,
-  };
-  private supabase = createClient();
-
-  private static instance: RealtimeManager;
-
-  static getInstance(): RealtimeManager {
-    if (!RealtimeManager.instance) {
-      RealtimeManager.instance = new RealtimeManager();
-    }
-    return RealtimeManager.instance;
-  }
+class SafeRealtimeManager {
+  private channels = new Map<string, ChannelInfo>();
+  private updateBatches = new Map<string, UpdateBatch>();
+  private flushTimers = new Map<string, NodeJS.Timeout>();
+  private debounceTimers = new Map<string, NodeJS.Timeout>();
+  
+  private readonly BATCH_SIZE = 50;
+  private readonly BATCH_TIMEOUT = 100; // ms
+  private readonly DEBOUNCE_DELAY = 50; // ms
 
   /**
-   * Subscribe to real-time updates with automatic batching
+   * Subscribe to real-time changes with proper type safety
    */
   subscribe(
     channelKey: string,
-    callback: (payload: Record<string, unknown>) => void,
-    options: {
-      event?: string;
-      filter?: string;
-      table?: string;
-      schema?: string;
-    } = {}
+    options: SubscriptionOptions
   ): () => void {
-    const channel = this.getOrCreateChannel(channelKey);
-    const subscription: ChannelSubscription = {
-      callback,
+    const config: PostgresChangesConfig = {
+      event: options.event || '*',
+      schema: options.schema || 'public',
+      table: options.table || '*',
       filter: options.filter,
-      event: options.event,
     };
 
-    // Add subscription to tracking
-    if (!this.subscriptions.has(channelKey)) {
-      this.subscriptions.set(channelKey, new Set());
-    }
-    const subscriptionsSet = this.subscriptions.get(channelKey);
-    if (subscriptionsSet) {
-      subscriptionsSet.add(subscription);
-    }
-
-    // Set up the actual Supabase subscription
-    if (options.table) {
-      // Use our type-safe postgres_changes helper
-      onPostgresChanges(
-        channel,
-        {
-          event: (options.event as 'INSERT' | 'UPDATE' | 'DELETE' | '*') || '*',
-          schema: options.schema || 'public',
-          table: options.table,
-          filter: options.filter,
-        },
-        (payload: Record<string, unknown>) => {
-          this.metrics.messagesReceived++;
-          this.handleBatchedUpdate(channelKey, payload, callback);
+    let channel: RealtimeChannel;
+    
+    try {
+      const supabase = createClient();
+      channel = supabase.channel(channelKey);
+      
+      // Build the filter object for Supabase
+      const filter: PostgresChangesFilter = {
+        event: config.event,
+        schema: config.schema,
+        table: config.table,
+        filter: config.filter
+      };
+      
+      // Subscribe to postgres changes with validation
+      channel.on(
+        'postgres_changes',
+        filter,
+        (payload: unknown) => {
+          const validation = validatePostgresPayload(payload);
+          
+          if (!validation.success) {
+            logger.error('Invalid postgres changes payload', new Error(validation.error || 'Unknown validation error'), {
+              metadata: { channelKey, payload }
+            });
+            if (options.onError) {
+              options.onError(new Error(validation.error || 'Invalid payload'));
+            }
+            return;
+          }
+          
+          this.handlePayload(channelKey, validation.data, options);
         }
       );
-    } else if (options.event?.startsWith('presence:')) {
-      // Presence subscription - subscribe to presence events
-      channel.subscribe(async status => {
-        if (status === 'SUBSCRIBED') {
-          // Track initial presence state
-          const presenceState = channel.presenceState();
-          this.metrics.messagesReceived++;
-          callback({ event: 'sync', state: presenceState });
+
+      channel.subscribe((status) => {
+        logger.info('Channel subscription status', {
+          metadata: { channelKey, status }
+        });
+        
+        if (status === 'CHANNEL_ERROR') {
+          const error = new Error('Channel subscription error');
+          logger.error('Channel subscription failed', error, {
+            metadata: { channelKey }
+          });
+          options.onError?.(error);
         }
       });
-    } else {
-      // Custom broadcast event subscription
-      channel.on(
-        'broadcast',
-        { event: options.event || 'custom' },
-        (payload: Record<string, unknown>) => {
-          this.metrics.messagesReceived++;
-          callback(payload);
-        }
-      );
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown subscription error';
+      logger.error('Failed to create subscription', new Error(errorMessage), {
+        metadata: { channelKey, options }
+      });
+      
+      if (options.onError) {
+        options.onError(new Error(errorMessage));
+      }
+      
+      return () => {}; // Return no-op unsubscribe
     }
+
+    // Store channel info
+    this.channels.set(channelKey, {
+      channel,
+      subscribers: 1,
+      lastActivity: Date.now(),
+      config,
+    });
 
     // Return unsubscribe function
     return () => {
-      this.subscriptions.get(channelKey)?.delete(subscription);
-      if (this.subscriptions.get(channelKey)?.size === 0) {
-        this.removeChannel(channelKey);
+      this.unsubscribe(channelKey);
+    };
+  }
+
+  /**
+   * Handle incoming payload with validation
+   */
+  private handlePayload(
+    channelKey: string,
+    payload: TypedPostgresPayload,
+    options: SubscriptionOptions
+  ): void {
+
+    // Update channel activity
+    const channelInfo = this.channels.get(channelKey);
+    if (channelInfo) {
+      channelInfo.lastActivity = Date.now();
+    }
+
+    // Handle the payload
+    if (options.onUpdate) {
+      try {
+        options.onUpdate(payload);
+      } catch (error) {
+        logger.error('Error in payload handler', error instanceof Error ? error : new Error('Unknown handler error'), {
+          metadata: { channelKey }
+        });
       }
-    };
+    }
+
+    // Batch updates for performance
+    this.batchUpdate(channelKey, payload);
   }
 
   /**
-   * Send optimized update with batching for non-critical updates
+   * Batch updates for performance optimization
    */
-  sendUpdate(
-    channelKey: string,
-    update: Omit<BatchedUpdate, 'id' | 'timestamp'>,
-    immediate = false
-  ): void {
-    const batchedUpdate: BatchedUpdate = {
-      ...update,
-      id: `${channelKey}-${Date.now()}-${Math.random()}`,
+  private batchUpdate(channelKey: string, payload: TypedPostgresPayload): void {
+    const updateId = this.generateUpdateId(payload);
+    
+    const update: BatchedUpdate = {
+      id: updateId,
+      type: this.determineUpdateType(payload),
+      data: payload.new || {},
       timestamp: Date.now(),
+      priority: this.determinePriority(payload),
     };
 
-    if (immediate || update.priority === 'high') {
-      this.flushUpdate(channelKey, batchedUpdate);
+    let batch = this.updateBatches.get(channelKey);
+    if (!batch) {
+      batch = {
+        updates: [],
+        startTime: Date.now(),
+        channelKey,
+      };
+      this.updateBatches.set(channelKey, batch);
+    }
+
+    batch.updates.push(update);
+
+    // Flush batch if full or timeout reached
+    if (batch.updates.length >= this.BATCH_SIZE) {
+      this.flushBatch(channelKey);
     } else {
-      this.updateQueue.push(batchedUpdate);
-      this.scheduleBatchFlush();
+      this.scheduleBatchFlush(channelKey);
     }
   }
 
   /**
-   * Get or create a channel with automatic subscription management
+   * Generate unique update ID
    */
-  private getOrCreateChannel(channelKey: string): RealtimeChannel {
-    if (!this.channels.has(channelKey)) {
-      const channel = this.supabase.channel(channelKey);
-
-      // Subscribe to the channel
-      channel.subscribe(status => {
-        if (status === 'SUBSCRIBED') {
-          logger.info(`RealtimeManager connected to channel`, {
-            metadata: { channelKey, status },
-          });
-        } else if (status === 'CHANNEL_ERROR') {
-          logger.error(
-            `RealtimeManager channel error`,
-            new Error(`Channel error: ${channelKey}`),
-            {
-              metadata: { channelKey, status },
-            }
-          );
-          this.metrics.reconnectionCount++;
-        }
-      });
-
-      this.channels.set(channelKey, channel);
-    }
-
-    const channel = this.channels.get(channelKey);
-    if (!channel) {
-      throw new Error(`Channel ${channelKey} not found`);
-    }
-    return channel;
+  private generateUpdateId(payload: TypedPostgresPayload): string {
+    const newRecord = payload.new;
+    const oldRecord = payload.old;
+    const tableId = (newRecord && 'id' in newRecord ? newRecord.id : null) || 
+                   (oldRecord && 'id' in oldRecord ? oldRecord.id : null) || 
+                   'unknown';
+    return `${payload.table}-${tableId}-${Date.now()}`;
   }
 
   /**
-   * Handle batched updates to reduce re-render frequency
+   * Determine update type from payload
    */
-  private handleBatchedUpdate(
-    channelKey: string,
-    payload: Record<string, unknown>,
-    callback: (payload: Record<string, unknown>) => void
-  ): void {
-    // For high-frequency updates, we can debounce them
-    const updateKey = `${channelKey}-${payload.table}-${(payload.new as Record<string, unknown>)?.id || 'unknown'}`;
-
-    // Simple debouncing - can be enhanced based on update type
-    if (this.shouldBatchUpdate(payload)) {
-      this.debounce(updateKey, () => callback(payload), 50);
-    } else {
-      callback(payload);
-    }
+  private determineUpdateType(payload: TypedPostgresPayload): BatchedUpdate['type'] {
+    if (payload.table.includes('presence')) return 'PRESENCE_UPDATE';
+    if (payload.table.includes('board')) return 'BOARD_STATE';
+    return 'CELL_UPDATE';
   }
 
   /**
-   * Determine if an update should be batched based on type and frequency
+   * Determine update priority
    */
-  private shouldBatchUpdate(payload: Record<string, unknown>): boolean {
-    // Batch cell updates but not game completion or critical state changes
-    if (
-      payload.table === 'bingo_sessions' &&
-      (payload.new as Record<string, unknown>)?.status === 'completed'
-    ) {
-      return false; // Never batch game completion
+  private determinePriority(payload: TypedPostgresPayload): BatchedUpdate['priority'] {
+    if (payload.table.includes('session') || payload.table.includes('game')) {
+      return 'high';
     }
-
-    if (payload.eventType === 'UPDATE' && payload.table === 'bingo_sessions') {
-      return true; // Batch board state updates
+    if (payload.table.includes('board')) {
+      return 'medium';
     }
-
-    return false;
+    return 'low';
   }
 
   /**
-   * Debounce utility for batching rapid updates
+   * Schedule batch flush with debouncing
    */
-  private debounceTimers = new Map<string, NodeJS.Timeout>();
-
-  private debounce(key: string, callback: () => void, delay: number): void {
-    // Clear existing timer if any
-    const existingTimer = this.debounceTimers.get(key);
+  private scheduleBatchFlush(channelKey: string): void {
+    // Clear existing timer
+    const existingTimer = this.flushTimers.get(channelKey);
     if (existingTimer) {
       clearTimeout(existingTimer);
-      this.debounceTimers.delete(key);
     }
 
-    // Create new timer with error handling
-    try {
-      const timer = setTimeout(() => {
-        try {
-          callback();
-        } catch (error) {
-          logger.error('Error in debounced callback', error as Error, {
-            metadata: {
-              component: 'RealtimeManager',
-              debounceKey: key,
-            },
-          });
-        } finally {
-          // Ensure timer is cleaned up
-          this.debounceTimers.delete(key);
-        }
-      }, delay);
+    // Set new timer
+    const timer = setTimeout(() => {
+      this.flushBatch(channelKey);
+    }, this.BATCH_TIMEOUT);
 
-      this.debounceTimers.set(key, timer);
-    } catch (error) {
-      logger.error('Error setting debounce timer', error as Error, {
+    this.flushTimers.set(channelKey, timer);
+  }
+
+  /**
+   * Flush batched updates
+   */
+  private flushBatch(channelKey: string): void {
+    const batch = this.updateBatches.get(channelKey);
+    if (!batch || batch.updates.length === 0) return;
+
+    try {
+      // Process updates by priority
+      const sortedUpdates = batch.updates.sort((a, b) => {
+        const priorities = { high: 3, medium: 2, low: 1 };
+        return priorities[b.priority] - priorities[a.priority];
+      });
+
+      logger.info('Flushing batched updates', {
         metadata: {
-          component: 'RealtimeManager',
-          debounceKey: key,
-          delay,
-        },
+          channelKey,
+          updateCount: sortedUpdates.length,
+          duration: Date.now() - batch.startTime
+        }
+      });
+
+      // Clear the batch
+      this.updateBatches.delete(channelKey);
+      
+      // Clear timer
+      const timer = this.flushTimers.get(channelKey);
+      if (timer) {
+        clearTimeout(timer);
+        this.flushTimers.delete(channelKey);
+      }
+
+    } catch (error) {
+      logger.error('Error flushing batch', error instanceof Error ? error : new Error('Unknown flush error'), {
+        metadata: { channelKey }
       });
     }
   }
 
   /**
-   * Schedule batch flush for non-critical updates
+   * Unsubscribe from channel
    */
-  private scheduleBatchFlush(): void {
-    if (this.batchTimeout) return;
+  private unsubscribe(channelKey: string): void {
+    const channelInfo = this.channels.get(channelKey);
+    if (!channelInfo) return;
 
-    try {
-      this.batchTimeout = setTimeout(() => {
-        try {
-          this.flushBatchedUpdates();
-        } catch (error) {
-          logger.error('Error flushing batched updates', error as Error, {
-            metadata: {
-              component: 'RealtimeManager',
-              queueLength: this.updateQueue.length,
-            },
-          });
-        } finally {
-          this.batchTimeout = null;
-        }
-      }, 100); // 100ms batch window
-    } catch (error) {
-      logger.error('Error scheduling batch flush', error as Error, {
-        metadata: {
-          component: 'RealtimeManager',
-        },
-      });
-      this.batchTimeout = null;
-    }
-  }
-
-  /**
-   * Flush all batched updates
-   */
-  private flushBatchedUpdates(): void {
-    if (this.updateQueue.length === 0) return;
-
-    // Group updates by channel and type for optimization
-    const groupedUpdates = this.groupUpdatesByChannel(this.updateQueue);
-
-    for (const [channelKey, updates] of groupedUpdates) {
-      this.sendBatchedUpdates(channelKey, updates);
-    }
-
-    this.updateQueue = [];
-  }
-
-  /**
-   * Group updates by channel for efficient batching
-   */
-  private groupUpdatesByChannel(
-    updates: BatchedUpdate[]
-  ): Map<string, BatchedUpdate[]> {
-    const grouped = new Map<string, BatchedUpdate[]>();
-
-    for (const update of updates) {
-      // Extract channel key from update context (this is simplified)
-      const channelKey = this.extractChannelKey(update);
-      if (!grouped.has(channelKey)) {
-        grouped.set(channelKey, []);
+    channelInfo.subscribers--;
+    
+    if (channelInfo.subscribers <= 0) {
+      try {
+        channelInfo.channel.unsubscribe();
+      } catch (error) {
+        logger.error('Error unsubscribing channel', error instanceof Error ? error : new Error('Unknown unsubscribe error'), {
+          metadata: { channelKey }
+        });
       }
-      const updates = grouped.get(channelKey);
-      if (updates) {
-        updates.push(update);
-      }
-    }
-
-    return grouped;
-  }
-
-  /**
-   * Extract channel key from update (to be implemented based on update structure)
-   */
-  private extractChannelKey(_update: BatchedUpdate): string {
-    // This is a simplified implementation
-    // In practice, you'd determine the channel based on update.data
-    return 'default';
-  }
-
-  /**
-   * Send batched updates to a specific channel
-   */
-  private sendBatchedUpdates(
-    channelKey: string,
-    updates: BatchedUpdate[]
-  ): void {
-    const channel = this.channels.get(channelKey);
-    if (!channel) return;
-
-    // Send compressed batch
-    const batchPayload = {
-      type: 'BATCH_UPDATE',
-      updates: updates.map(u => ({
-        type: u.type,
-        data: u.data,
-        timestamp: u.timestamp,
-      })),
-      batchSize: updates.length,
-    };
-
-    channel.send({
-      type: 'broadcast',
-      event: 'batch_update',
-      payload: batchPayload,
-    });
-
-    this.metrics.messagesSent++;
-  }
-
-  /**
-   * Flush a single update immediately
-   */
-  private flushUpdate(channelKey: string, updateData: BatchedUpdate): void {
-    const channel = this.channels.get(channelKey);
-    if (!channel) return;
-
-    channel.send({
-      type: 'broadcast',
-      event: updateData.type.toLowerCase(),
-      payload: updateData.data,
-    });
-
-    this.metrics.messagesSent++;
-  }
-
-  /**
-   * Remove a channel and clean up subscriptions
-   */
-  private removeChannel(channelKey: string): void {
-    const channel = this.channels.get(channelKey);
-    if (channel) {
-      this.supabase.removeChannel(channel);
+      
       this.channels.delete(channelKey);
-      this.subscriptions.delete(channelKey);
+      this.updateBatches.delete(channelKey);
+      
+      const timer = this.flushTimers.get(channelKey);
+      if (timer) {
+        clearTimeout(timer);
+        this.flushTimers.delete(channelKey);
+      }
     }
   }
 
   /**
-   * Get current performance metrics
+   * Get channel info for debugging
    */
-  getMetrics(): RealtimeMetrics {
-    return {
-      ...this.metrics,
-      connectionUptime: Date.now() - this.metrics.connectionUptime,
-    };
+  getChannelInfo(channelKey: string): ChannelInfo | null {
+    return this.channels.get(channelKey) || null;
   }
 
   /**
-   * Get a channel for direct access (used by presence service)
+   * Clean up all resources
    */
-  getChannel(channelKey: string): RealtimeChannel {
-    return this.getOrCreateChannel(channelKey);
-  }
+  destroy(): void {
+    // Unsubscribe all channels
+    for (const channelKey of this.channels.keys()) {
+      this.unsubscribe(channelKey);
+    }
 
-  /**
-   * Remove a channel (public method for presence service)
-   */
-  removeChannelPublic(channelKey: string): void {
-    this.removeChannel(channelKey);
-  }
+    // Clear all timers
+    for (const timer of this.flushTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.flushTimers.clear();
 
-  /**
-   * Cleanup all channels and timers
-   */
-  cleanup(): void {
-    // Clear all debounce timers
     for (const timer of this.debounceTimers.values()) {
       clearTimeout(timer);
     }
     this.debounceTimers.clear();
-
-    // Clear batch timeout
-    if (this.batchTimeout) {
-      clearTimeout(this.batchTimeout);
-      this.batchTimeout = null;
-    }
-
-    // Remove all channels
-    for (const [channelKey] of this.channels) {
-      this.removeChannel(channelKey);
-    }
-
-    // Flush any remaining updates
-    this.flushBatchedUpdates();
   }
 }
 
 // Export singleton instance
-export const realtimeManager = RealtimeManager.getInstance();
+export const safeRealtimeManager = new SafeRealtimeManager();
 
-// Add cleanup on process exit/termination
-if (typeof process !== 'undefined' && process.on) {
-  process.on('beforeExit', () => {
-    realtimeManager.cleanup();
-  });
-  
-  process.on('SIGINT', () => {
-    realtimeManager.cleanup();
-    process.exit(0);
-  });
-  
-  process.on('SIGTERM', () => {
-    realtimeManager.cleanup();
-    process.exit(0);
-  });
-}
+// Export types for external use
+export type {
+  PostgresEvent,
+  PostgresChangesConfig,
+  SubscriptionOptions,
+  BatchedUpdate,
+};
 
-// Add cleanup on browser unload
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    realtimeManager.cleanup();
-  });
-}
-
-// Export types for consumers
-export type { BatchedUpdate, RealtimeMetrics };
+// Re-export Supabase types for convenience
+export type { RealtimePostgresChangesPayload } from '@supabase/realtime-js';

@@ -1,6 +1,13 @@
 'use client';
 
-import { useState, useMemo, useCallback, useTransition } from 'react';
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useTransition,
+  useRef,
+  useEffect,
+} from 'react';
 import type { Discussion, Event } from '@/lib/stores/community-store';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -27,18 +34,38 @@ export function useSearch<T extends Discussion | Event>(
   const [selectedChallenge, setSelectedChallenge] = useState('All Challenges');
   const [isPending, startTransition] = useTransition();
 
+  // Track if component is mounted for cleanup
+  const isMountedRef = useRef(true);
+
   // Debounce search query to prevent too many re-renders
   const debouncedSearch = useDebounce(searchQuery, 300);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const setSearchQuery = useCallback((query: string) => {
-    startTransition(() => {
-      setSearchQueryRaw(query);
-    });
+    // Only update if component is still mounted
+    if (isMountedRef.current) {
+      startTransition(() => {
+        if (isMountedRef.current) {
+          setSearchQueryRaw(query);
+        }
+      });
+    }
   }, []);
 
   const filteredItems = useMemo(() => {
     // Create search index for better performance
     const searchIndex = new Map<T, string>();
+
+    // Only process if component is mounted
+    if (!isMountedRef.current) {
+      return [];
+    }
 
     return items
       .filter(item => {

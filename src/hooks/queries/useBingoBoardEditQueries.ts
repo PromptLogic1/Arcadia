@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
+import {
   bingoBoardEditService,
   type BoardEditData,
   type CardInsertData,
@@ -42,22 +42,25 @@ export function useSaveCardsMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (cards: CardInsertData[]) => bingoBoardEditService.saveCards(cards),
+    mutationFn: (cards: CardInsertData[]) =>
+      bingoBoardEditService.saveCards(cards),
     onSuccess: (result, _variables) => {
       if (result.error) {
         notifications.error(result.error);
         return;
       }
-      
+
       if (result.savedCards.length > 0) {
-        notifications.success(`Saved ${result.savedCards.length} cards successfully!`);
-        
+        notifications.success(
+          `Saved ${result.savedCards.length} cards successfully!`
+        );
+
         // Invalidate relevant queries
         queryClient.invalidateQueries({ queryKey: ['boardEdit'] });
         queryClient.invalidateQueries({ queryKey: ['bingoCards'] });
       }
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to save cards'
       );
@@ -72,13 +75,13 @@ export function useUpdateBoardMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      boardId, 
-      updates, 
-      currentVersion 
-    }: { 
-      boardId: string; 
-      updates: BoardEditData; 
+    mutationFn: ({
+      boardId,
+      updates,
+      currentVersion,
+    }: {
+      boardId: string;
+      updates: BoardEditData;
       currentVersion: number;
     }) => bingoBoardEditService.updateBoard(boardId, updates, currentVersion),
     onSuccess: (result, variables) => {
@@ -86,13 +89,17 @@ export function useUpdateBoardMutation() {
         notifications.error(result.error);
         return;
       }
-      
+
       notifications.success('Board updated successfully!');
-      
+
       // Update specific board cache
       queryClient.setQueryData(
         ['boardEdit', 'data', variables.boardId],
-        (oldData: { board: BingoBoard | null; cards: BingoCard[]; error?: string } | undefined) => {
+        (
+          oldData:
+            | { board: BingoBoard | null; cards: BingoCard[]; error?: string }
+            | undefined
+        ) => {
           if (oldData?.board) {
             return {
               ...oldData,
@@ -102,12 +109,14 @@ export function useUpdateBoardMutation() {
           return oldData;
         }
       );
-      
+
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['boardEdit', 'data', variables.boardId] });
+      queryClient.invalidateQueries({
+        queryKey: ['boardEdit', 'data', variables.boardId],
+      });
       queryClient.invalidateQueries({ queryKey: ['bingoBoards'] });
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to update board'
       );
@@ -122,20 +131,21 @@ export function useCreateCardMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (cardData: CardInsertData) => bingoBoardEditService.createCard(cardData),
-    onSuccess: (result) => {
+    mutationFn: (cardData: CardInsertData) =>
+      bingoBoardEditService.createCard(cardData),
+    onSuccess: result => {
       if (result.error) {
         notifications.error(result.error);
         return;
       }
-      
+
       notifications.success('Card created successfully!');
-      
+
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['boardEdit'] });
       queryClient.invalidateQueries({ queryKey: ['bingoCards'] });
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to create card'
       );
@@ -150,26 +160,26 @@ export function useUpdateCardMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      cardId, 
-      updates 
-    }: { 
-      cardId: string; 
+    mutationFn: ({
+      cardId,
+      updates,
+    }: {
+      cardId: string;
       updates: Partial<BingoCard>;
     }) => bingoBoardEditService.updateCard(cardId, updates),
-    onSuccess: (result) => {
+    onSuccess: result => {
       if (result.error) {
         notifications.error(result.error);
         return;
       }
-      
+
       notifications.success('Card updated successfully!');
-      
+
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['boardEdit'] });
       queryClient.invalidateQueries({ queryKey: ['bingoCards'] });
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to update card'
       );
@@ -184,7 +194,7 @@ export function useBoardEditOperations(boardId: string) {
   // Queries
   const boardDataQuery = useBoardEditDataQuery(boardId);
   const initializationQuery = useBoardInitializationQuery(boardId);
-  
+
   // Mutations
   const saveCardsMutation = useSaveCardsMutation();
   const updateBoardMutation = useUpdateBoardMutation();
@@ -205,7 +215,11 @@ export function useBoardEditOperations(boardId: string) {
   };
 
   const updateBoard = (updates: BoardEditData, currentVersion: number) => {
-    return updateBoardMutation.mutateAsync({ boardId, updates, currentVersion });
+    return updateBoardMutation.mutateAsync({
+      boardId,
+      updates,
+      currentVersion,
+    });
   };
 
   const createCard = (cardData: CardInsertData) => {
@@ -232,7 +246,7 @@ export function useBoardEditOperations(boardId: string) {
     isUpdatingCard: updateCardMutation.isPending,
 
     // Any operation is pending
-    isMutating: 
+    isMutating:
       saveCardsMutation.isPending ||
       updateBoardMutation.isPending ||
       createCardMutation.isPending ||

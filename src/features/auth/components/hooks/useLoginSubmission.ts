@@ -59,6 +59,10 @@ export function useLoginSubmission({
   const { loading: authLoading } = useAuth();
   const { setLoading, signIn, signInWithOAuth } = useAuthActions();
 
+  // Mount tracking and timeout ref for cleanup
+  const isMountedRef = React.useRef(true);
+  const redirectTimeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
+
   // Local loading states for specific operations
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = React.useState(false);
@@ -66,6 +70,18 @@ export function useLoginSubmission({
   // Combined loading state
   const loading =
     authLoading || isSubmitting || isOAuthLoading || formState.isLoading;
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 🧼 Form submission handler
   const handleSubmit = React.useCallback(
@@ -112,6 +128,9 @@ export function useLoginSubmission({
           return;
         }
 
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
+
         // Success state
         const successMessage: LoginFormMessage = {
           text: LOGIN_MESSAGES.SUCCESS.WELCOME_BACK,
@@ -132,13 +151,18 @@ export function useLoginSubmission({
         // Success callback
         onSuccess?.();
 
-        // Redirect after delay
-        setTimeout(() => {
-          router.push(LOGIN_FORM_CONFIG.REDIRECTS.SUCCESS_PATH);
-          router.refresh();
+        // Redirect after delay with cleanup
+        redirectTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            router.push(LOGIN_FORM_CONFIG.REDIRECTS.SUCCESS_PATH);
+            router.refresh();
+          }
         }, LOGIN_FORM_CONFIG.REDIRECTS.REDIRECT_DELAY);
       } catch (error) {
         const errorObj = error as Error;
+
+        // Only update state if still mounted
+        if (!isMountedRef.current) return;
 
         const errorMessage: LoginFormMessage = {
           text: LOGIN_MESSAGES.ERRORS.LOGIN_FAILED,
@@ -157,8 +181,11 @@ export function useLoginSubmission({
         // Error callback
         onError?.(errorObj);
       } finally {
-        setIsSubmitting(false);
-        setLoading(false);
+        // Only update state if still mounted
+        if (isMountedRef.current) {
+          setIsSubmitting(false);
+          setLoading(false);
+        }
       }
     },
     [formState, onFormSubmit, signIn, onSuccess, onError, router, setLoading]

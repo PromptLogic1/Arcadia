@@ -29,11 +29,7 @@ export async function generateStaticParams() {
   }
 }
 
-async function ProductContent({
-  params,
-}: {
-  params: { slug: string };
-}) {
+async function ProductContent({ params }: { params: { slug: string } }) {
   try {
     const client = createClient();
     const { rows } = await client.sql<ProductRow>`
@@ -58,11 +54,7 @@ async function ProductContent({
   }
 }
 
-export default function ProductPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default function ProductPage({ params }: { params: { slug: string } }) {
   return (
     <RouteErrorBoundary routeName={`Product-${params.slug}`}>
       <ProductContent params={params} />

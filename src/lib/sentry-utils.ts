@@ -4,7 +4,9 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 /**
  * Set user context in Sentry for better error tracking
  */
-export function setSentryUser(user: { id: string; email?: string; username?: string } | null) {
+export function setSentryUser(
+  user: { id: string; email?: string; username?: string } | null
+) {
   if (user) {
     Sentry.setUser({
       id: user.id,
@@ -44,7 +46,15 @@ export function addSentryContext() {
 
     // Add performance context
     if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
+      const connection = (
+        navigator as Navigator & {
+          connection?: {
+            effectiveType?: string;
+            downlink?: number;
+            rtt?: number;
+          };
+        }
+      ).connection;
       Sentry.setContext('network', {
         effectiveType: connection?.effectiveType,
         downlink: connection?.downlink,
@@ -59,18 +69,18 @@ export function addSentryContext() {
  */
 export function captureErrorWithContext(
   error: Error,
-  context: Record<string, any>,
+  context: Record<string, Record<string, unknown> | null>,
   level: Sentry.SeverityLevel = 'error'
 ) {
-  Sentry.withScope((scope) => {
+  Sentry.withScope(scope => {
     // Set level
     scope.setLevel(level);
-    
+
     // Add context
     Object.entries(context).forEach(([key, value]) => {
       scope.setContext(key, value);
     });
-    
+
     // Capture
     return Sentry.captureException(error);
   });
@@ -82,7 +92,7 @@ export function captureErrorWithContext(
 export function addBreadcrumb(
   message: string,
   category: string,
-  data?: Record<string, any>,
+  data?: Record<string, unknown>,
   level: Sentry.SeverityLevel = 'info'
 ) {
   Sentry.addBreadcrumb({
@@ -97,11 +107,11 @@ export function addBreadcrumb(
 /**
  * Track a transaction for performance monitoring
  */
-export function trackTransaction(
+export function trackTransaction<T>(
   name: string,
   operation: string,
-  callback: () => Promise<any>
-) {
+  callback: () => Promise<T>
+): Promise<T> {
   // In Sentry v8, use startSpan instead of startTransaction
   return Sentry.startSpan(
     {
@@ -131,9 +141,9 @@ export function initializeSentryUser() {
       email: authUser.email || undefined,
     });
   }
-  
+
   // Subscribe to auth changes
-  useAuthStore.subscribe((state) => {
+  useAuthStore.subscribe(state => {
     if (state.authUser) {
       setSentryUser({
         id: state.authUser.id,

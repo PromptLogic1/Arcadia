@@ -62,6 +62,7 @@ export const useBingoBoard = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [optimisticUpdating, setOptimisticUpdating] = useState(false);
+  const [realtimeError, setRealtimeError] = useState<Error | null>(null);
 
   // Board state update with optimistic updates
   const updateBoardState = useCallback(
@@ -94,7 +95,10 @@ export const useBingoBoard = ({
           currentVersion: board.version || undefined,
         });
       } catch (error) {
-        console.error('Failed to update board state:', error);
+        logger.error('Failed to update board state', error instanceof Error ? error : new Error(String(error)), {
+          boardId,
+          feature: 'bingo-boards',
+        });
         throw error;
       } finally {
         setOptimisticUpdating(false);
@@ -140,49 +144,87 @@ export const useBingoBoard = ({
           currentVersion: board.version || undefined,
         });
       } catch (error) {
-        console.error('Failed to update board settings:', error);
+        logger.error('Failed to update board settings', error instanceof Error ? error : new Error(String(error)), {
+          boardId,
+          feature: 'bingo-boards',
+        });
         throw error;
       }
     },
     [board, boardId, updateBoardSettingsMutation]
   );
 
-  // Set up real-time subscription
+  // Set up real-time subscription with error recovery
   useEffect(() => {
     if (!boardId) return;
+
+    let isCleanedUp = false;
+    let cleanupFn: (() => void) | null = null;
+
+    // Reset error state when boardId changes
+    setRealtimeError(null);
 
     logger.debug('Setting up real-time subscription for board', {
       metadata: { boardId },
     });
 
-    const cleanup = realtimeBoardService.subscribeToBoardUpdates(
-      boardId,
-      queryClient,
-      {
-        onUpdate: (updatedBoard: Tables<'bingo_boards'>) => {
-          logger.debug('Board updated via real-time', {
-            metadata: { boardId, version: updatedBoard.version },
-          });
-          // TanStack Query cache is automatically updated by the service
-        },
-        onError: (error: Error) => {
-          logger.error('Real-time board error', error, {
-            metadata: { boardId },
-          });
-          // Could set an error state here if needed
-        },
-        maxReconnectAttempts: 3,
-        reconnectDelay: 2000,
-      }
-    );
+    // Let the service handle all reconnection logic
+    try {
+      cleanupFn = realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        queryClient,
+        {
+          onUpdate: (updatedBoard: Tables<'bingo_boards'>) => {
+            if (isCleanedUp) return;
 
-    return cleanup;
+            logger.debug('Board updated via real-time', {
+              metadata: { boardId, version: updatedBoard.version },
+            });
+            // Reset error state on successful update
+            setRealtimeError(null);
+          },
+          onError: (error: Error) => {
+            if (isCleanedUp) return;
+
+            logger.error('Real-time board error', error, {
+              metadata: { boardId },
+            });
+
+            setRealtimeError(error);
+          },
+          // Let the service handle all reconnection with its own exponential backoff
+          maxReconnectAttempts: 5,
+          reconnectDelay: 1000,
+        }
+      );
+    } catch (error) {
+      if (!isCleanedUp) {
+        logger.error('Failed to setup realtime subscription', error as Error, {
+          metadata: { boardId },
+        });
+        setRealtimeError(error as Error);
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      isCleanedUp = true;
+
+      // Call the cleanup function if it exists
+      if (cleanupFn) {
+        cleanupFn();
+      }
+
+      logger.debug('Cleaned up real-time subscription', {
+        metadata: { boardId },
+      });
+    };
   }, [boardId, queryClient]);
 
-  // Convert React Query error to Error object
+  // Convert React Query error to Error object, include realtime errors
   const error = queryError
     ? new Error(queryError.message || 'Failed to fetch board')
-    : null;
+    : realtimeError;
 
   return {
     // Board data

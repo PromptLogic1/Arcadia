@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const SENTRY_HOST = 'o4509444949934080.ingest.de.sentry.io';
 const SENTRY_PROJECT_IDS = ['4509444951244880'];
@@ -10,23 +11,20 @@ const SENTRY_PROJECT_IDS = ['4509444951244880'];
 export async function POST(request: NextRequest) {
   try {
     const envelope = await request.text();
-    
+
     if (!envelope || envelope.trim() === '') {
-      return NextResponse.json(
-        { error: 'Empty envelope' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Empty envelope' }, { status: 400 });
     }
-    
+
     const pieces = envelope.split('\n');
-    
+
     if (!pieces.length || !pieces[0]) {
       return NextResponse.json(
         { error: 'Invalid envelope format' },
         { status: 400 }
       );
     }
-    
+
     // Parse the envelope header safely
     const firstPiece = pieces[0];
     let header;
@@ -39,24 +37,21 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     if (!header.dsn) {
       return NextResponse.json(
         { error: 'Missing DSN in envelope' },
         { status: 400 }
       );
     }
-    
+
     const dsn = new URL(header.dsn);
     const projectId = dsn.pathname.split('/').pop();
 
     // Validate project ID
     if (!projectId || !SENTRY_PROJECT_IDS.includes(projectId)) {
       console.error('Invalid Sentry project ID:', projectId);
-      return NextResponse.json(
-        { error: 'Invalid project' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid project' }, { status: 401 });
     }
 
     // Construct the upstream URL for German region

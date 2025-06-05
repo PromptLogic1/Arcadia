@@ -1,6 +1,6 @@
 /**
  * Test Sentry Integration
- * 
+ *
  * This script sends a test error to Sentry to verify the integration is working.
  * Run with: npx tsx scripts/test-sentry.ts
  */
@@ -22,12 +22,17 @@ async function testSentry() {
 
   // Check if DSN is configured
   if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
-    console.error('❌ NEXT_PUBLIC_SENTRY_DSN is not set in environment variables');
+    console.error(
+      '❌ NEXT_PUBLIC_SENTRY_DSN is not set in environment variables'
+    );
     process.exit(1);
   }
 
   console.log('✅ DSN configured:', process.env.NEXT_PUBLIC_SENTRY_DSN);
-  console.log('📍 Environment:', process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || 'development');
+  console.log(
+    '📍 Environment:',
+    process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || 'development'
+  );
 
   try {
     // 1. Test message
@@ -36,8 +41,8 @@ async function testSentry() {
 
     // 2. Test error with context
     console.log('2️⃣ Sending test error with context...');
-    
-    Sentry.withScope((scope) => {
+
+    Sentry.withScope(scope => {
       scope.setTag('test', true);
       scope.setContext('test_context', {
         script: 'test-sentry.ts',
@@ -54,7 +59,7 @@ async function testSentry() {
 
     // 3. Test breadcrumbs
     console.log('3️⃣ Testing breadcrumbs...');
-    
+
     Sentry.addBreadcrumb({
       message: 'Test script started',
       category: 'test',
@@ -69,17 +74,17 @@ async function testSentry() {
 
     // 4. Test unhandled error
     console.log('4️⃣ Testing error with stack trace...');
-    
+
     try {
       // This will create a nice stack trace
       function problematicFunction() {
         throw new Error('Intentional test error with stack trace');
       }
-      
+
       function callProblematic() {
         problematicFunction();
       }
-      
+
       callProblematic();
     } catch (error) {
       Sentry.captureException(error);
@@ -91,13 +96,14 @@ async function testSentry() {
 
     console.log('\n✅ Test completed successfully!');
     console.log('\n📊 Check your Sentry dashboard at:');
-    console.log(`   https://sentry.io/organizations/${process.env.SENTRY_ORG}/issues/`);
+    console.log(
+      `   https://sentry.io/organizations/${process.env.SENTRY_ORG}/issues/`
+    );
     console.log('\nYou should see:');
     console.log('   - 1 info message');
     console.log('   - 2 error events');
     console.log('   - User context and tags');
     console.log('   - Breadcrumbs in the errors');
-
   } catch (error) {
     console.error('❌ Failed to test Sentry:', error);
     process.exit(1);

@@ -128,21 +128,21 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
 
   // Auth
   const { authUser } = useAuth();
-  
+
   // Refs to prevent stale closures
   const uiStateRef = useRef(uiState);
   const boardRef = useRef(board);
   const authUserRef = useRef(authUser);
-  
+
   // Update refs when dependencies change
   useEffect(() => {
     uiStateRef.current = uiState;
   }, [uiState]);
-  
+
   useEffect(() => {
     boardRef.current = board;
   }, [board]);
-  
+
   useEffect(() => {
     authUserRef.current = authUser;
   }, [authUser]);
@@ -308,7 +308,7 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
     const currentBoard = boardRef.current;
     const currentUiState = uiStateRef.current;
     const currentAuthUser = authUserRef.current;
-    
+
     if (!currentBoard || !currentUiState.formData || !currentAuthUser) {
       logger.error('Cannot save: missing required data', undefined, {
         metadata: {
@@ -379,15 +379,18 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
           uiActions.setLocalGridCards(updatedGridCards);
 
           // Update private cards with new IDs
-          const updatedPrivateCards = currentUiState.localPrivateCards.map(card => {
-            if (card.id.startsWith('temp-')) {
-              const saved = savedCards.find(
-                sc => sc.title === card.title && sc.game_type === card.game_type
-              );
-              return saved || card;
+          const updatedPrivateCards = currentUiState.localPrivateCards.map(
+            card => {
+              if (card.id.startsWith('temp-')) {
+                const saved = savedCards.find(
+                  sc =>
+                    sc.title === card.title && sc.game_type === card.game_type
+                );
+                return saved || card;
+              }
+              return card;
             }
-            return card;
-          });
+          );
           uiActions.setLocalPrivateCards(updatedPrivateCards);
         }
       }
@@ -414,7 +417,10 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
         board_state: boardCells,
       };
 
-      const updateResult = await updateBoard(boardData, currentBoard.version || 0);
+      const updateResult = await updateBoard(
+        boardData,
+        currentBoard.version || 0
+      );
 
       if (updateResult.error) {
         throw new Error(updateResult.error);
@@ -444,12 +450,7 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
     } finally {
       uiActions.setIsSaving(false);
     }
-  }, [
-    saveCards,
-    updateBoard,
-    uiActions,
-    boardId,
-  ]); // Removed all state dependencies, using refs instead
+  }, [saveCards, updateBoard, uiActions, boardId]); // Removed all state dependencies, using refs instead
 
   // Initialize board (refresh data)
   const initializeBoard = useCallback(async () => {

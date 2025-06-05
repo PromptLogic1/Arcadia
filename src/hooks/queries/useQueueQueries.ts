@@ -3,7 +3,11 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { queueService, type JoinQueueData, type QueueEntry as _QueueEntry } from '../../services/queue.service';
+import {
+  queueService,
+  type JoinQueueData,
+  type QueueEntry as _QueueEntry,
+} from '../../services/queue.service';
 import { notifications } from '@/lib/notifications';
 
 // Query key factories
@@ -23,7 +27,7 @@ export function useQueueStatusQuery(userId: string, enabled = true) {
     enabled: enabled && !!userId,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Poll every 30 seconds
-    select: (data) => data.entry,
+    select: data => data.entry,
   });
 }
 
@@ -37,7 +41,7 @@ export function useWaitingEntriesQuery(enabled = false) {
     enabled,
     staleTime: 10 * 1000, // 10 seconds
     refetchInterval: 15 * 1000, // Poll every 15 seconds
-    select: (data) => data.entries,
+    select: data => data.entries,
   });
 }
 
@@ -56,16 +60,16 @@ export function useJoinQueueMutation() {
           queueKeys.status(variables.user_id),
           result.entry
         );
-        
+
         // Invalidate waiting entries for admin views
         queryClient.invalidateQueries({ queryKey: queueKeys.waiting() });
-        
+
         notifications.success('Joined the queue! Looking for players...');
       } else if (result.error) {
         notifications.error(result.error);
       }
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to join queue'
       );
@@ -85,16 +89,16 @@ export function useLeaveQueueMutation() {
       if (result.success) {
         // Clear queue status
         queryClient.setQueryData(queueKeys.status(userId), null);
-        
+
         // Invalidate related queries
         queryClient.invalidateQueries({ queryKey: queueKeys.waiting() });
-        
+
         notifications.success('Left the queue');
       } else if (result.error) {
         notifications.error(result.error);
       }
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to leave queue'
       );
@@ -110,15 +114,15 @@ export function useFindMatchesMutation() {
 
   return useMutation({
     mutationFn: (maxMatches?: number) => queueService.findMatches(maxMatches),
-    onSuccess: (result) => {
+    onSuccess: result => {
       if (result.matches.length > 0) {
         // Invalidate all queue-related queries since matches were found
         queryClient.invalidateQueries({ queryKey: queueKeys.all() });
-        
+
         notifications.success(`Found ${result.matches.length} matches!`);
       }
     },
-    onError: (error) => {
+    onError: error => {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to find matches'
       );
@@ -134,15 +138,15 @@ export function useCleanupQueueMutation() {
 
   return useMutation({
     mutationFn: () => queueService.cleanupExpiredEntries(),
-    onSuccess: (result) => {
+    onSuccess: result => {
       if (result.cleaned > 0) {
         // Invalidate waiting entries
         queryClient.invalidateQueries({ queryKey: queueKeys.waiting() });
-        
+
         console.log(`Cleaned up ${result.cleaned} expired queue entries`);
       }
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Failed to cleanup queue:', error);
     },
   });
@@ -158,9 +162,10 @@ export function useUserQueue(userId: string) {
 
   const isInQueue = !!queueStatusQuery.data;
   const queueEntry = queueStatusQuery.data;
-  const isLoading = queueStatusQuery.isLoading || 
-                   joinQueueMutation.isPending || 
-                   leaveQueueMutation.isPending;
+  const isLoading =
+    queueStatusQuery.isLoading ||
+    joinQueueMutation.isPending ||
+    leaveQueueMutation.isPending;
 
   const joinQueue = (data: Omit<JoinQueueData, 'user_id'>) => {
     return joinQueueMutation.mutate({ ...data, user_id: userId });

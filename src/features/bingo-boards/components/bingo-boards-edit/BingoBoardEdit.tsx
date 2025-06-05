@@ -578,7 +578,7 @@ export function BingoBoardEdit({
   );
 
   return (
-    <BaseErrorBoundary componentName="BingoBoardEdit">
+    <BaseErrorBoundary level="component">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -598,107 +598,109 @@ export function BingoBoardEdit({
 
           {/* Error Display */}
           {boardEdit.error && (
-          <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 p-3">
-            <p className="text-sm text-red-400">{boardEdit.error}</p>
-          </div>
-        )}
+            <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 p-3">
+              <p className="text-sm text-red-400">{boardEdit.error}</p>
+            </div>
+          )}
 
-        {/* Main Content */}
-        <div className="flex flex-wrap justify-center gap-6">
-          {/* Sidebar - Card Management */}
-          <CardManagementTabs
-            privateCards={boardEdit.localPrivateCards}
-            publicCards={publicCards}
-            currentBoard={{
-              game_type: boardEdit.board.game_type,
-              size: boardEdit.board.size || 5,
-            }}
-            isLoadingPrivateCards={boardEdit.isLoadingCards}
-            isLoadingPublicCards={isLoadingPublicCards}
-            onCardSelect={handleCardSelect}
-            onCardEdit={handleCardEdit}
-            onCreateNewCard={handleCreateNewCard}
-            onTabChange={handleTabChange}
-            onFilterPublicCards={handleFilterPublicCards}
-            onClearPublicFilters={handleClearPublicFilters}
-            onVoteCard={handleVoteCard}
-            onShuffle={handleShuffle}
-            onUseCollection={handleUseCollection}
-            onBulkAddCards={handleBulkAddCards}
-            onCardReturnToPrivate={handleCardReturnToPrivate}
-          />
-
-          {/* Main Content - Settings and Grid */}
-          <div className="flex-1">
-            {/* Board Settings */}
-            <BoardSettingsPanel
-              formData={boardEdit.formData}
-              fieldErrors={boardEdit.fieldErrors}
-              onUpdateField={boardEdit.updateFormField}
-              onFormDataChange={updater => {
-                const currentData = boardEdit.formData;
-                const newData = updater(currentData);
-                boardEdit.setFormData(newData);
+          {/* Main Content */}
+          <div className="flex flex-wrap justify-center gap-6">
+            {/* Sidebar - Card Management */}
+            <CardManagementTabs
+              privateCards={boardEdit.localPrivateCards}
+              publicCards={publicCards}
+              currentBoard={{
+                game_type: boardEdit.board.game_type,
+                size: boardEdit.board.size || 5,
               }}
+              isLoadingPrivateCards={boardEdit.isLoadingCards}
+              isLoadingPublicCards={isLoadingPublicCards}
+              onCardSelect={handleCardSelect}
+              onCardEdit={handleCardEdit}
+              onCreateNewCard={handleCreateNewCard}
+              onTabChange={handleTabChange}
+              onFilterPublicCards={handleFilterPublicCards}
+              onClearPublicFilters={handleClearPublicFilters}
+              onVoteCard={handleVoteCard}
+              onShuffle={handleShuffle}
+              onUseCollection={handleUseCollection}
+              onBulkAddCards={handleBulkAddCards}
+              onCardReturnToPrivate={handleCardReturnToPrivate}
             />
 
-            {/* Bingo Grid */}
-            <div className="mt-4">
-              <BingoGrid
-                gridCards={boardEdit.localGridCards}
-                gridSize={boardEdit.board?.size || 5}
-                isLoading={boardEdit.isLoadingCards}
-                onCardClick={handleCardEdit}
-                onRemoveCard={handleRemoveGridCard}
+            {/* Main Content - Settings and Grid */}
+            <div className="flex-1">
+              {/* Board Settings */}
+              <BoardSettingsPanel
+                formData={boardEdit.formData}
+                fieldErrors={boardEdit.fieldErrors}
+                onUpdateField={boardEdit.updateFormField}
+                onFormDataChange={updater => {
+                  const currentData = boardEdit.formData;
+                  const newData = updater(currentData);
+                  boardEdit.setFormData(newData);
+                }}
               />
+
+              {/* Bingo Grid */}
+              <div className="mt-4">
+                <BingoGrid
+                  gridCards={boardEdit.localGridCards}
+                  gridSize={boardEdit.board?.size || 5}
+                  isLoading={boardEdit.isLoadingCards}
+                  onCardClick={handleCardEdit}
+                  onRemoveCard={handleRemoveGridCard}
+                />
+              </div>
             </div>
           </div>
+
+          {/* Dialogs */}
+          {boardEdit.editingCard && (
+            <BingoCardEditDialog
+              card={boardEdit.editingCard.card}
+              index={boardEdit.editingCard.index}
+              isOpen={true}
+              onClose={boardEdit.closeCardEditor}
+              onSave={handleCardDialogSave}
+            />
+          )}
+
+          {boardEdit.selectedCard && (
+            <GridPositionSelectDialog
+              isOpen={true}
+              onClose={boardEdit.clearSelectedCard}
+              onSelect={handlePositionSelect}
+              gridSize={boardEdit.board?.size || 5}
+              takenPositions={boardEdit.localGridCards
+                .map((card, index) => (card.id ? index : -1))
+                .filter(index => index !== -1)}
+            />
+          )}
+
+          {/* Success Message */}
+          {boardEdit.showSaveSuccess && (
+            <div className="animate-fade-in fixed right-4 bottom-4 rounded-md border border-green-500/50 bg-green-500/20 px-4 py-2 text-green-400 shadow-lg">
+              {UI_MESSAGES.SAVE.SUCCESS}
+            </div>
+          )}
         </div>
 
-        {/* Dialogs */}
-        {boardEdit.editingCard && (
-          <BingoCardEditDialog
-            card={boardEdit.editingCard.card}
-            index={boardEdit.editingCard.index}
-            isOpen={true}
-            onClose={boardEdit.closeCardEditor}
-            onSave={handleCardDialogSave}
-          />
-        )}
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {draggedCard && (
+            <div className="rounded-lg border border-purple-500/50 bg-gray-800/90 p-3 shadow-lg">
+              <h4 className="font-medium text-purple-300">
+                {draggedCard.title}
+              </h4>
+              <p className="text-sm text-gray-400">{draggedCard.description}</p>
+            </div>
+          )}
+        </DragOverlay>
 
-        {boardEdit.selectedCard && (
-          <GridPositionSelectDialog
-            isOpen={true}
-            onClose={boardEdit.clearSelectedCard}
-            onSelect={handlePositionSelect}
-            gridSize={boardEdit.board?.size || 5}
-            takenPositions={boardEdit.localGridCards
-              .map((card, index) => (card.id ? index : -1))
-              .filter(index => index !== -1)}
-          />
-        )}
-
-        {/* Success Message */}
-        {boardEdit.showSaveSuccess && (
-          <div className="animate-fade-in fixed right-4 bottom-4 rounded-md border border-green-500/50 bg-green-500/20 px-4 py-2 text-green-400 shadow-lg">
-            {UI_MESSAGES.SAVE.SUCCESS}
-          </div>
-        )}
-      </div>
-
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {draggedCard && (
-          <div className="rounded-lg border border-purple-500/50 bg-gray-800/90 p-3 shadow-lg">
-            <h4 className="font-medium text-purple-300">{draggedCard.title}</h4>
-            <p className="text-sm text-gray-400">{draggedCard.description}</p>
-          </div>
-        )}
-      </DragOverlay>
-
-      {/* Floating Trash Zone */}
-      {activeId && <TrashDropZone />}
-    </DndContext>
+        {/* Floating Trash Zone */}
+        {activeId && <TrashDropZone />}
+      </DndContext>
     </BaseErrorBoundary>
   );
 }

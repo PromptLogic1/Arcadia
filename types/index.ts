@@ -5,8 +5,16 @@
 // Import everything as namespace to avoid conflicts with re-exports
 import type * as DatabaseTypes from './database-generated';
 
-// Re-export essential database types directly (primary source of truth)  
-export type { Database, Tables, TablesInsert, TablesUpdate, Enums, CompositeTypes } from './database-generated';
+// Re-export essential database types directly (primary source of truth)
+export type {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  Database,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  CompositeTypes,
+} from './database-generated';
 
 // =============================================================================
 // TYPE ALIASES FOR CLEAN API
@@ -37,7 +45,8 @@ export type TagCategory = DatabaseTypes.CompositeTypes<'tag_category'>;
 export type WinConditions = DatabaseTypes.CompositeTypes<'win_conditions'>;
 
 // JSON type for compatibility
-export type Json = DatabaseTypes.Database['public']['Tables']['bingo_boards']['Row']['board_state'];
+export type Json =
+  DatabaseTypes.Database['public']['Tables']['bingo_boards']['Row']['board_state'];
 
 // =============================================================================
 // TABLE ROW TYPES (Convenience exports)
@@ -53,7 +62,8 @@ export type BingoSessionEvent = DatabaseTypes.Tables<'bingo_session_events'>;
 export type BingoSessionCell = DatabaseTypes.Tables<'bingo_session_cells'>;
 
 // View types - Extract from the database type directly to avoid type constraint issues
-export type SessionStats = DatabaseTypes.Database['public']['Views']['session_stats']['Row'];
+export type SessionStats =
+  DatabaseTypes.Database['public']['Views']['session_stats']['Row'];
 
 // User domain
 export type User = DatabaseTypes.Tables<'users'>;
@@ -89,9 +99,12 @@ export type BingoCardInsert = DatabaseTypes.TablesInsert<'bingo_cards'>;
 export type BingoCardUpdate = DatabaseTypes.TablesUpdate<'bingo_cards'>;
 export type BingoSessionInsert = DatabaseTypes.TablesInsert<'bingo_sessions'>;
 export type BingoSessionUpdate = DatabaseTypes.TablesUpdate<'bingo_sessions'>;
-export type BingoSessionPlayerInsert = DatabaseTypes.TablesInsert<'bingo_session_players'>;
-export type BingoSessionQueueInsert = DatabaseTypes.TablesInsert<'bingo_session_queue'>;
-export type BingoSessionQueueUpdate = DatabaseTypes.TablesUpdate<'bingo_session_queue'>;
+export type BingoSessionPlayerInsert =
+  DatabaseTypes.TablesInsert<'bingo_session_players'>;
+export type BingoSessionQueueInsert =
+  DatabaseTypes.TablesInsert<'bingo_session_queue'>;
+export type BingoSessionQueueUpdate =
+  DatabaseTypes.TablesUpdate<'bingo_session_queue'>;
 export type UserActivityInsert = DatabaseTypes.TablesInsert<'user_activity'>;
 export type UserActivityUpdate = DatabaseTypes.TablesUpdate<'user_activity'>;
 
@@ -189,7 +202,13 @@ export interface ProfileFormData {
 export const Constants = {
   public: {
     Enums: {
-      difficulty_level: ['beginner', 'easy', 'medium', 'hard', 'expert'] as const,
+      difficulty_level: [
+        'beginner',
+        'easy',
+        'medium',
+        'hard',
+        'expert',
+      ] as const,
       game_category: [
         'All Games',
         'World of Warcraft',
@@ -220,17 +239,17 @@ export const Constants = {
         'Deep Rock Galactic',
         'Valheim',
         'Subnautica',
-        'No Man\'s Sky',
+        "No Man's Sky",
         'Terraria',
         'Stardew Valley',
         'Animal Crossing',
         'Splatoon 3',
         'Super Mario Odyssey',
         'The Legend of Zelda: Breath of the Wild',
-        'Super Smash Bros. Ultimate'
+        'Super Smash Bros. Ultimate',
       ] as const,
-    }
-  }
+    },
+  },
 } as const;
 
 export const DIFFICULTY_OPTIONS: {
@@ -371,6 +390,6 @@ export * from './domains/community';
 // TABLE TYPE HELPERS
 // =============================================================================
 
-// Type aliases for common table types  
+// Type aliases for common table types
 export type GameResult = DatabaseTypes.Tables<'game_results'>;
 // Tables type is already re-exported above

@@ -102,7 +102,7 @@ export default function BingoBoardsHub() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {boards.map((board) => (
+        {boards.map(board => (
           <BoardCard key={board.id} board={board} />
         ))}
       </div>

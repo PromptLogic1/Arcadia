@@ -1,5 +1,8 @@
 import SettingsComponent from '@/src/features/settings/components/settings';
-import { RouteErrorBoundary, AsyncBoundary } from '@/components/error-boundaries';
+import {
+  RouteErrorBoundary,
+  AsyncBoundary,
+} from '@/components/error-boundaries';
 
 export default function SettingsPage() {
   return (

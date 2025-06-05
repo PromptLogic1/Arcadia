@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
+import {
   sessionQueueService,
   type PlayerQueueData,
   type SessionQueueEntryUpdate,
@@ -21,7 +21,7 @@ export function useSessionQueueQuery(sessionId: string, enabled = true) {
     enabled: enabled && !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Background refetch every 30 seconds
-    select: (data) => data.entries,
+    select: data => data.entries,
   });
 }
 
@@ -35,7 +35,7 @@ export function useSessionQueueStatsQuery(sessionId: string, enabled = true) {
     enabled: enabled && !!sessionId,
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
-    select: (data) => data.stats,
+    select: data => data.stats,
   });
 }
 
@@ -43,8 +43,8 @@ export function useSessionQueueStatsQuery(sessionId: string, enabled = true) {
  * Check if current user is in queue
  */
 export function usePlayerQueueStatusQuery(
-  userId: string, 
-  sessionId: string, 
+  userId: string,
+  sessionId: string,
   enabled = true
 ) {
   return useQuery({
@@ -60,8 +60,8 @@ export function usePlayerQueueStatusQuery(
  * Get player position in queue
  */
 export function usePlayerQueuePositionQuery(
-  userId: string, 
-  sessionId: string, 
+  userId: string,
+  sessionId: string,
   enabled = true
 ) {
   return useQuery({
@@ -70,7 +70,7 @@ export function usePlayerQueuePositionQuery(
     enabled: enabled && !!sessionId && !!userId,
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
-    select: (data) => data.position,
+    select: data => data.position,
   });
 }
 
@@ -81,14 +81,14 @@ export function useAddToQueueMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      sessionId, 
-      playerData 
-    }: { 
-      sessionId: string; 
+    mutationFn: ({
+      sessionId,
+      playerData,
+    }: {
+      sessionId: string;
       playerData: PlayerQueueData;
     }) => sessionQueueService.addToQueue(sessionId, playerData),
-    
+
     onSuccess: (result, variables) => {
       if (result.error) {
         notifications.error(result.error);
@@ -96,24 +96,25 @@ export function useAddToQueueMutation() {
       }
 
       notifications.success('Successfully joined the queue!');
-      
+
       // Invalidate and refetch queue data
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionQueue', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionQueue', variables.sessionId],
       });
-      
+
       logger.info('Player added to queue', {
-        metadata: { 
+        metadata: {
           sessionId: variables.sessionId,
-          playerName: variables.playerData.playerName
-        }
+          playerName: variables.playerData.playerName,
+        },
       });
     },
-    
-    onError: (error) => {
+
+    onError: error => {
       logger.error('Failed to join queue', error as Error);
       notifications.error('Failed to join queue', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description:
+          error instanceof Error ? error.message : 'Please try again',
       });
     },
   });
@@ -126,16 +127,16 @@ export function useUpdateQueueEntryMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      entryId, 
+    mutationFn: ({
+      entryId,
       updates,
-      sessionId: _sessionId
-    }: { 
-      entryId: string; 
+      sessionId: _sessionId,
+    }: {
+      entryId: string;
       updates: SessionQueueEntryUpdate;
       sessionId: string;
     }) => sessionQueueService.updateQueueEntry(entryId, updates),
-    
+
     onSuccess: (result, variables) => {
       if (result.error) {
         notifications.error(result.error);
@@ -143,23 +144,24 @@ export function useUpdateQueueEntryMutation() {
       }
 
       // Invalidate and refetch queue data
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionQueue', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionQueue', variables.sessionId],
       });
-      
+
       logger.info('Queue entry updated', {
-        metadata: { 
+        metadata: {
           entryId: variables.entryId,
           sessionId: variables.sessionId,
-          updates: variables.updates
-        }
+          updates: variables.updates,
+        },
       });
     },
-    
-    onError: (error) => {
+
+    onError: error => {
       logger.error('Failed to update queue entry', error as Error);
       notifications.error('Failed to update queue entry', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description:
+          error instanceof Error ? error.message : 'Please try again',
       });
     },
   });
@@ -172,14 +174,14 @@ export function useRemoveFromQueueMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      entryId, 
-      sessionId: _sessionId 
-    }: { 
-      entryId: string; 
+    mutationFn: ({
+      entryId,
+      sessionId: _sessionId,
+    }: {
+      entryId: string;
       sessionId: string;
     }) => sessionQueueService.removeFromQueue(entryId),
-    
+
     onSuccess: (result, variables) => {
       if (result.error) {
         notifications.error(result.error);
@@ -187,24 +189,25 @@ export function useRemoveFromQueueMutation() {
       }
 
       notifications.success('Removed from queue');
-      
+
       // Invalidate and refetch queue data
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionQueue', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionQueue', variables.sessionId],
       });
-      
+
       logger.info('Player removed from queue', {
-        metadata: { 
+        metadata: {
           entryId: variables.entryId,
-          sessionId: variables.sessionId
-        }
+          sessionId: variables.sessionId,
+        },
       });
     },
-    
-    onError: (error) => {
+
+    onError: error => {
       logger.error('Failed to remove from queue', error as Error);
       notifications.error('Failed to remove from queue', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description:
+          error instanceof Error ? error.message : 'Please try again',
       });
     },
   });
@@ -217,14 +220,14 @@ export function useAcceptPlayerMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      entryId, 
-      sessionId 
-    }: { 
-      entryId: string; 
+    mutationFn: ({
+      entryId,
+      sessionId,
+    }: {
+      entryId: string;
       sessionId: string;
     }) => sessionQueueService.acceptPlayer(entryId, sessionId),
-    
+
     onSuccess: (result, variables) => {
       if (result.error) {
         notifications.error(result.error);
@@ -232,30 +235,31 @@ export function useAcceptPlayerMutation() {
       }
 
       notifications.success('Player accepted into session!');
-      
+
       // Invalidate related queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionQueue', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionQueue', variables.sessionId],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessions', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessions', variables.sessionId],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionPlayers', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionPlayers', variables.sessionId],
       });
-      
+
       logger.info('Player accepted from queue', {
-        metadata: { 
+        metadata: {
           entryId: variables.entryId,
-          sessionId: variables.sessionId
-        }
+          sessionId: variables.sessionId,
+        },
       });
     },
-    
-    onError: (error) => {
+
+    onError: error => {
       logger.error('Failed to accept player', error as Error);
       notifications.error('Failed to accept player', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description:
+          error instanceof Error ? error.message : 'Please try again',
       });
     },
   });
@@ -268,14 +272,14 @@ export function useRejectPlayerMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      entryId, 
-      sessionId: _sessionId 
-    }: { 
-      entryId: string; 
+    mutationFn: ({
+      entryId,
+      sessionId: _sessionId,
+    }: {
+      entryId: string;
       sessionId: string;
     }) => sessionQueueService.rejectPlayer(entryId),
-    
+
     onSuccess: (result, variables) => {
       if (result.error) {
         notifications.error(result.error);
@@ -283,24 +287,25 @@ export function useRejectPlayerMutation() {
       }
 
       notifications.success('Player request rejected');
-      
+
       // Invalidate queue data
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionQueue', variables.sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionQueue', variables.sessionId],
       });
-      
+
       logger.info('Player rejected from queue', {
-        metadata: { 
+        metadata: {
           entryId: variables.entryId,
-          sessionId: variables.sessionId
-        }
+          sessionId: variables.sessionId,
+        },
       });
     },
-    
-    onError: (error) => {
+
+    onError: error => {
       logger.error('Failed to reject player', error as Error);
       notifications.error('Failed to reject player', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description:
+          error instanceof Error ? error.message : 'Please try again',
       });
     },
   });
@@ -313,9 +318,9 @@ export function useCleanupQueueMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (sessionId: string) => 
+    mutationFn: (sessionId: string) =>
       sessionQueueService.cleanupExpiredEntries(sessionId),
-    
+
     onSuccess: (result, sessionId) => {
       if (result.error) {
         notifications.error(result.error);
@@ -323,26 +328,29 @@ export function useCleanupQueueMutation() {
       }
 
       if (result.removedCount > 0) {
-        notifications.success(`Cleaned up ${result.removedCount} expired queue entries`);
+        notifications.success(
+          `Cleaned up ${result.removedCount} expired queue entries`
+        );
       }
-      
+
       // Invalidate queue data
-      queryClient.invalidateQueries({ 
-        queryKey: ['sessionQueue', sessionId] 
+      queryClient.invalidateQueries({
+        queryKey: ['sessionQueue', sessionId],
       });
-      
+
       logger.info('Queue cleanup completed', {
-        metadata: { 
+        metadata: {
           sessionId,
-          removedCount: result.removedCount
-        }
+          removedCount: result.removedCount,
+        },
       });
     },
-    
-    onError: (error) => {
+
+    onError: error => {
       logger.error('Failed to cleanup queue', error as Error);
       notifications.error('Failed to cleanup queue', {
-        description: error instanceof Error ? error.message : 'Please try again'
+        description:
+          error instanceof Error ? error.message : 'Please try again',
       });
     },
   });
@@ -375,8 +383,15 @@ export function useSessionQueueOperations(sessionId: string) {
     return addToQueueMutation.mutateAsync({ sessionId, playerData });
   };
 
-  const updateQueueEntry = (entryId: string, updates: SessionQueueEntryUpdate) => {
-    return updateQueueEntryMutation.mutateAsync({ entryId, updates, sessionId });
+  const updateQueueEntry = (
+    entryId: string,
+    updates: SessionQueueEntryUpdate
+  ) => {
+    return updateQueueEntryMutation.mutateAsync({
+      entryId,
+      updates,
+      sessionId,
+    });
   };
 
   const removeFromQueue = (entryId: string) => {
@@ -411,7 +426,7 @@ export function useSessionQueueOperations(sessionId: string) {
     isCleaningUp: cleanupQueueMutation.isPending,
 
     // Any operation is pending
-    isMutating: 
+    isMutating:
       addToQueueMutation.isPending ||
       updateQueueEntryMutation.isPending ||
       removeFromQueueMutation.isPending ||

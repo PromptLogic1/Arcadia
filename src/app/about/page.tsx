@@ -14,15 +14,15 @@ export default function AboutPage() {
         <h1 className="mb-6 text-4xl font-bold">About Arcadia</h1>
         <div className="prose max-w-none">
           <p className="mb-4 text-lg">
-            Welcome to Arcadia, a comprehensive gaming community platform designed
-            to bring gamers together through challenges, competitions, and
-            collaborative gameplay.
+            Welcome to Arcadia, a comprehensive gaming community platform
+            designed to bring gamers together through challenges, competitions,
+            and collaborative gameplay.
           </p>
           <h2 className="mb-4 text-2xl font-semibold">Our Mission</h2>
           <p className="mb-4">
             Our mission is to create an inclusive and engaging environment where
-            gamers of all skill levels can connect, compete, and grow together. We
-            believe in the power of community-driven gaming experiences.
+            gamers of all skill levels can connect, compete, and grow together.
+            We believe in the power of community-driven gaming experiences.
           </p>
           <h2 className="mb-4 text-2xl font-semibold">Features</h2>
           <ul className="mb-4 list-disc pl-6">

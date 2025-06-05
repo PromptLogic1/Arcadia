@@ -1,6 +1,6 @@
 /**
  * Session Join Service
- * 
+ *
  * Pure functions for session joining operations.
  * No state management - only data fetching and mutations.
  */
@@ -30,17 +30,18 @@ export const sessionJoinService = {
   /**
    * Get session details for joining
    */
-  async getSessionJoinDetails(sessionId: string): Promise<{ 
-    details: SessionJoinDetails | null; 
-    error?: string 
+  async getSessionJoinDetails(sessionId: string): Promise<{
+    details: SessionJoinDetails | null;
+    error?: string;
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get session with board settings
       const { data: sessionData, error: sessionError } = await supabase
         .from('bingo_sessions')
-        .select(`
+        .select(
+          `
           *,
           bingo_boards!inner(
             settings,
@@ -49,14 +50,18 @@ export const sessionJoinService = {
             game_type,
             difficulty
           )
-        `)
+        `
+        )
         .eq('id', sessionId)
         .single();
 
       if (sessionError) {
-        return { 
-          details: null, 
-          error: sessionError.code === 'PGRST116' ? 'Session not found' : sessionError.message 
+        return {
+          details: null,
+          error:
+            sessionError.code === 'PGRST116'
+              ? 'Session not found'
+              : sessionError.message,
         };
       }
 
@@ -66,9 +71,9 @@ export const sessionJoinService = {
 
       // Check if session is joinable
       if (sessionData.status !== 'waiting' && sessionData.status !== 'active') {
-        return { 
-          details: null, 
-          error: `Session is ${sessionData.status}. Cannot join at this time.` 
+        return {
+          details: null,
+          error: `Session is ${sessionData.status}. Cannot join at this time.`,
         };
       }
 
@@ -97,7 +102,10 @@ export const sessionJoinService = {
     } catch (error) {
       return {
         details: null,
-        error: error instanceof Error ? error.message : 'Failed to get session details'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get session details',
       };
     }
   },
@@ -105,15 +113,18 @@ export const sessionJoinService = {
   /**
    * Join a session
    */
-  async joinSession(data: SessionJoinData): Promise<{ 
-    player: BingoSessionPlayer | null; 
-    error?: string 
+  async joinSession(data: SessionJoinData): Promise<{
+    player: BingoSessionPlayer | null;
+    error?: string;
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         return { player: null, error: 'Must be authenticated to join session' };
       }
@@ -127,18 +138,18 @@ export const sessionJoinService = {
         .single();
 
       if (existingPlayer) {
-        return { 
-          player: existingPlayer as BingoSessionPlayer, 
-          error: 'You are already in this session' 
+        return {
+          player: existingPlayer as BingoSessionPlayer,
+          error: 'You are already in this session',
         };
       }
 
       // Verify session is still joinable
       const { details } = await this.getSessionJoinDetails(data.sessionId);
       if (!details?.canJoin) {
-        return { 
-          player: null, 
-          error: details?.reason || 'Cannot join session' 
+        return {
+          player: null,
+          error: details?.reason || 'Cannot join session',
         };
       }
 
@@ -157,9 +168,9 @@ export const sessionJoinService = {
         .single();
 
       if (joinError) {
-        return { 
-          player: null, 
-          error: joinError.message 
+        return {
+          player: null,
+          error: joinError.message,
         };
       }
 
@@ -167,7 +178,8 @@ export const sessionJoinService = {
     } catch (error) {
       return {
         player: null,
-        error: error instanceof Error ? error.message : 'Failed to join session'
+        error:
+          error instanceof Error ? error.message : 'Failed to join session',
       };
     }
   },
@@ -175,16 +187,19 @@ export const sessionJoinService = {
   /**
    * Check if user is already in session
    */
-  async checkUserInSession(sessionId: string): Promise<{ 
-    isInSession: boolean; 
-    player?: BingoSessionPlayer; 
-    error?: string 
+  async checkUserInSession(sessionId: string): Promise<{
+    isInSession: boolean;
+    player?: BingoSessionPlayer;
+    error?: string;
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         return { isInSession: false, error: 'Not authenticated' };
       }
@@ -201,14 +216,17 @@ export const sessionJoinService = {
         return { isInSession: false, error: error.message };
       }
 
-      return { 
-        isInSession: !!player, 
-        player: player as BingoSessionPlayer | undefined 
+      return {
+        isInSession: !!player,
+        player: player as BingoSessionPlayer | undefined,
       };
     } catch (error) {
       return {
         isInSession: false,
-        error: error instanceof Error ? error.message : 'Failed to check session status'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to check session status',
       };
     }
   },
@@ -216,14 +234,14 @@ export const sessionJoinService = {
   /**
    * Get available player colors for session
    */
-  async getAvailableColors(sessionId: string): Promise<{ 
-    availableColors: string[]; 
-    usedColors: string[]; 
-    error?: string 
+  async getAvailableColors(sessionId: string): Promise<{
+    availableColors: string[];
+    usedColors: string[];
+    error?: string;
   }> {
     try {
       const supabase = createClient();
-      
+
       // Get all players in session
       const { data: players, error } = await supabase
         .from('bingo_session_players')
@@ -231,30 +249,44 @@ export const sessionJoinService = {
         .eq('session_id', sessionId);
 
       if (error) {
-        return { 
-          availableColors: [], 
-          usedColors: [], 
-          error: error.message 
+        return {
+          availableColors: [],
+          usedColors: [],
+          error: error.message,
         };
       }
 
       const usedColors = players?.map(p => p.color).filter(Boolean) || [];
-      
+
       // Default available colors (you can import this from constants)
       const allColors = [
-        '#06b6d4', '#8b5cf6', '#ec4899', '#10b981', 
-        '#f59e0b', '#ef4444', '#eab308', '#6366f1',
-        '#14b8a6', '#f43f5e', '#84cc16', '#0ea5e9'
+        '#06b6d4',
+        '#8b5cf6',
+        '#ec4899',
+        '#10b981',
+        '#f59e0b',
+        '#ef4444',
+        '#eab308',
+        '#6366f1',
+        '#14b8a6',
+        '#f43f5e',
+        '#84cc16',
+        '#0ea5e9',
       ];
-      
-      const availableColors = allColors.filter(color => !usedColors.includes(color));
+
+      const availableColors = allColors.filter(
+        color => !usedColors.includes(color)
+      );
 
       return { availableColors, usedColors };
     } catch (error) {
       return {
         availableColors: [],
         usedColors: [],
-        error: error instanceof Error ? error.message : 'Failed to get available colors'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get available colors',
       };
     }
   },

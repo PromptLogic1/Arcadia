@@ -61,3 +61,12 @@ export {
   useUserProfileEditState,
   useUserProfileActivityState,
 } from './user-profile-store';
+
+// Export Game Settings store
+export {
+  useGameSettingsStore,
+  useGameSettingsModal,
+  useGameSettingsPendingChanges,
+  useGameSettingsValidation,
+  DEFAULT_BOARD_SETTINGS,
+} from './game-settings-store';
