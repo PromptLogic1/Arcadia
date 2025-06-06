@@ -48,25 +48,25 @@ export async function GET(request: Request): Promise<NextResponse> {
     const validDifficulty = difficulty && isValidDifficultyLevel(difficulty) ? difficulty : null;
 
     // Use service layer to fetch boards
-    const { boards, error } = await bingoBoardsService.getBoards({
+    const response = await bingoBoardsService.getBoards({
       game: validGame,
       difficulty: validDifficulty,
       limit,
       offset,
     });
 
-    if (error) {
-      log.error('Error fetching bingo boards', new Error(error), {
+    if (!response.success || !response.data) {
+      log.error('Error fetching bingo boards', new Error(response.error || 'Unknown error'), {
         metadata: {
           apiRoute: 'bingo',
           method: 'GET',
           filters: { game, difficulty, limit, offset },
         },
       });
-      return NextResponse.json({ error }, { status: 500 });
+      return NextResponse.json({ error: response.error || 'Failed to fetch boards' }, { status: 500 });
     }
 
-    return NextResponse.json(boards);
+    return NextResponse.json(response.data);
   } catch (error) {
     log.error('Unhandled error in GET /api/bingo', error as Error, {
       metadata: { apiRoute: 'bingo', method: 'GET' },
@@ -86,11 +86,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Use service layer for authentication
-    const { user, error: authError } = await authService.getCurrentUser();
+    const authResponse = await authService.getCurrentUser();
 
-    if (authError || !user) {
+    if (!authResponse.success || !authResponse.data) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const user = authResponse.data;
 
     const body = (await request.json()) as CreateBoardRequest;
     const {
@@ -116,7 +118,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Use service layer to create board
-    const { board, error } = await bingoBoardsService.createBoardFromAPI({
+    const createResponse = await bingoBoardsService.createBoardFromAPI({
       title,
       size,
       settings,
@@ -127,8 +129,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       userId: user.id,
     });
 
-    if (error) {
-      log.error('Error creating bingo board', new Error(error), {
+    if (!createResponse.success || !createResponse.data) {
+      log.error('Error creating bingo board', new Error(createResponse.error || 'Unknown error'), {
         metadata: {
           apiRoute: 'bingo',
           method: 'POST',
@@ -144,8 +146,10 @@ export async function POST(request: Request): Promise<NextResponse> {
           },
         },
       });
-      return NextResponse.json({ error }, { status: 500 });
+      return NextResponse.json({ error: createResponse.error || 'Failed to create board' }, { status: 500 });
     }
+
+    const board = createResponse.data;
 
     return NextResponse.json(board);
   } catch (error) {

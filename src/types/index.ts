@@ -131,7 +131,6 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 export interface BingoCardFilter {
   game?: GameCategory;
   difficulty?: Difficulty;
-  category?: string;
   search?: string;
 }
 
@@ -139,7 +138,7 @@ export interface BingoCardStats {
   total: number;
   completed: number;
   byDifficulty: Record<Difficulty, number>;
-  byCategory: Record<string, number>;
+  byGameType: Record<GameCategory, number>;
 }
 
 // Default bingo card template (without ID for creating new cards)

@@ -21,6 +21,7 @@ export function useAuthSessionQuery() {
     queryFn: authService.getSession,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    select: (response) => response.success ? response.data : null,
   });
 }
 
@@ -36,6 +37,7 @@ export function useCurrentUserQuery() {
     enabled: !authUser, // Don't fetch if we already have user
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    select: (response) => response.success ? response.data : null,
   });
 }
 
@@ -49,6 +51,7 @@ export function useUserDataQuery(userId?: string) {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    select: (response) => response.success ? response.data : null,
   });
 }
 
@@ -62,26 +65,26 @@ export function useSignInMutation() {
   return useMutation({
     mutationFn: authService.signIn,
     onSuccess: async response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success || !response.data || !response.data.user) {
+        notifications.error(response.error || 'Sign in failed');
         return;
       }
 
-      if (response.user) {
-        setAuthUser(response.user);
+      if (response.data.user) {
+        setAuthUser(response.data.user);
 
         // Fetch user data after successful sign in
         try {
-          const { userData } = await authService.getUserData(response.user.id);
-          if (userData) {
-            setUserData(userData);
+          const userDataResponse = await authService.getUserData(response.data.user.id);
+          if (userDataResponse.success && userDataResponse.data) {
+            setUserData(userDataResponse.data);
           }
         } catch (error) {
           logger.error(
             'Failed to fetch user data after sign in',
             error instanceof Error ? error : new Error('Unknown error'),
             {
-              metadata: { userId: response.user.id },
+              metadata: { userId: response.data.user.id },
             }
           );
         }
@@ -89,7 +92,7 @@ export function useSignInMutation() {
         // Invalidate auth queries to refetch fresh data
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.user() });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.auth.userData(response.user.id),
+          queryKey: queryKeys.auth.userData(response.data.user.id),
         });
 
         notifications.success('Signed in successfully!');
@@ -111,20 +114,20 @@ export function useSignUpMutation() {
   return useMutation({
     mutationFn: authService.signUp,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success || !response.data) {
+        notifications.error(response.error || 'Sign up failed');
         return;
       }
 
-      if (response.needsVerification) {
+      if (response.data.needsVerification) {
         notifications.success(
           'Please check your email to verify your account.'
         );
         return;
       }
 
-      if (response.user) {
-        setAuthUser(response.user);
+      if (response.data.user) {
+        setAuthUser(response.data.user);
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.user() });
         notifications.success('Account created successfully!');
       }
@@ -145,8 +148,8 @@ export function useSignOutMutation() {
   return useMutation({
     mutationFn: authService.signOut,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Sign out failed');
         return;
       }
 
@@ -175,17 +178,17 @@ export function useUpdateUserDataMutation(userId: string) {
     mutationFn: (updates: UserUpdateData) =>
       authService.updateUserData(userId, updates),
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success || !response.data) {
+        notifications.error(response.error || 'Failed to update profile');
         return;
       }
 
-      if (response.userData) {
-        setUserData(response.userData);
+      if (response.data) {
+        setUserData(response.data);
 
         // Update cached user data
         queryClient.setQueryData(queryKeys.auth.userData(userId), {
-          userData: response.userData,
+          userData: response.data,
         });
 
         notifications.success('Profile updated successfully!');
@@ -204,8 +207,8 @@ export function useResetPasswordMutation() {
   return useMutation({
     mutationFn: authService.resetPassword,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Password reset failed');
         return;
       }
 
@@ -226,8 +229,8 @@ export function useAuthUpdatePasswordMutation() {
   return useMutation({
     mutationFn: authService.updatePassword,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Password update failed');
         return;
       }
 

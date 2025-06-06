@@ -1,73 +1,52 @@
-'use client';
+/**
+ * Presence Hook
+ *
+ * Manages real-time presence for bingo boards.
+ * Handles connection state, presence updates, and online user tracking.
+ */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   presenceService,
-  PRESENCE_CONSTANTS,
   type PresenceState,
+  PRESENCE_CONSTANTS,
+  type ServiceResponse,
 } from '../../../services/presence-modern.service';
-import { logger } from '@/lib/logger';
+import { useAuth } from '@/lib/stores/auth-store';
+import { log } from '@/lib/logger';
 
-export interface UsePresenceProps {
-  boardId: string;
-  userId?: string;
+export interface UsePresenceOptions {
+  enabled?: boolean;
 }
 
 export interface UsePresenceReturn {
   presenceState: Record<string, PresenceState>;
-  error: Error | null;
-  getOnlineUsers: () => PresenceState[];
-  updatePresence: (status: PresenceState['status']) => Promise<void>;
   isConnected: boolean;
+  error: Error | null;
+  updateActivity: (activity: PresenceState['activity']) => Promise<void>;
+  updateStatus: (status: PresenceState['status']) => Promise<void>;
+  getOnlineUserCount: () => number;
+  isUserOnline: (userId: string) => boolean;
 }
 
-export const usePresence = ({
-  boardId,
-  userId: _userId,
-}: UsePresenceProps): UsePresenceReturn => {
-  // State for presence data
+// Type helper for the update function
+type UpdatePresenceFunc = (status: PresenceState['status']) => Promise<ServiceResponse<void>>;
+
+export function usePresence(
+  boardId: string,
+  options: UsePresenceOptions = {}
+): UsePresenceReturn {
+  const { enabled = true } = options;
+  const { authUser } = useAuth();
+  const isMountedRef = useRef(true);
+
   const [presenceState, setPresenceState] = useState<
     Record<string, PresenceState>
   >({});
-  const [error, setError] = useState<Error | null>(null);
-  const [updatePresenceFunc, setUpdatePresenceFunc] = useState<
-    ((status: PresenceState['status']) => Promise<void>) | null
-  >(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [updatePresenceFunc, setUpdatePresenceFunc] = useState<UpdatePresenceFunc | null>(null);
 
-  // Track mounted state to prevent updates after unmount
-  const isMountedRef = useRef(true);
-
-  // Helper function to get online users
-  const getOnlineUsers = useCallback(
-    () =>
-      Object.values(presenceState).filter(
-        p => p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
-      ),
-    [presenceState]
-  );
-
-  // Update presence status
-  const updatePresence = useCallback(
-    async (status: PresenceState['status']) => {
-      if (!updatePresenceFunc) {
-        logger.warn('Presence not initialized', { metadata: { boardId } });
-        return;
-      }
-
-      try {
-        await updatePresenceFunc(status);
-      } catch (error) {
-        logger.error('Failed to update presence', error as Error, {
-          metadata: { boardId, status },
-        });
-        setError(error as Error);
-      }
-    },
-    [updatePresenceFunc, boardId]
-  );
-
-  // Track mounted state
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -75,81 +54,70 @@ export const usePresence = ({
     };
   }, []);
 
-  // Set up presence subscription
+  // Setup presence subscription
   useEffect(() => {
-    if (!boardId) return;
+    if (!enabled || !boardId || !authUser) {
+      return;
+    }
 
-    logger.debug('Setting up presence subscription', { metadata: { boardId } });
-
-    let cleanup: (() => void) | null = null;
+    let cleanup: (() => Promise<ServiceResponse<void>>) | null = null;
     let isSubscriptionActive = true;
 
     const setupPresence = async () => {
       try {
-        if (!isMountedRef.current) return;
-
-        setError(null);
-        setIsConnected(false);
-
         const subscription = await presenceService.subscribeToPresence(
           boardId,
           {
-            onPresenceUpdate: (
-              newPresenceState: Record<string, PresenceState>
-            ) => {
-              if (!isSubscriptionActive) return;
-
-              logger.debug('Presence state updated', {
-                metadata: {
-                  boardId,
-                  userCount: Object.keys(newPresenceState).length,
-                },
-              });
-              setPresenceState(newPresenceState);
+            onPresenceUpdate: state => {
+              if (!isSubscriptionActive || !isMountedRef.current) return;
+              setPresenceState(state);
             },
+            onUserJoin: (key, presence) => {
+              if (!isSubscriptionActive || !isMountedRef.current) return;
 
-            onUserJoin: (key: string, presence: PresenceState) => {
-              if (!isSubscriptionActive) return;
-
-              logger.debug('User joined presence', {
-                metadata: { boardId, userId: presence.user_id },
-              });
               setPresenceState(prev => ({
                 ...prev,
                 [key]: presence,
               }));
+
+              log.debug('User joined board', {
+                metadata: { boardId, userId: presence.user_id },
+              });
             },
+            onUserLeave: key => {
+              if (!isSubscriptionActive || !isMountedRef.current) return;
 
-            onUserLeave: (key: string) => {
-              if (!isSubscriptionActive) return;
+              setPresenceState(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+              });
 
-              logger.debug('User left presence', {
+              log.debug('User left board', {
                 metadata: { boardId, key },
               });
-              setPresenceState(prev => {
-                const newState = { ...prev };
-                delete newState[key];
-                return newState;
-              });
             },
-
-            onError: (error: Error) => {
-              if (!isSubscriptionActive) return;
-
-              logger.error('Presence error', error, { metadata: { boardId } });
+            onError: error => {
+              if (!isSubscriptionActive || !isMountedRef.current) return;
+              log.error('Presence error', error, { metadata: { boardId } });
               setError(error);
               setIsConnected(false);
             },
           }
         );
 
+        // Check if subscription was successful
+        if (!subscription.success || !subscription.data) {
+          throw new Error(subscription.error || 'Failed to subscribe to presence');
+        }
+
         // Store update function and cleanup
         if (isMountedRef.current && isSubscriptionActive) {
-          setUpdatePresenceFunc(() => subscription.updatePresence);
-          cleanup = subscription.cleanup;
+          setUpdatePresenceFunc(() => subscription.data!.updatePresence);
+          cleanup = subscription.data!.cleanup;
           setIsConnected(true);
 
-          logger.debug('Presence subscription established', {
+          log.debug('Presence subscription established', {
             metadata: { boardId },
           });
         }
@@ -160,7 +128,7 @@ export const usePresence = ({
           error instanceof Error
             ? error
             : new Error('Failed to setup presence');
-        logger.error('Presence setup failed', err, { metadata: { boardId } });
+        log.error('Presence setup failed', err, { metadata: { boardId } });
         setError(err);
         setIsConnected(false);
       }
@@ -173,10 +141,16 @@ export const usePresence = ({
       isSubscriptionActive = false;
 
       if (cleanup) {
-        logger.debug('Cleaning up presence subscription', {
+        log.debug('Cleaning up presence subscription', {
           metadata: { boardId },
         });
-        cleanup();
+        cleanup().then(result => {
+          if (!result.success) {
+            log.error('Presence cleanup failed', new Error(result.error || 'Cleanup failed'), {
+              metadata: { boardId },
+            });
+          }
+        });
       }
 
       if (isMountedRef.current) {
@@ -185,13 +159,90 @@ export const usePresence = ({
         setPresenceState({});
       }
     };
-  }, [boardId]);
+  }, [boardId, enabled, authUser]);
+
+  // Update activity
+  const updateActivity = useCallback(
+    async (activity: PresenceState['activity']) => {
+      if (!isConnected || !authUser) {
+        return;
+      }
+
+      try {
+        const currentPresence = Object.values(presenceState).find(
+          p => p.user_id === authUser.id
+        );
+
+        if (currentPresence) {
+          const result = await presenceService.updatePresence(
+            boardId,
+            authUser.id,
+            currentPresence.status,
+            activity
+          );
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to update activity');
+          }
+        }
+      } catch (error) {
+        log.error(
+          'Failed to update activity',
+          error instanceof Error ? error : new Error('Unknown error'),
+          { metadata: { boardId, activity } }
+        );
+      }
+    },
+    [boardId, authUser, isConnected, presenceState]
+  );
+
+  // Update status
+  const updateStatus = useCallback(
+    async (status: PresenceState['status']) => {
+      if (!isConnected || !updatePresenceFunc) {
+        return;
+      }
+
+      try {
+        const result = await updatePresenceFunc(status);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update status');
+        }
+      } catch (error) {
+        log.error(
+          'Failed to update presence status',
+          error instanceof Error ? error : new Error('Unknown error'),
+          { metadata: { boardId, status } }
+        );
+      }
+    },
+    [boardId, isConnected, updatePresenceFunc]
+  );
+
+  // Get online user count
+  const getOnlineUserCount = useCallback(() => {
+    return Object.values(presenceState).filter(
+      p => p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
+    ).length;
+  }, [presenceState]);
+
+  // Check if specific user is online
+  const isUserOnline = useCallback(
+    (userId: string) => {
+      return Object.values(presenceState).some(
+        p => p.user_id === userId && p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
+      );
+    },
+    [presenceState]
+  );
 
   return {
     presenceState,
-    error,
-    getOnlineUsers,
-    updatePresence,
     isConnected,
+    error,
+    updateActivity,
+    updateStatus,
+    getOnlineUserCount,
+    isUserOnline,
   };
-};
+}

@@ -9,17 +9,35 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { BingoCard } from '@/types';
+import type { Tables } from '@/types/database-generated';
 import type { CardCategory } from '@/features/bingo-boards/types/generator.types';
 import type { Enums, Database } from '@/types/database-generated';
 import { logger } from '@/lib/logger';
-
-export interface ServiceResponse<T> {
-  data: T | null;
-  error: string | null;
-}
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import { z } from 'zod';
 
 type DifficultyLevel = Enums<'difficulty_level'>;
+// The database bingo_cards table is actually board templates, not individual cards
+type BingoBoardTemplate = Tables<'bingo_cards'>;
+
+// Validation schema for bingo_cards table (board templates)
+const bingoBoardTemplateSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  description: z.string().nullable(),
+  game_type: z.string() as z.ZodType<Enums<'game_category'>>,
+  difficulty: z.string() as z.ZodType<Enums<'difficulty_level'>>,
+  creator_id: z.string().nullable(),
+  created_at: z.string().nullable(),
+  updated_at: z.string().nullable(),
+  is_public: z.boolean().nullable(),
+  tags: z.array(z.string()).nullable(),
+  votes: z.number().int().nullable(),
+});
+
+const bingoBoardTemplatesArraySchema = z.array(bingoBoardTemplateSchema);
 
 export interface GenerateBoardParams {
   gameCategory: string;
@@ -33,7 +51,7 @@ export interface GenerateBoardParams {
 }
 
 export interface GenerateBoardResult {
-  cards: BingoCard[];
+  cards: BingoBoardTemplate[];
   totalAvailable: number;
 }
 
@@ -107,21 +125,26 @@ async function generateBoard(
         component: 'BingoGeneratorService',
         metadata: { params },
       });
-      return {
-        data: null,
-        error: error.message,
-      };
+      return createServiceError(error.message);
     }
 
-    if (!cards || cards.length < params.gridSize) {
-      return {
-        data: null,
-        error: `Not enough cards available. Found ${cards?.length || 0} cards but need ${params.gridSize}`,
-      };
+    // Validate cards array
+    const validationResult = bingoBoardTemplatesArraySchema.safeParse(cards);
+    if (!validationResult.success) {
+      logger.error('Cards validation failed', validationResult.error, {
+        component: 'BingoGeneratorService',
+        metadata: { params },
+      });
+      return createServiceError('Invalid card data format');
+    }
+
+    const validatedCards = validationResult.data;
+    if (validatedCards.length < params.gridSize) {
+      return createServiceError(`Not enough cards available. Found ${validatedCards.length} cards but need ${params.gridSize}`);
     }
 
     // Shuffle and select cards for the grid
-    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+    const shuffled = [...validatedCards].sort(() => Math.random() - 0.5);
     const selectedCards = shuffled.slice(0, params.gridSize);
 
     logger.info('Board generated successfully', {
@@ -133,24 +156,17 @@ async function generateBoard(
       },
     });
 
-    return {
-      data: {
-        cards: selectedCards,
-        totalAvailable: cards.length,
-      },
-      error: null,
-    };
+    return createServiceSuccess({
+      cards: selectedCards,
+      totalAvailable: validatedCards.length,
+    });
   } catch (error) {
-    logger.error('Error generating board', error as Error, {
+    logger.error('Error generating board', isError(error) ? error : new Error(String(error)), {
       component: 'BingoGeneratorService',
       metadata: { params },
     });
 
-    return {
-      data: null,
-      error:
-        error instanceof Error ? error.message : 'Failed to generate board',
-    };
+    return createServiceError(getErrorMessage(error));
   }
 }
 
@@ -158,15 +174,12 @@ async function generateBoard(
  * Reshuffle an existing set of cards
  */
 async function reshuffleCards(
-  cards: BingoCard[],
+  cards: BingoBoardTemplate[],
   gridSize: number
-): Promise<ServiceResponse<BingoCard[]>> {
+): Promise<ServiceResponse<BingoBoardTemplate[]>> {
   try {
     if (cards.length < gridSize) {
-      return {
-        data: null,
-        error: `Not enough cards to reshuffle. Have ${cards.length} but need ${gridSize}`,
-      };
+      return createServiceError(`Not enough cards to reshuffle. Have ${cards.length} but need ${gridSize}`);
     }
 
     // Create a new shuffled array
@@ -181,12 +194,9 @@ async function reshuffleCards(
       },
     });
 
-    return {
-      data: reshuffled,
-      error: null,
-    };
+    return createServiceSuccess(reshuffled);
   } catch (error) {
-    logger.error('Error reshuffling cards', error as Error, {
+    logger.error('Error reshuffling cards', isError(error) ? error : new Error(String(error)), {
       component: 'BingoGeneratorService',
       metadata: {
         cardCount: cards.length,
@@ -194,11 +204,7 @@ async function reshuffleCards(
       },
     });
 
-    return {
-      data: null,
-      error:
-        error instanceof Error ? error.message : 'Failed to reshuffle cards',
-    };
+    return createServiceError(getErrorMessage(error));
   }
 }
 

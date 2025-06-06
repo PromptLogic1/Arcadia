@@ -110,7 +110,7 @@ export function BingoBoardEdit({
       1, // page
       50 // limit
     );
-  const publicCards = publicCardsData?.response.cards || [];
+  const publicCards = publicCardsData?.response?.cards || [];
   const voteCardMutation = useVoteCardMutation();
 
   // Initialize board when authenticated
@@ -252,13 +252,21 @@ export function BingoBoardEdit({
         // Creating a new card
         if (index === -1) {
           // Create private card (not placed in grid)
-          const newCard = await boardEdit.createCard(formData);
+          const newCard = await boardEdit.createCard({
+            title: formData.title || '',
+            description: formData.description || undefined,
+            tags: formData.tags || undefined,
+          });
           if (newCard) {
             boardEdit.addPrivateCard(newCard);
           }
         } else {
           // Create card and place in grid
-          const newCard = await boardEdit.createCard(formData);
+          const newCard = await boardEdit.createCard({
+            title: formData.title || '',
+            description: formData.description || undefined,
+            tags: formData.tags || undefined,
+          });
           if (newCard) {
             boardEdit.placeCardInGrid(newCard, index);
           }

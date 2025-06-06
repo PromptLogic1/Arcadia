@@ -10,8 +10,10 @@ import {
   type BoardsQueryParams,
   type CreateBoardData,
   type UpdateBoardData,
+  type BingoBoard,
 } from '../../services/bingo-boards.service';
 import type { CompositeTypes } from '@/types/database-generated';
+import type { ServiceResponse } from '@/lib/service-types';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
 
@@ -21,7 +23,7 @@ export function useBoardQuery(boardId?: string) {
     queryFn: () => bingoBoardsService.getBoardById(boardId || ''),
     enabled: !!boardId,
     staleTime: 2 * 60 * 1000,
-    select: data => data.board,
+    select: data => data.success ? data.data : null,
   });
 }
 
@@ -31,7 +33,7 @@ export function useBoardWithCreatorQuery(boardId?: string) {
     queryFn: () => bingoBoardsService.getBoardWithCreator(boardId || ''),
     enabled: !!boardId,
     staleTime: 2 * 60 * 1000,
-    select: data => data.board,
+    select: data => data.success ? data.data : null,
   });
 }
 
@@ -53,11 +55,10 @@ export function useBoardsBySectionQuery(
     staleTime: 1 * 60 * 1000,
     placeholderData: previousData => previousData, // For smooth pagination
     select: data => {
-      if (data?.error) {
-        console.error('Query error:', data.error);
+      if (!data.success) {
         return { boards: [], totalCount: 0, hasMore: false };
       }
-      return data?.response || { boards: [], totalCount: 0, hasMore: false };
+      return data.data || { boards: [], totalCount: 0, hasMore: false };
     },
   });
 }
@@ -72,11 +73,10 @@ export function usePublicBoardsQuery(
     queryFn: () => bingoBoardsService.getPublicBoards(filters, page, limit),
     staleTime: 1 * 60 * 1000,
     select: data => {
-      if (data?.error) {
-        console.error('Query error:', data.error);
+      if (!data.success) {
         return { boards: [], totalCount: 0, hasMore: false };
       }
-      return data?.response || { boards: [], totalCount: 0, hasMore: false };
+      return data.data || { boards: [], totalCount: 0, hasMore: false };
     },
   });
 }
@@ -87,8 +87,8 @@ export function useCreateBoardMutation() {
   return useMutation({
     mutationFn: (data: CreateBoardData) => bingoBoardsService.createBoard(data),
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Failed to create board');
         return;
       }
       notifications.success('Board created successfully!');
@@ -111,8 +111,8 @@ export function useUpdateBoardMutation() {
       currentVersion?: number;
     }) => bingoBoardsService.updateBoard(boardId, updates, currentVersion),
     onSuccess: (response, variables) => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Failed to update board');
         return;
       }
       notifications.success('Board updated successfully!');
@@ -132,8 +132,8 @@ export function useDeleteBoardMutation() {
   return useMutation({
     mutationFn: (boardId: string) => bingoBoardsService.deleteBoard(boardId),
     onSuccess: (response, boardId) => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Failed to delete board');
         return;
       }
       notifications.success('Board deleted successfully!');
@@ -159,8 +159,8 @@ export function useCloneBoardMutation() {
       newTitle?: string;
     }) => bingoBoardsService.cloneBoard(boardId, userId, newTitle),
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Failed to clone board');
         return;
       }
       notifications.success('Board cloned successfully!');
@@ -175,8 +175,8 @@ export function useVoteBoardMutation() {
   return useMutation({
     mutationFn: (boardId: string) => bingoBoardsService.voteBoard(boardId),
     onSuccess: (response, boardId) => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success) {
+        notifications.error(response.error || 'Failed to vote on board');
         return;
       }
 
@@ -251,7 +251,7 @@ export function useUpdateBoardStateMutation() {
       // Update the board data with server response
       queryClient.setQueryData(
         ['bingoBoards', 'byId', variables.boardId],
-        response.board
+        response.data
       );
     },
   });
@@ -275,10 +275,10 @@ export function useUpdateBoardSettingsMutation() {
       >;
       currentVersion?: number;
     }) =>
-      bingoBoardsService.updateBoardSettings(boardId, settings, currentVersion),
-    onSuccess: (response, variables) => {
-      if (response.error) {
-        notifications.error(response.error);
+      bingoBoardsService.updateBoard(boardId, settings, currentVersion),
+    onSuccess: (response: ServiceResponse<BingoBoard>, variables) => {
+      if (!response.success || response.error) {
+        notifications.error(response.error || 'Failed to update board settings');
         return;
       }
       notifications.success('Board settings updated successfully!');

@@ -78,25 +78,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await initializeAppRef.current();
 
         // Get initial session using auth service
-        const { session, error } = await authService.getSession();
+        const sessionResponse = await authService.getSession();
 
-        if (error) {
-          logger.error('Failed to get initial session', new Error(error), {
+        if (!sessionResponse.success) {
+          logger.error('Failed to get initial session', new Error(sessionResponse.error || 'Unknown error'), {
             metadata: { component: 'AuthProvider' },
           });
         }
 
         if (mounted) {
-          setUser(session?.user ?? null);
+          setUser(sessionResponse.data?.user ?? null);
           setLoading(false);
           setInitialized(true);
           setStoreLoading(false);
 
           // Set Sentry user context
-          if (session?.user) {
+          if (sessionResponse.data?.user) {
             setSentryUser({
-              id: session.user.id,
-              email: session.user.email || undefined,
+              id: sessionResponse.data.user.id,
+              email: sessionResponse.data.user.email || undefined,
             });
           }
         }

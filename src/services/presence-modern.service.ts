@@ -6,20 +6,30 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import { logger } from '@/lib/logger';
+import { log } from '@/lib/logger';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+
+// Re-export ServiceResponse for consumers
+export type { ServiceResponse } from '@/lib/service-types';
+import { z } from 'zod';
 // RealtimePresenceState available if needed
 
-export interface PresenceState {
-  user_id: string;
-  online_at: number;
-  last_seen_at: number;
-  status: 'online' | 'away' | 'busy';
-  activity?: 'viewing' | 'playing' | 'editing';
-}
+// Validation schemas
+const presenceStateSchema = z.object({
+  user_id: z.string(),
+  online_at: z.number(),
+  last_seen_at: z.number(),
+  status: z.enum(['online', 'away', 'busy']),
+  activity: z.enum(['viewing', 'playing', 'editing']).optional(),
+});
 
-interface PresenceStateWithRef extends PresenceState {
-  presence_ref: string;
-}
+const presenceStateWithRefSchema = presenceStateSchema.extend({
+  presence_ref: z.string(),
+});
+
+export type PresenceState = z.infer<typeof presenceStateSchema>;
+type PresenceStateWithRef = z.infer<typeof presenceStateWithRefSchema>;
 
 // Constants
 export const PRESENCE_CONSTANTS = {
@@ -50,6 +60,11 @@ export interface PresenceSubscriptionOptions {
   onError?: (error: Error) => void;
 }
 
+export interface PresenceSubscriptionResult {
+  updatePresence: (status: PresenceState['status']) => Promise<ServiceResponse<void>>;
+  cleanup: () => Promise<ServiceResponse<void>>;
+}
+
 class PresenceService {
   private supabase = createClient();
   private channels = new Map<
@@ -65,10 +80,7 @@ class PresenceService {
   async subscribeToPresence(
     boardId: string,
     options: PresenceSubscriptionOptions = {}
-  ): Promise<{
-    updatePresence: (status: PresenceState['status']) => Promise<void>;
-    cleanup: () => void;
-  }> {
+  ): Promise<ServiceResponse<PresenceSubscriptionResult>> {
     const { onPresenceUpdate, onUserJoin, onUserLeave, onError } = options;
     const channelName = `presence:bingo:${boardId}`;
 
@@ -79,7 +91,10 @@ class PresenceService {
         error: authError,
       } = await this.supabase.auth.getUser();
       if (authError || !user) {
-        throw new Error('User not authenticated');
+        log.error('User not authenticated for presence', authError || new Error('No user'), {
+          metadata: { boardId, service: 'presenceService' },
+        });
+        return createServiceError('User not authenticated');
       }
 
       // Clean up existing subscription if any
@@ -93,17 +108,20 @@ class PresenceService {
       channel
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState<PresenceStateWithRef>();
-          const typedState = Object.entries(state).reduce(
+          const typedState = Object.entries(state).reduce<Record<string, PresenceState>>(
             (acc, [key, value]) => {
               if (Array.isArray(value) && value[0]) {
-                acc[key] = convertPresence(value[0]);
+                const validation = presenceStateWithRefSchema.safeParse(value[0]);
+                if (validation.success) {
+                  acc[key] = convertPresence(validation.data);
+                }
               }
               return acc;
             },
-            {} as Record<string, PresenceState>
+            {}
           );
 
-          logger.debug('Presence state synced', {
+          log.debug('Presence state synced', {
             metadata: { boardId, userCount: Object.keys(typedState).length },
           });
           onPresenceUpdate?.(typedState);
@@ -112,19 +130,19 @@ class PresenceService {
           if (newPresences?.[0]) {
             // Type guard validation for presence state
             const rawPresence = newPresences[0];
-            if (!rawPresence || typeof rawPresence !== 'object') return;
-
-            const presence = rawPresence as PresenceStateWithRef; // Safe: validated above
-            const convertedPresence = convertPresence(presence);
-
-            logger.debug('User joined presence', {
-              metadata: { boardId, userId: convertedPresence.user_id },
-            });
-            onUserJoin?.(key, convertedPresence);
+            const validation = presenceStateWithRefSchema.safeParse(rawPresence);
+            
+            if (validation.success) {
+              const convertedPresence = convertPresence(validation.data);
+              log.debug('User joined presence', {
+                metadata: { boardId, userId: convertedPresence.user_id },
+              });
+              onUserJoin?.(key, convertedPresence);
+            }
           }
         })
         .on('presence', { event: 'leave' }, ({ key }) => {
-          logger.debug('User left presence', {
+          log.debug('User left presence', {
             metadata: { boardId, key },
           });
           onUserLeave?.(key);
@@ -134,20 +152,26 @@ class PresenceService {
       await new Promise<void>((resolve, reject) => {
         channel.subscribe(async status => {
           if (status === 'SUBSCRIBED') {
-            logger.debug('Presence channel subscribed', {
+            log.debug('Presence channel subscribed', {
               metadata: { boardId },
             });
 
             // Initial presence update
-            await this.updatePresence(
+            const updateResult = await this.updatePresence(
               boardId,
               user.id,
               PRESENCE_CONSTANTS.STATUS.ONLINE
             );
+            
+            if (!updateResult.success) {
+              reject(new Error(updateResult.error || 'Failed to update initial presence'));
+              return;
+            }
+            
             resolve();
           } else if (status === 'CHANNEL_ERROR') {
             const error = new Error('Failed to subscribe to presence channel');
-            logger.error('Presence subscription failed', error, {
+            log.error('Presence subscription failed', error, {
               metadata: { boardId },
             });
             reject(error);
@@ -163,16 +187,16 @@ class PresenceService {
           document.hidden
             ? PRESENCE_CONSTANTS.STATUS.AWAY
             : PRESENCE_CONSTANTS.STATUS.ONLINE
-        ).catch(error => {
-          logger.error(
-            'Heartbeat presence update failed',
-            error instanceof Error
-              ? error
-              : new Error('Unknown heartbeat error'),
-            {
-              metadata: { boardId },
-            }
-          );
+        ).then(result => {
+          if (!result.success) {
+            log.error(
+              'Heartbeat presence update failed',
+              new Error(result.error || 'Unknown heartbeat error'),
+              {
+                metadata: { boardId },
+              }
+            );
+          }
         });
       }, PRESENCE_CONSTANTS.TIMING.HEARTBEAT_INTERVAL);
 
@@ -184,16 +208,16 @@ class PresenceService {
           ? PRESENCE_CONSTANTS.STATUS.AWAY
           : PRESENCE_CONSTANTS.STATUS.ONLINE;
 
-        this.updatePresence(boardId, user.id, status).catch(error => {
-          logger.error(
-            'Visibility change presence update failed',
-            error instanceof Error
-              ? error
-              : new Error('Unknown visibility error'),
-            {
-              metadata: { boardId },
-            }
-          );
+        this.updatePresence(boardId, user.id, status).then(result => {
+          if (!result.success) {
+            log.error(
+              'Visibility change presence update failed',
+              new Error(result.error || 'Unknown visibility error'),
+              {
+                metadata: { boardId },
+              }
+            );
+          }
         });
       };
 
@@ -202,22 +226,24 @@ class PresenceService {
 
       // Return control functions
       const updatePresence = async (status: PresenceState['status']) => {
-        await this.updatePresence(boardId, user.id, status);
+        return await this.updatePresence(boardId, user.id, status);
       };
 
-      const cleanup = () => this.cleanup(boardId);
+      const cleanup = async () => {
+        return await this.cleanupWithResponse(boardId);
+      };
 
-      return { updatePresence, cleanup };
+      return createServiceSuccess({ updatePresence, cleanup });
     } catch (error) {
       const err =
         error instanceof Error
           ? error
           : new Error('Failed to subscribe to presence');
-      logger.error('Presence subscription error', err, {
-        metadata: { boardId },
+      log.error('Presence subscription error', err, {
+        metadata: { boardId, service: 'presenceService' },
       });
       onError?.(err);
-      throw err;
+      return createServiceError(err.message);
     }
   }
 
@@ -229,11 +255,11 @@ class PresenceService {
     userId: string,
     status: PresenceState['status'],
     activity: PresenceState['activity'] = 'viewing'
-  ): Promise<void> {
+  ): Promise<ServiceResponse<void>> {
     try {
       const channel = this.channels.get(boardId);
       if (!channel) {
-        throw new Error('Channel not found');
+        return createServiceError('Channel not found');
       }
 
       await channel.track({
@@ -243,17 +269,35 @@ class PresenceService {
         status,
         activity,
       });
+
+      return createServiceSuccess(undefined);
     } catch (error) {
-      logger.error(
+      log.error(
         'Failed to update presence',
         error instanceof Error
           ? error
           : new Error('Unknown presence update error'),
         {
-          metadata: { boardId, userId, status },
+          metadata: { boardId, userId, status, service: 'presenceService' },
         }
       );
-      throw error;
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to update presence'
+      );
+    }
+  }
+
+  /**
+   * Clean up presence subscription for a specific board (with response)
+   */
+  async cleanupWithResponse(boardId: string): Promise<ServiceResponse<void>> {
+    try {
+      await this.cleanup(boardId);
+      return createServiceSuccess(undefined);
+    } catch (error) {
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to cleanup presence'
+      );
     }
   }
 
@@ -283,13 +327,13 @@ class PresenceService {
         this.channels.delete(boardId);
       }
 
-      logger.debug('Presence cleaned up', { metadata: { boardId } });
+      log.debug('Presence cleaned up', { metadata: { boardId } });
     } catch (error) {
-      logger.error(
+      log.error(
         'Failed to cleanup presence',
         error instanceof Error ? error : new Error('Unknown cleanup error'),
         {
-          metadata: { boardId },
+          metadata: { boardId, service: 'presenceService' },
         }
       );
     }
@@ -298,11 +342,25 @@ class PresenceService {
   /**
    * Clean up all presence subscriptions
    */
-  async cleanupAll(): Promise<void> {
-    const boardIds = Array.from(this.channels.keys());
-    await Promise.all(boardIds.map(boardId => this.cleanup(boardId)));
+  async cleanupAll(): Promise<ServiceResponse<void>> {
+    try {
+      const boardIds = Array.from(this.channels.keys());
+      await Promise.all(boardIds.map(boardId => this.cleanup(boardId)));
 
-    logger.debug('All presence subscriptions cleaned up');
+      log.debug('All presence subscriptions cleaned up');
+      return createServiceSuccess(undefined);
+    } catch (error) {
+      log.error(
+        'Failed to cleanup all presence subscriptions',
+        error instanceof Error ? error : new Error('Unknown cleanup error'),
+        {
+          metadata: { service: 'presenceService' },
+        }
+      );
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to cleanup all presence subscriptions'
+      );
+    }
   }
 
   /**
@@ -310,30 +368,39 @@ class PresenceService {
    */
   getCurrentPresenceState(
     boardId: string
-  ): Record<string, PresenceState> | null {
+  ): ServiceResponse<Record<string, PresenceState>> {
     const channel = this.channels.get(boardId);
-    if (!channel) return null;
+    if (!channel) {
+      return createServiceError('Channel not found');
+    }
 
     try {
       const state = channel.presenceState<PresenceStateWithRef>();
-      return Object.entries(state).reduce(
+      const validatedState = Object.entries(state).reduce<Record<string, PresenceState>>(
         (acc, [key, value]) => {
           if (Array.isArray(value) && value[0]) {
-            acc[key] = convertPresence(value[0]);
+            const validation = presenceStateWithRefSchema.safeParse(value[0]);
+            if (validation.success) {
+              acc[key] = convertPresence(validation.data);
+            }
           }
           return acc;
         },
-        {} as Record<string, PresenceState>
+        {}
       );
+
+      return createServiceSuccess(validatedState);
     } catch (error) {
-      logger.error(
+      log.error(
         'Failed to get current presence state',
         error instanceof Error ? error : new Error('Unknown state error'),
         {
-          metadata: { boardId },
+          metadata: { boardId, service: 'presenceService' },
         }
       );
-      return null;
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to get current presence state'
+      );
     }
   }
 }

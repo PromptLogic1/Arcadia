@@ -125,7 +125,7 @@ function TryDemoGame() {
         },
       });
 
-      if (result.session && result.session.session_code) {
+      if (result.success && result.data && result.data.session_code) {
         // Add the host as a player
         const displayName =
           authUser?.username ||
@@ -135,7 +135,7 @@ function TryDemoGame() {
 
         // Join the session we just created
         const joinResult = await joinSessionByCodeMutation.mutateAsync({
-          sessionCode: result.session.session_code,
+          sessionCode: result.data.session_code,
           user_id: authUser.id,
           display_name: displayName,
           color,
@@ -222,7 +222,7 @@ function TryDemoGame() {
           },
         });
 
-        if (result.session && result.session.session_code) {
+        if (result.success && result.data && result.data.session_code) {
           // Add the host as a player
           const displayName =
             authUser.username ||
@@ -232,7 +232,7 @@ function TryDemoGame() {
 
           // Join the session we just created
           const joinResult = await joinSessionByCodeMutation.mutateAsync({
-            sessionCode: result.session.session_code,
+            sessionCode: result.data.session_code,
             user_id: authUser.id,
             display_name: displayName,
             color,

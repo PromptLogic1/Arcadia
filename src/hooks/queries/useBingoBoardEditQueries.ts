@@ -20,6 +20,20 @@ export function useBoardEditDataQuery(boardId: string, enabled = true) {
     queryFn: () => bingoBoardEditService.getBoardForEdit(boardId),
     enabled: enabled && !!boardId,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    select: (response) => {
+      if (response.success && response.data) {
+        return {
+          board: response.data.board,
+          cards: response.data.cards,
+          error: undefined,
+        };
+      }
+      return {
+        board: null,
+        cards: [],
+        error: response.error || 'Failed to load board data',
+      };
+    },
   });
 }
 
@@ -32,6 +46,24 @@ export function useBoardInitializationQuery(boardId: string, enabled = true) {
     queryFn: () => bingoBoardEditService.initializeBoardData(boardId),
     enabled: enabled && !!boardId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (response) => {
+      if (response.success && response.data) {
+        return {
+          board: response.data.board,
+          gridCards: response.data.gridCards,
+          privateCards: response.data.privateCards,
+          success: true,
+          error: undefined,
+        };
+      }
+      return {
+        board: undefined,
+        gridCards: undefined,
+        privateCards: undefined,
+        success: false,
+        error: response.error || 'Failed to initialize board data',
+      };
+    },
   });
 }
 
@@ -45,14 +77,14 @@ export function useSaveCardsMutation() {
     mutationFn: (cards: CardInsertData[]) =>
       bingoBoardEditService.saveCards(cards),
     onSuccess: (result, _variables) => {
-      if (result.error) {
-        notifications.error(result.error);
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to save cards');
         return;
       }
 
-      if (result.savedCards.length > 0) {
+      if (result.data.length > 0) {
         notifications.success(
-          `Saved ${result.savedCards.length} cards successfully!`
+          `Saved ${result.data.length} cards successfully!`
         );
 
         // Invalidate relevant queries
@@ -85,8 +117,8 @@ export function useUpdateBoardMutation() {
       currentVersion: number;
     }) => bingoBoardEditService.updateBoard(boardId, updates, currentVersion),
     onSuccess: (result, variables) => {
-      if (result.error) {
-        notifications.error(result.error);
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to update board');
         return;
       }
 
@@ -103,7 +135,7 @@ export function useUpdateBoardMutation() {
           if (oldData?.board) {
             return {
               ...oldData,
-              board: result.board,
+              board: result.data,
             };
           }
           return oldData;
@@ -134,8 +166,8 @@ export function useCreateCardMutation() {
     mutationFn: (cardData: CardInsertData) =>
       bingoBoardEditService.createCard(cardData),
     onSuccess: result => {
-      if (result.error) {
-        notifications.error(result.error);
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to create card');
         return;
       }
 
@@ -168,8 +200,8 @@ export function useUpdateCardMutation() {
       updates: Partial<BingoCard>;
     }) => bingoBoardEditService.updateCard(cardId, updates),
     onSuccess: result => {
-      if (result.error) {
-        notifications.error(result.error);
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to update card');
         return;
       }
 
@@ -188,80 +220,11 @@ export function useUpdateCardMutation() {
 }
 
 /**
- * Combined hook for board editing operations
+ * Board edit query mutations collection
  */
-export function useBoardEditOperations(boardId: string) {
-  // Queries
-  const boardDataQuery = useBoardEditDataQuery(boardId);
-  const initializationQuery = useBoardInitializationQuery(boardId);
-
-  // Mutations
-  const saveCardsMutation = useSaveCardsMutation();
-  const updateBoardMutation = useUpdateBoardMutation();
-  const createCardMutation = useCreateCardMutation();
-  const updateCardMutation = useUpdateCardMutation();
-
-  // Derived state
-  const isLoading = boardDataQuery.isLoading || initializationQuery.isLoading;
-  const error = boardDataQuery.error || initializationQuery.error;
-  const board = boardDataQuery.data?.board || initializationQuery.data?.board;
-  const cards = boardDataQuery.data?.cards || [];
-  const gridCards = initializationQuery.data?.gridCards || [];
-  const privateCards = initializationQuery.data?.privateCards || [];
-
-  // Actions
-  const saveCards = (cards: CardInsertData[]) => {
-    return saveCardsMutation.mutateAsync(cards);
-  };
-
-  const updateBoard = (updates: BoardEditData, currentVersion: number) => {
-    return updateBoardMutation.mutateAsync({
-      boardId,
-      updates,
-      currentVersion,
-    });
-  };
-
-  const createCard = (cardData: CardInsertData) => {
-    return createCardMutation.mutateAsync(cardData);
-  };
-
-  const updateCard = (cardId: string, updates: Partial<BingoCard>) => {
-    return updateCardMutation.mutateAsync({ cardId, updates });
-  };
-
-  return {
-    // State
-    board,
-    cards,
-    gridCards,
-    privateCards,
-    isLoading,
-    error,
-
-    // Loading states for individual operations
-    isSavingCards: saveCardsMutation.isPending,
-    isUpdatingBoard: updateBoardMutation.isPending,
-    isCreatingCard: createCardMutation.isPending,
-    isUpdatingCard: updateCardMutation.isPending,
-
-    // Any operation is pending
-    isMutating:
-      saveCardsMutation.isPending ||
-      updateBoardMutation.isPending ||
-      createCardMutation.isPending ||
-      updateCardMutation.isPending,
-
-    // Actions
-    saveCards,
-    updateBoard,
-    createCard,
-    updateCard,
-
-    // Query actions
-    refetch: () => {
-      boardDataQuery.refetch();
-      initializationQuery.refetch();
-    },
-  };
-}
+export const boardEditMutations = {
+  useSaveCards: useSaveCardsMutation,
+  useUpdateBoard: useUpdateBoardMutation,
+  useCreateCard: useCreateCardMutation,
+  useUpdateCard: useUpdateCardMutation,
+};

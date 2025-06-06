@@ -110,7 +110,7 @@ const initialState: CommunityState = {
   showCreateDiscussionDialog: false,
   showDiscussionDetailsDialog: false,
   createDiscussionForm: null,
-  events: [], // Mock data
+  events: [], // TODO: Replace with TanStack Query hook once real community API is implemented
 };
 
 export const useCommunityStore = createWithEqualityFn<

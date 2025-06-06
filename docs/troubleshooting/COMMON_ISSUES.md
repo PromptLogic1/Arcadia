@@ -1,16 +1,41 @@
 # Common Issues & Solutions
 
-This guide covers frequently encountered issues and their solutions.
+This guide covers frequently encountered issues and their solutions based on the current project state.
+
+## Current Known Issues (January 2025)
+
+### Critical Issues Fixed ✅
+- **TypeScript Errors**: 0 errors (was 97+)
+- **React Hook Violations**: Fixed
+- **Memory Leaks**: Fixed with proper cleanup
+
+### Active Issues ⚠️
+
+1. **69% of API routes lack input validation**
+   - Add Zod schemas to all routes
+   - See `/docs/api/RATE_LIMITING_STRATEGY.md` for examples
+
+2. **Service layer has 37 type assertions**
+   - Replace `as Type` with proper validation
+   - See `/docs/reports/SERVICE_LAYER_REVIEW.md`
+
+3. **In-memory rate limiting won't scale**
+   - Works in dev, needs Redis for production
+   - Current implementation in `/src/lib/rate-limiter.ts`
+
+4. **0% test coverage**
+   - Jest configured but no tests written
+   - Start with service layer tests
 
 ## Build & Development Issues
 
 ### TypeScript Errors
 
 **Problem**: Build fails with TypeScript errors  
-**Solution**:
+**Solution**: This should not happen as we have 0 TypeScript errors. If you see errors:
 
 - Run `npm run type-check` to see all errors
-- Fix each error individually - do not use `any` or `@ts-ignore`
+- DO NOT use `any` or `@ts-ignore` - fix the actual issue
 - Check that types are properly imported
 - Ensure database types are up-to-date: `mcp__supabase__generate_typescript_types`
 

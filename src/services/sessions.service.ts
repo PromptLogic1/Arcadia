@@ -7,6 +7,11 @@
 
 import { createClient } from '@/lib/supabase';
 import type { Tables, Enums, CompositeTypes } from '@/types/database-generated';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import { bingoSessionSchema, sessionStatsArraySchema } from '@/lib/validation/schemas/bingo';
+import { log } from '@/lib/logger';
 
 // Use database types
 export type BingoSession = Tables<'bingo_sessions'>;
@@ -14,6 +19,17 @@ export type SessionPlayer = Tables<'bingo_session_players'>;
 export type SessionSettings = CompositeTypes<'session_settings'>;
 export type SessionStatus = Enums<'session_status'>;
 export type GameCategory = Enums<'game_category'>;
+
+// Type for session_stats view which includes additional fields
+export interface SessionWithStats extends BingoSession {
+  current_player_count?: number | null;
+  board_title?: string | null;
+  board_game_type?: GameCategory | null;
+  board_difficulty?: Enums<'difficulty_level'> | null;
+  has_password?: boolean | null;
+  max_players?: number | null;
+  host_username?: string | null;
+}
 
 // API payload types
 export interface CreateSessionData {
@@ -50,9 +66,7 @@ export const sessionsService = {
   /**
    * Get session by ID
    */
-  async getSessionById(
-    sessionId: string
-  ): Promise<{ session: BingoSession | null; error?: string }> {
+  async getSessionById(sessionId: string): Promise<ServiceResponse<BingoSession>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -62,25 +76,33 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        return { session: null, error: error.message };
+        log.error('Failed to get session by ID', error, {
+          metadata: { service: 'sessions.service', method: 'getSessionById', sessionId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { session: data as BingoSession };
+      const validationResult = bingoSessionSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Session validation failed', validationResult.error, {
+          metadata: { service: 'sessions.service', method: 'getSessionById', sessionId },
+        });
+        return createServiceError('Invalid session data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        session: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch session',
-      };
+      log.error('Unexpected error getting session', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'sessions.service', method: 'getSessionById', sessionId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Get session by code
    */
-  async getSessionByCode(
-    sessionCode: string
-  ): Promise<{ session: BingoSession | null; error?: string }> {
+  async getSessionByCode(sessionCode: string): Promise<ServiceResponse<BingoSession>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -90,18 +112,26 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        return { session: null, error: error.message };
+        log.error('Failed to get session by code', error, {
+          metadata: { service: 'sessions.service', method: 'getSessionByCode', sessionCode },
+        });
+        return createServiceError(error.message);
       }
 
-      return { session: data as BingoSession };
+      const validationResult = bingoSessionSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Session validation failed', validationResult.error, {
+          metadata: { service: 'sessions.service', method: 'getSessionByCode', sessionCode },
+        });
+        return createServiceError('Invalid session data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        session: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch session by code',
-      };
+      log.error('Unexpected error getting session by code', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'sessions.service', method: 'getSessionByCode', sessionCode },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -112,7 +142,7 @@ export const sessionsService = {
     filters: SessionFilters = {},
     page = 1,
     limit = 20
-  ): Promise<{ sessions: BingoSession[]; totalCount: number; error?: string }> {
+  ): Promise<ServiceResponse<{ sessions: SessionWithStats[]; totalCount: number }>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -148,35 +178,37 @@ export const sessionsService = {
         .range(start, end);
 
       if (error) {
-        return {
-          sessions: [],
-          totalCount: 0,
-          error: error.message,
-        };
+        log.error('Failed to get active sessions', error, {
+          metadata: { service: 'sessions.service', method: 'getActiveSessions', filters },
+        });
+        return createServiceError(error.message);
       }
 
-      return {
-        sessions: (data || []) as BingoSession[],
+      // Validate with session stats schema
+      const validationResult = sessionStatsArraySchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Session stats validation failed', validationResult.error, {
+          metadata: { service: 'sessions.service', method: 'getActiveSessions' },
+        });
+        return createServiceError('Invalid session data format');
+      }
+
+      return createServiceSuccess({
+        sessions: validationResult.data,
         totalCount: count || 0,
-      };
+      });
     } catch (error) {
-      return {
-        sessions: [],
-        totalCount: 0,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch active sessions',
-      };
+      log.error('Unexpected error getting active sessions', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'sessions.service', method: 'getActiveSessions', filters },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Create a new session
    */
-  async createSession(
-    sessionData: CreateSessionData
-  ): Promise<{ session: BingoSession | null; error?: string }> {
+  async createSession(sessionData: CreateSessionData): Promise<ServiceResponse<BingoSession>> {
     try {
       const supabase = createClient();
 
@@ -207,16 +239,26 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        return { session: null, error: error.message };
+        log.error('Failed to create session', error, {
+          metadata: { service: 'sessions.service', method: 'createSession', boardId: sessionData.board_id },
+        });
+        return createServiceError(error.message);
       }
 
-      return { session: data as BingoSession };
+      const validationResult = bingoSessionSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Created session validation failed', validationResult.error, {
+          metadata: { service: 'sessions.service', method: 'createSession' },
+        });
+        return createServiceError('Invalid session data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        session: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to create session',
-      };
+      log.error('Unexpected error creating session', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'sessions.service', method: 'createSession', sessionData },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 

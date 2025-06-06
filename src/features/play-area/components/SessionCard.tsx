@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Users,
   Clock,
@@ -20,26 +20,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 // Types
-import type { BingoSession } from '../../../services/sessions.service';
+import type { SessionWithStats } from '../../../services/sessions.service';
 
 interface SessionCardProps {
-  session: BingoSession & {
-    current_player_count?: number;
-    max_players?: number;
-    board?: {
-      title?: string;
-      description?: string;
-      difficulty?: string;
-      size?: number;
-      game_type?: string;
-    };
-    host?: {
-      display_name?: string;
-      user?: {
-        avatar_url?: string;
-      };
-    };
-  };
+  session: SessionWithStats;
   onJoin: () => void;
   currentUserId?: string;
   className?: string;
@@ -79,9 +63,9 @@ export function SessionCard({
   const canJoin = !isHost && !isFull && session.status === 'waiting';
 
   const difficultyColor =
-    session.board?.difficulty && session.board.difficulty in DIFFICULTY_COLORS
+    session.board_difficulty && session.board_difficulty in DIFFICULTY_COLORS
       ? DIFFICULTY_COLORS[
-          session.board.difficulty as keyof typeof DIFFICULTY_COLORS
+          session.board_difficulty as keyof typeof DIFFICULTY_COLORS
         ]
       : 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
@@ -108,7 +92,7 @@ export function SessionCard({
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
               <CardTitle className="mb-2 truncate text-lg text-gray-100">
-                {session.board?.title || 'Untitled Board'}
+                {session.board_title || 'Untitled Board'}
               </CardTitle>
 
               <div className="mb-3 flex flex-wrap gap-2">
@@ -116,7 +100,7 @@ export function SessionCard({
                   variant="outline"
                   className={cn('text-xs', difficultyColor)}
                 >
-                  {session.board?.difficulty || 'Unknown'}
+                  {session.board_difficulty || 'Unknown'}
                 </Badge>
 
                 <Badge variant="outline" className={cn('text-xs', statusColor)}>
@@ -132,15 +116,11 @@ export function SessionCard({
                   className="border-gray-600 text-xs text-gray-300"
                 >
                   <Grid3X3 className="mr-1 h-3 w-3" />
-                  {session.board?.size || 5}×{session.board?.size || 5}
+                  5×5
                 </Badge>
               </div>
 
-              {session.board?.description && (
-                <p className="mb-3 line-clamp-2 text-sm text-gray-400">
-                  {session.board.description}
-                </p>
-              )}
+              {/* Board description not available in session stats */}
             </div>
 
             <div className="ml-4 flex flex-col items-end gap-2">
@@ -183,15 +163,14 @@ export function SessionCard({
             {/* Host Information */}
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={session.host?.user?.avatar_url} />
                 <AvatarFallback className="bg-gray-700 text-xs text-gray-300">
-                  {session.host?.display_name?.[0]?.toUpperCase() || 'H'}
+                  {session.host_username?.[0]?.toUpperCase() || 'H'}
                 </AvatarFallback>
               </Avatar>
 
               <div>
                 <p className="text-sm font-medium text-gray-200">
-                  {session.host?.display_name || 'Unknown Host'}
+                  {session.host_username || 'Unknown Host'}
                 </p>
                 <div className="flex items-center text-xs text-gray-400">
                   <Calendar className="mr-1 h-3 w-3" />
@@ -252,12 +231,12 @@ export function SessionCard({
           </div>
 
           {/* Game Category */}
-          {session.board?.game_type &&
-            session.board.game_type !== 'All Games' && (
+          {session.board_game_type &&
+            session.board_game_type !== 'All Games' && (
               <div className="mt-3 border-t border-gray-700 pt-3">
                 <div className="flex items-center text-sm text-gray-400">
                   <span className="mr-2 font-medium text-gray-300">Game:</span>
-                  {session.board.game_type}
+                  {session.board_game_type}
                 </div>
               </div>
             )}

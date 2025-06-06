@@ -20,12 +20,12 @@ function OAuthSuccessContent() {
     isLoading: sessionLoading,
     error: sessionError,
   } = useAuthSessionQuery();
-  const session = sessionData?.session;
+  const session = sessionData;
 
   const { data: userData, isLoading: userLoading } = useUserDataQuery(
     session?.user?.id
   );
-  const username = userData?.userData?.username;
+  const username = userData?.username;
 
   useEffect(() => {
     // Redirect if no session

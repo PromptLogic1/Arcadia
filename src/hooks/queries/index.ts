@@ -45,7 +45,7 @@ export {
   useUpdateBoardMutation as useUpdateBoardEditMutation,
   useCreateCardMutation as useCreateBoardEditCardMutation,
   useUpdateCardMutation as useUpdateBoardEditCardMutation,
-  useBoardEditOperations,
+  boardEditMutations,
 } from './useBingoBoardEditQueries';
 // Export session state queries separately to avoid conflicts
 export {

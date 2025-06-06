@@ -13,10 +13,11 @@ import type {
   Enums,
   CompositeTypes,
 } from '@/types/database-generated';
-// Only import what's actually used
-import { validateBingoBoard } from '@/lib/validation/validators';
-// Available if needed: createServiceSuccess, createServiceError, ServiceResponse
-// validateBingoBoardArray, validateSupabaseResponse, validateSupabaseArrayResponse
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import { bingoBoardSchema, bingoBoardsArraySchema } from '@/lib/validation/schemas/bingo';
+import { log } from '@/lib/logger';
 
 // Type aliases for clean usage
 type BoardCell = CompositeTypes<'board_cell'>;
@@ -25,23 +26,6 @@ export type BingoBoardInsert = TablesInsert<'bingo_boards'>;
 export type BingoBoardUpdate = TablesUpdate<'bingo_boards'>;
 export type GameCategory = Enums<'game_category'>;
 export type DifficultyLevel = Enums<'difficulty_level'>;
-
-// SAFE BOARD CONVERSION - REPLACES type assertion `} as BingoBoard`
-function convertDbBoardToAppBoard(dbBoard: Tables<'bingo_boards'>): BingoBoard {
-  // SAFE VALIDATION - Use proper validation instead of type assertion
-  const validation = validateBingoBoard({
-    ...dbBoard,
-    created_at: dbBoard.created_at || new Date().toISOString(),
-    updated_at: dbBoard.updated_at || new Date().toISOString(),
-  });
-
-  if (!validation.success) {
-    // Fallback to original data if validation fails
-    return dbBoard;
-  }
-
-  return validation.data;
-}
 
 export interface CreateBoardData {
   title: string;
@@ -88,13 +72,15 @@ export interface PaginatedBoardsResponse {
   hasMore: boolean;
 }
 
+export interface BoardWithCreator extends BingoBoard {
+  creator?: { username: string; avatar_url: string | null };
+}
+
 export const bingoBoardsService = {
   /**
    * Get board by ID
    */
-  async getBoardById(
-    boardId: string
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
+  async getBoardById(boardId: string): Promise<ServiceResponse<BingoBoard>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -104,15 +90,26 @@ export const bingoBoardsService = {
         .single();
 
       if (error) {
-        return { board: null, error: error.message };
+        log.error('Failed to get board by ID', error, {
+          metadata: { service: 'bingo-boards', method: 'getBoardById', boardId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { board: convertDbBoardToAppBoard(data) };
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Board validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'getBoardById', boardId },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        board: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch board',
-      };
+      log.error('Unexpected error getting board', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'getBoardById', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -123,7 +120,7 @@ export const bingoBoardsService = {
     filters: BoardFilters = {},
     page = 1,
     limit = 20
-  ): Promise<{ response: PaginatedBoardsResponse; error?: string }> {
+  ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -155,30 +152,30 @@ export const bingoBoardsService = {
         .range(start, end);
 
       if (error) {
-        return {
-          response: { boards: [], totalCount: 0, hasMore: false },
-          error: error.message,
-        };
+        log.error('Failed to get public boards', error, {
+          metadata: { service: 'bingo-boards', method: 'getPublicBoards', filters },
+        });
+        return createServiceError(error.message);
       }
 
-      const totalCount = count || 0;
-      const hasMore = totalCount > end + 1;
+      const validationResult = bingoBoardsArraySchema.safeParse(data || []);
+      if (!validationResult.success) {
+        log.error('Boards validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'getPublicBoards' },
+        });
+        return createServiceError('Invalid boards data format');
+      }
 
-      return {
-        response: {
-          boards: (data || []).map(convertDbBoardToAppBoard),
-          totalCount,
-          hasMore,
-        },
-      };
+      return createServiceSuccess({
+        boards: validationResult.data,
+        totalCount: count || 0,
+        hasMore: (count || 0) > end + 1,
+      });
     } catch (error) {
-      return {
-        response: { boards: [], totalCount: 0, hasMore: false },
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch public boards',
-      };
+      log.error('Unexpected error getting public boards', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'getPublicBoards', filters },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -190,7 +187,7 @@ export const bingoBoardsService = {
     filters: BoardFilters = {},
     page = 1,
     limit = 20
-  ): Promise<{ response: PaginatedBoardsResponse; error?: string }> {
+  ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -226,39 +223,37 @@ export const bingoBoardsService = {
         .range(start, end);
 
       if (error) {
-        return {
-          response: { boards: [], totalCount: 0, hasMore: false },
-          error: error.message,
-        };
+        log.error('Failed to get user boards', error, {
+          metadata: { service: 'bingo-boards', method: 'getUserBoards', userId },
+        });
+        return createServiceError(error.message);
       }
 
-      const totalCount = count || 0;
-      const hasMore = totalCount > end + 1;
+      const validationResult = bingoBoardsArraySchema.safeParse(data || []);
+      if (!validationResult.success) {
+        log.error('User boards validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'getUserBoards', userId },
+        });
+        return createServiceError('Invalid boards data format');
+      }
 
-      return {
-        response: {
-          boards: (data || []).map(convertDbBoardToAppBoard),
-          totalCount,
-          hasMore,
-        },
-      };
+      return createServiceSuccess({
+        boards: validationResult.data,
+        totalCount: count || 0,
+        hasMore: (count || 0) > end + 1,
+      });
     } catch (error) {
-      return {
-        response: { boards: [], totalCount: 0, hasMore: false },
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch user boards',
-      };
+      log.error('Unexpected error getting user boards', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'getUserBoards', userId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Create a new board
    */
-  async createBoard(
-    boardData: CreateBoardData
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
+  async createBoard(boardData: CreateBoardData): Promise<ServiceResponse<BingoBoard>> {
     try {
       const supabase = createClient();
 
@@ -267,8 +262,12 @@ export const bingoBoardsService = {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
+      
       if (userError || !user) {
-        return { board: null, error: 'Must be authenticated to create board' };
+        log.error('User authentication failed for board creation', userError || new Error('No user'), {
+          metadata: { service: 'bingo-boards', method: 'createBoard' },
+        });
+        return createServiceError('Must be authenticated to create board');
       }
 
       const gridSize = boardData.size || 5;
@@ -310,16 +309,26 @@ export const bingoBoardsService = {
         .single();
 
       if (error) {
-        return { board: null, error: error.message };
+        log.error('Failed to create board', error, {
+          metadata: { service: 'bingo-boards', method: 'createBoard', userId: user.id },
+        });
+        return createServiceError(error.message);
       }
 
-      return { board: convertDbBoardToAppBoard(data) };
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Created board validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'createBoard' },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        board: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to create board',
-      };
+      log.error('Unexpected error creating board', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'createBoard' },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -330,7 +339,7 @@ export const bingoBoardsService = {
     boardId: string,
     updates: UpdateBoardData,
     currentVersion?: number
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
+  ): Promise<ServiceResponse<BingoBoard>> {
     try {
       const supabase = createClient();
 
@@ -353,29 +362,38 @@ export const bingoBoardsService = {
       if (error) {
         // Handle version conflict
         if (error.code === 'PGRST116') {
-          return {
-            board: null,
-            error:
-              'Board was modified by another user. Please refresh and try again.',
-          };
+          log.warn('Board version conflict', {
+            metadata: { service: 'bingo-boards', method: 'updateBoard', boardId, currentVersion, errorCode: error.code },
+          });
+          return createServiceError('Board was modified by another user. Please refresh and try again.');
         }
-        return { board: null, error: error.message };
+        log.error('Failed to update board', error, {
+          metadata: { service: 'bingo-boards', method: 'updateBoard', boardId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { board: convertDbBoardToAppBoard(data) };
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Updated board validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'updateBoard', boardId },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        board: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to update board',
-      };
+      log.error('Unexpected error updating board', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'updateBoard', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Delete a board
    */
-  async deleteBoard(boardId: string): Promise<{ error?: string }> {
+  async deleteBoard(boardId: string): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -384,24 +402,93 @@ export const bingoBoardsService = {
         .eq('id', boardId);
 
       if (error) {
-        return { error: error.message };
+        log.error('Failed to delete board', error, {
+          metadata: { service: 'bingo-boards', method: 'deleteBoard', boardId },
+        });
+        return createServiceError(error.message);
       }
 
-      return {};
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        error:
-          error instanceof Error ? error.message : 'Failed to delete board',
-      };
+      log.error('Unexpected error deleting board', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'deleteBoard', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Clone/duplicate a board
+   */
+  async cloneBoard(
+    boardId: string,
+    userId: string,
+    newTitle?: string
+  ): Promise<ServiceResponse<BingoBoard>> {
+    try {
+      const supabase = createClient();
+
+      // First get the original board
+      const { data: originalBoard, error: fetchError } = await supabase
+        .from('bingo_boards')
+        .select('*')
+        .eq('id', boardId)
+        .single();
+
+      if (fetchError) {
+        log.error('Failed to fetch board for cloning', fetchError, {
+          metadata: { service: 'bingo-boards', method: 'cloneBoard', boardId },
+        });
+        return createServiceError(fetchError.message);
+      }
+
+      // Create new board with same structure
+      const { data, error } = await supabase
+        .from('bingo_boards')
+        .insert({
+          title: newTitle || `${originalBoard.title} (Copy)`,
+          description: originalBoard.description,
+          game_type: originalBoard.game_type,
+          difficulty: originalBoard.difficulty,
+          size: originalBoard.size,
+          is_public: false, // Cloned boards are private by default
+          creator_id: userId,
+          board_state: originalBoard.board_state,
+          votes: 0,
+          version: 1,
+          created_at: new Date().toISOString(),
+        })
+        .select('*')
+        .single();
+
+      if (error) {
+        log.error('Failed to clone board', error, {
+          metadata: { service: 'bingo-boards', method: 'cloneBoard', boardId, userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Cloned board validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'cloneBoard', boardId },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
+    } catch (error) {
+      log.error('Unexpected error cloning board', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'cloneBoard', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Vote on a board (increment vote count)
    */
-  async voteBoard(
-    boardId: string
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
+  async voteBoard(boardId: string): Promise<ServiceResponse<BingoBoard>> {
     try {
       const supabase = createClient();
 
@@ -413,7 +500,10 @@ export const bingoBoardsService = {
         .single();
 
       if (fetchError) {
-        return { board: null, error: fetchError.message };
+        log.error('Failed to fetch board for voting', fetchError, {
+          metadata: { service: 'bingo-boards', method: 'voteBoard', boardId },
+        });
+        return createServiceError(fetchError.message);
       }
 
       // Increment vote count
@@ -427,71 +517,26 @@ export const bingoBoardsService = {
         .single();
 
       if (error) {
-        return { board: null, error: error.message };
+        log.error('Failed to update vote count', error, {
+          metadata: { service: 'bingo-boards', method: 'voteBoard', boardId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { board: convertDbBoardToAppBoard(data) };
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Voted board validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'voteBoard', boardId },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        board: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to vote on board',
-      };
-    }
-  },
-
-  /**
-   * Clone/duplicate a board
-   */
-  async cloneBoard(
-    boardId: string,
-    userId: string,
-    newTitle?: string
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
-    try {
-      const supabase = createClient();
-
-      // First get the original board
-      const { data: originalBoard, error: fetchError } = await supabase
-        .from('bingo_boards')
-        .select('*')
-        .eq('id', boardId)
-        .single();
-
-      if (fetchError) {
-        return { board: null, error: fetchError.message };
-      }
-
-      // Create new board with same structure
-      const { data, error } = await supabase
-        .from('bingo_boards')
-        .insert({
-          title: newTitle || `${originalBoard.title} (Copy)`,
-          description: originalBoard.description,
-          game_type: originalBoard.game_type,
-          difficulty: originalBoard.difficulty,
-          size: originalBoard.size,
-          // tags: (originalBoard.tags as string[]) || [], // TODO: Add tags when board_tags table is implemented
-          is_public: false, // Cloned boards are private by default
-          creator_id: userId,
-          board_state: originalBoard.board_state,
-          votes: 0,
-          version: 1,
-          created_at: new Date().toISOString(),
-        })
-        .select('*')
-        .single();
-
-      if (error) {
-        return { board: null, error: error.message };
-      }
-
-      return { board: convertDbBoardToAppBoard(data) };
-    } catch (error) {
-      return {
-        board: null,
-        error: error instanceof Error ? error.message : 'Failed to clone board',
-      };
+      log.error('Unexpected error voting on board', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'voteBoard', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -502,7 +547,7 @@ export const bingoBoardsService = {
     boardId: string,
     boardState: BoardCell[],
     currentVersion?: number
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
+  ): Promise<ServiceResponse<BingoBoard>> {
     try {
       const supabase = createClient();
 
@@ -525,94 +570,40 @@ export const bingoBoardsService = {
       if (error) {
         // Handle version conflict
         if (error.code === 'PGRST116') {
-          return {
-            board: null,
-            error:
-              'Board was modified by another user. Please refresh and try again.',
-          };
+          log.warn('Board state version conflict', {
+            metadata: { service: 'bingo-boards', method: 'updateBoardState', boardId, currentVersion, errorCode: error.code },
+          });
+          return createServiceError('Board was modified by another user. Please refresh and try again.');
         }
-        return { board: null, error: error.message };
+        log.error('Failed to update board state', error, {
+          metadata: { service: 'bingo-boards', method: 'updateBoardState', boardId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { board: convertDbBoardToAppBoard(data) };
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Updated board state validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'updateBoardState', boardId },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        board: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update board state',
-      };
+      log.error('Unexpected error updating board state', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'updateBoardState', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
-   * Update board settings only (title, description, etc.)
+   * Get board with creator information
    */
-  async updateBoardSettings(
-    boardId: string,
-    settings: Partial<
-      Pick<
-        BingoBoardUpdate,
-        'title' | 'description' | 'difficulty' | 'is_public'
-      >
-    >,
-    currentVersion?: number
-  ): Promise<{ board: BingoBoard | null; error?: string }> {
-    try {
-      const supabase = createClient();
-
-      let query = supabase
-        .from('bingo_boards')
-        .update({
-          ...settings,
-          version: (currentVersion || 0) + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', boardId);
-
-      // Optimistic concurrency control
-      if (currentVersion !== undefined) {
-        query = query.eq('version', currentVersion);
-      }
-
-      const { data, error } = await query.select().single();
-
-      if (error) {
-        // Handle version conflict
-        if (error.code === 'PGRST116') {
-          return {
-            board: null,
-            error:
-              'Board was modified by another user. Please refresh and try again.',
-          };
-        }
-        return { board: null, error: error.message };
-      }
-
-      return { board: convertDbBoardToAppBoard(data) };
-    } catch (error) {
-      return {
-        board: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update board settings',
-      };
-    }
-  },
-
-  /**
-   * Get board with creator information for display
-   */
-  async getBoardWithCreator(boardId: string): Promise<{
-    board:
-      | (BingoBoard & {
-          creator?: { username: string; avatar_url: string | null };
-        })
-      | null;
-    error?: string;
-  }> {
+  async getBoardWithCreator(boardId: string): Promise<ServiceResponse<BingoBoard & {
+    creator?: { username: string; avatar_url: string | null };
+  }>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -630,13 +621,22 @@ export const bingoBoardsService = {
         .single();
 
       if (error) {
-        return { board: null, error: error.message };
+        log.error('Failed to get board with creator', error, {
+          metadata: { service: 'bingo-boards', method: 'getBoardWithCreator', boardId },
+        });
+        return createServiceError(error.message);
       }
 
-      // Transform data to include creator information
-      const board = convertDbBoardToAppBoard(data);
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Board with creator validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'getBoardWithCreator', boardId },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
       const boardWithCreator = {
-        ...board,
+        ...validationResult.data,
         creator: data.users
           ? {
               username: data.users.username,
@@ -645,24 +645,21 @@ export const bingoBoardsService = {
           : undefined,
       };
 
-      return { board: boardWithCreator };
+      return createServiceSuccess(boardWithCreator);
     } catch (error) {
-      return {
-        board: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch board with creator',
-      };
+      log.error('Unexpected error getting board with creator', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'getBoardWithCreator', boardId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
-   * Unified method to get boards by section with filters and pagination
+   * Get boards by section with filters
    */
   async getBoardsBySection(
     params: BoardsQueryParams
-  ): Promise<{ response: PaginatedBoardsResponse; error?: string }> {
+  ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
       const supabase = createClient();
       const { section, filters, page, limit, userId } = params;
@@ -683,19 +680,13 @@ export const bingoBoardsService = {
       switch (section) {
         case 'my-boards':
           if (!userId) {
-            return {
-              response: { boards: [], totalCount: 0, hasMore: false },
-              error: 'User ID required for my-boards section',
-            };
+            return createServiceError('User ID required for my-boards section');
           }
           query = query.eq('creator_id', userId);
           break;
         case 'bookmarked':
           // TODO: Implement bookmarks functionality when user_bookmarks table is added
-          return {
-            response: { boards: [], totalCount: 0, hasMore: false },
-            error: 'Bookmarks functionality not yet implemented',
-          };
+          return createServiceError('Bookmarks functionality not yet implemented');
         case 'all':
         default:
           query = query.eq('is_public', true);
@@ -746,28 +737,30 @@ export const bingoBoardsService = {
       const { data, error, count } = await query.range(start, end);
 
       if (error) {
-        return {
-          response: { boards: [], totalCount: 0, hasMore: false },
-          error: error.message,
-        };
+        log.error('Failed to get boards by section', error, {
+          metadata: { service: 'bingo-boards', method: 'getBoardsBySection', section, userId },
+        });
+        return createServiceError(error.message);
       }
 
-      const totalCount = count || 0;
-      const hasMore = totalCount > end + 1;
+      const validationResult = bingoBoardsArraySchema.safeParse(data || []);
+      if (!validationResult.success) {
+        log.error('Boards by section validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'getBoardsBySection', section },
+        });
+        return createServiceError('Invalid boards data format');
+      }
 
-      return {
-        response: {
-          boards: (data || []).map(convertDbBoardToAppBoard),
-          totalCount,
-          hasMore,
-        },
-      };
+      return createServiceSuccess({
+        boards: validationResult.data,
+        totalCount: count || 0,
+        hasMore: (count || 0) > end + 1,
+      });
     } catch (error) {
-      return {
-        response: { boards: [], totalCount: 0, hasMore: false },
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch boards',
-      };
+      log.error('Unexpected error getting boards by section', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'getBoardsBySection', params },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -779,7 +772,7 @@ export const bingoBoardsService = {
     difficulty?: DifficultyLevel | null;
     limit?: number;
     offset?: number;
-  }): Promise<{ boards: (BingoBoard & { creator?: { username: string; avatar_url: string | null } })[] | null; error?: string }> {
+  }): Promise<ServiceResponse<BoardWithCreator[]>> {
     try {
       const supabase = createClient();
       const { game, difficulty, limit = 10, offset = 0 } = params;
@@ -811,29 +804,35 @@ export const bingoBoardsService = {
       const { data, error } = await query;
 
       if (error) {
-        return { boards: null, error: error.message };
+        log.error('Failed to get boards', error, {
+          metadata: { service: 'bingo-boards', method: 'getBoards', params },
+        });
+        return createServiceError(error.message);
       }
 
-      // Transform data to include creator information
-      const boards = (data || []).map(board => {
-        const convertedBoard = convertDbBoardToAppBoard(board);
-        return {
-          ...convertedBoard,
-          creator: board.creator
-            ? {
-                username: board.creator.username,
-                avatar_url: board.creator.avatar_url,
-              }
-            : undefined,
-        };
-      });
+      // Transform and validate data
+      const boards: BoardWithCreator[] = [];
+      for (const board of data || []) {
+        const validationResult = bingoBoardSchema.safeParse(board);
+        if (validationResult.success) {
+          boards.push({
+            ...validationResult.data,
+            creator: board.creator
+              ? {
+                  username: board.creator.username,
+                  avatar_url: board.creator.avatar_url,
+                }
+              : undefined,
+          });
+        }
+      }
 
-      return { boards };
+      return createServiceSuccess(boards);
     } catch (error) {
-      return {
-        boards: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch boards',
-      };
+      log.error('Unexpected error getting boards', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'getBoards', params },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -849,7 +848,7 @@ export const bingoBoardsService = {
     is_public: boolean;
     board_state: BoardCell[];
     userId: string;
-  }): Promise<{ board: BingoBoard | null; error?: string }> {
+  }): Promise<ServiceResponse<BingoBoard>> {
     try {
       const supabase = createClient();
       const {
@@ -876,20 +875,37 @@ export const bingoBoardsService = {
           board_state,
           status: 'draft' as const,
           cloned_from: null,
+          tags: [],
+          votes: 0,
+          version: 1,
+          description: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
 
       if (error) {
-        return { board: null, error: error.message };
+        log.error('Failed to create board from API', error, {
+          metadata: { service: 'bingo-boards', method: 'createBoardFromAPI', userId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { board: convertDbBoardToAppBoard(data) };
+      const validationResult = bingoBoardSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Created board validation failed', validationResult.error, {
+          metadata: { service: 'bingo-boards', method: 'createBoardFromAPI' },
+        });
+        return createServiceError('Invalid board data format');
+      }
+
+      return createServiceSuccess(validationResult.data);
     } catch (error) {
-      return {
-        board: null,
-        error: error instanceof Error ? error.message : 'Failed to create board',
-      };
+      log.error('Unexpected error creating board from API', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'bingo-boards', method: 'createBoardFromAPI' },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

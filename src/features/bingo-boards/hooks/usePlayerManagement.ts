@@ -11,7 +11,7 @@ import { PLAYER_COLORS } from '@/types';
 // Removed useGameAnalytics import - replaced with simple stub
 import { useGameSettings } from './useGameSettings';
 import { usePresence } from './usePresence';
-import { logger } from '@/src/lib/logger';
+import { log } from '@/lib/logger';
 
 type PlayerEvent = {
   type: string;
@@ -100,7 +100,7 @@ export const usePlayerManagement = ({
     []
   );
   const { settings } = useGameSettings(sessionId);
-  const { presenceState } = usePresence({ boardId: sessionId });
+  const { presenceState } = usePresence(sessionId);
 
   // Refs to prevent stale closures
   const trackMoveRef = useRef(trackMove);
@@ -137,7 +137,7 @@ export const usePlayerManagement = ({
         trackMoveRef.current(event.playerId, 'team_switch', event.newTeam);
       }
     } catch (error) {
-      logger.error('Error emitting player event', error as Error, {
+      log.error('Error emitting player event', error as Error, {
         metadata: { hook: 'usePlayerManagement', event },
       });
     }

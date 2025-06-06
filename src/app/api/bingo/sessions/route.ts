@@ -85,7 +85,7 @@ export const POST = withRateLimit(
     }
 
     // Create session using the service
-    const { session, error: sessionError } = await sessionsService.createSession({
+    const sessionResponse = await sessionsService.createSession({
       board_id: boardId,
       host_id: user.id,
       settings: {
@@ -98,9 +98,11 @@ export const POST = withRateLimit(
       },
     });
 
-    if (sessionError || !session) {
-      throw new Error(sessionError || 'Failed to create session');
+    if (!sessionResponse.success || !sessionResponse.data) {
+      throw new Error(sessionResponse.error || 'Failed to create session');
     }
+
+    const session = sessionResponse.data;
 
     // Join the session as the host
     const { player, error: playerError } = await sessionsService.joinSession({

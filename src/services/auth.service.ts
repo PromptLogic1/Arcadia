@@ -7,8 +7,12 @@
 
 import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from '@/lib/stores/types';
-// Validation imports available if needed later
 import { transformDbUserToUserData } from '@/lib/stores/auth-store';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import { userSchema } from '@/lib/validation/schemas/users';
+import { log } from '@/lib/logger';
 
 export interface SignInCredentials {
   email: string;
@@ -21,9 +25,8 @@ export interface SignUpCredentials {
   username?: string;
 }
 
-export interface AuthResponse {
+export interface AuthResponseData {
   user?: AuthUser;
-  error?: string;
   needsVerification?: boolean;
 }
 
@@ -40,41 +43,44 @@ export const authService = {
   /**
    * Get current session
    */
-  async getSession(): Promise<{
-    session: { user: { id: string; email?: string | null } } | null;
-    error?: string;
-  }> {
+  async getSession(): Promise<ServiceResponse<{ user: { id: string; email?: string | null } } | null>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
-        return { session: null, error: error.message };
+        log.error('Failed to get session', error, {
+          metadata: { service: 'auth.service', method: 'getSession' },
+        });
+        return createServiceError(error.message);
       }
 
-      return { session: data.session };
+      return createServiceSuccess(data.session);
     } catch (error) {
-      return {
-        session: null,
-        error: error instanceof Error ? error.message : 'Failed to get session',
-      };
+      log.error('Unexpected error getting session', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'getSession' },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Get current authenticated user
    */
-  async getCurrentUser(): Promise<{ user: AuthUser | null; error?: string }> {
+  async getCurrentUser(): Promise<ServiceResponse<AuthUser | null>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.getUser();
 
       if (error) {
-        return { user: null, error: error.message };
+        log.error('Failed to get current user', error, {
+          metadata: { service: 'auth.service', method: 'getCurrentUser' },
+        });
+        return createServiceError(error.message);
       }
 
       if (!data.user) {
-        return { user: null };
+        return createServiceSuccess(null);
       }
 
       // Transform Supabase user to our AuthUser type
@@ -89,21 +95,19 @@ export const authService = {
         userRole: 'user', // Default role
       };
 
-      return { user: authUser };
+      return createServiceSuccess(authUser);
     } catch (error) {
-      return {
-        user: null,
-        error: error instanceof Error ? error.message : 'Failed to get user',
-      };
+      log.error('Unexpected error getting current user', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'getCurrentUser' },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Get user profile data from users table
    */
-  async getUserData(
-    userId: string
-  ): Promise<{ userData: UserData | null; error?: string }> {
+  async getUserData(userId: string): Promise<ServiceResponse<UserData>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -113,36 +117,50 @@ export const authService = {
         .single();
 
       if (error) {
-        return { userData: null, error: error.message };
+        log.error('Failed to get user data', error, {
+          metadata: { service: 'auth.service', method: 'getUserData', userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      // Validate the data from database
+      const validationResult = userSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('User data validation failed', validationResult.error, {
+          metadata: { service: 'auth.service', method: 'getUserData', userId },
+        });
+        return createServiceError('Invalid user data format');
       }
 
       // SAFE TRANSFORMATION - Use proper UserData transformation
-      const userData = transformDbUserToUserData(data);
-      return { userData };
+      const userData = transformDbUserToUserData(validationResult.data);
+      return createServiceSuccess(userData);
     } catch (error) {
-      return {
-        userData: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to get user data',
-      };
+      log.error('Unexpected error getting user data', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'getUserData', userId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Sign in with email and password
    */
-  async signIn(credentials: SignInCredentials): Promise<AuthResponse> {
+  async signIn(credentials: SignInCredentials): Promise<ServiceResponse<AuthResponseData>> {
     try {
       const supabase = createClient();
       const { data, error } =
         await supabase.auth.signInWithPassword(credentials);
 
       if (error) {
-        return { error: error.message };
+        log.error('Sign in failed', error, {
+          metadata: { service: 'auth.service', method: 'signIn', email: credentials.email },
+        });
+        return createServiceError(error.message);
       }
 
       if (!data.user) {
-        return { error: 'No user returned from sign in' };
+        return createServiceError('No user returned from sign in');
       }
 
       const authUser: AuthUser = {
@@ -156,18 +174,19 @@ export const authService = {
         userRole: 'user',
       };
 
-      return { user: authUser };
+      return createServiceSuccess({ user: authUser });
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Sign in failed',
-      };
+      log.error('Unexpected error during sign in', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'signIn', email: credentials.email },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Sign up with email and password
    */
-  async signUp(credentials: SignUpCredentials): Promise<AuthResponse> {
+  async signUp(credentials: SignUpCredentials): Promise<ServiceResponse<AuthResponseData>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
@@ -181,16 +200,19 @@ export const authService = {
       });
 
       if (error) {
-        return { error: error.message };
+        log.error('Sign up failed', error, {
+          metadata: { service: 'auth.service', method: 'signUp', email: credentials.email },
+        });
+        return createServiceError(error.message);
       }
 
       if (!data.user) {
-        return { error: 'No user returned from sign up' };
+        return createServiceError('No user returned from sign up');
       }
 
       // Check if email verification is required
       if (!data.user.email_confirmed_at) {
-        return { needsVerification: true };
+        return createServiceSuccess({ needsVerification: true });
       }
 
       const authUser: AuthUser = {
@@ -204,31 +226,36 @@ export const authService = {
         userRole: 'user',
       };
 
-      return { user: authUser };
+      return createServiceSuccess({ user: authUser });
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Sign up failed',
-      };
+      log.error('Unexpected error during sign up', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'signUp', email: credentials.email },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Sign out current user
    */
-  async signOut(): Promise<{ error?: string }> {
+  async signOut(): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        return { error: error.message };
+        log.error('Sign out failed', error, {
+          metadata: { service: 'auth.service', method: 'signOut' },
+        });
+        return createServiceError(error.message);
       }
 
-      return {};
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Sign out failed',
-      };
+      log.error('Unexpected error during sign out', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'signOut' },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -238,7 +265,7 @@ export const authService = {
   async updateUserData(
     userId: string,
     updates: UserUpdateData
-  ): Promise<{ userData: UserData | null; error?: string }> {
+  ): Promise<ServiceResponse<UserData>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -252,45 +279,60 @@ export const authService = {
         .single();
 
       if (error) {
-        return { userData: null, error: error.message };
+        log.error('Failed to update user data', error, {
+          metadata: { service: 'auth.service', method: 'updateUserData', userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      // Validate the data from database
+      const validationResult = userSchema.safeParse(data);
+      if (!validationResult.success) {
+        log.error('Updated user data validation failed', validationResult.error, {
+          metadata: { service: 'auth.service', method: 'updateUserData', userId },
+        });
+        return createServiceError('Invalid user data format');
       }
 
       // SAFE TRANSFORMATION - Use proper UserData transformation
-      const userData = transformDbUserToUserData(data);
-      return { userData };
+      const userData = transformDbUserToUserData(validationResult.data);
+      return createServiceSuccess(userData);
     } catch (error) {
-      return {
-        userData: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to update user data',
-      };
+      log.error('Unexpected error updating user data', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'updateUserData', userId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Reset password
    */
-  async resetPassword(email: string): Promise<{ error?: string }> {
+  async resetPassword(email: string): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email);
 
       if (error) {
-        return { error: error.message };
+        log.error('Password reset failed', error, {
+          metadata: { service: 'auth.service', method: 'resetPassword', email },
+        });
+        return createServiceError(error.message);
       }
 
-      return {};
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Password reset failed',
-      };
+      log.error('Unexpected error during password reset', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'resetPassword', email },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Update password
    */
-  async updatePassword(newPassword: string): Promise<{ error?: string }> {
+  async updatePassword(newPassword: string): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({
@@ -298,15 +340,18 @@ export const authService = {
       });
 
       if (error) {
-        return { error: error.message };
+        log.error('Password update failed', error, {
+          metadata: { service: 'auth.service', method: 'updatePassword' },
+        });
+        return createServiceError(error.message);
       }
 
-      return {};
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        error:
-          error instanceof Error ? error.message : 'Password update failed',
-      };
+      log.error('Unexpected error updating password', isError(error) ? error : new Error(String(error)), {
+        metadata: { service: 'auth.service', method: 'updatePassword' },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 

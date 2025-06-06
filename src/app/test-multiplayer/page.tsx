@@ -144,7 +144,6 @@ function TestMultiplayerContent() {
                       : 'border-gray-300 bg-white hover:border-blue-500 dark:bg-gray-800'
                   } `}
                   aria-label={`Cell ${index + 1}${cell?.is_marked ? ' (marked)' : ''}`}
-                  aria-pressed={cell?.is_marked || false}
                   role="gridcell"
                 >
                   Cell {index + 1}

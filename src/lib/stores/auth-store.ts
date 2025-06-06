@@ -1,3 +1,19 @@
+/**
+ * Auth Store - Intentional Exception to UI-State-Only Rule
+ * 
+ * This store is an INTENTIONAL EXCEPTION to the "UI-state-only" rule for Zustand stores.
+ * It manages authentication state which requires:
+ * 1. Global access across the entire application
+ * 2. Persistence between sessions (localStorage)
+ * 3. Synchronization with Supabase Auth state changes
+ * 4. Direct integration with auth service callbacks
+ * 
+ * This is NOT a pattern to follow for other stores. All other stores should:
+ * - Only contain UI state
+ * - Use TanStack Query for server state
+ * - Follow the service → query → component pattern
+ */
+
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';

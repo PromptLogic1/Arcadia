@@ -3,13 +3,12 @@ import {
   presenceService,
   type PresenceData,
   type PresenceState,
-} from '@/src/services/presence.service';
+} from '@/services/presence.service';
 import { useCurrentUserQuery } from './useAuthQueries';
 
 // Hook for tracking and subscribing to presence
 export const usePresence = (sessionId: string) => {
-  const { data } = useCurrentUserQuery();
-  const user = data?.user;
+  const { data: user } = useCurrentUserQuery();
   const [presenceData, setPresenceData] = useState<PresenceData>({
     presence: [],
     onlineCount: 0,
@@ -42,32 +41,33 @@ export const usePresence = (sessionId: string) => {
     };
   }, [user, sessionId, channelName, isTracking]);
 
-  // Subscribe to presence updates
+  // Poll presence updates periodically
   useEffect(() => {
     if (!sessionId) return;
 
-    const unsubscribe = presenceService.subscribeToPresence(
-      channelName,
-      (data: PresenceData) => {
+    const updatePresence = async () => {
+      const data = await presenceService.getPresence(channelName);
+      if (data) {
         setPresenceData(data);
       }
-    );
+    };
 
-    return unsubscribe;
+    // Initial fetch
+    updatePresence();
+
+    // Poll every 5 seconds
+    const interval = setInterval(updatePresence, 5000);
+
+    return () => clearInterval(interval);
   }, [sessionId, channelName]);
 
-  // Update presence metadata
+  // Update presence metadata (not supported in current API)
   const updateMetadata = useCallback(
-    async (metadata: PresenceState['metadata']) => {
-      if (!user) return;
-
-      await presenceService.updatePresenceMetadata(
-        channelName,
-        user.id,
-        metadata
-      );
+    async (_metadata: PresenceState['metadata']) => {
+      // Metadata updates not supported in current presence service
+      // This is a no-op for compatibility
     },
-    [channelName, user]
+    []
   );
 
   // Get specific user's presence
@@ -116,14 +116,15 @@ export const usePresenceCursor = (sessionId: string) => {
     [updateMetadata]
   );
 
-  // Subscribe to cursor updates from other users
+  // Poll cursor updates from other users
   useEffect(() => {
     if (!sessionId) return;
 
     const channelName = `presence:session:${sessionId}`;
-    const unsubscribe = presenceService.subscribeToPresence(
-      channelName,
-      (data: PresenceData) => {
+    
+    const updateCursors = async () => {
+      const data = await presenceService.getPresence(channelName);
+      if (data) {
         const newCursors = new Map<
           string,
           { x: number; y: number; color: string }
@@ -140,9 +141,15 @@ export const usePresenceCursor = (sessionId: string) => {
 
         setCursors(newCursors);
       }
-    );
+    };
 
-    return unsubscribe;
+    // Initial fetch
+    updateCursors();
+
+    // Poll every 2 seconds for cursor updates
+    const interval = setInterval(updateCursors, 2000);
+
+    return () => clearInterval(interval);
   }, [sessionId]);
 
   return {

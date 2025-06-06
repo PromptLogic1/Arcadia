@@ -16,6 +16,7 @@ export function useSessionQuery(sessionId?: string) {
     queryFn: () => sessionsService.getSessionById(sessionId || ''),
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds for active session data
+    select: (response) => response.success ? response.data : null,
   });
 }
 
@@ -25,6 +26,7 @@ export function useSessionByCodeQuery(sessionCode?: string) {
     queryFn: () => sessionsService.getSessionByCode(sessionCode || ''),
     enabled: !!sessionCode && sessionCode.length === 6, // Only fetch if we have a valid code
     staleTime: 30 * 1000,
+    select: (response) => response.success ? response.data : null,
   });
 }
 
@@ -38,6 +40,7 @@ export function useActiveSessionsQuery(
     queryFn: () => sessionsService.getActiveSessions(filters, page, limit),
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds
+    select: (response) => response.success ? response.data : null,
   });
 }
 
@@ -62,7 +65,7 @@ export function useCreateSessionMutation() {
         return;
       }
 
-      if (response.session) {
+      if (response.data) {
         notifications.success('Session created successfully!');
         queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all() });
       }

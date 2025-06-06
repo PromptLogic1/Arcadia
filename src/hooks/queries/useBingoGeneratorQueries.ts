@@ -29,12 +29,8 @@ export function useGenerateBoardMutation() {
 
       const result = await bingoGeneratorService.generateBoard(params);
 
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      if (!result.data) {
-        throw new Error('No data returned from board generation');
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'No data returned from board generation');
       }
 
       return result.data;
@@ -74,12 +70,8 @@ export function useReshuffleCardsMutation() {
         gridSize
       );
 
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      if (!result.data) {
-        throw new Error('No data returned from reshuffle');
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'No data returned from reshuffle');
       }
 
       return result.data;

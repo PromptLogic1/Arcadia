@@ -49,6 +49,11 @@ export interface BoardEditState {
   // Active drag state
   draggedCard: BingoCard | null;
   draggedFromIndex: number | null;
+  
+  // Edit mode state
+  isEditMode: boolean;
+  showAdvancedSettings: boolean;
+  autoSave: boolean;
 }
 
 export interface BoardEditActions {
@@ -81,6 +86,11 @@ export interface BoardEditActions {
   // Drag state
   setDraggedCard: (card: BingoCard | null) => void;
   setDraggedFromIndex: (index: number | null) => void;
+  
+  // Edit mode state
+  setIsEditMode: (isEditMode: boolean) => void;
+  setShowAdvancedSettings: (show: boolean) => void;
+  setAutoSave: (autoSave: boolean) => void;
 
   // Utility actions
   reset: () => void;
@@ -103,6 +113,9 @@ const initialState: BoardEditState = {
   localPrivateCards: [],
   draggedCard: null,
   draggedFromIndex: null,
+  isEditMode: false,
+  showAdvancedSettings: false,
+  autoSave: false,
 };
 
 const useBoardEditStore = createWithEqualityFn<
@@ -214,6 +227,16 @@ const useBoardEditStore = createWithEqualityFn<
 
       setDraggedFromIndex: draggedFromIndex =>
         set({ draggedFromIndex }, false, 'setDraggedFromIndex'),
+        
+      // Edit mode state
+      setIsEditMode: isEditMode =>
+        set({ isEditMode }, false, 'setIsEditMode'),
+        
+      setShowAdvancedSettings: showAdvancedSettings =>
+        set({ showAdvancedSettings }, false, 'setShowAdvancedSettings'),
+        
+      setAutoSave: autoSave =>
+        set({ autoSave }, false, 'setAutoSave'),
 
       // Utility actions
       reset: () => set(initialState, false, 'reset'),
@@ -273,6 +296,9 @@ export const useBoardEditState = () =>
       localPrivateCards: state.localPrivateCards,
       draggedCard: state.draggedCard,
       draggedFromIndex: state.draggedFromIndex,
+      isEditMode: state.isEditMode,
+      showAdvancedSettings: state.showAdvancedSettings,
+      autoSave: state.autoSave,
     }))
   );
 
@@ -296,6 +322,9 @@ export const useBoardEditActions = () =>
       removePrivateCard: state.removePrivateCard,
       setDraggedCard: state.setDraggedCard,
       setDraggedFromIndex: state.setDraggedFromIndex,
+      setIsEditMode: state.setIsEditMode,
+      setShowAdvancedSettings: state.setShowAdvancedSettings,
+      setAutoSave: state.setAutoSave,
       reset: state.reset,
       openCardEditor: state.openCardEditor,
       closeCardEditor: state.closeCardEditor,

@@ -7,6 +7,13 @@
 
 import { createClient } from '@/lib/supabase';
 import type { Tables, Enums } from '@/types/database-generated';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { log } from '@/lib/logger';
+import {
+  bingoCardSchema,
+  bingoCardsArraySchema,
+} from '@/lib/validation/schemas/bingo';
 
 // Use types directly from database-generated (no duplicate exports)
 type BingoCard = Tables<'bingo_cards'>;
@@ -20,7 +27,7 @@ export interface CreateCardData {
   difficulty: DifficultyLevel;
   tags?: string[];
   is_public?: boolean;
-  creator_id: string;
+  creator_id: string | null;
 }
 
 export interface UpdateCardData {
@@ -51,12 +58,12 @@ export const bingoCardsService = {
    */
   async getCardsByIds(
     cardIds: string[]
-  ): Promise<{ cards: BingoCard[]; error?: string }> {
+  ): Promise<ServiceResponse<BingoCard[]>> {
     try {
       const validIds = cardIds.filter(id => id && id !== '');
 
       if (validIds.length === 0) {
-        return { cards: [] };
+        return createServiceSuccess([]);
       }
 
       const supabase = createClient();
@@ -66,15 +73,29 @@ export const bingoCardsService = {
         .in('id', validIds);
 
       if (error) {
-        return { cards: [], error: error.message };
+        log.error('Failed to fetch cards by IDs', error, {
+          metadata: { cardIds: validIds, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
       }
 
-      return { cards: (data || []) as BingoCard[] };
+      // Validate the returned data
+      const validation = bingoCardsArraySchema.safeParse(data || []);
+      if (!validation.success) {
+        log.error('Cards data validation failed', validation.error, {
+          metadata: { cardIds: validIds, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid cards data format');
+      }
+
+      return createServiceSuccess(validation.data);
     } catch (error) {
-      return {
-        cards: [],
-        error: error instanceof Error ? error.message : 'Failed to fetch cards',
-      };
+      log.error('Unexpected error in getCardsByIds', error as Error, {
+        metadata: { cardIds, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch cards'
+      );
     }
   },
 
@@ -85,7 +106,7 @@ export const bingoCardsService = {
     filters: CardFilters = {},
     page = 1,
     limit = 50
-  ): Promise<{ response: PaginatedCardsResponse; error?: string }> {
+  ): Promise<ServiceResponse<PaginatedCardsResponse>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -117,30 +138,38 @@ export const bingoCardsService = {
         .range(start, end);
 
       if (error) {
-        return {
-          response: { cards: [], totalCount: 0, hasMore: false },
-          error: error.message,
-        };
+        log.error('Failed to fetch public cards', error, {
+          metadata: { filters, page, limit, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
+      }
+
+      // Validate the returned data
+      const validation = bingoCardsArraySchema.safeParse(data || []);
+      if (!validation.success) {
+        log.error('Public cards data validation failed', validation.error, {
+          metadata: { filters, page, limit, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid cards data format');
       }
 
       const totalCount = count || 0;
       const hasMore = totalCount > end + 1;
 
-      return {
-        response: {
-          cards: (data || []) as BingoCard[],
-          totalCount,
-          hasMore,
-        },
-      };
+      return createServiceSuccess({
+        cards: validation.data,
+        totalCount,
+        hasMore,
+      });
     } catch (error) {
-      return {
-        response: { cards: [], totalCount: 0, hasMore: false },
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch public cards',
-      };
+      log.error('Unexpected error in getPublicCards', error as Error, {
+        metadata: { filters, page, limit, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch public cards'
+      );
     }
   },
 
@@ -152,7 +181,7 @@ export const bingoCardsService = {
     filters: CardFilters = {},
     page = 1,
     limit = 50
-  ): Promise<{ response: PaginatedCardsResponse; error?: string }> {
+  ): Promise<ServiceResponse<PaginatedCardsResponse>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -185,28 +214,36 @@ export const bingoCardsService = {
         .range(start, end);
 
       if (error) {
-        return {
-          response: { cards: [], totalCount: 0, hasMore: false },
-          error: error.message,
-        };
+        log.error('Failed to fetch user cards', error, {
+          metadata: { userId, filters, page, limit, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
+      }
+
+      // Validate the returned data
+      const validation = bingoCardsArraySchema.safeParse(data || []);
+      if (!validation.success) {
+        log.error('User cards data validation failed', validation.error, {
+          metadata: { userId, filters, page, limit, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid cards data format');
       }
 
       const totalCount = count || 0;
       const hasMore = totalCount > end + 1;
 
-      return {
-        response: {
-          cards: (data || []) as BingoCard[],
-          totalCount,
-          hasMore,
-        },
-      };
+      return createServiceSuccess({
+        cards: validation.data,
+        totalCount,
+        hasMore,
+      });
     } catch (error) {
-      return {
-        response: { cards: [], totalCount: 0, hasMore: false },
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch user cards',
-      };
+      log.error('Unexpected error in getUserCards', error as Error, {
+        metadata: { userId, filters, page, limit, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch user cards'
+      );
     }
   },
 
@@ -215,7 +252,7 @@ export const bingoCardsService = {
    */
   async createCard(
     cardData: CreateCardData
-  ): Promise<{ card: BingoCard | null; error?: string }> {
+  ): Promise<ServiceResponse<BingoCard>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -235,15 +272,33 @@ export const bingoCardsService = {
         .single();
 
       if (error) {
-        return { card: null, error: error.message };
+        log.error('Failed to create card', error, {
+          metadata: { cardData, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
       }
 
-      return { card: data as BingoCard };
+      if (!data) {
+        return createServiceError('Card creation failed - no data returned');
+      }
+
+      // Validate the returned data
+      const validation = bingoCardSchema.safeParse(data);
+      if (!validation.success) {
+        log.error('Created card data validation failed', validation.error, {
+          metadata: { data, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid card data format');
+      }
+
+      return createServiceSuccess(validation.data);
     } catch (error) {
-      return {
-        card: null,
-        error: error instanceof Error ? error.message : 'Failed to create card',
-      };
+      log.error('Unexpected error in createCard', error as Error, {
+        metadata: { cardData, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to create card'
+      );
     }
   },
 
@@ -253,7 +308,7 @@ export const bingoCardsService = {
   async updateCard(
     cardId: string,
     updates: UpdateCardData
-  ): Promise<{ card: BingoCard | null; error?: string }> {
+  ): Promise<ServiceResponse<BingoCard>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -267,22 +322,40 @@ export const bingoCardsService = {
         .single();
 
       if (error) {
-        return { card: null, error: error.message };
+        log.error('Failed to update card', error, {
+          metadata: { cardId, updates, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
       }
 
-      return { card: data as BingoCard };
+      if (!data) {
+        return createServiceError('Card update failed - no data returned');
+      }
+
+      // Validate the returned data
+      const validation = bingoCardSchema.safeParse(data);
+      if (!validation.success) {
+        log.error('Updated card data validation failed', validation.error, {
+          metadata: { data, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid card data format');
+      }
+
+      return createServiceSuccess(validation.data);
     } catch (error) {
-      return {
-        card: null,
-        error: error instanceof Error ? error.message : 'Failed to update card',
-      };
+      log.error('Unexpected error in updateCard', error as Error, {
+        metadata: { cardId, updates, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to update card'
+      );
     }
   },
 
   /**
    * Delete a card
    */
-  async deleteCard(cardId: string): Promise<{ error?: string }> {
+  async deleteCard(cardId: string): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -291,14 +364,20 @@ export const bingoCardsService = {
         .eq('id', cardId);
 
       if (error) {
-        return { error: error.message };
+        log.error('Failed to delete card', error, {
+          metadata: { cardId, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
       }
 
-      return {};
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : 'Failed to delete card',
-      };
+      log.error('Unexpected error in deleteCard', error as Error, {
+        metadata: { cardId, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to delete card'
+      );
     }
   },
 
@@ -307,7 +386,7 @@ export const bingoCardsService = {
    */
   async voteCard(
     cardId: string
-  ): Promise<{ card: BingoCard | null; error?: string }> {
+  ): Promise<ServiceResponse<BingoCard>> {
     try {
       const supabase = createClient();
 
@@ -319,7 +398,14 @@ export const bingoCardsService = {
         .single();
 
       if (fetchError) {
-        return { card: null, error: fetchError.message };
+        log.error('Failed to fetch card for voting', fetchError, {
+          metadata: { cardId, service: 'bingoCardsService' },
+        });
+        return createServiceError(fetchError.message);
+      }
+
+      if (!currentCard) {
+        return createServiceError('Card not found');
       }
 
       // Increment vote count
@@ -333,16 +419,33 @@ export const bingoCardsService = {
         .single();
 
       if (error) {
-        return { card: null, error: error.message };
+        log.error('Failed to update vote count', error, {
+          metadata: { cardId, newVoteCount, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
       }
 
-      return { card: data as BingoCard };
+      if (!data) {
+        return createServiceError('Vote update failed - no data returned');
+      }
+
+      // Validate the returned data
+      const validation = bingoCardSchema.safeParse(data);
+      if (!validation.success) {
+        log.error('Voted card data validation failed', validation.error, {
+          metadata: { data, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid card data format');
+      }
+
+      return createServiceSuccess(validation.data);
     } catch (error) {
-      return {
-        card: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to vote on card',
-      };
+      log.error('Unexpected error in voteCard', error as Error, {
+        metadata: { cardId, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to vote on card'
+      );
     }
   },
 
@@ -351,7 +454,7 @@ export const bingoCardsService = {
    */
   async createCards(
     cardsData: CreateCardData[]
-  ): Promise<{ cards: BingoCard[]; error?: string }> {
+  ): Promise<ServiceResponse<BingoCard[]>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -372,16 +475,29 @@ export const bingoCardsService = {
         .select();
 
       if (error) {
-        return { cards: [], error: error.message };
+        log.error('Failed to bulk create cards', error, {
+          metadata: { cardsCount: cardsData.length, service: 'bingoCardsService' },
+        });
+        return createServiceError(error.message);
       }
 
-      return { cards: (data || []) as BingoCard[] };
+      // Validate the returned data
+      const validation = bingoCardsArraySchema.safeParse(data || []);
+      if (!validation.success) {
+        log.error('Bulk created cards data validation failed', validation.error, {
+          metadata: { cardsCount: cardsData.length, service: 'bingoCardsService' },
+        });
+        return createServiceError('Invalid cards data format');
+      }
+
+      return createServiceSuccess(validation.data);
     } catch (error) {
-      return {
-        cards: [],
-        error:
-          error instanceof Error ? error.message : 'Failed to create cards',
-      };
+      log.error('Unexpected error in createCards', error as Error, {
+        metadata: { cardsCount: cardsData.length, service: 'bingoCardsService' },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to create cards'
+      );
     }
   },
 };

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBingoBoards } from './useBingoBoards';
 import { useAuth } from '@/lib/stores/auth-store';
@@ -140,10 +140,10 @@ export function useBingoBoardsHub() {
         const result = await createBoard(createData);
 
         // Check if component is still mounted before updating state
-        if (isMountedRef.current && result.board) {
+        if (isMountedRef.current && result.success && result.data) {
           setIsCreateFormOpen(false);
           // Navigate to the new board for editing
-          router.push(`/challenge-hub/${result.board.id}`);
+          router.push(`/challenge-hub/${result.data.id}`);
         }
       } catch (error) {
         // Only log error if component is still mounted

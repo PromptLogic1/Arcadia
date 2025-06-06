@@ -47,7 +47,7 @@ import { SessionCard } from './SessionCard';
 import { SessionFilters } from './SessionFilters';
 
 // Types
-import type { SessionSettings } from '../../../services/sessions.service';
+import type { SessionSettings, SessionWithStats } from '../../../services/sessions.service';
 
 interface PlayAreaHubProps {
   className?: string;
@@ -124,7 +124,9 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
         },
       });
       // Navigate to the session
-      router.push(`/play-area/session/${result.session?.id}`);
+      if (result.success && result.data) {
+        router.push(`/play-area/session/${result.data.id}`);
+      }
     } catch (error) {
       // Error handling is done in the mutation
       log.error('Failed to create session', error as Error, {
@@ -302,7 +304,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           </CardHeader>
           <CardContent>
             <div className="neon-glow-cyan animate-glow text-2xl font-bold">
-              {sessions.reduce((total, session) => {
+              {sessions.reduce((total: number, session: SessionWithStats) => {
                 const count =
                   'current_player_count' in session
                     ? typeof session.current_player_count === 'number'

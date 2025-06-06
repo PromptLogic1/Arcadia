@@ -36,12 +36,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Use service layer for authentication
-    const { user, error: authError } = await authService.getCurrentUser();
-    userIdForLog = user?.id;
-
-    if (authError || !user || !user.id) {
+    const authResponse = await authService.getCurrentUser();
+    
+    if (!authResponse.success || !authResponse.data) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const user = authResponse.data;
+    userIdForLog = user.id;
 
     const body = (await request.json()) as JoinSessionRequest;
     const { sessionId, displayName, color, team } = body;
@@ -140,12 +142,14 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   let updatesForLog: PlayerUpdatesForLog = {};
   try {
     // Use service layer for authentication
-    const { user, error: authError } = await authService.getCurrentUser();
-    userIdForLog = user?.id;
-
-    if (authError || !user) {
+    const authResponse = await authService.getCurrentUser();
+    
+    if (!authResponse.success || !authResponse.data) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const user = authResponse.data;
+    userIdForLog = user.id;
 
     const body = (await request.json()) as PatchPlayerRequest;
     const { sessionId, displayName, color, team } = body;
@@ -226,12 +230,14 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     }
 
     // Use service layer for authentication
-    const { user, error: authError } = await authService.getCurrentUser();
-    userIdForLog = user?.id;
-
-    if (authError || !user) {
+    const authResponse = await authService.getCurrentUser();
+    
+    if (!authResponse.success || !authResponse.data) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const user = authResponse.data;
+    userIdForLog = user.id;
 
     // Check if session is active
     const { status } = await sessionsService.getSessionStatus(sessionId);

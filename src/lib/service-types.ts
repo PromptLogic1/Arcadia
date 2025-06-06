@@ -5,7 +5,7 @@
 
 export interface ServiceResponse<T> {
   data: T | null;
-  error: string | Error | null;
+  error: string | null;
   success: boolean;
 }
 
