@@ -1,98 +1,79 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
-import type { BoardCell } from '@/features/bingo-boards/types';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter-middleware';
+import { log } from '@/lib/logger';
+import { gameStateService } from '@/src/services';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// POST handler with rate limiting for game actions
+export const POST = withRateLimit(
+  async (
+    request: NextRequest,
+    { params }: { params: { id: string } }
+  ): Promise<NextResponse> => {
+  let userId: string | undefined;
+  let sessionId: string | undefined;
+  let cellPosition: number | undefined;
+  let action: string | undefined;
+
   try {
-    const supabase = createClient();
+    sessionId = params.id;
+
+    const body = await request.json();
     const {
       cell_position,
       user_id,
-      action, // 'mark' | 'unmark'
+      action: actionValue, // 'mark' | 'unmark'
       version,
-    } = await request.json();
+    } = body;
 
-    // Start transaction-like operation
-    const { data: session, error: sessionError } = await supabase
-      .from('bingo_sessions')
-      .select('current_state, version, status')
-      .eq('id', params.id)
-      .single();
+    userId = user_id;
+    cellPosition = cell_position;
+    action = actionValue;
 
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    if (session.status !== 'active') {
-      return NextResponse.json(
-        { error: 'Session not active' },
-        { status: 400 }
-      );
-    }
-
-    if (session.version !== version) {
-      return NextResponse.json(
-        { error: 'Version conflict', current_version: session.version },
-        { status: 409 }
-      );
-    }
-
-    // Update board state
-    const currentState = (session.current_state as BoardCell[]) || [];
-    const newState = [...currentState];
-
-    if (newState[cell_position]) {
-      if (action === 'mark') {
-        newState[cell_position] = {
-          ...newState[cell_position],
-          is_marked: true,
-          last_modified_by: user_id,
-          last_updated: Date.now(),
-        };
-      } else {
-        newState[cell_position] = {
-          ...newState[cell_position],
-          is_marked: false,
-          last_modified_by: user_id,
-          last_updated: Date.now(),
-        };
-      }
-    }
-
-    // Update session
-    const { data: updatedSession, error: updateError } = await supabase
-      .from('bingo_sessions')
-      .update({
-        current_state: newState,
-        version: version + 1,
-      })
-      .eq('id', params.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
-    }
-
-    // Log the event
-    await supabase.from('bingo_session_events').insert({
-      session_id: params.id,
-      user_id,
-      event_type: action === 'mark' ? 'cell_marked' : 'cell_unmarked',
-      event_data: { cell_position, timestamp: Date.now() },
+    // Use the game state service
+    const result = await gameStateService.markCell(sessionId, {
       cell_position,
-      timestamp: Date.now(),
+      user_id,
+      action: actionValue,
+      version,
     });
 
-    return NextResponse.json(updatedSession);
-  } catch {
+    if (result.error) {
+      if (result.error === 'VERSION_CONFLICT') {
+        return NextResponse.json(
+          { error: 'Version conflict', current_version: result.version },
+          { status: 409 }
+        );
+      }
+      if (result.error === 'Session not found') {
+        return NextResponse.json({ error: result.error }, { status: 404 });
+      }
+      if (result.error === 'Session not active') {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      current_state: result.boardState,
+      version: result.version,
+    });
+  } catch (error) {
+    log.error('Error marking cell in bingo session', error as Error, {
+      metadata: {
+        apiRoute: 'bingo/sessions/[id]/mark-cell',
+        method: 'POST',
+        sessionId,
+        userId,
+        cellPosition,
+        action,
+      },
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: (error as Error).message || 'Failed to mark cell' },
       { status: 500 }
     );
   }
-}
+  },
+  RATE_LIMIT_CONFIGS.gameAction
+);

@@ -5,7 +5,7 @@
  * This replaces direct state management and Supabase calls with the modern architecture.
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { useBoardCollectionsQuery } from '../../../hooks/queries/useBoardCollectionsQueries';
 import {
   useBoardCollectionsState,
@@ -55,26 +55,10 @@ export function useBoardCollections(
   const { setFilters, resetFilters, updateFilter, setIsShuffling } =
     useBoardCollectionsActions();
 
-  // Track component mounted state
-  const isMountedRef = useRef(true);
-  const previousFiltersRef = useRef(filters);
-
-  // Track mounted state
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Initialize filters with game type
-  useEffect(() => {
-    if (filters.gameType !== gameType && isMountedRef.current) {
-      // Store previous filters for potential rollback
-      previousFiltersRef.current = filters;
-      setFilters({ gameType });
-    }
-  }, [gameType, filters.gameType, setFilters, filters]);
+  // Initialize filters with game type synchronously
+  if (filters.gameType !== gameType) {
+    setFilters({ gameType });
+  }
 
   // TanStack Query for server state
   const {
@@ -100,8 +84,6 @@ export function useBoardCollections(
       key: K,
       value: BoardCollectionFilters[K]
     ) => {
-      if (!isMountedRef.current) return;
-
       // Store previous value for potential rollback
       const previousValue = filters[key];
 
@@ -109,10 +91,8 @@ export function useBoardCollections(
         updateFilter(key, value);
       } catch (error) {
         // Rollback on error
-        if (isMountedRef.current) {
-          updateFilter(key, previousValue);
-          console.error('Failed to update filter:', error);
-        }
+        updateFilter(key, previousValue);
+        console.error('Failed to update filter:', error);
       }
     },
     [filters, updateFilter]
@@ -120,7 +100,6 @@ export function useBoardCollections(
 
   // Reset filters to defaults for current game type
   const handleResetFilters = useCallback(() => {
-    if (!isMountedRef.current) return;
     resetFilters(gameType);
   }, [gameType, resetFilters]);
 
@@ -131,17 +110,12 @@ export function useBoardCollections(
         collections: BoardCollection[]
       ) => Promise<void>
     ) => {
-      if (!isMountedRef.current) return;
-
       if (collections.length === 0) {
         notifications.error('No board collections available for shuffling');
         return;
       }
 
       setIsShuffling(true);
-
-      // Store current state for rollback
-      const previousShufflingState = isShuffling;
 
       try {
         // Filter collections based on current difficulty if set
@@ -162,19 +136,13 @@ export function useBoardCollections(
 
         await onShuffleFromCollections(availableCollections);
       } catch (error) {
-        // Rollback on error
-        if (isMountedRef.current) {
-          setIsShuffling(previousShufflingState);
-          console.error('Failed to shuffle from collections:', error);
-          notifications.error('Failed to generate board from collections');
-        }
+        console.error('Failed to shuffle from collections:', error);
+        notifications.error('Failed to generate board from collections');
       } finally {
-        if (isMountedRef.current) {
-          setIsShuffling(false);
-        }
+        setIsShuffling(false);
       }
     },
-    [collections, filters.difficulty, setIsShuffling, isShuffling]
+    [collections, filters.difficulty, setIsShuffling]
   );
 
   // Derived state

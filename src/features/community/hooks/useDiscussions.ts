@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback } from 'react';
 import {
   useDiscussionsQuery,
   useCreateDiscussionMutation,
@@ -37,16 +37,6 @@ export function useDiscussions(): UseDiscussionsReturn {
   const { authUser } = useAuth();
   const { filters } = useCommunityState();
 
-  // Mount tracking
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   // Use TanStack Query for data fetching
   const {
     data: discussionsData,
@@ -71,11 +61,6 @@ export function useDiscussions(): UseDiscussionsReturn {
         ...discussionData,
         author_id: authUser.id,
       });
-
-      // Only handle result if component is still mounted
-      if (!isMountedRef.current) {
-        throw new Error('Component unmounted during discussion creation');
-      }
 
       if (result.error) {
         throw new Error(result.error);
@@ -105,11 +90,6 @@ export function useDiscussions(): UseDiscussionsReturn {
         discussion_id: discussionId.toString(), // Service expects string
       });
 
-      // Only handle result if component is still mounted
-      if (!isMountedRef.current) {
-        throw new Error('Component unmounted during comment creation');
-      }
-
       if (result.error) {
         throw new Error(result.error);
       }
@@ -128,11 +108,6 @@ export function useDiscussions(): UseDiscussionsReturn {
       const result = await upvoteDiscussionMutation.mutateAsync(
         discussionId.toString()
       );
-
-      // Only handle result if component is still mounted
-      if (!isMountedRef.current) {
-        throw new Error('Component unmounted during upvote');
-      }
 
       if (result.error) {
         throw new Error(result.error);

@@ -160,3 +160,121 @@ export function useUpdateSessionStatusMutation() {
     },
   });
 }
+
+export function useSessionsByBoardIdQuery(
+  boardId?: string,
+  status?: 'waiting' | 'active' | 'completed' | 'cancelled'
+) {
+  return useQuery({
+    queryKey: queryKeys.sessions.byBoard(boardId || '', status),
+    queryFn: () => sessionsService.getSessionsByBoardId(boardId || '', status),
+    enabled: !!boardId,
+    staleTime: 30 * 1000, // 30 seconds
+  });
+}
+
+export function useJoinSessionByCodeMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      sessionCode,
+      user_id,
+      display_name,
+      color,
+      team,
+      password,
+    }: {
+      sessionCode: string;
+      user_id: string;
+      display_name: string;
+      color: string;
+      team?: number | null;
+      password?: string;
+    }) => sessionsService.joinSessionByCode(sessionCode, user_id, {
+      display_name,
+      color,
+      team,
+      password,
+    }),
+    onSuccess: response => {
+      if (response.error) {
+        notifications.error(response.error);
+        return;
+      }
+
+      if (response.player && response.sessionId) {
+        notifications.success('Joined session successfully!');
+        // Invalidate relevant queries
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all() });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.sessions.players(response.sessionId),
+        });
+      }
+    },
+    onError: (error: Error) => {
+      notifications.error(error.message || 'Failed to join session by code');
+    },
+  });
+}
+
+export function useStartSessionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      hostId,
+    }: {
+      sessionId: string;
+      hostId: string;
+    }) => sessionsService.startSession(sessionId, hostId),
+    onSuccess: (response, { sessionId }) => {
+      if (response.error) {
+        notifications.error(response.error);
+        return;
+      }
+
+      if (response.session) {
+        notifications.success('Session started!');
+        // Update session in cache
+        queryClient.setQueryData(queryKeys.sessions.byId(sessionId), {
+          session: response.session,
+        });
+        // Invalidate sessions list
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all() });
+      }
+    },
+    onError: (error: Error) => {
+      notifications.error(error.message || 'Failed to start session');
+    },
+  });
+}
+
+// New hook for finding waiting sessions across multiple boards
+export function useWaitingSessionsForBoards(boardIds: string[]) {
+  return useQuery({
+    queryKey: queryKeys.sessions.waitingForBoards(boardIds),
+    queryFn: async () => {
+      // Find first board with waiting sessions
+      for (const boardId of boardIds) {
+        const result = await sessionsService.getSessionsByBoardId(boardId, 'waiting');
+        if (!result.error && result.sessions.length > 0) {
+          return {
+            boardId,
+            sessions: result.sessions,
+            error: null
+          };
+        }
+      }
+      return {
+        boardId: null,
+        sessions: [],
+        error: null
+      };
+    },
+    enabled: boardIds.length > 0,
+    staleTime: 10 * 1000, // 10 seconds for waiting sessions
+    refetchInterval: 15 * 1000, // Check for new sessions every 15 seconds
+  });
+}

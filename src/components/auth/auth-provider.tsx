@@ -9,14 +9,18 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
 import { useAuthActions } from '@/lib/stores';
-import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { authService } from '../../services/auth.service';
 import { logger } from '@/lib/logger';
 import { setSentryUser, addSentryContext } from '@/lib/sentry-utils';
 
+interface AuthUser {
+  id: string;
+  email?: string | null;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   initialized: boolean;
 }
@@ -40,7 +44,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const router = useRouter();
@@ -73,15 +77,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Initialize the auth store first
         await initializeAppRef.current();
 
-        // Get initial session
-        const supabase = createClient();
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
+        // Get initial session using auth service
+        const { session, error } = await authService.getSession();
 
         if (error) {
-          logger.error('Failed to get initial session', error, {
+          logger.error('Failed to get initial session', new Error(error), {
             metadata: { component: 'AuthProvider' },
           });
         }
@@ -96,14 +96,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
           if (session?.user) {
             setSentryUser({
               id: session.user.id,
-              email: session.user.email,
+              email: session.user.email || undefined,
             });
           }
         }
 
-        // Listen for auth changes - properly typed
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-          async (event: AuthChangeEvent, session: Session | null) => {
+        // Listen for auth changes using auth service
+        const authListener = authService.onAuthStateChange(
+          async (
+            event: string,
+            session: { user: { id: string; email?: string | null } } | null
+          ) => {
             logger.info('Auth state changed', {
               metadata: {
                 component: 'AuthProvider',
@@ -121,7 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (session?.user) {
               setSentryUser({
                 id: session.user.id,
-                email: session.user.email,
+                email: session.user.email || undefined,
               });
             } else {
               setSentryUser(null);
@@ -167,9 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
 
         // Store unsubscribe function
-        if (authListener?.subscription) {
-          unsubscribe = () => authListener.subscription.unsubscribe();
-        }
+        unsubscribe = authListener.unsubscribe;
       } catch (error) {
         logger.error('Auth initialization failed', error as Error, {
           metadata: { component: 'AuthProvider' },

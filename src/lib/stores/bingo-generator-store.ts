@@ -22,11 +22,9 @@ interface GeneratorSettings {
 }
 
 interface BingoGeneratorState {
-  // State
+  // UI State only - no server state
   cardsForSelection: BingoCard[];
   selectedCards: BingoCard[];
-  isLoading: boolean;
-  error: string | null;
 
   // Generator Panel Settings
   settings: GeneratorSettings;
@@ -36,8 +34,6 @@ interface BingoGeneratorActions {
   // Actions
   setCardsForSelection: (cards: BingoCard[]) => void;
   setSelectedCards: (cards: BingoCard[]) => void;
-  setIsLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
   clearCardsForSelection: () => void;
   clearSelectedCards: () => void;
   reset: () => void;
@@ -57,8 +53,6 @@ type BingoGeneratorStore = BingoGeneratorState & BingoGeneratorActions;
 const initialState: BingoGeneratorState = {
   cardsForSelection: [],
   selectedCards: [],
-  isLoading: false,
-  error: null,
   settings: {
     difficulty: DIFFICULTIES[2] || 'medium',
     cardPoolSize: 'Medium',
@@ -81,11 +75,6 @@ export const useBingoGeneratorStore =
 
         setSelectedCards: cards =>
           set({ selectedCards: cards }, false, 'setSelectedCards'),
-
-        setIsLoading: loading =>
-          set({ isLoading: loading }, false, 'setIsLoading'),
-
-        setError: error => set({ error }, false, 'setError'),
 
         clearCardsForSelection: () =>
           set({ cardsForSelection: [] }, false, 'clearCardsForSelection'),
@@ -171,15 +160,11 @@ export const useBingoGenerator = () => {
     state => state.cardsForSelection
   );
   const selectedCards = useBingoGeneratorStore(state => state.selectedCards);
-  const isLoading = useBingoGeneratorStore(state => state.isLoading);
-  const error = useBingoGeneratorStore(state => state.error);
   const settings = useBingoGeneratorStore(state => state.settings);
 
   return {
     cardsForSelection,
     selectedCards,
-    isLoading,
-    error,
     settings,
   };
 };
@@ -196,8 +181,6 @@ export const useBingoGeneratorActions = () => {
   const setSelectedCards = useBingoGeneratorStore(
     state => state.setSelectedCards
   );
-  const setIsLoading = useBingoGeneratorStore(state => state.setIsLoading);
-  const setError = useBingoGeneratorStore(state => state.setError);
   const clearCardsForSelection = useBingoGeneratorStore(
     state => state.clearCardsForSelection
   );
@@ -224,8 +207,6 @@ export const useBingoGeneratorActions = () => {
   return {
     setCardsForSelection,
     setSelectedCards,
-    setIsLoading,
-    setError,
     clearCardsForSelection,
     clearSelectedCards,
     reset,

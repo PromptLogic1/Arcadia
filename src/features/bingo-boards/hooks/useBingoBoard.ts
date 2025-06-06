@@ -95,10 +95,14 @@ export const useBingoBoard = ({
           currentVersion: board.version || undefined,
         });
       } catch (error) {
-        logger.error('Failed to update board state', error instanceof Error ? error : new Error(String(error)), {
-          boardId,
-          feature: 'bingo-boards',
-        });
+        logger.error(
+          'Failed to update board state',
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            boardId,
+            feature: 'bingo-boards',
+          }
+        );
         throw error;
       } finally {
         setOptimisticUpdating(false);
@@ -144,10 +148,14 @@ export const useBingoBoard = ({
           currentVersion: board.version || undefined,
         });
       } catch (error) {
-        logger.error('Failed to update board settings', error instanceof Error ? error : new Error(String(error)), {
-          boardId,
-          feature: 'bingo-boards',
-        });
+        logger.error(
+          'Failed to update board settings',
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            boardId,
+            feature: 'bingo-boards',
+          }
+        );
         throw error;
       }
     },

@@ -4,14 +4,14 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { 
+import type {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
   RealtimePostgresInsertPayload,
   RealtimePostgresUpdatePayload,
   RealtimePostgresDeletePayload,
   REALTIME_LISTEN_TYPES,
-  REALTIME_POSTGRES_CHANGES_LISTEN_EVENT
+  REALTIME_POSTGRES_CHANGES_LISTEN_EVENT,
 } from '@supabase/realtime-js';
 
 // Example database types
@@ -31,7 +31,7 @@ channel1.on(
   {
     event: '*' as `${REALTIME_POSTGRES_CHANGES_LISTEN_EVENT.ALL}`,
     schema: 'public',
-    table: 'users'
+    table: 'users',
   },
   (payload: RealtimePostgresChangesPayload<User>) => {
     // payload will be typed as union of Insert | Update | Delete payloads
@@ -53,7 +53,7 @@ channel2.on(
   {
     event: 'INSERT' as `${REALTIME_POSTGRES_CHANGES_LISTEN_EVENT.INSERT}`,
     schema: 'public',
-    table: 'users'
+    table: 'users',
   },
   (payload: RealtimePostgresInsertPayload<User>) => {
     // payload is specifically typed for INSERT
@@ -70,7 +70,7 @@ channel3.on(
     event: 'UPDATE' as `${REALTIME_POSTGRES_CHANGES_LISTEN_EVENT.UPDATE}`,
     schema: 'public',
     table: 'users',
-    filter: 'email=eq.user@example.com' // Optional filter
+    filter: 'email=eq.user@example.com', // Optional filter
   },
   (payload: RealtimePostgresUpdatePayload<User>) => {
     // payload is specifically typed for UPDATE
@@ -86,7 +86,7 @@ channel4.on(
   {
     event: 'DELETE' as `${REALTIME_POSTGRES_CHANGES_LISTEN_EVENT.DELETE}`,
     schema: 'public',
-    table: 'users'
+    table: 'users',
   },
   (payload: RealtimePostgresDeletePayload<User>) => {
     // payload is specifically typed for DELETE
@@ -99,7 +99,9 @@ channel4.on(
 export class RealtimeUserService {
   private channel: RealtimeChannel | null = null;
 
-  subscribeToUserChanges(callback: (payload: RealtimePostgresChangesPayload<User>) => void) {
+  subscribeToUserChanges(
+    callback: (payload: RealtimePostgresChangesPayload<User>) => void
+  ) {
     this.channel = supabase
       .channel('user-changes')
       .on(
@@ -107,7 +109,7 @@ export class RealtimeUserService {
         {
           event: '*' as `${REALTIME_POSTGRES_CHANGES_LISTEN_EVENT.ALL}`,
           schema: 'public',
-          table: 'users'
+          table: 'users',
         },
         callback
       )
@@ -131,9 +133,9 @@ channel6.on(
   {
     event: '*',
     schema: 'public',
-    table: 'users'
+    table: 'users',
   },
-  (payload) => {
+  payload => {
     // TypeScript will infer the correct types based on the overload
     console.log(payload);
   }
@@ -141,20 +143,20 @@ channel6.on(
 
 /**
  * Key points for proper typing:
- * 
+ *
  * 1. The first parameter is the event type: 'postgres_changes'
  * 2. The second parameter is the filter object with:
  *    - event: '*' | 'INSERT' | 'UPDATE' | 'DELETE'
  *    - schema: string (usually 'public')
  *    - table?: string (optional table name)
  *    - filter?: string (optional PostgreSQL filter)
- * 
+ *
  * 3. The callback receives a payload typed based on the event:
  *    - For event: '*' -> RealtimePostgresChangesPayload<T> (union type)
  *    - For event: 'INSERT' -> RealtimePostgresInsertPayload<T>
  *    - For event: 'UPDATE' -> RealtimePostgresUpdatePayload<T>
  *    - For event: 'DELETE' -> RealtimePostgresDeletePayload<T>
- * 
+ *
  * 4. Each payload has:
  *    - eventType: 'INSERT' | 'UPDATE' | 'DELETE'
  *    - schema: string

@@ -1,28 +1,18 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   useSessionStateQuery,
   useBoardStateQuery,
   useMarkCellMutation,
   useCompleteGameMutation,
-  useStartSessionMutation,
+  useStartGameSessionMutation,
 } from '@/hooks/queries/useGameStateQueries';
 import { WinDetectionService } from '../services/win-detection.service';
 import type { WinDetectionResult } from '../types';
 
 export function useBingoGame(sessionId: string) {
   const winDetector = useMemo(() => new WinDetectionService(5), []); // Assuming 5x5 board
-
-  // Mount tracking
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   // Queries
   const {
@@ -38,7 +28,7 @@ export function useBingoGame(sessionId: string) {
   } = useBoardStateQuery(sessionId);
 
   // Mutations
-  const startGameMutation = useStartSessionMutation();
+  const startGameMutation = useStartGameSessionMutation();
   const markCellMutation = useMarkCellMutation(sessionId);
   const completeGameMutation = useCompleteGameMutation();
 
@@ -75,10 +65,8 @@ export function useBingoGame(sessionId: string) {
           version,
         });
       } catch (error) {
-        // Only throw if component is still mounted
-        if (isMountedRef.current) {
-          throw error;
-        }
+        // Error is handled by mutation's onError callback
+        // Just prevent unhandled promise rejection
       }
     },
     [markCellMutation, version]
@@ -94,10 +82,8 @@ export function useBingoGame(sessionId: string) {
           version,
         });
       } catch (error) {
-        // Only throw if component is still mounted
-        if (isMountedRef.current) {
-          throw error;
-        }
+        // Error is handled by mutation's onError callback
+        // Just prevent unhandled promise rejection
       }
     },
     [markCellMutation, version]
@@ -105,14 +91,15 @@ export function useBingoGame(sessionId: string) {
 
   const startGame = useCallback(async () => {
     try {
-      await startGameMutation.mutateAsync({ sessionId });
-    } catch (error) {
-      // Only throw if component is still mounted
-      if (isMountedRef.current) {
-        throw error;
+      if (!session?.host_id) {
+        throw new Error('Host ID not available');
       }
+      await startGameMutation.mutateAsync({ sessionId, hostId: session.host_id });
+    } catch (error) {
+      // Error is handled by mutation's onError callback
+      // Just prevent unhandled promise rejection
     }
-  }, [startGameMutation, sessionId]);
+  }, [startGameMutation, sessionId, session?.host_id]);
 
   const declareWinner = useCallback(
     async (userId: string) => {
@@ -128,10 +115,8 @@ export function useBingoGame(sessionId: string) {
           },
         });
       } catch (error) {
-        // Only throw if component is still mounted
-        if (isMountedRef.current) {
-          throw error;
-        }
+        // Error is handled by mutation's onError callback
+        // Just prevent unhandled promise rejection
       }
     },
     [completeGameMutation, sessionId, winResult, isWinner]

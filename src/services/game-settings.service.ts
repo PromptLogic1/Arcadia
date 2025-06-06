@@ -47,9 +47,13 @@ export const gameSettingsService = {
 
       return { data: data?.settings || null, error: null };
     } catch (error) {
-      logger.error('Game settings fetch error', error instanceof Error ? error : new Error('Unknown fetch error'), {
-        metadata: { boardId },
-      });
+      logger.error(
+        'Game settings fetch error',
+        error instanceof Error ? error : new Error('Unknown fetch error'),
+        {
+          metadata: { boardId },
+        }
+      );
       return {
         data: null,
         error: error instanceof Error ? error : new Error('Unknown error'),
@@ -89,9 +93,13 @@ export const gameSettingsService = {
 
       return { data: data?.settings || settings, error: null };
     } catch (error) {
-      logger.error('Game settings update error', error instanceof Error ? error : new Error('Unknown update error'), {
-        metadata: { boardId, settings },
-      });
+      logger.error(
+        'Game settings update error',
+        error instanceof Error ? error : new Error('Unknown update error'),
+        {
+          metadata: { boardId, settings },
+        }
+      );
       return {
         data: null,
         error: error instanceof Error ? error : new Error('Unknown error'),
@@ -131,9 +139,13 @@ export const gameSettingsService = {
 
       return { valid: true };
     } catch (error) {
-      logger.error('Settings validation error', error instanceof Error ? error : new Error('Unknown validation error'), {
-        metadata: { settings },
-      });
+      logger.error(
+        'Settings validation error',
+        error instanceof Error ? error : new Error('Unknown validation error'),
+        {
+          metadata: { settings },
+        }
+      );
       return { valid: false, error: 'Invalid settings format' };
     }
   },

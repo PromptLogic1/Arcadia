@@ -158,9 +158,13 @@ export const SignUpOAuthSection = React.forwardRef<
           {supportedProviders.map(provider => {
             const config = providerConfigs[provider];
             if (!config) {
-              logger.error('OAuth provider not configured', new Error(`Provider ${provider} is not configured`), {
-                metadata: { provider }
-              });
+              logger.error(
+                'OAuth provider not configured',
+                new Error(`Provider ${provider} is not configured`),
+                {
+                  metadata: { provider },
+                }
+              );
               return null;
             }
 

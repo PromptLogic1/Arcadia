@@ -60,16 +60,8 @@ export function useBoardEditState() {
         onPlaceCard(selectedCard, index);
         setSelectedCard(null);
 
-        // Close dropdown if exists (DOM manipulation kept minimal)
-        const cardElement = document.querySelector(
-          `[data-card-id="${selectedCard.id}"]`
-        );
-        if (cardElement) {
-          const trigger = cardElement.querySelector('[data-state="open"]');
-          if (trigger instanceof HTMLElement) {
-            trigger.click();
-          }
-        }
+        // Component using this hook should manage dropdown state through React
+        // No DOM manipulation needed
       }
     },
     [selectedCard]

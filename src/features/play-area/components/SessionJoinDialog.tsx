@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -47,16 +47,6 @@ export function SessionJoinDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mount tracking
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   // Handle joining session
   const handleJoin = useCallback(async () => {
     if (!sessionCode.trim()) {
@@ -64,32 +54,24 @@ export function SessionJoinDialog({
       return;
     }
 
-    if (!isMountedRef.current) return;
-
     setLoading(true);
     setError(null);
 
     try {
       await onJoin();
     } catch (error) {
-      if (isMountedRef.current) {
-        const err =
-          error instanceof Error ? error : new Error('Failed to join session');
-        setError(err.message || 'Failed to join session');
-      }
+      const err =
+        error instanceof Error ? error : new Error('Failed to join session');
+      setError(err.message || 'Failed to join session');
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [sessionCode, onJoin]);
 
   // Handle input change
   const handleCodeChange = (value: string) => {
-    if (isMountedRef.current) {
-      setError(null);
-      onSessionCodeChange(value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
-    }
+    setError(null);
+    onSessionCodeChange(value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
   };
 
   // Handle key press

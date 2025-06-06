@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
@@ -65,15 +65,17 @@ export function useSignUpSubmission({
   const { loading: authLoading } = useAuth();
   const { setLoading, signUp, signInWithOAuth } = useAuthActions();
 
+  // Mount tracking to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
   // Local loading states for specific operations
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = React.useState(false);
 
-  // Mount tracking
-  const isMountedRef = React.useRef(true);
-
-  React.useEffect(() => {
+  // Cleanup on unmount
+  useEffect(() => {
     isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
     };
@@ -97,11 +99,9 @@ export function useSignUpSubmission({
       }
 
       // Set loading states
-      if (isMountedRef.current) {
-        setIsSubmitting(true);
-        formState.setStatus('loading');
-        setLoading(true);
-      }
+      setIsSubmitting(true);
+      formState.setStatus('loading');
+      setLoading(true);
 
       try {
         logger.debug(LOG_MESSAGES.FORM.SIGNUP_START, {
@@ -127,8 +127,11 @@ export function useSignUpSubmission({
             throw result.error;
           }
 
+          // Check if still mounted before state updates
+          if (!isMountedRef.current) return;
+
           // Handle email verification requirement
-          if (result.needsVerification && isMountedRef.current) {
+          if (result.needsVerification) {
             formState.setStatus('verification_pending');
             formState.setMessage({
               text: SIGNUP_MESSAGES.FORM.EMAIL_VERIFICATION,
@@ -138,23 +141,24 @@ export function useSignUpSubmission({
           }
         }
 
+        // Check if still mounted before success state updates
+        if (!isMountedRef.current) return;
+
         // Success handling
-        if (isMountedRef.current) {
-          formState.setStatus('success');
-          formState.setMessage({
-            text: SIGNUP_MESSAGES.FORM.SUCCESS,
-            type: 'success',
-          });
+        formState.setStatus('success');
+        formState.setMessage({
+          text: SIGNUP_MESSAGES.FORM.SUCCESS,
+          type: 'success',
+        });
 
-          // Start redirect timer
-          formState.startRedirectTimer();
+        // Start redirect timer
+        formState.startRedirectTimer();
 
-          // Clear persistence on success
-          formState.persistence?.clear();
+        // Clear persistence on success
+        formState.persistence?.clear();
 
-          // Call success callback
-          onSuccess?.(formState.formData);
-        }
+        // Call success callback
+        onSuccess?.(formState.formData);
 
         logger.info(LOG_MESSAGES.FORM.SIGNUP_SUCCESS, {
           component: 'useSignUpSubmission',
@@ -167,16 +171,17 @@ export function useSignUpSubmission({
         const errorObj =
           error instanceof Error ? error : new Error('Sign up failed');
 
-        if (isMountedRef.current) {
-          formState.setStatus('error');
-          formState.setMessage({
-            text: errorObj.message || ERROR_MESSAGES.FORM.GENERAL,
-            type: 'error',
-            actionLabel: 'Try Again',
-          });
+        // Check if still mounted before error state updates
+        if (!isMountedRef.current) return;
 
-          onError?.(errorObj, 'form_submit');
-        }
+        formState.setStatus('error');
+        formState.setMessage({
+          text: errorObj.message || ERROR_MESSAGES.FORM.GENERAL,
+          type: 'error',
+          actionLabel: 'Try Again',
+        });
+
+        onError?.(errorObj, 'form_submit');
 
         logger.error(LOG_MESSAGES.FORM.SIGNUP_FAILED, errorObj, {
           component: 'useSignUpSubmission',
@@ -198,8 +203,6 @@ export function useSignUpSubmission({
   // 🧼 OAuth Handler
   const handleOAuthSignUp = React.useCallback(
     async (provider: OAuthProvider) => {
-      if (!isMountedRef.current) return;
-
       setIsOAuthLoading(true);
       setLoading(true);
       formState.setMessage(null);
@@ -226,12 +229,13 @@ export function useSignUpSubmission({
             throw result.error;
           }
 
-          if (isMountedRef.current) {
-            formState.setMessage({
-              text: SIGNUP_MESSAGES.OAUTH.REDIRECTING(provider),
-              type: 'info',
-            });
-          }
+          // Check if still mounted before state updates
+          if (!isMountedRef.current) return;
+
+          formState.setMessage({
+            text: SIGNUP_MESSAGES.OAUTH.REDIRECTING(provider),
+            type: 'info',
+          });
 
           // Note: OAuth will redirect away from page, so we don't need success handling here
         }
@@ -244,19 +248,20 @@ export function useSignUpSubmission({
         const errorObj =
           error instanceof Error ? error : new Error('OAuth sign up failed');
 
-        if (isMountedRef.current) {
-          formState.setMessage({
-            text:
-              SIGNUP_MESSAGES.OAUTH.ERROR(provider) + '. ' + errorObj.message,
-            type: 'error',
-          });
+        // Check if still mounted before error state updates
+        if (!isMountedRef.current) return;
 
-          onError?.(errorObj, `oauth_${provider}`);
+        formState.setMessage({
+          text:
+            SIGNUP_MESSAGES.OAUTH.ERROR(provider) + '. ' + errorObj.message,
+          type: 'error',
+        });
 
-          notifications.error(ERROR_MESSAGES.OAUTH.FAILED, {
-            description: ERROR_MESSAGES.OAUTH.DESCRIPTION,
-          });
-        }
+        onError?.(errorObj, `oauth_${provider}`);
+
+        notifications.error(ERROR_MESSAGES.OAUTH.FAILED, {
+          description: ERROR_MESSAGES.OAUTH.DESCRIPTION,
+        });
 
         logger.error(LOG_MESSAGES.OAUTH.FAILED, errorObj, {
           component: 'useSignUpSubmission',

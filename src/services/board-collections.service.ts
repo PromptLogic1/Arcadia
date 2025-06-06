@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '../lib/supabase';
+import { log } from '../lib/logger';
 import type { GameCategory, Difficulty } from '../types';
 import type { Database } from '../../types/database-generated';
 
@@ -90,7 +91,13 @@ export const boardCollectionsService = {
         error: undefined,
       };
     } catch (error) {
-      console.error('Failed to load board collections:', error);
+      log.error('Failed to load board collections', error as Error, {
+        metadata: {
+          service: 'boardCollections',
+          method: 'getCollections',
+          filters,
+        },
+      });
       return {
         collections: [],
         error:
@@ -125,7 +132,13 @@ export const boardCollectionsService = {
         error: undefined,
       };
     } catch (error) {
-      console.error('Failed to load board collection:', error);
+      log.error('Failed to load board collection', error as Error, {
+        metadata: {
+          service: 'boardCollections',
+          method: 'getCollection',
+          collectionId,
+        },
+      });
       return {
         collection: null,
         error:

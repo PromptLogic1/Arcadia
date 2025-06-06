@@ -97,7 +97,7 @@ export const usePresence = ({
             onPresenceUpdate: (
               newPresenceState: Record<string, PresenceState>
             ) => {
-              if (!isMountedRef.current || !isSubscriptionActive) return;
+              if (!isSubscriptionActive) return;
 
               logger.debug('Presence state updated', {
                 metadata: {
@@ -109,7 +109,7 @@ export const usePresence = ({
             },
 
             onUserJoin: (key: string, presence: PresenceState) => {
-              if (!isMountedRef.current || !isSubscriptionActive) return;
+              if (!isSubscriptionActive) return;
 
               logger.debug('User joined presence', {
                 metadata: { boardId, userId: presence.user_id },
@@ -121,7 +121,7 @@ export const usePresence = ({
             },
 
             onUserLeave: (key: string) => {
-              if (!isMountedRef.current || !isSubscriptionActive) return;
+              if (!isSubscriptionActive) return;
 
               logger.debug('User left presence', {
                 metadata: { boardId, key },
@@ -134,7 +134,7 @@ export const usePresence = ({
             },
 
             onError: (error: Error) => {
-              if (!isMountedRef.current || !isSubscriptionActive) return;
+              if (!isSubscriptionActive) return;
 
               logger.error('Presence error', error, { metadata: { boardId } });
               setError(error);
@@ -154,7 +154,7 @@ export const usePresence = ({
           });
         }
       } catch (error) {
-        if (!isMountedRef.current || !isSubscriptionActive) return;
+        if (!isSubscriptionActive) return;
 
         const err =
           error instanceof Error

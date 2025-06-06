@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBingoBoards } from './useBingoBoards';
 import { useAuth } from '@/lib/stores/auth-store';

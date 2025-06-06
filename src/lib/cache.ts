@@ -3,7 +3,7 @@
  * ZERO TYPE ASSERTIONS - Fully type-safe implementation
  */
 
-import type { ValidationResult } from './validation';
+import type { ValidationResult } from './validation/types';
 
 interface CacheEntry<T> {
   data: T;
@@ -53,12 +53,13 @@ class PerformanceCache {
     try {
       // Since we control what goes into the cache, this should be safe
       // but we return a ValidationResult to be explicit about potential failure
-      return { success: true, data: entry.data as T, error: null };
+      return { success: true, data: entry.data as T };
     } catch (error) {
-      return { 
-        success: false, 
-        data: null, 
-        error: error instanceof Error ? error.message : 'Cache retrieval failed' 
+      return {
+        success: false,
+        data: null,
+        error:
+          error instanceof Error ? error.message : 'Cache retrieval failed',
       };
     }
   }

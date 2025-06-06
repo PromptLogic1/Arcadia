@@ -38,6 +38,30 @@ export interface UserUpdateData {
 
 export const authService = {
   /**
+   * Get current session
+   */
+  async getSession(): Promise<{
+    session: { user: { id: string; email?: string | null } } | null;
+    error?: string;
+  }> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        return { session: null, error: error.message };
+      }
+
+      return { session: data.session };
+    } catch (error) {
+      return {
+        session: null,
+        error: error instanceof Error ? error.message : 'Failed to get session',
+      };
+    }
+  },
+
+  /**
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<{ user: AuthUser | null; error?: string }> {
@@ -284,5 +308,24 @@ export const authService = {
           error instanceof Error ? error.message : 'Password update failed',
       };
     }
+  },
+
+  /**
+   * Subscribe to auth state changes
+   */
+  onAuthStateChange(
+    callback: (
+      event: string,
+      session: { user: { id: string; email?: string | null } } | null
+    ) => void
+  ) {
+    const supabase = createClient();
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      callback(event, session);
+    });
+
+    return {
+      unsubscribe: () => data.subscription.unsubscribe(),
+    };
   },
 };

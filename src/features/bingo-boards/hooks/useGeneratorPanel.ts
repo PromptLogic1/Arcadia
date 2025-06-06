@@ -7,7 +7,7 @@
  * - Service layer for pure API functions
  */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import type { GameCategory } from '@/types';
 import {
   useBingoGeneratorSettings,
@@ -53,7 +53,7 @@ export function useGeneratorPanel(
 ): UseGeneratorPanel {
   // Zustand store
   const settings = useBingoGeneratorSettings();
-  const { isLoading, error, cardsForSelection } = useBingoGenerator();
+  const { cardsForSelection } = useBingoGenerator();
   const {
     setSelectedCategories,
     setDifficulty,
@@ -62,8 +62,6 @@ export function useGeneratorPanel(
     setGameCategory,
     setCardSource,
     setCardsForSelection,
-    setError,
-    setIsLoading,
   } = useBingoGeneratorActions();
 
   // Auth for user ID
@@ -73,39 +71,22 @@ export function useGeneratorPanel(
   const generateMutation = useGenerateBoardMutation();
   const reshuffleMutation = useReshuffleCardsMutation();
 
-  // Abort controller for cancelling async operations
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Mount tracking
-  const isMountedRef = useRef(true);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      // Cancel any pending operations
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  // Update game category when it changes
-  useEffect(() => {
+  // Update game category and card source in store when props change
+  // These are synchronous updates to UI state, not data fetching
+  if (settings.gameCategory !== gameCategory) {
     setGameCategory(gameCategory);
-  }, [gameCategory, setGameCategory]);
+  }
 
-  // Update card source based on props
-  useEffect(() => {
-    const cardSource =
-      usePublicCards && usePrivateCards
-        ? 'publicprivate'
-        : usePublicCards
-          ? 'public'
-          : 'private';
+  const cardSource =
+    usePublicCards && usePrivateCards
+      ? 'publicprivate'
+      : usePublicCards
+        ? 'public'
+        : 'private';
+  
+  if (settings.cardSource !== cardSource) {
     setCardSource(cardSource);
-  }, [usePublicCards, usePrivateCards, setCardSource]);
+  }
 
   // Handlers - these just update Zustand state
   const handleCategoriesChange = useCallback(
@@ -142,28 +123,11 @@ export function useGeneratorPanel(
     [setCardPoolSize]
   );
 
-  // Generate board - uses TanStack Query mutation with cancellation
+  // Generate board - uses TanStack Query mutation
   const generateBoard = useCallback(async () => {
-    // Cancel any previous operation
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    const abortController = new AbortController();
-    
     try {
-      abortControllerRef.current = abortController;
-
-      setError(null);
-
       if (!gameCategory) {
         throw new Error('Game category is required');
-      }
-
-      // Check if cancelled before proceeding
-      if (abortController.signal.aborted) {
-        return;
       }
 
       const result = await generateMutation.mutateAsync({
@@ -177,11 +141,6 @@ export function useGeneratorPanel(
         userId: authUser?.id,
       });
 
-      // Check if cancelled or unmounted after async operation
-      if (abortController.signal.aborted || !isMountedRef.current) {
-        return;
-      }
-
       // Store the generated cards
       setCardsForSelection(result.cards);
 
@@ -189,24 +148,11 @@ export function useGeneratorPanel(
         description: `Generated ${result.cards.length} cards from ${result.totalAvailable} available`,
       });
     } catch (error) {
-      // Don't show error if operation was cancelled
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-
       const message =
         error instanceof Error ? error.message : 'Failed to generate board';
-      if (isMountedRef.current) {
-        setError(message);
-        notifications.error('Board generation failed', {
-          description: message,
-        });
-      }
-    } finally {
-      // Clear the abort controller if it's the current one
-      if (abortControllerRef.current === abortController) {
-        abortControllerRef.current = null;
-      }
+      notifications.error('Board generation failed', {
+        description: message,
+      });
     }
   }, [
     gameCategory,
@@ -215,32 +161,14 @@ export function useGeneratorPanel(
     authUser?.id,
     generateMutation,
     setCardsForSelection,
-    setError,
   ]);
 
-  // Reshuffle board - uses TanStack Query mutation with cancellation
+  // Reshuffle board - uses TanStack Query mutation
   const reshuffleBoard = useCallback(
     async (gridSize: number) => {
-      // Cancel any previous operation
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      // Create new abort controller
-      const abortController = new AbortController();
-      
       try {
-        abortControllerRef.current = abortController;
-
-        setError(null);
-
         if (cardsForSelection.length === 0) {
           throw new Error('No cards available to reshuffle');
-        }
-
-        // Check if cancelled before proceeding
-        if (abortController.signal.aborted) {
-          return;
         }
 
         const result = await reshuffleMutation.mutateAsync({
@@ -248,50 +176,29 @@ export function useGeneratorPanel(
           gridSize,
         });
 
-        // Check if cancelled or unmounted after async operation
-        if (abortController.signal.aborted || !isMountedRef.current) {
-          return;
-        }
-
         // Update the cards with reshuffled order
         setCardsForSelection(result);
 
         notifications.success('Cards reshuffled!');
       } catch (error) {
-        // Don't show error if operation was cancelled
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-
         const message =
           error instanceof Error ? error.message : 'Failed to reshuffle cards';
-        if (isMountedRef.current) {
-          setError(message);
-          notifications.error('Reshuffle failed', {
-            description: message,
-          });
-        }
-      } finally {
-        // Clear the abort controller if it's the current one
-        if (abortControllerRef.current === abortController) {
-          abortControllerRef.current = null;
-        }
+        notifications.error('Reshuffle failed', {
+          description: message,
+        });
       }
     },
-    [cardsForSelection, reshuffleMutation, setCardsForSelection, setError]
+    [cardsForSelection, reshuffleMutation, setCardsForSelection]
   );
 
-  // Update loading state based on mutations
-  useEffect(() => {
-    const loading = generateMutation.isPending || reshuffleMutation.isPending;
-    setIsLoading(loading);
-  }, [generateMutation.isPending, reshuffleMutation.isPending, setIsLoading]);
+  // Compute loading and error states from mutations
+  const isLoading = generateMutation.isPending || reshuffleMutation.isPending;
+  const error = generateMutation.error || reshuffleMutation.error;
 
   return {
     // State
-    isLoading:
-      isLoading || generateMutation.isPending || reshuffleMutation.isPending,
-    error,
+    isLoading,
+    error: error instanceof Error ? error.message : error ? String(error) : null,
     selectedCategories: settings.selectedCategories,
     difficulty: settings.difficulty,
     minVotes: settings.minVotes,

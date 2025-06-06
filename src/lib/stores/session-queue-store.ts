@@ -147,20 +147,21 @@ const useSessionQueueStore = createWithEqualityFn<
         set({ isCopyingLink: true }, false, 'copyInviteLink_start');
 
         try {
+          // Use modern clipboard API only
           if (typeof navigator !== 'undefined' && navigator.clipboard) {
             await navigator.clipboard.writeText(inviteLink);
+            set({ isCopyingLink: false }, false, 'copyInviteLink_success');
+            return true;
           } else {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = inviteLink;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
+            // If clipboard API is not available, return false
+            // Let the UI handle alternative methods (e.g., showing a copyable text field)
+            set(
+              { isCopyingLink: false },
+              false,
+              'copyInviteLink_no_clipboard_api'
+            );
+            return false;
           }
-
-          set({ isCopyingLink: false }, false, 'copyInviteLink_success');
-          return true;
         } catch {
           set({ isCopyingLink: false }, false, 'copyInviteLink_error');
           return false;

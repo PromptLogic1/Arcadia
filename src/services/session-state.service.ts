@@ -297,7 +297,7 @@ export const sessionStateService = {
     }) => void
   ): () => void {
     const channelName = `session:${sessionId}`;
-    
+
     // Subscribe to session changes
     const unsubscribeSession = safeRealtimeManager.subscribe(
       `${channelName}_sessions`,
@@ -315,7 +315,8 @@ export const sessionStateService = {
             .eq('id', sessionId)
             .single();
 
-          const { players } = await sessionStateService.getSessionPlayers(sessionId);
+          const { players } =
+            await sessionStateService.getSessionPlayers(sessionId);
 
           if (session) {
             onStateChange({
@@ -326,12 +327,12 @@ export const sessionStateService = {
         },
         onError: (error: Error) => {
           logger.error('Session subscription error', error, {
-            metadata: { sessionId }
+            metadata: { sessionId },
           });
-        }
+        },
       }
     );
-    
+
     // Subscribe to player changes
     const unsubscribePlayers = safeRealtimeManager.subscribe(
       `${channelName}_players`,
@@ -342,7 +343,8 @@ export const sessionStateService = {
         filter: `session_id=eq.${sessionId}`,
         onUpdate: async () => {
           // Fetch updated players
-          const { players } = await sessionStateService.getSessionPlayers(sessionId);
+          const { players } =
+            await sessionStateService.getSessionPlayers(sessionId);
           const supabase = createClient();
           const { data: session } = await supabase
             .from('session_stats')
@@ -359,9 +361,9 @@ export const sessionStateService = {
         },
         onError: (error: Error) => {
           logger.error('Player subscription error', error, {
-            metadata: { sessionId }
+            metadata: { sessionId },
           });
-        }
+        },
       }
     );
 

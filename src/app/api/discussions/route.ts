@@ -1,56 +1,72 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 import { log } from '@/lib/logger';
+import { RateLimiter } from '@/lib/rate-limiter';
+import {
+  createDiscussionRequestSchema,
+  getDiscussionsQuerySchema,
+} from '@/lib/validation/schemas/discussions';
+import {
+  validateRequestBody,
+  validateQueryParams,
+  isValidationError,
+} from '@/lib/validation/middleware';
+import { communityService } from '@/src/services/community.service';
 
-interface DiscussionPostBody {
-  title: string;
-  content: string;
-  game: string;
-}
+const rateLimiter = new RateLimiter();
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const gameType = searchParams.get('gameType');
-
-    // Validate pagination params
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.min(50, Math.max(1, limit)); // Max 50 items per page
-    const offset = (safePage - 1) * safeLimit;
-
-    const supabase = await createServerComponentClient();
-
-    // Build query with pagination
-    let query = supabase.from('discussions').select(
-      `
-        *,
-        author:users!discussions_author_id_fkey(username, avatar_url),
-        comments:comments(count)
-      `,
-      { count: 'exact' }
-    );
-
-    // Add game type filter if provided
-    if (gameType && gameType !== 'all') {
-      query = query.eq('game', gameType);
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (await rateLimiter.isLimited(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    // Add pagination and ordering
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + safeLimit - 1);
+    const { searchParams } = new URL(request.url);
 
-    const { data, error, count } = await query;
+    // Validate query parameters with Zod
+    const validation = validateQueryParams(
+      searchParams,
+      getDiscussionsQuerySchema,
+      {
+        apiRoute: 'discussions',
+        method: 'GET',
+      }
+    );
 
-    if (error) {
-      log.error('Error fetching discussions', error, {
+    if (isValidationError(validation)) {
+      return validation.error;
+    }
+
+    const {
+      page = 1,
+      limit = 20,
+      game,
+      search,
+      challenge_type,
+      sort,
+    } = validation.data;
+
+    // Use community service to fetch discussions
+    const result = await communityService.getDiscussionsForAPI(
+      {
+        game,
+        challenge_type,
+        search,
+        sort,
+      },
+      page,
+      limit
+    );
+
+    if (result.error) {
+      log.error('Error fetching discussions', new Error(result.error), {
         metadata: {
           apiRoute: 'discussions',
           method: 'GET',
-          page: safePage,
-          limit: safeLimit,
+          page,
+          limit,
+          filters: { game, challenge_type, search, sort },
         },
       });
       return NextResponse.json(
@@ -61,12 +77,12 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     // Return paginated response with metadata
     return NextResponse.json({
-      data: data || [],
+      data: result.discussions,
       pagination: {
-        page: safePage,
-        limit: safeLimit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / safeLimit),
+        page,
+        limit,
+        total: result.totalCount,
+        totalPages: Math.ceil(result.totalCount / limit),
       },
     });
   } catch (error) {
@@ -82,8 +98,12 @@ export async function GET(request: Request): Promise<NextResponse> {
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (await rateLimiter.isLimited(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const supabase = await createServerComponentClient();
-    const json = (await request.json()) as DiscussionPostBody;
 
     const {
       data: { session },
@@ -107,26 +127,40 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const { data, error } = await supabase
-      .from('discussions')
-      .insert([
-        {
-          title: json.title,
-          content: json.content,
-          game: json.game,
-          author_id: session.user.id,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single();
+    // Validate request body with Zod
+    const validation = await validateRequestBody(
+      request,
+      createDiscussionRequestSchema,
+      {
+        apiRoute: 'discussions',
+        method: 'POST',
+        userId: session.user.id,
+      }
+    );
 
-    if (error) {
-      log.error('Error creating discussion', error, {
+    if (isValidationError(validation)) {
+      return validation.error;
+    }
+
+    const { title, content, game, challenge_type, tags } = validation.data;
+
+    // Use community service to create discussion
+    const result = await communityService.createDiscussion({
+      title,
+      content,
+      author_id: session.user.id,
+      game,
+      challenge_type: challenge_type || null,
+      tags: tags || [],
+    });
+
+    if (result.error) {
+      log.error('Error creating discussion', new Error(result.error), {
         metadata: {
           apiRoute: 'discussions',
           method: 'POST',
-          title: json.title,
+          title,
+          userId: session.user.id,
         },
       });
       return NextResponse.json(
@@ -135,7 +169,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(result.discussion);
   } catch (error) {
     log.error('Error creating discussion', error, {
       metadata: { apiRoute: 'discussions', method: 'POST' },

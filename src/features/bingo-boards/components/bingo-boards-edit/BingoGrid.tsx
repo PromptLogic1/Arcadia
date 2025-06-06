@@ -71,6 +71,8 @@ export function BingoGrid({
         style={{
           gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
         }}
+        role="grid"
+        aria-label="Bingo board grid"
       >
         {gridCards.map((card, index) => (
           <GridCard
@@ -174,6 +176,19 @@ const GridCard = React.memo(
           )}
           onClick={onClick}
           {...(!isEmpty ? listeners : {})}
+          role="gridcell"
+          aria-label={
+            isEmpty
+              ? `Empty cell at position ${gridPosition}`
+              : `${card.title} at position ${gridPosition}`
+          }
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onClick();
+            }
+          }}
         >
           {/* Grid Position Indicator */}
           <div
@@ -207,6 +222,8 @@ const GridCard = React.memo(
                     e.stopPropagation();
                     onRemove();
                   }}
+                  aria-label={`Remove ${card.title} from position ${gridPosition}`}
+                  tabIndex={-1}
                 >
                   <X className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
                 </button>

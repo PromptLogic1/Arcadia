@@ -2,21 +2,27 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { createServerComponentClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import type { Database } from '@/types/database-generated';
+import { RateLimiter } from '@/lib/rate-limiter';
+import { joinByCodeRequestSchema } from '@/lib/validation/schemas/sessions';
+import {
+  validateRequestBody,
+  isValidationError,
+} from '@/lib/validation/middleware';
+import { sessionsService } from '@/src/services/sessions.service';
+import { userService } from '@/src/services/user.service';
 
-interface JoinByCodeRequest {
-  sessionCode: string;
-  password?: string;
-  displayName?: string;
-  color?: string;
-  team?: number | null;
-}
+const rateLimiter = new RateLimiter();
 
 export async function POST(request: NextRequest) {
   let userIdForLog: string | undefined;
   let sessionCodeForLog: string | undefined;
 
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (await rateLimiter.isLimited(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const supabase = await createServerComponentClient();
 
     // Get authenticated user
@@ -30,121 +36,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await request.json()) as JoinByCodeRequest;
-    const { sessionCode, password, displayName, color, team } = body;
+    // Validate request body with Zod
+    const validation = await validateRequestBody(
+      request,
+      joinByCodeRequestSchema,
+      {
+        apiRoute: 'bingo/sessions/join-by-code',
+        method: 'POST',
+        userId: user.id,
+      }
+    );
+
+    if (isValidationError(validation)) {
+      return validation.error;
+    }
+
+    // Note: The schema expects userId in the body, but we use the authenticated user's ID
+    const { sessionCode, password, displayName, color, team } = validation.data;
     sessionCodeForLog = sessionCode;
 
-    // Validate required fields
-    if (!sessionCode?.trim()) {
-      return NextResponse.json(
-        { error: 'Session code is required' },
-        { status: 400 }
-      );
-    }
-
     // Get user profile for display name fallback
-    const { data: profile } = await supabase
-      .from('users')
-      .select('username')
-      .eq('id', user.id)
-      .single();
-
-    const playerDisplayName = displayName || profile?.username || 'Anonymous';
+    const profileResult = await userService.getUserProfile(user.id);
+    const playerDisplayName = displayName || profileResult.data?.username || 'Anonymous';
     const playerColor = color || '#3B82F6'; // Default blue
 
-    // Find session by code
-    const { data: session, error: sessionError } = await supabase
-      .from('bingo_sessions')
-      .select('*')
-      .eq('session_code', sessionCode.toUpperCase())
-      .single();
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    if (session.status !== 'waiting') {
-      return NextResponse.json(
-        { error: 'Session is no longer accepting players' },
-        { status: 400 }
-      );
-    }
-
-    // Check password if session is password protected
-    const sessionPassword = session.settings?.password;
-    if (sessionPassword && sessionPassword.trim()) {
-      if (!password || password.trim() !== sessionPassword.trim()) {
-        return NextResponse.json(
-          { error: 'Incorrect password' },
-          { status: 401 }
-        );
-      }
-    }
-
-    // Check if user already in session
-    const { data: existingPlayer } = await supabase
-      .from('bingo_session_players')
-      .select('*')
-      .eq('session_id', session.id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (existingPlayer) {
-      return NextResponse.json({
-        sessionId: session.id,
-        session,
-        player: existingPlayer,
-      });
-    }
-
-    // Check max players
-    const { count: playerCount } = await supabase
-      .from('bingo_session_players')
-      .select('*', { count: 'exact' })
-      .eq('session_id', session.id);
-
-    const maxPlayers = session.settings?.max_players || 4;
-    if ((playerCount || 0) >= maxPlayers) {
-      return NextResponse.json({ error: 'Session is full' }, { status: 400 });
-    }
-
-    // Check if host approval is required
-    if (session.settings?.require_approval) {
-      // For now, we'll just join directly. In a full implementation,
-      // this would add to a queue for host approval
-      // TODO: Implement approval queue system
-    }
-
-    const now = new Date().toISOString();
-
-    // Add player to session
-    const playerInsert: Database['public']['Tables']['bingo_session_players']['Insert'] =
+    // Join session using service
+    const result = await sessionsService.joinSessionByCode(
+      sessionCode,
+      user.id,
       {
-        session_id: session.id,
-        user_id: user.id,
         display_name: playerDisplayName,
         color: playerColor,
         team: team ?? null,
-        score: 0,
-        is_host: false,
-        is_ready: false,
-        joined_at: now,
-      };
+        password,
+      }
+    );
 
-    const { data: newPlayer, error: playerError } = await supabase
-      .from('bingo_session_players')
-      .insert(playerInsert)
-      .select()
-      .single();
-
-    if (playerError) {
-      throw playerError;
+    if (result.error) {
+      const statusCode = 
+        result.error === 'Session not found' ? 404 :
+        result.error === 'Incorrect password' ? 401 :
+        result.error === 'Session is full' || 
+        result.error === 'Session is no longer accepting players' ? 400 : 500;
+      
+      return NextResponse.json({ error: result.error }, { status: statusCode });
     }
 
     return NextResponse.json({
-      sessionId: session.id,
-      session,
-      player: newPlayer,
+      sessionId: result.session?.id,
+      session: result.session,
+      player: result.player,
     });
   } catch (error) {
     log.error('Error joining session by code', error as Error, {

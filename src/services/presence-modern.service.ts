@@ -113,7 +113,7 @@ class PresenceService {
             // Type guard validation for presence state
             const rawPresence = newPresences[0];
             if (!rawPresence || typeof rawPresence !== 'object') return;
-            
+
             const presence = rawPresence as PresenceStateWithRef; // Safe: validated above
             const convertedPresence = convertPresence(presence);
 
@@ -164,9 +164,15 @@ class PresenceService {
             ? PRESENCE_CONSTANTS.STATUS.AWAY
             : PRESENCE_CONSTANTS.STATUS.ONLINE
         ).catch(error => {
-          logger.error('Heartbeat presence update failed', error instanceof Error ? error : new Error('Unknown heartbeat error'), {
-            metadata: { boardId },
-          });
+          logger.error(
+            'Heartbeat presence update failed',
+            error instanceof Error
+              ? error
+              : new Error('Unknown heartbeat error'),
+            {
+              metadata: { boardId },
+            }
+          );
         });
       }, PRESENCE_CONSTANTS.TIMING.HEARTBEAT_INTERVAL);
 
@@ -181,7 +187,9 @@ class PresenceService {
         this.updatePresence(boardId, user.id, status).catch(error => {
           logger.error(
             'Visibility change presence update failed',
-            error instanceof Error ? error : new Error('Unknown visibility error'),
+            error instanceof Error
+              ? error
+              : new Error('Unknown visibility error'),
             {
               metadata: { boardId },
             }
@@ -236,9 +244,15 @@ class PresenceService {
         activity,
       });
     } catch (error) {
-      logger.error('Failed to update presence', error instanceof Error ? error : new Error('Unknown presence update error'), {
-        metadata: { boardId, userId, status },
-      });
+      logger.error(
+        'Failed to update presence',
+        error instanceof Error
+          ? error
+          : new Error('Unknown presence update error'),
+        {
+          metadata: { boardId, userId, status },
+        }
+      );
       throw error;
     }
   }
@@ -271,9 +285,13 @@ class PresenceService {
 
       logger.debug('Presence cleaned up', { metadata: { boardId } });
     } catch (error) {
-      logger.error('Failed to cleanup presence', error instanceof Error ? error : new Error('Unknown cleanup error'), {
-        metadata: { boardId },
-      });
+      logger.error(
+        'Failed to cleanup presence',
+        error instanceof Error ? error : new Error('Unknown cleanup error'),
+        {
+          metadata: { boardId },
+        }
+      );
     }
   }
 
@@ -308,9 +326,13 @@ class PresenceService {
         {} as Record<string, PresenceState>
       );
     } catch (error) {
-      logger.error('Failed to get current presence state', error instanceof Error ? error : new Error('Unknown state error'), {
-        metadata: { boardId },
-      });
+      logger.error(
+        'Failed to get current presence state',
+        error instanceof Error ? error : new Error('Unknown state error'),
+        {
+          metadata: { boardId },
+        }
+      );
       return null;
     }
   }

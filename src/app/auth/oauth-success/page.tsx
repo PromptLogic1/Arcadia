@@ -1,57 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Check, User, Settings } from 'lucide-react';
-import { log } from '@/lib/logger';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
+import {
+  useAuthSessionQuery,
+  useUserDataQuery,
+} from '@/hooks/queries/useAuthQueries';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 function OAuthSuccessContent() {
-  const [username, setUsername] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
+
+  // Use TanStack Query for session and user data
+  const {
+    data: sessionData,
+    isLoading: sessionLoading,
+    error: sessionError,
+  } = useAuthSessionQuery();
+  const session = sessionData?.session;
+
+  const { data: userData, isLoading: userLoading } = useUserDataQuery(
+    session?.user?.id
+  );
+  const username = userData?.userData?.username;
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push('/auth/login');
-          return;
-        }
+    // Redirect if no session
+    if (!sessionLoading && !session) {
+      router.push('/auth/login');
+    }
 
-        // Fetch the username from your users table
-        const { data: userData } = await supabase
-          .from('users')
-          .select('username')
-          .eq('auth_id', session.user.id)
-          .single();
+    // Redirect on error
+    if (sessionError) {
+      router.push('/auth/login?error=oauth_failed');
+    }
+  }, [session, sessionLoading, sessionError, router]);
 
-        if (userData) {
-          setUsername(userData.username);
-        }
-      } catch (error) {
-        log.error('Error fetching user data after OAuth success', error, {
-          metadata: { page: 'OAuthSuccessPage' },
-        });
-        router.push('/auth/login?error=oauth_failed');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [supabase, router]);
-
-  if (loading) {
+  if (sessionLoading || userLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-cyan-500"></div>
+        <LoadingSpinner className="h-8 w-8" />
       </div>
     );
   }

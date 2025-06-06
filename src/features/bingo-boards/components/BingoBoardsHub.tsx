@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Grid } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -14,6 +14,8 @@ import { DIFFICULTY_OPTIONS } from '@/types';
 import { default as BoardCard } from './board-card';
 import { CreateBoardForm } from './CreateBoardForm';
 import { NeonText } from '@/components/ui/NeonText';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
 import {
   Constants as _Constants,
@@ -32,6 +34,8 @@ export default function BingoBoardsHub() {
     handleFilterChange,
     setIsCreateFormOpen,
     handleCreateBoard,
+    isLoading,
+    isFetching,
   } = useBingoBoardsHub();
 
   // Sort options for the select
@@ -101,11 +105,56 @@ export default function BingoBoardsHub() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {boards.map(board => (
-          <BoardCard key={board.id} board={board} />
-        ))}
-      </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="grid grid-cols-1 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-lg" />
+          ))}
+        </div>
+      )}
+
+      {/* Boards Grid */}
+      {!isLoading && boards.length > 0 && (
+        <div className="grid grid-cols-1 gap-4">
+          {boards.map(board => (
+            <BoardCard key={board.id} board={board} />
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && boards.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-600 p-12 text-center">
+          <Grid className="mb-4 h-12 w-12 text-gray-500" />
+          <h3 className="mb-2 text-xl font-semibold text-gray-300">
+            No boards found
+          </h3>
+          <p className="mb-6 max-w-sm text-gray-500">
+            {filterSelections.search || filterSelections.difficulty !== 'all'
+              ? 'Try adjusting your filters or search term'
+              : 'Create your first bingo board to get started'}
+          </p>
+          {filterSelections.search === '' &&
+            filterSelections.difficulty === 'all' && (
+              <Button
+                onClick={() => setIsCreateFormOpen(true)}
+                className="bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create Your First Board
+              </Button>
+            )}
+        </div>
+      )}
+
+      {/* Refreshing Indicator */}
+      {isFetching && !isLoading && (
+        <div className="flex items-center justify-center py-2">
+          <LoadingSpinner size="sm" color="primary" />
+          <span className="ml-2 text-sm text-gray-400">Refreshing...</span>
+        </div>
+      )}
 
       <CreateBoardForm
         isOpen={isCreateFormOpen}

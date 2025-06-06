@@ -111,9 +111,13 @@ export const LoginOAuthSection = React.forwardRef<
             const config =
               providerConfigs[provider as keyof typeof providerConfigs];
             if (!config) {
-              logger.error('OAuth provider not configured', new Error(`Provider ${provider} is not configured`), {
-                metadata: { provider }
-              });
+              logger.error(
+                'OAuth provider not configured',
+                new Error(`Provider ${provider} is not configured`),
+                {
+                  metadata: { provider },
+                }
+              );
               return null;
             }
 

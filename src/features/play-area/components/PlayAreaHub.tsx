@@ -26,7 +26,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { logger } from '@/lib/logger';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
 
 // New pattern imports
@@ -90,20 +90,20 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
   // Extract sessions from response
   const sessions = sessionsResponse?.sessions || [];
 
-  // Handle URL parameters for seamless navigation from challenge hub
-  useEffect(() => {
-    if (isAuthenticated && searchParams) {
-      const boardId = searchParams.get('boardId');
-      const shouldHost = searchParams.get('host') === 'true';
+  // Derive hosting intent from URL parameters
+  const boardIdFromUrl = searchParams?.get('boardId');
+  const shouldHostFromUrl = searchParams?.get('host') === 'true';
+  const shouldOpenHostDialog = isAuthenticated && boardIdFromUrl && shouldHostFromUrl;
 
-      if (boardId && shouldHost) {
-        // Open hosting dialog with pre-selected board
-        setShowHostDialog(true);
-        // Clear URL parameters after processing
-        router.replace('/play-area', { scroll: false });
-      }
+  // Handle URL parameter-based hosting dialog
+  useEffect(() => {
+    if (shouldOpenHostDialog) {
+      // Open hosting dialog with pre-selected board
+      setShowHostDialog(true);
+      // Clear URL parameters after processing
+      router.replace('/play-area', { scroll: false });
     }
-  }, [isAuthenticated, searchParams, router, setShowHostDialog]);
+  }, [shouldOpenHostDialog, router, setShowHostDialog]);
 
   // Handle session hosting
   const handleCreateSession = async (
@@ -127,9 +127,12 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       router.push(`/play-area/session/${result.session?.id}`);
     } catch (error) {
       // Error handling is done in the mutation
-      logger.error('Failed to create session', error, {
-        component: 'PlayAreaHub',
-        metadata: { userId: authUser?.id, settings },
+      log.error('Failed to create session', error as Error, {
+        metadata: { 
+          component: 'PlayAreaHub',
+          userId: authUser?.id, 
+          settings 
+        },
       });
     }
   };
@@ -147,14 +150,20 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
 
       setShowJoinDialog(false);
       setJoinSessionCode('');
-      logger.warn('Join by code not fully implemented yet', {
+      log.warn('Join by code not fully implemented yet', {
         component: 'PlayAreaHub',
-        metadata: { joinSessionCode: joinSessionCode.trim(), userId: authUser?.id },
+        metadata: {
+          joinSessionCode: joinSessionCode.trim(),
+          userId: authUser?.id,
+        },
       });
     } catch (error) {
-      logger.error('Failed to join session by code', error, {
-        component: 'PlayAreaHub',
-        metadata: { joinSessionCode: joinSessionCode.trim(), userId: authUser?.id },
+      log.error('Failed to join session by code', error as Error, {
+        metadata: {
+          component: 'PlayAreaHub',
+          joinSessionCode: joinSessionCode.trim(),
+          userId: authUser?.id,
+        },
       });
     }
   };
@@ -193,9 +202,13 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       router.push(`/play-area/session/${sessionId}`);
     } catch (error) {
       // Error handling is done in the mutation
-      logger.error('Failed to join session', error, {
-        component: 'PlayAreaHub',
-        metadata: { sessionId, userId: authUser?.id, joinData },
+      log.error('Failed to join session', error as Error, {
+        metadata: { 
+          component: 'PlayAreaHub',
+          sessionId, 
+          userId: authUser?.id, 
+          joinData 
+        },
       });
     }
   };

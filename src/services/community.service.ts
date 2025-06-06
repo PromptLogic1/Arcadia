@@ -76,6 +76,13 @@ export interface DiscussionFilters {
   sortBy?: 'recent' | 'popular' | 'comments';
 }
 
+export interface DiscussionAPIFilters {
+  game?: string;
+  challenge_type?: string;
+  search?: string;
+  sort?: 'recent' | 'popular' | 'most_commented';
+}
+
 export interface EventFilters {
   upcoming?: boolean;
   search?: string;
@@ -83,6 +90,95 @@ export interface EventFilters {
 }
 
 export const communityService = {
+  /**
+   * Get discussions for API route with specific filters
+   */
+  async getDiscussionsForAPI(
+    filters: DiscussionAPIFilters = {},
+    page = 1,
+    limit = 20
+  ): Promise<{
+    discussions: Discussion[];
+    totalCount: number;
+    error?: string;
+  }> {
+    try {
+      const supabase = createClient();
+      let query = supabase.from('discussions').select(
+        `
+          *,
+          author:users!discussions_author_id_fkey(username, avatar_url),
+          comments:comments(count)
+        `,
+        { count: 'exact' }
+      );
+
+      // Apply filters
+      if (filters.game) {
+        query = query.eq('game', filters.game);
+      }
+
+      if (filters.challenge_type) {
+        query = query.eq('challenge_type', filters.challenge_type);
+      }
+
+      if (filters.search) {
+        query = query.or(
+          `title.ilike.%${filters.search}%,content.ilike.%${filters.search}%`
+        );
+      }
+
+      // Apply sorting
+      switch (filters.sort) {
+        case 'popular':
+          query = query.order('upvotes', { ascending: false });
+          break;
+        case 'most_commented':
+          query = query.order('comment_count', { ascending: false });
+          break;
+        case 'recent':
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      // Apply pagination
+      const start = (page - 1) * limit;
+      const end = start + limit - 1;
+
+      const { data, error, count } = await query.range(start, end);
+
+      if (error) {
+        return {
+          discussions: [],
+          totalCount: 0,
+          error: error.message,
+        };
+      }
+
+      // Transform the data to match Discussion type
+      const discussions: Discussion[] = (data || []).map(discussion => ({
+        ...discussion,
+        // Ensure author is undefined instead of null
+        author: discussion.author || undefined,
+      }));
+
+      return {
+        discussions,
+        totalCount: count || 0,
+      };
+    } catch (error) {
+      return {
+        discussions: [],
+        totalCount: 0,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch discussions',
+      };
+    }
+  },
+
   /**
    * Get discussions with filtering and pagination
    */

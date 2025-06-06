@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,10 +28,9 @@ import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
 import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGame';
+import { useStartGameSessionMutation } from '@/hooks/queries/useGameStateQueries';
 import { RealtimeErrorBoundary } from '@/components/error-boundaries';
 import type { Player } from '../../../services/session-state.service';
-
-// Types (for future reference - these types are no longer used in this component)
 
 interface GameSessionProps {
   sessionId: string;
@@ -47,23 +46,12 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
   // Use the modern hook for session management
   const { session, initializeSession } = useSessionModern(sessionId);
+  
+  // Use TanStack Query mutation for starting game
+  const startGameMutation = useStartGameSessionMutation();
 
   // UI state
   const [copySuccess, setCopySuccess] = useState(false);
-
-  // Mount tracking
-  const isMountedRef = useRef(true);
-  const copyTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Derived state from the session
   const players = session.players || [];
@@ -76,29 +64,19 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
   // Copy session code to clipboard
   const copySessionCode = useCallback(async () => {
-    if (!session?.session_code || !isMountedRef.current) return;
+    if (!session?.session_code) return;
 
     try {
       await navigator.clipboard.writeText(session.session_code);
-      if (isMountedRef.current) {
-        setCopySuccess(true);
-        notifications.success('Session code copied to clipboard!');
+      setCopySuccess(true);
+      notifications.success('Session code copied to clipboard!');
 
-        // Clear any existing timeout
-        if (copyTimeoutRef.current) {
-          clearTimeout(copyTimeoutRef.current);
-        }
-
-        copyTimeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current) {
-            setCopySuccess(false);
-          }
-        }, 2000);
-      }
+      // Reset success state after 2 seconds
+      setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
     } catch {
-      if (isMountedRef.current) {
-        notifications.error('Failed to copy session code');
-      }
+      notifications.error('Failed to copy session code');
     }
   }, [session?.session_code]);
 
@@ -128,43 +106,33 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
   // Start game (host only)
   const startGame = useCallback(async () => {
-    if (!isHost || !session || !isMountedRef.current) return;
-
-    const controller = new AbortController();
+    if (!isHost || !session || !authUser?.id) return;
 
     try {
-      const response = await fetch(`/api/bingo/sessions/${sessionId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
+      await startGameMutation.mutateAsync({
+        sessionId,
+        hostId: authUser.id,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to start game');
-      }
-
-      if (isMountedRef.current) {
-        notifications.success('Game started!');
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return; // Ignore aborted requests
-      }
-
-      if (isMountedRef.current) {
-        logger.error('Failed to start game', error instanceof Error ? error : new Error(String(error)), {
-          sessionId,
-          userId: authUser?.id,
-        });
-        notifications.error('Failed to start game');
-      }
+      
+      notifications.success('Game started!');
+    } catch (error) {
+      logger.error(
+        'Failed to start game',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: {
+            sessionId,
+            userId: authUser?.id,
+          }
+        }
+      );
+      notifications.error('Failed to start game');
     }
-  }, [isHost, session, sessionId, authUser?.id]);
+  }, [isHost, session, sessionId, authUser?.id, startGameMutation]);
 
   // Join session (if not already in)
   const joinSessionAction = useCallback(async () => {
-    if (playerInSession || !session || !authUser || !isMountedRef.current)
-      return;
+    if (playerInSession || !session || !authUser) return;
 
     const player: Player = {
       id: authUser.id,
@@ -180,15 +148,15 @@ export function GameSession({ sessionId }: GameSessionProps) {
     try {
       await initializeSession(player);
     } catch (error) {
-      if (isMountedRef.current) {
-        logger.error('Failed to join session', error, {
+      logger.error('Failed to join session', error as Error, {
+        metadata: {
           sessionId,
           userId: authUser?.id,
-        });
-        notifications.error(
-          (error as Error).message || 'Failed to join session'
-        );
-      }
+        }
+      });
+      notifications.error(
+        (error as Error).message || 'Failed to join session'
+      );
     }
   }, [playerInSession, session, authUser, initializeSession, sessionId]);
 
@@ -412,10 +380,20 @@ export function GameSession({ sessionId }: GameSessionProps) {
                   players.length > 1 && (
                     <Button
                       onClick={startGame}
+                      disabled={startGameMutation.isPending}
                       className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
                     >
-                      <Play className="mr-2 h-4 w-4" />
-                      Start Game
+                      {startGameMutation.isPending ? (
+                        <>
+                          <LoadingSpinner className="mr-2 h-4 w-4" />
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="mr-2 h-4 w-4" />
+                          Start Game
+                        </>
+                      )}
                     </Button>
                   )}
 

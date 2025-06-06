@@ -5,7 +5,7 @@
  * following the new architecture pattern.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   useSessionJoinDetailsQuery,
   useUserInSessionQuery,
@@ -24,10 +24,8 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
   const [playerName, setPlayerName] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [teamName, setTeamName] = useState('');
-  const [isFormValid, setIsFormValid] = useState(false);
 
   const router = useRouter();
-  const isMountedRef = useRef(true);
 
   // TanStack Query hooks for server state
   const {
@@ -45,74 +43,52 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
   // Mutations
   const joinSessionMutation = useSessionJoinMutation();
 
-  // Track component mounted state
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Auto-select first available color
-  useEffect(() => {
-    if (
-      colorData?.available &&
-      colorData.available.length > 0 &&
-      !selectedColor &&
-      isMountedRef.current
-    ) {
-      setSelectedColor(colorData.available[0] || '');
+  // Derive the effective selected color
+  const effectiveSelectedColor = useMemo(() => {
+    // If user has selected a color, use it
+    if (selectedColor) return selectedColor;
+    
+    // Otherwise, use the first available color
+    if (colorData?.available && colorData.available.length > 0) {
+      return colorData.available[0];
     }
-  }, [colorData?.available, selectedColor]);
+    
+    return '';
+  }, [selectedColor, colorData?.available]);
 
-  // Form validation
-  useEffect(() => {
+  // Derive form validation state
+  const isFormValid = useMemo(() => {
     const nameValid = playerName.trim().length >= 2;
-    const colorValid = !!selectedColor;
-
-    setIsFormValid(nameValid && colorValid);
-  }, [playerName, selectedColor]);
-
-  // Redirect if user is already in session
-  useEffect(() => {
-    if (userStatus?.isInSession && userStatus.player && isMountedRef.current) {
-      router.push(`/play-area/session/${sessionId}`);
-    }
-  }, [userStatus?.isInSession, userStatus?.player, sessionId, router]);
+    const colorValid = !!effectiveSelectedColor;
+    return nameValid && colorValid;
+  }, [playerName, effectiveSelectedColor]);
 
   // Handle form submission
   const handleJoinSession = useCallback(async () => {
-    if (!isFormValid || !sessionDetails?.canJoin) {
-      return;
-    }
-
-    // Don't proceed if component is unmounted
-    if (!isMountedRef.current) {
+    if (!isFormValid || !sessionDetails?.canJoin || !effectiveSelectedColor) {
       return;
     }
 
     const joinData: SessionJoinData = {
       sessionId,
       playerName: playerName.trim(),
-      selectedColor,
-      teamName: teamName.trim() || undefined,
+      selectedColor: effectiveSelectedColor,
+      ...(teamName.trim() && { teamName: teamName.trim() }),
     };
 
     try {
       await joinSessionMutation.mutateAsync(joinData);
+      // Navigation will be handled by the mutation's onSuccess callback
     } catch (error) {
       // Error is handled by the mutation's onError callback
       // Just prevent unhandled promise rejection
-      if (!isMountedRef.current) {
-        return;
-      }
     }
   }, [
     isFormValid,
     sessionDetails?.canJoin,
     sessionId,
     playerName,
-    selectedColor,
+    effectiveSelectedColor,
     teamName,
     joinSessionMutation,
   ]);
@@ -134,6 +110,35 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
     sessionError || (!sessionDetails?.canJoin ? sessionDetails?.reason : null);
   const isJoining = joinSessionMutation.isPending;
 
+  // Handle redirect for users already in session
+  if (userStatus?.isInSession && userStatus.player) {
+    router.push(`/play-area/session/${sessionId}`);
+    return {
+      isLoading: true,
+      sessionDetails: null,
+      userStatus: null,
+      availableColors: [],
+      usedColors: [],
+      playerName: '',
+      selectedColor: '',
+      teamName: '',
+      isFormValid: false,
+      isJoining: false,
+      hasError: false,
+      errorMessage: null,
+      canJoin: false,
+      currentPlayerCount: 0,
+      maxPlayers: 0,
+      setPlayerName: () => {},
+      setSelectedColor: () => {},
+      setTeamName: () => {},
+      handleJoinSession: async () => {},
+      sessionTitle: 'Session',
+      gameType: 'All Games',
+      difficulty: 'medium',
+    };
+  }
+
   return {
     // Server state
     sessionDetails,
@@ -143,7 +148,7 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
 
     // UI state
     playerName,
-    selectedColor,
+    selectedColor: effectiveSelectedColor,
     teamName,
     isFormValid,
 

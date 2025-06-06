@@ -5,17 +5,13 @@
  * ENSURES: No blind casting, no runtime crashes from invalid data
  */
 
-import {
-  createUserId,
-  createBoardId,
-  createSessionId,
-  createCardId,
-  type ValidationResult,
-  type UserId,
-  type BoardId,
-  type SessionId,
-  type CardId,
-} from './index';
+import type { ValidationResult } from './types';
+
+// These types need to be defined or imported from somewhere else
+type UserId = string;
+type BoardId = string;
+type SessionId = string;
+type CardId = string;
 // safeValidate is available if needed
 
 import type { Tables } from '@/types/database-generated';
@@ -112,7 +108,6 @@ export function validateUserData(data: unknown): ValidationResult<{
       region,
       city,
     },
-    error: null,
   };
 }
 
@@ -206,7 +201,6 @@ export function validateBingoBoard(
   return {
     success: true,
     data: validatedBoard,
-    error: null,
   };
 }
 
@@ -247,7 +241,6 @@ export function validateBingoBoardArray(
   return {
     success: true,
     data: boards,
-    error: null,
   };
 }
 
@@ -322,7 +315,6 @@ export function validateBingoCard(
   return {
     success: true,
     data: validatedCard,
-    error: null,
   };
 }
 
@@ -363,7 +355,6 @@ export function validateBingoCardArray(
   return {
     success: true,
     data: cards,
-    error: null,
   };
 }
 
@@ -444,7 +435,6 @@ export function validateBingoSession(
   return {
     success: true,
     data: validatedSession,
-    error: null,
   };
 }
 
@@ -489,8 +479,8 @@ export function validatePresenceData(data: unknown): ValidationResult<{
     };
   }
 
-  const userIdResult = createUserId(presence.userId);
-  if (!userIdResult) {
+  const userIdResult = validateUserId(presence.userId);
+  if (!userIdResult.success) {
     return {
       success: false,
       data: null,
@@ -502,7 +492,7 @@ export function validatePresenceData(data: unknown): ValidationResult<{
     success: true,
     data: {
       presence_ref: presence.presence_ref,
-      userId: userIdResult,
+      userId: userIdResult.data,
       displayName: presence.displayName,
       status: typeof presence.status === 'string' ? presence.status : 'online',
       lastSeen:
@@ -510,7 +500,6 @@ export function validatePresenceData(data: unknown): ValidationResult<{
           ? presence.lastSeen
           : new Date().toISOString(),
     },
-    error: null,
   };
 }
 
@@ -572,61 +561,97 @@ export function validateSupabaseArrayResponse<T>(
 // =============================================================================
 
 /**
- * Validates and creates branded UserId - REPLACES: `id as string`
+ * Validates and creates UserId - REPLACES: `id as string`
  */
 export function validateUserId(id: unknown): ValidationResult<UserId> {
-  const validId = createUserId(id);
-  if (!validId) {
+  if (typeof id !== 'string' || id.length === 0) {
     return {
       success: false,
       data: null,
       error: `Invalid user ID: ${id}`,
     };
   }
-  return { success: true, data: validId, error: null };
+  // Basic UUID validation
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid user ID format: ${id}`,
+    };
+  }
+  return { success: true, data: id };
 }
 
 /**
- * Validates and creates branded BoardId - REPLACES: `id as string`
+ * Validates and creates BoardId - REPLACES: `id as string`
  */
 export function validateBoardId(id: unknown): ValidationResult<BoardId> {
-  const validId = createBoardId(id);
-  if (!validId) {
+  if (typeof id !== 'string' || id.length === 0) {
     return {
       success: false,
       data: null,
       error: `Invalid board ID: ${id}`,
     };
   }
-  return { success: true, data: validId, error: null };
+  // Basic UUID validation
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid board ID format: ${id}`,
+    };
+  }
+  return { success: true, data: id };
 }
 
 /**
- * Validates and creates branded SessionId - REPLACES: `id as string`
+ * Validates and creates SessionId - REPLACES: `id as string`
  */
 export function validateSessionId(id: unknown): ValidationResult<SessionId> {
-  const validId = createSessionId(id);
-  if (!validId) {
+  if (typeof id !== 'string' || id.length === 0) {
     return {
       success: false,
       data: null,
       error: `Invalid session ID: ${id}`,
     };
   }
-  return { success: true, data: validId, error: null };
+  // Basic UUID validation
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid session ID format: ${id}`,
+    };
+  }
+  return { success: true, data: id };
 }
 
 /**
- * Validates and creates branded CardId - REPLACES: `id as string`
+ * Validates and creates CardId - REPLACES: `id as string`
  */
 export function validateCardId(id: unknown): ValidationResult<CardId> {
-  const validId = createCardId(id);
-  if (!validId) {
+  if (typeof id !== 'string' || id.length === 0) {
     return {
       success: false,
       data: null,
       error: `Invalid card ID: ${id}`,
     };
   }
-  return { success: true, data: validId, error: null };
+  // Basic UUID validation
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid card ID format: ${id}`,
+    };
+  }
+  return { success: true, data: id };
 }

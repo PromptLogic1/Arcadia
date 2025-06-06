@@ -169,7 +169,9 @@ export class BaseErrorBoundary extends Component<
       if (
         resetKeys &&
         prevProps.resetKeys &&
-        resetKeys.some((key, idx) => prevProps.resetKeys && key !== prevProps.resetKeys[idx])
+        resetKeys.some(
+          (key, idx) => prevProps.resetKeys && key !== prevProps.resetKeys[idx]
+        )
       ) {
         this.resetErrorBoundary();
       }

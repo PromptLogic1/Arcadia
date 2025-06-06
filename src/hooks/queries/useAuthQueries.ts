@@ -13,6 +13,18 @@ import { queryKeys } from './index';
 import { logger } from '@/lib/logger';
 
 /**
+ * Get current auth session query
+ */
+export function useAuthSessionQuery() {
+  return useQuery({
+    queryKey: queryKeys.auth.session(),
+    queryFn: authService.getSession,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
  * Get current user query
  */
 export function useCurrentUserQuery() {
@@ -65,9 +77,13 @@ export function useSignInMutation() {
             setUserData(userData);
           }
         } catch (error) {
-          logger.error('Failed to fetch user data after sign in', error instanceof Error ? error : new Error('Unknown error'), {
-            metadata: { userId: response.user.id }
-          });
+          logger.error(
+            'Failed to fetch user data after sign in',
+            error instanceof Error ? error : new Error('Unknown error'),
+            {
+              metadata: { userId: response.user.id },
+            }
+          );
         }
 
         // Invalidate auth queries to refetch fresh data

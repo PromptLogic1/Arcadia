@@ -207,9 +207,15 @@ catch (err: any) {
 
 ### New Patterns Introduced:
 
-1. **Consistent Mount Tracking Pattern**:
+1. **Consistent Mount Tracking Pattern (REQUIRED for async operations)**:
 
 ```typescript
+// This pattern is REQUIRED for any hook that:
+// - Makes async API calls that update state
+// - Uses setTimeout/setInterval with state updates
+// - Has any delayed state updates
+// - Manages real-time subscriptions
+
 const isMountedRef = useRef(true);
 useEffect(() => {
   isMountedRef.current = true;
@@ -217,6 +223,10 @@ useEffect(() => {
     isMountedRef.current = false;
   };
 }, []);
+
+// ALWAYS check before state updates after async operations:
+if (!isMountedRef.current) return;
+setState(newValue);
 ```
 
 2. **AbortController Pattern for Fetch**:

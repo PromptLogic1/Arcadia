@@ -3,9 +3,7 @@
 import React, {
   useState,
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
 } from 'react';
 import {
   Dialog,
@@ -26,7 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Gamepad2, Grid3X3, Search, Plus, Key } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { logger } from '@/lib/logger';
+import { log } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
 import {
@@ -81,16 +79,6 @@ export function SessionHostingDialog({
   const [sessionPassword, setSessionPassword] = useState('');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
 
-  // Mount tracking
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   // Server state via TanStack Query
   const {
     data: userBoardsResponse,
@@ -128,95 +116,87 @@ export function SessionHostingDialog({
   const boardsLoading = userBoardsLoading || publicBoardsLoading;
   const boardsError = userBoardsError || publicBoardsError;
 
-  // Handle error states
-  useEffect(() => {
+  // Handle error states inline when queries fail
+  const boardsErrorMessage = useMemo(() => {
     if (boardsError) {
-      logger.error('Failed to load boards', boardsError, {
-        userId: authUser?.id,
+      log.error('Failed to load boards', boardsError as Error, {
+        metadata: {
+          userId: authUser?.id,
+        }
       });
-      notifications.error('Failed to load boards');
+      return 'Failed to load boards';
     }
+    return null;
   }, [boardsError, authUser?.id]);
 
-  // Handle pre-selected board
-  useEffect(() => {
-    if (
-      preSelectedBoardId &&
-      (userBoards.length > 0 || publicBoards.length > 0)
-    ) {
-      // Find the pre-selected board in user boards first, then public boards
-      const preSelectedBoard =
-        userBoards.find(
-          (board: BingoBoard) => board.id === preSelectedBoardId
-        ) ||
-        publicBoards.find(
-          (board: BingoBoard) => board.id === preSelectedBoardId
-        );
-
-      if (preSelectedBoard) {
-        setSelectedBoard(preSelectedBoard);
-      }
-    }
+  // Find pre-selected board if provided
+  const preSelectedBoard = useMemo(() => {
+    if (!preSelectedBoardId) return null;
+    
+    // Find the pre-selected board in user boards first, then public boards
+    return (
+      userBoards.find((board: BingoBoard) => board.id === preSelectedBoardId) ||
+      publicBoards.find((board: BingoBoard) => board.id === preSelectedBoardId) ||
+      null
+    );
   }, [preSelectedBoardId, userBoards, publicBoards]);
 
-  // Reset state when dialog closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedBoard(null);
-      setSearchQuery('');
-      setSessionPassword('');
-      setIsPasswordProtected(false);
-    }
-  }, [isOpen]);
+  // Update selected board when pre-selected board is found
+  const effectiveSelectedBoard = selectedBoard || preSelectedBoard;
+
+  // Reset state when dialog closes - done via onClose callback
+  const handleClose = useCallback(() => {
+    setSelectedBoard(null);
+    setSearchQuery('');
+    setSessionPassword('');
+    setIsPasswordProtected(false);
+    onClose();
+  }, [onClose]);
 
   // Handle session creation
   const handleCreateSession = useCallback(async () => {
-    if (!selectedBoard) {
+    const boardToUse = selectedBoard || preSelectedBoard;
+    if (!boardToUse) {
       notifications.error('Please select a board first');
       return;
     }
 
-    if (!isMountedRef.current) return;
-
     setLoading(true);
-    
+
     const sessionSettings: SessionSettings = {
-        max_players: null,
-        allow_spectators: null,
-        auto_start: null,
-        time_limit: null,
-        require_approval: null,
-        password:
-          isPasswordProtected && sessionPassword.trim()
-            ? sessionPassword.trim()
-            : null,
-      };
+      max_players: null,
+      allow_spectators: null,
+      auto_start: null,
+      time_limit: null,
+      require_approval: null,
+      password:
+        isPasswordProtected && sessionPassword.trim()
+          ? sessionPassword.trim()
+          : null,
+    };
 
     try {
-      await onCreateSession(selectedBoard.id, sessionSettings);
-
-      if (isMountedRef.current) {
-        onClose();
-      }
+      await onCreateSession(boardToUse.id, sessionSettings);
+      handleClose();
     } catch (error) {
-      if (isMountedRef.current) {
-        logger.error('Failed to create session', error, {
+      log.error('Failed to create session', error as Error, {
+        metadata: {
           component: 'SessionHostingDialog',
-          metadata: { boardId: selectedBoard?.id, sessionSettings, userId: authUser?.id },
-        });
-        notifications.error('Failed to create session. Please try again.');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+          boardId: boardToUse?.id,
+          sessionSettings,
+          userId: authUser?.id,
+        },
+      });
+      notifications.error('Failed to create session. Please try again.');
+      setLoading(false);
     }
   }, [
     selectedBoard,
+    preSelectedBoard,
     isPasswordProtected,
     sessionPassword,
     onCreateSession,
-    onClose,
+    handleClose,
     authUser?.id,
   ]);
 
@@ -250,7 +230,7 @@ export function SessionHostingDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-h-[90vh] max-w-2xl border-cyan-500/30 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 shadow-2xl shadow-cyan-500/10">
         <DialogHeader>
           <DialogTitle className="bg-gradient-to-r from-cyan-400 via-purple-400 to-fuchsia-400 bg-clip-text text-2xl font-bold text-transparent drop-shadow-lg">
@@ -306,6 +286,11 @@ export function SessionHostingDialog({
                 <div className="flex items-center justify-center py-12">
                   <LoadingSpinner />
                 </div>
+              ) : boardsErrorMessage ? (
+                <div className="py-8 text-center text-red-400">
+                  <p className="mb-2">{boardsErrorMessage}</p>
+                  <p className="text-sm text-cyan-300/70">Please try again later</p>
+                </div>
               ) : (
                 <>
                   <TabsContent value="my-boards">
@@ -330,7 +315,7 @@ export function SessionHostingDialog({
                             <BoardCard
                               key={board.id}
                               board={board}
-                              isSelected={selectedBoard?.id === board.id}
+                              isSelected={effectiveSelectedBoard?.id === board.id}
                               onSelect={() => setSelectedBoard(board)}
                             />
                           ))}
@@ -357,7 +342,7 @@ export function SessionHostingDialog({
                             <BoardCard
                               key={board.id}
                               board={board}
-                              isSelected={selectedBoard?.id === board.id}
+                              isSelected={effectiveSelectedBoard?.id === board.id}
                               onSelect={() => setSelectedBoard(board)}
                             />
                           ))}
@@ -418,7 +403,7 @@ export function SessionHostingDialog({
             </Card>
 
             {/* Selected Board Preview */}
-            {selectedBoard && (
+            {effectiveSelectedBoard && (
               <Card className="border-cyan-500/30 bg-gradient-to-br from-slate-800/50 to-cyan-900/20 shadow-lg shadow-cyan-500/10 backdrop-blur-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm text-cyan-200">
@@ -427,26 +412,26 @@ export function SessionHostingDialog({
                 </CardHeader>
                 <CardContent className="space-y-2 p-4 pt-0">
                   <h4 className="truncate font-medium text-cyan-100">
-                    {selectedBoard.title}
+                    {effectiveSelectedBoard.title}
                   </h4>
                   <div className="flex gap-2">
                     <Badge
                       variant="outline"
-                      className={getDifficultyColor(selectedBoard.difficulty)}
+                      className={getDifficultyColor(effectiveSelectedBoard.difficulty)}
                     >
-                      {selectedBoard.difficulty}
+                      {effectiveSelectedBoard.difficulty}
                     </Badge>
                     <Badge
                       variant="outline"
                       className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
                     >
                       <Grid3X3 className="mr-1 h-3 w-3" />
-                      {selectedBoard.size || 5}×{selectedBoard.size || 5}
+                      {effectiveSelectedBoard.size || 5}×{effectiveSelectedBoard.size || 5}
                     </Badge>
                   </div>
-                  {selectedBoard.description && (
+                  {effectiveSelectedBoard.description && (
                     <p className="line-clamp-2 text-sm text-cyan-300/70">
-                      {selectedBoard.description}
+                      {effectiveSelectedBoard.description}
                     </p>
                   )}
                 </CardContent>
@@ -458,14 +443,14 @@ export function SessionHostingDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             className="border-cyan-500/30 text-cyan-300 backdrop-blur-sm hover:border-cyan-400 hover:bg-cyan-500/10"
           >
             Cancel
           </Button>
           <Button
             onClick={handleCreateSession}
-            disabled={!selectedBoard || loading}
+            disabled={!effectiveSelectedBoard || loading}
             className="border-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-fuchsia-500 font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-600 hover:via-purple-600 hover:to-fuchsia-600"
           >
             {loading ? (

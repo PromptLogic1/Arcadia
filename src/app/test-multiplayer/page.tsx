@@ -85,7 +85,11 @@ function TestMultiplayerContent() {
         {/* Create Session */}
         <Card className="p-6">
           <h2 className="mb-4 text-xl font-semibold">Create Session</h2>
-          <Button onClick={createSession} className="mb-4 w-full">
+          <Button
+            onClick={createSession}
+            className="mb-4 w-full"
+            aria-label="Create a new multiplayer bingo session"
+          >
             Create New Session
           </Button>
           {sessionCode && (
@@ -104,8 +108,14 @@ function TestMultiplayerContent() {
             value={joinCode}
             onChange={e => setJoinCode(e.target.value.toUpperCase())}
             className="mb-4"
+            aria-label="Session code input"
+            onKeyDown={e => e.key === 'Enter' && joinSession()}
           />
-          <Button onClick={joinSession} className="w-full">
+          <Button
+            onClick={joinSession}
+            className="w-full"
+            aria-label="Join an existing bingo session"
+          >
             Join Session
           </Button>
         </Card>
@@ -117,7 +127,11 @@ function TestMultiplayerContent() {
           <h2 className="mb-4 text-xl font-semibold">
             Game Board (Session: {session.session_code})
           </h2>
-          <div className="grid grid-cols-5 gap-2">
+          <div
+            className="grid grid-cols-5 gap-2"
+            role="grid"
+            aria-label="Bingo game board"
+          >
             {Array.from({ length: 25 }).map((_, index) => {
               const cell = boardState[index];
               return (
@@ -129,9 +143,16 @@ function TestMultiplayerContent() {
                       ? 'border-green-600 bg-green-500 text-white'
                       : 'border-gray-300 bg-white hover:border-blue-500 dark:bg-gray-800'
                   } `}
+                  aria-label={`Cell ${index + 1}${cell?.is_marked ? ' (marked)' : ''}`}
+                  aria-pressed={cell?.is_marked || false}
+                  role="gridcell"
                 >
                   Cell {index + 1}
-                  {cell?.is_marked && <div className="text-xs">✓</div>}
+                  {cell?.is_marked && (
+                    <div className="text-xs" aria-hidden="true">
+                      ✓
+                    </div>
+                  )}
                 </button>
               );
             })}

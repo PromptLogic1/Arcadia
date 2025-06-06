@@ -60,6 +60,7 @@ export {
 // Common query key factory functions
 export const queryKeys = {
   auth: {
+    session: () => ['auth', 'session'] as const,
     user: () => ['auth', 'user'] as const,
     userData: (userId: string) => ['auth', 'userData', userId] as const,
   },
@@ -83,12 +84,16 @@ export const queryKeys = {
     all: () => ['sessions'] as const,
     byId: (id: string) => ['sessions', 'byId', id] as const,
     byCode: (code: string) => ['sessions', 'byCode', code] as const,
+    byBoard: (boardId: string, status?: string) =>
+      ['sessions', 'byBoard', boardId, status] as const,
     active: (filters?: SessionFilters, page?: number) =>
       ['sessions', 'active', filters, page] as const,
     players: (sessionId: string) => ['sessions', 'players', sessionId] as const,
     state: (sessionId: string) => ['sessions', 'state', sessionId] as const,
     boardState: (sessionId: string) =>
       ['sessions', 'boardState', sessionId] as const,
+    waitingForBoards: (boardIds: string[]) =>
+      ['sessions', 'waitingForBoards', ...boardIds] as const,
   },
   gameState: {
     session: (sessionId: string) =>

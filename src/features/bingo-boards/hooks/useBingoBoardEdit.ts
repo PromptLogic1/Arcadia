@@ -255,18 +255,8 @@ export function useBingoBoardEdit(boardId: string): UseBingoBoardEditReturn {
         uiActions.setSelectedCard(null);
         uiActions.setShowPositionSelectDialog(false);
 
-        // Defer DOM manipulation to avoid React render conflicts
-        setTimeout(() => {
-          const cardElement = document.querySelector(
-            `[data-card-id="${currentSelectedCard.id}"]`
-          );
-          if (cardElement) {
-            const trigger = cardElement.querySelector('[data-state="open"]');
-            if (trigger instanceof HTMLElement) {
-              trigger.click();
-            }
-          }
-        }, 0);
+        // Instead of DOM manipulation, let React handle UI updates naturally
+        // The component using this hook should manage dropdown state through React
       }
     },
     [uiActions] // Removed uiState.selectedCard dependency

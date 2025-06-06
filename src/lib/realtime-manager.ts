@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
-import { type ValidationResult } from './validation';
+import { type ValidationResult } from './validation/types';
 
 // =============================================================================
 // TYPE-SAFE EVENT HANDLING
@@ -46,7 +46,9 @@ type PostgresChangesFilter = {
 };
 
 // Type guard for event type validation
-function isValidEventType(value: unknown): value is 'INSERT' | 'UPDATE' | 'DELETE' {
+function isValidEventType(
+  value: unknown
+): value is 'INSERT' | 'UPDATE' | 'DELETE' {
   return value === 'INSERT' || value === 'UPDATE' || value === 'DELETE';
 }
 
@@ -62,33 +64,41 @@ export type TypedPostgresPayload = {
 };
 
 // Safe payload validation with proper types
-function validatePostgresPayload(payload: unknown): ValidationResult<TypedPostgresPayload> {
+function validatePostgresPayload(
+  payload: unknown
+): ValidationResult<TypedPostgresPayload> {
   if (!payload || typeof payload !== 'object') {
-    return { success: false, data: null, error: 'Invalid payload - not an object' };
+    return {
+      success: false,
+      data: null,
+      error: 'Invalid payload - not an object',
+    };
   }
 
   const payloadObj = Object(payload);
-  
+
   // Validate required fields
-  if (!('schema' in payloadObj) || 
-      !('table' in payloadObj) || 
-      !('eventType' in payloadObj) ||
-      !isValidEventType(payloadObj.eventType)) {
-    return { 
-      success: false, 
-      data: null, 
-      error: 'Invalid payload structure - missing or invalid required fields' 
+  if (
+    !('schema' in payloadObj) ||
+    !('table' in payloadObj) ||
+    !('eventType' in payloadObj) ||
+    !isValidEventType(payloadObj.eventType)
+  ) {
+    return {
+      success: false,
+      data: null,
+      error: 'Invalid payload structure - missing or invalid required fields',
     };
   }
 
   // Safely extract record data
-  const newRecord = payloadObj.new && typeof payloadObj.new === 'object' 
-    ? payloadObj.new 
-    : {};
-    
-  const oldRecord = payloadObj.old && typeof payloadObj.old === 'object' 
-    ? payloadObj.old 
-    : null;
+  const newRecord =
+    payloadObj.new && typeof payloadObj.new === 'object' ? payloadObj.new : {};
+
+  const oldRecord =
+    payloadObj.old && typeof payloadObj.old === 'object'
+      ? payloadObj.old
+      : null;
 
   // Build validated payload with proper typing
   const validatedPayload = {
@@ -98,15 +108,16 @@ function validatePostgresPayload(payload: unknown): ValidationResult<TypedPostgr
     eventType: payloadObj.eventType,
     new: newRecord,
     old: oldRecord,
-    errors: Array.isArray(payloadObj.errors) 
-      ? payloadObj.errors.filter((e: unknown): e is string => typeof e === 'string')
-      : null
+    errors: Array.isArray(payloadObj.errors)
+      ? payloadObj.errors.filter(
+          (e: unknown): e is string => typeof e === 'string'
+        )
+      : null,
   };
 
   return {
     success: true,
     data: validatedPayload,
-    error: null
   };
 }
 
@@ -157,7 +168,7 @@ class SafeRealtimeManager {
   private updateBatches = new Map<string, UpdateBatch>();
   private flushTimers = new Map<string, NodeJS.Timeout>();
   private debounceTimers = new Map<string, NodeJS.Timeout>();
-  
+
   private readonly BATCH_SIZE = 50;
   private readonly BATCH_TIMEOUT = 100; // ms
   private readonly DEBOUNCE_DELAY = 50; // ms
@@ -165,10 +176,7 @@ class SafeRealtimeManager {
   /**
    * Subscribe to real-time changes with proper type safety
    */
-  subscribe(
-    channelKey: string,
-    options: SubscriptionOptions
-  ): () => void {
+  subscribe(channelKey: string, options: SubscriptionOptions): () => void {
     const config: PostgresChangesConfig = {
       event: options.event || '*',
       schema: options.schema || 'public',
@@ -177,64 +185,64 @@ class SafeRealtimeManager {
     };
 
     let channel: RealtimeChannel;
-    
+
     try {
       const supabase = createClient();
       channel = supabase.channel(channelKey);
-      
+
       // Build the filter object for Supabase
       const filter: PostgresChangesFilter = {
         event: config.event,
         schema: config.schema,
         table: config.table,
-        filter: config.filter
+        filter: config.filter,
       };
-      
-      // Subscribe to postgres changes with validation
-      channel.on(
-        'postgres_changes',
-        filter,
-        (payload: unknown) => {
-          const validation = validatePostgresPayload(payload);
-          
-          if (!validation.success) {
-            logger.error('Invalid postgres changes payload', new Error(validation.error || 'Unknown validation error'), {
-              metadata: { channelKey, payload }
-            });
-            if (options.onError) {
-              options.onError(new Error(validation.error || 'Invalid payload'));
-            }
-            return;
-          }
-          
-          this.handlePayload(channelKey, validation.data, options);
-        }
-      );
 
-      channel.subscribe((status) => {
+      // Subscribe to postgres changes with validation
+      channel.on('postgres_changes', filter, (payload: unknown) => {
+        const validation = validatePostgresPayload(payload);
+
+        if (!validation.success) {
+          logger.error(
+            'Invalid postgres changes payload',
+            new Error(validation.error || 'Unknown validation error'),
+            {
+              metadata: { channelKey, payload },
+            }
+          );
+          if (options.onError) {
+            options.onError(new Error(validation.error || 'Invalid payload'));
+          }
+          return;
+        }
+
+        this.handlePayload(channelKey, validation.data, options);
+      });
+
+      channel.subscribe(status => {
         logger.info('Channel subscription status', {
-          metadata: { channelKey, status }
+          metadata: { channelKey, status },
         });
-        
+
         if (status === 'CHANNEL_ERROR') {
           const error = new Error('Channel subscription error');
           logger.error('Channel subscription failed', error, {
-            metadata: { channelKey }
+            metadata: { channelKey },
           });
           options.onError?.(error);
         }
       });
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown subscription error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown subscription error';
       logger.error('Failed to create subscription', new Error(errorMessage), {
-        metadata: { channelKey, options }
+        metadata: { channelKey, options },
       });
-      
+
       if (options.onError) {
         options.onError(new Error(errorMessage));
       }
-      
+
       return () => {}; // Return no-op unsubscribe
     }
 
@@ -260,7 +268,6 @@ class SafeRealtimeManager {
     payload: TypedPostgresPayload,
     options: SubscriptionOptions
   ): void {
-
     // Update channel activity
     const channelInfo = this.channels.get(channelKey);
     if (channelInfo) {
@@ -272,9 +279,13 @@ class SafeRealtimeManager {
       try {
         options.onUpdate(payload);
       } catch (error) {
-        logger.error('Error in payload handler', error instanceof Error ? error : new Error('Unknown handler error'), {
-          metadata: { channelKey }
-        });
+        logger.error(
+          'Error in payload handler',
+          error instanceof Error ? error : new Error('Unknown handler error'),
+          {
+            metadata: { channelKey },
+          }
+        );
       }
     }
 
@@ -287,7 +298,7 @@ class SafeRealtimeManager {
    */
   private batchUpdate(channelKey: string, payload: TypedPostgresPayload): void {
     const updateId = this.generateUpdateId(payload);
-    
+
     const update: BatchedUpdate = {
       id: updateId,
       type: this.determineUpdateType(payload),
@@ -322,16 +333,19 @@ class SafeRealtimeManager {
   private generateUpdateId(payload: TypedPostgresPayload): string {
     const newRecord = payload.new;
     const oldRecord = payload.old;
-    const tableId = (newRecord && 'id' in newRecord ? newRecord.id : null) || 
-                   (oldRecord && 'id' in oldRecord ? oldRecord.id : null) || 
-                   'unknown';
+    const tableId =
+      (newRecord && 'id' in newRecord ? newRecord.id : null) ||
+      (oldRecord && 'id' in oldRecord ? oldRecord.id : null) ||
+      'unknown';
     return `${payload.table}-${tableId}-${Date.now()}`;
   }
 
   /**
    * Determine update type from payload
    */
-  private determineUpdateType(payload: TypedPostgresPayload): BatchedUpdate['type'] {
+  private determineUpdateType(
+    payload: TypedPostgresPayload
+  ): BatchedUpdate['type'] {
     if (payload.table.includes('presence')) return 'PRESENCE_UPDATE';
     if (payload.table.includes('board')) return 'BOARD_STATE';
     return 'CELL_UPDATE';
@@ -340,7 +354,9 @@ class SafeRealtimeManager {
   /**
    * Determine update priority
    */
-  private determinePriority(payload: TypedPostgresPayload): BatchedUpdate['priority'] {
+  private determinePriority(
+    payload: TypedPostgresPayload
+  ): BatchedUpdate['priority'] {
     if (payload.table.includes('session') || payload.table.includes('game')) {
       return 'high';
     }
@@ -386,24 +402,27 @@ class SafeRealtimeManager {
         metadata: {
           channelKey,
           updateCount: sortedUpdates.length,
-          duration: Date.now() - batch.startTime
-        }
+          duration: Date.now() - batch.startTime,
+        },
       });
 
       // Clear the batch
       this.updateBatches.delete(channelKey);
-      
+
       // Clear timer
       const timer = this.flushTimers.get(channelKey);
       if (timer) {
         clearTimeout(timer);
         this.flushTimers.delete(channelKey);
       }
-
     } catch (error) {
-      logger.error('Error flushing batch', error instanceof Error ? error : new Error('Unknown flush error'), {
-        metadata: { channelKey }
-      });
+      logger.error(
+        'Error flushing batch',
+        error instanceof Error ? error : new Error('Unknown flush error'),
+        {
+          metadata: { channelKey },
+        }
+      );
     }
   }
 
@@ -415,19 +434,25 @@ class SafeRealtimeManager {
     if (!channelInfo) return;
 
     channelInfo.subscribers--;
-    
+
     if (channelInfo.subscribers <= 0) {
       try {
         channelInfo.channel.unsubscribe();
       } catch (error) {
-        logger.error('Error unsubscribing channel', error instanceof Error ? error : new Error('Unknown unsubscribe error'), {
-          metadata: { channelKey }
-        });
+        logger.error(
+          'Error unsubscribing channel',
+          error instanceof Error
+            ? error
+            : new Error('Unknown unsubscribe error'),
+          {
+            metadata: { channelKey },
+          }
+        );
       }
-      
+
       this.channels.delete(channelKey);
       this.updateBatches.delete(channelKey);
-      
+
       const timer = this.flushTimers.get(channelKey);
       if (timer) {
         clearTimeout(timer);

@@ -64,10 +64,14 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
       });
       router.push(`/play-area?${searchParams.toString()}`);
     } catch (error) {
-      logger.error('Failed to navigate to play area', error instanceof Error ? error : new Error(String(error)), {
-        component: 'BoardCard',
-        boardId: board.id,
-      });
+      logger.error(
+        'Failed to navigate to play area',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: 'BoardCard',
+          boardId: board.id,
+        }
+      );
       notifications.error('Failed to start session');
     } finally {
       setIsHosting(false);

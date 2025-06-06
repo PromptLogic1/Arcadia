@@ -42,19 +42,26 @@ export const presenceService = {
         throw new Error('Invalid channel name format');
       }
 
-      const { cleanup } = await modernPresenceService.subscribeToPresence(boardId, {
-        onError: (error) => {
-          logger.error('Presence tracking error', error, {
-            metadata: { channelName, userId }
-          });
+      const { cleanup } = await modernPresenceService.subscribeToPresence(
+        boardId,
+        {
+          onError: error => {
+            logger.error('Presence tracking error', error, {
+              metadata: { channelName, userId },
+            });
+          },
         }
-      });
+      );
 
       return cleanup;
     } catch (error) {
-      logger.error('Failed to track presence', error instanceof Error ? error : new Error('Unknown error'), {
-        metadata: { channelName, userId }
-      });
+      logger.error(
+        'Failed to track presence',
+        error instanceof Error ? error : new Error('Unknown error'),
+        {
+          metadata: { channelName, userId },
+        }
+      );
       return () => {}; // Return no-op cleanup function on error
     }
   },
@@ -72,40 +79,48 @@ export const presenceService = {
       }
 
       // Subscribe using modern presence service
-      modernPresenceService.subscribeToPresence(boardId, {
-        onPresenceUpdate: (presenceState) => {
-          // Convert modern presence state to legacy format
-          const presence: PresenceState[] = Object.entries(presenceState).map(([key, state]) => ({
-            userId: state.user_id,
-            displayName: key.split('-')[0] || 'Anonymous',
-            avatar: undefined,
-            status: state.status as 'online' | 'away' | 'offline',
-            lastSeen: new Date(state.last_seen_at).toISOString(),
-            metadata: {
-              sessionId: boardId,
-              boardId: boardId,
-              role: 'player',
-              isHost: false,
-              currentCell: undefined,
-              color: undefined
-            }
-          }));
+      modernPresenceService
+        .subscribeToPresence(boardId, {
+          onPresenceUpdate: presenceState => {
+            // Convert modern presence state to legacy format
+            const presence: PresenceState[] = Object.entries(presenceState).map(
+              ([key, state]) => ({
+                userId: state.user_id,
+                displayName: key.split('-')[0] || 'Anonymous',
+                avatar: undefined,
+                status: state.status as 'online' | 'away' | 'offline',
+                lastSeen: new Date(state.last_seen_at).toISOString(),
+                metadata: {
+                  sessionId: boardId,
+                  boardId: boardId,
+                  role: 'player',
+                  isHost: false,
+                  currentCell: undefined,
+                  color: undefined,
+                },
+              })
+            );
 
-          onPresenceChange({
-            presence,
-            onlineCount: presence.filter(p => p.status === 'online').length
-          });
-        },
-        onError: (error) => {
-          logger.error('Presence subscription error', error, {
-            metadata: { channelName }
-          });
-        }
-      }).then(({ cleanup }) => cleanup)
+            onPresenceChange({
+              presence,
+              onlineCount: presence.filter(p => p.status === 'online').length,
+            });
+          },
+          onError: error => {
+            logger.error('Presence subscription error', error, {
+              metadata: { channelName },
+            });
+          },
+        })
+        .then(({ cleanup }) => cleanup)
         .catch(error => {
-          logger.error('Failed to subscribe to presence', error instanceof Error ? error : new Error('Unknown error'), {
-            metadata: { channelName }
-          });
+          logger.error(
+            'Failed to subscribe to presence',
+            error instanceof Error ? error : new Error('Unknown error'),
+            {
+              metadata: { channelName },
+            }
+          );
         });
 
       // Return cleanup function
@@ -113,16 +128,24 @@ export const presenceService = {
         const boardId = channelName.split(':').pop();
         if (boardId) {
           modernPresenceService.cleanup(boardId).catch(error => {
-            logger.error('Presence cleanup error', error instanceof Error ? error : new Error('Unknown error'), {
-              metadata: { channelName }
-            });
+            logger.error(
+              'Presence cleanup error',
+              error instanceof Error ? error : new Error('Unknown error'),
+              {
+                metadata: { channelName },
+              }
+            );
           });
         }
       };
     } catch (error) {
-      logger.error('Failed to subscribe to presence', error instanceof Error ? error : new Error('Unknown error'), {
-        metadata: { channelName }
-      });
+      logger.error(
+        'Failed to subscribe to presence',
+        error instanceof Error ? error : new Error('Unknown error'),
+        {
+          metadata: { channelName },
+        }
+      );
       return () => {}; // Return no-op cleanup function on error
     }
   },
@@ -157,14 +180,18 @@ export const presenceService = {
         modernStatus,
         updates.metadata?.currentCell ? 'playing' : 'viewing'
       );
-      
+
       logger.debug('Presence updated successfully', {
-        metadata: { channelName, userId, updates }
+        metadata: { channelName, userId, updates },
       });
     } catch (error) {
-      logger.error('Failed to update presence', error instanceof Error ? error : new Error('Unknown error'), {
-        metadata: { channelName, userId, updates }
-      });
+      logger.error(
+        'Failed to update presence',
+        error instanceof Error ? error : new Error('Unknown error'),
+        {
+          metadata: { channelName, userId, updates },
+        }
+      );
       throw error;
     }
   },
@@ -178,42 +205,49 @@ export const presenceService = {
         throw new Error('Invalid channel name format');
       }
 
-      const currentState = modernPresenceService.getCurrentPresenceState(boardId);
+      const currentState =
+        modernPresenceService.getCurrentPresenceState(boardId);
       if (!currentState) {
         return {
           presence: [],
-          onlineCount: 0
+          onlineCount: 0,
         };
       }
 
       // Convert modern presence state to legacy format
-      const presence: PresenceState[] = Object.entries(currentState).map(([key, state]) => ({
-        userId: state.user_id,
-        displayName: key.split('-')[0] || 'Anonymous',
-        avatar: undefined,
-        status: state.status as 'online' | 'away' | 'offline',
-        lastSeen: new Date(state.last_seen_at).toISOString(),
-        metadata: {
-          sessionId: boardId,
-          boardId: boardId,
-          role: 'player',
-          isHost: false,
-          currentCell: undefined,
-          color: undefined
-        }
-      }));
+      const presence: PresenceState[] = Object.entries(currentState).map(
+        ([key, state]) => ({
+          userId: state.user_id,
+          displayName: key.split('-')[0] || 'Anonymous',
+          avatar: undefined,
+          status: state.status as 'online' | 'away' | 'offline',
+          lastSeen: new Date(state.last_seen_at).toISOString(),
+          metadata: {
+            sessionId: boardId,
+            boardId: boardId,
+            role: 'player',
+            isHost: false,
+            currentCell: undefined,
+            color: undefined,
+          },
+        })
+      );
 
       return {
         presence,
-        onlineCount: presence.filter(p => p.status === 'online').length
+        onlineCount: presence.filter(p => p.status === 'online').length,
       };
     } catch (error) {
-      logger.error('Failed to get presence snapshot', error instanceof Error ? error : new Error('Unknown error'), {
-        metadata: { channelName }
-      });
+      logger.error(
+        'Failed to get presence snapshot',
+        error instanceof Error ? error : new Error('Unknown error'),
+        {
+          metadata: { channelName },
+        }
+      );
       return {
         presence: [],
-        onlineCount: 0
+        onlineCount: 0,
       };
     }
   },
@@ -232,8 +266,9 @@ export const presenceService = {
       }
 
       // Update presence with activity based on metadata
-      const activity: 'viewing' | 'playing' | 'editing' = 
-        metadata?.currentCell ? 'playing' : 'viewing';
+      const activity: 'viewing' | 'playing' | 'editing' = metadata?.currentCell
+        ? 'playing'
+        : 'viewing';
 
       await modernPresenceService.updatePresence(
         boardId,
@@ -241,14 +276,18 @@ export const presenceService = {
         'online',
         activity
       );
-      
+
       logger.debug('Presence metadata updated', {
-        metadata: { channelName, userId, metadata }
+        metadata: { channelName, userId, metadata },
       });
     } catch (error) {
-      logger.error('Failed to update presence metadata', error instanceof Error ? error : new Error('Unknown error'), {
-        metadata: { channelName, userId, metadata }
-      });
+      logger.error(
+        'Failed to update presence metadata',
+        error instanceof Error ? error : new Error('Unknown error'),
+        {
+          metadata: { channelName, userId, metadata },
+        }
+      );
       throw error;
     }
   },

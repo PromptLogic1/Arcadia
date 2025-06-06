@@ -42,12 +42,7 @@ export type {
 export * from './product-types';
 
 // Import the specific types and database structure we need
-import type {
-  Difficulty,
-  GameCategory,
-  BingoCard,
-  Database,
-} from '../../types';
+import type { Difficulty, GameCategory, BingoCard } from '../../types';
 
 // =============================================================================
 // CONSTANTS (derived from database types - RULE A3: NO HARDCODED CONSTANTS)

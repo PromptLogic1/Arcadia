@@ -94,8 +94,13 @@ export async function createServerComponentClient() {
         try {
           // Type guard for cookie validation
           if (Array.isArray(cookiesToSet)) {
-            cookiesToSet.forEach((cookie) => {
-              if (cookie && typeof cookie === 'object' && 'name' in cookie && 'value' in cookie) {
+            cookiesToSet.forEach(cookie => {
+              if (
+                cookie &&
+                typeof cookie === 'object' &&
+                'name' in cookie &&
+                'value' in cookie
+              ) {
                 const { name, value, options } = cookie as {
                   name: string;
                   value: string;
@@ -207,8 +212,13 @@ export async function updateSession(request: Request) {
       setAll(cookiesToSet: unknown) {
         // Type guard for cookies in middleware
         if (Array.isArray(cookiesToSet)) {
-          cookiesToSet.forEach((cookie) => {
-            if (cookie && typeof cookie === 'object' && 'name' in cookie && 'value' in cookie) {
+          cookiesToSet.forEach(cookie => {
+            if (
+              cookie &&
+              typeof cookie === 'object' &&
+              'name' in cookie &&
+              'value' in cookie
+            ) {
               const { name, value } = cookie as { name: string; value: string };
               (request as RequestWithCookies).cookies.set(name, value);
             }
@@ -219,8 +229,13 @@ export async function updateSession(request: Request) {
         });
         // Type guard for response cookies
         if (Array.isArray(cookiesToSet)) {
-          cookiesToSet.forEach((cookie) => {
-            if (cookie && typeof cookie === 'object' && 'name' in cookie && 'value' in cookie) {
+          cookiesToSet.forEach(cookie => {
+            if (
+              cookie &&
+              typeof cookie === 'object' &&
+              'name' in cookie &&
+              'value' in cookie
+            ) {
               const { name, value, options } = cookie as {
                 name: string;
                 value: string;

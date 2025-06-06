@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,12 @@ import {
   GiStarMedal,
   GiConsoleController,
 } from 'react-icons/gi';
-import { logger } from '@/lib/logger';
+import { log } from '@/lib/logger';
+import {
+  useCreateSessionMutation,
+  useJoinSessionByCodeMutation,
+  useWaitingSessionsForBoards,
+} from '@/hooks/queries/useSessionsQueries';
 
 interface DemoBoard {
   id: string;
@@ -80,26 +85,19 @@ const gameTypeIcons = {
 function TryDemoGame() {
   const [selectedBoard, setSelectedBoard] = useState<DemoBoard | null>(null);
   const [playerName, setPlayerName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quickPlayInitiated, setQuickPlayInitiated] = useState(false);
   const { authUser } = useAuth();
   const router = useRouter();
 
-  // Mount tracking and abort controller for cleanup
-  const isMountedRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | undefined>(undefined);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-
-    return () => {
-      isMountedRef.current = false;
-      // Abort any in-flight requests
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
+  // Use TanStack Query mutations
+  const createSessionMutation = useCreateSessionMutation();
+  const joinSessionByCodeMutation = useJoinSessionByCodeMutation();
+  
+  // Use TanStack Query for finding waiting sessions
+  const waitingSessionsQuery = useWaitingSessionsForBoards(
+    quickPlayInitiated ? DEMO_BOARDS.map(b => b.id) : []
+  );
 
   const handleQuickPlay = async (board: DemoBoard) => {
     setSelectedBoard(board);
@@ -112,138 +110,154 @@ function TryDemoGame() {
   };
 
   const createDemoSession = async () => {
-    if (!selectedBoard) return;
+    if (!selectedBoard || !authUser?.id) return;
 
-    setIsCreating(true);
     setError(null);
 
-    // Create new abort controller for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
     try {
-      // Create a new session with the selected demo board
-      const response = await fetch('/api/bingo/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          boardId: selectedBoard.id,
-          displayName:
-            authUser?.username ||
-            playerName ||
-            `Player${Math.floor(Math.random() * 1000)}`,
-          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Random color
-          team: null,
-        }),
-        signal: controller.signal,
+      const result = await createSessionMutation.mutateAsync({
+        board_id: selectedBoard.id,
+        host_id: authUser.id,
+        settings: {
+          max_players: 8,
+          allow_spectators: true,
+          auto_start: false,
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create session');
-      }
+      if (result.session && result.session.session_code) {
+        // Add the host as a player
+        const displayName =
+          authUser?.username ||
+          playerName ||
+          `Player${Math.floor(Math.random() * 1000)}`;
+        const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
 
-      const { session } = await response.json();
+        // Join the session we just created
+        const joinResult = await joinSessionByCodeMutation.mutateAsync({
+          sessionCode: result.session.session_code,
+          user_id: authUser.id,
+          display_name: displayName,
+          color,
+          team: undefined,
+        });
 
-      // Only proceed if still mounted
-      if (isMountedRef.current) {
-        // Redirect to the game session
-        router.push(`/join/${session.id}?demo=true`);
+        if (joinResult.sessionId) {
+          // Redirect to the game session
+          router.push(`/join/${joinResult.sessionId}?demo=true`);
+        }
       }
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // Request was aborted, ignore
-        return;
-      }
+      log.error(
+        'Error creating demo session',
+        err instanceof Error ? err : new Error(String(err)),
+        {
+          metadata: {
+            component: 'TryDemoGame',
+            boardId: selectedBoard.id,
+          }
+        }
+      );
 
-      logger.error('Error creating demo session', err instanceof Error ? err : new Error(String(err)), {
-        component: 'TryDemoGame',
-        boardId: selectedBoard.id,
-      });
-
-      if (isMountedRef.current) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to create demo session'
-        );
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsCreating(false);
-      }
+      setError(
+        err instanceof Error ? err.message : 'Failed to create demo session'
+      );
     }
   };
 
   const joinRandomSession = async () => {
-    setIsCreating(true);
-    setError(null);
+    if (!authUser?.id) {
+      setError('Please sign in to use quick play');
+      return;
+    }
 
-    // Create new abort controller for this operation
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    setError(null);
+    setQuickPlayInitiated(true);
 
     try {
-      // Try to find an existing waiting session for any demo board
-      for (const board of DEMO_BOARDS) {
-        // Check if aborted between iterations
-        if (controller.signal.aborted) return;
+      // Trigger the query by setting quickPlayInitiated to true
+      // The query will automatically fetch waiting sessions
+      const waitingSessions = await waitingSessionsQuery.refetch();
+      const { boardId, sessions } = waitingSessions.data || {};
+      
+      if (boardId && sessions && sessions.length > 0) {
+        const session = sessions[0];
+        if (!session || !session.session_code) {
+          throw new Error('Invalid session data');
+        }
 
-        const response = await fetch(
-          `/api/bingo/sessions?boardId=${board.id}&status=waiting`,
-          { signal: controller.signal }
-        );
-        const sessions = await response.json();
+        // Join the existing session
+        const displayName =
+          authUser.username ||
+          playerName ||
+          `Player${Math.floor(Math.random() * 1000)}`;
 
-        if (sessions.length > 0) {
-          const session = sessions[0];
+        const joinResult = await joinSessionByCodeMutation.mutateAsync({
+          sessionCode: session.session_code,
+          user_id: authUser.id,
+          display_name: displayName,
+          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+          team: undefined,
+        });
 
-          // Join the existing session
-          const joinResponse = await fetch('/api/bingo/sessions/join-by-code', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session_code: session.session_code,
-              user_id: authUser?.id || 'guest-user',
-              display_name:
-                authUser?.username ||
-                playerName ||
-                `Player${Math.floor(Math.random() * 1000)}`,
-              avatar_url: authUser?.avatar_url || null,
-            }),
-            signal: controller.signal,
-          });
-
-          if (joinResponse.ok && isMountedRef.current) {
-            router.push(`/join/${session.id}?demo=true`);
-            return;
-          }
+        if (joinResult.sessionId) {
+          router.push(`/join/${joinResult.sessionId}?demo=true`);
+          return;
         }
       }
 
       // No waiting sessions found, create a new one with a random board
       const randomBoard =
         DEMO_BOARDS[Math.floor(Math.random() * DEMO_BOARDS.length)];
-      if (randomBoard && isMountedRef.current) {
+      if (randomBoard) {
         setSelectedBoard(randomBoard);
-        await createDemoSession();
+        
+        const result = await createSessionMutation.mutateAsync({
+          board_id: randomBoard.id,
+          host_id: authUser.id,
+          settings: {
+            max_players: 8,
+            allow_spectators: true,
+            auto_start: false,
+          },
+        });
+
+        if (result.session && result.session.session_code) {
+          // Add the host as a player
+          const displayName =
+            authUser.username ||
+            playerName ||
+            `Player${Math.floor(Math.random() * 1000)}`;
+          const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+
+          // Join the session we just created
+          const joinResult = await joinSessionByCodeMutation.mutateAsync({
+            sessionCode: result.session.session_code,
+            user_id: authUser.id,
+            display_name: displayName,
+            color,
+            team: undefined,
+          });
+
+          if (joinResult.sessionId) {
+            router.push(`/join/${joinResult.sessionId}?demo=true`);
+          }
+        }
       }
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // Request was aborted, ignore
-        return;
-      }
-
-      logger.error('Error joining random session', err instanceof Error ? err : new Error(String(err)), {
-        component: 'TryDemoGame',
-        feature: 'quick-play',
-      });
-
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to join session');
-      }
+      log.error(
+        'Error joining random session',
+        err instanceof Error ? err : new Error(String(err)),
+        {
+          metadata: {
+            component: 'TryDemoGame',
+            feature: 'quick-play',
+          }
+        }
+      );
+      setError(err instanceof Error ? err.message : 'Failed to join session');
     } finally {
-      if (isMountedRef.current) {
-        setIsCreating(false);
-      }
+      setQuickPlayInitiated(false);
     }
   };
 
@@ -305,7 +319,10 @@ function TryDemoGame() {
               onClick={() => setSelectedBoard(null)}
               variant="cyber-outline"
               size="lg"
-              disabled={isCreating}
+              disabled={
+                createSessionMutation.isPending ||
+                joinSessionByCodeMutation.isPending
+              }
             >
               Choose Different Board
             </Button>
@@ -313,9 +330,14 @@ function TryDemoGame() {
               variant="cyber"
               size="lg"
               onClick={createDemoSession}
-              disabled={isCreating || (!authUser && !playerName.trim())}
+              disabled={
+                createSessionMutation.isPending ||
+                joinSessionByCodeMutation.isPending ||
+                (!authUser && !playerName.trim())
+              }
             >
-              {isCreating ? (
+              {createSessionMutation.isPending ||
+              joinSessionByCodeMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Creating Game...
@@ -381,13 +403,19 @@ function TryDemoGame() {
             <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
               <Button
                 onClick={joinRandomSession}
-                disabled={isCreating}
+                disabled={
+                  createSessionMutation.isPending ||
+                  joinSessionByCodeMutation.isPending ||
+                  waitingSessionsQuery.isLoading
+                }
                 variant="cyber"
                 size="lg"
                 className="px-8 py-6 text-lg"
                 aria-label="Join a random multiplayer bingo game session"
               >
-                {isCreating ? (
+                {createSessionMutation.isPending ||
+                joinSessionByCodeMutation.isPending ||
+                waitingSessionsQuery.isLoading ? (
                   <>
                     <Loader2
                       className="mr-2 h-6 w-6 animate-spin"

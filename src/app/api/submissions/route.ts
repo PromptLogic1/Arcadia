@@ -1,9 +1,13 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 import { log } from '@/lib/logger';
+import { RateLimiter } from '@/lib/rate-limiter';
+import { submissionsService } from '@/src/services/submissions.service';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
+
+const rateLimiter = new RateLimiter();
 
 interface SubmissionPostBody {
   challenge_id: string;
@@ -13,6 +17,11 @@ interface SubmissionPostBody {
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (await rateLimiter.isLimited(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const supabase = await createServerComponentClient();
 
     const {
@@ -26,31 +35,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = (await request.json()) as SubmissionPostBody;
     const { challenge_id, code, language } = body;
 
-    const { data, error } = await supabase
-      .from('submissions')
-      .insert({
-        challenge_id,
-        user_id: user.id,
-        code,
-        language,
-        status: 'pending',
-        results: null,
-      })
-      .select()
-      .single();
+    // Use submissions service to create submission
+    const result = await submissionsService.createSubmission({
+      challenge_id,
+      user_id: user.id,
+      code,
+      language,
+    });
 
-    if (error) {
-      log.error('Error creating submission', error, {
+    if (result.error) {
+      log.error('Error creating submission', new Error(result.error), {
         metadata: {
           apiRoute: 'submissions',
           method: 'POST',
           submissionData: { challenge_id, code, language },
+          userId: user.id,
         },
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    const response = NextResponse.json(data);
+    const response = NextResponse.json(result.submission);
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error) {
@@ -79,35 +84,25 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let query = supabase
-      .from('submissions')
-      .select(
-        `
-        *,
-        challenge:challenges(title, difficulty)
-      `
-      )
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    // Use submissions service to fetch submissions
+    const result = await submissionsService.getSubmissions({
+      user_id: user.id,
+      challenge_id: challenge_id || undefined,
+    });
 
-    if (challenge_id) {
-      query = query.eq('challenge_id', challenge_id);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      log.error('Error fetching submissions', error, {
+    if (result.error) {
+      log.error('Error fetching submissions', new Error(result.error), {
         metadata: {
           apiRoute: 'submissions',
           method: 'GET',
           challengeId: challenge_id,
+          userId: user.id,
         },
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    const response = NextResponse.json(data);
+    const response = NextResponse.json(result.submissions);
     response.headers.set('Cache-Control', 'no-store');
     return response;
   } catch (error) {

@@ -240,7 +240,7 @@ class Logger {
               sessionId: context.sessionId,
               component: context.component,
               feature: context.feature,
-              ...context.metadata
+              ...context.metadata,
             };
             scope.setContext('logger', sentryContext);
           }

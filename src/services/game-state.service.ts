@@ -42,17 +42,52 @@ export const gameStateService = {
   },
 
   async startSession(
-    sessionId: string
+    sessionId: string,
+    hostId: string
   ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const response = await fetch(`/api/bingo/sessions/${sessionId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const supabase = createClient();
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to start session');
+    try {
+      // Verify host
+      const { data: session, error: sessionError } = await supabase
+        .from('bingo_sessions')
+        .select('host_id, status')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError || !session) {
+        throw new Error('Session not found');
+      }
+
+      if (session.host_id !== hostId) {
+        throw new Error('Only the host can start the session');
+      }
+
+      if (session.status !== 'waiting') {
+        throw new Error('Session is not in waiting state');
+      }
+
+      // Check player count
+      const { count: playerCount } = await supabase
+        .from('bingo_session_players')
+        .select('*', { count: 'exact' })
+        .eq('session_id', sessionId);
+
+      if ((playerCount || 0) < 2) {
+        throw new Error('Need at least 2 players to start');
+      }
+
+      // Update session status
+      const { error: updateError } = await supabase
+        .from('bingo_sessions')
+        .update({
+          status: 'active',
+          started_at: new Date().toISOString(),
+        })
+        .eq('id', sessionId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
       }
 
       return { success: true };
@@ -71,28 +106,89 @@ export const gameStateService = {
     version: number;
     error?: string;
   }> {
-    try {
-      const response = await fetch(
-        `/api/bingo/sessions/${sessionId}/mark-cell`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        }
-      );
+    const supabase = createClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 409) {
-          throw new Error('VERSION_CONFLICT');
-        }
-        throw new Error(errorData.error || 'Failed to mark cell');
+    try {
+      // Start transaction-like operation
+      const { data: session, error: sessionError } = await supabase
+        .from('bingo_sessions')
+        .select('current_state, version, status')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError || !session) {
+        throw new Error('Session not found');
       }
 
-      const result = await response.json();
+      if (session.status !== 'active') {
+        throw new Error('Session not active');
+      }
+
+      if (session.version !== data.version) {
+        throw new Error('VERSION_CONFLICT');
+      }
+
+      // Update board state
+      const currentState = (session.current_state as BoardCell[]) || [];
+      const newState = [...currentState];
+
+      const existingCell = newState[data.cell_position];
+      if (existingCell) {
+        if (data.action === 'mark') {
+          newState[data.cell_position] = {
+            text: existingCell.text,
+            colors: existingCell.colors,
+            completed_by: existingCell.completed_by,
+            blocked: existingCell.blocked,
+            is_marked: true,
+            cell_id: existingCell.cell_id,
+            version: existingCell.version,
+            last_updated: Date.now(),
+            last_modified_by: data.user_id,
+          };
+        } else {
+          newState[data.cell_position] = {
+            text: existingCell.text,
+            colors: existingCell.colors,
+            completed_by: existingCell.completed_by,
+            blocked: existingCell.blocked,
+            is_marked: false,
+            cell_id: existingCell.cell_id,
+            version: existingCell.version,
+            last_updated: Date.now(),
+            last_modified_by: data.user_id,
+          };
+        }
+      }
+
+      // Update session
+      const { data: updatedSession, error: updateError } = await supabase
+        .from('bingo_sessions')
+        .update({
+          current_state: newState,
+          version: data.version + 1,
+        })
+        .eq('id', sessionId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      // Log the event
+      await supabase.from('bingo_session_events').insert({
+        session_id: sessionId,
+        user_id: data.user_id,
+        event_type: data.action === 'mark' ? 'cell_marked' : 'cell_unmarked',
+        event_data: { cell_position: data.cell_position, timestamp: Date.now() },
+        cell_position: data.cell_position,
+        timestamp: Date.now(),
+      });
+
       return {
-        boardState: result.current_state,
-        version: result.version,
+        boardState: updatedSession.current_state as BoardCell[],
+        version: updatedSession.version || 0,
       };
     } catch (error) {
       const message =
@@ -104,23 +200,88 @@ export const gameStateService = {
   async completeGame(
     sessionId: string,
     data: CompleteGameData
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const response = await fetch(
-        `/api/bingo/sessions/${sessionId}/complete`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        }
-      );
+  ): Promise<{ 
+    success: boolean; 
+    winner?: {
+      id: string;
+      patterns: string[];
+      score: number;
+      timeToWin: number;
+    };
+    error?: string;
+  }> {
+    const supabase = createClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to complete game');
+    try {
+      // Verify session exists and is active
+      const { data: session, error: sessionError } = await supabase
+        .from('bingo_sessions')
+        .select('status, started_at')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError || !session) {
+        throw new Error('Session not found');
       }
 
-      return { success: true };
+      if (session.status !== 'active') {
+        throw new Error('Session is not active');
+      }
+
+      // Calculate time to win
+      const timeToWin = session.started_at
+        ? Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000)
+        : 0;
+
+      // Update session status
+      const { error: updateError } = await supabase
+        .from('bingo_sessions')
+        .update({
+          status: 'completed',
+          winner_id: data.winner_id,
+          ended_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', sessionId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      // Log the winning event
+      const eventData = {
+        patterns: data.winning_patterns,
+        final_score: data.final_score,
+        time_to_win: timeToWin,
+      };
+
+      await supabase.from('bingo_session_events').insert({
+        session_id: sessionId,
+        user_id: data.winner_id,
+        event_type: 'game_won',
+        event_data: eventData,
+        timestamp: Date.now(),
+      });
+
+      // Create game result entry for the winner
+      await supabase.from('game_results').insert({
+        session_id: sessionId,
+        user_id: data.winner_id,
+        placement: 1,
+        final_score: data.final_score,
+        time_to_win: timeToWin,
+        patterns_achieved: data.winning_patterns,
+      });
+
+      return { 
+        success: true,
+        winner: {
+          id: data.winner_id,
+          patterns: data.winning_patterns,
+          score: data.final_score,
+          timeToWin,
+        }
+      };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to complete game';
@@ -161,20 +322,26 @@ export const gameStateService = {
     version: number;
     error?: string;
   }> {
-    try {
-      const response = await fetch(
-        `/api/bingo/sessions/${sessionId}/board-state`
-      );
+    const supabase = createClient();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get board state');
+    try {
+      const { data: session, error } = await supabase
+        .from('bingo_sessions')
+        .select('current_state, version')
+        .eq('id', sessionId)
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
       }
 
-      const data = await response.json();
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
       return {
-        boardState: data.current_state,
-        version: data.version,
+        boardState: (session.current_state as BoardCell[]) || [],
+        version: session.version || 0,
       };
     } catch (error) {
       const message =

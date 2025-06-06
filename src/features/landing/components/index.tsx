@@ -106,8 +106,9 @@ export default function LandingPage() {
 
   // Cycle through challenges for HeroSection
   React.useEffect(() => {
+    const challengesCount = challenges.length;
     const interval = setInterval(() => {
-      setCurrentChallenge(prev => (prev + 1) % challenges.length);
+      setCurrentChallenge(prev => (prev + 1) % challengesCount);
     }, 4000);
     return () => clearInterval(interval);
   }, []);

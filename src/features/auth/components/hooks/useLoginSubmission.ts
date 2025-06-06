@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
@@ -59,9 +59,9 @@ export function useLoginSubmission({
   const { loading: authLoading } = useAuth();
   const { setLoading, signIn, signInWithOAuth } = useAuthActions();
 
-  // Mount tracking and timeout ref for cleanup
-  const isMountedRef = React.useRef(true);
-  const redirectTimeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
+  // Mount tracking to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Local loading states for specific operations
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -72,11 +72,12 @@ export function useLoginSubmission({
     authLoading || isSubmitting || isOAuthLoading || formState.isLoading;
 
   // Cleanup on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     isMountedRef.current = true;
 
     return () => {
       isMountedRef.current = false;
+      // Clear any pending redirect timeout
       if (redirectTimeoutRef.current) {
         clearTimeout(redirectTimeoutRef.current);
       }
@@ -118,6 +119,9 @@ export function useLoginSubmission({
           throw result.error;
         }
 
+        // Check if still mounted before state updates
+        if (!isMountedRef.current) return;
+
         if (result.needsVerification) {
           const message: LoginFormMessage = {
             text: LOGIN_MESSAGES.SUCCESS.VERIFICATION_NEEDED,
@@ -127,9 +131,6 @@ export function useLoginSubmission({
           formState.setStatus('verification_needed');
           return;
         }
-
-        // Only update state if still mounted
-        if (!isMountedRef.current) return;
 
         // Success state
         const successMessage: LoginFormMessage = {
@@ -161,7 +162,7 @@ export function useLoginSubmission({
       } catch (error) {
         const errorObj = error as Error;
 
-        // Only update state if still mounted
+        // Check if still mounted before error state updates
         if (!isMountedRef.current) return;
 
         const errorMessage: LoginFormMessage = {
@@ -181,7 +182,6 @@ export function useLoginSubmission({
         // Error callback
         onError?.(errorObj);
       } finally {
-        // Only update state if still mounted
         if (isMountedRef.current) {
           setIsSubmitting(false);
           setLoading(false);
@@ -218,6 +218,9 @@ export function useLoginSubmission({
           throw result.error;
         }
 
+        // Check if still mounted before state updates
+        if (!isMountedRef.current) return;
+
         const successMessage: LoginFormMessage = {
           text: LOGIN_MESSAGES.OAUTH.REDIRECTING,
           type: 'info',
@@ -229,6 +232,9 @@ export function useLoginSubmission({
         // OAuth will redirect away from page, so no need for additional handling
       } catch (error) {
         const errorObj = error as Error;
+
+        // Check if still mounted before error state updates
+        if (!isMountedRef.current) return;
 
         const errorMessage: LoginFormMessage = {
           text: LOGIN_MESSAGES.ERRORS.OAUTH_FAILED,
@@ -246,8 +252,10 @@ export function useLoginSubmission({
 
         onError?.(errorObj);
       } finally {
-        setIsOAuthLoading(false);
-        setLoading(false);
+        if (isMountedRef.current) {
+          setIsOAuthLoading(false);
+          setLoading(false);
+        }
       }
     },
     [formState, onOAuthLogin, signInWithOAuth, onError, setLoading]

@@ -1,6 +1,6 @@
-import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import type { Database } from '@/types/database-generated';
+import { sessionsService } from '@/src/services/sessions.service';
+import { authService } from '@/src/services/auth.service';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
@@ -35,11 +35,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const supabase = await createServerComponentClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Use service layer for authentication
+    const { user, error: authError } = await authService.getCurrentUser();
     userIdForLog = user?.id;
 
     if (authError || !user || !user.id) {
@@ -59,17 +56,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Check if session exists and is active
-    const { data: session, error: sessionError } = await supabase
-      .from('bingo_sessions')
-      .select('status')
-      .eq('id', sessionId)
-      .single();
+    const { status, error: statusError } = await sessionsService.getSessionStatus(sessionId);
 
-    if (sessionError || !session) {
+    if (statusError || !status) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    if (session.status !== 'waiting') {
+    if (status !== 'waiting') {
       return NextResponse.json(
         { error: 'Session is not accepting new players' },
         { status: 400 }
@@ -77,14 +70,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Check if player already exists in session
-    const { data: existingPlayer } = await supabase
-      .from('bingo_session_players')
-      .select()
-      .eq('session_id', sessionId)
-      .eq('user_id', user.id)
-      .single();
+    const { exists } = await sessionsService.checkPlayerExists(sessionId, user.id);
 
-    if (existingPlayer) {
+    if (exists) {
       return NextResponse.json(
         { error: 'Player already in session' },
         { status: 409 }
@@ -92,36 +80,26 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Check if color is already taken
-    const { data: colorCheck } = await supabase
-      .from('bingo_session_players')
-      .select('color')
-      .eq('session_id', sessionId)
-      .eq('color', color)
-      .single();
+    const { available } = await sessionsService.checkColorAvailable(sessionId, color);
 
-    if (colorCheck) {
+    if (!available) {
       return NextResponse.json(
         { error: 'Color already taken' },
         { status: 409 }
       );
     }
 
-    // Add player directly to session
-    const { data: player, error: playerError } = await supabase
-      .from('bingo_session_players')
-      .insert({
-        session_id: sessionId,
-        user_id: user.id,
-        display_name: displayName,
-        color,
-        team: team ?? null,
-        joined_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    // Add player to session using service
+    const { player, error: joinError } = await sessionsService.joinSession({
+      session_id: sessionId,
+      user_id: user.id,
+      display_name: displayName,
+      color,
+      team: team ?? null,
+    });
 
-    if (playerError) {
-      log.error('Error adding player to session', playerError, {
+    if (joinError) {
+      log.error('Error adding player to session', new Error(joinError), {
         metadata: {
           apiRoute: 'bingo/sessions/players',
           method: 'POST',
@@ -132,7 +110,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           team,
         },
       });
-      return NextResponse.json({ error: playerError.message }, { status: 500 });
+      return NextResponse.json({ error: joinError }, { status: 500 });
     }
 
     return NextResponse.json(player);
@@ -161,11 +139,8 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   let playerIdForLog: string | undefined;
   let updatesForLog: PlayerUpdatesForLog = {};
   try {
-    const supabase = await createServerComponentClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Use service layer for authentication
+    const { user, error: authError } = await authService.getCurrentUser();
     userIdForLog = user?.id;
 
     if (authError || !user) {
@@ -176,54 +151,24 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     const { sessionId, displayName, color, team } = body;
     playerIdForLog = user?.id;
 
-    // Prepare the update object for Supabase. This must match Supabase's expected type.
-    const supabaseUpdatePayload: Database['public']['Tables']['bingo_session_players']['Update'] =
-      {};
-    if (displayName !== undefined)
-      supabaseUpdatePayload.display_name = displayName;
-    if (color !== undefined) supabaseUpdatePayload.color = color;
-    if (team !== undefined) supabaseUpdatePayload.team = team ?? null;
+    // Prepare the update object
+    const updates: Parameters<typeof sessionsService.updatePlayer>[2] = {};
+    if (displayName !== undefined) updates.display_name = displayName;
+    if (color !== undefined) updates.color = color;
+    if (team !== undefined) updates.team = team ?? null;
 
-    // For logging, we can use a slightly different structure if needed, but here it's the same.
-    updatesForLog = supabaseUpdatePayload;
+    // For logging
+    updatesForLog = updates;
 
-    // Validate display name
-    if (displayName && (displayName.length < 3 || displayName.length > 20)) {
-      return NextResponse.json(
-        { error: 'Display name must be between 3 and 20 characters' },
-        { status: 400 }
-      );
-    }
+    // Use service layer to update player
+    const { player, error: updateError } = await sessionsService.updatePlayer(
+      sessionId,
+      user.id,
+      updates
+    );
 
-    // Check if color is already taken by another player
-    if (color) {
-      const { data: colorCheck } = await supabase
-        .from('bingo_session_players')
-        .select('user_id')
-        .eq('session_id', sessionId)
-        .eq('color', color)
-        .neq('user_id', user.id)
-        .single();
-
-      if (colorCheck) {
-        return NextResponse.json(
-          { error: 'Color already taken' },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Update player
-    const { data, error } = await supabase
-      .from('bingo_session_players')
-      .update(supabaseUpdatePayload)
-      .eq('session_id', sessionId)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      log.error('Error updating player', error, {
+    if (updateError) {
+      log.error('Error updating player', new Error(updateError), {
         metadata: {
           apiRoute: 'bingo/sessions/players',
           method: 'PATCH',
@@ -232,10 +177,19 @@ export async function PATCH(request: Request): Promise<NextResponse> {
           updates: updatesForLog,
         },
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      
+      // Return appropriate status code based on error
+      if (updateError.includes('between 3 and 20 characters')) {
+        return NextResponse.json({ error: updateError }, { status: 400 });
+      }
+      if (updateError.includes('Color already taken')) {
+        return NextResponse.json({ error: updateError }, { status: 409 });
+      }
+      
+      return NextResponse.json({ error: updateError }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(player);
   } catch (error) {
     log.error(
       'Unhandled error in PATCH /api/bingo/sessions/players (update player)',
@@ -271,11 +225,8 @@ export async function DELETE(request: Request): Promise<NextResponse> {
       );
     }
 
-    const supabase = await createServerComponentClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Use service layer for authentication
+    const { user, error: authError } = await authService.getCurrentUser();
     userIdForLog = user?.id;
 
     if (authError || !user) {
@@ -283,26 +234,29 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     }
 
     // Check if session is active
-    const { data: session } = await supabase
-      .from('bingo_sessions')
-      .select('status')
-      .eq('id', sessionId)
-      .single();
+    const { status } = await sessionsService.getSessionStatus(sessionId);
 
-    if (session?.status === 'completed') {
+    if (status === 'completed') {
       return NextResponse.json(
         { error: 'Cannot leave completed session' },
         { status: 400 }
       );
     }
 
-    const { error: leaveError } = await supabase
-      .from('bingo_session_players')
-      .delete()
-      .eq('session_id', sessionId)
-      .eq('user_id', user.id);
+    // Use service layer to leave session
+    const { error: leaveError } = await sessionsService.leaveSession(sessionId, user.id);
 
-    if (leaveError) throw leaveError;
+    if (leaveError) {
+      log.error('Error leaving session', new Error(leaveError), {
+        metadata: {
+          apiRoute: 'bingo/sessions/players',
+          method: 'DELETE',
+          userId: userIdForLog,
+          sessionId: sessionId,
+        },
+      });
+      return NextResponse.json({ error: leaveError }, { status: 500 });
+    }
 
     sessionIdForLog = sessionId;
 

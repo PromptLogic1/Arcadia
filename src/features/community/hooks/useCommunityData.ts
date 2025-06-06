@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import {
   useCommunity,
   useCommunityActions,
@@ -86,56 +86,18 @@ export function useCommunityData(): UseCommunityDataReturn {
   // Combine comments from all discussions from useDiscussions
   const allComments = realDiscussions.flatMap(_d => []);
 
-  // Loading states
-  const [isEventsLoading, setIsEventsLoading] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  // Initialize mock event data lazily
+  // This is acceptable since events will be replaced with real API calls later
+  const eventsData = storeEvents.length === 0 ? MOCK_EVENTS : storeEvents;
+  if (storeEvents.length === 0 && eventsData.length > 0) {
+    // Set events in the next tick to avoid updating state during render
+    Promise.resolve().then(() => setEvents([...MOCK_EVENTS]));
+  }
 
-  // Ref to track timeout for cleanup
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-    };
-  }, []);
-
-  // Initialize mock event data (discussions are now from useDiscussions)
-  useEffect(() => {
-    if (storeEvents.length === 0) {
-      setEvents([...MOCK_EVENTS]);
-    }
-  }, [storeEvents.length, setEvents]);
-
-  // Simulate API loading for events and initial page perception
-  useEffect(() => {
-    // Skip if discussions are still loading
-    if (isRealDiscussionsLoading) {
-      return;
-    }
-
-    // Clear any existing timeout
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
-
-    loadingTimeoutRef.current = setTimeout(() => {
-      loadingTimeoutRef.current = null;
-      setIsInitialLoad(false);
-      setIsEventsLoading(false);
-    }, 1000);
-
-    return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-    };
-  }, [isRealDiscussionsLoading]);
+  // Events are mocked, so we don't have real loading state
+  // This is acceptable since events will be replaced with real API calls later
+  const isEventsLoading = false;
+  const isInitialLoad = isRealDiscussionsLoading;
 
   const handleCreateDiscussion = useCallback(
     async (formData: CreateDiscussionFormData) => {
@@ -170,7 +132,7 @@ export function useCommunityData(): UseCommunityDataReturn {
   return {
     discussions: realDiscussions,
     comments: allComments,
-    events: storeEvents,
+    events: eventsData,
     selectedDiscussion: storeSelectedDiscussion,
     loading: isRealDiscussionsLoading || isEventsLoading,
     error: combinedError,

@@ -59,7 +59,10 @@ async function generateBoard(
     let query = supabase
       .from('bingo_cards')
       .select('*')
-      .eq('game_type', params.gameCategory as Database['public']['Enums']['game_category'])
+      .eq(
+        'game_type',
+        params.gameCategory as Database['public']['Enums']['game_category']
+      )
       .eq('difficulty', params.difficulty);
 
     // Apply card source filter

@@ -77,18 +77,22 @@ class RealtimeBoardService {
             try {
               if (payload.eventType === 'UPDATE' && payload.new) {
                 // Validate that the payload has the expected structure
-                if (typeof payload.new === 'object' && payload.new !== null && 'id' in payload.new) {
+                if (
+                  typeof payload.new === 'object' &&
+                  payload.new !== null &&
+                  'id' in payload.new
+                ) {
                   const updatedBoard = payload.new;
 
-                // Update TanStack Query cache
-                queryClient.setQueryData(
-                  ['bingoBoards', 'byId', boardId],
-                  updatedBoard
-                );
-                queryClient.setQueryData(
-                  ['bingoBoards', 'withCreator', boardId],
-                  updatedBoard
-                );
+                  // Update TanStack Query cache
+                  queryClient.setQueryData(
+                    ['bingoBoards', 'byId', boardId],
+                    updatedBoard
+                  );
+                  queryClient.setQueryData(
+                    ['bingoBoards', 'withCreator', boardId],
+                    updatedBoard
+                  );
 
                   // Call custom update handler (skip for now due to type complexity)
                   // onUpdate?.(updatedBoard);

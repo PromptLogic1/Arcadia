@@ -129,7 +129,7 @@ export function useSettings(): UseSettingsReturn {
   const { authUser } = useAuth();
   const userId = authUser?.id || '';
 
-  // Mount tracking and timeout refs for cleanup
+  // Mount tracking for setTimeout cleanup
   const isMountedRef = useRef(true);
   const emailSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const passwordSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -161,7 +161,7 @@ export function useSettings(): UseSettingsReturn {
 
     return () => {
       isMountedRef.current = false;
-      // Clear all timeouts
+      // Clear any pending timeouts
       if (emailSuccessTimeoutRef.current) {
         clearTimeout(emailSuccessTimeoutRef.current);
       }
@@ -196,19 +196,11 @@ export function useSettings(): UseSettingsReturn {
 
         await updateEmail(data);
 
-        // Only update state if still mounted
-        if (!isMountedRef.current) return;
-
         // UI feedback
         actions.setShowEmailSuccess(true);
         actions.resetEmailForm();
 
-        // Clear existing timeout
-        if (emailSuccessTimeoutRef.current) {
-          clearTimeout(emailSuccessTimeoutRef.current);
-        }
-
-        // Auto-hide success message after delay
+        // Auto-hide success message after delay with cleanup
         emailSuccessTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) {
             actions.setShowEmailSuccess(false);
@@ -246,19 +238,11 @@ export function useSettings(): UseSettingsReturn {
 
         await updatePassword(data);
 
-        // Only update state if still mounted
-        if (!isMountedRef.current) return;
-
         // UI feedback
         actions.setShowPasswordSuccess(true);
         actions.resetPasswordForm();
 
-        // Clear existing timeout
-        if (passwordSuccessTimeoutRef.current) {
-          clearTimeout(passwordSuccessTimeoutRef.current);
-        }
-
-        // Auto-hide success message after delay
+        // Auto-hide success message after delay with cleanup
         passwordSuccessTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) {
             actions.setShowPasswordSuccess(false);
@@ -284,19 +268,11 @@ export function useSettings(): UseSettingsReturn {
       try {
         await updateProfile(data);
 
-        // Only update state if still mounted
-        if (!isMountedRef.current) return;
-
         // UI feedback
         actions.setShowProfileSuccess(true);
         actions.resetProfileForm();
 
-        // Clear existing timeout
-        if (profileSuccessTimeoutRef.current) {
-          clearTimeout(profileSuccessTimeoutRef.current);
-        }
-
-        // Auto-hide success message after delay
+        // Auto-hide success message after delay with cleanup
         profileSuccessTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) {
             actions.setShowProfileSuccess(false);

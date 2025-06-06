@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import {
   useGameSettingsQuery,
   useUpdateGameSettings,
@@ -11,8 +11,9 @@ import {
 } from '@/lib/stores/game-settings-store';
 import { gameSettingsService } from '../../../services/game-settings.service';
 import type { BoardSettings, WinConditions } from '@/types';
-import { logger } from '@/lib/logger';
+import { log } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 // Event-System Types
 interface SettingsChangeEventDetail {
@@ -44,9 +45,11 @@ interface UseGameSettingsReturn {
 }
 
 export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
-  // Mount tracking
-  const isMountedRef = useRef(true);
-  const abortControllerRef = useRef<AbortController | undefined>(undefined);
+  // Use persisted state for local settings
+  const [localSettings, setLocalSettings] = usePersistedState<BoardSettings | null>(
+    'lastBoardSettings',
+    null
+  );
 
   // Server state via TanStack Query
   const {
@@ -61,51 +64,24 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
     useGameSettingsValidation();
 
   // Derived state
-  const settings = settingsResponse?.data || DEFAULT_BOARD_SETTINGS;
-  const loading = isLoading;
-  const error =
-    queryError || validationError
-      ? new Error(validationError || 'Failed to load settings')
-      : null;
-
-  // Cleanup on unmount
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      abortControllerRef.current?.abort();
-    };
-  }, []);
-
-  // Load from localStorage for non-board contexts
-  useEffect(() => {
-    if (!boardId && isMountedRef.current) {
-      try {
-        const savedSettings = window.localStorage.getItem('lastBoardSettings');
-        if (savedSettings) {
-          const parsed = JSON.parse(savedSettings) as BoardSettings;
-          const validation = gameSettingsService.validateSettings(parsed);
-          if (validation.valid && isMountedRef.current) {
-            // For localStorage, we don't have a way to update the query cache
-            // This is a limitation of the current approach
-            logger.info('Loaded settings from localStorage', {
-              metadata: { settings: parsed },
-            });
-          }
-        }
-      } catch (error) {
-        logger.error('Error loading local settings', error as Error, {
-          metadata: { storageKey: 'lastBoardSettings' },
-        });
-      }
+  const settings = useMemo(() => {
+    if (boardId && settingsResponse?.data) {
+      return settingsResponse.data;
     }
-  }, [boardId]);
+    return localSettings || DEFAULT_BOARD_SETTINGS;
+  }, [boardId, settingsResponse?.data, localSettings]);
+
+  const loading = isLoading;
+  const error = useMemo(() => {
+    if (queryError || validationError) {
+      return new Error(validationError || 'Failed to load settings');
+    }
+    return null;
+  }, [queryError, validationError]);
 
   // Event-Handling with all event types
   const emitSettingsEvent = useCallback(
     (type: 'change' | 'reset' | 'modeSwitch', newSettings: BoardSettings) => {
-      if (!isMountedRef.current) return;
-
       try {
         const event = new CustomEvent<SettingsChangeEventDetail>(
           'settingsChange',
@@ -121,7 +97,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         );
         window.dispatchEvent(event);
       } catch (error) {
-        logger.error('Error emitting settings event', error as Error, {
+        log.error('Error emitting settings event', error as Error, {
           metadata: { hook: 'useGameSettings', boardId },
         });
       }
@@ -132,11 +108,6 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
   // Update settings with validation
   const updateSettings = useCallback(
     async (updates: Partial<BoardSettings>) => {
-      if (!isMountedRef.current) return;
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
       try {
         let newSettings = {
           ...settings,
@@ -154,9 +125,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         // Validate settings
         const validation = gameSettingsService.validateSettings(newSettings);
         if (!validation.valid) {
-          if (isMountedRef.current) {
-            setValidationError(validation.error || 'Invalid settings');
-          }
+          setValidationError(validation.error || 'Invalid settings');
           return;
         }
 
@@ -167,39 +136,29 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
           await updateMutation.mutateAsync(newSettings);
         } else {
           // For non-board contexts, only save to localStorage
-          window.localStorage.setItem(
-            'lastBoardSettings',
-            JSON.stringify(newSettings)
-          );
+          setLocalSettings(newSettings);
           notifications.success('Settings saved locally');
         }
 
-        if (isMountedRef.current) {
-          emitSettingsEvent('change', newSettings);
-        }
+        emitSettingsEvent('change', newSettings);
       } catch (error: unknown) {
-        if (controller.signal.aborted) return;
+        log.error('Error updating settings', error as Error, {
+          metadata: { hook: 'useGameSettings', boardId, updates },
+        });
 
-        if (isMountedRef.current) {
-          logger.error('Error updating settings', error as Error, {
-            metadata: { hook: 'useGameSettings', boardId, updates },
-          });
-
-          if (error instanceof Error && error.name !== 'AbortError') {
-            setValidationError(error.message);
-          }
+        if (error instanceof Error && error.name !== 'AbortError') {
+          setValidationError(error.message);
         }
       }
     },
-    [settings, emitSettingsEvent, boardId, updateMutation, setValidationError]
+    [settings, emitSettingsEvent, boardId, updateMutation, setValidationError, setLocalSettings]
   );
 
-  // Event-Listener
+  // Event-Listener for external changes
   useEffect(() => {
     const handleExternalSettingsChange = (event: SettingsChangeEvent) => {
       // Ignore own events
       if (event.detail.source === 'user') return;
-      if (!isMountedRef.current) return;
 
       const validation = gameSettingsService.validateSettings(
         event.detail.settings
@@ -207,7 +166,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       if (validation.valid) {
         // For external changes, we might need to update our cache
         // This is handled by TanStack Query's invalidation
-        logger.info('Received external settings change', {
+        log.info('Received external settings change', {
           metadata: { settings: event.detail.settings },
         });
       }
@@ -225,30 +184,21 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
 
   // Core Functions
   const resetSettings = useCallback(async () => {
-    if (!isMountedRef.current) return;
-
     try {
       if (boardId) {
         await updateMutation.mutateAsync(DEFAULT_BOARD_SETTINGS);
       } else {
-        window.localStorage.setItem(
-          'lastBoardSettings',
-          JSON.stringify(DEFAULT_BOARD_SETTINGS)
-        );
+        setLocalSettings(DEFAULT_BOARD_SETTINGS);
         notifications.success('Settings reset to defaults');
       }
 
-      if (isMountedRef.current) {
-        emitSettingsEvent('reset', DEFAULT_BOARD_SETTINGS);
-      }
+      emitSettingsEvent('reset', DEFAULT_BOARD_SETTINGS);
     } catch (error) {
-      if (isMountedRef.current) {
-        logger.error('Error resetting settings', error as Error, {
-          metadata: { hook: 'useGameSettings', boardId },
-        });
-      }
+      log.error('Error resetting settings', error as Error, {
+        metadata: { hook: 'useGameSettings', boardId },
+      });
     }
-  }, [boardId, updateMutation, emitSettingsEvent]);
+  }, [boardId, updateMutation, emitSettingsEvent, setLocalSettings]);
 
   // Toggle Functions
   const toggleTeamMode = useCallback(async () => {
@@ -257,16 +207,14 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       lockout: !settings.team_mode || settings.lockout, // Force lockout when enabling team mode
     };
     await updateSettings(newSettings);
-    if (isMountedRef.current) {
-      emitSettingsEvent('modeSwitch', { ...settings, ...newSettings });
-    }
+    emitSettingsEvent('modeSwitch', { ...settings, ...newSettings });
   }, [settings, updateSettings, emitSettingsEvent]);
 
   const toggleLockout = useCallback(async () => {
     if (!settings.team_mode) {
       // Only allow toggle if not in team mode
       await updateSettings({ lockout: !settings.lockout });
-    } else if (isMountedRef.current) {
+    } else {
       notifications.warning('Cannot disable lockout while in team mode');
     }
   }, [settings.team_mode, settings.lockout, updateSettings]);
@@ -291,7 +239,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       };
 
       const hasActiveCondition = Object.values(newConditions).some(v => v);
-      if (!hasActiveCondition && isMountedRef.current) {
+      if (!hasActiveCondition) {
         notifications.error('At least one win condition must be active');
         return;
       }

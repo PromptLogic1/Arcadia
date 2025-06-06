@@ -14,9 +14,7 @@ import type {
   CompositeTypes,
 } from '@/types/database-generated';
 // Only import what's actually used
-import { 
-  validateBingoBoard, 
-} from '@/lib/validation/validators';
+import { validateBingoBoard } from '@/lib/validation/validators';
 // Available if needed: createServiceSuccess, createServiceError, ServiceResponse
 // validateBingoBoardArray, validateSupabaseResponse, validateSupabaseArrayResponse
 
@@ -36,12 +34,12 @@ function convertDbBoardToAppBoard(dbBoard: Tables<'bingo_boards'>): BingoBoard {
     created_at: dbBoard.created_at || new Date().toISOString(),
     updated_at: dbBoard.updated_at || new Date().toISOString(),
   });
-  
+
   if (!validation.success) {
     // Fallback to original data if validation fails
     return dbBoard;
   }
-  
+
   return validation.data;
 }
 
@@ -769,6 +767,128 @@ export const bingoBoardsService = {
         response: { boards: [], totalCount: 0, hasMore: false },
         error:
           error instanceof Error ? error.message : 'Failed to fetch boards',
+      };
+    }
+  },
+
+  /**
+   * Get boards with filters (for API route)
+   */
+  async getBoards(params: {
+    game?: GameCategory | null;
+    difficulty?: DifficultyLevel | null;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ boards: (BingoBoard & { creator?: { username: string; avatar_url: string | null } })[] | null; error?: string }> {
+    try {
+      const supabase = createClient();
+      const { game, difficulty, limit = 10, offset = 0 } = params;
+
+      let query = supabase
+        .from('bingo_boards')
+        .select(
+          `
+          *,
+          creator:creator_id(
+            username,
+            avatar_url
+          )
+        `
+        )
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+        .range(offset, offset + limit - 1);
+
+      if (game && game !== 'All Games') {
+        query = query.eq('game_type', game);
+      }
+
+      if (difficulty) {
+        query = query.eq('difficulty', difficulty);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        return { boards: null, error: error.message };
+      }
+
+      // Transform data to include creator information
+      const boards = (data || []).map(board => {
+        const convertedBoard = convertDbBoardToAppBoard(board);
+        return {
+          ...convertedBoard,
+          creator: board.creator
+            ? {
+                username: board.creator.username,
+                avatar_url: board.creator.avatar_url,
+              }
+            : undefined,
+        };
+      });
+
+      return { boards };
+    } catch (error) {
+      return {
+        boards: null,
+        error: error instanceof Error ? error.message : 'Failed to fetch boards',
+      };
+    }
+  },
+
+  /**
+   * Create a board from API route data
+   */
+  async createBoardFromAPI(params: {
+    title: string;
+    size: number;
+    settings: CompositeTypes<'board_settings'>;
+    game_type: GameCategory;
+    difficulty: DifficultyLevel;
+    is_public: boolean;
+    board_state: BoardCell[];
+    userId: string;
+  }): Promise<{ board: BingoBoard | null; error?: string }> {
+    try {
+      const supabase = createClient();
+      const {
+        title,
+        size,
+        settings,
+        game_type,
+        difficulty,
+        is_public,
+        board_state,
+        userId,
+      } = params;
+
+      const { data, error } = await supabase
+        .from('bingo_boards')
+        .insert({
+          title,
+          creator_id: userId,
+          size,
+          settings,
+          game_type,
+          difficulty,
+          is_public,
+          board_state,
+          status: 'draft' as const,
+          cloned_from: null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return { board: null, error: error.message };
+      }
+
+      return { board: convertDbBoardToAppBoard(data) };
+    } catch (error) {
+      return {
+        board: null,
+        error: error instanceof Error ? error.message : 'Failed to create board',
       };
     }
   },

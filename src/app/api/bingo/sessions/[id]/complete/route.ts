@@ -1,8 +1,11 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { RateLimiter } from '@/lib/rate-limiter';
+import { log } from '@/lib/logger';
+import { gameStateService } from '@/src/services';
 import type { WinPattern } from '@/features/bingo-boards/types';
-import type { Json } from '@/types/database-generated';
+
+const rateLimiter = new RateLimiter();
 
 interface CompleteSessionRequest {
   winner_id: string;
@@ -14,100 +17,52 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  let winnerId: string | undefined;
+  let sessionId: string | undefined;
+
   try {
-    const supabase = createClient();
+    sessionId = params.id;
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (await rateLimiter.isLimited(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const body: CompleteSessionRequest = await request.json();
     const { winner_id, winning_patterns, final_score } = body;
+    winnerId = winner_id;
 
-    // Verify session exists and is active
-    const { data: session, error: sessionError } = await supabase
-      .from('bingo_sessions')
-      .select('status, started_at')
-      .eq('id', params.id)
-      .single();
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    if (session.status !== 'active') {
-      return NextResponse.json(
-        { error: 'Session is not active' },
-        { status: 400 }
-      );
-    }
-
-    // Calculate time to win
-    const timeToWin = session.started_at
-      ? Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000)
-      : 0;
-
-    // Update session status
-    const { data: updatedSession, error: updateError } = await supabase
-      .from('bingo_sessions')
-      .update({
-        status: 'completed',
-        winner_id,
-        ended_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', params.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
-    }
-
-    // Log the winning event
-    const eventData: Json = {
-      patterns: winning_patterns.map(p => ({
-        type: p.type,
-        name: p.name,
-        positions: p.positions,
-        points: p.points,
-      })),
+    // Use the game state service
+    const result = await gameStateService.completeGame(sessionId, {
+      winner_id,
+      winning_patterns: winning_patterns.map(p => p.name), // Convert to string[] as expected by service
       final_score,
-      time_to_win: timeToWin,
-    };
-
-    await supabase.from('bingo_session_events').insert({
-      session_id: params.id,
-      user_id: winner_id,
-      event_type: 'game_won',
-      event_data: eventData,
-      timestamp: Date.now(),
     });
 
-    // Create game result entry for the winner
-    const patternsJson: Json = winning_patterns.map(p => ({
-      type: p.type,
-      name: p.name,
-      positions: p.positions,
-      points: p.points,
-    }));
-
-    await supabase.from('game_results').insert({
-      session_id: params.id,
-      user_id: winner_id,
-      placement: 1,
-      final_score,
-      time_to_win: timeToWin,
-      patterns_achieved: patternsJson,
-    });
+    if (result.error) {
+      if (result.error === 'Session not found') {
+        return NextResponse.json({ error: result.error }, { status: 404 });
+      }
+      if (result.error === 'Session is not active') {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
 
     return NextResponse.json({
-      session: updatedSession,
-      winner: {
-        id: winner_id,
-        patterns: winning_patterns,
-        score: final_score,
-        timeToWin,
+      success: true,
+      winner: result.winner,
+    });
+  } catch (error) {
+    log.error('Error completing bingo session', error as Error, {
+      metadata: {
+        apiRoute: 'bingo/sessions/[id]/complete',
+        method: 'POST',
+        sessionId,
+        winnerId,
       },
     });
-  } catch {
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: (error as Error).message || 'Failed to complete session' },
       { status: 500 }
     );
   }

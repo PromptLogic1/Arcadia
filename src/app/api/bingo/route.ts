@@ -1,17 +1,18 @@
-import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import type {
-  BoardCell,
-  DifficultyLevel,
-  GameCategory,
-  BoardSettings,
-  Database,
-} from '@/types';
+import { bingoBoardsService } from '@/src/services/bingo-boards.service';
+import { authService } from '@/src/services/auth.service';
+import type { CompositeTypes, Enums } from '@/types/database-generated';
 import { DIFFICULTIES, GAME_CATEGORIES } from '@/src/types/index';
 import { RateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
 const rateLimiter = new RateLimiter();
+
+// Type aliases
+type BoardCell = CompositeTypes<'board_cell'>;
+type BoardSettings = CompositeTypes<'board_settings'>;
+type GameCategory = Enums<'game_category'>;
+type DifficultyLevel = Enums<'difficulty_level'>;
 
 interface CreateBoardRequest {
   title: string;
@@ -42,43 +43,27 @@ export async function GET(request: Request): Promise<NextResponse> {
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const supabase = await createServerComponentClient();
+    // Validate enum values
+    const validGame = game && isValidGameCategory(game) ? game : null;
+    const validDifficulty = difficulty && isValidDifficultyLevel(difficulty) ? difficulty : null;
 
-    let query = supabase
-      .from('bingo_boards')
-      .select(
-        `
-        *,
-        creator:creator_id(
-          username,
-          avatar_url
-        )
-      `
-      )
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-      .range(offset, offset + limit - 1);
-
-    if (game && game !== 'All Games' && isValidGameCategory(game)) {
-      query = query.eq('game_type', game);
-    }
-
-    if (difficulty && isValidDifficultyLevel(difficulty)) {
-      query = query.eq('difficulty', difficulty);
-    }
-
-    const { data: boards, error } = await query;
+    // Use service layer to fetch boards
+    const { boards, error } = await bingoBoardsService.getBoards({
+      game: validGame,
+      difficulty: validDifficulty,
+      limit,
+      offset,
+    });
 
     if (error) {
-      log.error('Error fetching bingo boards', error, {
+      log.error('Error fetching bingo boards', new Error(error), {
         metadata: {
           apiRoute: 'bingo',
           method: 'GET',
           filters: { game, difficulty, limit, offset },
         },
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error }, { status: 500 });
     }
 
     return NextResponse.json(boards);
@@ -100,11 +85,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const supabase = await createServerComponentClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Use service layer for authentication
+    const { user, error: authError } = await authService.getCurrentUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -133,27 +115,20 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const { data, error } = await supabase
-      .from('bingo_boards')
-      .insert({
-        title,
-        creator_id: user.id,
-        size,
-        settings:
-          settings as Database['public']['CompositeTypes']['board_settings'],
-        game_type,
-        difficulty,
-        is_public,
-        board_state:
-          board_state as Database['public']['CompositeTypes']['board_cell'][],
-        status: 'draft' as const,
-        cloned_from: null,
-      })
-      .select()
-      .single();
+    // Use service layer to create board
+    const { board, error } = await bingoBoardsService.createBoardFromAPI({
+      title,
+      size,
+      settings,
+      game_type,
+      difficulty,
+      is_public,
+      board_state,
+      userId: user.id,
+    });
 
     if (error) {
-      log.error('Error creating bingo board', error, {
+      log.error('Error creating bingo board', new Error(error), {
         metadata: {
           apiRoute: 'bingo',
           method: 'POST',
@@ -169,10 +144,10 @@ export async function POST(request: Request): Promise<NextResponse> {
           },
         },
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(board);
   } catch (error) {
     log.error('Unhandled error in POST /api/bingo', error as Error, {
       metadata: { apiRoute: 'bingo', method: 'POST' },
