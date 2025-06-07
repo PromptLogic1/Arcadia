@@ -32,8 +32,8 @@ export function useBoardCollectionsQuery(filters: BoardCollectionFilters) {
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     select: data => ({
-      collections: data.collections,
-      error: data.error,
+      collections: data.data || [],
+      error: data.error || undefined,
     }),
   });
 }
@@ -49,8 +49,8 @@ export function useBoardCollectionQuery(collectionId: string, enabled = true) {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     select: data => ({
-      collection: data.collection,
-      error: data.error,
+      collection: data.data,
+      error: data.error || undefined,
     }),
   });
 }

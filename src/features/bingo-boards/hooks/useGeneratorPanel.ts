@@ -83,7 +83,7 @@ export function useGeneratorPanel(
       : usePublicCards
         ? 'public'
         : 'private';
-  
+
   if (settings.cardSource !== cardSource) {
     setCardSource(cardSource);
   }
@@ -198,7 +198,8 @@ export function useGeneratorPanel(
   return {
     // State
     isLoading,
-    error: error instanceof Error ? error.message : error ? String(error) : null,
+    error:
+      error instanceof Error ? error.message : error ? String(error) : null,
     selectedCategories: settings.selectedCategories,
     difficulty: settings.difficulty,
     minVotes: settings.minVotes,

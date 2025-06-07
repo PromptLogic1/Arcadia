@@ -47,7 +47,10 @@ import { SessionCard } from './SessionCard';
 import { SessionFilters } from './SessionFilters';
 
 // Types
-import type { SessionSettings, SessionWithStats } from '../../../services/sessions.service';
+import type {
+  SessionSettings,
+  SessionWithStats,
+} from '../../../services/sessions.service';
 
 interface PlayAreaHubProps {
   className?: string;
@@ -93,7 +96,8 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
   // Derive hosting intent from URL parameters
   const boardIdFromUrl = searchParams?.get('boardId');
   const shouldHostFromUrl = searchParams?.get('host') === 'true';
-  const shouldOpenHostDialog = isAuthenticated && boardIdFromUrl && shouldHostFromUrl;
+  const shouldOpenHostDialog =
+    isAuthenticated && boardIdFromUrl && shouldHostFromUrl;
 
   // Handle URL parameter-based hosting dialog
   useEffect(() => {
@@ -130,10 +134,10 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
     } catch (error) {
       // Error handling is done in the mutation
       log.error('Failed to create session', error as Error, {
-        metadata: { 
+        metadata: {
           component: 'PlayAreaHub',
-          userId: authUser?.id, 
-          settings 
+          userId: authUser?.id,
+          settings,
         },
       });
     }
@@ -205,11 +209,11 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
     } catch (error) {
       // Error handling is done in the mutation
       log.error('Failed to join session', error as Error, {
-        metadata: { 
+        metadata: {
           component: 'PlayAreaHub',
-          sessionId, 
-          userId: authUser?.id, 
-          joinData 
+          sessionId,
+          userId: authUser?.id,
+          joinData,
         },
       });
     }

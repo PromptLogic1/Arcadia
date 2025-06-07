@@ -11,9 +11,7 @@ export type Database = {
     Tables: {
       bingo_boards: {
         Row: {
-          board_state:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          board_state: Json | null
           bookmarked_count: number | null
           cloned_from: string | null
           created_at: string | null
@@ -23,9 +21,7 @@ export type Database = {
           game_type: Database["public"]["Enums"]["game_category"]
           id: string
           is_public: boolean | null
-          settings:
-            | Database["public"]["CompositeTypes"]["board_settings"]
-            | null
+          settings: Json | null
           size: number | null
           status: Database["public"]["Enums"]["board_status"] | null
           title: string
@@ -34,9 +30,7 @@ export type Database = {
           votes: number | null
         }
         Insert: {
-          board_state?:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          board_state?: Json | null
           bookmarked_count?: number | null
           cloned_from?: string | null
           created_at?: string | null
@@ -46,9 +40,7 @@ export type Database = {
           game_type: Database["public"]["Enums"]["game_category"]
           id?: string
           is_public?: boolean | null
-          settings?:
-            | Database["public"]["CompositeTypes"]["board_settings"]
-            | null
+          settings?: Json | null
           size?: number | null
           status?: Database["public"]["Enums"]["board_status"] | null
           title: string
@@ -57,9 +49,7 @@ export type Database = {
           votes?: number | null
         }
         Update: {
-          board_state?:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          board_state?: Json | null
           bookmarked_count?: number | null
           cloned_from?: string | null
           created_at?: string | null
@@ -69,9 +59,7 @@ export type Database = {
           game_type?: Database["public"]["Enums"]["game_category"]
           id?: string
           is_public?: boolean | null
-          settings?:
-            | Database["public"]["CompositeTypes"]["board_settings"]
-            | null
+          settings?: Json | null
           size?: number | null
           status?: Database["public"]["Enums"]["board_status"] | null
           title?: string
@@ -249,7 +237,7 @@ export type Database = {
       bingo_session_cells: {
         Row: {
           board_id: string | null
-          cell_data: Database["public"]["CompositeTypes"]["board_cell"] | null
+          cell_data: Json | null
           created_at: string | null
           id: string
           session_id: string | null
@@ -258,7 +246,7 @@ export type Database = {
         }
         Insert: {
           board_id?: string | null
-          cell_data?: Database["public"]["CompositeTypes"]["board_cell"] | null
+          cell_data?: Json | null
           created_at?: string | null
           id?: string
           session_id?: string | null
@@ -267,7 +255,7 @@ export type Database = {
         }
         Update: {
           board_id?: string | null
-          cell_data?: Database["public"]["CompositeTypes"]["board_cell"] | null
+          cell_data?: Json | null
           created_at?: string | null
           id?: string
           session_id?: string | null
@@ -312,7 +300,7 @@ export type Database = {
           created_at: string | null
           data: Json | null
           event_data: Json | null
-          event_type: string
+          event_type: Database["public"]["Enums"]["session_event_type"]
           id: string
           player_id: string | null
           session_id: string | null
@@ -327,7 +315,7 @@ export type Database = {
           created_at?: string | null
           data?: Json | null
           event_data?: Json | null
-          event_type: string
+          event_type: Database["public"]["Enums"]["session_event_type"]
           id?: string
           player_id?: string | null
           session_id?: string | null
@@ -342,7 +330,7 @@ export type Database = {
           created_at?: string | null
           data?: Json | null
           event_data?: Json | null
-          event_type?: string
+          event_type?: Database["public"]["Enums"]["session_event_type"]
           id?: string
           player_id?: string | null
           session_id?: string | null
@@ -568,9 +556,7 @@ export type Database = {
         Row: {
           board_id: string | null
           created_at: string | null
-          current_state:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          current_state: Json | null
           ended_at: string | null
           host_id: string | null
           id: string
@@ -587,9 +573,7 @@ export type Database = {
         Insert: {
           board_id?: string | null
           created_at?: string | null
-          current_state?:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          current_state?: Json | null
           ended_at?: string | null
           host_id?: string | null
           id?: string
@@ -606,9 +590,7 @@ export type Database = {
         Update: {
           board_id?: string | null
           created_at?: string | null
-          current_state?:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          current_state?: Json | null
           ended_at?: string | null
           host_id?: string | null
           id?: string
@@ -997,6 +979,145 @@ export type Database = {
             columns: ["discussion_id"]
             isOneToOne: false
             referencedRelation: "discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_event_participants: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          status: Database["public"]["Enums"]["event_participant_status"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          status?: Database["public"]["Enums"]["event_participant_status"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          status?: Database["public"]["Enums"]["event_participant_status"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "community_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_event_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_event_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_event_tags: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_event_tags_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "community_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_event_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_events: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          game_type: Database["public"]["Enums"]["game_category"]
+          id: string
+          max_participants: number | null
+          organizer_id: string | null
+          prize_pool: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          game_type: Database["public"]["Enums"]["game_category"]
+          id?: string
+          max_participants?: number | null
+          organizer_id?: string | null
+          prize_pool?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          game_type?: Database["public"]["Enums"]["game_category"]
+          id?: string
+          max_participants?: number | null
+          organizer_id?: string | null
+          prize_pool?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_events_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_events_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1478,6 +1599,56 @@ export type Database = {
           },
         ]
       }
+      user_bookmarks: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bookmarks_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "bingo_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bookmarks_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "public_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_friends: {
         Row: {
           created_at: string | null
@@ -1748,9 +1919,7 @@ export type Database = {
       }
       public_boards: {
         Row: {
-          board_state:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          board_state: Json | null
           bookmark_count: number | null
           bookmarked_count: number | null
           cloned_from: string | null
@@ -1763,9 +1932,7 @@ export type Database = {
           game_type: Database["public"]["Enums"]["game_category"] | null
           id: string | null
           is_public: boolean | null
-          settings:
-            | Database["public"]["CompositeTypes"]["board_settings"]
-            | null
+          settings: Json | null
           size: number | null
           status: Database["public"]["Enums"]["board_status"] | null
           title: string | null
@@ -1806,23 +1973,15 @@ export type Database = {
       }
       session_stats: {
         Row: {
-          board_difficulty:
-            | Database["public"]["Enums"]["difficulty_level"]
-            | null
-          board_game_type: Database["public"]["Enums"]["game_category"] | null
           board_id: string | null
           board_title: string | null
           created_at: string | null
           current_player_count: number | null
-          current_state:
-            | Database["public"]["CompositeTypes"]["board_cell"][]
-            | null
+          current_state: Json | null
           ended_at: string | null
-          has_password: boolean | null
           host_id: string | null
           host_username: string | null
           id: string | null
-          max_players: number | null
           session_code: string | null
           settings:
             | Database["public"]["CompositeTypes"]["session_settings"]
@@ -1923,6 +2082,12 @@ export type Database = {
       board_status: "draft" | "active" | "paused" | "completed" | "archived"
       challenge_status: "draft" | "published" | "archived"
       difficulty_level: "beginner" | "easy" | "medium" | "hard" | "expert"
+      event_participant_status:
+        | "interested"
+        | "registered"
+        | "waitlisted"
+        | "checked_in"
+      event_status: "upcoming" | "active" | "completed" | "cancelled"
       game_category:
         | "All Games"
         | "World of Warcraft"
@@ -1962,6 +2127,13 @@ export type Database = {
         | "The Legend of Zelda: Breath of the Wild"
         | "Super Smash Bros. Ultimate"
       queue_status: "waiting" | "matched" | "cancelled"
+      session_event_type:
+        | "cell_marked"
+        | "cell_unmarked"
+        | "player_joined"
+        | "player_left"
+        | "game_started"
+        | "game_ended"
       session_status: "waiting" | "active" | "completed" | "cancelled"
       submission_status: "pending" | "running" | "completed" | "failed"
       tag_action:
@@ -1999,12 +2171,12 @@ export type Database = {
     }
     CompositeTypes: {
       board_cell: {
+        cell_id: string | null
         text: string | null
         colors: string[] | null
         completed_by: string[] | null
         blocked: boolean | null
         is_marked: boolean | null
-        cell_id: string | null
         version: number | null
         last_updated: number | null
         last_modified_by: string | null
@@ -2164,6 +2336,13 @@ export const Constants = {
       board_status: ["draft", "active", "paused", "completed", "archived"],
       challenge_status: ["draft", "published", "archived"],
       difficulty_level: ["beginner", "easy", "medium", "hard", "expert"],
+      event_participant_status: [
+        "interested",
+        "registered",
+        "waitlisted",
+        "checked_in",
+      ],
+      event_status: ["upcoming", "active", "completed", "cancelled"],
       game_category: [
         "All Games",
         "World of Warcraft",
@@ -2204,6 +2383,14 @@ export const Constants = {
         "Super Smash Bros. Ultimate",
       ],
       queue_status: ["waiting", "matched", "cancelled"],
+      session_event_type: [
+        "cell_marked",
+        "cell_unmarked",
+        "player_joined",
+        "player_left",
+        "game_started",
+        "game_ended",
+      ],
       session_status: ["waiting", "active", "completed", "cancelled"],
       submission_status: ["pending", "running", "completed", "failed"],
       tag_action: [

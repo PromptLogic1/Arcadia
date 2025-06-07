@@ -6,18 +6,20 @@
 /**
  * Type guard to check if an unknown error has a status property
  */
-export function isErrorWithStatus(e: unknown): e is { status: number; message?: string } {
+export function isErrorWithStatus(
+  e: unknown
+): e is { status: number; message?: string } {
   // First check if it's an object
   if (typeof e !== 'object' || e === null) {
     return false;
   }
-  
+
   // Use property descriptor to safely check property type
   const descriptor = Object.getOwnPropertyDescriptor(e, 'status');
   if (!descriptor || descriptor.value === undefined) {
     return false;
   }
-  
+
   return typeof descriptor.value === 'number';
 }
 
@@ -36,22 +38,22 @@ export function isErrorWithMessage(e: unknown): e is { message: string } {
   if (typeof e !== 'object' || e === null) {
     return false;
   }
-  
+
   // Use property descriptor to safely check property type
   const descriptor = Object.getOwnPropertyDescriptor(e, 'message');
   if (!descriptor || descriptor.value === undefined) {
     return false;
   }
-  
+
   return typeof descriptor.value === 'string';
 }
 
 /**
  * Type guard for Supabase/PostgreSQL errors
  */
-export function isSupabaseError(e: unknown): e is { 
-  message: string; 
-  code?: string; 
+export function isSupabaseError(e: unknown): e is {
+  message: string;
+  code?: string;
   details?: string;
   hint?: string;
 } {
@@ -59,13 +61,13 @@ export function isSupabaseError(e: unknown): e is {
   if (typeof e !== 'object' || e === null) {
     return false;
   }
-  
+
   // Use property descriptor to safely check property type
   const descriptor = Object.getOwnPropertyDescriptor(e, 'message');
   if (!descriptor || descriptor.value === undefined) {
     return false;
   }
-  
+
   return typeof descriptor.value === 'string';
 }
 
@@ -76,15 +78,15 @@ export function getErrorMessage(e: unknown): string {
   if (isError(e)) {
     return e.message;
   }
-  
+
   if (isErrorWithMessage(e)) {
     return e.message;
   }
-  
+
   if (typeof e === 'string') {
     return e;
   }
-  
+
   return 'An unexpected error occurred';
 }
 
@@ -98,7 +100,7 @@ export function getErrorDetails(e: unknown): Record<string, unknown> {
       message: e.message || 'Unknown error',
     };
   }
-  
+
   if (isSupabaseError(e)) {
     return {
       message: e.message,
@@ -107,7 +109,7 @@ export function getErrorDetails(e: unknown): Record<string, unknown> {
       hint: e.hint,
     };
   }
-  
+
   if (isError(e)) {
     return {
       name: e.name,
@@ -115,7 +117,7 @@ export function getErrorDetails(e: unknown): Record<string, unknown> {
       stack: e.stack,
     };
   }
-  
+
   return {
     error: String(e),
   };

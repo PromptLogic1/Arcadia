@@ -1,21 +1,37 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
-import { gameStateService } from '@/src/services/game-state.service';
+import { gameStateService } from '@/services/game-state.service';
+import { sessionsService } from '@/services/sessions.service';
+import { withErrorHandling } from '@/lib/error-handler';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { log } from '@/lib/logger';
+import { authService } from '@/services/auth.service';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const supabase = createClient();
+export const POST = withErrorHandling(
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimiter.check(request, 10, params.id);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+        }
+      );
+    }
 
     // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const { data: user, success } = await authService.getCurrentUser();
+
+    if (!success || !user) {
+      log.warn('Unauthorized attempt to start session', {
+        metadata: {
+          sessionId: params.id,
+          apiRoute: 'bingo/sessions/[id]/start',
+          method: 'POST',
+        },
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -33,21 +49,38 @@ export async function POST(
         status = 403;
       }
 
+      log.error('Failed to start session', new Error(errorMessage), {
+        metadata: {
+          sessionId: params.id,
+          userId: user.id,
+          apiRoute: 'bingo/sessions/[id]/start',
+          method: 'POST',
+        },
+      });
+
       return NextResponse.json({ error: errorMessage }, { status });
     }
 
-    // Get the updated session data to return
-    const { data: updatedSession } = await supabase
-      .from('bingo_sessions')
-      .select('*')
-      .eq('id', params.id)
-      .single();
+    // Get the updated session data using the service
+    const sessionResult = await sessionsService.getSessionById(params.id);
 
-    return NextResponse.json(updatedSession || { id: params.id });
-  } catch {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    if (sessionResult.error) {
+      log.error(
+        'Failed to get updated session after start',
+        new Error(sessionResult.error),
+        {
+          metadata: {
+            sessionId: params.id,
+            apiRoute: 'bingo/sessions/[id]/start',
+            method: 'POST',
+          },
+        }
+      );
+
+      // Return success with minimal data since the session was started successfully
+      return NextResponse.json({ id: params.id, status: 'active' });
+    }
+
+    return NextResponse.json(sessionResult.data);
   }
-}
+);

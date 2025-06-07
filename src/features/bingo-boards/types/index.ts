@@ -22,6 +22,7 @@ import type {
 export type BingoBoardRow = Tables<'bingo_boards'>;
 export type BingoCardRow = Tables<'bingo_cards'>;
 export type BingoSessionRow = Tables<'bingo_sessions'>;
+export type SessionPlayer = Tables<'bingo_session_players'>;
 
 // Re-export centralized types (no duplication)
 export type {

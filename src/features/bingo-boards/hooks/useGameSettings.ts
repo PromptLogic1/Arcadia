@@ -46,10 +46,8 @@ interface UseGameSettingsReturn {
 
 export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
   // Use persisted state for local settings
-  const [localSettings, setLocalSettings] = usePersistedState<BoardSettings | null>(
-    'lastBoardSettings',
-    null
-  );
+  const [localSettings, setLocalSettings] =
+    usePersistedState<BoardSettings | null>('lastBoardSettings', null);
 
   // Server state via TanStack Query
   const {
@@ -151,7 +149,14 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         }
       }
     },
-    [settings, emitSettingsEvent, boardId, updateMutation, setValidationError, setLocalSettings]
+    [
+      settings,
+      emitSettingsEvent,
+      boardId,
+      updateMutation,
+      setValidationError,
+      setLocalSettings,
+    ]
   );
 
   // Event-Listener for external changes

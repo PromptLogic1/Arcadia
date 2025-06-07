@@ -1,9 +1,17 @@
 import { createClient } from '@/lib/supabase';
-import type { BoardCell, GameResult } from '@/types';
-import type { Tables } from '@/types/database-generated';
+import type { BoardCell } from '@/types/domains/bingo';
+import type { Tables, TablesUpdate } from '@/types/database-generated';
+import {
+  createServiceError,
+  createServiceSuccess,
+  type ServiceResponse,
+} from '@/lib/service-types';
+import { getErrorMessage, isError } from '@/lib/error-guards';
+import { log } from '@/lib/logger';
+import { boardStateSchema } from '@/lib/validation/schemas/bingo';
 
-// Type for session_stats view results
-type SessionStatsRow = Tables<'session_stats'>;
+// Type for bingo_session_players
+type SessionPlayer = Tables<'bingo_session_players'>;
 
 export interface MarkCellData {
   cell_position: number;
@@ -16,35 +24,46 @@ export interface CompleteGameData {
   winner_id: string;
   winning_patterns: string[];
   final_score: number;
+  players: SessionPlayer[];
 }
 
 export const gameStateService = {
   async getSessionState(
     sessionId: string
-  ): Promise<{ session: SessionStatsRow | null; error?: string }> {
+  ): Promise<ServiceResponse<Tables<'bingo_sessions'>>> {
     const supabase = createClient();
 
     try {
       const { data, error } = await supabase
-        .from('session_stats')
+        .from('bingo_sessions')
         .select('*')
         .eq('id', sessionId)
         .single();
 
       if (error) throw error;
+      if (!data) return createServiceError('Session not found');
 
-      return { session: data };
+      return createServiceSuccess(data);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to load session';
-      return { session: null, error: message };
+      log.error(
+        'Error getting session state',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'gameStateService',
+            method: 'getSessionState',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   async startSession(
     sessionId: string,
     hostId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<ServiceResponse<null>> {
     const supabase = createClient();
 
     try {
@@ -56,25 +75,27 @@ export const gameStateService = {
         .single();
 
       if (sessionError || !session) {
-        throw new Error('Session not found');
+        return createServiceError('Session not found');
       }
 
       if (session.host_id !== hostId) {
-        throw new Error('Only the host can start the session');
+        return createServiceError('Only the host can start the session');
       }
 
       if (session.status !== 'waiting') {
-        throw new Error('Session is not in waiting state');
+        return createServiceError('Session is not in waiting state');
       }
 
       // Check player count
-      const { count: playerCount } = await supabase
+      const { count: playerCount, error: countError } = await supabase
         .from('bingo_session_players')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('session_id', sessionId);
 
+      if (countError) throw countError;
+
       if ((playerCount || 0) < 2) {
-        throw new Error('Need at least 2 players to start');
+        return createServiceError('Need at least 2 players to start');
       }
 
       // Update session status
@@ -87,25 +108,30 @@ export const gameStateService = {
         .eq('id', sessionId);
 
       if (updateError) {
-        throw new Error(updateError.message);
+        throw updateError;
       }
 
-      return { success: true };
+      return createServiceSuccess(null);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to start session';
-      return { success: false, error: message };
+      log.error(
+        'Error starting session',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'gameStateService',
+            method: 'startSession',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   async markCell(
     sessionId: string,
     data: MarkCellData
-  ): Promise<{
-    boardState: BoardCell[] | null;
-    version: number;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<{ boardState: BoardCell[]; version: number }>> {
     const supabase = createClient();
 
     try {
@@ -117,48 +143,34 @@ export const gameStateService = {
         .single();
 
       if (sessionError || !session) {
-        throw new Error('Session not found');
+        return createServiceError('Session not found');
       }
 
       if (session.status !== 'active') {
-        throw new Error('Session not active');
+        return createServiceError('Session not active');
       }
 
       if (session.version !== data.version) {
-        throw new Error('VERSION_CONFLICT');
+        return createServiceError('VERSION_CONFLICT');
       }
 
       // Update board state
-      const currentState = (session.current_state as BoardCell[]) || [];
+      const parseResult = boardStateSchema.safeParse(session.current_state);
+      if (!parseResult.success) {
+        return createServiceError('Invalid board state in database');
+      }
+      const currentState = parseResult.data;
       const newState = [...currentState];
 
       const existingCell = newState[data.cell_position];
       if (existingCell) {
-        if (data.action === 'mark') {
-          newState[data.cell_position] = {
-            text: existingCell.text,
-            colors: existingCell.colors,
-            completed_by: existingCell.completed_by,
-            blocked: existingCell.blocked,
-            is_marked: true,
-            cell_id: existingCell.cell_id,
-            version: existingCell.version,
-            last_updated: Date.now(),
-            last_modified_by: data.user_id,
-          };
-        } else {
-          newState[data.cell_position] = {
-            text: existingCell.text,
-            colors: existingCell.colors,
-            completed_by: existingCell.completed_by,
-            blocked: existingCell.blocked,
-            is_marked: false,
-            cell_id: existingCell.cell_id,
-            version: existingCell.version,
-            last_updated: Date.now(),
-            last_modified_by: data.user_id,
-          };
-        }
+        const newCellData: BoardCell = {
+          ...existingCell,
+          is_marked: data.action === 'mark',
+          last_updated: Date.now(),
+          last_modified_by: data.user_id,
+        };
+        newState[data.cell_position] = newCellData;
       }
 
       // Update session
@@ -169,159 +181,265 @@ export const gameStateService = {
           version: data.version + 1,
         })
         .eq('id', sessionId)
-        .select()
+        .select('current_state, version')
         .single();
 
       if (updateError) {
-        throw new Error(updateError.message);
+        throw updateError;
+      }
+
+      if (!updatedSession) {
+        return createServiceError('Failed to update session');
       }
 
       // Log the event
-      await supabase.from('bingo_session_events').insert({
-        session_id: sessionId,
-        user_id: data.user_id,
-        event_type: data.action === 'mark' ? 'cell_marked' : 'cell_unmarked',
-        event_data: { cell_position: data.cell_position, timestamp: Date.now() },
-        cell_position: data.cell_position,
-        timestamp: Date.now(),
-      });
+      const { error: eventError } = await supabase
+        .from('bingo_session_events')
+        .insert({
+          session_id: sessionId,
+          user_id: data.user_id,
+          event_type: data.action === 'mark' ? 'cell_marked' : 'cell_unmarked',
+          event_data: {
+            cell_position: data.cell_position,
+          },
+          cell_position: data.cell_position,
+          timestamp: new Date().getTime(),
+        });
 
-      return {
-        boardState: updatedSession.current_state as BoardCell[],
-        version: updatedSession.version || 0,
-      };
+      if (eventError) {
+        log.warn('Failed to log cell marking event', {
+          metadata: {
+            error: eventError,
+            sessionId,
+            userId: data.user_id,
+            cell_position: data.cell_position,
+          },
+        });
+      }
+
+      const updatedParseResult = boardStateSchema.safeParse(
+        updatedSession.current_state
+      );
+      if (!updatedParseResult.success) {
+        return createServiceError('Failed to parse updated board state');
+      }
+
+      return createServiceSuccess({
+        boardState: updatedParseResult.data,
+        version: updatedSession.version ?? 0,
+      });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to mark cell';
-      return { boardState: null, version: 0, error: message };
+      log.error(
+        'Error marking cell',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'gameStateService',
+            method: 'markCell',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   async completeGame(
     sessionId: string,
     data: CompleteGameData
-  ): Promise<{ 
-    success: boolean; 
-    winner?: {
-      id: string;
-      patterns: string[];
-      score: number;
-      timeToWin: number;
-    };
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<null>> {
     const supabase = createClient();
+
+    const { winner_id, final_score, winning_patterns, players } = data;
 
     try {
       // Verify session exists and is active
       const { data: session, error: sessionError } = await supabase
         .from('bingo_sessions')
-        .select('status, started_at')
+        .select('status, started_at, board_id')
         .eq('id', sessionId)
         .single();
 
       if (sessionError || !session) {
-        throw new Error('Session not found');
+        return createServiceError('Session not found');
       }
 
       if (session.status !== 'active') {
-        throw new Error('Session is not active');
+        return createServiceError('Session is not active');
       }
 
-      // Calculate time to win
       const timeToWin = session.started_at
-        ? Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000)
+        ? Math.floor(
+            (Date.now() - new Date(session.started_at).getTime()) / 1000
+          )
         : 0;
 
-      // Update session status
-      const { error: updateError } = await supabase
+      // 1. Update session to completed
+      const { error: updateSessionError } = await supabase
         .from('bingo_sessions')
         .update({
           status: 'completed',
-          winner_id: data.winner_id,
+          winner_id,
           ended_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         })
         .eq('id', sessionId);
 
-      if (updateError) {
-        throw new Error(updateError.message);
+      if (updateSessionError) throw updateSessionError;
+
+      // 2. Update stats for all players in the session
+      for (const player of players) {
+        const { data: currentStats, error: fetchStatsError } = await supabase
+          .from('user_statistics')
+          .select('*')
+          .eq('user_id', player.user_id)
+          .single();
+
+        if (fetchStatsError && fetchStatsError.code !== 'PGRST116') {
+          // Ignore 'not found'
+          log.warn('Failed to fetch user stats', {
+            metadata: {
+              error: fetchStatsError,
+              service: 'gameStateService',
+              method: 'completeGame',
+              userId: player.user_id,
+            },
+          });
+          continue; // Skip to next player
+        }
+
+        const isWinner = player.user_id === winner_id;
+        const newGamesCompleted = (currentStats?.games_completed || 0) + 1;
+        const newGamesWon = (currentStats?.games_won || 0) + (isWinner ? 1 : 0);
+
+        const statsUpdate: TablesUpdate<'user_statistics'> = {
+          total_games: (currentStats?.total_games || 0) + 1,
+          total_score: (currentStats?.total_score || 0) + (player.score || 0),
+          games_completed: newGamesCompleted,
+          games_won: newGamesWon,
+          last_game_at: new Date().toISOString(),
+          total_playtime: (currentStats?.total_playtime || 0) + timeToWin,
+          highest_score: Math.max(
+            currentStats?.highest_score || 0,
+            player.score || 0
+          ),
+        };
+
+        if (isWinner) {
+          statsUpdate.current_win_streak =
+            (currentStats?.current_win_streak || 0) + 1;
+          statsUpdate.longest_win_streak = Math.max(
+            statsUpdate.current_win_streak,
+            currentStats?.longest_win_streak || 0
+          );
+          statsUpdate.fastest_win = Math.min(
+            currentStats?.fastest_win || Infinity,
+            timeToWin
+          );
+        } else {
+          statsUpdate.current_win_streak = 0;
+        }
+
+        const { error: updateStatsError } = await supabase
+          .from('user_statistics')
+          .upsert(
+            { ...statsUpdate, user_id: player.user_id },
+            { onConflict: 'user_id' }
+          );
+
+        if (updateStatsError) {
+          log.warn('Failed to update player stats', {
+            metadata: {
+              error: updateStatsError,
+              service: 'gameStateService',
+              method: 'completeGame',
+              userId: player.user_id,
+            },
+          });
+        }
       }
 
-      // Log the winning event
-      const eventData = {
-        patterns: data.winning_patterns,
-        final_score: data.final_score,
-        time_to_win: timeToWin,
-      };
+      // 3. Award achievement to winner
+      const { error: achievementError } = await supabase
+        .from('user_achievements')
+        .insert({
+          user_id: winner_id,
+          achievement_type: 'game_win',
+          achievement_name: 'Bingo Victor',
+          points: 50,
+          metadata: {
+            sessionId,
+            boardId: session.board_id,
+            final_score,
+            timeToWin,
+            winning_patterns,
+          },
+        });
 
-      await supabase.from('bingo_session_events').insert({
-        session_id: sessionId,
-        user_id: data.winner_id,
-        event_type: 'game_won',
-        event_data: eventData,
-        timestamp: Date.now(),
-      });
+      if (achievementError) {
+        log.warn('Failed to award win achievement', {
+          metadata: {
+            error: achievementError,
+            service: 'gameStateService',
+            method: 'completeGame',
+            userId: winner_id,
+          },
+        });
+      }
 
-      // Create game result entry for the winner
-      await supabase.from('game_results').insert({
-        session_id: sessionId,
-        user_id: data.winner_id,
-        placement: 1,
-        final_score: data.final_score,
-        time_to_win: timeToWin,
-        patterns_achieved: data.winning_patterns,
-      });
-
-      return { 
-        success: true,
-        winner: {
-          id: data.winner_id,
-          patterns: data.winning_patterns,
-          score: data.final_score,
-          timeToWin,
-        }
-      };
+      return createServiceSuccess(null);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to complete game';
-      return { success: false, error: message };
+      log.error(
+        'Error completing game',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'gameStateService',
+            method: 'completeGame',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   async getGameResults(
     sessionId: string
-  ): Promise<{ results: GameResult[] | null; error?: string }> {
+  ): Promise<ServiceResponse<SessionPlayer[]>> {
     const supabase = createClient();
 
     try {
       const { data, error } = await supabase
-        .from('game_results')
-        .select(
-          `
-          *,
-          user:users!user_id(id, username, avatar_url)
-        `
-        )
+        .from('bingo_session_players')
+        .select('*')
         .eq('session_id', sessionId)
-        .order('placement', { ascending: true })
-        .order('created_at', { ascending: false });
+        .order('score', { ascending: false });
 
       if (error) throw error;
 
-      return { results: (data as GameResult[]) || [] };
+      return createServiceSuccess(data || []);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to load game results';
-      return { results: null, error: message };
+      log.error(
+        'Error getting game results',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'gameStateService',
+            method: 'getGameResults',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
-  async getBoardState(sessionId: string): Promise<{
-    boardState: BoardCell[] | null;
-    version: number;
-    error?: string;
-  }> {
+  async getBoardState(sessionId: string): Promise<
+    ServiceResponse<{
+      boardState: BoardCell[];
+      version: number;
+    }>
+  > {
     const supabase = createClient();
 
     try {
@@ -332,21 +450,35 @@ export const gameStateService = {
         .single();
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
       if (!session) {
-        throw new Error('Session not found');
+        return createServiceError('Session not found');
       }
 
-      return {
-        boardState: (session.current_state as BoardCell[]) || [],
-        version: session.version || 0,
-      };
+      const parseResult = boardStateSchema.safeParse(session.current_state);
+      if (!parseResult.success) {
+        return createServiceError('Invalid board state in database');
+      }
+
+      return createServiceSuccess({
+        boardState: parseResult.data,
+        version: session.version ?? 0,
+      });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to get board state';
-      return { boardState: null, version: 0, error: message };
+      log.error(
+        'Error getting board state',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'gameStateService',
+            method: 'getBoardState',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

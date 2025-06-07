@@ -13,12 +13,14 @@ _Last Updated: 2025-01-06 | Status: Cleaned_
 ## ⚠️ Note on Historical Accuracy
 
 Many historical documents contained outdated or incorrect information about the project state. The following have been removed:
+
 - Phase completion reports (claimed features that weren't actually complete)
 - Migration reports (contained future dates and incorrect status)
 - Theme implementation details (no longer relevant)
 - Redundant cleanup reports
 
 For current project status, please refer to:
+
 - `/docs/PROJECT_STATUS.md` - Accurate current state
 - `/docs/DEVELOPMENT_ROADMAP.md` - Realistic timeline
 - `/CLAUDE.md` - Critical instructions and reality check

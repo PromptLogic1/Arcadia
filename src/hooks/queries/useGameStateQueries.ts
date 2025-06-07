@@ -17,6 +17,7 @@ const gameStateKeys = {
   session: (id: string) => [...gameStateKeys.all, 'session', id] as const,
   boardState: (id: string) => [...gameStateKeys.all, 'boardState', id] as const,
   results: (id: string) => [...gameStateKeys.all, 'results', id] as const,
+  players: (id: string) => [...gameStateKeys.all, 'players', id] as const,
 };
 
 // Get session state
@@ -61,7 +62,7 @@ export const useSessionStateQuery = (sessionId: string) => {
     queryFn: () => gameStateService.getSessionState(sessionId),
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
-    select: data => data.session,
+    select: response => response.data,
   });
 };
 
@@ -73,6 +74,16 @@ export const useBoardStateQuery = (sessionId: string) => {
     enabled: !!sessionId,
     staleTime: 5 * 1000, // 5 seconds
     refetchInterval: 30 * 1000, // Background refetch every 30 seconds
+  });
+};
+
+// Get game players (renamed to avoid conflict with useSessionsQueries)
+export const useGamePlayersQuery = (sessionId: string) => {
+  return useQuery({
+    queryKey: gameStateKeys.players(sessionId),
+    queryFn: () => gameStateService.getGameResults(sessionId),
+    enabled: !!sessionId,
+    select: response => response.data,
   });
 };
 
@@ -92,8 +103,13 @@ export const useStartGameSessionMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, hostId }: { sessionId: string; hostId: string }) =>
-      gameStateService.startSession(sessionId, hostId),
+    mutationFn: ({
+      sessionId,
+      hostId,
+    }: {
+      sessionId: string;
+      hostId: string;
+    }) => gameStateService.startSession(sessionId, hostId),
     onSuccess: (_, { sessionId }) => {
       queryClient.invalidateQueries({
         queryKey: gameStateKeys.session(sessionId),

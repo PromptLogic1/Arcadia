@@ -7,109 +7,97 @@ import type { User, Tag } from '../index';
 import { PLAYER_COLORS } from '../index'; // Value import
 
 // Type aliases for database types
-type BingoBoard = Tables<'bingo_boards'>;
-type BingoCard = Tables<'bingo_cards'>;
-type BingoSession = Tables<'bingo_sessions'>;
-type BingoSessionPlayer = Tables<'bingo_session_players'>;
-type BingoSessionQueue = Tables<'bingo_session_queue'>;
-type BingoSessionEvent = Tables<'bingo_session_events'>;
+type BingoBoardDb = Tables<'bingo_boards'>;
+type BingoCardDb = Tables<'bingo_cards'>;
+type BingoSessionDb = Tables<'bingo_sessions'>;
+type BingoSessionPlayerDb = Tables<'bingo_session_players'>;
+type BingoSessionQueueDb = Tables<'bingo_session_queue'>;
+type BingoSessionEventDb = Tables<'bingo_session_events'>;
 type GameCategory = Enums<'game_category'>;
 type Difficulty = Enums<'difficulty_level'>;
 type QueueStatus = Enums<'queue_status'>;
-type DbBoardCell = CompositeTypes<'board_cell'>;
+type SessionStatus = Enums<'session_status'>;
+type SessionEventType = Enums<'session_event_type'>;
 type DbSessionSettings = CompositeTypes<'session_settings'>;
 
 // =============================================================================
-// ENHANCED GAME TYPES
+// CORE GAME TYPES (DERIVED FROM DATABASE)
 // =============================================================================
 
-// Enhanced board cell for runtime game state
-export interface GameBoardCell extends DbBoardCell {
-  // Client-side computed properties
+// This is the source of truth for a cell's structure, based on the DB
+export type BoardCell = CompositeTypes<'board_cell'>;
+
+// Enhanced board cell for runtime game state, adding UI-specific properties
+export interface GameBoardCell extends BoardCell {
   isClickable?: boolean;
   isHovered?: boolean;
   animationState?: 'none' | 'marking' | 'unmarking' | 'completing';
-  conflictResolution?: {
-    timestamp: number;
-    resolvedBy: string;
-    originalValue: DbBoardCell;
-  };
 }
 
-// Enhanced player for game UI - extends database type without conflicts
-export interface GamePlayer extends BingoSessionPlayer {
-  // UI state only - no property conflicts with database fields
+// Base domain type for a board, with a strongly-typed board_state
+export interface BingoBoardDomain
+  extends Omit<BingoBoardDb, 'board_state' | 'settings'> {
+  board_state: BoardCell[];
+  settings: DbSessionSettings | null;
+}
+
+// Enhanced player for game UI
+export interface GamePlayer extends BingoSessionPlayerDb {
   isOnline?: boolean;
   isActive?: boolean;
   lastActivity?: Date;
   avatar?: string;
   hoverColor?: string;
-
-  // Computed properties
   completedCells?: number;
   winConditionsMet?: string[];
   isWinner?: boolean;
   connectionStatus?: 'connected' | 'disconnected' | 'reconnecting';
 }
 
-// Enhanced board with metadata - extends database type without conflicts
-export interface GameBoard extends BingoBoard {
-  // Relations
+// A full board object used within the application, combining the base board with metadata
+export interface GameBoardDomain extends BingoBoardDomain {
   creator?: Pick<User, 'id' | 'username' | 'avatar_url'>;
-
-  // User-specific state - no conflicts with database fields
   isBookmarked?: boolean;
   hasVoted?: boolean;
   userVote?: 'up' | 'down' | null;
-
-  // Computed statistics
   playerCount?: number;
   completionRate?: number;
   averageRating?: number;
   lastPlayedAt?: Date;
   popularityScore?: number;
-
-  // Gameplay metadata
   estimatedDuration?: number;
   recommendedPlayerCount?: { min: number; max: number };
 }
 
 // Enhanced session with full context
-export interface GameSession extends BingoSession {
-  // Relations
-  board?: GameBoard;
+export interface GameSessionDomain
+  extends Omit<BingoSessionDb, 'current_state' | 'settings'> {
+  current_state: BoardCell[] | null;
+  settings: DbSessionSettings | null;
+  board?: GameBoardDomain;
   players?: GamePlayer[];
   host?: Pick<User, 'id' | 'username' | 'avatar_url'>;
   winner?: Pick<User, 'id' | 'username' | 'avatar_url'>;
-
-  // Queue information
   queueCount?: number;
-  pendingPlayers?: BingoSessionQueue[];
-
-  // Game state
-  currentTurn?: string; // player id
+  pendingPlayers?: BingoSessionQueueDb[];
+  currentTurn?: string;
   gameProgress?: {
     totalCells: number;
     completedCells: number;
     percentage: number;
   };
-
-  // Real-time status
   isLive?: boolean;
   spectatorCount?: number;
   lastActivity?: Date;
-
-  // Computed times
-  duration?: number; // in milliseconds
-  timeRemaining?: number; // in milliseconds
+  duration?: number;
+  timeRemaining?: number;
 }
 
 // =============================================================================
 // QUEUE MANAGEMENT TYPES
 // =============================================================================
 
-export interface QueueEntry extends BingoSessionQueue {
-  // Enhanced properties
+export interface QueueEntry extends BingoSessionQueueDb {
   estimatedWaitTime?: number;
   position?: number;
   canJoin?: boolean;
@@ -216,23 +204,16 @@ export interface SessionFilter {
 // =============================================================================
 
 export type GameEventType =
-  | 'cell_marked'
-  | 'cell_unmarked'
-  | 'player_joined'
-  | 'player_left'
-  | 'game_started'
-  | 'game_ended'
-  | 'game_paused'
-  | 'game_resumed'
+  | SessionEventType
+  | 'settings_updated'
   | 'player_won'
-  | 'turn_changed'
-  | 'settings_updated';
+  | 'turn_changed';
 
 // Type aliases for compatibility (prefix unused with _)
-type _BingoCard = BingoCard;
+type _BingoCard = BingoCardDb;
 type _QueueStatus = QueueStatus;
 
-export interface GameEvent extends BingoSessionEvent {
+export interface GameEvent extends BingoSessionEventDb {
   type: GameEventType;
   payload: {
     playerId?: string;
@@ -257,27 +238,27 @@ export type GameAction =
 // =============================================================================
 
 export interface BoardCardProps {
-  board: GameBoard;
+  board: GameBoardDomain;
   variant?: 'default' | 'compact' | 'detailed';
   section?: 'all' | 'bookmarked' | 'my-boards' | 'recent';
   onVote?: (boardId: string, vote: 'up' | 'down') => void;
   onBookmark?: (boardId: string) => void;
-  onSelect?: (board: GameBoard) => void;
-  onPlay?: (board: GameBoard) => void;
+  onSelect?: (board: GameBoardDomain) => void;
+  onPlay?: (board: GameBoardDomain) => void;
   className?: string;
 }
 
 export interface SessionCardProps {
-  session: GameSession;
+  session: GameSessionDomain;
   variant?: 'default' | 'compact' | 'detailed';
-  onJoin?: (session: GameSession) => void;
-  onSpectate?: (session: GameSession) => void;
-  onSelect?: (session: GameSession) => void;
+  onJoin?: (session: GameSessionDomain) => void;
+  onSpectate?: (session: GameSessionDomain) => void;
+  onSelect?: (session: GameSessionDomain) => void;
   className?: string;
 }
 
 export interface GameBoardProps {
-  session: GameSession;
+  session: GameSessionDomain;
   currentPlayer?: GamePlayer;
   onCellClick?: (cellId: string) => void;
   onCellHover?: (cellId: string | null) => void;
@@ -298,11 +279,11 @@ export interface UseBingoBoardProps {
 }
 
 export interface UseBingoBoardReturn {
-  board: BingoBoard | null;
+  board: BingoBoardDomain | null;
   loading: boolean;
   error: Error | null;
   updateBoardState: (newState: GameBoardCell[]) => Promise<void>;
-  updateBoardSettings: (settings: Partial<BingoBoard>) => Promise<void>;
+  updateBoardSettings: (settings: Partial<BingoBoardDomain>) => Promise<void>;
 }
 
 export interface UseSessionProps {
@@ -312,12 +293,12 @@ export interface UseSessionProps {
 }
 
 export interface UseSessionReturn {
-  session: GameSession | null;
+  session: GameSessionDomain | null;
   loading: boolean;
   error: Error | null;
   joinSession: (params: JoinSessionForm) => Promise<void>;
   leaveSession: () => Promise<void>;
-  updateSession: (updates: Partial<BingoSession>) => Promise<void>;
+  updateSession: (updates: Partial<GameSessionDomain>) => Promise<void>;
 }
 
 export interface UsePlayerManagementProps {
@@ -393,17 +374,6 @@ export const BINGO_GAME_CONSTANTS = {
     PERMISSION_ERROR: 'PERMISSION_ERROR',
   },
 
-  // Game Events
-  EVENTS: {
-    MOVE_MADE: 'move_made',
-    GAME_STARTED: 'game_started',
-    GAME_ENDED: 'game_ended',
-    PLAYER_JOINED: 'player_joined',
-    PLAYER_LEFT: 'player_left',
-    BOARD_UPDATED: 'board_updated',
-    ERROR_OCCURRED: 'error_occurred',
-  },
-
   // Win Conditions
   WIN_CONDITIONS: {
     LINE: 'line',
@@ -418,30 +388,12 @@ export const BINGO_GAME_CONSTANTS = {
     MEMORY_WARNING_THRESHOLD: 50 * 1024 * 1024, // 50MB
     LOW_FPS_THRESHOLD: 30,
   },
-
-  // Game Status
-  STATUS: {
-    WAITING: 'waiting',
-    ACTIVE: 'active',
-    PAUSED: 'paused',
-    ENDED: 'ended',
-    CANCELLED: 'cancelled',
-  },
-
-  // Cell States
-  CELL_STATES: {
-    EMPTY: 'empty',
-    MARKED: 'marked',
-    BLOCKED: 'blocked',
-    COMPLETED: 'completed',
-  },
 } as const;
 
 export type BingoGameConstant = typeof BINGO_GAME_CONSTANTS;
 export type ErrorType = keyof typeof BINGO_GAME_CONSTANTS.ERROR_TYPES;
 export type WinCondition = keyof typeof BINGO_GAME_CONSTANTS.WIN_CONDITIONS;
-export type GameStatus = keyof typeof BINGO_GAME_CONSTANTS.STATUS;
-export type CellState = keyof typeof BINGO_GAME_CONSTANTS.CELL_STATES;
+export type GameStatus = SessionStatus;
 
 // =============================================================================
 // CONSTANTS AND DEFAULTS
@@ -549,7 +501,7 @@ export const ERROR_MESSAGES = {
 // TYPE GUARDS
 // =============================================================================
 
-export function isGameBoard(obj: unknown): obj is GameBoard {
+export function isGameBoard(obj: unknown): obj is GameBoardDomain {
   return (
     obj !== null &&
     typeof obj === 'object' &&
@@ -560,7 +512,7 @@ export function isGameBoard(obj: unknown): obj is GameBoard {
   );
 }
 
-export function isGameSession(obj: unknown): obj is GameSession {
+export function isGameSession(obj: unknown): obj is GameSessionDomain {
   return (
     obj !== null &&
     typeof obj === 'object' &&

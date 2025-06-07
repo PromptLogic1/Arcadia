@@ -1,10 +1,6 @@
 'use client';
 
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -122,7 +118,7 @@ export function SessionHostingDialog({
       log.error('Failed to load boards', boardsError as Error, {
         metadata: {
           userId: authUser?.id,
-        }
+        },
       });
       return 'Failed to load boards';
     }
@@ -132,11 +128,13 @@ export function SessionHostingDialog({
   // Find pre-selected board if provided
   const preSelectedBoard = useMemo(() => {
     if (!preSelectedBoardId) return null;
-    
+
     // Find the pre-selected board in user boards first, then public boards
     return (
       userBoards.find((board: BingoBoard) => board.id === preSelectedBoardId) ||
-      publicBoards.find((board: BingoBoard) => board.id === preSelectedBoardId) ||
+      publicBoards.find(
+        (board: BingoBoard) => board.id === preSelectedBoardId
+      ) ||
       null
     );
   }, [preSelectedBoardId, userBoards, publicBoards]);
@@ -289,7 +287,9 @@ export function SessionHostingDialog({
               ) : boardsErrorMessage ? (
                 <div className="py-8 text-center text-red-400">
                   <p className="mb-2">{boardsErrorMessage}</p>
-                  <p className="text-sm text-cyan-300/70">Please try again later</p>
+                  <p className="text-sm text-cyan-300/70">
+                    Please try again later
+                  </p>
                 </div>
               ) : (
                 <>
@@ -315,7 +315,9 @@ export function SessionHostingDialog({
                             <BoardCard
                               key={board.id}
                               board={board}
-                              isSelected={effectiveSelectedBoard?.id === board.id}
+                              isSelected={
+                                effectiveSelectedBoard?.id === board.id
+                              }
                               onSelect={() => setSelectedBoard(board)}
                             />
                           ))}
@@ -342,7 +344,9 @@ export function SessionHostingDialog({
                             <BoardCard
                               key={board.id}
                               board={board}
-                              isSelected={effectiveSelectedBoard?.id === board.id}
+                              isSelected={
+                                effectiveSelectedBoard?.id === board.id
+                              }
                               onSelect={() => setSelectedBoard(board)}
                             />
                           ))}
@@ -417,7 +421,9 @@ export function SessionHostingDialog({
                   <div className="flex gap-2">
                     <Badge
                       variant="outline"
-                      className={getDifficultyColor(effectiveSelectedBoard.difficulty)}
+                      className={getDifficultyColor(
+                        effectiveSelectedBoard.difficulty
+                      )}
                     >
                       {effectiveSelectedBoard.difficulty}
                     </Badge>
@@ -426,7 +432,8 @@ export function SessionHostingDialog({
                       className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
                     >
                       <Grid3X3 className="mr-1 h-3 w-3" />
-                      {effectiveSelectedBoard.size || 5}×{effectiveSelectedBoard.size || 5}
+                      {effectiveSelectedBoard.size || 5}×
+                      {effectiveSelectedBoard.size || 5}
                     </Badge>
                   </div>
                   {effectiveSelectedBoard.description && (

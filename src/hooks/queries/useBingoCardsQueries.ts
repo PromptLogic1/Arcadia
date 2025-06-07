@@ -9,6 +9,7 @@ import { bingoCardsService } from '../../services/bingo-cards.service';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
 import type { CardFilters } from '../../services/bingo-cards.service';
+import type { BingoCard } from '@/types';
 
 /**
  * Get cards by IDs query
@@ -19,7 +20,7 @@ export function useCardsQuery(cardIds: string[]) {
     queryFn: () => bingoCardsService.getCardsByIds(cardIds),
     enabled: cardIds.length > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select: (response) => {
+    select: response => {
       if (response.success && response.data) {
         return { cards: response.data, error: undefined };
       }
@@ -41,13 +42,13 @@ export function usePublicCardsQuery(
     queryFn: () => bingoCardsService.getPublicCards(filters, page, limit),
     staleTime: 1 * 60 * 1000, // 1 minute for public data
     placeholderData: previousData => previousData, // Keep previous data while loading
-    select: (response) => {
+    select: response => {
       if (response.success && response.data) {
         return { response: response.data, error: undefined };
       }
-      return { 
-        response: { cards: [], totalCount: 0, hasMore: false }, 
-        error: response.error || 'Failed to fetch public cards' 
+      return {
+        response: { cards: [], totalCount: 0, hasMore: false },
+        error: response.error || 'Failed to fetch public cards',
       };
     },
   });
@@ -110,7 +111,7 @@ export function useVoteCardMutation() {
       // Optimistically update to the new value
       queryClient.setQueryData(
         queryKeys.bingoCards.byIds([cardId]),
-        (old: any) => {
+        (old: { cards: BingoCard[]; error?: string } | undefined) => {
           if (old?.cards?.[0]) {
             return {
               ...old,
@@ -139,7 +140,7 @@ export function useVoteCardMutation() {
       }
       notifications.error('Failed to vote on card');
     },
-    onSuccess: (response) => {
+    onSuccess: response => {
       if (response.success && response.data) {
         notifications.success('Vote recorded!');
       } else {
@@ -171,13 +172,13 @@ export function useUserCardsQuery(
     enabled: enabled && !!userId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     placeholderData: previousData => previousData,
-    select: (response) => {
+    select: response => {
       if (response.success && response.data) {
         return { response: response.data, error: undefined };
       }
-      return { 
-        response: { cards: [], totalCount: 0, hasMore: false }, 
-        error: response.error || 'Failed to fetch user cards' 
+      return {
+        response: { cards: [], totalCount: 0, hasMore: false },
+        error: response.error || 'Failed to fetch user cards',
       };
     },
   });
@@ -208,9 +209,9 @@ export function useUpdateCardMutation() {
         queryKey: queryKeys.bingoCards.byIds([variables.cardId]),
       });
       // Invalidate all user and public cards queries
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: queryKeys.bingoCards.all(),
-        refetchType: 'active'
+        refetchType: 'active',
       });
 
       notifications.success('Card updated successfully!');
@@ -240,9 +241,9 @@ export function useDeleteCardMutation() {
         queryKey: queryKeys.bingoCards.byIds([cardId]),
       });
       // Invalidate all user and public cards queries
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: queryKeys.bingoCards.all(),
-        refetchType: 'active'
+        refetchType: 'active',
       });
 
       notifications.success('Card deleted successfully!');
@@ -280,7 +281,9 @@ export function useBulkCreateCardsMutation() {
         });
       }
 
-      notifications.success(`Created ${response.data.length} cards successfully!`);
+      notifications.success(
+        `Created ${response.data.length} cards successfully!`
+      );
     },
     onError: (error: Error) => {
       notifications.error(error.message || 'Failed to create cards');

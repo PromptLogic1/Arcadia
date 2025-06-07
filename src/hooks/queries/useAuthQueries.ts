@@ -21,7 +21,7 @@ export function useAuthSessionQuery() {
     queryFn: authService.getSession,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    select: (response) => response.success ? response.data : null,
+    select: response => (response.success ? response.data : null),
   });
 }
 
@@ -37,7 +37,7 @@ export function useCurrentUserQuery() {
     enabled: !authUser, // Don't fetch if we already have user
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    select: (response) => response.success ? response.data : null,
+    select: response => (response.success ? response.data : null),
   });
 }
 
@@ -51,7 +51,7 @@ export function useUserDataQuery(userId?: string) {
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    select: (response) => response.success ? response.data : null,
+    select: response => (response.success ? response.data : null),
   });
 }
 
@@ -75,7 +75,9 @@ export function useSignInMutation() {
 
         // Fetch user data after successful sign in
         try {
-          const userDataResponse = await authService.getUserData(response.data.user.id);
+          const userDataResponse = await authService.getUserData(
+            response.data.user.id
+          );
           if (userDataResponse.success && userDataResponse.data) {
             setUserData(userDataResponse.data);
           }

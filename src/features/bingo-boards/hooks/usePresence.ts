@@ -30,7 +30,9 @@ export interface UsePresenceReturn {
 }
 
 // Type helper for the update function
-type UpdatePresenceFunc = (status: PresenceState['status']) => Promise<ServiceResponse<void>>;
+type UpdatePresenceFunc = (
+  status: PresenceState['status']
+) => Promise<ServiceResponse<void>>;
 
 export function usePresence(
   boardId: string,
@@ -45,7 +47,8 @@ export function usePresence(
   >({});
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [updatePresenceFunc, setUpdatePresenceFunc] = useState<UpdatePresenceFunc | null>(null);
+  const [updatePresenceFunc, setUpdatePresenceFunc] =
+    useState<UpdatePresenceFunc | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -108,13 +111,16 @@ export function usePresence(
 
         // Check if subscription was successful
         if (!subscription.success || !subscription.data) {
-          throw new Error(subscription.error || 'Failed to subscribe to presence');
+          throw new Error(
+            subscription.error || 'Failed to subscribe to presence'
+          );
         }
 
         // Store update function and cleanup
-        if (isMountedRef.current && isSubscriptionActive) {
-          setUpdatePresenceFunc(() => subscription.data!.updatePresence);
-          cleanup = subscription.data!.cleanup;
+        if (isMountedRef.current && isSubscriptionActive && subscription.data) {
+          const { updatePresence, cleanup: cleanupFunc } = subscription.data;
+          setUpdatePresenceFunc(() => updatePresence);
+          cleanup = cleanupFunc;
           setIsConnected(true);
 
           log.debug('Presence subscription established', {
@@ -146,9 +152,13 @@ export function usePresence(
         });
         cleanup().then(result => {
           if (!result.success) {
-            log.error('Presence cleanup failed', new Error(result.error || 'Cleanup failed'), {
-              metadata: { boardId },
-            });
+            log.error(
+              'Presence cleanup failed',
+              new Error(result.error || 'Cleanup failed'),
+              {
+                metadata: { boardId },
+              }
+            );
           }
         });
       }
@@ -230,7 +240,8 @@ export function usePresence(
   const isUserOnline = useCallback(
     (userId: string) => {
       return Object.values(presenceState).some(
-        p => p.user_id === userId && p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
+        p =>
+          p.user_id === userId && p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
       );
     },
     [presenceState]

@@ -24,6 +24,7 @@ export function useSessionStateQuery(sessionId: string) {
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Background refetch every 30 seconds
+    select: response => ({ session: response.data, error: response.error }),
   });
 }
 
@@ -37,6 +38,7 @@ export function useSessionPlayersQuery(sessionId: string) {
     enabled: !!sessionId,
     staleTime: 15 * 1000, // 15 seconds
     refetchInterval: 15 * 1000, // Background refetch every 15 seconds
+    select: data => data.data || [],
   });
 }
 
@@ -51,6 +53,11 @@ export function useSessionWithPlayersQuery(sessionId: string) {
     queryFn: () => gameStateService.getBoardState(sessionId),
     enabled: !!sessionId,
     staleTime: 10 * 1000, // 10 seconds
+    select: response => ({
+      boardState: response.data?.boardState || [],
+      version: response.data?.version || 0,
+      error: response.error,
+    }),
   });
 
   // Real-time subscription
@@ -90,7 +97,7 @@ export function useSessionWithPlayersQuery(sessionId: string) {
 
   return {
     session: sessionQuery.data?.session || null,
-    players: playersQuery.data?.players || [],
+    players: playersQuery.data || [],
     boardState: boardStateQuery.data?.boardState || [],
     isLoading:
       sessionQuery.isLoading ||
@@ -114,27 +121,30 @@ export function useInitializeSessionMutation() {
   return useMutation({
     mutationFn: ({ boardId, player }: { boardId: string; player: Player }) =>
       sessionStateService.initializeSession(boardId, player),
-    onSuccess: data => {
+    onSuccess: (data, _variables) => {
       if (data.error) {
         notifications.error(data.error);
         return;
       }
 
-      if (data.session && data.session.id) {
-        const message = data.isNewSession
+      if (data.data && data.data.session && data.data.session.id) {
+        const message = data.data.isNewSession
           ? 'Session created successfully!'
           : 'Joined session successfully!';
         notifications.success(message);
 
         // Update cache
-        queryClient.setQueryData(queryKeys.sessions.state(data.session.id), {
-          session: data.session,
-          error: undefined,
-        });
+        queryClient.setQueryData(
+          queryKeys.sessions.state(data.data.session.id),
+          {
+            session: data.data.session,
+            error: undefined,
+          }
+        );
 
         // Invalidate related queries
         queryClient.invalidateQueries({
-          queryKey: queryKeys.sessions.players(data.session.id),
+          queryKey: queryKeys.sessions.players(data.data.session.id),
         });
       }
     },
@@ -160,7 +170,7 @@ export function useLeaveSessionMutation() {
       sessionId: string;
       playerId: string;
     }) => sessionStateService.leaveSession(sessionId, playerId),
-    onSuccess: (data, variables) => {
+    onSuccess: (data, _variables) => {
       if (data.error) {
         notifications.error(data.error);
         return;
@@ -170,7 +180,7 @@ export function useLeaveSessionMutation() {
 
       // Invalidate session queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.sessions.players(variables.sessionId),
+        queryKey: queryKeys.sessions.players(_variables.sessionId),
       });
     },
     onError: error => {

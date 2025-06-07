@@ -42,16 +42,13 @@ export const presenceService = {
         throw new Error('Invalid channel name format');
       }
 
-      const result = await modernPresenceService.subscribeToPresence(
-        boardId,
-        {
-          onError: error => {
-            log.error('Presence tracking error', error, {
-              metadata: { channelName, userId },
-            });
-          },
-        }
-      );
+      const result = await modernPresenceService.subscribeToPresence(boardId, {
+        onError: error => {
+          log.error('Presence tracking error', error, {
+            metadata: { channelName, userId },
+          });
+        },
+      });
 
       if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to subscribe to presence');
@@ -62,9 +59,13 @@ export const presenceService = {
       return async () => {
         const cleanupResult = await cleanup();
         if (!cleanupResult.success) {
-          log.error('Presence cleanup failed', new Error(cleanupResult.error || 'Cleanup failed'), {
-            metadata: { channelName, userId },
-          });
+          log.error(
+            'Presence cleanup failed',
+            new Error(cleanupResult.error || 'Cleanup failed'),
+            {
+              metadata: { channelName, userId },
+            }
+          );
         }
       };
     } catch (error) {
@@ -93,9 +94,7 @@ export const presenceService = {
       }
 
       const mappedStatus =
-        status === 'offline'
-          ? 'away'
-          : (status as 'online' | 'away' | 'busy');
+        status === 'offline' ? 'away' : (status as 'online' | 'away' | 'busy');
 
       const result = await modernPresenceService.updatePresence(
         boardId,
@@ -126,7 +125,7 @@ export const presenceService = {
       }
 
       const result = modernPresenceService.getCurrentPresenceState(boardId);
-      
+
       if (!result.success || !result.data) {
         return null;
       }

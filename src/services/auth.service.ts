@@ -43,7 +43,9 @@ export const authService = {
   /**
    * Get current session
    */
-  async getSession(): Promise<ServiceResponse<{ user: { id: string; email?: string | null } } | null>> {
+  async getSession(): Promise<
+    ServiceResponse<{ user: { id: string; email?: string | null } } | null>
+  > {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.getSession();
@@ -57,9 +59,13 @@ export const authService = {
 
       return createServiceSuccess(data.session);
     } catch (error) {
-      log.error('Unexpected error getting session', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'getSession' },
-      });
+      log.error(
+        'Unexpected error getting session',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'getSession' },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -97,9 +103,13 @@ export const authService = {
 
       return createServiceSuccess(authUser);
     } catch (error) {
-      log.error('Unexpected error getting current user', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'getCurrentUser' },
-      });
+      log.error(
+        'Unexpected error getting current user',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'getCurrentUser' },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -136,9 +146,13 @@ export const authService = {
       const userData = transformDbUserToUserData(validationResult.data);
       return createServiceSuccess(userData);
     } catch (error) {
-      log.error('Unexpected error getting user data', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'getUserData', userId },
-      });
+      log.error(
+        'Unexpected error getting user data',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'getUserData', userId },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -146,7 +160,9 @@ export const authService = {
   /**
    * Sign in with email and password
    */
-  async signIn(credentials: SignInCredentials): Promise<ServiceResponse<AuthResponseData>> {
+  async signIn(
+    credentials: SignInCredentials
+  ): Promise<ServiceResponse<AuthResponseData>> {
     try {
       const supabase = createClient();
       const { data, error } =
@@ -154,7 +170,11 @@ export const authService = {
 
       if (error) {
         log.error('Sign in failed', error, {
-          metadata: { service: 'auth.service', method: 'signIn', email: credentials.email },
+          metadata: {
+            service: 'auth.service',
+            method: 'signIn',
+            email: credentials.email,
+          },
         });
         return createServiceError(error.message);
       }
@@ -176,9 +196,17 @@ export const authService = {
 
       return createServiceSuccess({ user: authUser });
     } catch (error) {
-      log.error('Unexpected error during sign in', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'signIn', email: credentials.email },
-      });
+      log.error(
+        'Unexpected error during sign in',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'signIn',
+            email: credentials.email,
+          },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -186,7 +214,9 @@ export const authService = {
   /**
    * Sign up with email and password
    */
-  async signUp(credentials: SignUpCredentials): Promise<ServiceResponse<AuthResponseData>> {
+  async signUp(
+    credentials: SignUpCredentials
+  ): Promise<ServiceResponse<AuthResponseData>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
@@ -201,7 +231,11 @@ export const authService = {
 
       if (error) {
         log.error('Sign up failed', error, {
-          metadata: { service: 'auth.service', method: 'signUp', email: credentials.email },
+          metadata: {
+            service: 'auth.service',
+            method: 'signUp',
+            email: credentials.email,
+          },
         });
         return createServiceError(error.message);
       }
@@ -228,9 +262,17 @@ export const authService = {
 
       return createServiceSuccess({ user: authUser });
     } catch (error) {
-      log.error('Unexpected error during sign up', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'signUp', email: credentials.email },
-      });
+      log.error(
+        'Unexpected error during sign up',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'signUp',
+            email: credentials.email,
+          },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -252,9 +294,13 @@ export const authService = {
 
       return createServiceSuccess(undefined);
     } catch (error) {
-      log.error('Unexpected error during sign out', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'signOut' },
-      });
+      log.error(
+        'Unexpected error during sign out',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'signOut' },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -280,7 +326,11 @@ export const authService = {
 
       if (error) {
         log.error('Failed to update user data', error, {
-          metadata: { service: 'auth.service', method: 'updateUserData', userId },
+          metadata: {
+            service: 'auth.service',
+            method: 'updateUserData',
+            userId,
+          },
         });
         return createServiceError(error.message);
       }
@@ -288,9 +338,17 @@ export const authService = {
       // Validate the data from database
       const validationResult = userSchema.safeParse(data);
       if (!validationResult.success) {
-        log.error('Updated user data validation failed', validationResult.error, {
-          metadata: { service: 'auth.service', method: 'updateUserData', userId },
-        });
+        log.error(
+          'Updated user data validation failed',
+          validationResult.error,
+          {
+            metadata: {
+              service: 'auth.service',
+              method: 'updateUserData',
+              userId,
+            },
+          }
+        );
         return createServiceError('Invalid user data format');
       }
 
@@ -298,9 +356,17 @@ export const authService = {
       const userData = transformDbUserToUserData(validationResult.data);
       return createServiceSuccess(userData);
     } catch (error) {
-      log.error('Unexpected error updating user data', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'updateUserData', userId },
-      });
+      log.error(
+        'Unexpected error updating user data',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'updateUserData',
+            userId,
+          },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -322,9 +388,13 @@ export const authService = {
 
       return createServiceSuccess(undefined);
     } catch (error) {
-      log.error('Unexpected error during password reset', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'resetPassword', email },
-      });
+      log.error(
+        'Unexpected error during password reset',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'resetPassword', email },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },
@@ -348,9 +418,13 @@ export const authService = {
 
       return createServiceSuccess(undefined);
     } catch (error) {
-      log.error('Unexpected error updating password', isError(error) ? error : new Error(String(error)), {
-        metadata: { service: 'auth.service', method: 'updatePassword' },
-      });
+      log.error(
+        'Unexpected error updating password',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'updatePassword' },
+        }
+      );
       return createServiceError(getErrorMessage(error));
     }
   },

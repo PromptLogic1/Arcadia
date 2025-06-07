@@ -4,7 +4,8 @@
 
 ⚠️ **WARNING**: The project currently has **0% test coverage**. Jest is configured but no actual tests exist. This guide outlines how testing _should_ be implemented.
 
-**Reality Check**: 
+**Reality Check**:
+
 - Jest configuration exists
 - Test setup files exist
 - Custom test reporter exists

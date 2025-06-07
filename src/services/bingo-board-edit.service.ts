@@ -19,11 +19,47 @@ import {
   bingoBoardSchema,
   bingoCardSchema,
   bingoCardsArraySchema,
+  zBoardState,
+  sessionSettingsSchema,
 } from '@/lib/validation/schemas/bingo';
 import type { BingoBoard, BingoCard } from '@/types';
+import type { BingoBoardDomain } from '@/types/domains/bingo';
 
 // Type alias for clean usage
 type BoardCell = CompositeTypes<'board_cell'>;
+
+// Transform database board to domain board
+const _transformDbBoardToDomain = (
+  board: BingoBoard
+): BingoBoardDomain | null => {
+  const boardStateParseResult = zBoardState.safeParse(board.board_state);
+  const settingsParseResult = sessionSettingsSchema.safeParse(board.settings);
+
+  if (!boardStateParseResult.success || !settingsParseResult.success) {
+    log.error(
+      'Failed to parse board state or settings from DB',
+      new Error('Board data parsing failed'),
+      {
+        metadata: {
+          boardId: board.id,
+          boardStateError: boardStateParseResult.success
+            ? undefined
+            : boardStateParseResult.error,
+          settingsError: settingsParseResult.success
+            ? undefined
+            : settingsParseResult.error,
+        },
+      }
+    );
+    return null;
+  }
+
+  return {
+    ...board,
+    board_state: boardStateParseResult.data,
+    settings: settingsParseResult.data,
+  };
+};
 
 export interface BoardEditData {
   title?: string;
@@ -48,10 +84,12 @@ export const bingoBoardEditService = {
   /**
    * Get board with cards for editing
    */
-  async getBoardForEdit(boardId: string): Promise<ServiceResponse<{
-    board: BingoBoard;
-    cards: BingoCard[];
-  }>> {
+  async getBoardForEdit(boardId: string): Promise<
+    ServiceResponse<{
+      board: BingoBoardDomain;
+      cards: BingoCard[];
+    }>
+  > {
     try {
       const supabase = createClient();
 
@@ -73,13 +111,18 @@ export const bingoBoardEditService = {
         return createServiceError('Board not found');
       }
 
-      // Validate board data
+      // Validate and transform board data
       const boardValidation = bingoBoardSchema.safeParse(board);
       if (!boardValidation.success) {
         log.error('Board data validation failed', boardValidation.error, {
           metadata: { boardId, service: 'bingoBoardEditService' },
         });
         return createServiceError('Invalid board data format');
+      }
+
+      const transformedBoard = _transformDbBoardToDomain(boardValidation.data);
+      if (!transformedBoard) {
+        return createServiceError('Failed to transform board data');
       }
 
       // Get user's private cards for this board
@@ -107,7 +150,7 @@ export const bingoBoardEditService = {
       }
 
       return createServiceSuccess({
-        board: boardValidation.data,
+        board: transformedBoard,
         cards: cardsValidation.data,
       });
     } catch (error) {
@@ -125,7 +168,9 @@ export const bingoBoardEditService = {
   /**
    * Save multiple cards at once
    */
-  async saveCards(cards: CardInsertData[]): Promise<ServiceResponse<BingoCard[]>> {
+  async saveCards(
+    cards: CardInsertData[]
+  ): Promise<ServiceResponse<BingoCard[]>> {
     try {
       const supabase = createClient();
       const savedCards: BingoCard[] = [];
@@ -176,7 +221,10 @@ export const bingoBoardEditService = {
       return createServiceSuccess(savedCards);
     } catch (error) {
       log.error('Unexpected error in saveCards', error as Error, {
-        metadata: { cardsCount: cards.length, service: 'bingoBoardEditService' },
+        metadata: {
+          cardsCount: cards.length,
+          service: 'bingoBoardEditService',
+        },
       });
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to save cards'
@@ -191,7 +239,7 @@ export const bingoBoardEditService = {
     boardId: string,
     updates: BoardEditData,
     currentVersion: number
-  ): Promise<ServiceResponse<BingoBoard>> {
+  ): Promise<ServiceResponse<BingoBoardDomain>> {
     try {
       const supabase = createClient();
 
@@ -202,14 +250,12 @@ export const bingoBoardEditService = {
         is_public: updates.is_public,
         board_state: updates.board_state,
         version: currentVersion + 1,
+        updated_at: new Date().toISOString(),
       };
 
       const { data: updatedBoard, error: updateError } = await supabase
         .from('bingo_boards')
-        .update({
-          ...boardUpdate,
-          updated_at: new Date().toISOString(),
-        })
+        .update(boardUpdate)
         .eq('id', boardId)
         .eq('version', currentVersion) // Optimistic concurrency control
         .select()
@@ -223,7 +269,11 @@ export const bingoBoardEditService = {
           );
         }
         log.error('Failed to update board', updateError, {
-          metadata: { boardId, currentVersion, service: 'bingoBoardEditService' },
+          metadata: {
+            boardId,
+            currentVersion,
+            service: 'bingoBoardEditService',
+          },
         });
         return createServiceError(updateError.message);
       }
@@ -232,7 +282,7 @@ export const bingoBoardEditService = {
         return createServiceError('Board update failed - no data returned');
       }
 
-      // Validate updated board
+      // Validate and transform updated board
       const boardValidation = bingoBoardSchema.safeParse(updatedBoard);
       if (!boardValidation.success) {
         log.error('Updated board validation failed', boardValidation.error, {
@@ -241,7 +291,12 @@ export const bingoBoardEditService = {
         return createServiceError('Invalid updated board data format');
       }
 
-      return createServiceSuccess(boardValidation.data);
+      const transformedBoard = _transformDbBoardToDomain(boardValidation.data);
+      if (!transformedBoard) {
+        return createServiceError('Failed to transform updated board data');
+      }
+
+      return createServiceSuccess(transformedBoard);
     } catch (error) {
       log.error('Unexpected error in updateBoard', error as Error, {
         metadata: { boardId, currentVersion, service: 'bingoBoardEditService' },
@@ -255,7 +310,9 @@ export const bingoBoardEditService = {
   /**
    * Create a new card for the board
    */
-  async createCard(cardData: CardInsertData): Promise<ServiceResponse<BingoCard>> {
+  async createCard(
+    cardData: CardInsertData
+  ): Promise<ServiceResponse<BingoCard>> {
     try {
       const supabase = createClient();
 
@@ -316,12 +373,19 @@ export const bingoBoardEditService = {
     try {
       const supabase = createClient();
 
+      const cardUpdate: TablesUpdate<'bingo_cards'> = {
+        title: updates.title,
+        description: updates.description,
+        game_type: updates.game_type,
+        difficulty: updates.difficulty,
+        tags: updates.tags,
+        is_public: updates.is_public,
+        updated_at: new Date().toISOString(),
+      };
+
       const { data: updatedCard, error } = await supabase
         .from('bingo_cards')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+        .update(cardUpdate)
         .eq('id', cardId)
         .select()
         .single();
@@ -360,14 +424,16 @@ export const bingoBoardEditService = {
   /**
    * Initialize board data and convert legacy grid data
    */
-  async initializeBoardData(boardId: string): Promise<ServiceResponse<{
-    board: BingoBoard;
-    gridCards: BingoCard[];
-    privateCards: BingoCard[];
-  }>> {
+  async initializeBoardData(boardId: string): Promise<
+    ServiceResponse<{
+      board: BingoBoard;
+      gridCards: BingoCard[];
+      privateCards: BingoCard[];
+    }>
+  > {
     try {
       const result = await this.getBoardForEdit(boardId);
-      
+
       if (!result.success || !result.data) {
         return createServiceError(result.error || 'Board not found');
       }

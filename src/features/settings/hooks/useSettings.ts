@@ -132,8 +132,12 @@ export function useSettings(): UseSettingsReturn {
   // Mount tracking for setTimeout cleanup
   const isMountedRef = useRef(true);
   const emailSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const passwordSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const profileSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const passwordSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(
+    undefined
+  );
+  const profileSuccessTimeoutRef = useRef<NodeJS.Timeout | undefined>(
+    undefined
+  );
 
   // TanStack Query for server state
   const settingsOperations = useSettingsOperations(userId);

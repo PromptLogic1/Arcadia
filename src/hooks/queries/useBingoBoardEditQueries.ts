@@ -20,7 +20,7 @@ export function useBoardEditDataQuery(boardId: string, enabled = true) {
     queryFn: () => bingoBoardEditService.getBoardForEdit(boardId),
     enabled: enabled && !!boardId,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select: (response) => {
+    select: response => {
       if (response.success && response.data) {
         return {
           board: response.data.board,
@@ -46,7 +46,7 @@ export function useBoardInitializationQuery(boardId: string, enabled = true) {
     queryFn: () => bingoBoardEditService.initializeBoardData(boardId),
     enabled: enabled && !!boardId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    select: (response) => {
+    select: response => {
       if (response.success && response.data) {
         return {
           board: response.data.board,

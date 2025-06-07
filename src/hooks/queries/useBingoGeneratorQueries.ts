@@ -30,7 +30,9 @@ export function useGenerateBoardMutation() {
       const result = await bingoGeneratorService.generateBoard(params);
 
       if (!result.success || !result.data) {
-        throw new Error(result.error || 'No data returned from board generation');
+        throw new Error(
+          result.error || 'No data returned from board generation'
+        );
       }
 
       return result.data;

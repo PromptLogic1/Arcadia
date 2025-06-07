@@ -9,6 +9,13 @@ import { createClient } from '../lib/supabase';
 import { log } from '../lib/logger';
 import type { GameCategory, Difficulty } from '../types';
 import type { Database } from '../../types/database-generated';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import {
+  zBoardState,
+  sessionSettingsSchema,
+} from '@/lib/validation/schemas/bingo';
 
 // Type from database
 type DBBingoBoard = Database['public']['Tables']['bingo_boards']['Row'];
@@ -17,19 +24,49 @@ type BoardCell = Database['public']['CompositeTypes']['board_cell'];
 // Export the board state cell type for use in components
 export type BoardStateCell = BoardCell;
 
-// Use the database type directly
-export type BoardCollection = DBBingoBoard;
+// Use the domain type with strongly typed board_state
+import type { BingoBoardDomain } from '@/types/domains/bingo';
+export type BoardCollection = BingoBoardDomain;
+
+// Transform database board to domain board
+const _transformDbBoardToDomain = (
+  board: DBBingoBoard
+): BingoBoardDomain | null => {
+  const boardStateParseResult = zBoardState.safeParse(board.board_state);
+  const settingsParseResult = sessionSettingsSchema.safeParse(board.settings);
+
+  if (!boardStateParseResult.success || !settingsParseResult.success) {
+    log.error(
+      'Failed to parse board state or settings from DB',
+      new Error('Board data parsing failed'),
+      {
+        metadata: {
+          boardId: board.id,
+          boardStateError: boardStateParseResult.success
+            ? undefined
+            : boardStateParseResult.error,
+          settingsError: settingsParseResult.success
+            ? undefined
+            : settingsParseResult.error,
+        },
+      }
+    );
+    return null;
+  }
+
+  return {
+    ...board,
+    board_state: boardStateParseResult.data,
+    settings: settingsParseResult.data,
+    updated_at: board.updated_at || null,
+  };
+};
 
 export interface BoardCollectionFilters {
   search: string;
   difficulty: Difficulty | 'all';
   sortBy: 'newest' | 'popular' | 'trending' | 'bookmarks';
   gameType: GameCategory;
-}
-
-export interface BoardCollectionsResponse {
-  collections: BoardCollection[];
-  error?: string;
 }
 
 /**
@@ -41,7 +78,7 @@ export const boardCollectionsService = {
    */
   async getCollections(
     filters: BoardCollectionFilters
-  ): Promise<BoardCollectionsResponse> {
+  ): Promise<ServiceResponse<BoardCollection[]>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -83,28 +120,35 @@ export const boardCollectionsService = {
       const { data, error } = await query.limit(50);
 
       if (error) {
-        throw error;
+        log.error('Failed to load board collections', error, {
+          metadata: {
+            service: 'boardCollections',
+            method: 'getCollections',
+            filters,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return {
-        collections: (data as BoardCollection[]) || [],
-        error: undefined,
-      };
+      // Validate the data with Zod schema
+      const transformedBoards = (data || [])
+        .map(_transformDbBoardToDomain)
+        .filter((b): b is BingoBoardDomain => b !== null);
+
+      return createServiceSuccess(transformedBoards);
     } catch (error) {
-      log.error('Failed to load board collections', error as Error, {
-        metadata: {
-          service: 'boardCollections',
-          method: 'getCollections',
-          filters,
-        },
-      });
-      return {
-        collections: [],
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to load board collections',
-      };
+      log.error(
+        'Unexpected error loading board collections',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'boardCollections',
+            method: 'getCollections',
+            filters,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -113,7 +157,7 @@ export const boardCollectionsService = {
    */
   async getCollection(
     collectionId: string
-  ): Promise<{ collection: BoardCollection | null; error?: string }> {
+  ): Promise<ServiceResponse<BoardCollection | null>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -124,28 +168,45 @@ export const boardCollectionsService = {
         .single();
 
       if (error) {
-        throw error;
+        // Handle not found gracefully
+        if (error.code === 'PGRST116') {
+          return createServiceSuccess(null);
+        }
+
+        log.error('Failed to load board collection', error, {
+          metadata: {
+            service: 'boardCollections',
+            method: 'getCollection',
+            collectionId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return {
-        collection: data as BoardCollection | null,
-        error: undefined,
-      };
+      if (!data) {
+        return createServiceSuccess(null);
+      }
+
+      // Validate the data with Zod schema
+      const transformedData = _transformDbBoardToDomain(data);
+      if (!transformedData) {
+        return createServiceError('Invalid board collection data format');
+      }
+
+      return createServiceSuccess(transformedData);
     } catch (error) {
-      log.error('Failed to load board collection', error as Error, {
-        metadata: {
-          service: 'boardCollections',
-          method: 'getCollection',
-          collectionId,
-        },
-      });
-      return {
-        collection: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to load board collection',
-      };
+      log.error(
+        'Unexpected error loading board collection',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'boardCollections',
+            method: 'getCollection',
+            collectionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

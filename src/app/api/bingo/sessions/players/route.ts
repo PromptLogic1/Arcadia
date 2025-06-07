@@ -1,288 +1,125 @@
 import { NextResponse } from 'next/server';
-import { sessionsService } from '@/src/services/sessions.service';
-import { authService } from '@/src/services/auth.service';
-import { RateLimiter } from '@/lib/rate-limiter';
-import { log } from '@/lib/logger';
+import type { NextRequest } from 'next/server';
+import { sessionsService } from '@/services/sessions.service';
+import { authService } from '@/services/auth.service';
+import { rateLimiter } from '@/lib/rate-limiter';
+import {
+  validateRequestBody,
+  validateQueryParams,
+} from '@/lib/validation/middleware';
+import {
+  joinSessionRequestSchema,
+  updatePlayerRequestSchema,
+  leaveSessionRequestSchema,
+} from '@/lib/validation/schemas/sessions';
 
-const rateLimiter = new RateLimiter();
-
-interface JoinSessionRequest {
-  sessionId: string;
-  displayName: string;
-  color: string;
-  team?: number | null;
-}
-
-interface PlayerUpdatesForLog {
-  display_name?: string;
-  color?: string;
-  team?: number | null;
-}
-
-interface PatchPlayerRequest {
-  sessionId: string;
-  displayName?: string;
-  color?: string;
-  team?: number | null;
-}
-
-export async function POST(request: Request): Promise<NextResponse> {
-  let userIdForLog: string | undefined;
-  let sessionIdForLog: string | undefined;
-  try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    if (await rateLimiter.isLimited(ip)) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    }
-
-    // Use service layer for authentication
-    const authResponse = await authService.getCurrentUser();
-    
-    if (!authResponse.success || !authResponse.data) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const user = authResponse.data;
-    userIdForLog = user.id;
-
-    const body = (await request.json()) as JoinSessionRequest;
-    const { sessionId, displayName, color, team } = body;
-    sessionIdForLog = sessionId;
-
-    // Validate display name
-    if (!displayName || displayName.length < 3 || displayName.length > 20) {
-      return NextResponse.json(
-        { error: 'Display name must be between 3 and 20 characters' },
-        { status: 400 }
-      );
-    }
-
-    // Check if session exists and is active
-    const { status, error: statusError } = await sessionsService.getSessionStatus(sessionId);
-
-    if (statusError || !status) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    if (status !== 'waiting') {
-      return NextResponse.json(
-        { error: 'Session is not accepting new players' },
-        { status: 400 }
-      );
-    }
-
-    // Check if player already exists in session
-    const { exists } = await sessionsService.checkPlayerExists(sessionId, user.id);
-
-    if (exists) {
-      return NextResponse.json(
-        { error: 'Player already in session' },
-        { status: 409 }
-      );
-    }
-
-    // Check if color is already taken
-    const { available } = await sessionsService.checkColorAvailable(sessionId, color);
-
-    if (!available) {
-      return NextResponse.json(
-        { error: 'Color already taken' },
-        { status: 409 }
-      );
-    }
-
-    // Add player to session using service
-    const { player, error: joinError } = await sessionsService.joinSession({
-      session_id: sessionId,
-      user_id: user.id,
-      display_name: displayName,
-      color,
-      team: team ?? null,
-    });
-
-    if (joinError) {
-      log.error('Error adding player to session', new Error(joinError), {
-        metadata: {
-          apiRoute: 'bingo/sessions/players',
-          method: 'POST',
-          userId: userIdForLog,
-          sessionId: sessionIdForLog,
-          displayName,
-          color,
-          team,
-        },
-      });
-      return NextResponse.json({ error: joinError }, { status: 500 });
-    }
-
-    return NextResponse.json(player);
-  } catch (error) {
-    log.error(
-      'Unhandled error in POST /api/bingo/sessions/players (join session)',
-      error as Error,
-      {
-        metadata: {
-          apiRoute: 'bingo/sessions/players',
-          method: 'POST',
-          userId: userIdForLog,
-          sessionId: sessionIdForLog,
-        },
-      }
-    );
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to join session' },
-      { status: 500 }
-    );
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const authResult = await authService.getCurrentUser();
+  if (!authResult.success || !authResult.data) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const user = authResult.data;
+
+  const rateLimitResult = await rateLimiter.check(request, 20, user.id);
+  if (!rateLimitResult.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  const validation = await validateRequestBody(
+    request,
+    joinSessionRequestSchema
+  );
+  if (!validation.success) {
+    return validation.error;
+  }
+
+  const { sessionId, displayName, color, team } = validation.data;
+
+  const result = await sessionsService.joinSession({
+    session_id: sessionId,
+    user_id: user.id,
+    display_name: displayName,
+    color,
+    team,
+  });
+
+  if (!result.success) {
+    const errorMessage = result.error || 'An unknown error occurred';
+    const status = errorMessage.includes('not found')
+      ? 404
+      : errorMessage.includes('already')
+        ? 409
+        : 400;
+    return NextResponse.json({ error: errorMessage }, { status });
+  }
+
+  return NextResponse.json(result.data);
 }
 
-export async function PATCH(request: Request): Promise<NextResponse> {
-  let userIdForLog: string | undefined;
-  let playerIdForLog: string | undefined;
-  let updatesForLog: PlayerUpdatesForLog = {};
-  try {
-    // Use service layer for authentication
-    const authResponse = await authService.getCurrentUser();
-    
-    if (!authResponse.success || !authResponse.data) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const user = authResponse.data;
-    userIdForLog = user.id;
-
-    const body = (await request.json()) as PatchPlayerRequest;
-    const { sessionId, displayName, color, team } = body;
-    playerIdForLog = user?.id;
-
-    // Prepare the update object
-    const updates: Parameters<typeof sessionsService.updatePlayer>[2] = {};
-    if (displayName !== undefined) updates.display_name = displayName;
-    if (color !== undefined) updates.color = color;
-    if (team !== undefined) updates.team = team ?? null;
-
-    // For logging
-    updatesForLog = updates;
-
-    // Use service layer to update player
-    const { player, error: updateError } = await sessionsService.updatePlayer(
-      sessionId,
-      user.id,
-      updates
-    );
-
-    if (updateError) {
-      log.error('Error updating player', new Error(updateError), {
-        metadata: {
-          apiRoute: 'bingo/sessions/players',
-          method: 'PATCH',
-          userId: userIdForLog,
-          playerId: playerIdForLog,
-          updates: updatesForLog,
-        },
-      });
-      
-      // Return appropriate status code based on error
-      if (updateError.includes('between 3 and 20 characters')) {
-        return NextResponse.json({ error: updateError }, { status: 400 });
-      }
-      if (updateError.includes('Color already taken')) {
-        return NextResponse.json({ error: updateError }, { status: 409 });
-      }
-      
-      return NextResponse.json({ error: updateError }, { status: 500 });
-    }
-
-    return NextResponse.json(player);
-  } catch (error) {
-    log.error(
-      'Unhandled error in PATCH /api/bingo/sessions/players (update player)',
-      error as Error,
-      {
-        metadata: {
-          apiRoute: 'bingo/sessions/players',
-          method: 'PATCH',
-          userId: userIdForLog,
-          playerId: playerIdForLog,
-          updates: updatesForLog,
-        },
-      }
-    );
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to update player' },
-      { status: 500 }
-    );
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const authResult = await authService.getCurrentUser();
+  if (!authResult.success || !authResult.data) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const user = authResult.data;
+
+  const rateLimitResult = await rateLimiter.check(request, 30, user.id);
+  if (!rateLimitResult.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  const validation = await validateRequestBody(
+    request,
+    updatePlayerRequestSchema
+  );
+  if (!validation.success) {
+    return validation.error;
+  }
+
+  const { sessionId, ...updates } = validation.data;
+
+  const result = await sessionsService.updatePlayer(
+    sessionId,
+    user.id,
+    updates
+  );
+
+  if (!result.success) {
+    const errorMessage = result.error || 'An unknown error occurred';
+    const status = errorMessage.includes('taken') ? 409 : 400;
+    return NextResponse.json({ error: errorMessage }, { status });
+  }
+
+  return NextResponse.json(result.data);
 }
 
-export async function DELETE(request: Request): Promise<NextResponse> {
-  let userIdForLog: string | undefined;
-  let sessionIdForLog: string | undefined;
-  try {
-    const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('sessionId');
-
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Session ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Use service layer for authentication
-    const authResponse = await authService.getCurrentUser();
-    
-    if (!authResponse.success || !authResponse.data) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const user = authResponse.data;
-    userIdForLog = user.id;
-
-    // Check if session is active
-    const { status } = await sessionsService.getSessionStatus(sessionId);
-
-    if (status === 'completed') {
-      return NextResponse.json(
-        { error: 'Cannot leave completed session' },
-        { status: 400 }
-      );
-    }
-
-    // Use service layer to leave session
-    const { error: leaveError } = await sessionsService.leaveSession(sessionId, user.id);
-
-    if (leaveError) {
-      log.error('Error leaving session', new Error(leaveError), {
-        metadata: {
-          apiRoute: 'bingo/sessions/players',
-          method: 'DELETE',
-          userId: userIdForLog,
-          sessionId: sessionId,
-        },
-      });
-      return NextResponse.json({ error: leaveError }, { status: 500 });
-    }
-
-    sessionIdForLog = sessionId;
-
-    return NextResponse.json({ message: 'Successfully left session' });
-  } catch (error) {
-    log.error(
-      'Unhandled error in DELETE /api/bingo/sessions/players (leave session)',
-      error as Error,
-      {
-        metadata: {
-          apiRoute: 'bingo/sessions/players',
-          method: 'DELETE',
-          userId: userIdForLog,
-          sessionId: sessionIdForLog,
-        },
-      }
-    );
-    return NextResponse.json(
-      { error: (error as Error).message || 'Failed to leave session' },
-      { status: 500 }
-    );
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const authResult = await authService.getCurrentUser();
+  if (!authResult.success || !authResult.data) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const user = authResult.data;
+
+  const rateLimitResult = await rateLimiter.check(request, 20, user.id);
+  if (!rateLimitResult.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const validation = validateQueryParams(
+    searchParams,
+    leaveSessionRequestSchema
+  );
+  if (!validation.success) {
+    return validation.error;
+  }
+
+  const { sessionId } = validation.data;
+  const result = await sessionsService.leaveSession(sessionId, user.id);
+
+  if (!result.success) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return new NextResponse(null, { status: 204 });
 }

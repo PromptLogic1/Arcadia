@@ -85,14 +85,31 @@ export type MarkCellRequest = z.infer<typeof markCellRequestSchema>;
 
 // POST /api/bingo/sessions/[id]/complete - Complete session
 export const completeSessionRequestSchema = z.object({
-  sessionId: uuidSchema,
   winnerId: uuidSchema,
-  winPattern: z.array(z.number().int().min(0)).optional(),
+  winning_patterns: z.array(z.string()),
+  final_score: z.number().int(),
 });
 
 export type CompleteSessionRequest = z.infer<
   typeof completeSessionRequestSchema
 >;
+
+// PATCH /api/bingo/sessions/players - Update a player
+export const updatePlayerRequestSchema = z.object({
+  sessionId: uuidSchema,
+  displayName: displayNameSchema.optional(),
+  color: hexColorSchema.optional(),
+  team: teamSchema.optional(),
+});
+
+export type UpdatePlayerRequest = z.infer<typeof updatePlayerRequestSchema>;
+
+// DELETE /api/bingo/sessions/players - Leave a session
+export const leaveSessionRequestSchema = z.object({
+  sessionId: uuidSchema,
+});
+
+export type LeaveSessionRequest = z.infer<typeof leaveSessionRequestSchema>;
 
 // Response schemas
 export const sessionResponseSchema = z.object({

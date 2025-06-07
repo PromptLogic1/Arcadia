@@ -21,7 +21,7 @@ export function useSessionQueueQuery(sessionId: string, enabled = true) {
     enabled: enabled && !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Background refetch every 30 seconds
-    select: data => data.entries,
+    select: data => data.data || [],
   });
 }
 
@@ -35,7 +35,16 @@ export function useSessionQueueStatsQuery(sessionId: string, enabled = true) {
     enabled: enabled && !!sessionId,
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
-    select: data => data.stats,
+    select: data =>
+      data.data || {
+        totalEntries: 0,
+        waitingEntries: 0,
+        processingEntries: 0,
+        matchedEntries: 0,
+        cancelledEntries: 0,
+        averageProcessingTime: 0,
+        queueWaitTime: 0,
+      },
   });
 }
 
@@ -70,7 +79,7 @@ export function usePlayerQueuePositionQuery(
     enabled: enabled && !!sessionId && !!userId,
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
-    select: data => data.position,
+    select: data => data.data ?? -1,
   });
 }
 
@@ -327,9 +336,9 @@ export function useCleanupQueueMutation() {
         return;
       }
 
-      if (result.removedCount > 0) {
+      if (result.data && result.data > 0) {
         notifications.success(
-          `Cleaned up ${result.removedCount} expired queue entries`
+          `Cleaned up ${result.data} expired queue entries`
         );
       }
 
@@ -341,7 +350,7 @@ export function useCleanupQueueMutation() {
       logger.info('Queue cleanup completed', {
         metadata: {
           sessionId,
-          removedCount: result.removedCount,
+          removedCount: result.data || 0,
         },
       });
     },

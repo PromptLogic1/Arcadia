@@ -252,8 +252,7 @@ export function useSignUpSubmission({
         if (!isMountedRef.current) return;
 
         formState.setMessage({
-          text:
-            SIGNUP_MESSAGES.OAUTH.ERROR(provider) + '. ' + errorObj.message,
+          text: SIGNUP_MESSAGES.OAUTH.ERROR(provider) + '. ' + errorObj.message,
           type: 'error',
         });
 

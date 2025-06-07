@@ -47,12 +47,12 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
   const effectiveSelectedColor = useMemo(() => {
     // If user has selected a color, use it
     if (selectedColor) return selectedColor;
-    
+
     // Otherwise, use the first available color
     if (colorData?.available && colorData.available.length > 0) {
       return colorData.available[0];
     }
-    
+
     return '';
   }, [selectedColor, colorData?.available]);
 

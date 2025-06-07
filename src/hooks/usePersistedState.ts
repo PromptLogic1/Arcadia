@@ -30,30 +30,32 @@ export function usePersistedState<T>(
       }
     } catch (error) {
       log.error('Failed to restore persisted state', error as Error, {
-        metadata: { key }
+        metadata: { key },
       });
     }
     return defaultValue;
   });
 
   // Persist state changes to localStorage
-  const setPersisted = useCallback((value: T | ((prev: T) => T)) => {
-    setState(prev => {
-      const newValue = typeof value === 'function' 
-        ? (value as (prev: T) => T)(prev) 
-        : value;
-      
-      try {
-        localStorage.setItem(key, serialize(newValue));
-      } catch (error) {
-        log.error('Failed to persist state', error as Error, {
-          metadata: { key }
-        });
-      }
-      
-      return newValue;
-    });
-  }, [key, serialize]);
+  const setPersisted = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      setState(prev => {
+        const newValue =
+          typeof value === 'function' ? (value as (prev: T) => T)(prev) : value;
+
+        try {
+          localStorage.setItem(key, serialize(newValue));
+        } catch (error) {
+          log.error('Failed to persist state', error as Error, {
+            metadata: { key },
+          });
+        }
+
+        return newValue;
+      });
+    },
+    [key, serialize]
+  );
 
   // Clear persisted value
   const clearPersisted = useCallback(() => {
@@ -62,7 +64,7 @@ export function usePersistedState<T>(
       setState(defaultValue);
     } catch (error) {
       log.error('Failed to clear persisted state', error as Error, {
-        metadata: { key }
+        metadata: { key },
       });
     }
   }, [key, defaultValue]);
@@ -77,7 +79,7 @@ export function usePersistedState<T>(
           setState(deserialize(e.newValue));
         } catch (error) {
           log.error('Failed to sync persisted state', error as Error, {
-            metadata: { key }
+            metadata: { key },
           });
         }
       }
@@ -105,7 +107,7 @@ export function usePersistedFormState<T extends Record<string, unknown>>(
 
   const updateField = useCallback(
     (field: keyof T, value: T[keyof T]) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
+      setFormData(prev => ({ ...prev, [field]: value }));
     },
     [setFormData]
   );
@@ -114,6 +116,6 @@ export function usePersistedFormState<T extends Record<string, unknown>>(
     formData,
     updateField,
     setFormData,
-    clearFormData
+    clearFormData,
   };
 }

@@ -134,6 +134,26 @@ export const useSession = ({
             winner_id: winnerId,
             winning_patterns: patterns,
             final_score: score,
+            players: sessionState.players.map(player => ({
+              id: player.id,
+              session_id: sessionId,
+              user_id: player.id,
+              display_name: player.display_name,
+              avatar_url: player.avatar_url || null,
+              color: player.color,
+              is_host: player.is_host || false,
+              is_ready: player.is_ready || false,
+              score: player.score || 0,
+              position: player.position || 0,
+              created_at: null,
+              updated_at: null,
+              joined_at: player.joined_at || null,
+              marked_cells: [],
+              last_seen: null,
+              session_stats_rank: null,
+              left_at: null,
+              team: 0,
+            })),
           },
         });
 
@@ -143,7 +163,7 @@ export const useSession = ({
         throw error;
       }
     },
-    [sessionId, completeGameMutation, onSessionEnd]
+    [sessionId, completeGameMutation, onSessionEnd, sessionState.players]
   );
 
   return {

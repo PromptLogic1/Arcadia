@@ -81,9 +81,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const sessionResponse = await authService.getSession();
 
         if (!sessionResponse.success) {
-          logger.error('Failed to get initial session', new Error(sessionResponse.error || 'Unknown error'), {
-            metadata: { component: 'AuthProvider' },
-          });
+          logger.error(
+            'Failed to get initial session',
+            new Error(sessionResponse.error || 'Unknown error'),
+            {
+              metadata: { component: 'AuthProvider' },
+            }
+          );
         }
 
         if (mounted) {

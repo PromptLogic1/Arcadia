@@ -239,11 +239,12 @@ interface CollectionCardProps {
 }
 
 function CollectionCard({ collection, onUse }: CollectionCardProps) {
-  const cardCount = collection.board_state?.length || 0;
-  const filledCards =
-    collection.board_state?.filter(
-      (cell: BoardStateCell) => cell.cell_id || cell.text
-    ).length || 0;
+  // board_state is now properly typed as BoardCell[]
+  const boardState = collection.board_state;
+  const cardCount = boardState.length;
+  const filledCards = boardState.filter(
+    cell => cell.cell_id || cell.text
+  ).length;
   const isValidCollectionSize =
     filledCards >= COLLECTION_LIMITS.MIN_CARDS &&
     filledCards <= COLLECTION_LIMITS.MAX_CARDS;

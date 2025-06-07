@@ -140,7 +140,9 @@ async function generateBoard(
 
     const validatedCards = validationResult.data;
     if (validatedCards.length < params.gridSize) {
-      return createServiceError(`Not enough cards available. Found ${validatedCards.length} cards but need ${params.gridSize}`);
+      return createServiceError(
+        `Not enough cards available. Found ${validatedCards.length} cards but need ${params.gridSize}`
+      );
     }
 
     // Shuffle and select cards for the grid
@@ -161,10 +163,14 @@ async function generateBoard(
       totalAvailable: validatedCards.length,
     });
   } catch (error) {
-    logger.error('Error generating board', isError(error) ? error : new Error(String(error)), {
-      component: 'BingoGeneratorService',
-      metadata: { params },
-    });
+    logger.error(
+      'Error generating board',
+      isError(error) ? error : new Error(String(error)),
+      {
+        component: 'BingoGeneratorService',
+        metadata: { params },
+      }
+    );
 
     return createServiceError(getErrorMessage(error));
   }
@@ -179,7 +185,9 @@ async function reshuffleCards(
 ): Promise<ServiceResponse<BingoBoardTemplate[]>> {
   try {
     if (cards.length < gridSize) {
-      return createServiceError(`Not enough cards to reshuffle. Have ${cards.length} but need ${gridSize}`);
+      return createServiceError(
+        `Not enough cards to reshuffle. Have ${cards.length} but need ${gridSize}`
+      );
     }
 
     // Create a new shuffled array
@@ -196,13 +204,17 @@ async function reshuffleCards(
 
     return createServiceSuccess(reshuffled);
   } catch (error) {
-    logger.error('Error reshuffling cards', isError(error) ? error : new Error(String(error)), {
-      component: 'BingoGeneratorService',
-      metadata: {
-        cardCount: cards.length,
-        gridSize,
-      },
-    });
+    logger.error(
+      'Error reshuffling cards',
+      isError(error) ? error : new Error(String(error)),
+      {
+        component: 'BingoGeneratorService',
+        metadata: {
+          cardCount: cards.length,
+          gridSize,
+        },
+      }
+    );
 
     return createServiceError(getErrorMessage(error));
   }

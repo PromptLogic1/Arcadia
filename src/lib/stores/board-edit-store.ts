@@ -49,7 +49,7 @@ export interface BoardEditState {
   // Active drag state
   draggedCard: BingoCard | null;
   draggedFromIndex: number | null;
-  
+
   // Edit mode state
   isEditMode: boolean;
   showAdvancedSettings: boolean;
@@ -86,7 +86,7 @@ export interface BoardEditActions {
   // Drag state
   setDraggedCard: (card: BingoCard | null) => void;
   setDraggedFromIndex: (index: number | null) => void;
-  
+
   // Edit mode state
   setIsEditMode: (isEditMode: boolean) => void;
   setShowAdvancedSettings: (show: boolean) => void;
@@ -227,16 +227,14 @@ const useBoardEditStore = createWithEqualityFn<
 
       setDraggedFromIndex: draggedFromIndex =>
         set({ draggedFromIndex }, false, 'setDraggedFromIndex'),
-        
+
       // Edit mode state
-      setIsEditMode: isEditMode =>
-        set({ isEditMode }, false, 'setIsEditMode'),
-        
+      setIsEditMode: isEditMode => set({ isEditMode }, false, 'setIsEditMode'),
+
       setShowAdvancedSettings: showAdvancedSettings =>
         set({ showAdvancedSettings }, false, 'setShowAdvancedSettings'),
-        
-      setAutoSave: autoSave =>
-        set({ autoSave }, false, 'setAutoSave'),
+
+      setAutoSave: autoSave => set({ autoSave }, false, 'setAutoSave'),
 
       // Utility actions
       reset: () => set(initialState, false, 'reset'),

@@ -13,19 +13,23 @@ This application has NOT undergone a formal security audit. However, several sec
 ### ✅ Implemented Security Features
 
 1. **Rate Limiting** (Implemented)
+
    - All API routes have rate limiting middleware
    - In-memory implementation (needs Redis for production)
 
 2. **Partial Input Validation**
+
    - Some API routes use Zod schemas (31%)
    - Critical routes like `/api/discussions` and `/api/bingo/sessions/join-by-code` have validation
 
 3. **Security Headers** (Configured in next.config.ts)
+
    - X-Frame-Options: DENY
    - X-Content-Type-Options: nosniff
    - Other headers configured
 
 4. **Error Boundaries** (99% Coverage)
+
    - Prevents information leakage in production
    - Sentry integration for error tracking
 

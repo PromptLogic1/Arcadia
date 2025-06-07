@@ -99,7 +99,7 @@ export function useSessionGame(
   // Get session state from TanStack Query
   const { session, players, boardState, isLoading, error } =
     useSessionWithPlayersQuery(currentSessionId || '');
-  
+
   const initializeSessionMutation = useInitializeSessionMutation();
   const leaveSessionMutation = useLeaveSessionMutation();
 
@@ -123,7 +123,7 @@ export function useSessionGame(
               ? ('completed' as const)
               : ('initializing' as const),
     players: players || [],
-    currentPlayer: players?.find(p => p.is_host) || null,
+    currentPlayer: (players || []).find(p => p.is_host) || null,
     boardState: boardState || [],
     version: session?.version || 0,
     isLoading,
@@ -134,10 +134,13 @@ export function useSessionGame(
   const initializeSession = useCallback(
     async (player: Player) => {
       try {
-        const result = await initializeSessionMutation.mutateAsync({ boardId, player });
-        
-        if (result.session?.id) {
-          setCurrentSessionId(result.session.id);
+        const result = await initializeSessionMutation.mutateAsync({
+          boardId,
+          player,
+        });
+
+        if (result.data?.session?.id) {
+          setCurrentSessionId(result.data.session.id);
         }
       } catch (error) {
         const err =
@@ -297,7 +300,7 @@ export function useSessionModern(sessionId: string) {
               ? ('cancelled' as const)
               : ('waiting' as const),
     players: players || [],
-    currentPlayer: players?.find(p => p.is_host) || null,
+    currentPlayer: (players || []).find(p => p.is_host) || null,
     boardState: boardState || [],
     version: session?.version || 0,
     isLoading,
@@ -310,7 +313,7 @@ export function useSessionModern(sessionId: string) {
     board_title: '',
     difficulty: 'medium',
     game_type: 'gaming',
-    current_player_count: players?.length || 0,
+    current_player_count: (players || []).length,
     max_players: session?.settings?.max_players || 4,
     host_username: '',
   };

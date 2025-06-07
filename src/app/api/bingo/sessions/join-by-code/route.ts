@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
 
     // Get user profile for display name fallback
     const profileResult = await userService.getUserProfile(user.id);
-    const playerDisplayName = displayName || profileResult.data?.username || 'Anonymous';
+    const playerDisplayName =
+      displayName || profileResult.data?.username || 'Anonymous';
     const playerColor = color || '#3B82F6'; // Default blue
 
     // Join session using service
@@ -73,12 +74,16 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.error) {
-      const statusCode = 
-        result.error === 'Session not found' ? 404 :
-        result.error === 'Incorrect password' ? 401 :
-        result.error === 'Session is full' || 
-        result.error === 'Session is no longer accepting players' ? 400 : 500;
-      
+      const statusCode =
+        result.error === 'Session not found'
+          ? 404
+          : result.error === 'Incorrect password'
+            ? 401
+            : result.error === 'Session is full' ||
+                result.error === 'Session is no longer accepting players'
+              ? 400
+              : 500;
+
       return NextResponse.json({ error: result.error }, { status: statusCode });
     }
 

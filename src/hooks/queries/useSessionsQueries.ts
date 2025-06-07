@@ -16,7 +16,7 @@ export function useSessionQuery(sessionId?: string) {
     queryFn: () => sessionsService.getSessionById(sessionId || ''),
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds for active session data
-    select: (response) => response.success ? response.data : null,
+    select: response => (response.success ? response.data : null),
   });
 }
 
@@ -26,7 +26,7 @@ export function useSessionByCodeQuery(sessionCode?: string) {
     queryFn: () => sessionsService.getSessionByCode(sessionCode || ''),
     enabled: !!sessionCode && sessionCode.length === 6, // Only fetch if we have a valid code
     staleTime: 30 * 1000,
-    select: (response) => response.success ? response.data : null,
+    select: response => (response.success ? response.data : null),
   });
 }
 
@@ -40,7 +40,7 @@ export function useActiveSessionsQuery(
     queryFn: () => sessionsService.getActiveSessions(filters, page, limit),
     staleTime: 1 * 60 * 1000, // 1 minute
     refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds
-    select: (response) => response.success ? response.data : null,
+    select: response => (response.success ? response.data : null),
   });
 }
 
@@ -87,12 +87,12 @@ export function useJoinSessionMutation() {
         return;
       }
 
-      if (response.player) {
+      if (response.data) {
         notifications.success('Joined session successfully!');
         // Invalidate sessions and players queries
         queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all() });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.sessions.players(response.player.session_id),
+          queryKey: queryKeys.sessions.players(response.data.session_id),
         });
       }
     },
@@ -194,12 +194,13 @@ export function useJoinSessionByCodeMutation() {
       color: string;
       team?: number | null;
       password?: string;
-    }) => sessionsService.joinSessionByCode(sessionCode, user_id, {
-      display_name,
-      color,
-      team,
-      password,
-    }),
+    }) =>
+      sessionsService.joinSessionByCode(sessionCode, user_id, {
+        display_name,
+        color,
+        team,
+        password,
+      }),
     onSuccess: response => {
       if (response.error) {
         notifications.error(response.error);
@@ -261,19 +262,22 @@ export function useWaitingSessionsForBoards(boardIds: string[]) {
     queryFn: async () => {
       // Find first board with waiting sessions
       for (const boardId of boardIds) {
-        const result = await sessionsService.getSessionsByBoardId(boardId, 'waiting');
-        if (!result.error && result.sessions.length > 0) {
+        const result = await sessionsService.getSessionsByBoardId(
+          boardId,
+          'waiting'
+        );
+        if (!result.error && result.data && result.data.length > 0) {
           return {
             boardId,
-            sessions: result.sessions,
-            error: null
+            sessions: result.data,
+            error: null,
           };
         }
       }
       return {
         boardId: null,
         sessions: [],
-        error: null
+        error: null,
       };
     },
     enabled: boardIds.length > 0,

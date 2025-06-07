@@ -71,7 +71,7 @@ export const userService = {
 
     return {
       data,
-      error: error?.message,
+      error: error?.message || undefined,
     };
   },
 

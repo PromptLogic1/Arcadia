@@ -18,7 +18,10 @@ function TestMultiplayerContent() {
   const [joinCode, setJoinCode] = useState('');
   const [testBoardId] = useState('550e8400-e29b-41d4-a716-446655440001'); // WoW Demo Board
 
-  const { session, boardState, markCell, unmarkCell } = useBingoGame(sessionId);
+  const { session, board, markCell, unmarkCell } = useBingoGame(
+    sessionId,
+    authUser?.id || ''
+  );
 
   const createSession = async () => {
     try {
@@ -69,7 +72,7 @@ function TestMultiplayerContent() {
   const handleCellClick = async (position: number) => {
     if (!authUser?.id) return;
 
-    const cell = boardState[position];
+    const cell = board[position];
     if (cell?.is_marked) {
       await unmarkCell(position, authUser.id);
     } else {
@@ -133,7 +136,7 @@ function TestMultiplayerContent() {
             aria-label="Bingo game board"
           >
             {Array.from({ length: 25 }).map((_, index) => {
-              const cell = boardState[index];
+              const cell = board[index];
               return (
                 <button
                   key={index}

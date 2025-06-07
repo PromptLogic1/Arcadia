@@ -46,7 +46,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
   // Use the modern hook for session management
   const { session, initializeSession } = useSessionModern(sessionId);
-  
+
   // Use TanStack Query mutation for starting game
   const startGameMutation = useStartGameSessionMutation();
 
@@ -55,10 +55,11 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
   // Derived state from the session
   const players = session.players || [];
-  const isHost =
-    session.players?.some(p => p.id === authUser?.id && p.is_host) || false;
+  const isHost = (session.players || []).some(
+    p => p.id === authUser?.id && p.is_host
+  );
   const playerInSession =
-    session.players?.find(p => p.id === authUser?.id) || null;
+    (session.players || []).find(p => p.id === authUser?.id) || null;
   const loading = session.isLoading;
   const error = session.error?.message || null;
 
@@ -113,7 +114,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
         sessionId,
         hostId: authUser.id,
       });
-      
+
       notifications.success('Game started!');
     } catch (error) {
       logger.error(
@@ -123,7 +124,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
           metadata: {
             sessionId,
             userId: authUser?.id,
-          }
+          },
         }
       );
       notifications.error('Failed to start game');
@@ -152,11 +153,9 @@ export function GameSession({ sessionId }: GameSessionProps) {
         metadata: {
           sessionId,
           userId: authUser?.id,
-        }
+        },
       });
-      notifications.error(
-        (error as Error).message || 'Failed to join session'
-      );
+      notifications.error((error as Error).message || 'Failed to join session');
     }
   }, [playerInSession, session, authUser, initializeSession, sessionId]);
 

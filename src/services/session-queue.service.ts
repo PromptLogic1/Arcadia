@@ -12,6 +12,10 @@ import type {
   TablesUpdate,
   Enums,
 } from '@/types/database-generated';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import { log } from '@/lib/logger';
 
 export type SessionQueueEntry = Tables<'bingo_session_queue'>;
 export type SessionQueueEntryInsert = TablesInsert<'bingo_session_queue'>;
@@ -38,10 +42,9 @@ export const sessionQueueService = {
   /**
    * Get all queue entries for a session
    */
-  async getSessionQueue(sessionId: string): Promise<{
-    entries: SessionQueueEntry[];
-    error?: string;
-  }> {
+  async getSessionQueue(
+    sessionId: string
+  ): Promise<ServiceResponse<SessionQueueEntry[]>> {
     try {
       const supabase = createClient();
 
@@ -52,18 +55,30 @@ export const sessionQueueService = {
         .order('requested_at', { ascending: true });
 
       if (error) {
-        return { entries: [], error: error.message };
+        log.error('Failed to fetch queue entries', error, {
+          metadata: {
+            service: 'session-queue',
+            method: 'getSessionQueue',
+            sessionId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return { entries: data || [] };
+      return createServiceSuccess(data || []);
     } catch (error) {
-      return {
-        entries: [],
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch queue entries',
-      };
+      log.error(
+        'Unexpected error fetching queue entries',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'getSessionQueue',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -73,10 +88,7 @@ export const sessionQueueService = {
   async addToQueue(
     sessionId: string,
     playerData: PlayerQueueData
-  ): Promise<{
-    entry: SessionQueueEntry | null;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<SessionQueueEntry>> {
     try {
       const supabase = createClient();
 
@@ -86,7 +98,7 @@ export const sessionQueueService = {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        return { entry: null, error: 'User not authenticated' };
+        return createServiceError('User not authenticated');
       }
 
       // Check if user is already in queue for this session
@@ -99,7 +111,7 @@ export const sessionQueueService = {
         .single();
 
       if (existingEntry) {
-        return { entry: null, error: 'User already in queue for this session' };
+        return createServiceError('User already in queue for this session');
       }
 
       const queueEntry: SessionQueueEntryInsert = {
@@ -119,16 +131,31 @@ export const sessionQueueService = {
         .single();
 
       if (error) {
-        return { entry: null, error: error.message };
+        log.error('Failed to add to queue', error, {
+          metadata: {
+            service: 'session-queue',
+            method: 'addToQueue',
+            sessionId,
+            userId: user.id,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return { entry: data as SessionQueueEntry };
+      return createServiceSuccess(data);
     } catch (error) {
-      return {
-        entry: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to add to queue',
-      };
+      log.error(
+        'Unexpected error adding to queue',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'addToQueue',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -138,10 +165,7 @@ export const sessionQueueService = {
   async updateQueueEntry(
     entryId: string,
     updates: SessionQueueEntryUpdate
-  ): Promise<{
-    entry: SessionQueueEntry | null;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<SessionQueueEntry>> {
     try {
       const supabase = createClient();
 
@@ -153,28 +177,37 @@ export const sessionQueueService = {
         .single();
 
       if (error) {
-        return { entry: null, error: error.message };
+        log.error('Failed to update queue entry', error, {
+          metadata: {
+            service: 'session-queue',
+            method: 'updateQueueEntry',
+            entryId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return { entry: data as SessionQueueEntry };
+      return createServiceSuccess(data);
     } catch (error) {
-      return {
-        entry: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update queue entry',
-      };
+      log.error(
+        'Unexpected error updating queue entry',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'updateQueueEntry',
+            entryId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Remove a player from the queue
    */
-  async removeFromQueue(entryId: string): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  async removeFromQueue(entryId: string): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
 
@@ -184,18 +217,30 @@ export const sessionQueueService = {
         .eq('id', entryId);
 
       if (error) {
-        return { success: false, error: error.message };
+        log.error('Failed to remove from queue', error, {
+          metadata: {
+            service: 'session-queue',
+            method: 'removeFromQueue',
+            entryId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return { success: true };
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to remove from queue',
-      };
+      log.error(
+        'Unexpected error removing from queue',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'removeFromQueue',
+            entryId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -205,10 +250,7 @@ export const sessionQueueService = {
   async acceptPlayer(
     entryId: string,
     sessionId: string
-  ): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<void>> {
     try {
       const supabase = createClient();
 
@@ -220,7 +262,7 @@ export const sessionQueueService = {
         .single();
 
       if (entryError || !queueEntry) {
-        return { success: false, error: 'Queue entry not found' };
+        return createServiceError('Queue entry not found');
       }
 
       // Check if session has space
@@ -230,12 +272,19 @@ export const sessionQueueService = {
         .eq('session_id', sessionId);
 
       if (countError) {
-        return { success: false, error: 'Failed to check session capacity' };
+        log.error('Failed to check session capacity', countError, {
+          metadata: {
+            service: 'session-queue',
+            method: 'acceptPlayer',
+            sessionId,
+          },
+        });
+        return createServiceError('Failed to check session capacity');
       }
 
       if ((playerCount || 0) >= 12) {
         // MAX_PLAYERS constant
-        return { success: false, error: 'Session is full' };
+        return createServiceError('Session is full');
       }
 
       // Check if color is available
@@ -247,11 +296,18 @@ export const sessionQueueService = {
         .single();
 
       if (colorError && colorError.code !== 'PGRST116') {
-        return { success: false, error: 'Failed to check color availability' };
+        log.error('Failed to check color availability', colorError, {
+          metadata: {
+            service: 'session-queue',
+            method: 'acceptPlayer',
+            sessionId,
+          },
+        });
+        return createServiceError('Failed to check color availability');
       }
 
       if (colorCheck) {
-        return { success: false, error: 'Color already taken' };
+        return createServiceError('Color already taken');
       }
 
       // Add player to session
@@ -267,67 +323,92 @@ export const sessionQueueService = {
         });
 
       if (playerError) {
-        return { success: false, error: playerError.message };
+        log.error('Failed to add player to session', playerError, {
+          metadata: {
+            service: 'session-queue',
+            method: 'acceptPlayer',
+            sessionId,
+            userId: queueEntry.user_id,
+          },
+        });
+        return createServiceError(playerError.message);
       }
 
       // Update queue entry to matched
       const { error: updateError } = await supabase
         .from('bingo_session_queue')
         .update({
-          status: 'matched' as QueueStatus,
+          status: 'matched',
           processed_at: new Date().toISOString(),
         })
         .eq('id', entryId);
 
       if (updateError) {
-        return { success: false, error: updateError.message };
+        log.error('Failed to update queue entry status', updateError, {
+          metadata: {
+            service: 'session-queue',
+            method: 'acceptPlayer',
+            entryId,
+          },
+        });
+        return createServiceError(updateError.message);
       }
 
-      return { success: true };
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to accept player',
-      };
+      log.error(
+        'Unexpected error accepting player',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'acceptPlayer',
+            entryId,
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Reject a player from the queue
    */
-  async rejectPlayer(entryId: string): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  async rejectPlayer(entryId: string): Promise<ServiceResponse<void>> {
     try {
       const result = await this.updateQueueEntry(entryId, {
-        status: 'cancelled' as QueueStatus,
+        status: 'cancelled',
         processed_at: new Date().toISOString(),
       });
 
       if (result.error) {
-        return { success: false, error: result.error };
+        return createServiceError(result.error);
       }
 
-      return { success: true };
+      return createServiceSuccess(undefined);
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to reject player',
-      };
+      log.error(
+        'Unexpected error rejecting player',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'rejectPlayer',
+            entryId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Cleanup expired queue entries
    */
-  async cleanupExpiredEntries(sessionId: string): Promise<{
-    success: boolean;
-    removedCount: number;
-    error?: string;
-  }> {
+  async cleanupExpiredEntries(
+    sessionId: string
+  ): Promise<ServiceResponse<number>> {
     try {
       const supabase = createClient();
 
@@ -338,48 +419,49 @@ export const sessionQueueService = {
         .delete()
         .eq('session_id', sessionId)
         .lt('requested_at', cutoffTime.toISOString())
-        .in('status', ['matched', 'cancelled'] as QueueStatus[])
+        .in('status', ['matched', 'cancelled'])
         .select();
 
       if (error) {
-        return { success: false, removedCount: 0, error: error.message };
+        log.error('Failed to cleanup queue', error, {
+          metadata: {
+            service: 'session-queue',
+            method: 'cleanupExpiredEntries',
+            sessionId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return { success: true, removedCount: data?.length || 0 };
+      return createServiceSuccess(data?.length || 0);
     } catch (error) {
-      return {
-        success: false,
-        removedCount: 0,
-        error:
-          error instanceof Error ? error.message : 'Failed to cleanup queue',
-      };
+      log.error(
+        'Unexpected error cleaning up queue',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'cleanupExpiredEntries',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Get queue statistics
    */
-  async getQueueStats(sessionId: string): Promise<{
-    stats: QueueStats;
-    error?: string;
-  }> {
+  async getQueueStats(sessionId: string): Promise<ServiceResponse<QueueStats>> {
     try {
-      const { entries, error } = await this.getSessionQueue(sessionId);
+      const entriesResult = await this.getSessionQueue(sessionId);
 
-      if (error) {
-        return {
-          stats: {
-            totalEntries: 0,
-            waitingEntries: 0,
-            processingEntries: 0,
-            matchedEntries: 0,
-            cancelledEntries: 0,
-            averageProcessingTime: 0,
-            queueWaitTime: 0,
-          },
-          error,
-        };
+      if (entriesResult.error) {
+        return createServiceError(entriesResult.error);
       }
+
+      const entries = entriesResult.data || [];
 
       const stats: QueueStats = {
         totalEntries: entries.length,
@@ -391,21 +473,20 @@ export const sessionQueueService = {
         queueWaitTime: 0, // TODO: Calculate based on oldest waiting entry
       };
 
-      return { stats };
+      return createServiceSuccess(stats);
     } catch (error) {
-      return {
-        stats: {
-          totalEntries: 0,
-          waitingEntries: 0,
-          processingEntries: 0,
-          matchedEntries: 0,
-          cancelledEntries: 0,
-          averageProcessingTime: 0,
-          queueWaitTime: 0,
-        },
-        error:
-          error instanceof Error ? error.message : 'Failed to get queue stats',
-      };
+      log.error(
+        'Unexpected error getting queue stats',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'getQueueStats',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -415,16 +496,15 @@ export const sessionQueueService = {
   async getPlayerPosition(
     userId: string,
     sessionId: string
-  ): Promise<{
-    position: number;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<number>> {
     try {
-      const { entries, error } = await this.getSessionQueue(sessionId);
+      const entriesResult = await this.getSessionQueue(sessionId);
 
-      if (error) {
-        return { position: -1, error };
+      if (entriesResult.error) {
+        return createServiceError(entriesResult.error);
       }
+
+      const entries = entriesResult.data || [];
 
       const waitingEntries = entries
         .filter(e => e.status === 'waiting')
@@ -436,15 +516,21 @@ export const sessionQueueService = {
 
       const position = waitingEntries.findIndex(e => e.user_id === userId);
 
-      return { position: position >= 0 ? position + 1 : -1 };
+      return createServiceSuccess(position >= 0 ? position + 1 : -1);
     } catch (error) {
-      return {
-        position: -1,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get player position',
-      };
+      log.error(
+        'Unexpected error getting player position',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'getPlayerPosition',
+            userId,
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -454,11 +540,7 @@ export const sessionQueueService = {
   async isPlayerInQueue(
     userId: string,
     sessionId: string
-  ): Promise<{
-    inQueue: boolean;
-    entry?: SessionQueueEntry;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<{ inQueue: boolean; entry?: SessionQueueEntry }>> {
     try {
       const supabase = createClient();
 
@@ -471,21 +553,35 @@ export const sessionQueueService = {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        return { inQueue: false, error: error.message };
+        log.error('Failed to check queue status', error, {
+          metadata: {
+            service: 'session-queue',
+            method: 'isPlayerInQueue',
+            userId,
+            sessionId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return {
+      return createServiceSuccess({
         inQueue: !!data,
-        entry: (data as SessionQueueEntry) || undefined,
-      };
+        entry: data || undefined,
+      });
     } catch (error) {
-      return {
-        inQueue: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to check queue status',
-      };
+      log.error(
+        'Unexpected error checking queue status',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-queue',
+            method: 'isPlayerInQueue',
+            userId,
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

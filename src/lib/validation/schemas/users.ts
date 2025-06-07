@@ -5,7 +5,9 @@
 import { z } from 'zod';
 
 // Visibility type enum
-export const visibilityTypeSchema = z.enum(['public', 'friends', 'private']).nullable();
+export const visibilityTypeSchema = z
+  .enum(['public', 'friends', 'private'])
+  .nullable();
 
 // User role enum
 export const userRoleSchema = z.enum(['user', 'moderator', 'admin']).nullable();

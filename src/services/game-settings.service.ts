@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase';
-import type { BoardSettings } from '@/types';
-import { logger } from '@/lib/logger';
+import { z } from 'zod';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
+import { zBoardSettings } from '@/lib/validation/schemas/bingo';
+import { log } from '@/lib/logger';
 
-export interface ServiceResponse<T> {
-  data: T | null;
-  error: string | Error | null;
-}
+// Type alias for the inferred Zod schema
+type BoardSettings = z.infer<typeof zBoardSettings>;
 
 export interface GameSettingsData {
   id: string;
@@ -23,7 +25,7 @@ export const gameSettingsService = {
   async getSettings(
     boardId: string,
     options?: { signal?: AbortSignal }
-  ): Promise<ServiceResponse<BoardSettings>> {
+  ): Promise<ServiceResponse<BoardSettings | null>> {
     try {
       const supabase = createClient();
 
@@ -39,25 +41,35 @@ export const gameSettingsService = {
       const { data, error } = await query.single();
 
       if (error) {
-        logger.error('Failed to fetch game settings', error, {
+        log.error('Failed to fetch game settings', error, {
           metadata: { boardId },
         });
-        return { data: null, error };
+        return createServiceError(error.message);
       }
 
-      return { data: data?.settings || null, error: null };
+      // Validate the settings
+      if (!data?.settings) {
+        return createServiceSuccess(null);
+      }
+
+      const parseResult = zBoardSettings.safeParse(data.settings);
+      if (!parseResult.success) {
+        log.error('Invalid board settings format', parseResult.error, {
+          metadata: { boardId, service: 'gameSettingsService' },
+        });
+        return createServiceError('Invalid board settings format');
+      }
+
+      return createServiceSuccess(parseResult.data);
     } catch (error) {
-      logger.error(
+      log.error(
         'Game settings fetch error',
-        error instanceof Error ? error : new Error('Unknown fetch error'),
+        isError(error) ? error : new Error('Unknown fetch error'),
         {
           metadata: { boardId },
         }
       );
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error('Unknown error'),
-      };
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -85,25 +97,35 @@ export const gameSettingsService = {
       const { data, error } = await query.single();
 
       if (error) {
-        logger.error('Failed to update game settings', error, {
+        log.error('Failed to update game settings', error, {
           metadata: { boardId, settings },
         });
-        return { data: null, error };
+        return createServiceError(error.message);
       }
 
-      return { data: data?.settings || settings, error: null };
+      // Validate the updated settings
+      if (!data?.settings) {
+        return createServiceSuccess(settings);
+      }
+
+      const parseResult = zBoardSettings.safeParse(data.settings);
+      if (!parseResult.success) {
+        log.error('Invalid updated board settings format', parseResult.error, {
+          metadata: { boardId, service: 'gameSettingsService' },
+        });
+        return createServiceError('Invalid updated board settings format');
+      }
+
+      return createServiceSuccess(parseResult.data);
     } catch (error) {
-      logger.error(
+      log.error(
         'Game settings update error',
-        error instanceof Error ? error : new Error('Unknown update error'),
+        isError(error) ? error : new Error('Unknown update error'),
         {
           metadata: { boardId, settings },
         }
       );
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error('Unknown error'),
-      };
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -139,14 +161,86 @@ export const gameSettingsService = {
 
       return { valid: true };
     } catch (error) {
-      logger.error(
+      log.error(
         'Settings validation error',
-        error instanceof Error ? error : new Error('Unknown validation error'),
+        isError(error) ? error : new Error('Unknown validation error'),
         {
           metadata: { settings },
         }
       );
       return { valid: false, error: 'Invalid settings format' };
+    }
+  },
+
+  async getBoardSettings(
+    boardId: string
+  ): Promise<ServiceResponse<BoardSettings | null>> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('bingo_boards')
+        .select('settings')
+        .eq('id', boardId)
+        .single();
+
+      if (error) throw error;
+
+      if (!data?.settings) {
+        return createServiceSuccess(null);
+      }
+
+      const parseResult = zBoardSettings.safeParse(data.settings);
+
+      if (!parseResult.success) {
+        log.error('Invalid board settings format', parseResult.error, {
+          metadata: { boardId, service: 'gameSettingsService' },
+        });
+        return createServiceError('Invalid board settings format');
+      }
+
+      return createServiceSuccess(parseResult.data);
+    } catch (error) {
+      log.error(
+        'Error getting board settings',
+        isError(error) ? error : new Error(String(error)),
+        { metadata: { boardId, service: 'gameSettingsService' } }
+      );
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  async updateBoardSettings(
+    boardId: string,
+    settings: BoardSettings
+  ): Promise<ServiceResponse<BoardSettings | null>> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('bingo_boards')
+        .update({ settings })
+        .eq('id', boardId)
+        .select('settings')
+        .single();
+
+      if (error) throw error;
+
+      const parseResult = zBoardSettings.safeParse(data?.settings);
+
+      if (!parseResult.success) {
+        log.error('Failed to parse updated board settings', parseResult.error, {
+          metadata: { boardId, service: 'gameSettingsService' },
+        });
+        return createServiceError('Failed to parse updated board settings');
+      }
+
+      return createServiceSuccess(parseResult.data);
+    } catch (error) {
+      log.error(
+        'Error updating board settings',
+        isError(error) ? error : new Error(String(error)),
+        { metadata: { boardId, service: 'gameSettingsService' } }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

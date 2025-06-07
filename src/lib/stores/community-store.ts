@@ -60,6 +60,14 @@ interface CommunityState {
 
   // Events (mock data - will be moved to TanStack Query when real)
   events: Event[];
+
+  // New state slice for real event filters
+  eventFilters: {
+    game: string | null;
+    status: string | null;
+    tags: string[];
+    searchTerm: string;
+  };
 }
 
 interface CommunityActions {
@@ -97,6 +105,11 @@ interface CommunityActions {
   reset: () => void;
 }
 
+interface CommunityEventsActions {
+  setEventFilters: (filters: Partial<CommunityState['eventFilters']>) => void;
+  clearEventFilters: () => void;
+}
+
 const initialState: CommunityState = {
   selectedDiscussion: null,
   uiLoading: false,
@@ -111,10 +124,16 @@ const initialState: CommunityState = {
   showDiscussionDetailsDialog: false,
   createDiscussionForm: null,
   events: [], // TODO: Replace with TanStack Query hook once real community API is implemented
+  eventFilters: {
+    game: null,
+    status: null,
+    tags: [],
+    searchTerm: '',
+  },
 };
 
 export const useCommunityStore = createWithEqualityFn<
-  CommunityState & CommunityActions
+  CommunityState & CommunityActions & CommunityEventsActions
 >()(
   devtools(
     (set, get) => ({
@@ -221,6 +240,23 @@ export const useCommunityStore = createWithEqualityFn<
         );
       },
 
+      // Event filter management
+      setEventFilters: newFilters => {
+        const { eventFilters } = get();
+        set(
+          { eventFilters: { ...eventFilters, ...newFilters } },
+          false,
+          'community/setEventFilters'
+        );
+      },
+
+      clearEventFilters: () =>
+        set(
+          { eventFilters: initialState.eventFilters },
+          false,
+          'community/clearEventFilters'
+        ),
+
       // Utility
       reset: () => set(initialState, false, 'community/reset'),
     }),
@@ -238,7 +274,14 @@ export const useCommunityState = () =>
       uiLoading: state.uiLoading,
       uiError: state.uiError,
       filters: state.filters,
-      events: state.events, // Mock data until real implementation
+      events: state.events,
+    }))
+  );
+
+export const useCommunityEventsState = () =>
+  useCommunityStore(
+    useShallow(state => ({
+      filters: state.eventFilters,
     }))
   );
 
@@ -290,18 +333,42 @@ export const useCommunityActions = () =>
     }))
   );
 
+export const useCommunityEventsActions = () =>
+  useCommunityStore(
+    useShallow(state => ({
+      setFilters: state.setEventFilters,
+      clearFilters: state.clearEventFilters,
+    }))
+  );
+
 // Backward compatibility selector (deprecated - use specific selectors above)
 export const useCommunity = () =>
   useCommunityStore(
     useShallow(state => ({
-      // UI state only - server data should come from TanStack Query
+      // State
       selectedDiscussion: state.selectedDiscussion,
-      loading: state.uiLoading, // Renamed for clarity
-      error: state.uiError, // Renamed for clarity
+      uiLoading: state.uiLoading,
+      uiError: state.uiError,
       filters: state.filters,
-      events: state.events, // Mock data
+      eventFilters: state.eventFilters,
+      showCreateDiscussionDialog: state.showCreateDiscussionDialog,
+      showDiscussionDetailsDialog: state.showDiscussionDetailsDialog,
+      createDiscussionForm: state.createDiscussionForm,
+      events: state.events,
 
-      // Note: discussions and comments are now handled by TanStack Query
-      // Use useCommunityQueries hook for server data
+      // Actions
+      setSelectedDiscussion: state.setSelectedDiscussion,
+      setUiLoading: state.setUiLoading,
+      setUiError: state.setUiError,
+      setFilters: state.setFilters,
+      clearFilters: state.clearFilters,
+      setShowCreateDiscussionDialog: state.setShowCreateDiscussionDialog,
+      setShowDiscussionDetailsDialog: state.setShowDiscussionDetailsDialog,
+      setCreateDiscussionForm: state.setCreateDiscussionForm,
+      updateCreateDiscussionField: state.updateCreateDiscussionField,
+      resetCreateDiscussionForm: state.resetCreateDiscussionForm,
+      setEventFilters: state.setEventFilters,
+      clearEventFilters: state.clearEventFilters,
+      reset: state.reset,
     }))
   );

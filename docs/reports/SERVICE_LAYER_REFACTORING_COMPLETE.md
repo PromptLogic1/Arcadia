@@ -10,15 +10,17 @@ Successfully refactored the three priority services with the most type assertion
 ## Services Refactored
 
 ### 1. bingo-board-edit.service.ts
+
 - **Previous State**: 7 type assertions
-- **Current State**: 0 type assertions  
+- **Current State**: 0 type assertions
 - **Changes**:
   - All methods now return `ServiceResponse<T>`
   - Added Zod validation schemas for BingoBoard and BingoCard
   - Proper error handling with structured logging
   - Type-safe validation instead of type assertions
 
-### 2. bingo-cards.service.ts  
+### 2. bingo-cards.service.ts
+
 - **Previous State**: 7 type assertions
 - **Current State**: 0 type assertions
 - **Changes**:
@@ -28,7 +30,8 @@ Successfully refactored the three priority services with the most type assertion
   - Removed all unsafe type casts
 
 ### 3. presence-modern.service.ts
-- **Previous State**: 7 type assertions  
+
+- **Previous State**: 7 type assertions
 - **Current State**: 0 type assertions
 - **Changes**:
   - All methods now return `ServiceResponse<T>`
@@ -41,11 +44,13 @@ Successfully refactored the three priority services with the most type assertion
 The refactoring required updates to:
 
 1. **React Query Hooks**:
+
    - `useBingoBoardEditQueries.ts` - Updated to handle ServiceResponse with select option
    - `useBingoCardsQueries.ts` - Updated all queries and mutations
    - `usePresenceQueries.ts` - Would need updates (not all fixed due to other service dependencies)
 
 2. **Component Hooks**:
+
    - `useBingoBoardEdit.ts` - Major refactoring to work with new service returns
    - Added missing store properties (isEditMode, showAdvancedSettings, autoSave)
    - Fixed all TypeScript errors related to the refactoring
@@ -57,23 +62,24 @@ The refactoring required updates to:
 ## Key Patterns Established
 
 1. **Service Pattern**:
+
 ```typescript
 async someMethod(params): Promise<ServiceResponse<ReturnType>> {
   try {
     // Supabase query
     const { data, error } = await supabase.from('table').select();
-    
+
     if (error) {
       log.error('Error message', error, { metadata });
       return createServiceError(error.message);
     }
-    
+
     // Validate with Zod
     const validation = schema.safeParse(data);
     if (!validation.success) {
       return createServiceError('Invalid data format');
     }
-    
+
     return createServiceSuccess(validation.data);
   } catch (error) {
     return createServiceError(error.message);
@@ -82,12 +88,13 @@ async someMethod(params): Promise<ServiceResponse<ReturnType>> {
 ```
 
 2. **Query Hook Pattern**:
+
 ```typescript
 useQuery({
   queryKey: ['key'],
   queryFn: () => service.method(),
-  select: (response) => response.success ? response.data : null
-})
+  select: response => (response.success ? response.data : null),
+});
 ```
 
 ## Benefits Achieved

@@ -121,7 +121,7 @@ export const usePresenceCursor = (sessionId: string) => {
     if (!sessionId) return;
 
     const channelName = `presence:session:${sessionId}`;
-    
+
     const updateCursors = async () => {
       const data = await presenceService.getPresence(channelName);
       if (data) {

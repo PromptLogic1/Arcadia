@@ -117,6 +117,11 @@ export const queryKeys = {
     events: (filters?: CommunityFilters, page?: number) =>
       ['community', 'events', filters, page] as const,
   },
+  communityEvents: {
+    all: (filters?: object, page?: number) =>
+      ['communityEvents', 'all', filters, page] as const,
+    detail: (id: string) => ['communityEvents', 'detail', id] as const,
+  },
   queue: {
     all: () => ['queue'] as const,
     status: (userId: string) => ['queue', 'status', userId] as const,

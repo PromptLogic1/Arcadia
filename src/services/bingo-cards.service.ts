@@ -166,9 +166,7 @@ export const bingoCardsService = {
         metadata: { filters, page, limit, service: 'bingoCardsService' },
       });
       return createServiceError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to fetch public cards'
+        error instanceof Error ? error.message : 'Failed to fetch public cards'
       );
     }
   },
@@ -215,7 +213,13 @@ export const bingoCardsService = {
 
       if (error) {
         log.error('Failed to fetch user cards', error, {
-          metadata: { userId, filters, page, limit, service: 'bingoCardsService' },
+          metadata: {
+            userId,
+            filters,
+            page,
+            limit,
+            service: 'bingoCardsService',
+          },
         });
         return createServiceError(error.message);
       }
@@ -224,7 +228,13 @@ export const bingoCardsService = {
       const validation = bingoCardsArraySchema.safeParse(data || []);
       if (!validation.success) {
         log.error('User cards data validation failed', validation.error, {
-          metadata: { userId, filters, page, limit, service: 'bingoCardsService' },
+          metadata: {
+            userId,
+            filters,
+            page,
+            limit,
+            service: 'bingoCardsService',
+          },
         });
         return createServiceError('Invalid cards data format');
       }
@@ -239,7 +249,13 @@ export const bingoCardsService = {
       });
     } catch (error) {
       log.error('Unexpected error in getUserCards', error as Error, {
-        metadata: { userId, filters, page, limit, service: 'bingoCardsService' },
+        metadata: {
+          userId,
+          filters,
+          page,
+          limit,
+          service: 'bingoCardsService',
+        },
       });
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to fetch user cards'
@@ -384,9 +400,7 @@ export const bingoCardsService = {
   /**
    * Vote on a card (increment vote count)
    */
-  async voteCard(
-    cardId: string
-  ): Promise<ServiceResponse<BingoCard>> {
+  async voteCard(cardId: string): Promise<ServiceResponse<BingoCard>> {
     try {
       const supabase = createClient();
 
@@ -476,7 +490,10 @@ export const bingoCardsService = {
 
       if (error) {
         log.error('Failed to bulk create cards', error, {
-          metadata: { cardsCount: cardsData.length, service: 'bingoCardsService' },
+          metadata: {
+            cardsCount: cardsData.length,
+            service: 'bingoCardsService',
+          },
         });
         return createServiceError(error.message);
       }
@@ -484,16 +501,26 @@ export const bingoCardsService = {
       // Validate the returned data
       const validation = bingoCardsArraySchema.safeParse(data || []);
       if (!validation.success) {
-        log.error('Bulk created cards data validation failed', validation.error, {
-          metadata: { cardsCount: cardsData.length, service: 'bingoCardsService' },
-        });
+        log.error(
+          'Bulk created cards data validation failed',
+          validation.error,
+          {
+            metadata: {
+              cardsCount: cardsData.length,
+              service: 'bingoCardsService',
+            },
+          }
+        );
         return createServiceError('Invalid cards data format');
       }
 
       return createServiceSuccess(validation.data);
     } catch (error) {
       log.error('Unexpected error in createCards', error as Error, {
-        metadata: { cardsCount: cardsData.length, service: 'bingoCardsService' },
+        metadata: {
+          cardsCount: cardsData.length,
+          service: 'bingoCardsService',
+        },
       });
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to create cards'

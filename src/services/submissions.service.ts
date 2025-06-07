@@ -39,7 +39,7 @@ export const submissionsService = {
   ): Promise<{ submission: Submission | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       const { data: submission, error } = await supabase
         .from('submissions')
         .insert({
@@ -61,7 +61,10 @@ export const submissionsService = {
     } catch (error) {
       return {
         submission: null,
-        error: error instanceof Error ? error.message : 'Failed to create submission',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create submission',
       };
     }
   },
@@ -74,13 +77,15 @@ export const submissionsService = {
   ): Promise<{ submissions: SubmissionWithChallenge[]; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       let query = supabase
         .from('submissions')
-        .select(`
+        .select(
+          `
           *,
           challenge:challenges(title, difficulty)
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       // Apply filters
@@ -101,17 +106,22 @@ export const submissionsService = {
       // Transform data to handle null challenge
       const submissions: SubmissionWithChallenge[] = (data || []).map(item => ({
         ...item,
-        challenge: item.challenge ? {
-          title: item.challenge.title,
-          difficulty: item.challenge.difficulty as string,
-        } : undefined,
+        challenge: item.challenge
+          ? {
+              title: item.challenge.title,
+              difficulty: item.challenge.difficulty as string,
+            }
+          : undefined,
       }));
 
       return { submissions };
     } catch (error) {
       return {
         submissions: [],
-        error: error instanceof Error ? error.message : 'Failed to fetch submissions',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch submissions',
       };
     }
   },
@@ -124,13 +134,15 @@ export const submissionsService = {
   ): Promise<{ submission: SubmissionWithChallenge | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       const { data, error } = await supabase
         .from('submissions')
-        .select(`
+        .select(
+          `
           *,
           challenge:challenges(title, difficulty)
-        `)
+        `
+        )
         .eq('id', submissionId)
         .single();
 
@@ -141,17 +153,20 @@ export const submissionsService = {
       // Transform data to handle null challenge
       const submission: SubmissionWithChallenge = {
         ...data,
-        challenge: data.challenge ? {
-          title: data.challenge.title,
-          difficulty: data.challenge.difficulty as string,
-        } : undefined,
+        challenge: data.challenge
+          ? {
+              title: data.challenge.title,
+              difficulty: data.challenge.difficulty as string,
+            }
+          : undefined,
       };
 
       return { submission };
     } catch (error) {
       return {
         submission: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch submission',
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch submission',
       };
     }
   },
@@ -166,7 +181,7 @@ export const submissionsService = {
   ): Promise<{ submission: Submission | null; error?: string }> {
     try {
       const supabase = createClient();
-      
+
       const { data, error } = await supabase
         .from('submissions')
         .update({
@@ -186,7 +201,10 @@ export const submissionsService = {
     } catch (error) {
       return {
         submission: null,
-        error: error instanceof Error ? error.message : 'Failed to update submission',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update submission',
       };
     }
   },

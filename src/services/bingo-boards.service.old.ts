@@ -779,7 +779,14 @@ export const bingoBoardsService = {
     difficulty?: DifficultyLevel | null;
     limit?: number;
     offset?: number;
-  }): Promise<{ boards: (BingoBoard & { creator?: { username: string; avatar_url: string | null } })[] | null; error?: string }> {
+  }): Promise<{
+    boards:
+      | (BingoBoard & {
+          creator?: { username: string; avatar_url: string | null };
+        })[]
+      | null;
+    error?: string;
+  }> {
     try {
       const supabase = createClient();
       const { game, difficulty, limit = 10, offset = 0 } = params;
@@ -832,7 +839,8 @@ export const bingoBoardsService = {
     } catch (error) {
       return {
         boards: null,
-        error: error instanceof Error ? error.message : 'Failed to fetch boards',
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch boards',
       };
     }
   },
@@ -888,7 +896,8 @@ export const bingoBoardsService = {
     } catch (error) {
       return {
         board: null,
-        error: error instanceof Error ? error.message : 'Failed to create board',
+        error:
+          error instanceof Error ? error.message : 'Failed to create board',
       };
     }
   },

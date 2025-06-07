@@ -154,8 +154,8 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
 
   // Player queue status
   const playerQueueStatus = {
-    inQueue: playerStatusQuery.data?.inQueue || false,
-    entry: playerStatusQuery.data?.entry,
+    inQueue: playerStatusQuery.data?.data?.inQueue || false,
+    entry: playerStatusQuery.data?.data?.entry,
     position: playerPositionQuery.data || -1,
     isLoading: playerStatusQuery.isLoading || playerPositionQuery.isLoading,
   };

@@ -8,7 +8,10 @@
 import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { notifications } from '@/lib/notifications';
-import useBoardEditStore, { useBoardEditState, useBoardEditActions } from '@/lib/stores/board-edit-store';
+import useBoardEditStore, {
+  useBoardEditState,
+  useBoardEditActions,
+} from '@/lib/stores/board-edit-store';
 import {
   useBoardEditDataQuery,
   useBoardInitializationQuery,
@@ -19,11 +22,12 @@ import {
 } from '@/hooks/queries/useBingoBoardEditQueries';
 import type { BoardEditData } from '@/services/bingo-board-edit.service';
 import { useAuth, useAuthActions } from '@/lib/stores/auth-store';
-import type { BingoCard, BingoBoard, GameCategory, Difficulty } from '@/types';
+import type { BingoCard, GameCategory, Difficulty, BoardCell } from '@/types';
+import type { BingoBoardDomain } from '@/types/domains/bingo';
 
 export interface BoardEditState {
   // Board data
-  board: BingoBoard | null;
+  board: BingoBoardDomain | null;
   isLoading: boolean;
   error: string | null;
 
@@ -82,9 +86,11 @@ export function useBingoBoardEdit(boardId: string) {
   // Store state - using selector hooks
   const uiState = useBoardEditState();
   const uiActions = useBoardEditActions();
-  
+
   // Board data from query, not from store
-  const [currentBoard, setCurrentBoard] = useState<BingoBoard | null>(null);
+  const [currentBoard, setCurrentBoard] = useState<BingoBoardDomain | null>(
+    null
+  );
 
   // Queries
   const {
@@ -163,76 +169,217 @@ export function useBingoBoardEdit(boardId: string) {
     if (!currentBoard || !uiState.localGridCards) return false;
 
     // Compare current grid state with saved state
-    const originalCells = currentBoard.board_state || [];
+    // board_state is now properly typed as BoardCell[]
+    const originalCells = currentBoard.board_state;
     const currentCells = uiState.localGridCards;
 
     if (originalCells.length !== currentCells.length) return true;
 
-    return originalCells.some((original: any, index: number) => {
+    return originalCells.some((original, index) => {
       const current = currentCells[index];
       return (
         original.text !== current?.title ||
-        original.cell_id !== (current?.id?.startsWith('temp-') ? null : current?.id)
+        original.cell_id !==
+          (current?.id?.startsWith('temp-') ? null : current?.id)
       );
     });
   }, [currentBoard, uiState.localGridCards]);
 
   // Actions
-  const actions: BoardEditActions = {
-    selectCard: useCallback(
-      (card: BingoCard | null) => {
-        uiActions.setSelectedCard(card);
-      },
-      [uiActions]
-    ),
+  const actions: BoardEditActions = useMemo(() => ({
+    selectCard: (card: BingoCard | null) => {
+      uiActions.setSelectedCard(card);
+    },
 
-    setDraggedCard: useCallback(
-      (card: BingoCard | null) => {
-        uiActions.setDraggedCard(card);
-      },
-      [uiActions]
-    ),
+    setDraggedCard: (card: BingoCard | null) => {
+      uiActions.setDraggedCard(card);
+    },
 
-    moveCardToGrid: useCallback(
-      (card: BingoCard, position: number) => {
-        const updatedGrid = [...uiState.localGridCards];
+    moveCardToGrid: (card: BingoCard, position: number) => {
+      const updatedGrid = [...uiState.localGridCards];
 
-        // Handle existing card at position
-        const existingCard = updatedGrid[position];
-        if (existingCard?.title) {
-          // Move existing card back to private collection
-          // Public cards are managed separately via query, so we assume any card not temp is potentially public
-          if (!existingCard.id.startsWith('temp-')) {
-            uiActions.setLocalPrivateCards([
-              ...uiState.localPrivateCards,
-              existingCard,
-            ]);
-          }
+      // Handle existing card at position
+      const existingCard = updatedGrid[position];
+      if (existingCard?.title) {
+        // Move existing card back to private collection
+        // Public cards are managed separately via query, so we assume any card not temp is potentially public
+        if (!existingCard.id.startsWith('temp-')) {
+          uiActions.setLocalPrivateCards([
+            ...uiState.localPrivateCards,
+            existingCard,
+          ]);
         }
+      }
 
-        // Place new card in grid
-        updatedGrid[position] = card;
+      // Place new card in grid
+      updatedGrid[position] = card;
+      uiActions.setLocalGridCards(updatedGrid);
+
+      // Remove from private cards if it was there
+      if (
+        uiState.localPrivateCards.some((pc: BingoCard) => pc.id === card.id)
+      ) {
+        uiActions.setLocalPrivateCards(
+          uiState.localPrivateCards.filter((pc: BingoCard) => pc.id !== card.id)
+        );
+      }
+    },
+
+    removeCardFromGrid: (position: number) => {
+      const updatedGrid = [...uiState.localGridCards];
+      const removedCard = updatedGrid[position];
+
+      if (removedCard?.title) {
+        // Create empty card for this position
+        updatedGrid[position] = {
+          id: `empty-${position}`,
+          title: '',
+          description: null,
+          game_type: currentBoard?.game_type || ('All Games' as GameCategory),
+          difficulty: currentBoard?.difficulty || ('medium' as Difficulty),
+          tags: [],
+          creator_id: authUser?.id || '',
+          is_public: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          votes: 0,
+        };
         uiActions.setLocalGridCards(updatedGrid);
 
-        // Remove from private cards if it was there
-        if (uiState.localPrivateCards.some((pc: BingoCard) => pc.id === card.id)) {
+        // Add back to private cards if not public (temp cards are private)
+        if (
+          removedCard.id.startsWith('temp-') ||
+          removedCard.creator_id === authUser?.id
+        ) {
+          uiActions.setLocalPrivateCards([
+            ...uiState.localPrivateCards,
+            removedCard,
+          ]);
+        }
+      }
+    },
+
+    swapGridCards: (position1: number, position2: number) => {
+      const updatedGrid = [...uiState.localGridCards];
+      const card1 = updatedGrid[position1];
+      const card2 = updatedGrid[position2];
+      if (card1 !== undefined && card2 !== undefined) {
+        updatedGrid[position1] = card2;
+        updatedGrid[position2] = card1;
+        uiActions.setLocalGridCards(updatedGrid);
+      }
+    },
+
+    createCard: async (cardData: {
+      title: string;
+      description?: string;
+      tags?: string[];
+    }) => {
+      if (!authUser || !currentBoard) return null;
+
+      const newCard: BingoCard = {
+        id: `temp-${Date.now()}`,
+        title: cardData.title,
+        description: cardData.description || null,
+        game_type: currentBoard.game_type,
+        difficulty: currentBoard.difficulty,
+        tags: cardData.tags || [],
+        creator_id: authUser.id,
+        is_public: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        votes: 0,
+      };
+
+      // Add to local state immediately
+      uiActions.setLocalPrivateCards([...uiState.localPrivateCards, newCard]);
+
+      // Save to database
+      try {
+        const result = await createCardMutation.mutateAsync({
+          title: cardData.title,
+          description: cardData.description,
+          game_type: currentBoard.game_type,
+          difficulty: currentBoard.difficulty,
+          tags: cardData.tags,
+          creator_id: authUser.id,
+          is_public: false,
+        });
+
+        if (!mountedRef.current) return null;
+
+        if (result.success && result.data) {
+          const savedCard = result.data;
+          // Update local state with the saved card
           uiActions.setLocalPrivateCards(
-            uiState.localPrivateCards.filter((pc: BingoCard) => pc.id !== card.id)
+            uiState.localPrivateCards.map((card: BingoCard) =>
+              card.id === newCard.id ? savedCard : card
+            )
+          );
+          return savedCard;
+        }
+        return null;
+      } catch (error) {
+        // Remove temporary card on error
+        if (mountedRef.current) {
+          uiActions.setLocalPrivateCards(
+            uiState.localPrivateCards.filter(
+              (card: BingoCard) => card.id !== newCard.id
+            )
           );
         }
-      },
-      [uiState, uiActions]
-    ),
+        return null;
+      }
+    },
 
-    removeCardFromGrid: useCallback(
-      (position: number) => {
+    updateCard: async (cardId: string, updates: Partial<BingoCard>) => {
+      try {
+        const result = await updateCardMutation.mutateAsync({
+          cardId,
+          updates,
+        });
+
+        if (mountedRef.current && result.success && result.data) {
+          // Update in grid cards
+          uiActions.setLocalGridCards(
+            uiState.localGridCards.map((card: BingoCard) =>
+              card.id === cardId ? { ...card, ...result.data } : card
+            )
+          );
+
+          // Update in private cards
+          uiActions.setLocalPrivateCards(
+            uiState.localPrivateCards.map((card: BingoCard) =>
+              card.id === cardId ? { ...card, ...result.data } : card
+            )
+          );
+        }
+      } catch (error) {
+        // Error is handled by mutation
+      }
+    },
+
+    deleteCard: (cardId: string) => {
+      // Remove from private cards
+      uiActions.setLocalPrivateCards(
+        uiState.localPrivateCards.filter(
+          (card: BingoCard) => card.id !== cardId
+        )
+      );
+
+      // Remove from grid and replace with empty card
+      const gridIndex = uiState.localGridCards.findIndex(
+        (card: BingoCard) => card.id === cardId
+      );
+      if (gridIndex !== -1) {
+        // Inline the removeCardFromGrid logic to avoid circular dependency
         const updatedGrid = [...uiState.localGridCards];
-        const removedCard = updatedGrid[position];
+        const removedCard = updatedGrid[gridIndex];
 
         if (removedCard?.title) {
           // Create empty card for this position
-          updatedGrid[position] = {
-            id: `empty-${position}`,
+          updatedGrid[gridIndex] = {
+            id: `empty-${gridIndex}`,
             title: '',
             description: null,
             game_type: currentBoard?.game_type || ('All Games' as GameCategory),
@@ -247,177 +394,20 @@ export function useBingoBoardEdit(boardId: string) {
           uiActions.setLocalGridCards(updatedGrid);
 
           // Add back to private cards if not public (temp cards are private)
-          if (removedCard.id.startsWith('temp-') || removedCard.creator_id === authUser?.id) {
+          if (
+            removedCard.id.startsWith('temp-') ||
+            removedCard.creator_id === authUser?.id
+          ) {
             uiActions.setLocalPrivateCards([
               ...uiState.localPrivateCards,
               removedCard,
             ]);
           }
         }
-      },
-      [uiState, uiActions, currentBoard, authUser]
-    ),
+      }
+    },
 
-    swapGridCards: useCallback(
-      (position1: number, position2: number) => {
-        const updatedGrid = [...uiState.localGridCards];
-        const temp = updatedGrid[position1];
-        const card1 = updatedGrid[position1];
-        const card2 = updatedGrid[position2];
-        if (card1 !== undefined && card2 !== undefined) {
-          updatedGrid[position1] = card2;
-          updatedGrid[position2] = card1;
-          uiActions.setLocalGridCards(updatedGrid);
-        }
-      },
-      [uiState.localGridCards, uiActions]
-    ),
-
-    createCard: useCallback(
-      async (cardData: {
-        title: string;
-        description?: string;
-        tags?: string[];
-      }) => {
-        if (!authUser || !currentBoard) return null;
-
-        const newCard: BingoCard = {
-          id: `temp-${Date.now()}`,
-          title: cardData.title,
-          description: cardData.description || null,
-          game_type: currentBoard.game_type,
-          difficulty: currentBoard.difficulty,
-          tags: cardData.tags || [],
-          creator_id: authUser.id,
-          is_public: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          votes: 0,
-        };
-
-        // Add to local state immediately
-        uiActions.setLocalPrivateCards([...uiState.localPrivateCards, newCard]);
-
-        // Save to database
-        try {
-          const result = await createCardMutation.mutateAsync({
-            title: cardData.title,
-            description: cardData.description,
-            game_type: currentBoard.game_type,
-            difficulty: currentBoard.difficulty,
-            tags: cardData.tags,
-            creator_id: authUser.id,
-            is_public: false,
-          });
-
-          if (!mountedRef.current) return null;
-
-          if (result.success && result.data) {
-            // Update local state with the saved card
-            uiActions.setLocalPrivateCards(
-              uiState.localPrivateCards.map((card: BingoCard) =>
-                card.id === newCard.id ? result.data! : card
-              )
-            );
-            return result.data;
-          }
-          return null;
-        } catch (error) {
-          // Remove temporary card on error
-          if (mountedRef.current) {
-            uiActions.setLocalPrivateCards(
-              uiState.localPrivateCards.filter((card: BingoCard) => card.id !== newCard.id)
-            );
-          }
-          return null;
-        }
-      },
-      [
-        authUser,
-        currentBoard,
-        uiState.localPrivateCards,
-        uiActions,
-        createCardMutation,
-      ]
-    ),
-
-    updateCard: useCallback(
-      async (cardId: string, updates: Partial<BingoCard>) => {
-        try {
-          const result = await updateCardMutation.mutateAsync({
-            cardId,
-            updates,
-          });
-
-          if (mountedRef.current && result.success && result.data) {
-            // Update in grid cards
-            uiActions.setLocalGridCards(
-              uiState.localGridCards.map((card: BingoCard) =>
-                card.id === cardId ? { ...card, ...result.data } : card
-              )
-            );
-
-            // Update in private cards
-            uiActions.setLocalPrivateCards(
-              uiState.localPrivateCards.map((card: BingoCard) =>
-                card.id === cardId ? { ...card, ...result.data } : card
-              )
-            );
-          }
-        } catch (error) {
-          // Error is handled by mutation
-        }
-      },
-      [uiState, uiActions, updateCardMutation]
-    ),
-
-    deleteCard: useCallback(
-      (cardId: string) => {
-        // Remove from private cards
-        uiActions.setLocalPrivateCards(
-          uiState.localPrivateCards.filter((card: BingoCard) => card.id !== cardId)
-        );
-
-        // Remove from grid and replace with empty card
-        const gridIndex = uiState.localGridCards.findIndex(
-          (card: BingoCard) => card.id === cardId
-        );
-        if (gridIndex !== -1) {
-          // Inline the removeCardFromGrid logic to avoid circular dependency
-          const updatedGrid = [...uiState.localGridCards];
-          const removedCard = updatedGrid[gridIndex];
-
-          if (removedCard?.title) {
-            // Create empty card for this position
-            updatedGrid[gridIndex] = {
-              id: `empty-${gridIndex}`,
-              title: '',
-              description: null,
-              game_type: currentBoard?.game_type || ('All Games' as GameCategory),
-              difficulty: currentBoard?.difficulty || ('medium' as Difficulty),
-              tags: [],
-              creator_id: authUser?.id || '',
-              is_public: false,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              votes: 0,
-            };
-            uiActions.setLocalGridCards(updatedGrid);
-
-            // Add back to private cards if not public (temp cards are private)
-            if (removedCard.id.startsWith('temp-') || removedCard.creator_id === authUser?.id) {
-              uiActions.setLocalPrivateCards([
-                ...uiState.localPrivateCards,
-                removedCard,
-              ]);
-            }
-          }
-        }
-      },
-      [uiState, uiActions, currentBoard, authUser]
-    ),
-
-    saveBoard: useCallback(async () => {
+    saveBoard: async () => {
       if (!currentBoard || !authUser || !mountedRef.current) return;
 
       const currentUiState = useBoardEditStore.getState();
@@ -429,7 +419,9 @@ export function useBingoBoardEdit(boardId: string) {
         const tempCards = [
           ...currentUiState.localGridCards,
           ...currentUiState.localPrivateCards,
-        ].filter((card: BingoCard) => card.id.startsWith('temp-') && card.title);
+        ].filter(
+          (card: BingoCard) => card.id.startsWith('temp-') && card.title
+        );
 
         if (tempCards.length > 0) {
           const cardInsertData = tempCards.map(card => ({
@@ -442,7 +434,8 @@ export function useBingoBoardEdit(boardId: string) {
             is_public: false,
           }));
 
-          const saveResult = await saveCardsMutation.mutateAsync(cardInsertData);
+          const saveResult =
+            await saveCardsMutation.mutateAsync(cardInsertData);
 
           if (!saveResult.success || !saveResult.data) {
             throw new Error(saveResult.error || 'Failed to save cards');
@@ -455,7 +448,8 @@ export function useBingoBoardEdit(boardId: string) {
           const updatedGridCards = currentUiState.localGridCards.map(card => {
             if (card.id?.startsWith('temp-')) {
               const savedCard = savedCards.find(
-                (sc: BingoCard) => sc.title === card.title && sc.game_type === card.game_type
+                (sc: BingoCard) =>
+                  sc.title === card.title && sc.game_type === card.game_type
               );
               return savedCard || card;
             }
@@ -520,15 +514,9 @@ export function useBingoBoardEdit(boardId: string) {
           uiActions.setIsSaving(false);
         }
       }
-    }, [
-      currentBoard,
-      authUser,
-      uiActions,
-      saveCardsMutation,
-      updateBoardMutation,
-    ]),
+    },
 
-    publishBoard: useCallback(async () => {
+    publishBoard: async () => {
       if (!currentBoard) return;
 
       try {
@@ -545,23 +533,29 @@ export function useBingoBoardEdit(boardId: string) {
       } catch (error) {
         // Error handled by mutation
       }
-    }, [currentBoard, updateBoardMutation, uiActions]),
+    },
 
-    toggleEditMode: useCallback(() => {
+    toggleEditMode: () => {
       uiActions.setIsEditMode(!uiState.isEditMode);
-    }, [uiState.isEditMode, uiActions]),
+    },
 
-    toggleAdvancedSettings: useCallback(() => {
+    toggleAdvancedSettings: () => {
       uiActions.setShowAdvancedSettings(!uiState.showAdvancedSettings);
-    }, [uiState.showAdvancedSettings, uiActions]),
+    },
 
-    setAutoSave: useCallback(
-      (enabled: boolean) => {
-        uiActions.setAutoSave(enabled);
-      },
-      [uiActions]
-    ),
-  };
+    setAutoSave: (enabled: boolean) => {
+      uiActions.setAutoSave(enabled);
+    },
+  }), [
+    uiState,
+    uiActions,
+    currentBoard,
+    authUser,
+    createCardMutation,
+    updateCardMutation,
+    saveCardsMutation,
+    updateBoardMutation,
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -602,27 +596,39 @@ export function useBingoBoardEdit(boardId: string) {
     uiActions.setIsSaving(true);
   }, [uiActions]);
 
-  const completeSaving = useCallback((success: boolean) => {
-    uiActions.setIsSaving(false);
-    if (success) {
-      uiActions.setShowSaveSuccess(true);
-    }
-  }, [uiActions]);
+  const completeSaving = useCallback(
+    (success: boolean) => {
+      uiActions.setIsSaving(false);
+      if (success) {
+        uiActions.setShowSaveSuccess(true);
+      }
+    },
+    [uiActions]
+  );
 
-  const handlePositionSelect = useCallback((index: number) => {
-    if (uiState.selectedCard) {
-      actions.moveCardToGrid(uiState.selectedCard, index);
-      uiActions.clearSelectedCard();
-    }
-  }, [uiState.selectedCard, actions, uiActions]);
+  const handlePositionSelect = useCallback(
+    (index: number) => {
+      if (uiState.selectedCard) {
+        actions.moveCardToGrid(uiState.selectedCard, index);
+        uiActions.clearSelectedCard();
+      }
+    },
+    [uiState.selectedCard, actions, uiActions]
+  );
 
-  const placeCardInGrid = useCallback((card: BingoCard, index: number) => {
-    actions.moveCardToGrid(card, index);
-  }, [actions]);
+  const placeCardInGrid = useCallback(
+    (card: BingoCard, index: number) => {
+      actions.moveCardToGrid(card, index);
+    },
+    [actions]
+  );
 
-  const addPrivateCard = useCallback((card: BingoCard) => {
-    uiActions.addPrivateCard(card);
-  }, [uiActions]);
+  const addPrivateCard = useCallback(
+    (card: BingoCard) => {
+      uiActions.addPrivateCard(card);
+    },
+    [uiActions]
+  );
 
   return {
     // State
@@ -635,7 +641,7 @@ export function useBingoBoardEdit(boardId: string) {
     privateCards: uiState.localPrivateCards,
     localGridCards: uiState.localGridCards,
     localPrivateCards: uiState.localPrivateCards,
-    publicCards: [],  // Public cards come from query, not from store
+    publicCards: [], // Public cards come from query, not from store
     selectedCard: uiState.selectedCard,
     draggedCard: uiState.draggedCard,
     isEditMode: uiState.isEditMode,
@@ -650,7 +656,7 @@ export function useBingoBoardEdit(boardId: string) {
 
     // Actions
     ...actions,
-    
+
     // Additional actions for component compatibility
     initializeBoard,
     handleSave,

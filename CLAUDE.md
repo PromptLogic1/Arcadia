@@ -11,6 +11,7 @@
 ### Pattern Violation Status (January 6, 2025 - Evening Update)
 
 **Actually Fixed/Verified Today:**
+
 - 10 API routes migrated to use services (91% of identified routes)
 - 5 Zustand stores verified to only contain UI state (83% of identified stores)
 - 10 components/hooks refactored to remove useEffect data fetching (31% of identified files)
@@ -20,6 +21,7 @@
 - Created 1 reusable hook (usePersistedState) for localStorage patterns
 
 **Remaining Work (35% of violations still exist, down from 48%):**
+
 - 3 API routes with direct Supabase calls (critical priority)
 - 22 files using useEffect for data fetching (69% remaining - still the main problem)
 - 12 services not using ServiceResponse pattern (57% remaining)
@@ -442,7 +444,7 @@ const handleSubmit = async () => {
 export function useYourHook() {
   const isMountedRef = useRef(true);
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -453,19 +455,19 @@ export function useYourHook() {
       }
     };
   }, []);
-  
+
   const handleSubmit = async () => {
     try {
       const result = await apiCall();
-      
+
       // CHECK before state update
       if (!isMountedRef.current) return;
-      
+
       setState(result);
     } catch (error) {
       // CHECK before error state update too
       if (!isMountedRef.current) return;
-      
+
       setError(error);
     }
   };
@@ -473,12 +475,14 @@ export function useYourHook() {
 ```
 
 **When to use mountedRef:**
+
 - Async operations (API calls) that update state
 - setTimeout/setInterval callbacks that update state
 - Any delayed state updates
 - Real-time subscriptions
 
 **When NOT to use mountedRef:**
+
 - Synchronous operations
 - Zustand store updates (they handle this internally)
 - Pure calculations without state updates

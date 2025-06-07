@@ -4,53 +4,40 @@
  */
 
 import { z } from 'zod';
-import { boardCellSchema } from './common';
+import { Constants } from '@/types/database-generated';
 
 // Enums from database - must match database-generated.ts exactly
-export const difficultyLevelSchema = z.enum(['beginner', 'easy', 'medium', 'hard', 'expert']);
-export const gameCategorySchema = z.enum([
-  'All Games',
-  'World of Warcraft',
-  'Fortnite',
-  'Minecraft',
-  'Among Us',
-  'Apex Legends',
-  'League of Legends',
-  'Overwatch',
-  'Call of Duty: Warzone',
-  'Valorant',
-  'CS:GO',
-  'Dota 2',
-  'Rocket League',
-  'Fall Guys',
-  'Dead by Daylight',
-  'Cyberpunk 2077',
-  'The Witcher 3',
-  'Elden Ring',
-  'Dark Souls',
-  'Bloodborne',
-  'Sekiro',
-  'Hollow Knight',
-  'Celeste',
-  'Hades',
-  'The Binding of Isaac',
-  'Risk of Rain 2',
-  'Deep Rock Galactic',
-  'Valheim',
-  'Subnautica',
-  "No Man's Sky",
-  'Terraria',
-  'Stardew Valley',
-  'Animal Crossing',
-  'Splatoon 3',
-  'Super Mario Odyssey',
-  'The Legend of Zelda: Breath of the Wild',
-  'Super Smash Bros. Ultimate',
+export const difficultyLevelSchema = z.enum(
+  Constants.public.Enums.difficulty_level
+);
+export const gameCategorySchema = z.enum(Constants.public.Enums.game_category);
+
+export const boardStatusSchema = z.enum([
+  'draft',
+  'active',
+  'paused',
+  'completed',
+  'archived',
 ]);
-export const boardStatusSchema = z.enum(['draft', 'active', 'paused', 'completed', 'archived']);
-export const sessionStatusSchema = z.enum(['waiting', 'active', 'completed', 'cancelled']);
-export const winConditionSchema = z.enum(['single_line', 'full_board', 'pattern', 'blackout']);
-export const queueStatusSchema = z.enum(['pending', 'processing', 'matched', 'expired', 'cancelled']);
+export const sessionStatusSchema = z.enum([
+  'waiting',
+  'active',
+  'completed',
+  'cancelled',
+]);
+export const winConditionSchema = z.enum([
+  'single_line',
+  'full_board',
+  'pattern',
+  'blackout',
+]);
+export const queueStatusSchema = z.enum([
+  'pending',
+  'processing',
+  'matched',
+  'expired',
+  'cancelled',
+]);
 
 // Win conditions composite type
 export const winConditionsSchema = z.object({
@@ -58,14 +45,6 @@ export const winConditionsSchema = z.object({
   majority: z.boolean().nullable(),
   diagonal: z.boolean().nullable(),
   corners: z.boolean().nullable(),
-});
-
-// Board settings composite type
-export const boardSettingsSchema = z.object({
-  team_mode: z.boolean().nullable(),
-  lockout: z.boolean().nullable(),
-  sound_enabled: z.boolean().nullable(),
-  win_conditions: winConditionsSchema.nullable(),
 });
 
 // Session settings composite type
@@ -78,25 +57,56 @@ export const sessionSettingsSchema = z.object({
   password: z.string().nullable(),
 });
 
+// Schema for board settings, aligning with the composite type
+export const zBoardSettings = z.object({
+  team_mode: z.boolean().nullable(),
+  lockout: z.boolean().nullable(),
+  sound_enabled: z.boolean().nullable(),
+  win_conditions: z
+    .object({
+      line: z.boolean().nullable(),
+      majority: z.boolean().nullable(),
+      diagonal: z.boolean().nullable(),
+      corners: z.boolean().nullable(),
+    })
+    .nullable(),
+});
+
+// Schema for a single board cell, aligning with the composite type
+export const zBoardCell = z.object({
+  cell_id: z.string().uuid().nullable(),
+  text: z.string().nullable(),
+  colors: z.array(z.string()).nullable(),
+  completed_by: z.array(z.string().uuid()).nullable(),
+  blocked: z.boolean().nullable(),
+  is_marked: z.boolean().nullable(),
+  version: z.number().int().nullable(),
+  last_updated: z.number().nullable(),
+  last_modified_by: z.string().uuid().nullable(),
+});
+
+export const zBoardState = z.array(zBoardCell);
+export const boardStateSchema = zBoardState; // Alias for compatibility
+
 // Bingo board schema
 export const bingoBoardSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().nullable(),
   title: z.string(),
   description: z.string().nullable(),
+  creator_id: z.string(),
   game_type: gameCategorySchema,
   difficulty: difficultyLevelSchema,
-  creator_id: z.string().nullable(),
-  created_at: z.string().nullable(),
-  updated_at: z.string().nullable(),
   is_public: z.boolean().nullable(),
   size: z.number().int().positive().nullable(),
-  board_state: z.array(boardCellSchema).nullable(),
-  settings: boardSettingsSchema.nullable(),
+  board_state: zBoardState.nullable(),
+  settings: zBoardSettings.nullable(),
   votes: z.number().int().nullable(),
   bookmarked_count: z.number().int().nullable(),
-  cloned_from: z.string().uuid().nullable(),
-  status: boardStatusSchema.nullable(),
   version: z.number().int().nullable(),
+  status: z.enum(['draft', 'active', 'paused', 'completed', 'archived']),
+  cloned_from: z.string().uuid().nullable(),
 });
 
 // Bingo card schema - matches database table bingo_cards
@@ -116,19 +126,19 @@ export const bingoCardSchema = z.object({
 
 // Bingo session schema
 export const bingoSessionSchema = z.object({
-  id: z.string().uuid(),
-  board_id: z.string().uuid().nullable(),
-  host_id: z.string().nullable(),
-  status: sessionStatusSchema.nullable(),
-  created_at: z.string().nullable(),
-  started_at: z.string().nullable(),
-  ended_at: z.string().nullable(),
-  updated_at: z.string().nullable(),
-  settings: sessionSettingsSchema.nullable(),
+  id: z.string(),
+  created_at: z.string().datetime(),
+  board_id: z.string(),
+  host_id: z.string(),
+  status: z.enum(['waiting', 'active', 'completed', 'cancelled']),
   session_code: z.string().nullable(),
   winner_id: z.string().nullable(),
-  current_state: z.array(boardCellSchema).nullable(),
+  current_state: zBoardState.nullable(),
   version: z.number().int().nullable(),
+  updated_at: z.string().nullable(),
+  started_at: z.string().nullable(),
+  ended_at: z.string().nullable(),
+  settings: sessionSettingsSchema.nullable(),
 });
 
 // Bingo session player schema
@@ -136,15 +146,14 @@ export const bingoSessionPlayerSchema = z.object({
   id: z.string().uuid(),
   session_id: z.string().uuid().nullable(),
   user_id: z.string().nullable(),
-  player_name: z.string(),
+  display_name: z.string(),
   joined_at: z.string().nullable(),
   team: z.number().int().nullable(),
   score: z.number().int().nullable(),
   color: z.string(),
-  is_active: z.boolean().nullable(),
-  completed_cells: z.array(z.number()).nullable(),
-  last_active: z.string().nullable(),
-  version: z.number().int().nullable(),
+  is_ready: z.boolean().nullable(),
+  is_host: z.boolean().nullable(),
+  last_activity: z.string().nullable(),
 });
 
 // Board collections schema
@@ -211,6 +220,34 @@ export const bingoSessionPlayersArraySchema = z.array(bingoSessionPlayerSchema);
 export const boardCollectionsArraySchema = z.array(boardCollectionSchema);
 export const queueEntriesArraySchema = z.array(queueEntrySchema);
 export const sessionStatsArraySchema = z.array(sessionStatsSchema);
+
+// Schemas for API route validation
+
+export const getBingoBoardsQuerySchema = z.object({
+  game: gameCategorySchema.optional(),
+  difficulty: difficultyLevelSchema.optional(),
+  limit: z.preprocess(
+    val => (typeof val === 'string' ? parseInt(val, 10) : val),
+    z.number().int().min(1).max(100).default(10)
+  ),
+  offset: z.preprocess(
+    val => (typeof val === 'string' ? parseInt(val, 10) : val),
+    z.number().int().min(0).default(0)
+  ),
+});
+
+export const createBoardApiSchema = z.object({
+  title: z.string().min(3).max(100),
+  size: z.number().int().min(3).max(10),
+  settings: zBoardSettings,
+  game_type: gameCategorySchema,
+  difficulty: difficultyLevelSchema,
+  is_public: z.boolean().default(false),
+  board_state: zBoardState,
+});
+
+// Alias for backwards compatibility
+export const createBingoBoardSchema = createBoardApiSchema;
 
 // Type exports for convenience
 export type BingoBoardSchema = z.infer<typeof bingoBoardSchema>;

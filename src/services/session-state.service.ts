@@ -7,9 +7,12 @@
 
 import { createClient } from '@/lib/supabase';
 import { safeRealtimeManager } from '@/lib/realtime-manager';
-import { logger } from '@/lib/logger';
+import { log } from '@/lib/logger';
 import type { BingoSession, BoardCell, SessionStats } from '@/types';
 import type { Tables } from '@/types/database-generated';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { isError, getErrorMessage } from '@/lib/error-guards';
 
 // Type for session_stats view results
 type SessionStatsRow = Tables<'session_stats'>;
@@ -57,6 +60,11 @@ export interface SessionStateJoinData {
   avatar_url?: string;
 }
 
+export interface SessionInitResult {
+  session: SessionStatsRow;
+  isNewSession: boolean;
+}
+
 export const sessionStateService = {
   /**
    * Initialize or join a session
@@ -64,11 +72,7 @@ export const sessionStateService = {
   async initializeSession(
     boardId: string,
     player: Player
-  ): Promise<{
-    session: SessionStatsRow | null;
-    isNewSession: boolean;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<SessionInitResult>> {
     const supabase = createClient();
 
     try {
@@ -82,17 +86,20 @@ export const sessionStateService = {
 
       if (findError && findError.code !== 'PGRST116') {
         // PGRST116 = no rows found
-        return { session: null, isNewSession: false, error: findError.message };
+        log.error('Failed to find existing session', findError, {
+          metadata: {
+            service: 'session-state',
+            method: 'initializeSession',
+            boardId,
+          },
+        });
+        return createServiceError(findError.message);
       }
 
       if (existingSession) {
         // Join existing session
         if (!existingSession.id) {
-          return {
-            session: null,
-            isNewSession: false,
-            error: 'Invalid session ID',
-          };
+          return createServiceError('Invalid session ID');
         }
 
         const { error: joinError } = await supabase
@@ -108,17 +115,21 @@ export const sessionStateService = {
           ]);
 
         if (joinError) {
-          return {
-            session: null,
-            isNewSession: false,
-            error: joinError.message,
-          };
+          log.error('Failed to join existing session', joinError, {
+            metadata: {
+              service: 'session-state',
+              method: 'initializeSession',
+              sessionId: existingSession.id,
+              playerId: player.id,
+            },
+          });
+          return createServiceError(joinError.message);
         }
 
-        return {
+        return createServiceSuccess({
           session: existingSession,
           isNewSession: false,
-        };
+        });
       } else {
         // Create new session
         const { data: newSession, error: createError } = await supabase
@@ -143,20 +154,20 @@ export const sessionStateService = {
           .single();
 
         if (createError) {
-          return {
-            session: null,
-            isNewSession: true,
-            error: createError.message,
-          };
+          log.error('Failed to create new session', createError, {
+            metadata: {
+              service: 'session-state',
+              method: 'initializeSession',
+              boardId,
+              hostId: player.id,
+            },
+          });
+          return createServiceError(createError.message);
         }
 
         // Add host as first player
         if (!newSession.id) {
-          return {
-            session: null,
-            isNewSession: true,
-            error: 'Failed to create session with valid ID',
-          };
+          return createServiceError('Failed to create session with valid ID');
         }
 
         const { error: hostJoinError } = await supabase
@@ -173,11 +184,15 @@ export const sessionStateService = {
           ]);
 
         if (hostJoinError) {
-          return {
-            session: null,
-            isNewSession: true,
-            error: hostJoinError.message,
-          };
+          log.error('Failed to add host to session', hostJoinError, {
+            metadata: {
+              service: 'session-state',
+              method: 'initializeSession',
+              sessionId: newSession.id,
+              hostId: player.id,
+            },
+          });
+          return createServiceError(hostJoinError.message);
         }
 
         // Fetch the full session from session_stats view
@@ -188,22 +203,28 @@ export const sessionStateService = {
           .single();
 
         if (!fullSession) {
-          return {
-            session: null,
-            isNewSession: true,
-            error: 'Failed to fetch created session details',
-          };
+          return createServiceError('Failed to fetch created session details');
         }
 
-        return {
+        return createServiceSuccess({
           session: fullSession,
           isNewSession: true,
-        };
+        });
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to initialize session';
-      return { session: null, isNewSession: false, error: message };
+      log.error(
+        'Unexpected error initializing session',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-state',
+            method: 'initializeSession',
+            boardId,
+            playerId: player.id,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -212,7 +233,7 @@ export const sessionStateService = {
    */
   async getSessionPlayers(
     sessionId: string
-  ): Promise<{ players: Player[]; error?: string }> {
+  ): Promise<ServiceResponse<Player[]>> {
     const supabase = createClient();
 
     try {
@@ -224,7 +245,14 @@ export const sessionStateService = {
         .order('joined_at', { ascending: true });
 
       if (error) {
-        return { players: [], error: error.message };
+        log.error('Failed to get session players', error, {
+          metadata: {
+            service: 'session-state',
+            method: 'getSessionPlayers',
+            sessionId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
       const players: Player[] = (data || [])
@@ -236,25 +264,32 @@ export const sessionStateService = {
             player.color
         )
         .map(player => ({
-          id: player.user_id as string,
-          display_name: player.display_name as string,
+          id: player.user_id,
+          display_name: player.display_name,
           avatar_url: player.avatar_url || undefined,
-          joined_at: player.joined_at as string,
+          joined_at: player.joined_at || new Date().toISOString(), // Fallback to current time if null
           is_active: player.is_ready ?? true,
-          color: player.color as string,
+          color: player.color,
           is_host: player.is_host ?? false,
           is_ready: player.is_ready ?? true,
           score: player.score ?? 0,
           position: player.position ?? undefined,
         }));
 
-      return { players };
+      return createServiceSuccess(players);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Failed to get session players';
-      return { players: [], error: message };
+      log.error(
+        'Unexpected error getting session players',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-state',
+            method: 'getSessionPlayers',
+            sessionId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -264,7 +299,7 @@ export const sessionStateService = {
   async leaveSession(
     sessionId: string,
     playerId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<ServiceResponse<void>> {
     const supabase = createClient();
 
     try {
@@ -275,14 +310,32 @@ export const sessionStateService = {
         .eq('user_id', playerId);
 
       if (error) {
-        return { success: false, error: error.message };
+        log.error('Failed to leave session', error, {
+          metadata: {
+            service: 'session-state',
+            method: 'leaveSession',
+            sessionId,
+            playerId,
+          },
+        });
+        return createServiceError(error.message);
       }
 
-      return { success: true };
+      return createServiceSuccess(undefined);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to leave session';
-      return { success: false, error: message };
+      log.error(
+        'Unexpected error leaving session',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'session-state',
+            method: 'leaveSession',
+            sessionId,
+            playerId,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -315,18 +368,18 @@ export const sessionStateService = {
             .eq('id', sessionId)
             .single();
 
-          const { players } =
+          const playersResult =
             await sessionStateService.getSessionPlayers(sessionId);
 
-          if (session) {
+          if (session && playersResult.data) {
             onStateChange({
               session: session,
-              players,
+              players: playersResult.data,
             });
           }
         },
         onError: (error: Error) => {
-          logger.error('Session subscription error', error, {
+          log.error('Session subscription error', error, {
             metadata: { sessionId },
           });
         },
@@ -343,7 +396,7 @@ export const sessionStateService = {
         filter: `session_id=eq.${sessionId}`,
         onUpdate: async () => {
           // Fetch updated players
-          const { players } =
+          const playersResult =
             await sessionStateService.getSessionPlayers(sessionId);
           const supabase = createClient();
           const { data: session } = await supabase
@@ -352,15 +405,15 @@ export const sessionStateService = {
             .eq('id', sessionId)
             .single();
 
-          if (session) {
+          if (session && playersResult.data) {
             onStateChange({
               session: session,
-              players,
+              players: playersResult.data,
             });
           }
         },
         onError: (error: Error) => {
-          logger.error('Player subscription error', error, {
+          log.error('Player subscription error', error, {
             metadata: { sessionId },
           });
         },

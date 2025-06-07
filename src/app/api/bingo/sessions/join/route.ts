@@ -1,89 +1,68 @@
-import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-import { RateLimiter } from '@/lib/rate-limiter';
+import type { NextRequest } from 'next/server';
+import { rateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
-import { sessionsService } from '@/src/services/sessions.service';
+import { sessionsService } from '@/services/sessions.service';
+import { authService } from '@/services/auth.service';
+import { validateRequestBody } from '@/lib/validation/middleware';
+import { joinSessionRequestSchema } from '@/lib/validation/schemas/sessions';
 
-const rateLimiter = new RateLimiter();
-
-interface JoinSessionRequest {
-  sessionId: string;
-  displayName: string;
-  color: string;
-  team?: number | null;
-}
-
-interface JoinRoutePayloadForLog {
-  displayName?: string;
-  color?: string;
-  team?: number | null;
-}
-
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   let userIdForLog: string | undefined;
   let sessionIdForLog: string | undefined;
-  let joinPayloadForLog: JoinRoutePayloadForLog = {};
+
   try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    if (await rateLimiter.isLimited(ip)) {
+    const authResult = await authService.getCurrentUser();
+    if (!authResult.success || !authResult.data) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = authResult.data;
+    userIdForLog = user.id;
+
+    const rateLimitResult = await rateLimiter.check(request, 20, user.id);
+    if (!rateLimitResult.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
-    const supabase = await createServerComponentClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    userIdForLog = user?.id;
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const validation = await validateRequestBody(
+      request,
+      joinSessionRequestSchema
+    );
+    if (!validation.success) {
+      return validation.error;
     }
 
-    const body = (await request.json()) as JoinSessionRequest;
-    const { sessionId, displayName, color, team } = body;
+    const { sessionId, displayName, color, team } = validation.data;
     sessionIdForLog = sessionId;
-    joinPayloadForLog = { displayName, color, team };
 
     // Use the service to join the session
-    const result = await sessionsService.joinSessionById(
-      sessionId,
-      user.id,
-      {
-        display_name: displayName,
-        color,
-        team,
-      }
-    );
+    const result = await sessionsService.joinSessionById(sessionId, user.id, {
+      display_name: displayName,
+      color,
+      team,
+    });
 
-    if (result.error) {
+    if (!result.success) {
       // Map specific error messages to appropriate HTTP status codes
       let status = 400;
-      if (result.error === 'Session not found') {
+      const errorMessage = result.error || 'Failed to join session';
+      if (errorMessage === 'Session not found or has already started.') {
         status = 404;
-      } else if (result.error === 'Already in session') {
+      } else if (errorMessage === 'Already in session') {
         status = 409;
       }
 
-      return NextResponse.json({ error: result.error }, { status });
+      return NextResponse.json({ error: errorMessage }, { status });
     }
 
-    if (!result.player) {
-      log.error('No player data returned from joinSessionById', new Error('Player data missing'), {
-        metadata: {
-          apiRoute: 'bingo/sessions/join',
-          method: 'POST',
-          userId: userIdForLog,
-          sessionId: sessionIdForLog,
-          ...joinPayloadForLog,
-        },
-      });
+    if (!result.data) {
       return NextResponse.json(
         { error: 'Failed to join session' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(result.player);
+    return NextResponse.json(result.data.player);
   } catch (error) {
     log.error(
       'Unhandled error in POST /api/bingo/sessions/join',
@@ -94,7 +73,6 @@ export async function POST(request: Request): Promise<NextResponse> {
           method: 'POST',
           userId: userIdForLog,
           sessionId: sessionIdForLog,
-          ...joinPayloadForLog,
         },
       }
     );

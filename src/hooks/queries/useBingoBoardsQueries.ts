@@ -10,8 +10,8 @@ import {
   type BoardsQueryParams,
   type CreateBoardData,
   type UpdateBoardData,
-  type BingoBoard,
 } from '../../services/bingo-boards.service';
+import type { BingoBoard } from '@/types';
 import type { CompositeTypes } from '@/types/database-generated';
 import type { ServiceResponse } from '@/lib/service-types';
 import { notifications } from '@/lib/notifications';
@@ -23,7 +23,7 @@ export function useBoardQuery(boardId?: string) {
     queryFn: () => bingoBoardsService.getBoardById(boardId || ''),
     enabled: !!boardId,
     staleTime: 2 * 60 * 1000,
-    select: data => data.success ? data.data : null,
+    select: data => (data.success ? data.data : null),
   });
 }
 
@@ -33,7 +33,7 @@ export function useBoardWithCreatorQuery(boardId?: string) {
     queryFn: () => bingoBoardsService.getBoardWithCreator(boardId || ''),
     enabled: !!boardId,
     staleTime: 2 * 60 * 1000,
-    select: data => data.success ? data.data : null,
+    select: data => (data.success ? data.data : null),
   });
 }
 
@@ -274,11 +274,12 @@ export function useUpdateBoardSettingsMutation() {
         >
       >;
       currentVersion?: number;
-    }) =>
-      bingoBoardsService.updateBoard(boardId, settings, currentVersion),
+    }) => bingoBoardsService.updateBoard(boardId, settings, currentVersion),
     onSuccess: (response: ServiceResponse<BingoBoard>, variables) => {
       if (!response.success || response.error) {
-        notifications.error(response.error || 'Failed to update board settings');
+        notifications.error(
+          response.error || 'Failed to update board settings'
+        );
         return;
       }
       notifications.success('Board settings updated successfully!');

@@ -61,7 +61,9 @@ export interface PresenceSubscriptionOptions {
 }
 
 export interface PresenceSubscriptionResult {
-  updatePresence: (status: PresenceState['status']) => Promise<ServiceResponse<void>>;
+  updatePresence: (
+    status: PresenceState['status']
+  ) => Promise<ServiceResponse<void>>;
   cleanup: () => Promise<ServiceResponse<void>>;
 }
 
@@ -91,9 +93,13 @@ class PresenceService {
         error: authError,
       } = await this.supabase.auth.getUser();
       if (authError || !user) {
-        log.error('User not authenticated for presence', authError || new Error('No user'), {
-          metadata: { boardId, service: 'presenceService' },
-        });
+        log.error(
+          'User not authenticated for presence',
+          authError || new Error('No user'),
+          {
+            metadata: { boardId, service: 'presenceService' },
+          }
+        );
         return createServiceError('User not authenticated');
       }
 
@@ -108,18 +114,17 @@ class PresenceService {
       channel
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState<PresenceStateWithRef>();
-          const typedState = Object.entries(state).reduce<Record<string, PresenceState>>(
-            (acc, [key, value]) => {
-              if (Array.isArray(value) && value[0]) {
-                const validation = presenceStateWithRefSchema.safeParse(value[0]);
-                if (validation.success) {
-                  acc[key] = convertPresence(validation.data);
-                }
+          const typedState = Object.entries(state).reduce<
+            Record<string, PresenceState>
+          >((acc, [key, value]) => {
+            if (Array.isArray(value) && value[0]) {
+              const validation = presenceStateWithRefSchema.safeParse(value[0]);
+              if (validation.success) {
+                acc[key] = convertPresence(validation.data);
               }
-              return acc;
-            },
-            {}
-          );
+            }
+            return acc;
+          }, {});
 
           log.debug('Presence state synced', {
             metadata: { boardId, userCount: Object.keys(typedState).length },
@@ -130,8 +135,9 @@ class PresenceService {
           if (newPresences?.[0]) {
             // Type guard validation for presence state
             const rawPresence = newPresences[0];
-            const validation = presenceStateWithRefSchema.safeParse(rawPresence);
-            
+            const validation =
+              presenceStateWithRefSchema.safeParse(rawPresence);
+
             if (validation.success) {
               const convertedPresence = convertPresence(validation.data);
               log.debug('User joined presence', {
@@ -162,12 +168,16 @@ class PresenceService {
               user.id,
               PRESENCE_CONSTANTS.STATUS.ONLINE
             );
-            
+
             if (!updateResult.success) {
-              reject(new Error(updateResult.error || 'Failed to update initial presence'));
+              reject(
+                new Error(
+                  updateResult.error || 'Failed to update initial presence'
+                )
+              );
               return;
             }
-            
+
             resolve();
           } else if (status === 'CHANNEL_ERROR') {
             const error = new Error('Failed to subscribe to presence channel');
@@ -358,7 +368,9 @@ class PresenceService {
         }
       );
       return createServiceError(
-        error instanceof Error ? error.message : 'Failed to cleanup all presence subscriptions'
+        error instanceof Error
+          ? error.message
+          : 'Failed to cleanup all presence subscriptions'
       );
     }
   }
@@ -376,18 +388,17 @@ class PresenceService {
 
     try {
       const state = channel.presenceState<PresenceStateWithRef>();
-      const validatedState = Object.entries(state).reduce<Record<string, PresenceState>>(
-        (acc, [key, value]) => {
-          if (Array.isArray(value) && value[0]) {
-            const validation = presenceStateWithRefSchema.safeParse(value[0]);
-            if (validation.success) {
-              acc[key] = convertPresence(validation.data);
-            }
+      const validatedState = Object.entries(state).reduce<
+        Record<string, PresenceState>
+      >((acc, [key, value]) => {
+        if (Array.isArray(value) && value[0]) {
+          const validation = presenceStateWithRefSchema.safeParse(value[0]);
+          if (validation.success) {
+            acc[key] = convertPresence(validation.data);
           }
-          return acc;
-        },
-        {}
-      );
+        }
+        return acc;
+      }, {});
 
       return createServiceSuccess(validatedState);
     } catch (error) {
@@ -399,7 +410,9 @@ class PresenceService {
         }
       );
       return createServiceError(
-        error instanceof Error ? error.message : 'Failed to get current presence state'
+        error instanceof Error
+          ? error.message
+          : 'Failed to get current presence state'
       );
     }
   }

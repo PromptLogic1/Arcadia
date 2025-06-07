@@ -93,7 +93,7 @@ function TryDemoGame() {
   // Use TanStack Query mutations
   const createSessionMutation = useCreateSessionMutation();
   const joinSessionByCodeMutation = useJoinSessionByCodeMutation();
-  
+
   // Use TanStack Query for finding waiting sessions
   const waitingSessionsQuery = useWaitingSessionsForBoards(
     quickPlayInitiated ? DEMO_BOARDS.map(b => b.id) : []
@@ -155,7 +155,7 @@ function TryDemoGame() {
           metadata: {
             component: 'TryDemoGame',
             boardId: selectedBoard.id,
-          }
+          },
         }
       );
 
@@ -179,7 +179,7 @@ function TryDemoGame() {
       // The query will automatically fetch waiting sessions
       const waitingSessions = await waitingSessionsQuery.refetch();
       const { boardId, sessions } = waitingSessions.data || {};
-      
+
       if (boardId && sessions && sessions.length > 0) {
         const session = sessions[0];
         if (!session || !session.session_code) {
@@ -211,7 +211,7 @@ function TryDemoGame() {
         DEMO_BOARDS[Math.floor(Math.random() * DEMO_BOARDS.length)];
       if (randomBoard) {
         setSelectedBoard(randomBoard);
-        
+
         const result = await createSessionMutation.mutateAsync({
           board_id: randomBoard.id,
           host_id: authUser.id,
@@ -252,7 +252,7 @@ function TryDemoGame() {
           metadata: {
             component: 'TryDemoGame',
             feature: 'quick-play',
-          }
+          },
         }
       );
       setError(err instanceof Error ? err.message : 'Failed to join session');

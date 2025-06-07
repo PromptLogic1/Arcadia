@@ -1,79 +1,122 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { z } from 'zod';
+import { sessionsService } from '@/services/sessions.service';
+import { boardCellSchema } from '@/lib/validation/schemas/common';
+import { withErrorHandling } from '@/lib/error-handler';
+import { validateRequestBody } from '@/lib/validation/middleware';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { log } from '@/lib/logger';
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const supabase = createClient();
-    const { board_state, version } = await request.json();
+// Request validation schemas
+const updateBoardStateSchema = z.object({
+  board_state: z.array(boardCellSchema),
+  version: z.number().int().min(0),
+});
 
-    // Optimistic locking check
-    const { data: currentSession } = await supabase
-      .from('bingo_sessions')
-      .select('version, current_state')
-      .eq('id', params.id)
-      .single();
+type UpdateBoardStateRequest = z.infer<typeof updateBoardStateSchema>;
 
-    if (currentSession?.version !== version) {
+export const PATCH = withErrorHandling(
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimiter.check(request, 30, params.id);
+
+    if (!rateLimitResult.success) {
       return NextResponse.json(
+        { error: 'Too many requests' },
         {
-          error: 'Session state conflict',
-          current_version: currentSession?.version,
-        },
-        { status: 409 }
+          status: 429,
+        }
       );
     }
 
-    // Update session with new board state
-    const { data, error } = await supabase
-      .from('bingo_sessions')
-      .update({
-        current_state: board_state,
-        version: version + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', params.id)
-      .select()
-      .single();
+    // Parse and validate request body
+    const validationResult = await validateRequestBody(
+      request,
+      updateBoardStateSchema
+    );
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!validationResult.success) {
+      return validationResult.error;
     }
 
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    const { board_state, version }: UpdateBoardStateRequest =
+      validationResult.data;
+
+    // Use service to update board state with optimistic locking
+    const result = await sessionsService.updateBoardState(
+      params.id,
+      board_state,
+      version
     );
-  }
-}
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const supabase = createClient();
+    if (result.error) {
+      // Check if it's a version conflict
+      if (result.error.includes('Version conflict')) {
+        log.info('Board state version conflict', {
+          metadata: {
+            sessionId: params.id,
+            requestedVersion: version,
+            apiRoute: 'bingo/sessions/[id]/board-state',
+            method: 'PATCH',
+          },
+        });
 
-    const { data, error } = await supabase
-      .from('bingo_sessions')
-      .select('current_state, version')
-      .eq('id', params.id)
-      .single();
+        return NextResponse.json({ error: result.error }, { status: 409 });
+      }
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      log.error('Failed to update board state', new Error(result.error), {
+        metadata: {
+          sessionId: params.id,
+          apiRoute: 'bingo/sessions/[id]/board-state',
+          method: 'PATCH',
+        },
+      });
+
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json(result.data);
   }
-}
+);
+
+export const GET = withErrorHandling(
+  async (request: NextRequest, { params }: { params: { id: string } }) => {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimiter.check(request, 60, params.id);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+        }
+      );
+    }
+
+    // Use service to get session board state
+    const result = await sessionsService.getSessionById(params.id);
+
+    if (result.error) {
+      log.error('Failed to get session board state', new Error(result.error), {
+        metadata: {
+          sessionId: params.id,
+          apiRoute: 'bingo/sessions/[id]/board-state',
+          method: 'GET',
+        },
+      });
+
+      return NextResponse.json({ error: result.error }, { status: 404 });
+    }
+
+    if (!result.data) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    // Return only the board state and version
+    return NextResponse.json({
+      current_state: result.data.current_state,
+      version: result.data.version,
+    });
+  }
+);

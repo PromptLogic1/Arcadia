@@ -1,69 +1,66 @@
 import { NextResponse } from 'next/server';
-import { bingoBoardsService } from '@/src/services/bingo-boards.service';
-import { authService } from '@/src/services/auth.service';
-import type { CompositeTypes, Enums } from '@/types/database-generated';
-import { DIFFICULTIES, GAME_CATEGORIES } from '@/src/types/index';
-import { RateLimiter } from '@/lib/rate-limiter';
+import type { NextRequest } from 'next/server';
+import { bingoBoardsService } from '@/services/bingo-boards.service';
+import { authService } from '@/services/auth.service';
+import {
+  getBingoBoardsQuerySchema,
+  createBingoBoardSchema,
+} from '@/lib/validation/schemas/bingo';
+import {
+  validateQueryParams,
+  validateRequestBody,
+} from '@/lib/validation/middleware';
+import { rateLimiter } from '@/lib/rate-limiter';
 import { log } from '@/lib/logger';
 
-const rateLimiter = new RateLimiter();
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const rateLimitResult = await rateLimiter.check(request, 60, ip);
 
-// Type aliases
-type BoardCell = CompositeTypes<'board_cell'>;
-type BoardSettings = CompositeTypes<'board_settings'>;
-type GameCategory = Enums<'game_category'>;
-type DifficultyLevel = Enums<'difficulty_level'>;
+  if (!rateLimitResult.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
 
-interface CreateBoardRequest {
-  title: string;
-  size: number;
-  settings: BoardSettings;
-  game_type: GameCategory;
-  difficulty: DifficultyLevel;
-  is_public: boolean;
-  board_state: BoardCell[];
-}
-
-// Helper function to validate enum values (using database-derived constants)
-function isValidGameCategory(value: string | null): value is GameCategory {
-  return value !== null && GAME_CATEGORIES.includes(value as GameCategory);
-}
-
-function isValidDifficultyLevel(
-  value: string | null
-): value is DifficultyLevel {
-  return value !== null && DIFFICULTIES.includes(value as DifficultyLevel);
-}
-
-export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const game = searchParams.get('game');
-    const difficulty = searchParams.get('difficulty');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const validation = validateQueryParams(
+      searchParams,
+      getBingoBoardsQuerySchema
+    );
 
-    // Validate enum values
-    const validGame = game && isValidGameCategory(game) ? game : null;
-    const validDifficulty = difficulty && isValidDifficultyLevel(difficulty) ? difficulty : null;
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { game, difficulty, limit, offset } = validation.data;
+
+    const numericLimit = typeof limit === 'number' ? limit : undefined;
+    const numericOffset = typeof offset === 'number' ? offset : undefined;
 
     // Use service layer to fetch boards
     const response = await bingoBoardsService.getBoards({
-      game: validGame,
-      difficulty: validDifficulty,
-      limit,
-      offset,
+      game: game || null,
+      difficulty: difficulty || null,
+      limit: numericLimit,
+      offset: numericOffset,
     });
 
-    if (!response.success || !response.data) {
-      log.error('Error fetching bingo boards', new Error(response.error || 'Unknown error'), {
-        metadata: {
-          apiRoute: 'bingo',
-          method: 'GET',
-          filters: { game, difficulty, limit, offset },
-        },
-      });
-      return NextResponse.json({ error: response.error || 'Failed to fetch boards' }, { status: 500 });
+    if (response.error || !response.data) {
+      log.error(
+        'Error fetching bingo boards',
+        new Error(response.error || 'Unknown error'),
+        {
+          metadata: {
+            apiRoute: 'bingo',
+            method: 'GET',
+            filters: { game, difficulty, limit, offset },
+          },
+        }
+      );
+      return NextResponse.json(
+        { error: response.error || 'Failed to fetch boards' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(response.data);
@@ -78,23 +75,28 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 }
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const authResponse = await authService.getCurrentUser();
+
+  if (authResponse.error || !authResponse.data) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const user = authResponse.data;
+
+  const rateLimitResult = await rateLimiter.check(request, 15, user.id);
+  if (!rateLimitResult.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    if (await rateLimiter.isLimited(ip)) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    const validation = await validateRequestBody(
+      request,
+      createBingoBoardSchema
+    );
+    if (!validation.success) {
+      return validation.error;
     }
 
-    // Use service layer for authentication
-    const authResponse = await authService.getCurrentUser();
-
-    if (!authResponse.success || !authResponse.data) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = authResponse.data;
-
-    const body = (await request.json()) as CreateBoardRequest;
     const {
       title,
       size,
@@ -103,19 +105,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       difficulty,
       is_public,
       board_state,
-    } = body;
-
-    // Validate enum values
-    if (!isValidGameCategory(game_type)) {
-      return NextResponse.json({ error: 'Invalid game type' }, { status: 400 });
-    }
-
-    if (!isValidDifficultyLevel(difficulty)) {
-      return NextResponse.json(
-        { error: 'Invalid difficulty level' },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     // Use service layer to create board
     const createResponse = await bingoBoardsService.createBoardFromAPI({
@@ -124,29 +114,36 @@ export async function POST(request: Request): Promise<NextResponse> {
       settings,
       game_type,
       difficulty,
-      is_public,
+      is_public: is_public ?? false,
       board_state,
       userId: user.id,
     });
 
-    if (!createResponse.success || !createResponse.data) {
-      log.error('Error creating bingo board', new Error(createResponse.error || 'Unknown error'), {
-        metadata: {
-          apiRoute: 'bingo',
-          method: 'POST',
-          userId: user.id,
-          boardData: {
-            title,
-            size,
-            settings,
-            game_type,
-            difficulty,
-            is_public,
-            board_state,
+    if (createResponse.error || !createResponse.data) {
+      log.error(
+        'Error creating bingo board',
+        new Error(createResponse.error || 'Unknown error'),
+        {
+          metadata: {
+            apiRoute: 'bingo',
+            method: 'POST',
+            userId: user.id,
+            boardData: {
+              title,
+              size,
+              settings,
+              game_type,
+              difficulty,
+              is_public,
+              board_state,
+            },
           },
-        },
-      });
-      return NextResponse.json({ error: createResponse.error || 'Failed to create board' }, { status: 500 });
+        }
+      );
+      return NextResponse.json(
+        { error: createResponse.error || 'Failed to create board' },
+        { status: 500 }
+      );
     }
 
     const board = createResponse.data;
