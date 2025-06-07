@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify your identity</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background-color: #0a0a0a;
+      color: #ffffff;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00ffff;
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+    
+    h2 {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 10px 0;
+    }
+    
+    .subtitle {
+      color: #999999;
+      font-size: 16px;
+      margin: 0;
+    }
+    
+    .content {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+      border: 1px solid #333333;
+      border-radius: 12px;
+      padding: 40px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .message {
+      color: #cccccc;
+      font-size: 16px;
+      margin-bottom: 30px;
+    }
+    
+    .code-box {
+      background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(142, 68, 173, 0.05) 100%);
+      border: 2px solid #9b59b6;
+      border-radius: 12px;
+      padding: 30px;
+      margin: 30px 0;
+    }
+    
+    .code-label {
+      color: #9b59b6;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+    }
+    
+    .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 36px;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: 8px;
+      background: #0a0a0a;
+      padding: 20px;
+      border-radius: 8px;
+      user-select: all;
+      cursor: pointer;
+    }
+    
+    .code:hover {
+      background: #1a1a1a;
+    }
+    
+    .copy-hint {
+      color: #666666;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    
+    .security-notice {
+      background: rgba(155, 89, 182, 0.05);
+      border: 1px solid rgba(155, 89, 182, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 30px 0;
+    }
+    
+    .security-notice h3 {
+      color: #9b59b6;
+      font-size: 14px;
+      margin: 0 0 15px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .security-notice ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+    }
+    
+    .security-notice li {
+      color: #cccccc;
+      font-size: 14px;
+      margin-bottom: 10px;
+      padding-left: 25px;
+      position: relative;
+    }
+    
+    .security-notice li::before {
+      content: "🔒";
+      position: absolute;
+      left: 0;
+    }
+    
+    .info-box {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 30px 0;
+    }
+    
+    .info-box p {
+      color: #888888;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+    
+    .info-box strong {
+      color: #cccccc;
+    }
+    
+    .footer {
+      text-align: center;
+      color: #666666;
+      font-size: 14px;
+      margin-top: 40px;
+    }
+    
+    .footer p {
+      margin: 5px 0;
+    }
+    
+    .footer a {
+      color: #00cccc;
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px 15px;
+      }
+      
+      .content {
+        padding: 30px 20px;
+      }
+      
+      h2 {
+        font-size: 24px;
+      }
+      
+      .code {
+        font-size: 28px;
+        letter-spacing: 5px;
+        padding: 15px;
+      }
+      
+      .icon {
+        width: 60px;
+        height: 60px;
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="{{ .SiteURL }}" class="logo">ARCADIA</a>
+      <div class="icon">🛡️</div>
+      <h2>Verify Your Identity</h2>
+      <p class="subtitle">Additional security check required</p>
+    </div>
+    
+    <div class="content">
+      <p class="message">
+        For your security, we need to verify your identity before proceeding with this sensitive action. Please enter the verification code below.
+      </p>
+      
+      <div class="code-box">
+        <div class="code-label">Verification Code</div>
+        <div class="code">{{ .Token }}</div>
+        <div class="copy-hint">Click to select • Valid for 10 minutes</div>
+      </div>
+      
+      <div class="security-notice">
+        <h3>Why This Extra Step?</h3>
+        <ul>
+          <li>You're performing a sensitive action</li>
+          <li>This protects your account from unauthorized changes</li>
+          <li>The code expires in 10 minutes for security</li>
+          <li>Each code can only be used once</li>
+        </ul>
+      </div>
+      
+      <div class="info-box">
+        <p><strong>Having trouble?</strong></p>
+        <p>• Make sure you're entering the code exactly as shown</p>
+        <p>• The code is case-sensitive</p>
+        <p>• If expired, request a new code</p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>If you didn't request this verification, please secure your account immediately.</p>
+      <p>&copy; 2025 Arcadia. All rights reserved. | <a href="{{ .SiteURL }}/support">Support</a> | <a href="{{ .SiteURL }}/security">Security Center</a></p>
+    </div>
+  </div>
+</body>
+</html>

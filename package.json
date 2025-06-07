@@ -39,7 +39,8 @@
     "db:types:generate": "supabase gen types typescript --local > types/database-generated.ts",
     "seed:demo": "tsx scripts/seed-demo-boards.ts seed",
     "seed:demo:clear": "tsx scripts/seed-demo-boards.ts clear",
-    "seed:demo:verify": "tsx scripts/seed-demo-boards.ts verify"
+    "seed:demo:verify": "tsx scripts/seed-demo-boards.ts verify",
+    "test:migration": "tsx scripts/test-migration.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
