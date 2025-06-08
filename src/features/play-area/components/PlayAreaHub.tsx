@@ -375,7 +375,9 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           {error && (
             <Card className="border-red-500/50 bg-red-900/20">
               <CardContent className="pt-6">
-                <p className="text-red-400">{error.message || String(error)}</p>
+                <p className="text-red-400">
+                  {error instanceof Error ? error.message : 'Failed to load sessions'}
+                </p>
               </CardContent>
             </Card>
           )}

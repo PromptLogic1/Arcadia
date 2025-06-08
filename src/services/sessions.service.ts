@@ -34,6 +34,15 @@ export interface SessionWithStats extends BingoSession {
   host_username?: string | null;
 }
 
+// Helper to convert Supabase errors to standard Error objects
+function toStandardError(error: { message: string; code?: string; details?: string }): Error {
+  const err = new Error(error.message);
+  if (error.code) {
+    (err as Error & { code?: string }).code = error.code;
+  }
+  return err;
+}
+
 // API payload types
 export interface CreateSessionData {
   board_id: string;
@@ -81,11 +90,13 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        log.error('Failed to get session by ID', error, {
+        log.error('Failed to get session by ID', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'getSessionById',
             sessionId,
+            errorCode: error.code,
+            errorDetails: error.details,
           },
         });
         return createServiceError(error.message);
@@ -135,13 +146,19 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        log.error('Failed to get session by code', error, {
-          metadata: {
-            service: 'sessions.service',
-            method: 'getSessionByCode',
-            sessionCode,
-          },
-        });
+        log.error(
+          'Failed to get session by code',
+          toStandardError(error),
+          {
+            metadata: {
+              service: 'sessions.service',
+              method: 'getSessionByCode',
+              sessionCode,
+              errorCode: error.code,
+              errorDetails: error.details,
+            },
+          }
+        );
         return createServiceError(error.message);
       }
 
@@ -219,7 +236,7 @@ export const sessionsService = {
         .range(start, end);
 
       if (error) {
-        log.error('Failed to get active sessions', error, {
+        log.error('Failed to get active sessions', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'getActiveSessions',
@@ -297,7 +314,7 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        log.error('Failed to create session', error, {
+        log.error('Failed to create session', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'createSession',
@@ -554,7 +571,7 @@ export const sessionsService = {
         .eq('user_id', userId);
 
       if (error) {
-        log.error('Failed to leave session', error, {
+        log.error('Failed to leave session', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'leaveSession',
@@ -638,7 +655,7 @@ export const sessionsService = {
         .eq('session_id', sessionId);
 
       if (error) {
-        log.error('Failed to get session players', error, {
+        log.error('Failed to get session players', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'getSessionPlayers',
@@ -747,7 +764,7 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        log.error('Failed to update player', error, {
+        log.error('Failed to update player', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'updatePlayer',
@@ -900,7 +917,7 @@ export const sessionsService = {
       const { data, error } = await query;
 
       if (error) {
-        log.error('Failed to get sessions by board ID', error, {
+        log.error('Failed to get sessions by board ID', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'getSessionsByBoardId',
@@ -1167,7 +1184,7 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        log.error('Failed to update board state', error, {
+        log.error('Failed to update board state', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'updateBoardState',
@@ -1225,7 +1242,7 @@ export const sessionsService = {
         .eq('id', sessionId);
 
       if (error) {
-        log.error('Failed to delete session', error, {
+        log.error('Failed to delete session', toStandardError(error), {
           metadata: {
             service: 'sessions.service',
             method: 'deleteSession',

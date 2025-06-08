@@ -110,7 +110,11 @@ export interface BoardWithCreator extends GameBoardDomain {
 const _transformDbBoardToDomain = (
   board: Tables<'bingo_boards'>
 ): BingoBoardDomain | null => {
-  const boardStateParseResult = zBoardState.safeParse(board.board_state);
+  // Handle null board_state by providing empty array default
+  const boardStateValue = board.board_state ?? [];
+  const boardStateParseResult = zBoardState.safeParse(boardStateValue);
+  
+  // Settings can be null in the schema
   const settingsParseResult = sessionSettingsSchema.safeParse(board.settings);
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {

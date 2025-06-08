@@ -182,6 +182,12 @@ const nextConfig: NextConfig = {
       },
     });
 
+    // Suppress Supabase realtime-js critical dependency warning
+    config.module = {
+      ...config.module,
+      exprContextCritical: false,
+    };
+
     // Essential: Always return the config
     return config;
   },

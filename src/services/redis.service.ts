@@ -5,7 +5,7 @@
  * All operations return ServiceResponse for consistent error handling.
  */
 
-import { getRedisClient, createRedisKey, REDIS_PREFIXES } from '@/lib/redis';
+import { getRedisClient, createRedisKey, REDIS_PREFIXES, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -22,6 +22,13 @@ export const redisService = {
     value: unknown,
     ttlSeconds?: number
   ): Promise<ServiceResponse<void>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - skipping SET operation', {
+        metadata: { key },
+      });
+      return createServiceSuccess(undefined);
+    }
+
     try {
       const redis = getRedisClient();
 
@@ -55,6 +62,13 @@ export const redisService = {
    * Returns unknown type - caller should validate/parse as needed
    */
   async get(key: string): Promise<ServiceResponse<unknown>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - returning null for GET operation', {
+        metadata: { key },
+      });
+      return createServiceSuccess(null);
+    }
+
     try {
       const redis = getRedisClient();
       const value = await redis.get(key);
@@ -264,6 +278,26 @@ export const cacheService = {
     fetcher: () => Promise<T>,
     ttlSeconds = 300
   ): Promise<ServiceResponse<T>> {
+    // If Redis is not configured, just fetch directly
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - fetching directly', {
+        metadata: { key },
+      });
+      try {
+        const fresh = await fetcher();
+        return createServiceSuccess(fresh);
+      } catch (error) {
+        log.error(
+          'Direct fetch failed',
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            metadata: { key },
+          }
+        );
+        return createServiceError('Failed to fetch data');
+      }
+    }
+
     // Try to get from cache first
     const cached = await redisService.get(key);
 

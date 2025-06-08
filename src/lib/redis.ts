@@ -12,6 +12,15 @@ import { log } from '@/lib/logger';
 let redisClient: Redis | null = null;
 
 /**
+ * Check if Redis is configured
+ */
+export function isRedisConfigured(): boolean {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  return !!(url && token);
+}
+
+/**
  * Get Redis client instance with production-ready configuration
  * Uses singleton pattern to ensure single connection
  */
