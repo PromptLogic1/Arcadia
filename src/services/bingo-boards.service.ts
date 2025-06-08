@@ -130,21 +130,16 @@ const _transformDbBoardToDomain = (
   const settingsParseResult = zBoardSettings.safeParse(settingsValue);
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {
-    log.error(
-      'Failed to parse board state or settings from DB',
-      new Error('Board data parsing failed'),
-      {
-        metadata: {
-          boardId: board.id,
-          boardStateError: boardStateParseResult.success
-            ? undefined
-            : boardStateParseResult.error,
-          settingsError: settingsParseResult.success
-            ? undefined
-            : settingsParseResult.error,
-        },
-      }
-    );
+    // Log as debug/warn instead of error to reduce Sentry noise
+    // Invalid boards are expected and filtered out gracefully
+    log.debug('Skipping board with invalid data format', {
+      metadata: {
+        boardId: board.id,
+        reason: 'Invalid board_state or settings format',
+        boardStateValid: boardStateParseResult.success,
+        settingsValid: settingsParseResult.success,
+      },
+    });
     return null;
   }
 

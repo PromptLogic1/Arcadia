@@ -23,13 +23,33 @@ export function isRedisConfigured(): boolean {
 /**
  * Get Redis client instance with production-ready configuration
  * Uses singleton pattern to ensure single connection
+ * 
+ * IMPORTANT: Always call isRedisConfigured() before calling this function!
  */
 export function getRedisClient(): Redis {
+  // Always check configuration first - this should never be called without checking
+  if (!isRedisConfigured()) {
+    const error = new Error(
+      'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
+    );
+    log.warn(
+      'getRedisClient() called without checking isRedisConfigured() first',
+      {
+        metadata: {
+          error: error.message,
+          warning: 'This should be checked before calling getRedisClient()',
+        },
+      }
+    );
+    throw error;
+  }
+
   if (!redisClient) {
     // Enhanced configuration with retry logic and performance optimizations
     const url = process.env.UPSTASH_REDIS_REST_URL;
     const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+    // Double-check since we already verified in isRedisConfigured()
     if (!url || !token) {
       const error = new Error(
         'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'

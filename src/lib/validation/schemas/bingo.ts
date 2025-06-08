@@ -91,7 +91,7 @@ export const boardStateSchema = zBoardState; // Alias for compatibility
 // Bingo board schema
 export const bingoBoardSchema = z.object({
   id: z.string(),
-  created_at: z.string().datetime(),
+  created_at: z.string().nullable(), // More permissive for DB data
   updated_at: z.string().nullable(),
   title: z.string(),
   description: z.string().nullable(),
@@ -120,14 +120,14 @@ export const bingoCardSchema = z.object({
   is_public: z.boolean().nullable(),
   votes: z.number().int().nullable(),
   creator_id: z.string().nullable(),
-  created_at: z.string().nullable(),
-  updated_at: z.string().nullable(),
+  created_at: z.string().nullable(), // More permissive for DB data
+  updated_at: z.string().nullable(), // More permissive for DB data
 });
 
 // Bingo session schema
 export const bingoSessionSchema = z.object({
   id: z.string(),
-  created_at: z.string().datetime().nullable(), // Allow null from database
+  created_at: z.string().nullable(), // More permissive for DB data
   board_id: z.string(),
   host_id: z.string(),
   status: z.enum(['waiting', 'active', 'completed', 'cancelled']),
@@ -135,9 +135,9 @@ export const bingoSessionSchema = z.object({
   winner_id: z.string().nullable(),
   current_state: zBoardState.nullable(),
   version: z.number().int().nullable(),
-  updated_at: z.string().datetime().nullable(), // Ensure datetime validation
-  started_at: z.string().datetime().nullable(), // Ensure datetime validation
-  ended_at: z.string().datetime().nullable(), // Ensure datetime validation
+  updated_at: z.string().nullable(), // More permissive for DB data
+  started_at: z.string().nullable(), // More permissive for DB data
+  ended_at: z.string().nullable(), // More permissive for DB data
   settings: sessionSettingsSchema.nullable(),
 });
 
@@ -147,17 +147,17 @@ export const bingoSessionPlayerSchema = z.object({
   session_id: z.string().uuid(),
   user_id: z.string(),
   display_name: z.string(),
-  joined_at: z.string().nullable(),
+  joined_at: z.string().nullable(), // More permissive for DB data
   team: z.number().int().nullable(),
   score: z.number().int().nullable(),
   color: z.string(),
   is_ready: z.boolean().nullable(),
   is_host: z.boolean().nullable(),
   avatar_url: z.string().nullable(),
-  created_at: z.string().nullable(),
-  left_at: z.string().nullable(),
+  created_at: z.string().nullable(), // More permissive for DB data
+  left_at: z.string().nullable(), // More permissive for DB data
   position: z.number().nullable(),
-  updated_at: z.string().nullable(),
+  updated_at: z.string().nullable(), // More permissive for DB data
 });
 
 // Board collections schema
@@ -167,8 +167,8 @@ export const boardCollectionSchema = z.object({
   description: z.string().nullable(),
   owner_id: z.string().nullable(),
   is_public: z.boolean().nullable(),
-  created_at: z.string().nullable(),
-  updated_at: z.string().nullable(),
+  created_at: z.string().nullable(), // More permissive for DB data
+  updated_at: z.string().nullable(), // More permissive for DB data
   board_count: z.number().int().nullable(),
   tags: z.array(z.string()).nullable(),
   featured: z.boolean().nullable(),
@@ -179,7 +179,7 @@ export const boardCollectionSchema = z.object({
 export const collectionBoardsSchema = z.object({
   collection_id: z.string().uuid(),
   board_id: z.string().uuid(),
-  added_at: z.string().nullable(),
+  added_at: z.string().nullable(), // More permissive for DB data
   display_order: z.number().int().nullable(),
 });
 
@@ -187,7 +187,7 @@ export const collectionBoardsSchema = z.object({
 export const boardBookmarkSchema = z.object({
   user_id: z.string(),
   board_id: z.string().uuid(),
-  created_at: z.string().nullable(),
+  created_at: z.string().nullable(), // More permissive for DB data
 });
 
 // Queue entry schema
@@ -199,10 +199,10 @@ export const queueEntrySchema = z.object({
   color: z.string(),
   team: z.number().int().nullable(),
   status: queueStatusSchema.nullable(),
-  created_at: z.string().nullable(),
-  updated_at: z.string().nullable(),
-  requested_at: z.string().nullable(),
-  processed_at: z.string().nullable(),
+  created_at: z.string().nullable(), // More permissive for DB data
+  updated_at: z.string().nullable(), // More permissive for DB data
+  requested_at: z.string().nullable(), // More permissive for DB data
+  processed_at: z.string().nullable(), // More permissive for DB data
 });
 
 // Schema for session_stats view which includes additional fields

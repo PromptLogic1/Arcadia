@@ -137,6 +137,13 @@ export const redisService = {
    * Delete a key
    */
   async delete(key: string): Promise<ServiceResponse<number>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - skipping DELETE operation', {
+        metadata: { key },
+      });
+      return createServiceSuccess(0);
+    }
+
     try {
       const redis = getRedisClient();
       const deleted = await redis.del(key);
@@ -163,6 +170,13 @@ export const redisService = {
    * Check if key exists
    */
   async exists(key: string): Promise<ServiceResponse<boolean>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - returning false for EXISTS operation', {
+        metadata: { key },
+      });
+      return createServiceSuccess(false);
+    }
+
     try {
       const redis = getRedisClient();
       const exists = await redis.exists(key);
@@ -189,6 +203,13 @@ export const redisService = {
    * Increment a counter
    */
   async increment(key: string, by = 1): Promise<ServiceResponse<number>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - returning 0 for INCREMENT operation', {
+        metadata: { key, by },
+      });
+      return createServiceSuccess(0);
+    }
+
     try {
       const redis = getRedisClient();
       const newValue = await redis.incrby(key, by);
@@ -218,6 +239,13 @@ export const redisService = {
     key: string,
     ttlSeconds: number
   ): Promise<ServiceResponse<boolean>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - returning false for EXPIRE operation', {
+        metadata: { key, ttlSeconds },
+      });
+      return createServiceSuccess(false);
+    }
+
     try {
       const redis = getRedisClient();
       const result = await redis.expire(key, ttlSeconds);
