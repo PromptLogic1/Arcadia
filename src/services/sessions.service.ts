@@ -384,7 +384,7 @@ export const sessionsService = {
         .eq('session_id', joinData.session_id)
         .eq('user_id', joinData.user_id);
 
-      if (playerCheckError) throw playerCheckError;
+      if (playerCheckError) throw toStandardError(playerCheckError);
       if (existingPlayer && existingPlayer > 0) {
         return createServiceError('Player already in session');
       }
@@ -396,7 +396,7 @@ export const sessionsService = {
         .eq('session_id', joinData.session_id)
         .eq('color', joinData.color);
 
-      if (colorCheckError) throw colorCheckError;
+      if (colorCheckError) throw toStandardError(colorCheckError);
       if (colorTaken && colorTaken > 0) {
         return createServiceError('Color already taken');
       }
@@ -754,7 +754,7 @@ export const sessionsService = {
           .eq('color', updates.color)
           .not('user_id', 'eq', userId);
 
-        if (colorCheckError) throw colorCheckError;
+        if (colorCheckError) throw toStandardError(colorCheckError);
         if (colorTaken && colorTaken > 0) {
           return createServiceError('Color already taken');
         }
@@ -1084,7 +1084,7 @@ export const sessionsService = {
         .eq('user_id', userId);
 
       if (playerCheckError) {
-        throw playerCheckError;
+        throw toStandardError(playerCheckError);
       }
 
       if (existingPlayer && existingPlayer > 0) {

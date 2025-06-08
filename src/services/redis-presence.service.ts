@@ -268,9 +268,27 @@ class RedisPresenceService {
         return createServiceError('User presence not found');
       }
 
-      const currentPresence = presenceStateSchema.parse(
-        JSON.parse(currentPresenceStr as string)
-      );
+      // Handle invalid JSON data gracefully
+      let parsedPresence;
+      try {
+        parsedPresence = JSON.parse(currentPresenceStr as string);
+      } catch (parseError) {
+        log.warn('Invalid JSON data in presence, removing and recreating', {
+          metadata: {
+            userId,
+            presenceData: (currentPresenceStr as string).substring(0, 100),
+            parseError:
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError),
+          },
+        });
+        // Remove invalid presence data and return error
+        await redis.del(userPresenceKey);
+        return createServiceError('Invalid presence data, please reconnect');
+      }
+
+      const currentPresence = presenceStateSchema.parse(parsedPresence);
 
       // Update presence
       const updatedPresence: PresenceState = {
@@ -424,9 +442,28 @@ class RedisPresenceService {
 
         if (presenceStr) {
           try {
-            const presence = presenceStateSchema.parse(
-              JSON.parse(presenceStr as string)
-            );
+            // Handle invalid JSON data gracefully
+            let parsedPresence;
+            try {
+              parsedPresence = JSON.parse(presenceStr as string);
+            } catch (jsonError) {
+              log.warn('Invalid JSON data in board presence, skipping user', {
+                metadata: {
+                  boardId,
+                  userId,
+                  presenceData: (presenceStr as string).substring(0, 100),
+                  jsonError:
+                    jsonError instanceof Error
+                      ? jsonError.message
+                      : String(jsonError),
+                },
+              });
+              // Remove invalid presence data
+              await redis.del(userPresenceKey);
+              return null;
+            }
+
+            const presence = presenceStateSchema.parse(parsedPresence);
             return [userId, presence] as const;
           } catch (parseError) {
             log.warn('Invalid presence data found', {
@@ -648,9 +685,28 @@ class RedisPresenceService {
 
         if (presenceStr) {
           try {
-            const presence = presenceStateSchema.parse(
-              JSON.parse(presenceStr as string)
-            );
+            // Handle invalid JSON data gracefully
+            let parsedPresence;
+            try {
+              parsedPresence = JSON.parse(presenceStr as string);
+            } catch (jsonError) {
+              log.warn('Invalid JSON data in user presence, skipping board', {
+                metadata: {
+                  boardId,
+                  userId,
+                  presenceData: (presenceStr as string).substring(0, 100),
+                  jsonError:
+                    jsonError instanceof Error
+                      ? jsonError.message
+                      : String(jsonError),
+                },
+              });
+              // Remove invalid presence data
+              await redis.del(userPresenceKey);
+              return null;
+            }
+
+            const presence = presenceStateSchema.parse(parsedPresence);
             return [boardId, presence] as const;
           } catch (parseError) {
             log.warn('Invalid presence data found for user', {

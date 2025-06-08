@@ -276,7 +276,28 @@ class RedisQueueService {
 
       // Atomically remove and move to processing
       const jobData = jobs[0] as string;
-      const job = jobDataSchema.parse(JSON.parse(jobData));
+
+      // Handle invalid JSON data gracefully
+      let parsedData;
+      try {
+        parsedData = JSON.parse(jobData);
+      } catch (parseError) {
+        log.warn('Invalid JSON data in queue, skipping job', {
+          metadata: {
+            queueName,
+            jobData: jobData.substring(0, 100), // Log first 100 chars only
+            parseError:
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError),
+          },
+        });
+        // Remove the invalid job and continue
+        await redis.lpop(queueKey);
+        return createServiceSuccess(null);
+      }
+
+      const job = jobDataSchema.parse(parsedData);
 
       // Use Lua script for atomic pop and move to processing
       const processScript = `
@@ -596,7 +617,28 @@ class RedisQueueService {
 
       for (let i = 0; i < readyJobs.length; i += 2) {
         const jobData = readyJobs[i] as string;
-        const job = jobDataSchema.parse(JSON.parse(jobData));
+
+        // Handle invalid JSON data gracefully
+        let parsedData;
+        try {
+          parsedData = JSON.parse(jobData);
+        } catch (parseError) {
+          log.warn('Invalid JSON data in delayed queue, skipping job', {
+            metadata: {
+              queueName,
+              jobData: jobData.substring(0, 100), // Log first 100 chars only
+              parseError:
+                parseError instanceof Error
+                  ? parseError.message
+                  : String(parseError),
+            },
+          });
+          // Remove the invalid job and continue
+          await redis.zrem(delayedKey, jobData);
+          continue;
+        }
+
+        const job = jobDataSchema.parse(parsedData);
 
         // Move to pending queue with priority
         await redis.zadd(queueKey, { score: -job.priority, member: jobData });
@@ -719,7 +761,31 @@ class RedisQueueService {
           const jobData = await redis.get(key);
           if (jobData) {
             try {
-              const job = jobDataSchema.parse(JSON.parse(jobData as string));
+              // Handle invalid JSON data gracefully
+              let parsedData;
+              try {
+                parsedData = JSON.parse(jobData as string);
+              } catch (parseError) {
+                log.warn(
+                  'Invalid JSON data in processing cleanup, removing job',
+                  {
+                    metadata: {
+                      key,
+                      jobData: (jobData as string).substring(0, 100), // Log first 100 chars only
+                      parseError:
+                        parseError instanceof Error
+                          ? parseError.message
+                          : String(parseError),
+                    },
+                  }
+                );
+                // Remove the invalid job
+                await redis.del(key);
+                cleanedCount++;
+                continue;
+              }
+
+              const job = jobDataSchema.parse(parsedData);
               await this.failJob(job, 'Job processing timeout');
               cleanedCount++;
             } catch (parseError) {

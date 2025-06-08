@@ -114,14 +114,14 @@ export interface BoardWithCreator extends GameBoardDomain {
 const _transformDbBoardToDomain = (
   board: Tables<'bingo_boards'>
 ): BingoBoardDomain | null => {
-  // Handle null board_state by providing empty array default
+  // Handle null/undefined board_state by providing empty array default
   // board_state is expected to be an array of board_cell objects
-  const boardStateValue = board.board_state === null ? [] : board.board_state;
+  const boardStateValue = board.board_state ?? [];
   const boardStateParseResult = zBoardState.safeParse(boardStateValue);
 
   // Settings should use zBoardSettings schema, not sessionSettingsSchema
-  // Provide proper default values for board settings
-  const settingsValue = board.settings ?? {
+  // Provide proper default values for board settings - handle all falsy values
+  const settingsValue = board.settings || {
     team_mode: null,
     lockout: null,
     sound_enabled: null,
@@ -130,7 +130,7 @@ const _transformDbBoardToDomain = (
   const settingsParseResult = zBoardSettings.safeParse(settingsValue);
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {
-    // Log as debug/warn instead of error to reduce Sentry noise
+    // Log as debug instead of error to reduce Sentry noise
     // Invalid boards are expected and filtered out gracefully
     log.debug('Skipping board with invalid data format', {
       metadata: {
@@ -138,6 +138,14 @@ const _transformDbBoardToDomain = (
         reason: 'Invalid board_state or settings format',
         boardStateValid: boardStateParseResult.success,
         settingsValid: settingsParseResult.success,
+        boardStateError: boardStateParseResult.success
+          ? null
+          : boardStateParseResult.error.message,
+        settingsError: settingsParseResult.success
+          ? null
+          : settingsParseResult.error.message,
+        originalBoardState: board.board_state,
+        originalSettings: board.settings,
       },
     });
     return null;

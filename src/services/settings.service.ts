@@ -66,7 +66,10 @@ export const settingsService = {
 
       return createServiceSuccess(data);
     } catch (error) {
-      logger.error('Unexpected error in getUserProfile', error, {
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in getUserProfile', errorToLog, {
         metadata: { userId },
       });
       return createServiceError(
@@ -101,7 +104,10 @@ export const settingsService = {
 
       return createServiceSuccess(data);
     } catch (error) {
-      logger.error('Unexpected error in updateProfile', error, {
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in updateProfile', errorToLog, {
         metadata: { userId, updates },
       });
       return createServiceError(
@@ -140,7 +146,10 @@ export const settingsService = {
 
       return createServiceSuccess({ message: 'Email updated successfully' });
     } catch (error) {
-      logger.error('Unexpected error in updateEmail', error);
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in updateEmail', errorToLog);
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to update email'
       );
@@ -198,7 +207,10 @@ export const settingsService = {
 
       return createServiceSuccess({ message: 'Password updated successfully' });
     } catch (error) {
-      logger.error('Unexpected error in updatePassword', error);
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in updatePassword', errorToLog);
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to update password'
       );
@@ -223,9 +235,16 @@ export const settingsService = {
       });
       return createServiceSuccess({ message: 'Settings updated successfully' });
     } catch (error) {
-      logger.error('Unexpected error in updateNotificationSettings', error, {
-        metadata: { userId, settings },
-      });
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error(
+        'Unexpected error in updateNotificationSettings',
+        errorToLog,
+        {
+          metadata: { userId, settings },
+        }
+      );
       return createServiceError(
         error instanceof Error
           ? error.message
@@ -247,7 +266,10 @@ export const settingsService = {
       });
       return createServiceError('Account deletion not yet implemented');
     } catch (error) {
-      logger.error('Unexpected error in deleteAccount', error);
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in deleteAccount', errorToLog);
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to delete account'
       );
@@ -294,7 +316,10 @@ export const settingsService = {
       });
       return createServiceSuccess({ available: true });
     } catch (error) {
-      logger.error('Unexpected error in checkEmailAvailability', error, {
+      // Ensure error is properly typed before logging
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in checkEmailAvailability', errorToLog, {
         metadata: { email },
       });
       return createServiceError(

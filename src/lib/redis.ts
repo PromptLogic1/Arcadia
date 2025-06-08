@@ -23,7 +23,7 @@ export function isRedisConfigured(): boolean {
 /**
  * Get Redis client instance with production-ready configuration
  * Uses singleton pattern to ensure single connection
- * 
+ *
  * IMPORTANT: Always call isRedisConfigured() before calling this function!
  */
 export function getRedisClient(): Redis {
