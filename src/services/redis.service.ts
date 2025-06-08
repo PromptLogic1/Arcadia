@@ -5,7 +5,12 @@
  * All operations return ServiceResponse for consistent error handling.
  */
 
-import { getRedisClient, createRedisKey, REDIS_PREFIXES, isRedisConfigured } from '@/lib/redis';
+import {
+  getRedisClient,
+  createRedisKey,
+  REDIS_PREFIXES,
+  isRedisConfigured,
+} from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -102,7 +107,9 @@ export const redisService = {
     const result = await this.get(key);
 
     if (!result.success) {
-      return result as ServiceResponse<T | null>;
+      return createServiceError(
+        result.error || 'Failed to get value from Redis'
+      );
     }
 
     if (result.data === null) {
@@ -252,12 +259,13 @@ export const cacheService = {
   /**
    * Get a value from cache
    */
-  async get<T>(key: string): Promise<ServiceResponse<T | null>> {
+  async get(key: string): Promise<ServiceResponse<unknown>> {
     const result = await redisService.get(key);
     if (!result.success) {
-      return result as ServiceResponse<T | null>;
+      return createServiceError(result.error || 'Failed to get from cache');
     }
-    return { ...result, data: result.data as T | null };
+    // Return the data without type assertion - caller should validate
+    return createServiceSuccess(result.data);
   },
 
   /**
@@ -271,12 +279,13 @@ export const cacheService = {
   },
 
   /**
-   * Get from cache or fetch and cache
+   * Get from cache or fetch and cache with schema validation
    */
   async getOrSet<T>(
     key: string,
     fetcher: () => Promise<T>,
-    ttlSeconds = 300
+    ttlSeconds = 300,
+    schema?: { parse: (data: unknown) => T }
   ): Promise<ServiceResponse<T>> {
     // If Redis is not configured, just fetch directly
     if (!isRedisConfigured()) {
@@ -305,7 +314,29 @@ export const cacheService = {
       log.debug('Cache HIT', {
         metadata: { key },
       });
-      return createServiceSuccess(cached.data as T);
+
+      // If schema is provided, validate the cached data
+      if (schema) {
+        try {
+          const validated = schema.parse(cached.data);
+          return createServiceSuccess(validated);
+        } catch (error) {
+          log.warn('Cached data failed validation, fetching fresh', {
+            metadata: { key, error },
+          });
+          // Fall through to fetch fresh data
+        }
+      } else {
+        // Without schema, we can't validate the type
+        // But we can still return the data since it was originally stored by the fetcher
+        // The TypeScript compiler will trust the generic type T
+        log.debug('Cache hit without schema - returning cached data', {
+          metadata: { key },
+        });
+        // Without schema, we must fetch fresh data to ensure type safety
+        // This is the safest approach to avoid type mismatches
+        log.debug('No schema provided - fetching fresh data for type safety');
+      }
     }
 
     // Cache miss - fetch fresh data
@@ -360,6 +391,13 @@ export const cacheService = {
    * For production with many keys, consider using Redis SCAN with pattern matching
    */
   async invalidatePattern(pattern: string): Promise<ServiceResponse<void>> {
+    if (!isRedisConfigured()) {
+      log.debug('Redis not configured - skipping pattern invalidation', {
+        metadata: { pattern },
+      });
+      return createServiceSuccess(undefined);
+    }
+
     try {
       const redis = getRedisClient();
 

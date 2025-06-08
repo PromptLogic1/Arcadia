@@ -145,7 +145,9 @@ const EventCard = React.memo(
                     </Badge>
                     <span className="text-gray-600">•</span>
                     <time className="text-gray-500">
-                      {format(new Date(event.date), 'MMM d, yyyy')}
+                      {event.date
+                        ? format(new Date(event.date), 'MMM d, yyyy')
+                        : 'Date TBD'}
                     </time>
                   </div>
                 </div>
@@ -176,7 +178,9 @@ const EventCard = React.memo(
                   <div>
                     <p className="text-sm font-medium text-gray-300">Date</p>
                     <p className="text-sm text-gray-400">
-                      {format(new Date(event.date), 'MMM d, h:mm a')}
+                      {event.date
+                        ? format(new Date(event.date), 'MMM d, h:mm a')
+                        : 'Date TBD'}
                     </p>
                   </div>
                 </div>
@@ -233,10 +237,12 @@ const EventCard = React.memo(
                         <div>
                           <p className="font-medium">Date & Time</p>
                           <p className="text-sm text-gray-400">
-                            {format(
-                              new Date(event.date),
-                              'EEEE, MMMM d, yyyy h:mm a'
-                            )}
+                            {event.date
+                              ? format(
+                                  new Date(event.date),
+                                  'EEEE, MMMM d, yyyy h:mm a'
+                                )
+                              : 'Date TBD'}
                           </p>
                         </div>
                       </div>

@@ -27,7 +27,7 @@ import {
 } from '@/lib/validation/schemas/bingo';
 import type { zBoardSettings } from '@/lib/validation/schemas/bingo';
 import { log } from '@/lib/logger';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 // Type aliases for clean usage
 export type GameCategory = Enums<'game_category'>;
@@ -103,6 +103,14 @@ export interface PaginatedBoardsResponse {
   hasMore: boolean;
 }
 
+// Zod schema for validating cached paginated response
+// We use z.any() for boards since they're already validated during transformation
+const paginatedBoardsResponseSchema = z.object({
+  boards: z.array(z.any()), // Already validated by _transformDbBoardToDomain
+  totalCount: z.number(),
+  hasMore: z.boolean(),
+});
+
 export interface BoardWithCreator extends GameBoardDomain {
   creator?: { id: string; username: string; avatar_url: string | null };
 }
@@ -113,9 +121,17 @@ const _transformDbBoardToDomain = (
   // Handle null board_state by providing empty array default
   const boardStateValue = board.board_state ?? [];
   const boardStateParseResult = zBoardState.safeParse(boardStateValue);
-  
-  // Settings can be null in the schema
-  const settingsParseResult = sessionSettingsSchema.safeParse(board.settings);
+
+  // Settings can be null in the schema - provide default values
+  const settingsValue = board.settings ?? {
+    max_players: null,
+    allow_spectators: null,
+    auto_start: null,
+    time_limit: null,
+    require_approval: null,
+    password: null,
+  };
+  const settingsParseResult = sessionSettingsSchema.safeParse(settingsValue);
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {
     log.error(
@@ -257,7 +273,8 @@ export const bingoBoardsService = {
             hasMore: (count || 0) > end + 1,
           };
         },
-        180 // Cache for 3 minutes (public boards change less frequently)
+        180, // Cache for 3 minutes (public boards change less frequently)
+        paginatedBoardsResponseSchema // Provide schema for validation
       );
 
       if (!cached.success) {

@@ -26,17 +26,26 @@ export function isRedisConfigured(): boolean {
  */
 export function getRedisClient(): Redis {
   if (!redisClient) {
+    // Enhanced configuration with retry logic and performance optimizations
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!url || !token) {
+      log.warn(
+        'Redis configuration missing - cache operations will be skipped',
+        {
+          metadata: {
+            hasUrl: !!url,
+            hasToken: !!token,
+          },
+        }
+      );
+      throw new Error(
+        'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
+      );
+    }
+
     try {
-      // Enhanced configuration with retry logic and performance optimizations
-      const url = process.env.UPSTASH_REDIS_REST_URL;
-      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-      if (!url || !token) {
-        throw new Error(
-          'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
-        );
-      }
-
       redisClient = new Redis({
         url,
         token,

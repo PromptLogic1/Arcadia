@@ -35,11 +35,20 @@ export interface SessionWithStats extends BingoSession {
 }
 
 // Helper to convert Supabase errors to standard Error objects
-function toStandardError(error: { message: string; code?: string; details?: string }): Error {
+function toStandardError(error: {
+  message: string;
+  code?: string;
+  details?: string;
+}): Error {
+  // Create a proper Error instance without type assertions
   const err = new Error(error.message);
-  if (error.code) {
-    (err as Error & { code?: string }).code = error.code;
-  }
+  // Store additional context in the error's cause property (standard JS feature)
+  Object.defineProperty(err, 'cause', {
+    value: { code: error.code, details: error.details },
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
   return err;
 }
 
@@ -146,19 +155,15 @@ export const sessionsService = {
         .single();
 
       if (error) {
-        log.error(
-          'Failed to get session by code',
-          toStandardError(error),
-          {
-            metadata: {
-              service: 'sessions.service',
-              method: 'getSessionByCode',
-              sessionCode,
-              errorCode: error.code,
-              errorDetails: error.details,
-            },
-          }
-        );
+        log.error('Failed to get session by code', toStandardError(error), {
+          metadata: {
+            service: 'sessions.service',
+            method: 'getSessionByCode',
+            sessionCode,
+            errorCode: error.code,
+            errorDetails: error.details,
+          },
+        });
         return createServiceError(error.message);
       }
 
@@ -917,14 +922,18 @@ export const sessionsService = {
       const { data, error } = await query;
 
       if (error) {
-        log.error('Failed to get sessions by board ID', toStandardError(error), {
-          metadata: {
-            service: 'sessions.service',
-            method: 'getSessionsByBoardId',
-            boardId,
-            status,
-          },
-        });
+        log.error(
+          'Failed to get sessions by board ID',
+          toStandardError(error),
+          {
+            metadata: {
+              service: 'sessions.service',
+              method: 'getSessionsByBoardId',
+              boardId,
+              status,
+            },
+          }
+        );
         return createServiceError(error.message);
       }
       return createServiceSuccess(data || []);

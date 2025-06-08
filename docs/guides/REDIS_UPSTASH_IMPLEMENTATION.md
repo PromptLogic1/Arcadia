@@ -628,11 +628,13 @@ No additional migration work is required. The system is fully operational with R
 While basic Redis operations are fully implemented, advanced monitoring capabilities are available in Upstash's paid tiers:
 
 1. **Prometheus Metrics Integration**
+
    - Real-time performance metrics via `/monitoring/prometheus` endpoint
    - Latency tracking, command distribution, and throughput analysis
    - Integration with Grafana dashboards
 
 2. **Built-in Analytics Dashboard**
+
    - Request patterns and usage analytics
    - Performance bottleneck identification
    - Historical data analysis
@@ -647,6 +649,7 @@ While basic Redis operations are fully implemented, advanced monitoring capabili
 ### Implemented Features Summary
 
 All planned Redis features are now fully implemented:
+
 - ✅ Core Redis operations with type safety
 - ✅ Multiple rate limiting algorithms
 - ✅ Distributed caching with invalidation
