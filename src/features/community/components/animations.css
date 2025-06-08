@@ -1,0 +1,120 @@
+/* CSS Animations to replace Framer Motion in Community Components */
+
+/* Expandable content animations */
+.expandable-content {
+  overflow: hidden;
+  transition: height 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.expandable-content[data-state="closed"] {
+  height: 0;
+  opacity: 0;
+}
+
+.expandable-content[data-state="open"] {
+  height: var(--content-height, auto);
+  opacity: 1;
+}
+
+/* Chevron rotation animation */
+.chevron-icon {
+  transition: transform 0.2s ease-out;
+}
+
+.chevron-icon[data-state="open"] {
+  transform: rotate(180deg);
+}
+
+/* Clear button animations */
+.clear-button {
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.clear-button[data-state="hidden"] {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.clear-button[data-state="visible"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Focus indicator animation */
+.focus-indicator {
+  transform-origin: center;
+  transition: transform 0.2s ease-out;
+}
+
+.focus-indicator[data-state="unfocused"] {
+  transform: scaleX(0);
+}
+
+.focus-indicator[data-state="focused"] {
+  transform: scaleX(1);
+}
+
+/* Loading skeleton animations */
+@keyframes skeleton-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.skeleton-item {
+  animation: skeleton-fade-in 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+.skeleton-item:nth-child(1) { animation-delay: 0s; }
+.skeleton-item:nth-child(2) { animation-delay: 0.1s; }
+.skeleton-item:nth-child(3) { animation-delay: 0.2s; }
+.skeleton-item:nth-child(4) { animation-delay: 0.3s; }
+.skeleton-item:nth-child(5) { animation-delay: 0.4s; }
+.skeleton-item:nth-child(6) { animation-delay: 0.5s; }
+
+/* Modal animations */
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-backdrop {
+  animation: modal-fade-in 0.2s ease-out forwards;
+}
+
+.modal-backdrop[data-state="exiting"] {
+  animation: modal-fade-out 0.2s ease-out forwards;
+}
+
+/* Utility classes for common transitions */
+.transition-opacity {
+  transition: opacity 0.2s ease-out;
+}
+
+.transition-transform {
+  transition: transform 0.2s ease-out;
+}
+
+.transition-all {
+  transition: all 0.2s ease-out;
+}

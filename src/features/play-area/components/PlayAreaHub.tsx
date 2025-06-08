@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,17 +42,42 @@ import {
   useCreateSessionMutation,
 } from '@/hooks/queries/useSessionsQueries';
 
-// Components
-import { SessionHostingDialog } from './SessionHostingDialog';
-import { SessionJoinDialog } from './SessionJoinDialog';
+// Components - static imports for critical components
 import { SessionCard } from './SessionCard';
 import { SessionFilters } from './SessionFilters';
+
+// Dynamically import heavy dialog components
+const SessionHostingDialog = dynamic(
+  () =>
+    import('./SessionHostingDialog').then(mod => ({
+      default: mod.SessionHostingDialog,
+    })),
+  {
+    loading: () => <LoadingSpinner className="h-8 w-8" />,
+    ssr: false,
+  }
+);
+
+const SessionJoinDialog = dynamic(
+  () =>
+    import('./SessionJoinDialog').then(mod => ({
+      default: mod.SessionJoinDialog,
+    })),
+  {
+    loading: () => <LoadingSpinner className="h-8 w-8" />,
+    ssr: false,
+  }
+);
+
+// Hooks
+import { usePlayAreaVirtualization } from '../hooks/usePlayAreaVirtualization';
 
 // Types
 import type {
   SessionSettings,
   SessionWithStats,
 } from '../../../services/sessions.service';
+import type { VirtualItem } from '@tanstack/react-virtual';
 
 interface PlayAreaHubProps {
   className?: string;
@@ -222,6 +248,11 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
 
   // Sessions are already filtered by the query based on filters
   const filteredSessions = sessions;
+
+  // Setup virtualization
+  const { containerRef, virtualizer } = usePlayAreaVirtualization({
+    sessions: filteredSessions,
+  });
 
   // Loading state
   if (authLoading || isLoading) {
@@ -406,15 +437,44 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {filteredSessions.map(session => (
-                <SessionCard
-                  key={session.id}
-                  session={session}
-                  onJoin={() => handleJoinSession(session.id)}
-                  currentUserId={authUser?.id}
-                />
-              ))}
+            <div
+              ref={containerRef}
+              className="h-[calc(100vh-400px)] overflow-auto"
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer
+                  .getVirtualItems()
+                  .map((virtualItem: VirtualItem) => {
+                    const session = filteredSessions[virtualItem.index];
+                    if (!session) return null;
+
+                    return (
+                      <div
+                        key={virtualItem.key}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualItem.size}px`,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <SessionCard
+                          session={session}
+                          onJoin={() => handleJoinSession(session.id)}
+                          currentUserId={authUser?.id}
+                        />
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           )}
         </TabsContent>
@@ -468,20 +528,22 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       </Tabs>
 
       {/* Dialogs */}
-      <SessionHostingDialog
-        isOpen={showHostDialog}
-        onClose={() => setShowHostDialog(false)}
-        onCreateSession={handleCreateSession}
-        preSelectedBoardId={searchParams?.get('boardId') || undefined}
-      />
+      <Suspense fallback={<LoadingSpinner className="h-8 w-8" />}>
+        <SessionHostingDialog
+          isOpen={showHostDialog}
+          onClose={() => setShowHostDialog(false)}
+          onCreateSession={handleCreateSession}
+          preSelectedBoardId={searchParams?.get('boardId') || undefined}
+        />
 
-      <SessionJoinDialog
-        isOpen={showJoinDialog}
-        onClose={() => setShowJoinDialog(false)}
-        onJoin={handleJoinByCode}
-        sessionCode={joinSessionCode}
-        onSessionCodeChange={setJoinSessionCode}
-      />
+        <SessionJoinDialog
+          isOpen={showJoinDialog}
+          onClose={() => setShowJoinDialog(false)}
+          onJoin={handleJoinByCode}
+          sessionCode={joinSessionCode}
+          onSessionCodeChange={setJoinSessionCode}
+        />
+      </Suspense>
     </div>
   );
 }

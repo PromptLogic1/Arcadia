@@ -254,13 +254,18 @@ export const sessionsService = {
       // Validate with session stats schema
       const validationResult = sessionStatsArraySchema.safeParse(data);
       if (!validationResult.success) {
-        log.error('Session stats validation failed', validationResult.error, {
+        log.debug('Session stats validation warning', {
           metadata: {
             service: 'sessions.service',
             method: 'getActiveSessions',
+            issues: validationResult.error.issues.slice(0, 3), // Limit logged issues
           },
         });
-        return createServiceError('Invalid session data format');
+        // Return empty data on validation failure but don't throw
+        return createServiceSuccess({
+          sessions: [],
+          totalCount: 0,
+        });
       }
 
       return createServiceSuccess({

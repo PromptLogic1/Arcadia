@@ -1,3 +1,17 @@
+import { validateServerEnv } from '@/lib/config';
+
+// Validate environment variables on server startup
+try {
+  validateServerEnv();
+  console.log('✅ Environment validation passed');
+} catch (error) {
+  console.error(
+    '❌ Server startup failed due to invalid environment configuration'
+  );
+  // Exit the process with error code
+  process.exit(1);
+}
+
 // Lazy initialization to prevent module loading issues
 const initSentry = async () => {
   try {

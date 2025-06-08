@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AnimatePresence } from 'framer-motion';
+import './animations.css';
 import dynamic from 'next/dynamic';
 import type { VirtualItem, useVirtualizer } from '@tanstack/react-virtual';
 
@@ -366,14 +366,12 @@ export function Community({ className }: CommunityProps) {
       </main>
 
       {/* Create Discussion Modal */}
-      <AnimatePresence>
-        {isCreateDiscussionOpen && (
-          <CreateDiscussionForm
-            onClose={handleCreateDiscussionClose}
-            onSubmit={handleCreateDiscussionSubmit}
-          />
-        )}
-      </AnimatePresence>
+      {isCreateDiscussionOpen && (
+        <CreateDiscussionForm
+          onClose={handleCreateDiscussionClose}
+          onSubmit={handleCreateDiscussionSubmit}
+        />
+      )}
     </div>
   );
 }

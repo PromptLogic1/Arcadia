@@ -95,6 +95,8 @@ const nextConfig: NextConfig = {
       'lucide-react',
       'react-icons',
       'framer-motion',
+      'date-fns',
+      '@sentry/nextjs',
     ],
     // Enable typed routes for better type safety
     typedRoutes: true,

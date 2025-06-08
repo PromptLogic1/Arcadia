@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +11,7 @@ import { CardWrapper } from './shared/CardWrapper';
 import type { Discussion, Comment } from '@/lib/stores/community-store';
 import { format } from 'date-fns';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import './animations.css';
 
 interface DiscussionCardProps {
   discussion: Discussion;
@@ -118,12 +118,12 @@ const DiscussionCard = React.memo(
                       {discussion.challenge_type}
                     </Badge>
                   )}
-                  <motion.div
-                    animate={{ rotate: isExpanded ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
+                    className="chevron-icon"
+                    data-state={isExpanded ? 'open' : 'closed'}
                   >
                     <ChevronDown className="h-5 w-5 text-gray-400" />
-                  </motion.div>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -147,95 +147,95 @@ const DiscussionCard = React.memo(
               )}
             </CardContent>
 
-            <AnimatePresence>
+            <div
+              className="expandable-content"
+              data-state={isExpanded ? 'open' : 'closed'}
+              style={
+                {
+                  '--content-height': isExpanded ? 'auto' : '0px',
+                } as React.CSSProperties
+              }
+            >
               {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-6 bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-6 py-5">
-                    <div className="prose prose-invert max-w-none">
-                      <p className="text-base leading-relaxed text-gray-200">
-                        {discussion.content}
-                      </p>
+                <div className="space-y-6 bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-6 py-5">
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-base leading-relaxed text-gray-200">
+                      {discussion.content}
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="flex items-center space-x-2 text-lg font-semibold">
+                        <span className="bg-gradient-to-r from-cyan-400 to-fuchsia-400 bg-clip-text text-transparent">
+                          Comments
+                        </span>
+                        <span className="text-base text-gray-400">
+                          ({discussionComments.length})
+                        </span>
+                      </h4>
                     </div>
 
-                    <div className="space-y-5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="flex items-center space-x-2 text-lg font-semibold">
-                          <span className="bg-gradient-to-r from-cyan-400 to-fuchsia-400 bg-clip-text text-transparent">
-                            Comments
-                          </span>
-                          <span className="text-base text-gray-400">
-                            ({discussionComments.length})
-                          </span>
-                        </h4>
-                      </div>
-
-                      <div className="space-y-4">
-                        {discussionComments.map(comment => (
-                          <div
-                            key={comment.id}
-                            className="rounded-lg border border-gray-700/30 bg-gray-800/30 p-4 transition-colors hover:border-cyan-500/20"
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <div className="mb-2 flex items-center space-x-3">
-                              <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20">
-                                <AvatarImage
-                                  src="/avatars/default.jpg"
-                                  alt="User"
-                                />
-                                <AvatarFallback>U</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <span className="font-medium text-gray-200">
-                                  User
-                                </span>
-                                <p className="text-xs text-gray-400">
-                                  {comment.created_at
-                                    ? format(
-                                        new Date(comment.created_at),
-                                        'MMM d, yyyy'
-                                      )
-                                    : 'Unknown date'}
-                                </p>
-                              </div>
-                            </div>
-                            <p className="pl-11 leading-relaxed text-gray-300">
-                              {comment.content}
-                            </p>
-                          </div>
-                        ))}
-
+                    <div className="space-y-4">
+                      {discussionComments.map(comment => (
                         <div
-                          className="space-y-3"
+                          key={comment.id}
+                          className="rounded-lg border border-gray-700/30 bg-gray-800/30 p-4 transition-colors hover:border-cyan-500/20"
                           onClick={e => e.stopPropagation()}
                         >
-                          <Textarea
-                            placeholder="What are your thoughts on this discussion?"
-                            value={newComment}
-                            onChange={handleCommentChange}
-                            className="min-h-[120px] resize-none border-gray-700/50 bg-gray-800/50 text-base focus:border-cyan-500"
-                          />
-                          <div className="flex justify-end">
-                            <Button
-                              onClick={handleComment}
-                              className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 px-6 py-2 text-base font-medium hover:from-cyan-600 hover:to-fuchsia-600"
-                              disabled={!newComment.trim()}
-                            >
-                              Post Comment
-                            </Button>
+                          <div className="mb-2 flex items-center space-x-3">
+                            <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20">
+                              <AvatarImage
+                                src="/avatars/default.jpg"
+                                alt="User"
+                              />
+                              <AvatarFallback>U</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <span className="font-medium text-gray-200">
+                                User
+                              </span>
+                              <p className="text-xs text-gray-400">
+                                {comment.created_at
+                                  ? format(
+                                      new Date(comment.created_at),
+                                      'MMM d, yyyy'
+                                    )
+                                  : 'Unknown date'}
+                              </p>
+                            </div>
                           </div>
+                          <p className="pl-11 leading-relaxed text-gray-300">
+                            {comment.content}
+                          </p>
+                        </div>
+                      ))}
+
+                      <div
+                        className="space-y-3"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <Textarea
+                          placeholder="What are your thoughts on this discussion?"
+                          value={newComment}
+                          onChange={handleCommentChange}
+                          className="min-h-[120px] resize-none border-gray-700/50 bg-gray-800/50 text-base focus:border-cyan-500"
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={handleComment}
+                            className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 px-6 py-2 text-base font-medium hover:from-cyan-600 hover:to-fuchsia-600"
+                            disabled={!newComment.trim()}
+                          >
+                            Post Comment
+                          </Button>
                         </div>
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
 
             <CardFooter className="flex justify-between bg-gradient-to-r from-gray-800/30 to-gray-900/30 p-4">
               <div

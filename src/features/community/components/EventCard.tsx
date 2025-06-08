@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { log } from '@/lib/logger';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import './animations.css';
 
 interface EventCardProps {
   event: Event;
@@ -158,12 +158,12 @@ const EventCard = React.memo(
                   >
                     {event.prize}
                   </Badge>
-                  <motion.div
-                    animate={{ rotate: isExpanded ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
+                    className="chevron-icon"
+                    data-state={isExpanded ? 'open' : 'closed'}
                   >
                     <ChevronDown className="h-5 w-5 text-gray-400" />
-                  </motion.div>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -207,98 +207,98 @@ const EventCard = React.memo(
               </div>
             </CardContent>
 
-            <AnimatePresence>
+            <div
+              className="expandable-content"
+              data-state={isExpanded ? 'open' : 'closed'}
+              style={
+                {
+                  '--content-height': isExpanded ? 'auto' : '0px',
+                } as React.CSSProperties
+              }
+            >
               {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-6 bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-6 py-5">
-                    <div className="prose prose-invert max-w-none">
-                      <p className="text-base leading-relaxed text-gray-200">
-                        {event.description}
-                      </p>
-                    </div>
+                <div className="space-y-6 bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-6 py-5">
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-base leading-relaxed text-gray-200">
+                      {event.description}
+                    </p>
+                  </div>
 
-                    <EventActions
-                      isInterested={isInterested}
-                      isNotifying={isNotifying}
-                      onInterested={handleInterested}
-                      onNotify={handleNotify}
-                      onShare={handleShare}
-                    />
+                  <EventActions
+                    isInterested={isInterested}
+                    isNotifying={isNotifying}
+                    onInterested={handleInterested}
+                    onNotify={handleNotify}
+                    onShare={handleShare}
+                  />
 
-                    <div className="grid grid-cols-1 gap-4 rounded-lg border border-gray-700/30 bg-gray-800/30 p-4 md:grid-cols-2">
-                      <div className="flex items-center text-gray-300">
-                        <Calendar className="mr-3 h-5 w-5 text-lime-400" />
-                        <div>
-                          <p className="font-medium">Date & Time</p>
-                          <p className="text-sm text-gray-400">
-                            {event.date
-                              ? format(
-                                  new Date(event.date),
-                                  'EEEE, MMMM d, yyyy h:mm a'
-                                )
-                              : 'Date TBD'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center text-gray-300">
-                        <Users className="mr-3 h-5 w-5 text-lime-400" />
-                        <div>
-                          <p className="font-medium">Participants</p>
-                          <p className="text-sm text-gray-400">
-                            {localParticipants} registered
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center text-gray-300">
-                        <Trophy className="mr-3 h-5 w-5 text-lime-400" />
-                        <div>
-                          <p className="font-medium">Prize Pool</p>
-                          <p className="text-sm text-gray-400">{event.prize}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center text-gray-300">
-                        <MapPin className="mr-3 h-5 w-5 text-lime-400" />
-                        <div>
-                          <p className="font-medium">Location</p>
-                          <p className="text-sm text-gray-400">Online</p>
-                        </div>
+                  <div className="grid grid-cols-1 gap-4 rounded-lg border border-gray-700/30 bg-gray-800/30 p-4 md:grid-cols-2">
+                    <div className="flex items-center text-gray-300">
+                      <Calendar className="mr-3 h-5 w-5 text-lime-400" />
+                      <div>
+                        <p className="font-medium">Date & Time</p>
+                        <p className="text-sm text-gray-400">
+                          {event.date
+                            ? format(
+                                new Date(event.date),
+                                'EEEE, MMMM d, yyyy h:mm a'
+                              )
+                            : 'Date TBD'}
+                        </p>
                       </div>
                     </div>
-
-                    <div>
-                      <h4 className="mb-3 bg-gradient-to-r from-lime-400 to-emerald-400 bg-clip-text text-lg font-semibold text-transparent">
-                        Event Tags
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {event.tags.map(tag => (
-                          <button
-                            key={tag}
-                            className="rounded-full border border-lime-500/20 bg-gray-800/50 px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-gray-700/50"
-                          >
-                            #{tag}
-                          </button>
-                        ))}
+                    <div className="flex items-center text-gray-300">
+                      <Users className="mr-3 h-5 w-5 text-lime-400" />
+                      <div>
+                        <p className="font-medium">Participants</p>
+                        <p className="text-sm text-gray-400">
+                          {localParticipants} registered
+                        </p>
                       </div>
                     </div>
-
-                    <div className="flex justify-end pt-4">
-                      <Button
-                        onClick={handleRegister}
-                        className="transform bg-gradient-to-r from-lime-500 to-emerald-500 px-6 py-2 text-base font-medium text-white shadow-lg shadow-lime-500/20 transition-all duration-200 hover:scale-105 hover:from-lime-600 hover:to-emerald-600"
-                      >
-                        Register for Event
-                      </Button>
+                    <div className="flex items-center text-gray-300">
+                      <Trophy className="mr-3 h-5 w-5 text-lime-400" />
+                      <div>
+                        <p className="font-medium">Prize Pool</p>
+                        <p className="text-sm text-gray-400">{event.prize}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-gray-300">
+                      <MapPin className="mr-3 h-5 w-5 text-lime-400" />
+                      <div>
+                        <p className="font-medium">Location</p>
+                        <p className="text-sm text-gray-400">Online</p>
+                      </div>
                     </div>
                   </div>
-                </motion.div>
+
+                  <div>
+                    <h4 className="mb-3 bg-gradient-to-r from-lime-400 to-emerald-400 bg-clip-text text-lg font-semibold text-transparent">
+                      Event Tags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {event.tags.map(tag => (
+                        <button
+                          key={tag}
+                          className="rounded-full border border-lime-500/20 bg-gray-800/50 px-3 py-1.5 text-sm font-medium text-lime-400 transition-colors hover:bg-gray-700/50"
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      onClick={handleRegister}
+                      className="transform bg-gradient-to-r from-lime-500 to-emerald-500 px-6 py-2 text-base font-medium text-white shadow-lg shadow-lime-500/20 transition-all duration-200 hover:scale-105 hover:from-lime-600 hover:to-emerald-600"
+                    >
+                      Register for Event
+                    </Button>
+                  </div>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </CardWrapper>
       </BaseErrorBoundary>

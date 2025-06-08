@@ -32,12 +32,7 @@ export function getRedisClient(): Redis {
     const error = new Error(
       'Redis client cannot be initialized in browser environment. Redis operations are server-side only.'
     );
-    log.error('Attempted to initialize Redis client in browser', error, {
-      metadata: {
-        environment: 'browser',
-        stack: new Error().stack,
-      },
-    });
+    // Don't log this as error - it's expected behavior when services are called client-side
     throw error;
   }
 
@@ -45,15 +40,6 @@ export function getRedisClient(): Redis {
   if (!isRedisConfigured()) {
     const error = new Error(
       'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
-    );
-    log.warn(
-      'getRedisClient() called without checking isRedisConfigured() first',
-      {
-        metadata: {
-          error: error.message,
-          warning: 'This should be checked before calling getRedisClient()',
-        },
-      }
     );
     throw error;
   }
@@ -94,13 +80,7 @@ export function getRedisClient(): Redis {
 
       log.info('Redis client initialized successfully');
     } catch (error) {
-      log.error(
-        'Failed to initialize Redis client',
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          metadata: { error },
-        }
-      );
+      // Don't log at error level - this is expected in some environments
       const configError = new Error(
         'Redis configuration failed. Check environment variables.'
       );

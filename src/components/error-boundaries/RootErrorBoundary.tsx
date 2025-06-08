@@ -4,6 +4,7 @@ import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
+import { shouldSendToSentry } from '@/lib/error-deduplication';
 
 interface Props {
   children: ReactNode;
@@ -48,6 +49,14 @@ export class RootErrorBoundary extends Component<Props, State> {
     logger.error('Root error boundary caught critical error', error, {
       metadata: errorContext,
     });
+
+    // Check if error should be sent to Sentry (deduplication)
+    if (!shouldSendToSentry(error)) {
+      logger.debug('Error already reported to Sentry, skipping duplicate', {
+        metadata: { error: error.message },
+      });
+      return;
+    }
 
     // Send critical error to Sentry with maximum context
     Sentry.withScope(scope => {

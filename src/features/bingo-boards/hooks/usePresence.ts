@@ -71,8 +71,14 @@ export function usePresence(
 
     let cleanup: (() => Promise<ServiceResponse<void>>) | null = null;
     let isSubscriptionActive = true;
+    let hasCleanedUp = false;
 
     const setupPresence = async () => {
+      // Skip if already cleaned up (React Strict Mode protection)
+      if (hasCleanedUp) {
+        return;
+      }
+
       try {
         const subscription = await presenceService.subscribeToPresence(
           boardId,
@@ -108,7 +114,12 @@ export function usePresence(
             },
             onError: error => {
               if (!isSubscriptionActive || !isMountedRef.current) return;
-              log.error('Presence error', error, { metadata: { boardId } });
+              log.debug('Presence error', {
+                metadata: {
+                  boardId,
+                  error: error instanceof Error ? error.message : String(error),
+                },
+              });
               setError(error);
               setIsConnected(false);
             },
@@ -133,7 +144,12 @@ export function usePresence(
           error instanceof Error
             ? error
             : new Error('Failed to setup presence');
-        log.error('Presence setup failed', err, { metadata: { boardId } });
+        log.debug('Presence setup failed', {
+          metadata: {
+            boardId,
+            error: err.message,
+          },
+        });
         setError(err);
         setIsConnected(false);
       }
@@ -144,20 +160,24 @@ export function usePresence(
     // Cleanup function
     return () => {
       isSubscriptionActive = false;
+      hasCleanedUp = true;
 
-      if (cleanup) {
+      // Prevent duplicate cleanup in React Strict Mode
+      const cleanupOnce = cleanup;
+      cleanup = null;
+
+      if (cleanupOnce) {
         log.debug('Cleaning up presence subscription', {
           metadata: { boardId },
         });
-        cleanup().then(result => {
+        cleanupOnce().then(result => {
           if (!result.success) {
-            log.error(
-              'Presence cleanup failed',
-              new Error(result.error || 'Cleanup failed'),
-              {
-                metadata: { boardId },
-              }
-            );
+            log.debug('Presence cleanup failed', {
+              metadata: {
+                boardId,
+                error: result.error || 'Cleanup failed',
+              },
+            });
           }
         });
       }
@@ -196,11 +216,13 @@ export function usePresence(
           }
         }
       } catch (error) {
-        log.error(
-          'Failed to update activity',
-          error instanceof Error ? error : new Error('Unknown error'),
-          { metadata: { boardId, activity } }
-        );
+        log.debug('Failed to update activity', {
+          metadata: {
+            boardId,
+            activity,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
       }
     },
     [boardId, authUser, isConnected, presenceState]
@@ -219,11 +241,13 @@ export function usePresence(
           throw new Error(result.error || 'Failed to update status');
         }
       } catch (error) {
-        log.error(
-          'Failed to update presence status',
-          error instanceof Error ? error : new Error('Unknown error'),
-          { metadata: { boardId, status } }
-        );
+        log.debug('Failed to update presence status', {
+          metadata: {
+            boardId,
+            status,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
       }
     },
     [boardId, isConnected, updatePresenceFunc]

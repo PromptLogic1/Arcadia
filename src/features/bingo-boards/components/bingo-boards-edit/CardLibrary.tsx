@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,9 +31,11 @@ import {
 
 // Modern architecture imports
 import { useCardLibrary } from '../../hooks/useCardLibrary';
+import { useCardLibraryVirtualization } from '../../hooks/useCardLibraryVirtualization';
 
 // Types
 import type { BingoCard, GameCategory, Difficulty } from '@/types';
+import type { VirtualItem } from '@tanstack/react-virtual';
 
 // Design System
 import {
@@ -95,6 +97,33 @@ export function CardLibrary({
     refetchCards,
     isCreatingBulkCards,
   } = useCardLibrary({ gameType });
+
+  // Responsive columns calculation
+  const [columns, setColumns] = useState(3);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setColumns(1); // Mobile
+      } else if (width < 1024) {
+        setColumns(2); // Tablet
+      } else {
+        setColumns(3); // Desktop
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Setup virtualization for cards grid
+  const { containerRef, virtualizer, getCardAtIndex } =
+    useCardLibraryVirtualization({
+      cards: publicCards,
+      columns,
+    });
 
   // Handle shuffle action
   const handleShuffleClick = useCallback(async () => {
@@ -303,74 +332,129 @@ export function CardLibrary({
                 </Button>
               </div>
             ) : (
-              <ScrollArea className="h-full">
-                <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {publicCards.map(card => (
-                    <div
-                      key={card.id}
-                      className={cn(
-                        cardVariants({ variant: 'interactive' }),
-                        'cursor-pointer transition-all',
-                        selectedCards.has(card.id) && 'ring-2 ring-cyan-400'
-                      )}
-                      onClick={() => {
-                        if (bulkMode) {
-                          handleCardToggle(card.id);
-                        } else {
-                          onCardSelect(card);
-                        }
-                      }}
-                    >
-                      <div className="p-3">
-                        <div className="mb-2 flex items-start justify-between">
-                          <h4 className="line-clamp-2 text-sm font-medium text-cyan-100">
-                            {card.title}
-                          </h4>
-                          {bulkMode && (
-                            <Checkbox
-                              checked={selectedCards.has(card.id)}
-                              onChange={() => handleCardToggle(card.id)}
-                              className="ml-2"
-                            />
-                          )}
-                        </div>
-
-                        {card.description && (
-                          <p className="mb-2 line-clamp-2 text-xs text-gray-400">
-                            {card.description}
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <Badge
-                            variant="outline"
-                            className={getDifficultyStyles(card.difficulty)}
+              <div ref={containerRef} className="h-full overflow-auto">
+                <div
+                  style={{
+                    height: `${virtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                    padding: '1rem',
+                  }}
+                >
+                  {virtualizer
+                    .getVirtualItems()
+                    .map((virtualRow: VirtualItem) => {
+                      return (
+                        <div
+                          key={virtualRow.key}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: '1rem',
+                            right: '1rem',
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        >
+                          <div
+                            className="grid gap-3"
+                            style={{
+                              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                            }}
                           >
-                            {card.difficulty}
-                          </Badge>
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <Star className="h-3 w-3" />
-                            {card.votes || 0}
+                            {Array.from({ length: columns }).map(
+                              (_, colIndex) => {
+                                const card = getCardAtIndex(
+                                  virtualRow.index,
+                                  colIndex
+                                );
+                                if (!card) return null;
+
+                                return (
+                                  <div
+                                    key={card.id}
+                                    className={cn(
+                                      cardVariants({ variant: 'interactive' }),
+                                      'cursor-pointer transition-all',
+                                      selectedCards.has(card.id) &&
+                                        'ring-2 ring-cyan-400'
+                                    )}
+                                    onClick={() => {
+                                      if (bulkMode) {
+                                        handleCardToggle(card.id);
+                                      } else {
+                                        onCardSelect(card);
+                                      }
+                                    }}
+                                  >
+                                    <div className="p-3">
+                                      <div className="mb-2 flex items-start justify-between">
+                                        <h4 className="line-clamp-2 text-sm font-medium text-cyan-100">
+                                          {card.title}
+                                        </h4>
+                                        {bulkMode && (
+                                          <Checkbox
+                                            checked={selectedCards.has(card.id)}
+                                            onChange={() =>
+                                              handleCardToggle(card.id)
+                                            }
+                                            className="ml-2"
+                                          />
+                                        )}
+                                      </div>
+
+                                      {card.description && (
+                                        <p className="mb-2 line-clamp-2 text-xs text-gray-400">
+                                          {card.description}
+                                        </p>
+                                      )}
+
+                                      <div className="flex items-center justify-between">
+                                        <Badge
+                                          variant="outline"
+                                          className={getDifficultyStyles(
+                                            card.difficulty
+                                          )}
+                                        >
+                                          {card.difficulty}
+                                        </Badge>
+                                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                                          <Star className="h-3 w-3" />
+                                          {card.votes || 0}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
 
-                {/* Load More */}
-                {hasMore && (
-                  <div className="p-4 text-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={isLoading}
+                  {/* Load More - positioned after virtual items */}
+                  {hasMore && (
+                    <div
+                      className="p-4 text-center"
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                      }}
                     >
-                      Load More
-                    </Button>
-                  </div>
-                )}
-              </ScrollArea>
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={isLoading}
+                      >
+                        Load More
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </TabsContent>
 

@@ -3,6 +3,7 @@
 import * as Sentry from '@sentry/nextjs';
 import NextError from 'next/error';
 import { useEffect } from 'react';
+import { shouldSendToSentry } from '@/lib/error-deduplication';
 
 export default function GlobalError({
   error,
@@ -10,7 +11,39 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    // Check if error should be sent to Sentry (deduplication)
+    if (!shouldSendToSentry(error)) {
+      console.debug(
+        'GlobalError: Error already reported to Sentry, skipping duplicate'
+      );
+      return;
+    }
+
+    // Only capture if not already captured by RootErrorBoundary
+    // GlobalError only catches errors that escape all other boundaries
+    Sentry.withScope(scope => {
+      // Add tag to identify this came from GlobalError
+      scope.setTag('errorBoundary', true);
+      scope.setTag('errorBoundary.level', 'global');
+      scope.setTag('errorBoundary.nextjs', true);
+
+      // Add error digest if available (Next.js specific)
+      if (error.digest) {
+        scope.setTag('error.digest', error.digest);
+        scope.setFingerprint(['global-error', error.digest]);
+      } else {
+        scope.setFingerprint(['global-error', error.name, error.message]);
+      }
+
+      // Add context that this is a global/unhandled error
+      scope.setContext('globalError', {
+        digest: error.digest,
+        caught: 'global-error',
+        framework: 'nextjs',
+      });
+
+      Sentry.captureException(error);
+    });
   }, [error]);
 
   return (

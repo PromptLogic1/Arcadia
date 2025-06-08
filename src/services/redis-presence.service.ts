@@ -5,7 +5,12 @@
  * Replaces Supabase-based presence with serverless-friendly Redis implementation.
  */
 
-import { getRedisClient, createRedisKey, REDIS_PREFIXES } from '@/lib/redis';
+import {
+  getRedisClient,
+  createRedisKey,
+  REDIS_PREFIXES,
+  isRedisConfigured,
+} from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -108,6 +113,18 @@ class RedisPresenceService {
     options: PresenceSubscriptionOptions = {}
   ): Promise<ServiceResponse<PresenceSubscriptionResult>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Presence operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - presence tracking unavailable');
+        return createServiceError('Presence service unavailable');
+      }
+
       const redis = getRedisClient();
       const subscriptionKey = `${boardId}:${userId}`;
 
@@ -254,6 +271,18 @@ class RedisPresenceService {
     metadata?: PresenceState['metadata']
   ): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Presence operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - presence tracking unavailable');
+        return createServiceError('Presence service unavailable');
+      }
+
       const redis = getRedisClient();
       const userPresenceKey = createRedisKey(
         REDIS_PREFIXES.PRESENCE,
@@ -353,6 +382,18 @@ class RedisPresenceService {
     userId: string
   ): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Presence operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - presence tracking unavailable');
+        return createServiceError('Presence service unavailable');
+      }
+
       const redis = getRedisClient();
 
       // Remove user presence
@@ -416,6 +457,18 @@ class RedisPresenceService {
     boardId: string
   ): Promise<ServiceResponse<Record<string, PresenceState>>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Presence operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - presence tracking unavailable');
+        return createServiceError('Presence service unavailable');
+      }
+
       const redis = getRedisClient();
       const boardUsersKey = createRedisKey(
         REDIS_PREFIXES.PRESENCE,
@@ -611,6 +664,18 @@ class RedisPresenceService {
    */
   async cleanupUserPresence(userId: string): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Presence operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - presence tracking unavailable');
+        return createServiceError('Presence service unavailable');
+      }
+
       const redis = getRedisClient();
       const userBoardsKey = createRedisKey(
         REDIS_PREFIXES.PRESENCE,
@@ -661,6 +726,18 @@ class RedisPresenceService {
     userId: string
   ): Promise<ServiceResponse<Record<string, PresenceState>>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Presence operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - presence tracking unavailable');
+        return createServiceError('Presence service unavailable');
+      }
+
       const redis = getRedisClient();
       const userBoardsKey = createRedisKey(
         REDIS_PREFIXES.PRESENCE,

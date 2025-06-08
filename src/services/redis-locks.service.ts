@@ -6,7 +6,12 @@
  * and lease extension functionality.
  */
 
-import { getRedisClient, createRedisKey, REDIS_PREFIXES } from '@/lib/redis';
+import {
+  getRedisClient,
+  createRedisKey,
+  REDIS_PREFIXES,
+  isRedisConfigured,
+} from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -69,6 +74,18 @@ class RedisLocksService {
     options: DistributedLockOptions
   ): Promise<ServiceResponse<LockResult>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Lock operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - distributed locks unavailable');
+        return createServiceError('Lock service unavailable');
+      }
+
       const config = lockConfigSchema.parse(options);
       const redis = getRedisClient();
 
@@ -138,15 +155,16 @@ class RedisLocksService {
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         } catch (redisError) {
-          log.error(
-            'Redis error during lock acquisition',
-            redisError instanceof Error
-              ? redisError
-              : new Error(String(redisError)),
-            {
-              metadata: { lockId: config.id, attempt: attempt + 1 },
-            }
-          );
+          log.debug('Redis error during lock acquisition', {
+            metadata: {
+              lockId: config.id,
+              attempt: attempt + 1,
+              error:
+                redisError instanceof Error
+                  ? redisError.message
+                  : String(redisError),
+            },
+          });
 
           if (attempt === config.retryAttempts) {
             throw redisError;
@@ -168,13 +186,12 @@ class RedisLocksService {
         lockId: config.id,
       });
     } catch (error) {
-      log.error(
-        'Lock acquisition error',
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          metadata: { lockId: options.id },
-        }
-      );
+      log.debug('Lock acquisition error', {
+        metadata: {
+          lockId: options.id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to acquire lock'
       );
@@ -189,6 +206,18 @@ class RedisLocksService {
     holder?: string
   ): Promise<ServiceResponse<boolean>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Lock operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - distributed locks unavailable');
+        return createServiceError('Lock service unavailable');
+      }
+
       const redis = getRedisClient();
       const lockKey = createRedisKey(REDIS_PREFIXES.QUEUE, 'lock', lockId);
 
@@ -271,6 +300,18 @@ class RedisLocksService {
     options: LockExtensionOptions = {}
   ): Promise<ServiceResponse<boolean>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Lock operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - distributed locks unavailable');
+        return createServiceError('Lock service unavailable');
+      }
+
       const redis = getRedisClient();
       const lockKey = createRedisKey(REDIS_PREFIXES.QUEUE, 'lock', lockId);
 
@@ -355,6 +396,18 @@ class RedisLocksService {
     }>
   > {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Lock operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - distributed locks unavailable');
+        return createServiceError('Lock service unavailable');
+      }
+
       const redis = getRedisClient();
       const lockKey = createRedisKey(REDIS_PREFIXES.QUEUE, 'lock', lockId);
 

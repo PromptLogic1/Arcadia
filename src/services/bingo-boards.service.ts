@@ -115,58 +115,35 @@ const _transformDbBoardToDomain = (
   board: Tables<'bingo_boards'>
 ): BingoBoardDomain | null => {
   try {
-    // Handle null/undefined board_state by providing empty array default
-    // board_state is expected to be an array of board_cell objects
-    const boardStateValue = board.board_state ?? [];
-    const boardStateParseResult = zBoardState.safeParse(boardStateValue);
-
-    // Settings should use zBoardSettings schema, not sessionSettingsSchema
-    // Provide proper default values for board settings - handle all falsy values
-    const settingsValue = board.settings || {
+    // Use Zod's .catch() for resilient parsing with fallback values
+    const boardStateWithFallback = zBoardState.catch([]);
+    const settingsWithFallback = zBoardSettings.catch({
       team_mode: null,
       lockout: null,
       sound_enabled: null,
       win_conditions: null,
-    };
-    const settingsParseResult = zBoardSettings.safeParse(settingsValue);
+    });
 
-    if (!boardStateParseResult.success || !settingsParseResult.success) {
-      // Log as debug instead of error to reduce Sentry noise
-      // Invalid boards are expected and filtered out gracefully
-      // Note: Avoid including any error objects in metadata to prevent Sentry capture
-      log.debug('Skipping board with invalid data format', {
-        metadata: {
-          boardId: board.id,
-          reason: 'Invalid board_state or settings format',
-          boardStateValid: boardStateParseResult.success,
-          settingsValid: settingsParseResult.success,
-          boardStateIssue: boardStateParseResult.success
-            ? null
-            : boardStateParseResult.error.issues?.[0]?.message ||
-              'Invalid board state',
-          settingsIssue: settingsParseResult.success
-            ? null
-            : settingsParseResult.error.issues?.[0]?.message ||
-              'Invalid settings',
-        },
-      });
-      return null;
-    }
+    // Parse with fallback values - will never fail
+    const boardState = boardStateWithFallback.parse(board.board_state);
+    const settings = settingsWithFallback.parse(board.settings);
 
     return {
       ...board,
-      board_state: boardStateParseResult.data,
-      settings: settingsParseResult.data,
+      board_state: boardState,
+      settings: settings,
       updated_at: board.updated_at || null,
     };
   } catch (error) {
-    // Catch any unexpected errors and return null to prevent throwing
-    log.warn('Unexpected error in board transformation, skipping board', {
-      metadata: {
-        boardId: board?.id || 'unknown',
-        error: error instanceof Error ? error.message : String(error),
-      },
-    });
+    // This should rarely happen now with .catch() fallbacks
+    if (board?.id && process.env.NODE_ENV !== 'production') {
+      log.debug('Unexpected board transformation error', {
+        metadata: {
+          boardId: board.id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
     return null;
   }
 };
@@ -179,38 +156,49 @@ export const bingoBoardsService = {
     boardId: string
   ): Promise<ServiceResponse<BingoBoardDomain | null>> {
     try {
-      // Try cache first
-      const cacheKey = cacheService.createKey('bingo-board', boardId);
-      const cached = await cacheService.getOrSet(
-        cacheKey,
-        async () => {
-          const supabase = createClient();
-          const { data, error } = await supabase
-            .from('bingo_boards')
-            .select('*')
-            .eq('id', boardId)
-            .single();
+      const fetchBoard = async () => {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('bingo_boards')
+          .select('*')
+          .eq('id', boardId)
+          .single();
 
-          if (error) throw error;
-          if (!data) return null;
+        if (error) throw error;
+        if (!data) return null;
 
-          const transformedData = _transformDbBoardToDomain(data);
-          if (!transformedData) {
-            throw new Error('Invalid board data format in database.');
-          }
-          return transformedData;
-        },
-        300 // Cache for 5 minutes
-      );
+        const transformedData = _transformDbBoardToDomain(data);
+        if (!transformedData) {
+          throw new Error('Invalid board data format in database.');
+        }
+        return transformedData;
+      };
 
-      if (!cached.success) {
-        throw new Error(cached.error || 'Cache operation failed');
+      // Use caching only on server-side
+      if (typeof window === 'undefined') {
+        const cacheKey = cacheService.createKey('bingo-board', boardId);
+        const cached = await cacheService.getOrSet(
+          cacheKey,
+          fetchBoard,
+          300 // Cache for 5 minutes
+        );
+
+        if (!cached.success) {
+          throw new Error(cached.error || 'Cache operation failed');
+        }
+
+        return createServiceSuccess(cached.data);
       }
 
-      return createServiceSuccess(cached.data);
+      // Client-side: fetch directly without caching
+      const data = await fetchBoard();
+      return createServiceSuccess(data);
     } catch (error) {
-      log.error(
-        'Unexpected error getting board',
+      // Use environment-aware logging
+      const logLevel =
+        process.env.NODE_ENV === 'production' ? 'error' : 'debug';
+      log[logLevel](
+        'Failed to get board',
         isError(error) ? error : new Error(String(error)),
         {
           metadata: {
@@ -233,73 +221,78 @@ export const bingoBoardsService = {
     limit = 20
   ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
-      // Create cache key based on filters and pagination
-      const cacheKey = cacheService.createKey(
-        'public-boards',
-        JSON.stringify({
-          filters,
-          page,
-          limit,
-        })
-      );
+      const fetchBoards = async () => {
+        const supabase = createClient();
+        let query = supabase
+          .from('bingo_boards')
+          .select('*', { count: 'exact' })
+          .eq('is_public', true);
 
-      const cached = await cacheService.getOrSet(
-        cacheKey,
-        async () => {
-          const supabase = createClient();
-          let query = supabase
-            .from('bingo_boards')
-            .select('*', { count: 'exact' })
-            .eq('is_public', true);
+        // Apply filters
+        if (filters.gameType) {
+          query = query.eq('game_type', filters.gameType);
+        }
+        if (filters.difficulty && filters.difficulty !== 'all') {
+          query = query.eq('difficulty', filters.difficulty);
+        }
+        if (filters.search) {
+          query = query.or(
+            `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+          );
+        }
 
-          // Apply filters
-          if (filters.gameType) {
-            query = query.eq('game_type', filters.gameType);
-          }
-          if (filters.difficulty && filters.difficulty !== 'all') {
-            query = query.eq('difficulty', filters.difficulty);
-          }
-          if (filters.search) {
-            query = query.or(
-              `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-            );
-          }
+        const start = (page - 1) * limit;
+        const end = start + limit - 1;
 
-          const start = (page - 1) * limit;
-          const end = start + limit - 1;
+        const { data, error, count } = await query
+          .order('votes', { ascending: false })
+          .range(start, end);
 
-          const { data, error, count } = await query
-            .order('votes', { ascending: false })
-            .range(start, end);
+        if (error) throw error;
 
-          if (error) throw error;
+        const transformedBoards = (data || [])
+          .map(_transformDbBoardToDomain)
+          .filter((b): b is BingoBoardDomain => b !== null);
 
-          const transformedBoards = (data || [])
-            .map(_transformDbBoardToDomain)
-            .filter((b): b is BingoBoardDomain => b !== null);
+        return {
+          boards: transformedBoards,
+          totalCount: count || 0,
+          hasMore: (count || 0) > end + 1,
+        };
+      };
 
-          return {
-            boards: transformedBoards,
-            totalCount: count || 0,
-            hasMore: (count || 0) > end + 1,
-          };
-        },
-        180, // Cache for 3 minutes (public boards change less frequently)
-        paginatedBoardsResponseSchema // Provide schema for validation
-      );
+      // Use caching only on server-side
+      if (typeof window === 'undefined') {
+        const cacheKey = cacheService.createKey(
+          'public-boards',
+          JSON.stringify({ filters, page, limit })
+        );
 
-      if (!cached.success) {
-        throw new Error(cached.error || 'Cache operation failed');
+        const cached = await cacheService.getOrSet(
+          cacheKey,
+          fetchBoards,
+          180, // Cache for 3 minutes
+          paginatedBoardsResponseSchema
+        );
+
+        if (!cached.success) {
+          throw new Error(cached.error || 'Cache operation failed');
+        }
+
+        return createServiceSuccess(
+          cached.data || { boards: [], totalCount: 0, hasMore: false }
+        );
       }
 
-      if (cached.data === null) {
-        throw new Error('Cache returned null data for public boards');
-      }
-
-      return createServiceSuccess(cached.data);
+      // Client-side: fetch directly without caching
+      const data = await fetchBoards();
+      return createServiceSuccess(data);
     } catch (error) {
-      log.error(
-        'Unexpected error getting public boards',
+      // Use environment-aware logging
+      const logLevel =
+        process.env.NODE_ENV === 'production' ? 'error' : 'debug';
+      log[logLevel](
+        'Failed to get public boards',
         isError(error) ? error : new Error(String(error)),
         {
           metadata: {
@@ -323,74 +316,76 @@ export const bingoBoardsService = {
     limit = 20
   ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
-      // Create cache key based on userId, filters and pagination
-      const cacheKey = cacheService.createKey(
-        'user-boards',
-        JSON.stringify({
-          userId,
-          filters,
-          page,
-          limit,
-        })
-      );
+      const fetchUserBoards = async () => {
+        const supabase = createClient();
+        let query = supabase
+          .from('bingo_boards')
+          .select('*', { count: 'exact' })
+          .eq('creator_id', userId);
 
-      const cached = await cacheService.getOrSet(
-        cacheKey,
-        async () => {
-          const supabase = createClient();
-          let query = supabase
-            .from('bingo_boards')
-            .select('*', { count: 'exact' })
-            .eq('creator_id', userId);
+        // Apply filters (same as getPublicBoards)
+        if (filters.gameType) {
+          query = query.eq('game_type', filters.gameType);
+        }
+        if (filters.difficulty && filters.difficulty !== 'all') {
+          query = query.eq('difficulty', filters.difficulty);
+        }
+        if (filters.search) {
+          query = query.or(
+            `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+          );
+        }
 
-          // Apply filters (same as getPublicBoards)
-          if (filters.gameType) {
-            query = query.eq('game_type', filters.gameType);
-          }
-          if (filters.difficulty && filters.difficulty !== 'all') {
-            query = query.eq('difficulty', filters.difficulty);
-          }
-          if (filters.search) {
-            query = query.or(
-              `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-            );
-          }
+        if (typeof filters.isPublic === 'boolean') {
+          query = query.eq('is_public', filters.isPublic);
+        }
 
-          if (typeof filters.isPublic === 'boolean') {
-            query = query.eq('is_public', filters.isPublic);
-          }
+        const start = (page - 1) * limit;
+        const end = start + limit - 1;
 
-          const start = (page - 1) * limit;
-          const end = start + limit - 1;
+        const { data, error, count } = await query
+          .order('updated_at', { ascending: false })
+          .range(start, end);
 
-          const { data, error, count } = await query
-            .order('updated_at', { ascending: false })
-            .range(start, end);
+        if (error) throw error;
 
-          if (error) throw error;
+        const transformedBoards = (data || [])
+          .map(_transformDbBoardToDomain)
+          .filter((b): b is BingoBoardDomain => b !== null);
 
-          const transformedBoards = (data || [])
-            .map(_transformDbBoardToDomain)
-            .filter((b): b is BingoBoardDomain => b !== null);
+        return {
+          boards: transformedBoards,
+          totalCount: count || 0,
+          hasMore: (count || 0) > end + 1,
+        };
+      };
 
-          return {
-            boards: transformedBoards,
-            totalCount: count || 0,
-            hasMore: (count || 0) > end + 1,
-          };
-        },
-        240 // Cache for 4 minutes (user boards change more frequently)
-      );
+      // Use caching only on server-side
+      if (typeof window === 'undefined') {
+        const cacheKey = cacheService.createKey(
+          'user-boards',
+          JSON.stringify({ userId, filters, page, limit })
+        );
 
-      if (!cached.success) {
-        throw new Error(cached.error || 'Cache operation failed');
+        const cached = await cacheService.getOrSet(
+          cacheKey,
+          fetchUserBoards,
+          240, // Cache for 4 minutes
+          paginatedBoardsResponseSchema
+        );
+
+        if (!cached.success) {
+          throw new Error(cached.error || 'Cache operation failed');
+        }
+
+        return createServiceSuccess(
+          cached.data || { boards: [], totalCount: 0, hasMore: false }
+        );
       }
 
-      if (cached.data === null) {
-        throw new Error('Cache returned null data for user boards');
-      }
-
-      return createServiceSuccess(cached.data);
+      // Client-side: fetch directly without caching
+      const data = await fetchUserBoards();
+      return createServiceSuccess(data);
     } catch (error) {
       log.error(
         'Unexpected error getting user boards',

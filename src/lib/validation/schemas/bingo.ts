@@ -47,43 +47,50 @@ export const winConditionsSchema = z.object({
   corners: z.boolean().nullable(),
 });
 
-// Session settings composite type
-export const sessionSettingsSchema = z.object({
-  max_players: z.number().int().positive().nullable(),
-  allow_spectators: z.boolean().nullable(),
-  auto_start: z.boolean().nullable(),
-  time_limit: z.number().int().positive().nullable(),
-  require_approval: z.boolean().nullable(),
-  password: z.string().nullable(),
-});
+// Session settings composite type - more forgiving with optional fields
+export const sessionSettingsSchema = z
+  .object({
+    max_players: z.number().int().positive().nullable().optional(),
+    allow_spectators: z.boolean().nullable().optional(),
+    auto_start: z.boolean().nullable().optional(),
+    time_limit: z.number().int().positive().nullable().optional(),
+    require_approval: z.boolean().nullable().optional(),
+    password: z.string().nullable().optional(),
+  })
+  .passthrough(); // Allow extra fields for forward compatibility
 
 // Schema for board settings, aligning with the composite type
-export const zBoardSettings = z.object({
-  team_mode: z.boolean().nullable(),
-  lockout: z.boolean().nullable(),
-  sound_enabled: z.boolean().nullable(),
-  win_conditions: z
-    .object({
-      line: z.boolean().nullable(),
-      majority: z.boolean().nullable(),
-      diagonal: z.boolean().nullable(),
-      corners: z.boolean().nullable(),
-    })
-    .nullable(),
-});
+export const zBoardSettings = z
+  .object({
+    team_mode: z.boolean().nullable().optional(),
+    lockout: z.boolean().nullable().optional(),
+    sound_enabled: z.boolean().nullable().optional(),
+    win_conditions: z
+      .object({
+        line: z.boolean().nullable().optional(),
+        majority: z.boolean().nullable().optional(),
+        diagonal: z.boolean().nullable().optional(),
+        corners: z.boolean().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+  })
+  .passthrough(); // Allow extra fields for forward compatibility
 
 // Schema for a single board cell, aligning with the composite type
-export const zBoardCell = z.object({
-  cell_id: z.string().uuid().nullable(),
-  text: z.string().nullable(),
-  colors: z.array(z.string()).nullable(),
-  completed_by: z.array(z.string().uuid()).nullable(),
-  blocked: z.boolean().nullable(),
-  is_marked: z.boolean().nullable(),
-  version: z.number().int().nullable(),
-  last_updated: z.number().nullable(),
-  last_modified_by: z.string().uuid().nullable(),
-});
+export const zBoardCell = z
+  .object({
+    cell_id: z.string().uuid().nullable().optional(),
+    text: z.string().nullable().optional(),
+    colors: z.array(z.string()).nullable().optional(),
+    completed_by: z.array(z.string().uuid()).nullable().optional(),
+    blocked: z.boolean().nullable().optional(),
+    is_marked: z.boolean().nullable().optional(),
+    version: z.number().int().nullable().optional(),
+    last_updated: z.number().nullable().optional(),
+    last_modified_by: z.string().uuid().nullable().optional(),
+  })
+  .passthrough(); // Allow extra fields for forward compatibility
 
 export const zBoardState = z.array(zBoardCell);
 export const boardStateSchema = zBoardState; // Alias for compatibility

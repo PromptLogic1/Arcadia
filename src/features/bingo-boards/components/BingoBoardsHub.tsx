@@ -17,6 +17,8 @@ import { NeonText } from '@/components/ui/NeonText';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
+import { useBingoBoardsVirtualization } from '../hooks/useBingoBoardsVirtualization';
+import type { VirtualItem } from '@tanstack/react-virtual';
 import {
   Constants as _Constants,
   type GameCategory as _GameCategory,
@@ -36,7 +38,14 @@ export default function BingoBoardsHub() {
     handleCreateBoard,
     isLoading,
     isFetching,
+    hasMore,
+    goToNextPage,
   } = useBingoBoardsHub();
+
+  // Setup virtualization
+  const { containerRef, virtualizer } = useBingoBoardsVirtualization({
+    boards,
+  });
 
   // Sort options for the select
   const sortOptions = [
@@ -114,12 +123,58 @@ export default function BingoBoardsHub() {
         </div>
       )}
 
-      {/* Boards Grid */}
+      {/* Boards List - Virtualized */}
       {!isLoading && boards.length > 0 && (
-        <div className="grid grid-cols-1 gap-4">
-          {boards.map(board => (
-            <BoardCard key={board.id} board={board} />
-          ))}
+        <div ref={containerRef} className="h-[calc(100vh-300px)] overflow-auto">
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem: VirtualItem) => {
+              const board = boards[virtualItem.index];
+              if (!board) return null;
+
+              return (
+                <div
+                  key={virtualItem.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                  }}
+                >
+                  <BoardCard board={board} />
+                </div>
+              );
+            })}
+
+            {/* Load More - positioned after virtual items */}
+            {hasMore && (
+              <div
+                className="p-4 text-center"
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                }}
+              >
+                <Button
+                  variant="outline"
+                  onClick={goToNextPage}
+                  disabled={isFetching}
+                >
+                  Load More Boards
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

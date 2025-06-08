@@ -1,27 +1,24 @@
+import { initSentry as initSentryLazy } from '@/lib/sentry-lazy';
+
 // Lazy import to prevent module loading issues
 const initSentry = async () => {
   try {
-    const Sentry = await import('@sentry/nextjs');
-
     // Only initialize if we have a DSN
     if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      // Initialize Sentry for client-side
-      Sentry.init({
+      // Initialize Sentry for client-side without Replay initially
+      await initSentryLazy({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-        // Integrations
+        // Integrations - Start without Replay to reduce bundle size
         integrations: [
-          Sentry.replayIntegration({
-            // Mask all text content, but keep media playback
-            maskAllText: true,
-            blockAllMedia: false,
-          }),
+          // Replay will be added dynamically when needed
         ],
 
         // Performance Monitoring
         tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-        // Session Replay
+        // Session Replay - Configured but not loaded initially
+        // These settings will be used when Replay is enabled
         replaysSessionSampleRate: 0.1, // 10% of sessions
         replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
 
@@ -44,7 +41,10 @@ const initSentry = async () => {
         ],
 
         // Before sending error to Sentry
-        beforeSend(event) {
+        beforeSend(
+          event: Record<string, unknown>,
+          hint: Record<string, unknown>
+        ) {
           // Don't send events in development unless explicitly enabled
           if (
             process.env.NODE_ENV === 'development' &&
@@ -54,8 +54,9 @@ const initSentry = async () => {
           }
 
           // Filter out certain URLs
-          if (event.request?.url) {
-            const url = event.request.url;
+          const request = event.request as { url?: string } | undefined;
+          if (request?.url) {
+            const url = request.url;
             if (
               url.includes('chrome-extension://') ||
               url.includes('moz-extension://')
@@ -89,7 +90,8 @@ const initSentry = async () => {
       });
     }
 
-    // Return Sentry for exports
+    // Import the actual Sentry module for navigation exports
+    const Sentry = await import('@sentry/nextjs');
     return Sentry;
   } catch (error) {
     console.error('Failed to initialize Sentry:', error);
@@ -111,4 +113,15 @@ export const onRouterTransitionStart = (
   if (sentryInstance?.captureRouterTransitionStart) {
     return sentryInstance.captureRouterTransitionStart(href, navigationType);
   }
+};
+
+// Export function to enable Replay on demand
+export const enableSentryReplay = async () => {
+  if (typeof window === 'undefined') return;
+
+  const { enableReplay } = await import('@/lib/sentry-lazy');
+  await enableReplay({
+    maskAllText: true,
+    blockAllMedia: false,
+  });
 };

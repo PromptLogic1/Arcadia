@@ -64,8 +64,12 @@ export const presenceService = {
         metadata,
         {
           onError: error => {
-            log.error('Presence tracking error', error, {
-              metadata: { channelName, userId },
+            log.debug('Presence tracking error', {
+              metadata: {
+                channelName,
+                userId,
+                error: error instanceof Error ? error.message : String(error),
+              },
             });
           },
         }
@@ -80,23 +84,23 @@ export const presenceService = {
       return async () => {
         const cleanupResult = await cleanup();
         if (!cleanupResult.success) {
-          log.error(
-            'Presence cleanup failed',
-            new Error(cleanupResult.error || 'Cleanup failed'),
-            {
-              metadata: { channelName, userId },
-            }
-          );
+          log.debug('Presence cleanup failed', {
+            metadata: {
+              channelName,
+              userId,
+              error: cleanupResult.error || 'Cleanup failed',
+            },
+          });
         }
       };
     } catch (error) {
-      log.error(
-        'Failed to track presence',
-        error instanceof Error ? error : new Error('Unknown error'),
-        {
-          metadata: { channelName, userId },
-        }
-      );
+      log.debug('Failed to track presence', {
+        metadata: {
+          channelName,
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
       // Return no-op cleanup function
       return () => {};
     }

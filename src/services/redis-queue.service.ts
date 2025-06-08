@@ -6,7 +6,12 @@
  * and dead letter handling.
  */
 
-import { getRedisClient, createRedisKey, REDIS_PREFIXES } from '@/lib/redis';
+import {
+  getRedisClient,
+  createRedisKey,
+  REDIS_PREFIXES,
+  isRedisConfigured,
+} from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -98,6 +103,18 @@ class RedisQueueService {
     options: JobOptions = {}
   ): Promise<ServiceResponse<string>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue operations unavailable');
+        return createServiceError('Queue service unavailable');
+      }
+
       const redis = getRedisClient();
       const jobId = `${queueName}-${jobType}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
@@ -188,6 +205,17 @@ class RedisQueueService {
     options: QueueOptions = { name: queueName }
   ): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue processing is only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue processing unavailable');
+        return createServiceError('Queue service unavailable');
+      }
       this.processors.set(queueName, processor);
 
       if (this.activePolling.get(queueName)) {
@@ -225,6 +253,12 @@ class RedisQueueService {
    */
   async stopProcessing(queueName: string): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
       this.activePolling.set(queueName, false);
       this.processors.delete(queueName);
 
@@ -256,6 +290,18 @@ class RedisQueueService {
     queueName: string
   ): Promise<ServiceResponse<JobData | null>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue operations unavailable');
+        return createServiceError('Queue service unavailable');
+      }
+
       const redis = getRedisClient();
 
       // First, move any delayed jobs that are ready
@@ -367,6 +413,18 @@ class RedisQueueService {
     result?: unknown
   ): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue operations unavailable');
+        return createServiceError('Queue service unavailable');
+      }
+
       const redis = getRedisClient();
 
       const processingKey = createRedisKey(
@@ -422,6 +480,18 @@ class RedisQueueService {
    */
   async failJob(job: JobData, error: string): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue operations unavailable');
+        return createServiceError('Queue service unavailable');
+      }
+
       const redis = getRedisClient();
 
       const processingKey = createRedisKey(
@@ -547,6 +617,18 @@ class RedisQueueService {
     }>
   > {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue operations unavailable');
+        return createServiceError('Queue service unavailable');
+      }
+
       const redis = getRedisClient();
 
       const [pending, processing, delayed, completed, failed] =
@@ -746,6 +828,18 @@ class RedisQueueService {
    */
   async cleanupExpiredJobs(): Promise<ServiceResponse<number>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'Queue operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - queue operations unavailable');
+        return createServiceError('Queue service unavailable');
+      }
+
       const redis = getRedisClient();
       let cleanedCount = 0;
 

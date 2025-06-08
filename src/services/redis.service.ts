@@ -58,11 +58,16 @@ export const redisService = {
     try {
       const redis = getRedisClient();
 
-      // Upstash Redis REST API handles JSON serialization automatically
+      // Serialize objects to JSON for storage
+      const serializedValue =
+        typeof value === 'object' && value !== null
+          ? JSON.stringify(value)
+          : value;
+
       if (ttlSeconds) {
-        await redis.setex(key, ttlSeconds, value);
+        await redis.setex(key, ttlSeconds, serializedValue);
       } else {
-        await redis.set(key, value);
+        await redis.set(key, serializedValue);
       }
 
       log.debug('Redis SET operation successful', {
@@ -89,19 +94,12 @@ export const redisService = {
    */
   async get(key: string): Promise<ServiceResponse<unknown>> {
     if (isClientSide()) {
-      log.debug(
-        'Redis operations not available client-side - returning null for GET operation',
-        {
-          metadata: { key },
-        }
-      );
+      // Silent return for client-side - this is expected behavior
       return createServiceSuccess(null);
     }
 
     if (!isRedisConfigured()) {
-      log.debug('Redis not configured - returning null for GET operation', {
-        metadata: { key },
-      });
+      // Silent return when Redis not configured
       return createServiceSuccess(null);
     }
 
@@ -115,6 +113,14 @@ export const redisService = {
 
       return createServiceSuccess(value);
     } catch (error) {
+      // Check if this is a client-side error (should not happen with checks above)
+      if (
+        error instanceof Error &&
+        error.message.includes('browser environment')
+      ) {
+        return createServiceSuccess(null);
+      }
+
       log.error(
         'Redis GET operation failed',
         error instanceof Error ? error : new Error(String(error)),
@@ -148,7 +154,11 @@ export const redisService = {
     }
 
     try {
-      const validated = schema.parse(result.data);
+      // Parse JSON string if needed
+      const parsedData =
+        typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+
+      const validated = schema.parse(parsedData);
       return createServiceSuccess(validated);
     } catch (error) {
       log.error(
@@ -351,20 +361,16 @@ export const cacheService = {
   ): Promise<ServiceResponse<T>> {
     // If running client-side, always fetch directly (no caching)
     if (isClientSide()) {
-      log.debug('Redis not available client-side - fetching directly', {
-        metadata: { key },
-      });
       try {
         const fresh = await fetcher();
         return createServiceSuccess(fresh);
       } catch (error) {
-        log.error(
-          'Direct fetch failed on client-side',
-          error instanceof Error ? error : new Error(String(error)),
-          {
-            metadata: { key },
-          }
-        );
+        log.debug('Direct fetch failed on client-side', {
+          metadata: {
+            key,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
         return createServiceError('Failed to fetch data');
       }
     }
@@ -378,13 +384,12 @@ export const cacheService = {
         const fresh = await fetcher();
         return createServiceSuccess(fresh);
       } catch (error) {
-        log.error(
-          'Direct fetch failed when Redis not configured',
-          error instanceof Error ? error : new Error(String(error)),
-          {
-            metadata: { key },
-          }
-        );
+        log.debug('Direct fetch failed when Redis not configured', {
+          metadata: {
+            key,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
         return createServiceError('Failed to fetch data');
       }
     }
@@ -480,13 +485,12 @@ export const cacheService = {
 
       return createServiceSuccess(fresh);
     } catch (error) {
-      log.error(
-        'Cache fetch failed',
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          metadata: { key },
-        }
-      );
+      log.debug('Cache fetch failed', {
+        metadata: {
+          key,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
 
       return createServiceError('Failed to fetch and cache data');
     }

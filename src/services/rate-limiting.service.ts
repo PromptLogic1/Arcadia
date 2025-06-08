@@ -6,7 +6,7 @@
  */
 
 import { Ratelimit } from '@upstash/ratelimit';
-import { getRedisClient, REDIS_PREFIXES } from '@/lib/redis';
+import { getRedisClient, REDIS_PREFIXES, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 
@@ -30,42 +30,104 @@ export interface RateLimitConfig {
   identifier: string;
 }
 
+// Private instances - lazy initialized
+let apiRateLimiter: Ratelimit | null = null;
+let authRateLimiter: Ratelimit | null = null;
+let uploadRateLimiter: Ratelimit | null = null;
+let gameSessionRateLimiter: Ratelimit | null = null;
+
+/**
+ * Get API rate limiter instance
+ */
+function getApiRateLimiter(): Ratelimit | null {
+  if (!apiRateLimiter && isRedisConfigured()) {
+    try {
+      apiRateLimiter = new Ratelimit({
+        redis: getRedisClient(),
+        limiter: Ratelimit.slidingWindow(100, '60 s'), // 100 requests per minute
+        prefix: `${REDIS_PREFIXES.RATE_LIMIT}:api`,
+        analytics: false, // Disable analytics to reduce Redis calls
+      });
+    } catch (error) {
+      log.error(
+        'Failed to initialize API rate limiter',
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+  return apiRateLimiter;
+}
+
+/**
+ * Get Auth rate limiter instance
+ */
+function getAuthRateLimiter(): Ratelimit | null {
+  if (!authRateLimiter && isRedisConfigured()) {
+    try {
+      authRateLimiter = new Ratelimit({
+        redis: getRedisClient(),
+        limiter: Ratelimit.fixedWindow(5, '60 s'), // 5 attempts per minute
+        prefix: `${REDIS_PREFIXES.RATE_LIMIT}:auth`,
+        analytics: false, // Disable analytics to reduce Redis calls
+      });
+    } catch (error) {
+      log.error(
+        'Failed to initialize auth rate limiter',
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+  return authRateLimiter;
+}
+
+/**
+ * Get Upload rate limiter instance
+ */
+function getUploadRateLimiter(): Ratelimit | null {
+  if (!uploadRateLimiter && isRedisConfigured()) {
+    try {
+      uploadRateLimiter = new Ratelimit({
+        redis: getRedisClient(),
+        limiter: Ratelimit.tokenBucket(10, '30 s', 3), // 10 tokens, 30s refill, 3 tokens/refill
+        prefix: `${REDIS_PREFIXES.RATE_LIMIT}:upload`,
+        analytics: false, // Disable analytics to reduce Redis calls
+      });
+    } catch (error) {
+      log.error(
+        'Failed to initialize upload rate limiter',
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+  return uploadRateLimiter;
+}
+
+/**
+ * Get Game Session rate limiter instance
+ */
+function getGameSessionRateLimiter(): Ratelimit | null {
+  if (!gameSessionRateLimiter && isRedisConfigured()) {
+    try {
+      gameSessionRateLimiter = new Ratelimit({
+        redis: getRedisClient(),
+        limiter: Ratelimit.slidingWindow(10, '60 s'), // 10 sessions per minute
+        prefix: `${REDIS_PREFIXES.RATE_LIMIT}:game-session`,
+        analytics: false, // Disable analytics to reduce Redis calls
+      });
+    } catch (error) {
+      log.error(
+        'Failed to initialize game session rate limiter',
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+  return gameSessionRateLimiter;
+}
+
 /**
  * Rate limiting service with different strategies
  */
 export const rateLimitingService = {
-  // API rate limiter - sliding window for smooth rate limiting
-  api: new Ratelimit({
-    redis: getRedisClient(),
-    limiter: Ratelimit.slidingWindow(100, '60 s'), // 100 requests per minute
-    prefix: `${REDIS_PREFIXES.RATE_LIMIT}:api`,
-    analytics: true,
-  }),
-
-  // Authentication rate limiter - fixed window for security
-  auth: new Ratelimit({
-    redis: getRedisClient(),
-    limiter: Ratelimit.fixedWindow(5, '60 s'), // 5 attempts per minute
-    prefix: `${REDIS_PREFIXES.RATE_LIMIT}:auth`,
-    analytics: true,
-  }),
-
-  // File upload rate limiter - token bucket for burst handling
-  upload: new Ratelimit({
-    redis: getRedisClient(),
-    limiter: Ratelimit.tokenBucket(10, '30 s', 3), // 10 tokens, 30s refill, 3 tokens/refill
-    prefix: `${REDIS_PREFIXES.RATE_LIMIT}:upload`,
-    analytics: true,
-  }),
-
-  // Game session rate limiter - for creating game sessions
-  gameSession: new Ratelimit({
-    redis: getRedisClient(),
-    limiter: Ratelimit.slidingWindow(10, '60 s'), // 10 sessions per minute
-    prefix: `${REDIS_PREFIXES.RATE_LIMIT}:game-session`,
-    analytics: true,
-  }),
-
   /**
    * Check API rate limit
    */
@@ -73,7 +135,27 @@ export const rateLimitingService = {
     identifier: string
   ): Promise<ServiceResponse<RateLimitResponse>> {
     try {
-      const result = await this.api.limit(identifier);
+      const limiter = getApiRateLimiter();
+
+      // If Redis is not configured, allow the request (fail open)
+      if (!limiter) {
+        log.debug('API rate limit check skipped - Redis not configured', {
+          metadata: { identifier },
+        });
+
+        return {
+          success: true,
+          data: {
+            allowed: true,
+            limit: 100,
+            remaining: 100,
+            resetTime: Date.now() + 60000,
+          },
+          error: null,
+        };
+      }
+
+      const result = await limiter.limit(identifier);
 
       log.debug('API rate limit check', {
         metadata: {
@@ -103,10 +185,16 @@ export const rateLimitingService = {
         }
       );
 
+      // Fail open - allow request if rate limiting fails
       return {
-        success: false,
-        data: null,
-        error: 'Rate limiting temporarily unavailable',
+        success: true,
+        data: {
+          allowed: true,
+          limit: 100,
+          remaining: 100,
+          resetTime: Date.now() + 60000,
+        },
+        error: null,
       };
     }
   },
@@ -118,7 +206,27 @@ export const rateLimitingService = {
     identifier: string
   ): Promise<ServiceResponse<RateLimitResponse>> {
     try {
-      const result = await this.auth.limit(identifier);
+      const limiter = getAuthRateLimiter();
+
+      // If Redis is not configured, allow the request (fail open)
+      if (!limiter) {
+        log.debug('Auth rate limit check skipped - Redis not configured', {
+          metadata: { identifier },
+        });
+
+        return {
+          success: true,
+          data: {
+            allowed: true,
+            limit: 5,
+            remaining: 5,
+            resetTime: Date.now() + 60000,
+          },
+          error: null,
+        };
+      }
+
+      const result = await limiter.limit(identifier);
 
       log.debug('Auth rate limit check', {
         metadata: {
@@ -148,10 +256,16 @@ export const rateLimitingService = {
         }
       );
 
+      // Fail open - allow request if rate limiting fails
       return {
-        success: false,
-        data: null,
-        error: 'Authentication rate limiting temporarily unavailable',
+        success: true,
+        data: {
+          allowed: true,
+          limit: 5,
+          remaining: 5,
+          resetTime: Date.now() + 60000,
+        },
+        error: null,
       };
     }
   },
@@ -163,7 +277,27 @@ export const rateLimitingService = {
     identifier: string
   ): Promise<ServiceResponse<RateLimitResponse>> {
     try {
-      const result = await this.upload.limit(identifier);
+      const limiter = getUploadRateLimiter();
+
+      // If Redis is not configured, allow the request (fail open)
+      if (!limiter) {
+        log.debug('Upload rate limit check skipped - Redis not configured', {
+          metadata: { identifier },
+        });
+
+        return {
+          success: true,
+          data: {
+            allowed: true,
+            limit: 10,
+            remaining: 10,
+            resetTime: Date.now() + 30000,
+          },
+          error: null,
+        };
+      }
+
+      const result = await limiter.limit(identifier);
 
       log.debug('Upload rate limit check', {
         metadata: {
@@ -193,10 +327,16 @@ export const rateLimitingService = {
         }
       );
 
+      // Fail open - allow request if rate limiting fails
       return {
-        success: false,
-        data: null,
-        error: 'Upload rate limiting temporarily unavailable',
+        success: true,
+        data: {
+          allowed: true,
+          limit: 10,
+          remaining: 10,
+          resetTime: Date.now() + 30000,
+        },
+        error: null,
       };
     }
   },
@@ -208,7 +348,30 @@ export const rateLimitingService = {
     identifier: string
   ): Promise<ServiceResponse<RateLimitResponse>> {
     try {
-      const result = await this.gameSession.limit(identifier);
+      const limiter = getGameSessionRateLimiter();
+
+      // If Redis is not configured, allow the request (fail open)
+      if (!limiter) {
+        log.debug(
+          'Game session rate limit check skipped - Redis not configured',
+          {
+            metadata: { identifier },
+          }
+        );
+
+        return {
+          success: true,
+          data: {
+            allowed: true,
+            limit: 10,
+            remaining: 10,
+            resetTime: Date.now() + 60000,
+          },
+          error: null,
+        };
+      }
+
+      const result = await limiter.limit(identifier);
 
       log.debug('Game session rate limit check', {
         metadata: {
@@ -238,10 +401,16 @@ export const rateLimitingService = {
         }
       );
 
+      // Fail open - allow request if rate limiting fails
       return {
-        success: false,
-        data: null,
-        error: 'Game session rate limiting temporarily unavailable',
+        success: true,
+        data: {
+          allowed: true,
+          limit: 10,
+          remaining: 10,
+          resetTime: Date.now() + 60000,
+        },
+        error: null,
       };
     }
   },

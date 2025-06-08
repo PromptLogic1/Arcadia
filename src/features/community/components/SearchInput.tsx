@@ -3,7 +3,7 @@
 import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import './animations.css';
 
 interface SearchInputProps {
   value: string;
@@ -49,29 +49,20 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         className="h-12 min-w-[300px] rounded-lg border-2 border-gray-700 bg-gray-800/90 pr-10 pl-10 text-base font-medium text-white shadow-lg shadow-black/10 transition-all duration-200 placeholder:text-cyan-300/50 hover:border-cyan-500/70 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
         aria-label={placeholder}
       />
-      <AnimatePresence>
-        {value && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-1/2 right-3 -translate-y-1/2 transform text-cyan-300 transition-colors hover:text-cyan-400"
-            onClick={() => onValueChangeAction('')}
-            aria-label="Clear search"
-          >
-            <X className="h-4 w-4" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-      {isFocused && (
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          exit={{ scaleX: 0 }}
-          className="absolute right-0 bottom-0 left-0 h-0.5 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
-        />
+      {value && (
+        <button
+          className="clear-button absolute top-1/2 right-3 -translate-y-1/2 transform text-cyan-300 hover:text-cyan-400"
+          data-state={value ? 'visible' : 'hidden'}
+          onClick={() => onValueChangeAction('')}
+          aria-label="Clear search"
+        >
+          <X className="h-4 w-4" />
+        </button>
       )}
+      <div
+        className="focus-indicator absolute right-0 bottom-0 left-0 h-0.5 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
+        data-state={isFocused ? 'focused' : 'unfocused'}
+      />
       <div
         className={`absolute inset-0 -z-10 rounded-lg bg-gradient-to-r from-cyan-500/10 to-fuchsia-500/10 opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-100`}
       />

@@ -1,12 +1,52 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { Trophy, Grid, Zap, Puzzle } from 'lucide-react';
-import BingoBoardsHub from '@/features/bingo-boards/components/BingoBoardsHub';
-import { SpeedRuns } from '@/features/Speedruns/SpeedRuns';
-import { AchievementHunt } from '@/features/achievement-hunt/AchievementHunt';
-import { PuzzleQuests } from '@/features/puzzle-quests/PuzzleQuests';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+
+// Dynamically import heavy components to reduce initial bundle size
+const BingoBoardsHub = dynamic(
+  () => import('@/features/bingo-boards/components/BingoBoardsHub'),
+  {
+    loading: () => <LoadingSpinner className="h-12 w-12" />,
+    ssr: false,
+  }
+);
+
+const SpeedRuns = dynamic(
+  () =>
+    import('@/features/Speedruns/SpeedRuns').then(mod => ({
+      default: mod.SpeedRuns,
+    })),
+  {
+    loading: () => <LoadingSpinner className="h-12 w-12" />,
+    ssr: false,
+  }
+);
+
+const AchievementHunt = dynamic(
+  () =>
+    import('@/features/achievement-hunt/AchievementHunt').then(mod => ({
+      default: mod.AchievementHunt,
+    })),
+  {
+    loading: () => <LoadingSpinner className="h-12 w-12" />,
+    ssr: false,
+  }
+);
+
+const PuzzleQuests = dynamic(
+  () =>
+    import('@/features/puzzle-quests/PuzzleQuests').then(mod => ({
+      default: mod.PuzzleQuests,
+    })),
+  {
+    loading: () => <LoadingSpinner className="h-12 w-12" />,
+    ssr: false,
+  }
+);
 
 export default function Challenges() {
   const [activeTab, setActiveTab] = useState('bingo');
@@ -117,7 +157,9 @@ export default function Challenges() {
         </div>
 
         {/* Content */}
-        {renderContent()}
+        <Suspense fallback={<LoadingSpinner className="h-12 w-12" />}>
+          {renderContent()}
+        </Suspense>
       </main>
     </div>
   );

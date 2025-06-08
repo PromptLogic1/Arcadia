@@ -6,7 +6,12 @@
  * so this service focuses on publishing events and provides polling-based alternatives.
  */
 
-import { getRedisClient, createRedisKey, REDIS_PREFIXES } from '@/lib/redis';
+import {
+  getRedisClient,
+  createRedisKey,
+  REDIS_PREFIXES,
+  isRedisConfigured,
+} from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -85,6 +90,18 @@ class RedisPubSubService {
     options: PublishOptions = {}
   ): Promise<ServiceResponse<string>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
       const eventId = `${event.gameId}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
@@ -120,13 +137,13 @@ class RedisPubSubService {
 
       return createServiceSuccess(eventId);
     } catch (error) {
-      log.error(
-        'Failed to publish game event',
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          metadata: { gameId: event.gameId, type: event.type },
-        }
-      );
+      log.debug('Failed to publish game event', {
+        metadata: {
+          gameId: event.gameId,
+          type: event.type,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
       return createServiceError(
         error instanceof Error ? error.message : 'Failed to publish game event'
       );
@@ -141,6 +158,18 @@ class RedisPubSubService {
     options: PublishOptions = {}
   ): Promise<ServiceResponse<string>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
@@ -217,6 +246,18 @@ class RedisPubSubService {
     limit: number = PUBSUB_CONSTANTS.POLLING.MAX_EVENTS_PER_POLL
   ): Promise<ServiceResponse<GameEvent[]>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
       const eventsKey = createRedisKey(
         REDIS_PREFIXES.CACHE,
@@ -272,6 +313,18 @@ class RedisPubSubService {
     before?: number
   ): Promise<ServiceResponse<ChatMessage[]>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
       const chatKey = createRedisKey(
         REDIS_PREFIXES.CACHE,
@@ -407,6 +460,18 @@ class RedisPubSubService {
    */
   async clearGameHistory(gameId: string): Promise<ServiceResponse<void>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
 
       const eventsKey = createRedisKey(
@@ -454,6 +519,18 @@ class RedisPubSubService {
     }>
   > {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
 
       const eventsKey = createRedisKey(
@@ -509,6 +586,18 @@ class RedisPubSubService {
     options: PublishOptions = {}
   ): Promise<ServiceResponse<string[]>> {
     try {
+      // Server-only guard
+      if (typeof window !== 'undefined') {
+        return createServiceError(
+          'PubSub operations are only available on the server'
+        );
+      }
+
+      if (!isRedisConfigured()) {
+        log.warn('Redis not configured - pubsub unavailable');
+        return createServiceError('PubSub service unavailable');
+      }
+
       const redis = getRedisClient();
       const eventIds: string[] = [];
       const publishPromises: Promise<unknown>[] = [];
