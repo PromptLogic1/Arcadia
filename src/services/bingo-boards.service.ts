@@ -21,11 +21,7 @@ import type {
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
-import {
-  zBoardState,
-  sessionSettingsSchema,
-} from '@/lib/validation/schemas/bingo';
-import type { zBoardSettings } from '@/lib/validation/schemas/bingo';
+import { zBoardState, zBoardSettings } from '@/lib/validation/schemas/bingo';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -119,19 +115,19 @@ const _transformDbBoardToDomain = (
   board: Tables<'bingo_boards'>
 ): BingoBoardDomain | null => {
   // Handle null board_state by providing empty array default
-  const boardStateValue = board.board_state ?? [];
+  // board_state is expected to be an array of board_cell objects
+  const boardStateValue = board.board_state === null ? [] : board.board_state;
   const boardStateParseResult = zBoardState.safeParse(boardStateValue);
 
-  // Settings can be null in the schema - provide default values
+  // Settings should use zBoardSettings schema, not sessionSettingsSchema
+  // Provide proper default values for board settings
   const settingsValue = board.settings ?? {
-    max_players: null,
-    allow_spectators: null,
-    auto_start: null,
-    time_limit: null,
-    require_approval: null,
-    password: null,
+    team_mode: null,
+    lockout: null,
+    sound_enabled: null,
+    win_conditions: null,
   };
-  const settingsParseResult = sessionSettingsSchema.safeParse(settingsValue);
+  const settingsParseResult = zBoardSettings.safeParse(settingsValue);
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {
     log.error(

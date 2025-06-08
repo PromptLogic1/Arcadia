@@ -21,7 +21,7 @@ import {
   bingoCardSchema,
   bingoCardsArraySchema,
   zBoardState,
-  sessionSettingsSchema,
+  zBoardSettings,
 } from '@/lib/validation/schemas/bingo';
 import type { BingoBoard, BingoCard } from '@/types';
 import type { BingoBoardDomain } from '@/types/domains/bingo';
@@ -34,7 +34,14 @@ const _transformDbBoardToDomain = (
   board: BingoBoard
 ): BingoBoardDomain | null => {
   const boardStateParseResult = zBoardState.safeParse(board.board_state);
-  const settingsParseResult = sessionSettingsSchema.safeParse(board.settings);
+  const settingsParseResult = zBoardSettings.safeParse(
+    board.settings ?? {
+      team_mode: null,
+      lockout: null,
+      sound_enabled: null,
+      win_conditions: null,
+    }
+  );
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {
     log.error(

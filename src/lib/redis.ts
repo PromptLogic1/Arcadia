@@ -31,18 +31,20 @@ export function getRedisClient(): Redis {
     const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!url || !token) {
+      const error = new Error(
+        'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
+      );
       log.warn(
         'Redis configuration missing - cache operations will be skipped',
         {
           metadata: {
             hasUrl: !!url,
             hasToken: !!token,
+            error: error.message,
           },
         }
       );
-      throw new Error(
-        'Redis configuration missing. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
-      );
+      throw error;
     }
 
     try {
@@ -65,9 +67,10 @@ export function getRedisClient(): Redis {
           metadata: { error },
         }
       );
-      throw new Error(
+      const configError = new Error(
         'Redis configuration failed. Check environment variables.'
       );
+      throw configError;
     }
   }
 

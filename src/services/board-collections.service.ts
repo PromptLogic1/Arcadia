@@ -12,10 +12,7 @@ import type { Database } from '../../types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
-import {
-  zBoardState,
-  sessionSettingsSchema,
-} from '@/lib/validation/schemas/bingo';
+import { zBoardState, zBoardSettings } from '@/lib/validation/schemas/bingo';
 
 // Type from database
 type DBBingoBoard = Database['public']['Tables']['bingo_boards']['Row'];
@@ -33,7 +30,14 @@ const _transformDbBoardToDomain = (
   board: DBBingoBoard
 ): BingoBoardDomain | null => {
   const boardStateParseResult = zBoardState.safeParse(board.board_state);
-  const settingsParseResult = sessionSettingsSchema.safeParse(board.settings);
+  const settingsParseResult = zBoardSettings.safeParse(
+    board.settings ?? {
+      team_mode: null,
+      lockout: null,
+      sound_enabled: null,
+      win_conditions: null,
+    }
+  );
 
   if (!boardStateParseResult.success || !settingsParseResult.success) {
     log.error(

@@ -127,7 +127,7 @@ export const bingoCardSchema = z.object({
 // Bingo session schema
 export const bingoSessionSchema = z.object({
   id: z.string(),
-  created_at: z.string().datetime(),
+  created_at: z.string().datetime().nullable(), // Allow null from database
   board_id: z.string(),
   host_id: z.string(),
   status: z.enum(['waiting', 'active', 'completed', 'cancelled']),
@@ -135,9 +135,9 @@ export const bingoSessionSchema = z.object({
   winner_id: z.string().nullable(),
   current_state: zBoardState.nullable(),
   version: z.number().int().nullable(),
-  updated_at: z.string().nullable(),
-  started_at: z.string().nullable(),
-  ended_at: z.string().nullable(),
+  updated_at: z.string().datetime().nullable(), // Ensure datetime validation
+  started_at: z.string().datetime().nullable(), // Ensure datetime validation
+  ended_at: z.string().datetime().nullable(), // Ensure datetime validation
   settings: sessionSettingsSchema.nullable(),
 });
 
@@ -206,7 +206,22 @@ export const queueEntrySchema = z.object({
 });
 
 // Schema for session_stats view which includes additional fields
-export const sessionStatsSchema = bingoSessionSchema.extend({
+// Use more lenient datetime validation for database-returned data
+export const sessionStatsSchema = z.object({
+  id: z.string(),
+  created_at: z.string().nullable(), // More permissive for DB data
+  board_id: z.string(),
+  host_id: z.string(),
+  status: z.enum(['waiting', 'active', 'completed', 'cancelled']),
+  session_code: z.string().nullable(),
+  winner_id: z.string().nullable(),
+  current_state: zBoardState.nullable(),
+  version: z.number().int().nullable(),
+  updated_at: z.string().nullable(), // More permissive for DB data
+  started_at: z.string().nullable(), // More permissive for DB data
+  ended_at: z.string().nullable(), // More permissive for DB data
+  settings: sessionSettingsSchema.nullable(),
+  // Additional fields from the view
   current_player_count: z.number().nullable().optional(),
   board_title: z.string().nullable().optional(),
   board_game_type: gameCategorySchema.nullable().optional(),

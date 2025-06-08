@@ -297,7 +297,7 @@ export const cacheService = {
         return createServiceSuccess(fresh);
       } catch (error) {
         log.error(
-          'Direct fetch failed',
+          'Direct fetch failed when Redis not configured',
           error instanceof Error ? error : new Error(String(error)),
           {
             metadata: { key },
@@ -307,8 +307,37 @@ export const cacheService = {
       }
     }
 
-    // Try to get from cache first
-    const cached = await redisService.get(key);
+    // Try to get from cache first, but handle Redis client creation errors
+    let cached: ServiceResponse<unknown>;
+    try {
+      cached = await redisService.get(key);
+    } catch (error) {
+      // If Redis client creation fails, fall back to direct fetch
+      if (
+        error instanceof Error &&
+        error.message.includes('Redis configuration')
+      ) {
+        log.warn('Redis configuration failed, falling back to direct fetch', {
+          metadata: { key, error: error.message },
+        });
+        try {
+          const fresh = await fetcher();
+          return createServiceSuccess(fresh);
+        } catch (fetchError) {
+          log.error(
+            'Direct fetch failed after Redis configuration error',
+            fetchError instanceof Error
+              ? fetchError
+              : new Error(String(fetchError)),
+            {
+              metadata: { key },
+            }
+          );
+          return createServiceError('Failed to fetch data');
+        }
+      }
+      throw error; // Re-throw if it's not a Redis config error
+    }
 
     if (cached.success && cached.data !== null) {
       log.debug('Cache HIT', {
@@ -346,12 +375,24 @@ export const cacheService = {
       });
       const fresh = await fetcher();
 
-      // Store in cache
-      const setResult = await redisService.set(key, fresh, ttlSeconds);
-
-      if (!setResult.success) {
-        log.warn('Failed to cache fresh data', {
-          metadata: { key, error: setResult.error },
+      // Try to store in cache, but don't fail if Redis is not available
+      try {
+        const setResult = await redisService.set(key, fresh, ttlSeconds);
+        if (!setResult.success) {
+          log.warn('Failed to cache fresh data', {
+            metadata: { key, error: setResult.error },
+          });
+        }
+      } catch (cacheError) {
+        // Log but don't fail - data was fetched successfully
+        log.warn('Failed to cache data due to Redis configuration issue', {
+          metadata: {
+            key,
+            error:
+              cacheError instanceof Error
+                ? cacheError.message
+                : String(cacheError),
+          },
         });
       }
 

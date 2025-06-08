@@ -38,7 +38,7 @@ export interface GameBoardCell extends BoardCell {
 export interface BingoBoardDomain
   extends Omit<BingoBoardDb, 'board_state' | 'settings'> {
   board_state: BoardCell[];
-  settings: DbSessionSettings | null;
+  settings: CompositeTypes<'board_settings'> | null; // Use board_settings, not session_settings
 }
 
 // Enhanced player for game UI
