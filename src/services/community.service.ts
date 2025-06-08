@@ -93,7 +93,7 @@ export interface EventFilters {
 }
 
 // Type guard for Event validation
-function isValidEvent(value: unknown): value is Event {
+function _isValidEvent(value: unknown): value is Event {
   if (!value || typeof value !== 'object' || value === null) {
     return false;
   }

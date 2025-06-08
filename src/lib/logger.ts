@@ -261,8 +261,20 @@ class Logger {
             data: context,
           });
 
-          // Capture exception
-          Sentry.captureException(error);
+          // Capture exception - ensure it's an Error object
+          if (error instanceof Error) {
+            Sentry.captureException(error);
+          } else {
+            // For non-Error objects, create a proper Error with the object as context
+            const wrappedError = new Error(message);
+            Object.defineProperty(wrappedError, 'cause', {
+              value: error,
+              writable: true,
+              enumerable: false,
+              configurable: true,
+            });
+            Sentry.captureException(wrappedError);
+          }
         });
       } else {
         // For errors without an Error object, capture as message
