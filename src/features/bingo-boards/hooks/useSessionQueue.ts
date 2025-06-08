@@ -24,6 +24,7 @@ import type { SessionQueueEntryUpdate } from '../../../services/session-queue.se
 import { useAuth } from '@/lib/stores/auth-store';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
+import { toError } from '@/lib/error-guards';
 import type {
   SessionQueueEntry,
   PlayerQueueData,
@@ -184,7 +185,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
         metadata: { sessionId },
       });
     } catch (error) {
-      logger.error('Failed to generate invite link', error as Error, {
+      logger.error('Failed to generate invite link', toError(error), {
         metadata: { sessionId },
       });
       notifications.error('Failed to generate invite link');
@@ -206,7 +207,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
       }
       return success;
     } catch (error) {
-      logger.error('Failed to copy invite link', error as Error, {
+      logger.error('Failed to copy invite link', toError(error), {
         metadata: { sessionId },
       });
       notifications.error('Failed to copy invite link');
@@ -233,7 +234,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
           metadata: { sessionId, playerData },
         });
       } catch (error) {
-        logger.error('Failed to add player to queue', error as Error, {
+        logger.error('Failed to add player to queue', toError(error), {
           metadata: { sessionId, playerData },
         });
         throw error;
@@ -250,7 +251,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
           metadata: { sessionId, entryId },
         });
       } catch (error) {
-        logger.error('Failed to remove player from queue', error as Error, {
+        logger.error('Failed to remove player from queue', toError(error), {
           metadata: { sessionId, entryId },
         });
         throw error;
@@ -267,7 +268,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
           metadata: { sessionId, entryId },
         });
       } catch (error) {
-        logger.error('Failed to accept player', error as Error, {
+        logger.error('Failed to accept player', toError(error), {
           metadata: { sessionId, entryId },
         });
         throw error;
@@ -284,7 +285,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
           metadata: { sessionId, entryId },
         });
       } catch (error) {
-        logger.error('Failed to reject player', error as Error, {
+        logger.error('Failed to reject player', toError(error), {
           metadata: { sessionId, entryId },
         });
         throw error;
@@ -301,7 +302,7 @@ export function useSessionQueue(sessionId: string): UseSessionQueueReturn {
           metadata: { sessionId, entryId, updates },
         });
       } catch (error) {
-        logger.error('Failed to update queue entry', error as Error, {
+        logger.error('Failed to update queue entry', toError(error), {
           metadata: { sessionId, entryId, updates },
         });
         throw error;

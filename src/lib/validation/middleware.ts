@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError, type ZodSchema } from 'zod';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 
 export interface ValidationSuccess<T> {
   success: true;
@@ -57,7 +58,7 @@ export async function validateRequestBody<T>(
       };
     }
 
-    logger.error('Unexpected error during body validation', error as Error, {
+    logger.error('Unexpected error during body validation', toError(error), {
       metadata: { ...metadata, validationType: 'body' },
     });
 
@@ -114,7 +115,7 @@ export function validateQueryParams<T>(
       };
     }
 
-    logger.error('Unexpected error during query validation', error as Error, {
+    logger.error('Unexpected error during query validation', toError(error), {
       metadata: { ...metadata, validationType: 'query' },
     });
 
@@ -165,7 +166,7 @@ export function validateRouteParams<T>(
       };
     }
 
-    logger.error('Unexpected error during params validation', error as Error, {
+    logger.error('Unexpected error during params validation', toError(error), {
       metadata: { ...metadata, validationType: 'params' },
     });
 

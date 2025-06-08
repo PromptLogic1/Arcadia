@@ -321,12 +321,9 @@ export default function UserPageEdit() {
                       </Label>
                       <Select
                         value={profileVisibilityValue || 'public'}
-                        onValueChange={value =>
-                          setValue(
-                            'profile_visibility',
-                            value as 'public' | 'friends' | 'private'
-                          )
-                        }
+                        onValueChange={(
+                          value: 'public' | 'friends' | 'private'
+                        ) => setValue('profile_visibility', value)}
                         disabled={isSubmitting}
                       >
                         <SelectTrigger className="border-cyan-500/20 bg-gray-700/50 focus:border-fuchsia-500">
@@ -365,12 +362,9 @@ export default function UserPageEdit() {
                       </Label>
                       <Select
                         value={achievementsVisibilityValue || 'public'}
-                        onValueChange={value =>
-                          setValue(
-                            'achievements_visibility',
-                            value as 'public' | 'friends' | 'private'
-                          )
-                        }
+                        onValueChange={(
+                          value: 'public' | 'friends' | 'private'
+                        ) => setValue('achievements_visibility', value)}
                         disabled={isSubmitting}
                       >
                         <SelectTrigger className="border-cyan-500/20 bg-gray-700/50 focus:border-fuchsia-500">
@@ -409,12 +403,9 @@ export default function UserPageEdit() {
                       </Label>
                       <Select
                         value={submissionsVisibilityValue || 'public'}
-                        onValueChange={value =>
-                          setValue(
-                            'submissions_visibility',
-                            value as 'public' | 'friends' | 'private'
-                          )
-                        }
+                        onValueChange={(
+                          value: 'public' | 'friends' | 'private'
+                        ) => setValue('submissions_visibility', value)}
                         disabled={isSubmitting}
                       >
                         <SelectTrigger className="border-cyan-500/20 bg-gray-700/50 focus:border-fuchsia-500">

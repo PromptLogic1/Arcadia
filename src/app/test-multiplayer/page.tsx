@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import {
   RouteErrorBoundary,
   RealtimeErrorBoundary,
 } from '@/components/error-boundaries';
+import { log } from '@/lib/logger';
 
 function TestMultiplayerContent() {
   const { authUser } = useAuth();
@@ -18,10 +19,17 @@ function TestMultiplayerContent() {
   const [joinCode, setJoinCode] = useState('');
   const [testBoardId] = useState('550e8400-e29b-41d4-a716-446655440001'); // WoW Demo Board
 
-  const { session, board, markCell, unmarkCell } = useBingoGame(
-    sessionId,
-    authUser?.id || ''
-  );
+  // Add mountedRef to track component lifecycle
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const { session, board, markCell, unmarkCell } = useBingoGame(sessionId);
 
   const createSession = async () => {
     try {
@@ -38,11 +46,25 @@ function TestMultiplayerContent() {
       if (!response.ok) throw new Error('Failed to create session');
 
       const data = await response.json();
+
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) return;
+
       setSessionId(data.session.id);
       setSessionCode(data.session.session_code);
-      console.log('Created session:', data.session.session_code);
+      log.info('Created session', {
+        metadata: {
+          sessionCode: data.session.session_code,
+          sessionId: data.session.id,
+        },
+      });
     } catch (error) {
-      console.error('Error creating session:', error);
+      log.error('Error creating session', error, {
+        metadata: {
+          component: 'TestMultiplayer',
+          method: 'createSession',
+        },
+      });
     }
   };
 
@@ -62,10 +84,25 @@ function TestMultiplayerContent() {
       if (!response.ok) throw new Error('Failed to join session');
 
       const data = await response.json();
+
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) return;
+
       setSessionId(data.session.id);
-      console.log('Joined session:', data.session);
+      log.info('Joined session', {
+        metadata: {
+          sessionId: data.session.id,
+          sessionCode: data.session.session_code,
+        },
+      });
     } catch (error) {
-      console.error('Error joining session:', error);
+      log.error('Error joining session', error, {
+        metadata: {
+          component: 'TestMultiplayer',
+          method: 'joinSession',
+          joinCode,
+        },
+      });
     }
   };
 

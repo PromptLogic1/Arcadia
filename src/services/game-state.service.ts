@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase';
 import type { BoardCell } from '@/types/domains/bingo';
-import type { Tables, TablesUpdate } from '@/types/database-generated';
+import type { Tables, TablesUpdate } from '@/types/database.types';
 import {
   createServiceError,
   createServiceSuccess,

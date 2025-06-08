@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 import { Card, CardContent } from '@/components/ui/card';
 import { NeonText } from '@/components/ui/NeonText';
 import { USER_PAGE_CONSTANTS } from './constants';

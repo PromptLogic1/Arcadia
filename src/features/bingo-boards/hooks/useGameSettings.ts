@@ -12,6 +12,7 @@ import {
 import { gameSettingsService } from '../../../services/game-settings.service';
 import type { BoardSettings, WinConditions } from '@/types';
 import { log } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import { notifications } from '@/lib/notifications';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
@@ -95,7 +96,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
         );
         window.dispatchEvent(event);
       } catch (error) {
-        log.error('Error emitting settings event', error as Error, {
+        log.error('Error emitting settings event', toError(error), {
           metadata: { hook: 'useGameSettings', boardId },
         });
       }
@@ -140,7 +141,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
 
         emitSettingsEvent('change', newSettings);
       } catch (error: unknown) {
-        log.error('Error updating settings', error as Error, {
+        log.error('Error updating settings', toError(error), {
           metadata: { hook: 'useGameSettings', boardId, updates },
         });
 
@@ -199,7 +200,7 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
 
       emitSettingsEvent('reset', DEFAULT_BOARD_SETTINGS);
     } catch (error) {
-      log.error('Error resetting settings', error as Error, {
+      log.error('Error resetting settings', toError(error), {
         metadata: { hook: 'useGameSettings', boardId },
       });
     }

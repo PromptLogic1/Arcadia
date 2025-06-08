@@ -7,7 +7,7 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Database } from '@/types/database-generated';
+import type { Database } from '@/types/database.types';
 import type {
   ActivityData,
   ActivityType,
@@ -34,7 +34,7 @@ export interface UserStats {
 export interface ActivityOptions {
   limit?: number;
   offset?: number;
-  type?: string;
+  type?: ActivityType;
   fromDate?: string;
   toDate?: string;
 }
@@ -222,7 +222,7 @@ export const userService = {
       .range(offset, offset + limit - 1);
 
     if (type) {
-      query = query.eq('activity_type', type as ActivityType);
+      query = query.eq('activity_type', type);
     }
 
     if (fromDate) {
@@ -250,14 +250,15 @@ export const userService = {
   ): Promise<UserServiceResponse<string>> {
     const supabase = createClient();
 
+    // Convert metadata to JSON-compatible format
+    const jsonData = JSON.parse(JSON.stringify(activity.metadata));
+
     const { data, error } = await supabase
       .from('user_activity')
       .insert({
         user_id: userId,
         activity_type: activity.type,
-        data: JSON.parse(
-          JSON.stringify(activity.metadata)
-        ) as Database['public']['Tables']['user_activity']['Insert']['data'],
+        data: jsonData,
         created_at: new Date().toISOString(),
       })
       .select('id')

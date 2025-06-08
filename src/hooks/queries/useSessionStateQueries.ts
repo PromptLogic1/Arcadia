@@ -252,7 +252,7 @@ export function useSessionState(
     sessionState,
     isLoading:
       isLoading || initializeMutation.isPending || leaveMutation.isPending,
-    error: error as Error | null,
+    error: error instanceof Error ? error : null,
     initializeSession,
     leaveSession,
   };

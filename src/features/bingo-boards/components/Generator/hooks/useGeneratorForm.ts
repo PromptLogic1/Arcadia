@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import type { GameCategory, Difficulty as _Difficulty } from '@/types';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 import { DIFFICULTIES } from '@/src/types/index';
 
 // Type alias for clean usage
@@ -104,7 +104,21 @@ export function useGeneratorForm({
     form;
 
   // Watch form data for real-time updates
-  const formData = useWatch({ control }) as GeneratorFormData;
+  const watchedData = useWatch({ control });
+
+  // Ensure we have a complete GeneratorFormData object
+  const formData: GeneratorFormData = {
+    categories: watchedData.categories ?? getDefaultValues().categories,
+    useAllCategories:
+      watchedData.useAllCategories ?? getDefaultValues().useAllCategories,
+    difficulty: watchedData.difficulty ?? getDefaultValues().difficulty,
+    poolSize: watchedData.poolSize ?? getDefaultValues().poolSize,
+    minVotes: watchedData.minVotes ?? getDefaultValues().minVotes,
+    usePrivateCards:
+      watchedData.usePrivateCards ?? getDefaultValues().usePrivateCards,
+    usePublicCards:
+      watchedData.usePublicCards ?? getDefaultValues().usePublicCards,
+  };
 
   // Computed values
   const isFormValid = formState.isValid && !formState.isSubmitting;

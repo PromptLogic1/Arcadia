@@ -1,5 +1,5 @@
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
-import type { Database } from '../../types/database-generated';
+import type { Database } from '../../types/database.types';
 import { logger } from '@/lib/logger';
 
 // Type definitions for cookie handling (kept for future use)
@@ -17,6 +17,21 @@ interface RequestWithCookies extends Request {
     getAll(): Array<{ name: string; value: string }>;
     set(name: string, value: string): void;
   };
+}
+
+// Type guard for RequestWithCookies
+function isRequestWithCookies(
+  request: Request | RequestWithCookies
+): request is RequestWithCookies {
+  return (
+    'cookies' in request &&
+    request.cookies !== null &&
+    typeof request.cookies === 'object' &&
+    'getAll' in request.cookies &&
+    typeof request.cookies.getAll === 'function' &&
+    'set' in request.cookies &&
+    typeof request.cookies.set === 'function'
+  );
 }
 
 // Supabase configuration - these are validated below, so non-null assertions are safe
@@ -99,13 +114,15 @@ export async function createServerComponentClient() {
                 cookie &&
                 typeof cookie === 'object' &&
                 'name' in cookie &&
-                'value' in cookie
+                'value' in cookie &&
+                typeof cookie.name === 'string' &&
+                typeof cookie.value === 'string'
               ) {
-                const { name, value, options } = cookie as {
-                  name: string;
-                  value: string;
-                  options?: Parameters<typeof cookieStore.set>[2];
-                };
+                // TypeScript now knows cookie has name and value as strings
+                const name = cookie.name;
+                const value = cookie.value;
+                const options =
+                  'options' in cookie ? cookie.options : undefined;
                 cookieStore.set(name, value, options);
               }
             });
@@ -160,18 +177,24 @@ export class SupabaseError extends Error {
 }
 
 export const handleSupabaseError = (error: unknown): never => {
-  if (error && typeof error === 'object' && 'message' in error) {
-    // Safe type guard for Supabase error structure
-    const supabaseError = error as {
-      message: string;
-      code?: string;
-      details?: string;
-    }; // Safe: validated by typeof checks above
-    throw new SupabaseError(
-      supabaseError.message,
-      supabaseError.code,
-      supabaseError.details
-    );
+  if (
+    error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    // TypeScript now knows error has a message property
+    const message = error.message;
+    const code =
+      'code' in error && typeof error.code === 'string'
+        ? error.code
+        : undefined;
+    const details =
+      'details' in error && typeof error.details === 'string'
+        ? error.details
+        : undefined;
+
+    throw new SupabaseError(message, code, details);
   }
   throw new Error('An unknown error occurred');
 };
@@ -192,7 +215,7 @@ export const features = {
 } as const;
 
 // 🧼 Middleware Utility for Session Management
-export async function updateSession(request: Request) {
+export async function updateSession(request: Request | RequestWithCookies) {
   const { NextResponse } = await import('next/server');
 
   let supabaseResponse = NextResponse.next({
@@ -203,11 +226,16 @@ export async function updateSession(request: Request) {
     throw new Error(configValidation.error || 'Invalid Supabase configuration');
   }
 
+  // Type guard to check if request has cookies API
+  if (!isRequestWithCookies(request)) {
+    throw new Error('Request must be a NextRequest with cookies support');
+  }
+
   const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        // Type assertion safe: middleware ensures request has cookies
-        return (request as RequestWithCookies).cookies.getAll();
+        // Now TypeScript knows request has cookies
+        return request.cookies.getAll();
       },
       setAll(cookiesToSet: unknown) {
         // Type guard for cookies in middleware
@@ -217,10 +245,12 @@ export async function updateSession(request: Request) {
               cookie &&
               typeof cookie === 'object' &&
               'name' in cookie &&
-              'value' in cookie
+              'value' in cookie &&
+              typeof cookie.name === 'string' &&
+              typeof cookie.value === 'string'
             ) {
-              const { name, value } = cookie as { name: string; value: string };
-              (request as RequestWithCookies).cookies.set(name, value);
+              // TypeScript now knows cookie has name and value as strings
+              request.cookies.set(cookie.name, cookie.value);
             }
           });
         }
@@ -234,13 +264,14 @@ export async function updateSession(request: Request) {
               cookie &&
               typeof cookie === 'object' &&
               'name' in cookie &&
-              'value' in cookie
+              'value' in cookie &&
+              typeof cookie.name === 'string' &&
+              typeof cookie.value === 'string'
             ) {
-              const { name, value, options } = cookie as {
-                name: string;
-                value: string;
-                options?: Parameters<typeof supabaseResponse.cookies.set>[2];
-              };
+              // TypeScript now knows cookie has name and value as strings
+              const name = cookie.name;
+              const value = cookie.value;
+              const options = 'options' in cookie ? cookie.options : undefined;
               supabaseResponse.cookies.set(name, value, options);
             }
           });

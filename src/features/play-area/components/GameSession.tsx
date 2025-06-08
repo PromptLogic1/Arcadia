@@ -27,6 +27,7 @@ import {
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGame';
 import { useStartGameSessionMutation } from '@/hooks/queries/useGameStateQueries';
 import { RealtimeErrorBoundary } from '@/components/error-boundaries';
@@ -149,13 +150,13 @@ export function GameSession({ sessionId }: GameSessionProps) {
     try {
       await initializeSession(player);
     } catch (error) {
-      logger.error('Failed to join session', error as Error, {
+      logger.error('Failed to join session', toError(error), {
         metadata: {
           sessionId,
           userId: authUser?.id,
         },
       });
-      notifications.error((error as Error).message || 'Failed to join session');
+      notifications.error(toError(error).message || 'Failed to join session');
     }
   }, [playerInSession, session, authUser, initializeSession, sessionId]);
 
@@ -232,11 +233,15 @@ export function GameSession({ sessionId }: GameSessionProps) {
       medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
       hard: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       expert: 'bg-red-500/20 text-red-400 border-red-500/30',
-    };
-    return (
-      colors[difficulty as keyof typeof colors] ||
-      'bg-gray-500/20 text-gray-400 border-gray-500/30'
-    );
+    } as const;
+
+    if (difficulty === 'beginner') return colors.beginner;
+    if (difficulty === 'easy') return colors.easy;
+    if (difficulty === 'medium') return colors.medium;
+    if (difficulty === 'hard') return colors.hard;
+    if (difficulty === 'expert') return colors.expert;
+
+    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
   const getStatusColor = (status: string) => {
@@ -245,11 +250,14 @@ export function GameSession({ sessionId }: GameSessionProps) {
       active: 'bg-green-500/20 text-green-400 border-green-500/30',
       completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
       cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-    };
-    return (
-      colors[status as keyof typeof colors] ||
-      'bg-gray-500/20 text-gray-400 border-gray-500/30'
-    );
+    } as const;
+
+    if (status === 'waiting') return colors.waiting;
+    if (status === 'active') return colors.active;
+    if (status === 'completed') return colors.completed;
+    if (status === 'cancelled') return colors.cancelled;
+
+    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
   return (

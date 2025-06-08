@@ -6,6 +6,7 @@
  */
 
 import type { ValidationResult } from './types';
+import type { Database, Tables, Json } from '@/types/database.types';
 
 // These types need to be defined or imported from somewhere else
 type UserId = string;
@@ -14,7 +15,147 @@ type SessionId = string;
 type CardId = string;
 // safeValidate is available if needed
 
-import type { Tables } from '@/types/database-generated';
+// Type guard for Json type
+function isValidJson(value: unknown): value is Json {
+  if (value === null) return true;
+
+  switch (typeof value) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+      return true;
+    case 'object':
+      // value is object type here, but could still be null (checked above)
+      if (Array.isArray(value)) {
+        return value.every(isValidJson);
+      }
+      // For non-array objects, we need to check all properties
+      // This is a known limitation - we can't iterate unknown objects without narrowing
+      // Using Object.prototype methods to safely check
+      try {
+        // Use Object.keys which is type-safe
+        const objKeys = Object.keys(value);
+        for (const key of objKeys) {
+          // Access property safely through bracket notation
+          const descriptor = Object.getOwnPropertyDescriptor(value, key);
+          if (
+            descriptor &&
+            descriptor.value !== undefined &&
+            !isValidJson(descriptor.value)
+          ) {
+            return false;
+          }
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    default:
+      return false;
+  }
+}
+
+// Type guard for session settings
+function isValidSessionSettings(value: unknown): value is {
+  max_players: number | null;
+  allow_spectators: boolean | null;
+  auto_start: boolean | null;
+  time_limit: number | null;
+  require_approval: boolean | null;
+  password: string | null;
+} | null {
+  if (value === null) return true;
+  if (typeof value !== 'object' || value === null) return false;
+
+  // Use 'in' operator for type narrowing instead of type assertion
+  const hasValidShape =
+    (!('max_players' in value) ||
+      value.max_players === null ||
+      typeof value.max_players === 'number') &&
+    (!('allow_spectators' in value) ||
+      value.allow_spectators === null ||
+      typeof value.allow_spectators === 'boolean') &&
+    (!('auto_start' in value) ||
+      value.auto_start === null ||
+      typeof value.auto_start === 'boolean') &&
+    (!('time_limit' in value) ||
+      value.time_limit === null ||
+      typeof value.time_limit === 'number') &&
+    (!('require_approval' in value) ||
+      value.require_approval === null ||
+      typeof value.require_approval === 'boolean') &&
+    (!('password' in value) ||
+      value.password === null ||
+      typeof value.password === 'string');
+
+  return hasValidShape;
+}
+
+// Type guards for database enums
+function isGameCategory(
+  value: unknown
+): value is Database['public']['Enums']['game_category'] {
+  return (
+    typeof value === 'string' &&
+    [
+      'All Games',
+      'World of Warcraft',
+      'Fortnite',
+      'Minecraft',
+      'Among Us',
+      'Apex Legends',
+      'League of Legends',
+      'Overwatch',
+      'Call of Duty: Warzone',
+      'Valorant',
+      'CS:GO',
+      'Dota 2',
+      'Rocket League',
+      'Fall Guys',
+      'Dead by Daylight',
+      'Cyberpunk 2077',
+      'The Witcher 3',
+      'Elden Ring',
+      'Dark Souls',
+      'Bloodborne',
+      'Sekiro',
+      'Hollow Knight',
+      'Celeste',
+      'Hades',
+      'The Binding of Isaac',
+      'Risk of Rain 2',
+      'Deep Rock Galactic',
+      'Valheim',
+    ].includes(value)
+  );
+}
+
+function isDifficultyLevel(
+  value: unknown
+): value is Database['public']['Enums']['difficulty_level'] {
+  return (
+    typeof value === 'string' &&
+    ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(value)
+  );
+}
+
+function isBoardStatus(
+  value: unknown
+): value is Database['public']['Enums']['board_status'] {
+  return (
+    typeof value === 'string' &&
+    ['draft', 'active', 'paused', 'completed', 'archived'].includes(value)
+  );
+}
+
+function isSessionStatus(
+  value: unknown
+): value is Database['public']['Enums']['session_status'] {
+  return (
+    typeof value === 'string' &&
+    ['waiting', 'active', 'completed', 'cancelled'].includes(value)
+  );
+}
 
 // =============================================================================
 // USER DATA VALIDATORS - REPLACES: auth.service.ts `data as UserData`
@@ -36,7 +177,7 @@ export function validateUserData(data: unknown): ValidationResult<{
   region: string | null;
   city: string | null;
 }> {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || data === null) {
     return {
       success: false,
       data: null,
@@ -44,10 +185,17 @@ export function validateUserData(data: unknown): ValidationResult<{
     };
   }
 
-  const user = data as Record<string, unknown>;
+  // Type guard to check required properties exist
+  if (!('id' in data) || !('auth_id' in data)) {
+    return {
+      success: false,
+      data: null,
+      error: 'Missing required fields',
+    };
+  }
 
-  // Validate required fields
-  if (typeof user.id !== 'string') {
+  // Now TypeScript knows data has 'id' and 'auth_id' properties
+  if (typeof data.id !== 'string') {
     return {
       success: false,
       data: null,
@@ -55,7 +203,7 @@ export function validateUserData(data: unknown): ValidationResult<{
     };
   }
 
-  if (typeof user.auth_id !== 'string') {
+  if (typeof data.auth_id !== 'string') {
     return {
       success: false,
       data: null,
@@ -65,39 +213,52 @@ export function validateUserData(data: unknown): ValidationResult<{
 
   // Validate optional string fields
   const email =
-    user.email === null || typeof user.email === 'string' ? user.email : null;
+    'email' in data && (data.email === null || typeof data.email === 'string')
+      ? data.email
+      : null;
   const username =
-    user.username === null || typeof user.username === 'string'
-      ? user.username
+    'username' in data &&
+    (data.username === null || typeof data.username === 'string')
+      ? data.username
       : null;
   const avatar_url =
-    user.avatar_url === null || typeof user.avatar_url === 'string'
-      ? user.avatar_url
+    'avatar_url' in data &&
+    (data.avatar_url === null || typeof data.avatar_url === 'string')
+      ? data.avatar_url
       : null;
   const created_at =
-    user.created_at === null || typeof user.created_at === 'string'
-      ? user.created_at
+    'created_at' in data &&
+    (data.created_at === null || typeof data.created_at === 'string')
+      ? data.created_at
       : null;
   const updated_at =
-    user.updated_at === null || typeof user.updated_at === 'string'
-      ? user.updated_at
+    'updated_at' in data &&
+    (data.updated_at === null || typeof data.updated_at === 'string')
+      ? data.updated_at
       : null;
   const bio =
-    user.bio === null || typeof user.bio === 'string' ? user.bio : null;
+    'bio' in data && (data.bio === null || typeof data.bio === 'string')
+      ? data.bio
+      : null;
   const land =
-    user.land === null || typeof user.land === 'string' ? user.land : null;
+    'land' in data && (data.land === null || typeof data.land === 'string')
+      ? data.land
+      : null;
   const region =
-    user.region === null || typeof user.region === 'string'
-      ? user.region
+    'region' in data &&
+    (data.region === null || typeof data.region === 'string')
+      ? data.region
       : null;
   const city =
-    user.city === null || typeof user.city === 'string' ? user.city : null;
+    'city' in data && (data.city === null || typeof data.city === 'string')
+      ? data.city
+      : null;
 
   return {
     success: true,
     data: {
-      id: user.id,
-      auth_id: user.auth_id,
+      id: data.id,
+      auth_id: data.auth_id,
       email,
       username,
       avatar_url,
@@ -121,7 +282,7 @@ export function validateUserData(data: unknown): ValidationResult<{
 export function validateBingoBoard(
   data: unknown
 ): ValidationResult<Tables<'bingo_boards'>> {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || data === null) {
     return {
       success: false,
       data: null,
@@ -129,10 +290,8 @@ export function validateBingoBoard(
     };
   }
 
-  const board = data as Record<string, unknown>;
-
   // Validate required fields
-  if (typeof board.id !== 'string') {
+  if (!('id' in data) || typeof data.id !== 'string') {
     return {
       success: false,
       data: null,
@@ -140,7 +299,7 @@ export function validateBingoBoard(
     };
   }
 
-  if (typeof board.title !== 'string') {
+  if (!('title' in data) || typeof data.title !== 'string') {
     return {
       success: false,
       data: null,
@@ -148,53 +307,99 @@ export function validateBingoBoard(
     };
   }
 
+  // Validate game_type
+  if (!('game_type' in data) || !isGameCategory(data.game_type)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid game type: ${'game_type' in data ? data.game_type : 'missing'}`,
+    };
+  }
+
+  // Validate difficulty
+  if (!('difficulty' in data) || !isDifficultyLevel(data.difficulty)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid difficulty level: ${'difficulty' in data ? data.difficulty : 'missing'}`,
+    };
+  }
+
+  // Validate status if present
+  if (
+    'status' in data &&
+    data.status !== null &&
+    data.status !== undefined &&
+    !isBoardStatus(data.status)
+  ) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid board status: ${data.status}`,
+    };
+  }
+
   // Build validated board object
   const validatedBoard: Tables<'bingo_boards'> = {
-    id: board.id,
-    title: board.title,
+    id: data.id,
+    title: data.title,
     description:
-      board.description === null || typeof board.description === 'string'
-        ? board.description
+      'description' in data &&
+      (data.description === null || typeof data.description === 'string')
+        ? data.description
         : null,
     creator_id:
-      board.creator_id === null || typeof board.creator_id === 'string'
-        ? board.creator_id
+      'creator_id' in data &&
+      (data.creator_id === null || typeof data.creator_id === 'string')
+        ? data.creator_id
         : null,
-    game_type: board.game_type as Tables<'bingo_boards'>['game_type'], // Use DB-generated type
-    difficulty: board.difficulty as Tables<'bingo_boards'>['difficulty'], // Use DB-generated type
+    game_type: data.game_type,
+    difficulty: data.difficulty,
     size:
-      board.size === null || typeof board.size === 'number' ? board.size : null,
-    is_public:
-      board.is_public === null || typeof board.is_public === 'boolean'
-        ? board.is_public
+      'size' in data && (data.size === null || typeof data.size === 'number')
+        ? data.size
         : null,
-    status: board.status as Tables<'bingo_boards'>['status'], // Use DB-generated type
-    board_state: board.board_state as Tables<'bingo_boards'>['board_state'], // Use DB-generated type
-    settings: board.settings as Tables<'bingo_boards'>['settings'], // Use DB-generated type
+    is_public:
+      'is_public' in data &&
+      (data.is_public === null || typeof data.is_public === 'boolean')
+        ? data.is_public
+        : null,
+    status: 'status' in data && isBoardStatus(data.status) ? data.status : null,
+    board_state:
+      'board_state' in data && isValidJson(data.board_state)
+        ? data.board_state
+        : null,
+    settings:
+      'settings' in data && isValidJson(data.settings) ? data.settings : null,
     created_at:
-      board.created_at === null || typeof board.created_at === 'string'
-        ? board.created_at
+      'created_at' in data &&
+      (data.created_at === null || typeof data.created_at === 'string')
+        ? data.created_at
         : null,
     updated_at:
-      board.updated_at === null || typeof board.updated_at === 'string'
-        ? board.updated_at
+      'updated_at' in data &&
+      (data.updated_at === null || typeof data.updated_at === 'string')
+        ? data.updated_at
         : null,
     version:
-      board.version === null || typeof board.version === 'number'
-        ? board.version
+      'version' in data &&
+      (data.version === null || typeof data.version === 'number')
+        ? data.version
         : null,
     votes:
-      board.votes === null || typeof board.votes === 'number'
-        ? board.votes
+      'votes' in data && (data.votes === null || typeof data.votes === 'number')
+        ? data.votes
         : null,
     bookmarked_count:
-      board.bookmarked_count === null ||
-      typeof board.bookmarked_count === 'number'
-        ? board.bookmarked_count
+      'bookmarked_count' in data &&
+      (data.bookmarked_count === null ||
+        typeof data.bookmarked_count === 'number')
+        ? data.bookmarked_count
         : null,
     cloned_from:
-      board.cloned_from === null || typeof board.cloned_from === 'string'
-        ? board.cloned_from
+      'cloned_from' in data &&
+      (data.cloned_from === null || typeof data.cloned_from === 'string')
+        ? data.cloned_from
         : null,
   };
 
@@ -254,7 +459,7 @@ export function validateBingoBoardArray(
 export function validateBingoCard(
   data: unknown
 ): ValidationResult<Tables<'bingo_cards'>> {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || data === null) {
     return {
       success: false,
       data: null,
@@ -262,10 +467,8 @@ export function validateBingoCard(
     };
   }
 
-  const card = data as Record<string, unknown>;
-
   // Validate required fields
-  if (typeof card.id !== 'string') {
+  if (!('id' in data) || typeof data.id !== 'string') {
     return {
       success: false,
       data: null,
@@ -273,7 +476,7 @@ export function validateBingoCard(
     };
   }
 
-  if (typeof card.title !== 'string') {
+  if (!('title' in data) || typeof data.title !== 'string') {
     return {
       success: false,
       data: null,
@@ -281,35 +484,69 @@ export function validateBingoCard(
     };
   }
 
+  // Validate game_type
+  if (!('game_type' in data) || !isGameCategory(data.game_type)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid game type: ${'game_type' in data ? data.game_type : 'missing'}`,
+    };
+  }
+
+  // Validate difficulty
+  if (!('difficulty' in data) || !isDifficultyLevel(data.difficulty)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid difficulty level: ${'difficulty' in data ? data.difficulty : 'missing'}`,
+    };
+  }
+
+  // Validate tags
+  const tags =
+    'tags' in data &&
+    (data.tags === null ||
+      (Array.isArray(data.tags) &&
+        data.tags.every(tag => typeof tag === 'string')))
+      ? data.tags
+      : null;
+
   // Build validated card object
   const validatedCard: Tables<'bingo_cards'> = {
-    id: card.id,
-    title: card.title,
+    id: data.id,
+    title: data.title,
     description:
-      card.description === null || typeof card.description === 'string'
-        ? card.description
+      'description' in data &&
+      (data.description === null || typeof data.description === 'string')
+        ? data.description
         : null,
     creator_id:
-      card.creator_id === null || typeof card.creator_id === 'string'
-        ? card.creator_id
+      'creator_id' in data &&
+      (data.creator_id === null || typeof data.creator_id === 'string')
+        ? data.creator_id
         : null,
-    game_type: card.game_type as Tables<'bingo_cards'>['game_type'],
-    difficulty: card.difficulty as Tables<'bingo_cards'>['difficulty'],
+    game_type: data.game_type,
+    difficulty: data.difficulty,
     is_public:
-      card.is_public === null || typeof card.is_public === 'boolean'
-        ? card.is_public
+      'is_public' in data &&
+      (data.is_public === null || typeof data.is_public === 'boolean')
+        ? data.is_public
         : null,
     votes:
-      card.votes === null || typeof card.votes === 'number' ? card.votes : null,
+      'votes' in data && (data.votes === null || typeof data.votes === 'number')
+        ? data.votes
+        : null,
     created_at:
-      card.created_at === null || typeof card.created_at === 'string'
-        ? card.created_at
+      'created_at' in data &&
+      (data.created_at === null || typeof data.created_at === 'string')
+        ? data.created_at
         : null,
     updated_at:
-      card.updated_at === null || typeof card.updated_at === 'string'
-        ? card.updated_at
+      'updated_at' in data &&
+      (data.updated_at === null || typeof data.updated_at === 'string')
+        ? data.updated_at
         : null,
-    tags: card.tags as Tables<'bingo_cards'>['tags'], // Use DB-generated type for string array
+    tags: tags,
   };
 
   return {
@@ -368,7 +605,7 @@ export function validateBingoCardArray(
 export function validateBingoSession(
   data: unknown
 ): ValidationResult<Tables<'bingo_sessions'>> {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || data === null) {
     return {
       success: false,
       data: null,
@@ -376,10 +613,8 @@ export function validateBingoSession(
     };
   }
 
-  const session = data as Record<string, unknown>;
-
   // Validate required fields
-  if (typeof session.id !== 'string') {
+  if (!('id' in data) || typeof data.id !== 'string') {
     return {
       success: false,
       data: null,
@@ -387,48 +622,71 @@ export function validateBingoSession(
     };
   }
 
+  // Validate status
+  if (!('status' in data) || !isSessionStatus(data.status)) {
+    return {
+      success: false,
+      data: null,
+      error: `Invalid session status: ${'status' in data ? data.status : 'missing'}`,
+    };
+  }
+
   // Build validated session object
   const validatedSession: Tables<'bingo_sessions'> = {
-    id: session.id,
+    id: data.id,
     board_id:
-      session.board_id === null || typeof session.board_id === 'string'
-        ? session.board_id
+      'board_id' in data &&
+      (data.board_id === null || typeof data.board_id === 'string')
+        ? data.board_id
         : null,
     host_id:
-      session.host_id === null || typeof session.host_id === 'string'
-        ? session.host_id
+      'host_id' in data &&
+      (data.host_id === null || typeof data.host_id === 'string')
+        ? data.host_id
         : null,
     winner_id:
-      session.winner_id === null || typeof session.winner_id === 'string'
-        ? session.winner_id
+      'winner_id' in data &&
+      (data.winner_id === null || typeof data.winner_id === 'string')
+        ? data.winner_id
         : null,
-    status: session.status as Tables<'bingo_sessions'>['status'],
+    status: data.status,
     session_code:
-      session.session_code === null || typeof session.session_code === 'string'
-        ? session.session_code
+      'session_code' in data &&
+      (data.session_code === null || typeof data.session_code === 'string')
+        ? data.session_code
         : null,
     current_state:
-      session.current_state as Tables<'bingo_sessions'>['current_state'],
-    settings: session.settings as Tables<'bingo_sessions'>['settings'],
+      'current_state' in data && isValidJson(data.current_state)
+        ? data.current_state
+        : null,
+    settings:
+      'settings' in data && isValidSessionSettings(data.settings)
+        ? data.settings
+        : null,
     created_at:
-      session.created_at === null || typeof session.created_at === 'string'
-        ? session.created_at
+      'created_at' in data &&
+      (data.created_at === null || typeof data.created_at === 'string')
+        ? data.created_at
         : null,
     started_at:
-      session.started_at === null || typeof session.started_at === 'string'
-        ? session.started_at
+      'started_at' in data &&
+      (data.started_at === null || typeof data.started_at === 'string')
+        ? data.started_at
         : null,
     ended_at:
-      session.ended_at === null || typeof session.ended_at === 'string'
-        ? session.ended_at
+      'ended_at' in data &&
+      (data.ended_at === null || typeof data.ended_at === 'string')
+        ? data.ended_at
         : null,
     updated_at:
-      session.updated_at === null || typeof session.updated_at === 'string'
-        ? session.updated_at
+      'updated_at' in data &&
+      (data.updated_at === null || typeof data.updated_at === 'string')
+        ? data.updated_at
         : null,
     version:
-      session.version === null || typeof session.version === 'number'
-        ? session.version
+      'version' in data &&
+      (data.version === null || typeof data.version === 'number')
+        ? data.version
         : null,
   };
 
@@ -452,7 +710,7 @@ export function validatePresenceData(data: unknown): ValidationResult<{
   status: string;
   lastSeen: string;
 }> {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || data === null) {
     return {
       success: false,
       data: null,
@@ -460,10 +718,8 @@ export function validatePresenceData(data: unknown): ValidationResult<{
     };
   }
 
-  const presence = data as Record<string, unknown>;
-
   // Validate required fields
-  if (typeof presence.presence_ref !== 'string') {
+  if (!('presence_ref' in data) || typeof data.presence_ref !== 'string') {
     return {
       success: false,
       data: null,
@@ -471,7 +727,7 @@ export function validatePresenceData(data: unknown): ValidationResult<{
     };
   }
 
-  if (typeof presence.displayName !== 'string') {
+  if (!('displayName' in data) || typeof data.displayName !== 'string') {
     return {
       success: false,
       data: null,
@@ -479,25 +735,36 @@ export function validatePresenceData(data: unknown): ValidationResult<{
     };
   }
 
-  const userIdResult = validateUserId(presence.userId);
+  if (!('userId' in data)) {
+    return {
+      success: false,
+      data: null,
+      error: 'User ID is required',
+    };
+  }
+
+  const userIdResult = validateUserId(data.userId);
   if (!userIdResult.success) {
     return {
       success: false,
       data: null,
-      error: `Invalid presence user ID: ${presence.userId}`,
+      error: `Invalid presence user ID: ${data.userId}`,
     };
   }
 
   return {
     success: true,
     data: {
-      presence_ref: presence.presence_ref,
+      presence_ref: data.presence_ref,
       userId: userIdResult.data,
-      displayName: presence.displayName,
-      status: typeof presence.status === 'string' ? presence.status : 'online',
+      displayName: data.displayName,
+      status:
+        'status' in data && typeof data.status === 'string'
+          ? data.status
+          : 'online',
       lastSeen:
-        typeof presence.lastSeen === 'string'
-          ? presence.lastSeen
+        'lastSeen' in data && typeof data.lastSeen === 'string'
+          ? data.lastSeen
           : new Date().toISOString(),
     },
   };

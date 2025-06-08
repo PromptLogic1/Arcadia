@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -90,6 +90,16 @@ function TryDemoGame() {
   const { authUser } = useAuth();
   const router = useRouter();
 
+  // Add mountedRef to track component lifecycle
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Use TanStack Query mutations
   const createSessionMutation = useCreateSessionMutation();
   const joinSessionByCodeMutation = useJoinSessionByCodeMutation();
@@ -159,6 +169,9 @@ function TryDemoGame() {
         }
       );
 
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) return;
+
       setError(
         err instanceof Error ? err.message : 'Failed to create demo session'
       );
@@ -210,6 +223,9 @@ function TryDemoGame() {
       const randomBoard =
         DEMO_BOARDS[Math.floor(Math.random() * DEMO_BOARDS.length)];
       if (randomBoard) {
+        // Check if component is still mounted before updating state
+        if (!isMountedRef.current) return;
+
         setSelectedBoard(randomBoard);
 
         const result = await createSessionMutation.mutateAsync({
@@ -255,9 +271,16 @@ function TryDemoGame() {
           },
         }
       );
+
+      // Check if component is still mounted before updating state
+      if (!isMountedRef.current) return;
+
       setError(err instanceof Error ? err.message : 'Failed to join session');
     } finally {
-      setQuickPlayInitiated(false);
+      // Check if component is still mounted before updating state
+      if (isMountedRef.current) {
+        setQuickPlayInitiated(false);
+      }
     }
   };
 

@@ -122,3 +122,25 @@ export function getErrorDetails(e: unknown): Record<string, unknown> {
     error: String(e),
   };
 }
+
+/**
+ * Safely convert any value to an Error instance
+ * No type assertions - uses proper type guards
+ */
+export function toError(value: unknown): Error {
+  if (isError(value)) {
+    return value;
+  }
+
+  if (isErrorWithMessage(value)) {
+    const error = new Error(value.message);
+    return error;
+  }
+
+  if (typeof value === 'string') {
+    return new Error(value);
+  }
+
+  // For all other types, convert to string
+  return new Error(String(value));
+}

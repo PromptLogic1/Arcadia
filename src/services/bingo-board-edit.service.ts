@@ -11,10 +11,11 @@ import type {
   CompositeTypes,
   TablesInsert,
   TablesUpdate,
-} from '@/types/database-generated';
+} from '@/types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { log } from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error-guards';
 import {
   bingoBoardSchema,
   bingoCardSchema,
@@ -154,14 +155,10 @@ export const bingoBoardEditService = {
         cards: cardsValidation.data,
       });
     } catch (error) {
-      log.error('Unexpected error in getBoardForEdit', error as Error, {
+      log.error('Unexpected error in getBoardForEdit', error, {
         metadata: { boardId, service: 'bingoBoardEditService' },
       });
-      return createServiceError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to load board for editing'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -220,15 +217,13 @@ export const bingoBoardEditService = {
 
       return createServiceSuccess(savedCards);
     } catch (error) {
-      log.error('Unexpected error in saveCards', error as Error, {
+      log.error('Unexpected error in saveCards', error, {
         metadata: {
           cardsCount: cards.length,
           service: 'bingoBoardEditService',
         },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to save cards'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -298,12 +293,10 @@ export const bingoBoardEditService = {
 
       return createServiceSuccess(transformedBoard);
     } catch (error) {
-      log.error('Unexpected error in updateBoard', error as Error, {
+      log.error('Unexpected error in updateBoard', error, {
         metadata: { boardId, currentVersion, service: 'bingoBoardEditService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to update board'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -354,12 +347,10 @@ export const bingoBoardEditService = {
 
       return createServiceSuccess(cardValidation.data);
     } catch (error) {
-      log.error('Unexpected error in createCard', error as Error, {
+      log.error('Unexpected error in createCard', error, {
         metadata: { cardData, service: 'bingoBoardEditService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to create card'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -412,12 +403,10 @@ export const bingoBoardEditService = {
 
       return createServiceSuccess(cardValidation.data);
     } catch (error) {
-      log.error('Unexpected error in updateCard', error as Error, {
+      log.error('Unexpected error in updateCard', error, {
         metadata: { cardId, service: 'bingoBoardEditService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to update card'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -471,14 +460,10 @@ export const bingoBoardEditService = {
         privateCards,
       });
     } catch (error) {
-      log.error('Unexpected error in initializeBoardData', error as Error, {
+      log.error('Unexpected error in initializeBoardData', error, {
         metadata: { boardId, service: 'bingoBoardEditService' },
       });
-      return createServiceError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to initialize board data'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

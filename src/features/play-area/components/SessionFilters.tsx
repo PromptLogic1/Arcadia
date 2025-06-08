@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 // Types
 import type { SessionFilters } from '../../../services/sessions.service';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 
 type GameCategory = Enums<'game_category'>;
 type Difficulty = Enums<'difficulty_level'>;
@@ -76,7 +76,61 @@ const _DIFFICULTIES: (Difficulty | 'all')[] = [
   'expert',
 ];
 
-// Removed unused constants to avoid type errors
+// Type guards for safe value validation
+function isValidGameCategory(value: string): value is GameCategory {
+  return (
+    value === 'World of Warcraft' ||
+    value === 'Fortnite' ||
+    value === 'Minecraft' ||
+    value === 'Among Us' ||
+    value === 'Apex Legends' ||
+    value === 'League of Legends' ||
+    value === 'Overwatch' ||
+    value === 'Call of Duty: Warzone' ||
+    value === 'Valorant' ||
+    value === 'CS:GO' ||
+    value === 'Dota 2' ||
+    value === 'Rocket League' ||
+    value === 'Fall Guys' ||
+    value === 'Dead by Daylight' ||
+    value === 'Cyberpunk 2077' ||
+    value === 'The Witcher 3' ||
+    value === 'Elden Ring' ||
+    value === 'Dark Souls' ||
+    value === 'Bloodborne' ||
+    value === 'Sekiro' ||
+    value === 'Hollow Knight' ||
+    value === 'Celeste' ||
+    value === 'Hades' ||
+    value === 'The Binding of Isaac' ||
+    value === 'Risk of Rain 2' ||
+    value === 'Deep Rock Galactic' ||
+    value === 'Valheim' ||
+    value === 'Subnautica' ||
+    value === "No Man's Sky" ||
+    value === 'Terraria' ||
+    value === 'Stardew Valley' ||
+    value === 'Animal Crossing' ||
+    value === 'Splatoon 3' ||
+    value === 'Super Mario Odyssey' ||
+    value === 'The Legend of Zelda: Breath of the Wild' ||
+    value === 'Super Smash Bros. Ultimate'
+  );
+}
+
+function isValidDifficulty(value: string): value is Difficulty {
+  return (
+    value === 'beginner' ||
+    value === 'easy' ||
+    value === 'medium' ||
+    value === 'hard' ||
+    value === 'expert'
+  );
+}
+
+function isValidSessionStatus(value: string): value is 'active' | 'waiting' {
+  return value === 'active' || value === 'waiting';
+}
 
 /**
  * Session Filters Component
@@ -158,7 +212,11 @@ export function SessionFilters({
           onValueChange={value =>
             updateFilter(
               'gameCategory',
-              value === 'All Games' ? undefined : (value as GameCategory)
+              value === 'All Games'
+                ? undefined
+                : isValidGameCategory(value)
+                  ? value
+                  : undefined
             )
           }
         >
@@ -179,7 +237,11 @@ export function SessionFilters({
           onValueChange={value =>
             updateFilter(
               'difficulty',
-              value === 'all' ? undefined : (value as Difficulty)
+              value === 'all'
+                ? undefined
+                : isValidDifficulty(value)
+                  ? value
+                  : undefined
             )
           }
         >
@@ -201,7 +263,11 @@ export function SessionFilters({
           onValueChange={value =>
             updateFilter(
               'status',
-              value === 'all' ? undefined : (value as 'active' | 'waiting')
+              value === 'all'
+                ? undefined
+                : isValidSessionStatus(value)
+                  ? value
+                  : undefined
             )
           }
         >

@@ -90,7 +90,7 @@ export function useSearch<T extends Discussion | Event>(
         const matchesChallenge =
           selectedChallenge === 'All Challenges' ||
           ('challenge_type' in item &&
-            (item as Discussion).challenge_type === selectedChallenge);
+            item.challenge_type === selectedChallenge);
 
         return matchesSearch && matchesGame && matchesChallenge;
       })

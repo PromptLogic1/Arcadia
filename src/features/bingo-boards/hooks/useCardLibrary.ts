@@ -19,6 +19,7 @@ import {
   useShuffleCardsMutation,
 } from '@/hooks/queries/useCardLibraryQueries';
 import { useDebounce } from '@/hooks/useDebounce';
+import { log } from '@/lib/logger';
 import type { BingoCard, GameCategory } from '@/types';
 
 interface UseCardLibraryProps {
@@ -62,13 +63,14 @@ export function useCardLibrary({
   }
 
   // Apply initial filters if they differ from current
-  if (initialFilters && Object.keys(initialFilters).length > 0) {
-    Object.entries(initialFilters).forEach(([key, value]) => {
-      const filterKey = key as keyof CardLibraryFilters;
-      if (filters[filterKey] !== value) {
-        updateFilter(filterKey, value);
+  if (initialFilters) {
+    let key: keyof typeof initialFilters;
+    for (key in initialFilters) {
+      const value = initialFilters[key];
+      if (value !== undefined && filters[key] !== value) {
+        updateFilter(key, value);
       }
-    });
+    }
   }
 
   // Create filters with debounced search
@@ -154,10 +156,17 @@ export function useCardLibrary({
         setBulkMode(false);
       } catch (error) {
         // Error handled by mutation onError
-        console.error('Failed to bulk add cards:', error);
+        log.error('Failed to bulk add cards', error, {
+          metadata: {
+            hook: 'useCardLibrary',
+            method: 'handleBulkAdd',
+            cardsCount: cards.length,
+            gameType,
+          },
+        });
       }
     },
-    [createBulkCardsMutation, clearSelectedCards, setBulkMode]
+    [createBulkCardsMutation, clearSelectedCards, setBulkMode, gameType]
   );
 
   const handleShuffle = useCallback(
@@ -171,9 +180,18 @@ export function useCardLibrary({
           },
           count,
         });
-        return result.cards || [];
+        // The mutation returns ServiceResponse<BingoCard[]>
+        return result.success && result.data ? result.data : [];
       } catch (error) {
-        console.error('Failed to shuffle cards:', error);
+        log.error('Failed to shuffle cards', error, {
+          metadata: {
+            hook: 'useCardLibrary',
+            method: 'handleShuffle',
+            count,
+            gameType: filters.gameType,
+            difficulty: filters.difficulty,
+          },
+        });
         return [];
       } finally {
         setIsShuffling(false);
@@ -191,7 +209,7 @@ export function useCardLibrary({
   // Derived state
   const selectedCardsArray = Array.from(selectedCards)
     .map(id => publicCardsResponse?.cards.find(card => card.id === id))
-    .filter(Boolean) as BingoCard[];
+    .filter((card): card is BingoCard => card !== undefined);
 
   const isLoading = isLoadingCards || isLoadingCollections;
   const hasError = !!cardsError;

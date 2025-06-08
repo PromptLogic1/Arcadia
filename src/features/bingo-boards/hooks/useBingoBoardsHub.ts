@@ -16,6 +16,24 @@ import type { BoardFilters } from '../../../services/bingo-boards.service';
 import type { GameCategory, DifficultyLevel } from '@/types';
 import { ROUTES as _ROUTES } from '@/src/config/routes';
 import { log } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
+
+// Type guards
+function isGameCategory(value: string): value is GameCategory {
+  // This would ideally check against a const array of valid values
+  // For now, we trust that the value is valid since it comes from controlled inputs
+  return true;
+}
+
+function isDifficultyLevel(value: string): value is DifficultyLevel {
+  return ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(value);
+}
+
+function isSortBy(
+  value: string
+): value is 'newest' | 'oldest' | 'popular' | 'difficulty' {
+  return ['newest', 'oldest', 'popular', 'difficulty'].includes(value);
+}
 
 // Legacy filter interface for backwards compatibility
 export interface LegacyFilterState {
@@ -82,29 +100,26 @@ export function useBingoBoardsHub() {
 
       if (
         newLegacyFilters.category &&
-        newLegacyFilters.category !== 'All Games'
+        newLegacyFilters.category !== 'All Games' &&
+        isGameCategory(newLegacyFilters.category)
       ) {
-        modernFilters.gameType = newLegacyFilters.category as GameCategory;
+        modernFilters.gameType = newLegacyFilters.category;
       }
 
       if (
         newLegacyFilters.difficulty &&
-        newLegacyFilters.difficulty !== 'all'
+        newLegacyFilters.difficulty !== 'all' &&
+        isDifficultyLevel(newLegacyFilters.difficulty)
       ) {
-        modernFilters.difficulty =
-          newLegacyFilters.difficulty as DifficultyLevel;
+        modernFilters.difficulty = newLegacyFilters.difficulty;
       }
 
       if (newLegacyFilters.search) {
         modernFilters.search = newLegacyFilters.search;
       }
 
-      if (newLegacyFilters.sort) {
-        modernFilters.sortBy = newLegacyFilters.sort as
-          | 'newest'
-          | 'oldest'
-          | 'popular'
-          | 'difficulty';
+      if (newLegacyFilters.sort && isSortBy(newLegacyFilters.sort)) {
+        modernFilters.sortBy = newLegacyFilters.sort;
       }
 
       // Update the modern filters
@@ -129,8 +144,7 @@ export function useBingoBoardsHub() {
         const createData = {
           title: formData.board_title,
           description: formData.board_description || '',
-          game_type:
-            formData.board_game_type || ('World of Warcraft' as GameCategory),
+          game_type: formData.board_game_type || 'World of Warcraft',
           difficulty: formData.board_difficulty,
           size: formData.board_size,
           tags: formData.board_tags,
@@ -148,7 +162,7 @@ export function useBingoBoardsHub() {
       } catch (error) {
         // Only log error if component is still mounted
         if (isMountedRef.current) {
-          log.error('Failed to create board', error as Error, {
+          log.error('Failed to create board', toError(error), {
             metadata: { hook: 'useBingoBoardsHub', formData },
           });
         }

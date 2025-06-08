@@ -1,6 +1,17 @@
 import * as Sentry from '@sentry/nextjs';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
+// Augment the Navigator interface for Network Information API
+declare global {
+  interface Navigator {
+    connection?: {
+      effectiveType?: string;
+      downlink?: number;
+      rtt?: number;
+    };
+  }
+}
+
 /**
  * Set user context in Sentry for better error tracking
  */
@@ -45,20 +56,12 @@ export function addSentryContext() {
     });
 
     // Add performance context
-    if ('connection' in navigator) {
-      const connection = (
-        navigator as Navigator & {
-          connection?: {
-            effectiveType?: string;
-            downlink?: number;
-            rtt?: number;
-          };
-        }
-      ).connection;
+    // Now TypeScript knows about the connection property through global augmentation
+    if (navigator.connection) {
       Sentry.setContext('network', {
-        effectiveType: connection?.effectiveType,
-        downlink: connection?.downlink,
-        rtt: connection?.rtt,
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt,
       });
     }
   }

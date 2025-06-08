@@ -27,7 +27,7 @@ export function useCardLibraryPublicCardsQuery(
     queryFn: () => cardLibraryService.getPublicCards(filters, page),
     enabled: enabled && !!filters.gameType,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select: data => data.response,
+    select: data => data.data,
   });
 }
 
@@ -44,7 +44,7 @@ export function useRandomCardsQuery(
     queryFn: () => cardLibraryService.getRandomCards(filters, count),
     enabled: enabled && !!filters.gameType && count > 0,
     staleTime: 0, // Always fresh for randomization
-    select: data => data.cards,
+    select: data => data.data,
   });
 }
 
@@ -60,7 +60,7 @@ export function useFeaturedCollectionsQuery(
     queryFn: () => cardLibraryService.getFeaturedCollections(gameType),
     enabled: enabled && !!gameType,
     staleTime: 10 * 60 * 1000, // 10 minutes
-    select: data => data.collections,
+    select: data => data.data,
   });
 }
 
@@ -75,13 +75,13 @@ export function useCreateBulkCardsMutation() {
       cards: Omit<BingoCard, 'id' | 'created_at' | 'updated_at' | 'votes'>[]
     ) => cardLibraryService.createBulkCards(cards),
     onSuccess: (result, _variables) => {
-      if (result.error) {
-        notifications.error(result.error);
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to create cards');
         return;
       }
 
       notifications.success(
-        `Created ${result.cards.length} cards successfully!`
+        `Created ${result.data.length} cards successfully!`
       );
 
       // Invalidate relevant queries
@@ -110,15 +110,20 @@ export function useShuffleCardsMutation() {
       filters: Pick<CardLibraryFilters, 'gameType' | 'difficulty'>;
       count: number;
     }) => cardLibraryService.getRandomCards(filters, count),
-    onSuccess: result => {
-      if (result.error) {
-        notifications.error(result.error);
+    onSuccess: (result, variables) => {
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to shuffle cards');
         return;
       }
 
       // Update the random cards cache
-      const queryKey = ['cardLibrary', 'random', result.cards[0]?.game_type];
-      queryClient.setQueryData(queryKey, result.cards);
+      const queryKey = [
+        'cardLibrary',
+        'random',
+        variables.filters,
+        variables.count,
+      ];
+      queryClient.setQueryData(queryKey, result);
     },
     onError: error => {
       const message =

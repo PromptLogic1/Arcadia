@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { log } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
+import { toError } from '@/lib/error-guards';
 
 // New pattern imports
 import {
@@ -133,7 +134,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       }
     } catch (error) {
       // Error handling is done in the mutation
-      log.error('Failed to create session', error as Error, {
+      log.error('Failed to create session', toError(error), {
         metadata: {
           component: 'PlayAreaHub',
           userId: authUser?.id,
@@ -164,7 +165,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
         },
       });
     } catch (error) {
-      log.error('Failed to join session by code', error as Error, {
+      log.error('Failed to join session by code', toError(error), {
         metadata: {
           component: 'PlayAreaHub',
           joinSessionCode: joinSessionCode.trim(),
@@ -208,7 +209,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       router.push(`/play-area/session/${sessionId}`);
     } catch (error) {
       // Error handling is done in the mutation
-      log.error('Failed to join session', error as Error, {
+      log.error('Failed to join session', toError(error), {
         metadata: {
           component: 'PlayAreaHub',
           sessionId,

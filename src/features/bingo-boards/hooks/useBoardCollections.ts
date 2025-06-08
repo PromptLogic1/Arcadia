@@ -12,6 +12,7 @@ import {
   useBoardCollectionsActions,
 } from '../../../lib/stores/board-collections-store';
 import { notifications } from '../../../lib/notifications';
+import { log } from '../../../lib/logger';
 import type { GameCategory } from '../../../types';
 import type {
   BoardCollection,
@@ -92,7 +93,15 @@ export function useBoardCollections(
       } catch (error) {
         // Rollback on error
         updateFilter(key, previousValue);
-        console.error('Failed to update filter:', error);
+        log.error('Failed to update filter', error, {
+          metadata: {
+            hook: 'useBoardCollections',
+            method: 'safeUpdateFilter',
+            key,
+            value,
+            previousValue,
+          },
+        });
       }
     },
     [filters, updateFilter]
@@ -116,10 +125,11 @@ export function useBoardCollections(
       }
 
       setIsShuffling(true);
+      // Declare availableCollections outside try block so it's accessible in catch
+      let availableCollections: BoardCollection[] = collections;
 
       try {
         // Filter collections based on current difficulty if set
-        let availableCollections = collections;
         if (filters.difficulty !== 'all') {
           availableCollections = collections.filter(
             (collection: BoardCollection) =>
@@ -136,13 +146,21 @@ export function useBoardCollections(
 
         await onShuffleFromCollections(availableCollections);
       } catch (error) {
-        console.error('Failed to shuffle from collections:', error);
+        log.error('Failed to shuffle from collections', error, {
+          metadata: {
+            hook: 'useBoardCollections',
+            method: 'shuffleFromCollections',
+            collectionsCount: availableCollections.length,
+            gameType,
+            difficulty: filters.difficulty,
+          },
+        });
         notifications.error('Failed to generate board from collections');
       } finally {
         setIsShuffling(false);
       }
     },
-    [collections, filters.difficulty, setIsShuffling]
+    [collections, filters.difficulty, setIsShuffling, gameType]
   );
 
   // Derived state

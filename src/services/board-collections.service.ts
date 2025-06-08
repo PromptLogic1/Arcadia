@@ -8,7 +8,7 @@
 import { createClient } from '../lib/supabase';
 import { log } from '../lib/logger';
 import type { GameCategory, Difficulty } from '../types';
-import type { Database } from '../../types/database-generated';
+import type { Database } from '../../types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';

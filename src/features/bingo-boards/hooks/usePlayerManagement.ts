@@ -12,6 +12,7 @@ import { PLAYER_COLORS } from '@/types';
 import { useGameSettings } from './useGameSettings';
 import { usePresence } from './usePresence';
 import { log } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 
 type PlayerEvent = {
   type: string;
@@ -137,7 +138,7 @@ export const usePlayerManagement = ({
         trackMoveRef.current(event.playerId, 'team_switch', event.newTeam);
       }
     } catch (error) {
-      log.error('Error emitting player event', error as Error, {
+      log.error('Error emitting player event', toError(error), {
         metadata: { hook: 'usePlayerManagement', event },
       });
     }
@@ -212,7 +213,7 @@ export const usePlayerManagement = ({
         }
       } catch (err) {
         if (isMountedRef.current) {
-          setError(err as Error);
+          setError(toError(err));
         }
         throw err;
       } finally {
@@ -232,7 +233,7 @@ export const usePlayerManagement = ({
       }
     } catch (err) {
       if (isMountedRef.current) {
-        setError(err as Error);
+        setError(toError(err));
       }
       throw err;
     } finally {
@@ -261,7 +262,7 @@ export const usePlayerManagement = ({
         }
       } catch (err) {
         if (isMountedRef.current) {
-          setError(err as Error);
+          setError(toError(err));
         }
         throw err;
       } finally {
@@ -310,7 +311,7 @@ export const usePlayerManagement = ({
   // Sync with presence
   useEffect(() => {
     const onlinePlayers = Object.values(presenceState).map(
-      presence => presence.user_id
+      presence => presence.userId || presence.user_id || ''
     );
     setPlayers(prev =>
       prev.map(player => ({

@@ -2,7 +2,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import type { BingoCard } from './types';
 import type { GameCategory } from '@/types';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 import { DIFFICULTIES } from '@/src/types/index';
 import {
   CARD_CATEGORIES,

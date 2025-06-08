@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, Enums, CompositeTypes } from '@/types/database-generated';
+import type { Tables, Enums, CompositeTypes } from '@/types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';

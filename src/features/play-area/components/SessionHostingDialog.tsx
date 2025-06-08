@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { log } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
+import { toError } from '@/lib/error-guards';
 import {
   useBoardsBySectionQuery,
   usePublicBoardsQuery,
@@ -115,7 +116,7 @@ export function SessionHostingDialog({
   // Handle error states inline when queries fail
   const boardsErrorMessage = useMemo(() => {
     if (boardsError) {
-      log.error('Failed to load boards', boardsError as Error, {
+      log.error('Failed to load boards', toError(boardsError), {
         metadata: {
           userId: authUser?.id,
         },
@@ -177,7 +178,7 @@ export function SessionHostingDialog({
       await onCreateSession(boardToUse.id, sessionSettings);
       handleClose();
     } catch (error) {
-      log.error('Failed to create session', error as Error, {
+      log.error('Failed to create session', toError(error), {
         metadata: {
           component: 'SessionHostingDialog',
           boardId: boardToUse?.id,

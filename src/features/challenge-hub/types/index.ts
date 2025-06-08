@@ -3,7 +3,7 @@ import type {
   TablesInsert,
   TablesUpdate,
   Enums,
-} from '@/types/database-generated';
+} from '@/types/database.types';
 
 // Database types
 export type Challenge = Tables<'challenges'>;

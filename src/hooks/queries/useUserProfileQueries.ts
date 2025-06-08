@@ -7,13 +7,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../../services/user.service';
+import { log } from '@/lib/logger';
 import type {
   ActivityOptions,
   ActivityLogRequest,
   UserServiceResponse,
   UserStats,
 } from '../../services/user.service';
-import type { Database } from '@/types/database-generated';
+import type { Database } from '@/types/database.types';
 
 type UserProfileUpdate = Database['public']['Tables']['users']['Update'];
 type Activity = Database['public']['Tables']['user_activity']['Row'];
@@ -136,8 +137,13 @@ export function useUpdateUserProfileMutation() {
       }
     },
 
-    onError: error => {
-      console.error('Failed to update user profile:', error);
+    onError: (error, { userId }) => {
+      log.error('Failed to update user profile', error, {
+        metadata: {
+          hook: 'useUpdateUserProfileMutation',
+          userId,
+        },
+      });
     },
   });
 }
@@ -174,8 +180,13 @@ export function useLogActivityMutation() {
       }
     },
 
-    onError: error => {
-      console.error('Failed to log user activity:', error);
+    onError: (error, { userId }) => {
+      log.error('Failed to log user activity', error, {
+        metadata: {
+          hook: 'useLogActivityMutation',
+          userId,
+        },
+      });
     },
   });
 }

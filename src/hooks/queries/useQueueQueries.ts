@@ -9,6 +9,7 @@ import {
   type QueueEntry as _QueueEntry,
 } from '../../services/queue.service';
 import { notifications } from '@/lib/notifications';
+import { log } from '@/lib/logger';
 
 // Query key factories
 export const queueKeys = {
@@ -27,7 +28,7 @@ export function useQueueStatusQuery(userId: string, enabled = true) {
     enabled: enabled && !!userId,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Poll every 30 seconds
-    select: data => data.entry,
+    select: data => data.data,
   });
 }
 
@@ -41,7 +42,7 @@ export function useWaitingEntriesQuery(enabled = false) {
     enabled,
     staleTime: 10 * 1000, // 10 seconds
     refetchInterval: 15 * 1000, // Poll every 15 seconds
-    select: data => data.entries,
+    select: data => data.data,
   });
 }
 
@@ -54,19 +55,16 @@ export function useJoinQueueMutation() {
   return useMutation({
     mutationFn: (data: JoinQueueData) => queueService.joinQueue(data),
     onSuccess: (result, variables) => {
-      if (result.entry && !result.error) {
+      if (result.success && result.data) {
         // Update cache
-        queryClient.setQueryData(
-          queueKeys.status(variables.user_id),
-          result.entry
-        );
+        queryClient.setQueryData(queueKeys.status(variables.user_id), result);
 
         // Invalidate waiting entries for admin views
         queryClient.invalidateQueries({ queryKey: queueKeys.waiting() });
 
         notifications.success('Joined the queue! Looking for players...');
-      } else if (result.error) {
-        notifications.error(result.error);
+      } else {
+        notifications.error(result.error || 'Failed to join queue');
       }
     },
     onError: error => {
@@ -86,7 +84,7 @@ export function useLeaveQueueMutation() {
   return useMutation({
     mutationFn: (userId: string) => queueService.leaveQueue(userId),
     onSuccess: (result, userId) => {
-      if (result.success) {
+      if (result.success && result.data) {
         // Clear queue status
         queryClient.setQueryData(queueKeys.status(userId), null);
 
@@ -94,8 +92,8 @@ export function useLeaveQueueMutation() {
         queryClient.invalidateQueries({ queryKey: queueKeys.waiting() });
 
         notifications.success('Left the queue');
-      } else if (result.error) {
-        notifications.error(result.error);
+      } else {
+        notifications.error(result.error || 'Failed to leave queue');
       }
     },
     onError: error => {
@@ -115,11 +113,11 @@ export function useFindMatchesMutation() {
   return useMutation({
     mutationFn: (maxMatches?: number) => queueService.findMatches(maxMatches),
     onSuccess: result => {
-      if (result.matches.length > 0) {
+      if (result.success && result.data && result.data.length > 0) {
         // Invalidate all queue-related queries since matches were found
         queryClient.invalidateQueries({ queryKey: queueKeys.all() });
 
-        notifications.success(`Found ${result.matches.length} matches!`);
+        notifications.success(`Found ${result.data.length} matches!`);
       }
     },
     onError: error => {
@@ -139,15 +137,24 @@ export function useCleanupQueueMutation() {
   return useMutation({
     mutationFn: () => queueService.cleanupExpiredEntries(),
     onSuccess: result => {
-      if (result.cleaned > 0) {
+      if (result.success && result.data && result.data.cleaned > 0) {
         // Invalidate waiting entries
         queryClient.invalidateQueries({ queryKey: queueKeys.waiting() });
 
-        console.log(`Cleaned up ${result.cleaned} expired queue entries`);
+        log.info('Cleaned up expired queue entries', {
+          metadata: {
+            hook: 'useCleanupQueueMutation',
+            cleanedCount: result.data.cleaned,
+          },
+        });
       }
     },
     onError: error => {
-      console.error('Failed to cleanup queue:', error);
+      log.error('Failed to cleanup queue', error, {
+        metadata: {
+          hook: 'useCleanupQueueMutation',
+        },
+      });
     },
   });
 }

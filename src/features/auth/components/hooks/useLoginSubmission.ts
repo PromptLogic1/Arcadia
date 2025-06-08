@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import { LOGIN_FORM_CONFIG, LOGIN_MESSAGES } from '../constants';
 import type { UseLoginFormReturn, LoginFormMessage } from './useLoginForm';
 import type { LoginFormData } from '../../types/auth-schemas';
@@ -160,7 +161,7 @@ export function useLoginSubmission({
           }
         }, LOGIN_FORM_CONFIG.REDIRECTS.REDIRECT_DELAY);
       } catch (error) {
-        const errorObj = error as Error;
+        const errorObj = toError(error);
 
         // Check if still mounted before error state updates
         if (!isMountedRef.current) return;
@@ -231,7 +232,7 @@ export function useLoginSubmission({
 
         // OAuth will redirect away from page, so no need for additional handling
       } catch (error) {
-        const errorObj = error as Error;
+        const errorObj = toError(error);
 
         // Check if still mounted before error state updates
         if (!isMountedRef.current) return;

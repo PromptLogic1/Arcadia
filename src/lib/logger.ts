@@ -8,6 +8,11 @@ import { addBreadcrumb } from './sentry-utils';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+// Type guard for LogLevel
+function isValidLogLevel(value: string): value is LogLevel {
+  return ['debug', 'info', 'warn', 'error'].includes(value);
+}
+
 interface LogContext {
   userId?: string;
   sessionId?: string;
@@ -47,8 +52,8 @@ interface LoggerMethods {
 // Custom logger implementation without any external dependencies
 const createCustomLogger = (): LoggerMethods => {
   const getLogLevel = (): LogLevel => {
-    const envLevel = process.env.LOG_LEVEL?.toLowerCase() as LogLevel;
-    if (['debug', 'info', 'warn', 'error'].includes(envLevel)) {
+    const envLevel = process.env.LOG_LEVEL?.toLowerCase();
+    if (envLevel && isValidLogLevel(envLevel)) {
       return envLevel;
     }
     return process.env.NODE_ENV === 'production' ? 'info' : 'debug';

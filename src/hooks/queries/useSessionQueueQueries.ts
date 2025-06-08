@@ -10,6 +10,7 @@ import {
 } from '../../services/session-queue.service';
 import { notifications } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 
 /**
  * Get session queue entries
@@ -120,7 +121,7 @@ export function useAddToQueueMutation() {
     },
 
     onError: error => {
-      logger.error('Failed to join queue', error as Error);
+      logger.error('Failed to join queue', toError(error));
       notifications.error('Failed to join queue', {
         description:
           error instanceof Error ? error.message : 'Please try again',
@@ -167,7 +168,7 @@ export function useUpdateQueueEntryMutation() {
     },
 
     onError: error => {
-      logger.error('Failed to update queue entry', error as Error);
+      logger.error('Failed to update queue entry', toError(error));
       notifications.error('Failed to update queue entry', {
         description:
           error instanceof Error ? error.message : 'Please try again',
@@ -213,7 +214,7 @@ export function useRemoveFromQueueMutation() {
     },
 
     onError: error => {
-      logger.error('Failed to remove from queue', error as Error);
+      logger.error('Failed to remove from queue', toError(error));
       notifications.error('Failed to remove from queue', {
         description:
           error instanceof Error ? error.message : 'Please try again',
@@ -265,7 +266,7 @@ export function useAcceptPlayerMutation() {
     },
 
     onError: error => {
-      logger.error('Failed to accept player', error as Error);
+      logger.error('Failed to accept player', toError(error));
       notifications.error('Failed to accept player', {
         description:
           error instanceof Error ? error.message : 'Please try again',
@@ -311,7 +312,7 @@ export function useRejectPlayerMutation() {
     },
 
     onError: error => {
-      logger.error('Failed to reject player', error as Error);
+      logger.error('Failed to reject player', toError(error));
       notifications.error('Failed to reject player', {
         description:
           error instanceof Error ? error.message : 'Please try again',
@@ -356,7 +357,7 @@ export function useCleanupQueueMutation() {
     },
 
     onError: error => {
-      logger.error('Failed to cleanup queue', error as Error);
+      logger.error('Failed to cleanup queue', toError(error));
       notifications.error('Failed to cleanup queue', {
         description:
           error instanceof Error ? error.message : 'Please try again',

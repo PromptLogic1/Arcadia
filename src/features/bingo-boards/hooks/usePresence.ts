@@ -9,9 +9,15 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   presenceService,
   type PresenceState,
-  PRESENCE_CONSTANTS,
-  type ServiceResponse,
-} from '../../../services/presence-modern.service';
+} from '../../../services/presence.service';
+
+// Add missing constants for backward compatibility
+const STATUS = {
+  ONLINE: 'online' as const,
+  AWAY: 'away' as const,
+  OFFLINE: 'offline' as const,
+};
+import type { ServiceResponse } from '@/lib/service-types';
 import { useAuth } from '@/lib/stores/auth-store';
 import { log } from '@/lib/logger';
 
@@ -109,16 +115,9 @@ export function usePresence(
           }
         );
 
-        // Check if subscription was successful
-        if (!subscription.success || !subscription.data) {
-          throw new Error(
-            subscription.error || 'Failed to subscribe to presence'
-          );
-        }
-
         // Store update function and cleanup
-        if (isMountedRef.current && isSubscriptionActive && subscription.data) {
-          const { updatePresence, cleanup: cleanupFunc } = subscription.data;
+        if (isMountedRef.current && isSubscriptionActive && subscription) {
+          const { updatePresence, cleanup: cleanupFunc } = subscription;
           setUpdatePresenceFunc(() => updatePresence);
           cleanup = cleanupFunc;
           setIsConnected(true);
@@ -180,12 +179,13 @@ export function usePresence(
 
       try {
         const currentPresence = Object.values(presenceState).find(
-          p => p.user_id === authUser.id
+          p => (p.userId || p.user_id) === authUser.id
         );
 
         if (currentPresence) {
+          const channelName = `presence:bingo:${boardId}`;
           const result = await presenceService.updatePresence(
-            boardId,
+            channelName,
             authUser.id,
             currentPresence.status,
             activity
@@ -231,17 +231,15 @@ export function usePresence(
 
   // Get online user count
   const getOnlineUserCount = useCallback(() => {
-    return Object.values(presenceState).filter(
-      p => p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
-    ).length;
+    return Object.values(presenceState).filter(p => p.status === STATUS.ONLINE)
+      .length;
   }, [presenceState]);
 
   // Check if specific user is online
   const isUserOnline = useCallback(
     (userId: string) => {
       return Object.values(presenceState).some(
-        p =>
-          p.user_id === userId && p.status === PRESENCE_CONSTANTS.STATUS.ONLINE
+        p => (p.userId || p.user_id) === userId && p.status === STATUS.ONLINE
       );
     },
     [presenceState]

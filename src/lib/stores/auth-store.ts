@@ -24,7 +24,7 @@ import {
 } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from './types';
-import type { Tables } from '../../../types/database-generated';
+import type { Tables } from '../../../types/database.types';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
 

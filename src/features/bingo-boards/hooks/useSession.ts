@@ -8,6 +8,7 @@ import {
 } from '@/hooks/queries/useGameStateQueries';
 import { useAuth } from '@/lib/stores/auth-store';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import type {
   Player,
   SessionState,
@@ -91,7 +92,7 @@ export const useSession = ({
       await leave(authUser.id);
       onSessionEnd?.();
     } catch (error) {
-      logger.error('Failed to leave session', error as Error, {
+      logger.error('Failed to leave session', toError(error), {
         sessionId,
         userId: authUser.id,
       });
@@ -113,7 +114,7 @@ export const useSession = ({
           version: sessionState.version,
         });
       } catch (error) {
-        logger.error('Failed to mark cell', error as Error);
+        logger.error('Failed to mark cell', toError(error));
         throw error;
       }
     },
@@ -159,7 +160,7 @@ export const useSession = ({
 
         onSessionEnd?.();
       } catch (error) {
-        logger.error('Failed to complete game', error as Error);
+        logger.error('Failed to complete game', toError(error));
         throw error;
       }
     },

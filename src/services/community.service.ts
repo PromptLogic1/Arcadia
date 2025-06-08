@@ -7,6 +7,9 @@
 
 import { createClient } from '@/lib/supabase';
 import type { GameCategory } from '@/types';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { log } from '@/lib/logger';
 
 export interface Discussion {
   id: number;
@@ -89,6 +92,43 @@ export interface EventFilters {
   tags?: string[];
 }
 
+// Type guard for Event validation
+function isValidEvent(value: unknown): value is Event {
+  if (!value || typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  // Use 'in' operator for type narrowing instead of type assertion
+  return (
+    'id' in value &&
+    typeof value.id === 'string' &&
+    'title' in value &&
+    typeof value.title === 'string' &&
+    'description' in value &&
+    typeof value.description === 'string' &&
+    'event_date' in value &&
+    typeof value.event_date === 'string' &&
+    'participant_count' in value &&
+    typeof value.participant_count === 'number' &&
+    'max_participants' in value &&
+    (value.max_participants === null ||
+      typeof value.max_participants === 'number') &&
+    'tags' in value &&
+    (value.tags === null ||
+      (Array.isArray(value.tags) &&
+        value.tags.every(tag => typeof tag === 'string'))) &&
+    'created_at' in value &&
+    typeof value.created_at === 'string' &&
+    'updated_at' in value &&
+    (value.updated_at === null || typeof value.updated_at === 'string')
+  );
+}
+
+export interface DiscussionsResponse {
+  discussions: Discussion[];
+  totalCount: number;
+}
+
 export const communityService = {
   /**
    * Get discussions for API route with specific filters
@@ -97,11 +137,7 @@ export const communityService = {
     filters: DiscussionAPIFilters = {},
     page = 1,
     limit = 20
-  ): Promise<{
-    discussions: Discussion[];
-    totalCount: number;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<DiscussionsResponse>> {
     try {
       const supabase = createClient();
       let query = supabase.from('discussions').select(
@@ -149,11 +185,10 @@ export const communityService = {
       const { data, error, count } = await query.range(start, end);
 
       if (error) {
-        return {
-          discussions: [],
-          totalCount: 0,
-          error: error.message,
-        };
+        log.error('Failed to fetch discussions for API', error, {
+          metadata: { filters, page, limit },
+        });
+        return createServiceError(error.message);
       }
 
       // Transform the data to match Discussion type
@@ -163,19 +198,17 @@ export const communityService = {
         author: discussion.author || undefined,
       }));
 
-      return {
+      return createServiceSuccess({
         discussions,
         totalCount: count || 0,
-      };
+      });
     } catch (error) {
-      return {
-        discussions: [],
-        totalCount: 0,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch discussions',
-      };
+      log.error('Unexpected error in getDiscussionsForAPI', error, {
+        metadata: { filters, page, limit },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch discussions'
+      );
     }
   },
 
@@ -186,11 +219,7 @@ export const communityService = {
     filters: DiscussionFilters = {},
     page = 1,
     limit = 20
-  ): Promise<{
-    discussions: Discussion[];
-    totalCount: number;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<DiscussionsResponse>> {
     try {
       const supabase = createClient();
       let query = supabase.from('discussions').select(
@@ -237,11 +266,10 @@ export const communityService = {
       const { data, error, count } = await query.range(start, end);
 
       if (error) {
-        return {
-          discussions: [],
-          totalCount: 0,
-          error: error.message,
-        };
+        log.error('Failed to fetch discussions', error, {
+          metadata: { filters, page, limit },
+        });
+        return createServiceError(error.message);
       }
 
       // Transform the data
@@ -255,19 +283,17 @@ export const communityService = {
           : undefined,
       }));
 
-      return {
+      return createServiceSuccess({
         discussions,
         totalCount: count || 0,
-      };
+      });
     } catch (error) {
-      return {
-        discussions: [],
-        totalCount: 0,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch discussions',
-      };
+      log.error('Unexpected error in getDiscussions', error, {
+        metadata: { filters, page, limit },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch discussions'
+      );
     }
   },
 
@@ -276,7 +302,7 @@ export const communityService = {
    */
   async getDiscussionById(
     discussionId: string
-  ): Promise<{ discussion: Discussion | null; error?: string }> {
+  ): Promise<ServiceResponse<Discussion>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -291,7 +317,10 @@ export const communityService = {
         .single();
 
       if (error) {
-        return { discussion: null, error: error.message };
+        log.error('Failed to fetch discussion by ID', error, {
+          metadata: { discussionId },
+        });
+        return createServiceError(error.message);
       }
 
       const discussion = {
@@ -304,13 +333,14 @@ export const communityService = {
           : undefined,
       };
 
-      return { discussion };
+      return createServiceSuccess(discussion);
     } catch (error) {
-      return {
-        discussion: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch discussion',
-      };
+      log.error('Unexpected error in getDiscussionById', error, {
+        metadata: { discussionId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch discussion'
+      );
     }
   },
 
@@ -319,7 +349,7 @@ export const communityService = {
    */
   async createDiscussion(
     discussionData: CreateDiscussionData
-  ): Promise<{ discussion: Discussion | null; error?: string }> {
+  ): Promise<ServiceResponse<Discussion>> {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -341,7 +371,10 @@ export const communityService = {
         .single();
 
       if (error) {
-        return { discussion: null, error: error.message };
+        log.error('Failed to create discussion', error, {
+          metadata: { discussionData },
+        });
+        return createServiceError(error.message);
       }
 
       const discussion = {
@@ -354,15 +387,14 @@ export const communityService = {
           : undefined,
       };
 
-      return { discussion };
+      return createServiceSuccess(discussion);
     } catch (error) {
-      return {
-        discussion: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to create discussion',
-      };
+      log.error('Unexpected error in createDiscussion', error, {
+        metadata: { discussionData },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to create discussion'
+      );
     }
   },
 
@@ -373,7 +405,7 @@ export const communityService = {
     discussionId: string,
     page = 1,
     limit = 50
-  ): Promise<{ comments: Comment[]; totalCount: number; error?: string }> {
+  ): Promise<ServiceResponse<{ comments: Comment[]; totalCount: number }>> {
     try {
       const supabase = createClient();
       const start = (page - 1) * limit;
@@ -393,11 +425,10 @@ export const communityService = {
         .range(start, end);
 
       if (error) {
-        return {
-          comments: [],
-          totalCount: 0,
-          error: error.message,
-        };
+        log.error('Failed to fetch discussion comments', error, {
+          metadata: { discussionId, page, limit },
+        });
+        return createServiceError(error.message);
       }
 
       // Transform the data
@@ -411,17 +442,17 @@ export const communityService = {
           : undefined,
       }));
 
-      return {
+      return createServiceSuccess({
         comments,
         totalCount: count || 0,
-      };
+      });
     } catch (error) {
-      return {
-        comments: [],
-        totalCount: 0,
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch comments',
-      };
+      log.error('Unexpected error in getDiscussionComments', error, {
+        metadata: { discussionId, page, limit },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch comments'
+      );
     }
   },
 
@@ -430,7 +461,7 @@ export const communityService = {
    */
   async createComment(
     commentData: CreateCommentData
-  ): Promise<{ comment: Comment | null; error?: string }> {
+  ): Promise<ServiceResponse<Comment>> {
     try {
       const supabase = createClient();
 
@@ -453,7 +484,10 @@ export const communityService = {
         .single();
 
       if (error) {
-        return { comment: null, error: error.message };
+        log.error('Failed to create comment', error, {
+          metadata: { commentData },
+        });
+        return createServiceError(error.message);
       }
 
       // TODO: Update discussion comment count (could be done with a trigger)
@@ -471,13 +505,14 @@ export const communityService = {
           : undefined,
       };
 
-      return { comment };
+      return createServiceSuccess(comment);
     } catch (error) {
-      return {
-        comment: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to create comment',
-      };
+      log.error('Unexpected error in createComment', error, {
+        metadata: { commentData },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to create comment'
+      );
     }
   },
 
@@ -486,7 +521,7 @@ export const communityService = {
    */
   async upvoteDiscussion(
     discussionId: string
-  ): Promise<{ discussion: Discussion | null; error?: string }> {
+  ): Promise<ServiceResponse<Discussion>> {
     try {
       const supabase = createClient();
 
@@ -497,19 +532,21 @@ export const communityService = {
       );
 
       if (rpcError) {
-        return { discussion: null, error: rpcError.message };
+        log.error('Failed to upvote discussion', rpcError, {
+          metadata: { discussionId },
+        });
+        return createServiceError(rpcError.message);
       }
 
       // Fetch the updated discussion
       return this.getDiscussionById(discussionId);
     } catch (error) {
-      return {
-        discussion: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to upvote discussion',
-      };
+      log.error('Unexpected error in upvoteDiscussion', error, {
+        metadata: { discussionId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to upvote discussion'
+      );
     }
   },
 
@@ -520,9 +557,9 @@ export const communityService = {
     _filters: EventFilters = {},
     _page = 1,
     _limit = 20
-  ): Promise<{ events: Event[]; totalCount: number; error?: string }> {
+  ): Promise<ServiceResponse<{ events: Event[]; totalCount: number }>> {
     // TODO: Events table not yet implemented in database
-    return { events: [], totalCount: 0 };
+    return createServiceSuccess({ events: [], totalCount: 0 });
 
     /* Commented out until events table is created
     try {
@@ -560,8 +597,18 @@ export const communityService = {
         };
       }
 
+      // Validate event data
+      const validatedEvents: Event[] = [];
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          if (isValidEvent(item)) {
+            validatedEvents.push(item);
+          }
+        }
+      }
+
       return {
-        events: (data || []) as Event[],
+        events: validatedEvents,
         totalCount: count || 0,
       };
     } catch (error) {

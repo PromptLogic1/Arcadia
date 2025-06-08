@@ -26,6 +26,7 @@ import { Controller } from 'react-hook-form';
 import { GAME_CATEGORIES } from '@/src/types/index';
 import type { GameCategory } from '@/types';
 import { log } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 // =============================================================================
@@ -147,7 +148,7 @@ function useCreateBoardSubmission(
       // Close dialog on successful submission
       onOpenChange?.(false);
     } catch (error) {
-      log.error('Failed to create board', error as Error, {
+      log.error('Failed to create board', toError(error), {
         component: 'CreateBoardForm',
         metadata: { formData: data },
       });

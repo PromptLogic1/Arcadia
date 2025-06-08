@@ -9,9 +9,9 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 import type { CardCategory } from '@/features/bingo-boards/types/generator.types';
-import type { Enums, Database } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 import { logger } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
@@ -22,13 +22,62 @@ type DifficultyLevel = Enums<'difficulty_level'>;
 // The database bingo_cards table is actually board templates, not individual cards
 type BingoBoardTemplate = Tables<'bingo_cards'>;
 
+// Enum schemas that match database enums
+const gameCategorySchema = z.enum([
+  'All Games',
+  'World of Warcraft',
+  'Fortnite',
+  'Minecraft',
+  'Among Us',
+  'Apex Legends',
+  'League of Legends',
+  'Overwatch',
+  'Call of Duty: Warzone',
+  'Valorant',
+  'CS:GO',
+  'Dota 2',
+  'Rocket League',
+  'Fall Guys',
+  'Dead by Daylight',
+  'Cyberpunk 2077',
+  'The Witcher 3',
+  'Elden Ring',
+  'Dark Souls',
+  'Bloodborne',
+  'Sekiro',
+  'Hollow Knight',
+  'Celeste',
+  'Hades',
+  'The Binding of Isaac',
+  'Risk of Rain 2',
+  'Deep Rock Galactic',
+  'Valheim',
+  'Subnautica',
+  "No Man's Sky",
+  'Terraria',
+  'Stardew Valley',
+  'Animal Crossing',
+  'Splatoon 3',
+  'Super Mario Odyssey',
+  'The Legend of Zelda: Breath of the Wild',
+  'Super Smash Bros. Ultimate',
+]);
+
+const difficultyLevelSchema = z.enum([
+  'beginner',
+  'easy',
+  'medium',
+  'hard',
+  'expert',
+]);
+
 // Validation schema for bingo_cards table (board templates)
 const bingoBoardTemplateSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
   description: z.string().nullable(),
-  game_type: z.string() as z.ZodType<Enums<'game_category'>>,
-  difficulty: z.string() as z.ZodType<Enums<'difficulty_level'>>,
+  game_type: gameCategorySchema,
+  difficulty: difficultyLevelSchema,
   creator_id: z.string().nullable(),
   created_at: z.string().nullable(),
   updated_at: z.string().nullable(),
@@ -71,16 +120,23 @@ async function generateBoard(
   params: GenerateBoardParams
 ): Promise<ServiceResponse<GenerateBoardResult>> {
   try {
+    // Validate gameCategory is a valid enum value
+    const gameCategoryValidation = gameCategorySchema.safeParse(
+      params.gameCategory
+    );
+    if (!gameCategoryValidation.success) {
+      return createServiceError(
+        `Invalid game category: ${params.gameCategory}`
+      );
+    }
+
     const supabase = createClient();
 
     // Build query based on parameters
     let query = supabase
       .from('bingo_cards')
       .select('*')
-      .eq(
-        'game_type',
-        params.gameCategory as Database['public']['Enums']['game_category']
-      )
+      .eq('game_type', gameCategoryValidation.data)
       .eq('difficulty', params.difficulty);
 
     // Apply card source filter

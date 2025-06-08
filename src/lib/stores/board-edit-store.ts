@@ -8,7 +8,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
-import type { Tables, Enums } from '@/types/database-generated';
+import type { Tables, Enums } from '@/types/database.types';
 
 // Type aliases from database-generated
 type BingoCard = Tables<'bingo_cards'>;

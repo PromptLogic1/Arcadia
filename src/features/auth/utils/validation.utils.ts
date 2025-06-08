@@ -228,11 +228,11 @@ export const validateForm = (
   }
 
   // Remove undefined errors
-  Object.keys(errors).forEach(key => {
-    if (errors[key as keyof ValidationErrors] === undefined) {
-      delete errors[key as keyof ValidationErrors];
-    }
-  });
+  if (errors.username === undefined) delete errors.username;
+  if (errors.email === undefined) delete errors.email;
+  if (errors.password === undefined) delete errors.password;
+  if (errors.confirmPassword === undefined) delete errors.confirmPassword;
+  if (errors.general === undefined) delete errors.general;
 
   return errors;
 };

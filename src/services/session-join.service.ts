@@ -6,7 +6,15 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { log } from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error-guards';
+import {
+  bingoSessionSchema,
+  bingoSessionPlayerSchema,
+} from '@/lib/validation/schemas/bingo';
 
 // Use types directly from database-generated (no duplicate exports)
 type BingoSession = Tables<'bingo_sessions'>;
@@ -26,14 +34,23 @@ export interface SessionJoinData {
   teamName?: string;
 }
 
+export interface UserSessionStatus {
+  isInSession: boolean;
+  player?: BingoSessionPlayer;
+}
+
+export interface AvailableColors {
+  availableColors: string[];
+  usedColors: string[];
+}
+
 export const sessionJoinService = {
   /**
    * Get session details for joining
    */
-  async getSessionJoinDetails(sessionId: string): Promise<{
-    details: SessionJoinDetails | null;
-    error?: string;
-  }> {
+  async getSessionJoinDetails(
+    sessionId: string
+  ): Promise<ServiceResponse<SessionJoinDetails>> {
     try {
       const supabase = createClient();
 
@@ -56,25 +73,31 @@ export const sessionJoinService = {
         .single();
 
       if (sessionError) {
-        return {
-          details: null,
-          error:
-            sessionError.code === 'PGRST116'
-              ? 'Session not found'
-              : sessionError.message,
-        };
+        const errorMessage =
+          sessionError.code === 'PGRST116'
+            ? 'Session not found'
+            : sessionError.message;
+        log.error('Failed to get session details', sessionError, {
+          metadata: { sessionId, errorCode: sessionError.code },
+        });
+        return createServiceError(errorMessage);
       }
 
       if (!sessionData) {
-        return { details: null, error: 'Session not found' };
+        log.error('Session data is null', new Error('Session not found'), {
+          metadata: { sessionId },
+        });
+        return createServiceError('Session not found');
       }
 
       // Check if session is joinable
       if (sessionData.status !== 'waiting' && sessionData.status !== 'active') {
-        return {
-          details: null,
-          error: `Session is ${sessionData.status}. Cannot join at this time.`,
-        };
+        log.warn('Session not joinable', {
+          metadata: { sessionId, status: sessionData.status },
+        });
+        return createServiceError(
+          `Session is ${sessionData.status}. Cannot join at this time.`
+        );
       }
 
       // Get current player count
@@ -84,39 +107,47 @@ export const sessionJoinService = {
         .eq('session_id', sessionId);
 
       if (countError) {
-        return { details: null, error: 'Failed to check player count' };
+        log.error('Failed to check player count', countError, {
+          metadata: { sessionId },
+        });
+        return createServiceError('Failed to check player count');
+      }
+
+      // Validate session data
+      const sessionValidation = bingoSessionSchema.safeParse(sessionData);
+      if (!sessionValidation.success) {
+        log.error('Session data validation failed', sessionValidation.error, {
+          metadata: { sessionId },
+        });
+        return createServiceError('Invalid session data format');
       }
 
       const currentPlayerCount = playerCount || 0;
-      const maxPlayers = sessionData.settings?.max_players || 4;
+      const maxPlayers = sessionValidation.data.settings?.max_players || 4;
       const canJoin = currentPlayerCount < maxPlayers;
 
       const details: SessionJoinDetails = {
-        session: sessionData as BingoSession,
+        session: sessionValidation.data,
         currentPlayerCount,
         canJoin,
         reason: canJoin ? undefined : 'Session is full',
       };
 
-      return { details };
+      return createServiceSuccess(details);
     } catch (error) {
-      return {
-        details: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get session details',
-      };
+      log.error('Unexpected error in getSessionJoinDetails', error, {
+        metadata: { sessionId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Join a session
    */
-  async joinSession(data: SessionJoinData): Promise<{
-    player: BingoSessionPlayer | null;
-    error?: string;
-  }> {
+  async joinSession(
+    data: SessionJoinData
+  ): Promise<ServiceResponse<BingoSessionPlayer>> {
     try {
       const supabase = createClient();
 
@@ -125,8 +156,16 @@ export const sessionJoinService = {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
+
       if (userError || !user) {
-        return { player: null, error: 'Must be authenticated to join session' };
+        log.error(
+          'User authentication failed',
+          userError || new Error('No user'),
+          {
+            metadata: { sessionId: data.sessionId },
+          }
+        );
+        return createServiceError('Must be authenticated to join session');
       }
 
       // Check if user is already in the session
@@ -138,19 +177,28 @@ export const sessionJoinService = {
         .single();
 
       if (existingPlayer) {
-        return {
-          player: existingPlayer as BingoSessionPlayer,
-          error: 'You are already in this session',
-        };
+        log.warn('User already in session', {
+          metadata: { sessionId: data.sessionId, userId: user.id },
+        });
+        return createServiceError('You are already in this session');
       }
 
       // Verify session is still joinable
-      const { details } = await this.getSessionJoinDetails(data.sessionId);
-      if (!details?.canJoin) {
-        return {
-          player: null,
-          error: details?.reason || 'Cannot join session',
-        };
+      const sessionDetailsResult = await this.getSessionJoinDetails(
+        data.sessionId
+      );
+      if (!sessionDetailsResult.success || !sessionDetailsResult.data) {
+        return createServiceError(
+          sessionDetailsResult.error || 'Failed to verify session'
+        );
+      }
+
+      const details = sessionDetailsResult.data;
+      if (!details.canJoin) {
+        log.warn('Session not joinable', {
+          metadata: { sessionId: data.sessionId, reason: details.reason },
+        });
+        return createServiceError(details.reason || 'Cannot join session');
       }
 
       // Join the session
@@ -168,30 +216,36 @@ export const sessionJoinService = {
         .single();
 
       if (joinError) {
-        return {
-          player: null,
-          error: joinError.message,
-        };
+        log.error('Failed to join session', joinError, {
+          metadata: { sessionId: data.sessionId, userId: user.id },
+        });
+        return createServiceError(joinError.message);
       }
 
-      return { player: newPlayer as BingoSessionPlayer };
+      // Validate the new player data
+      const playerValidation = bingoSessionPlayerSchema.safeParse(newPlayer);
+      if (!playerValidation.success) {
+        log.error('New player data validation failed', playerValidation.error, {
+          metadata: { newPlayer },
+        });
+        return createServiceError('Invalid player data format');
+      }
+
+      return createServiceSuccess(playerValidation.data);
     } catch (error) {
-      return {
-        player: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to join session',
-      };
+      log.error('Unexpected error in joinSession', error, {
+        metadata: { data },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
   /**
    * Check if user is already in session
    */
-  async checkUserInSession(sessionId: string): Promise<{
-    isInSession: boolean;
-    player?: BingoSessionPlayer;
-    error?: string;
-  }> {
+  async checkUserInSession(
+    sessionId: string
+  ): Promise<ServiceResponse<UserSessionStatus>> {
     try {
       const supabase = createClient();
 
@@ -200,8 +254,16 @@ export const sessionJoinService = {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
+
       if (userError || !user) {
-        return { isInSession: false, error: 'Not authenticated' };
+        log.error(
+          'User authentication failed',
+          userError || new Error('No user'),
+          {
+            metadata: { sessionId },
+          }
+        );
+        return createServiceError('Not authenticated');
       }
 
       // Check if user is in session
@@ -213,32 +275,49 @@ export const sessionJoinService = {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        return { isInSession: false, error: error.message };
+        log.error('Failed to check user session status', error, {
+          metadata: { sessionId, userId: user.id },
+        });
+        return createServiceError(error.message);
       }
 
-      return {
+      // Validate player data if it exists
+      let validatedPlayer: BingoSessionPlayer | undefined;
+      if (player) {
+        const playerValidation = bingoSessionPlayerSchema.safeParse(player);
+        if (!playerValidation.success) {
+          log.error('Player data validation failed', playerValidation.error, {
+            metadata: { player },
+          });
+          return createServiceError('Invalid player data format');
+        }
+        validatedPlayer = playerValidation.data;
+      }
+
+      const status: UserSessionStatus = {
         isInSession: !!player,
-        player: player as BingoSessionPlayer | undefined,
+        player: validatedPlayer,
       };
+
+      return createServiceSuccess(status);
     } catch (error) {
-      return {
-        isInSession: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to check session status',
-      };
+      log.error('Unexpected error in checkUserInSession', error, {
+        metadata: { sessionId },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to check session status'
+      );
     }
   },
 
   /**
    * Get available player colors for session
    */
-  async getAvailableColors(sessionId: string): Promise<{
-    availableColors: string[];
-    usedColors: string[];
-    error?: string;
-  }> {
+  async getAvailableColors(
+    sessionId: string
+  ): Promise<ServiceResponse<AvailableColors>> {
     try {
       const supabase = createClient();
 
@@ -249,11 +328,10 @@ export const sessionJoinService = {
         .eq('session_id', sessionId);
 
       if (error) {
-        return {
-          availableColors: [],
-          usedColors: [],
-          error: error.message,
-        };
+        log.error('Failed to get player colors', error, {
+          metadata: { sessionId },
+        });
+        return createServiceError(error.message);
       }
 
       const usedColors = players?.map(p => p.color).filter(Boolean) || [];
@@ -278,16 +356,21 @@ export const sessionJoinService = {
         color => !usedColors.includes(color)
       );
 
-      return { availableColors, usedColors };
-    } catch (error) {
-      return {
-        availableColors: [],
-        usedColors: [],
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get available colors',
+      const colors: AvailableColors = {
+        availableColors,
+        usedColors,
       };
+
+      return createServiceSuccess(colors);
+    } catch (error) {
+      log.error('Unexpected error in getAvailableColors', error, {
+        metadata: { sessionId },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to get available colors'
+      );
     }
   },
 };

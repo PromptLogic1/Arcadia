@@ -11,9 +11,7 @@ import {
   useGamePlayersQuery,
 } from '@/hooks/queries/useGameStateQueries';
 import { WinDetectionService } from '../services/win-detection.service';
-import type { SessionPlayer } from '@/features/bingo-boards/types';
-
-export function useBingoGame(sessionId: string, userId: string) {
+export function useBingoGame(sessionId: string) {
   const winDetector = useMemo(() => new WinDetectionService(5), []);
 
   const {

@@ -20,6 +20,7 @@ export function useDiscussionsQuery(
     queryKey: queryKeys.community.discussions(filters, page),
     queryFn: () => communityService.getDiscussions(filters, page, limit),
     staleTime: 2 * 60 * 1000, // 2 minutes
+    select: data => data.data,
   });
 }
 
@@ -29,6 +30,7 @@ export function useDiscussionQuery(discussionId?: string) {
     queryFn: () => communityService.getDiscussionById(discussionId || ''),
     enabled: !!discussionId,
     staleTime: 1 * 60 * 1000,
+    select: data => data.data,
   });
 }
 
@@ -41,6 +43,7 @@ export function useEventsQuery(
     queryKey: queryKeys.community.events(filters, page),
     queryFn: () => communityService.getEvents(filters, page, limit),
     staleTime: 5 * 60 * 1000, // 5 minutes for events
+    select: data => data.data,
   });
 }
 
@@ -50,8 +53,8 @@ export function useCreateDiscussionMutation() {
   return useMutation({
     mutationFn: communityService.createDiscussion,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success || !response.data) {
+        notifications.error(response.error || 'Failed to create discussion');
         return;
       }
       notifications.success('Discussion created successfully!');
@@ -68,8 +71,8 @@ export function useCreateCommentMutation() {
   return useMutation({
     mutationFn: communityService.createComment,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success || !response.data) {
+        notifications.error(response.error || 'Failed to create comment');
         return;
       }
       notifications.success('Comment added successfully!');
@@ -86,8 +89,8 @@ export function useUpvoteDiscussionMutation() {
   return useMutation({
     mutationFn: communityService.upvoteDiscussion,
     onSuccess: response => {
-      if (response.error) {
-        notifications.error(response.error);
+      if (!response.success || !response.data) {
+        notifications.error(response.error || 'Failed to upvote discussion');
         return;
       }
       queryClient.invalidateQueries({

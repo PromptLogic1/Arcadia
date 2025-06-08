@@ -23,10 +23,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
             // Retry configuration
             retry: (failureCount, error: unknown) => {
               // Don't retry on 401/403 errors
-              const errorWithStatus = error as { status?: number };
               if (
-                errorWithStatus?.status === 401 ||
-                errorWithStatus?.status === 403
+                error !== null &&
+                typeof error === 'object' &&
+                'status' in error &&
+                (error.status === 401 || error.status === 403)
               ) {
                 return false;
               }
@@ -39,8 +40,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
           mutations: {
             // Retry mutations only on network errors
             retry: (failureCount, error: unknown) => {
-              const errorWithMessage = error as { message?: string };
-              if (errorWithMessage?.message?.includes('network')) {
+              if (
+                error !== null &&
+                typeof error === 'object' &&
+                'message' in error &&
+                typeof error.message === 'string' &&
+                error.message.includes('network')
+              ) {
                 return failureCount < 2;
               }
               return false;

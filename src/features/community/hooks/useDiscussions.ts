@@ -62,15 +62,11 @@ export function useDiscussions(): UseDiscussionsReturn {
         author_id: authUser.id,
       });
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to create discussion');
       }
 
-      if (!result.discussion) {
-        throw new Error('Failed to create discussion');
-      }
-
-      return result.discussion;
+      return result.data;
     },
     [authUser?.id, createDiscussionMutation]
   );
@@ -90,15 +86,11 @@ export function useDiscussions(): UseDiscussionsReturn {
         discussion_id: discussionId.toString(), // Service expects string
       });
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to create comment');
       }
 
-      if (!result.comment) {
-        throw new Error('Failed to create comment');
-      }
-
-      return result.comment;
+      return result.data;
     },
     [authUser?.id, createCommentMutation]
   );

@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database-generated';
+import type { Database } from '@/types/database.types';
 
 // Base types from database
 export type UserRow = Database['public']['Tables']['users']['Row'];

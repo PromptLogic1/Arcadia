@@ -10,7 +10,10 @@ import type {
   Tables,
   TablesInsert,
   TablesUpdate,
-} from '@/types/database-generated';
+} from '@/types/database.types';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { log } from '@/lib/logger';
 
 export type QueueEntry = Tables<'bingo_queue_entries'>;
 export type QueueEntryInsert = TablesInsert<'bingo_queue_entries'>;
@@ -39,9 +42,7 @@ export const queueService = {
   /**
    * Join the matchmaking queue
    */
-  async joinQueue(
-    data: JoinQueueData
-  ): Promise<{ entry: QueueEntry | null; error?: string }> {
+  async joinQueue(data: JoinQueueData): Promise<ServiceResponse<QueueEntry>> {
     const supabase = createClient();
 
     try {
@@ -54,7 +55,10 @@ export const queueService = {
         .single();
 
       if (existingEntry) {
-        return { entry: existingEntry, error: 'User already in queue' };
+        log.warn('User already in queue', {
+          metadata: { userId: data.user_id },
+        });
+        return createServiceError('User already in queue');
       }
 
       // Create new queue entry
@@ -73,13 +77,21 @@ export const queueService = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        log.error('Failed to join queue', error, {
+          metadata: { userId: data.user_id, boardId: data.board_id },
+        });
+        throw error;
+      }
 
-      return { entry: newEntry };
+      return createServiceSuccess(newEntry);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to join queue';
-      return { entry: null, error: message };
+      log.error('Unexpected error in joinQueue', error, {
+        metadata: { data },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to join queue'
+      );
     }
   },
 
@@ -88,7 +100,7 @@ export const queueService = {
    */
   async leaveQueue(
     userId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<ServiceResponse<{ message: string }>> {
     const supabase = createClient();
 
     try {
@@ -98,13 +110,21 @@ export const queueService = {
         .eq('user_id', userId)
         .eq('status', 'waiting');
 
-      if (error) throw error;
+      if (error) {
+        log.error('Failed to leave queue', error, {
+          metadata: { userId },
+        });
+        throw error;
+      }
 
-      return { success: true };
+      return createServiceSuccess({ message: 'Successfully left the queue' });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to leave queue';
-      return { success: false, error: message };
+      log.error('Unexpected error in leaveQueue', error, {
+        metadata: { userId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to leave queue'
+      );
     }
   },
 
@@ -113,7 +133,7 @@ export const queueService = {
    */
   async getQueueStatus(
     userId: string
-  ): Promise<{ entry: QueueEntry | null; error?: string }> {
+  ): Promise<ServiceResponse<QueueEntry | null>> {
     const supabase = createClient();
 
     try {
@@ -126,24 +146,27 @@ export const queueService = {
 
       if (error && error.code !== 'PGRST116') {
         // PGRST116 = no rows found
+        log.error('Failed to get queue status', error, {
+          metadata: { userId },
+        });
         throw error;
       }
 
-      return { entry: data };
+      return createServiceSuccess(data);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to get queue status';
-      return { entry: null, error: message };
+      log.error('Unexpected error in getQueueStatus', error, {
+        metadata: { userId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to get queue status'
+      );
     }
   },
 
   /**
    * Get all waiting queue entries (for matchmaking)
    */
-  async getWaitingEntries(): Promise<{
-    entries: QueueEntry[];
-    error?: string;
-  }> {
+  async getWaitingEntries(): Promise<ServiceResponse<QueueEntry[]>> {
     const supabase = createClient();
 
     try {
@@ -153,15 +176,17 @@ export const queueService = {
         .eq('status', 'waiting')
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        log.error('Failed to get waiting entries', error);
+        throw error;
+      }
 
-      return { entries: data || [] };
+      return createServiceSuccess(data || []);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Failed to get waiting entries';
-      return { entries: [], error: message };
+      log.error('Unexpected error in getWaitingEntries', error);
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to get waiting entries'
+      );
     }
   },
 
@@ -171,7 +196,7 @@ export const queueService = {
   async markAsMatched(
     userIds: string[],
     sessionId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<ServiceResponse<{ matchedCount: number }>> {
     const supabase = createClient();
 
     try {
@@ -185,20 +210,28 @@ export const queueService = {
         .in('user_id', userIds)
         .eq('status', 'waiting');
 
-      if (error) throw error;
+      if (error) {
+        log.error('Failed to mark queue entries as matched', error, {
+          metadata: { userIds, sessionId },
+        });
+        throw error;
+      }
 
-      return { success: true };
+      return createServiceSuccess({ matchedCount: userIds.length });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to mark as matched';
-      return { success: false, error: message };
+      log.error('Unexpected error in markAsMatched', error, {
+        metadata: { userIds, sessionId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to mark as matched'
+      );
     }
   },
 
   /**
    * Clean up expired queue entries (older than 10 minutes)
    */
-  async cleanupExpiredEntries(): Promise<{ cleaned: number; error?: string }> {
+  async cleanupExpiredEntries(): Promise<ServiceResponse<{ cleaned: number }>> {
     const supabase = createClient();
 
     try {
@@ -211,15 +244,24 @@ export const queueService = {
         .lt('created_at', tenMinutesAgo)
         .select();
 
-      if (error) throw error;
+      if (error) {
+        log.error('Failed to cleanup expired entries', error);
+        throw error;
+      }
 
-      return { cleaned: data?.length || 0 };
+      const cleanedCount = data?.length || 0;
+      log.info('Cleaned up expired queue entries', {
+        metadata: { cleaned: cleanedCount },
+      });
+
+      return createServiceSuccess({ cleaned: cleanedCount });
     } catch (error) {
-      const message =
+      log.error('Unexpected error in cleanupExpiredEntries', error);
+      return createServiceError(
         error instanceof Error
           ? error.message
-          : 'Failed to cleanup expired entries';
-      return { cleaned: 0, error: message };
+          : 'Failed to cleanup expired entries'
+      );
     }
   },
 
@@ -227,15 +269,16 @@ export const queueService = {
    * Simple matchmaking algorithm
    * Matches players based on preferences and board compatibility
    */
-  async findMatches(
-    maxMatches = 5
-  ): Promise<{ matches: MatchResult[]; error?: string }> {
+  async findMatches(maxMatches = 5): Promise<ServiceResponse<MatchResult[]>> {
     const supabase = createClient();
 
     try {
       // Get all waiting entries
-      const { entries, error: entriesError } = await this.getWaitingEntries();
-      if (entriesError) throw new Error(entriesError);
+      const waitingResult = await this.getWaitingEntries();
+      if (!waitingResult.success || !waitingResult.data) {
+        throw new Error(waitingResult.error || 'Failed to get waiting entries');
+      }
+      const entries = waitingResult.data;
 
       const matches: MatchResult[] = [];
       const processedUsers = new Set<string>();
@@ -352,11 +395,18 @@ export const queueService = {
         }
       }
 
-      return { matches };
+      log.info('Matchmaking completed', {
+        metadata: { matchesFound: matches.length },
+      });
+
+      return createServiceSuccess(matches);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to find matches';
-      return { matches: [], error: message };
+      log.error('Unexpected error in findMatches', error, {
+        metadata: { maxMatches },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to find matches'
+      );
     }
   },
 };

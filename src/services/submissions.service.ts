@@ -6,7 +6,10 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, Json } from '@/types/database-generated';
+import type { Tables, Json } from '@/types/database.types';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { log } from '@/lib/logger';
 
 export type Submission = Tables<'submissions'>;
 export type SubmissionStatus = Tables<'submissions'>['status'];
@@ -36,7 +39,7 @@ export const submissionsService = {
    */
   async createSubmission(
     data: CreateSubmissionData
-  ): Promise<{ submission: Submission | null; error?: string }> {
+  ): Promise<ServiceResponse<Submission>> {
     try {
       const supabase = createClient();
 
@@ -54,18 +57,20 @@ export const submissionsService = {
         .single();
 
       if (error) {
-        return { submission: null, error: error.message };
+        log.error('Failed to create submission', error, {
+          metadata: { challengeId: data.challenge_id, userId: data.user_id },
+        });
+        return createServiceError(error.message);
       }
 
-      return { submission };
+      return createServiceSuccess(submission);
     } catch (error) {
-      return {
-        submission: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to create submission',
-      };
+      log.error('Unexpected error in createSubmission', error, {
+        metadata: { data },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to create submission'
+      );
     }
   },
 
@@ -74,7 +79,7 @@ export const submissionsService = {
    */
   async getSubmissions(
     filters: SubmissionsFilters = {}
-  ): Promise<{ submissions: SubmissionWithChallenge[]; error?: string }> {
+  ): Promise<ServiceResponse<SubmissionWithChallenge[]>> {
     try {
       const supabase = createClient();
 
@@ -100,7 +105,10 @@ export const submissionsService = {
       const { data, error } = await query;
 
       if (error) {
-        return { submissions: [], error: error.message };
+        log.error('Failed to fetch submissions', error, {
+          metadata: { filters },
+        });
+        return createServiceError(error.message);
       }
 
       // Transform data to handle null challenge
@@ -109,20 +117,19 @@ export const submissionsService = {
         challenge: item.challenge
           ? {
               title: item.challenge.title,
-              difficulty: item.challenge.difficulty as string,
+              difficulty: item.challenge.difficulty,
             }
           : undefined,
       }));
 
-      return { submissions };
+      return createServiceSuccess(submissions);
     } catch (error) {
-      return {
-        submissions: [],
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch submissions',
-      };
+      log.error('Unexpected error in getSubmissions', error, {
+        metadata: { filters },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch submissions'
+      );
     }
   },
 
@@ -131,7 +138,7 @@ export const submissionsService = {
    */
   async getSubmissionById(
     submissionId: string
-  ): Promise<{ submission: SubmissionWithChallenge | null; error?: string }> {
+  ): Promise<ServiceResponse<SubmissionWithChallenge>> {
     try {
       const supabase = createClient();
 
@@ -147,7 +154,10 @@ export const submissionsService = {
         .single();
 
       if (error) {
-        return { submission: null, error: error.message };
+        log.error('Failed to fetch submission by ID', error, {
+          metadata: { submissionId },
+        });
+        return createServiceError(error.message);
       }
 
       // Transform data to handle null challenge
@@ -156,18 +166,19 @@ export const submissionsService = {
         challenge: data.challenge
           ? {
               title: data.challenge.title,
-              difficulty: data.challenge.difficulty as string,
+              difficulty: data.challenge.difficulty,
             }
           : undefined,
       };
 
-      return { submission };
+      return createServiceSuccess(submission);
     } catch (error) {
-      return {
-        submission: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch submission',
-      };
+      log.error('Unexpected error in getSubmissionById', error, {
+        metadata: { submissionId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch submission'
+      );
     }
   },
 
@@ -178,7 +189,7 @@ export const submissionsService = {
     submissionId: string,
     status: SubmissionStatus,
     results?: Json
-  ): Promise<{ submission: Submission | null; error?: string }> {
+  ): Promise<ServiceResponse<Submission>> {
     try {
       const supabase = createClient();
 
@@ -194,18 +205,20 @@ export const submissionsService = {
         .single();
 
       if (error) {
-        return { submission: null, error: error.message };
+        log.error('Failed to update submission results', error, {
+          metadata: { submissionId, status },
+        });
+        return createServiceError(error.message);
       }
 
-      return { submission: data };
+      return createServiceSuccess(data);
     } catch (error) {
-      return {
-        submission: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update submission',
-      };
+      log.error('Unexpected error in updateSubmissionResults', error, {
+        metadata: { submissionId, status },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to update submission'
+      );
     }
   },
 };

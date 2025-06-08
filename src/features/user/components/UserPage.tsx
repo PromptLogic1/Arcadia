@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 import { USER_PAGE_CONSTANTS } from './constants';
 import { useUserProfileTabs } from '../hooks/useUserProfileTabs';
 import { ProfileHeader } from './ProfileHeader';

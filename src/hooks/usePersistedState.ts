@@ -29,9 +29,13 @@ export function usePersistedState<T>(
         return deserialize(saved);
       }
     } catch (error) {
-      log.error('Failed to restore persisted state', error as Error, {
-        metadata: { key },
-      });
+      log.error(
+        'Failed to restore persisted state',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { key },
+        }
+      );
     }
     return defaultValue;
   });
@@ -40,15 +44,28 @@ export function usePersistedState<T>(
   const setPersisted = useCallback(
     (value: T | ((prev: T) => T)) => {
       setState(prev => {
-        const newValue =
-          typeof value === 'function' ? (value as (prev: T) => T)(prev) : value;
+        // Handle function vs value cases
+        let newValue: T;
+        if (typeof value === 'function') {
+          // This is a known TypeScript limitation with generic function types
+          // The pattern matches React's setState behavior exactly
+          // See: https://github.com/microsoft/TypeScript/issues/37663
+          const updater = value as (prev: T) => T;
+          newValue = updater(prev);
+        } else {
+          newValue = value;
+        }
 
         try {
           localStorage.setItem(key, serialize(newValue));
         } catch (error) {
-          log.error('Failed to persist state', error as Error, {
-            metadata: { key },
-          });
+          log.error(
+            'Failed to persist state',
+            error instanceof Error ? error : new Error(String(error)),
+            {
+              metadata: { key },
+            }
+          );
         }
 
         return newValue;
@@ -63,9 +80,13 @@ export function usePersistedState<T>(
       localStorage.removeItem(key);
       setState(defaultValue);
     } catch (error) {
-      log.error('Failed to clear persisted state', error as Error, {
-        metadata: { key },
-      });
+      log.error(
+        'Failed to clear persisted state',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { key },
+        }
+      );
     }
   }, [key, defaultValue]);
 
@@ -78,9 +99,13 @@ export function usePersistedState<T>(
         try {
           setState(deserialize(e.newValue));
         } catch (error) {
-          log.error('Failed to sync persisted state', error as Error, {
-            metadata: { key },
-          });
+          log.error(
+            'Failed to sync persisted state',
+            error instanceof Error ? error : new Error(String(error)),
+            {
+              metadata: { key },
+            }
+          );
         }
       }
     };

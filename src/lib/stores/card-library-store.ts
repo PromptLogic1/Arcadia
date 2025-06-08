@@ -8,7 +8,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 
 // Type aliases from database-generated
 type GameCategory = Enums<'game_category'>;

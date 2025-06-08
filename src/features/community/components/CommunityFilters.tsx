@@ -110,9 +110,12 @@ export function CommunityFilters({
         <ToggleGroup
           type="single"
           value={filters.sortBy}
-          onValueChange={(value: string) =>
-            onSortChange(value as 'newest' | 'hot')
-          }
+          onValueChange={(value: string) => {
+            // Type guard for sort values
+            if (value === 'newest' || value === 'hot') {
+              onSortChange(value);
+            }
+          }}
           className="rounded-lg border border-gray-700/50 bg-gray-800/50 p-1"
         >
           <ToggleGroupItem

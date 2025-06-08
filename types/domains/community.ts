@@ -364,8 +364,8 @@ export function isGameDiscussion(obj: unknown): obj is GameDiscussion {
     typeof obj === 'object' &&
     'id' in obj &&
     'title' in obj &&
-    typeof (obj as Record<string, unknown>).id === 'number' &&
-    typeof (obj as Record<string, unknown>).title === 'string'
+    typeof obj.id === 'number' &&
+    typeof obj.title === 'string'
   );
 }
 
@@ -375,8 +375,8 @@ export function isGameComment(obj: unknown): obj is GameComment {
     typeof obj === 'object' &&
     'id' in obj &&
     'content' in obj &&
-    typeof (obj as Record<string, unknown>).id === 'number' &&
-    typeof (obj as Record<string, unknown>).content === 'string'
+    typeof obj.id === 'number' &&
+    typeof obj.content === 'string'
   );
 }
 
@@ -386,7 +386,7 @@ export function isGameTag(obj: unknown): obj is GameTag {
     typeof obj === 'object' &&
     'id' in obj &&
     'name' in obj &&
-    typeof (obj as Record<string, unknown>).id === 'string' &&
-    typeof (obj as Record<string, unknown>).name === 'string'
+    typeof obj.id === 'string' &&
+    typeof obj.name === 'string'
   );
 }

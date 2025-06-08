@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '../../services/settings.service';
 import { notifications } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import type {
   EmailUpdateData,
   PasswordUpdateData,
@@ -47,7 +48,7 @@ export function useSettingsUserProfileQuery(userId: string, enabled = true) {
       }
       return failureCount < 3;
     },
-    select: data => data.profile,
+    select: data => data.data,
   });
 }
 
@@ -65,12 +66,13 @@ export function useUpdateProfileMutation() {
       userId: string;
       updates: ProfileUpdateData;
     }) => settingsService.updateProfile(userId, updates),
-    onSuccess: (data, variables) => {
-      if (data && 'profile' in data && data.profile) {
+    onSuccess: (result, variables) => {
+      if (result.success && result.data) {
         // Update the profile query cache
-        queryClient.setQueryData(settingsKeys.profile(variables.userId), {
-          profile: data.profile,
-        });
+        queryClient.setQueryData(
+          settingsKeys.profile(variables.userId),
+          result
+        );
 
         // Invalidate related queries
         queryClient.invalidateQueries({
@@ -82,6 +84,8 @@ export function useUpdateProfileMutation() {
         logger.info('Profile updated', {
           metadata: { userId: variables.userId, updates: variables.updates },
         });
+      } else {
+        throw new Error(result.error || 'Failed to update profile');
       }
     },
     onError: (error, variables) => {
@@ -91,7 +95,7 @@ export function useUpdateProfileMutation() {
         description: errorMessage,
       });
 
-      logger.error('Profile update failed', error as Error, {
+      logger.error('Profile update failed', toError(error), {
         metadata: { userId: variables.userId, updates: variables.updates },
       });
     },
@@ -107,22 +111,20 @@ export function useUpdateEmailMutation() {
   return useMutation({
     mutationFn: (emailData: EmailUpdateData) =>
       settingsService.updateEmail(emailData),
-    onSuccess: (data, variables) => {
-      if (data && typeof data === 'object' && 'success' in data) {
-        if (data.success) {
-          notifications.success('Email update initiated', {
-            description: 'Please check your new email for verification',
-          });
+    onSuccess: (result, variables) => {
+      if (result.success && result.data) {
+        notifications.success('Email update initiated', {
+          description: 'Please check your new email for verification',
+        });
 
-          // Invalidate auth-related queries
-          queryClient.invalidateQueries({ queryKey: ['auth'] });
+        // Invalidate auth-related queries
+        queryClient.invalidateQueries({ queryKey: ['auth'] });
 
-          logger.info('Email update initiated', {
-            metadata: { newEmail: variables.newEmail },
-          });
-        } else if ('error' in data && typeof data.error === 'string') {
-          throw new Error(data.error);
-        }
+        logger.info('Email update initiated', {
+          metadata: { newEmail: variables.newEmail },
+        });
+      } else {
+        throw new Error(result.error || 'Failed to update email');
       }
     },
     onError: (error, variables) => {
@@ -132,7 +134,7 @@ export function useUpdateEmailMutation() {
         description: errorMessage,
       });
 
-      logger.error('Email update failed', error as Error, {
+      logger.error('Email update failed', toError(error), {
         metadata: { newEmail: variables.newEmail },
       });
     },
@@ -146,17 +148,15 @@ export function useUpdatePasswordMutation() {
   return useMutation({
     mutationFn: (passwordData: PasswordUpdateData) =>
       settingsService.updatePassword(passwordData),
-    onSuccess: data => {
-      if (data && typeof data === 'object' && 'success' in data) {
-        if (data.success) {
-          notifications.success('Password updated successfully', {
-            description: 'Your password has been changed',
-          });
+    onSuccess: result => {
+      if (result.success && result.data) {
+        notifications.success('Password updated successfully', {
+          description: 'Your password has been changed',
+        });
 
-          logger.info('Password updated successfully');
-        } else if ('error' in data && typeof data.error === 'string') {
-          throw new Error(data.error);
-        }
+        logger.info('Password updated successfully');
+      } else {
+        throw new Error(result.error || 'Failed to update password');
       }
     },
     onError: error => {
@@ -166,7 +166,7 @@ export function useUpdatePasswordMutation() {
         description: errorMessage,
       });
 
-      logger.error('Password update failed', error as Error);
+      logger.error('Password update failed', toError(error));
     },
   });
 }
@@ -185,25 +185,25 @@ export function useUpdateNotificationSettingsMutation() {
       userId: string;
       settings: NotificationSettingsData;
     }) => settingsService.updateNotificationSettings(userId, settings),
-    onSuccess: (data, variables) => {
-      if (data && typeof data === 'object' && 'success' in data) {
-        if (data.success) {
-          // Invalidate profile query to refetch updated notification settings
-          queryClient.invalidateQueries({
-            queryKey: settingsKeys.profile(variables.userId),
-          });
+    onSuccess: (result, variables) => {
+      if (result.success && result.data) {
+        // Invalidate profile query to refetch updated notification settings
+        queryClient.invalidateQueries({
+          queryKey: settingsKeys.profile(variables.userId),
+        });
 
-          notifications.success('Notification settings updated');
+        notifications.success('Notification settings updated');
 
-          logger.info('Notification settings updated', {
-            metadata: {
-              userId: variables.userId,
-              settings: variables.settings,
-            },
-          });
-        } else if ('error' in data && typeof data.error === 'string') {
-          throw new Error(data.error);
-        }
+        logger.info('Notification settings updated', {
+          metadata: {
+            userId: variables.userId,
+            settings: variables.settings,
+          },
+        });
+      } else {
+        throw new Error(
+          result.error || 'Failed to update notification settings'
+        );
       }
     },
     onError: (error, variables) => {
@@ -215,7 +215,7 @@ export function useUpdateNotificationSettingsMutation() {
         description: errorMessage,
       });
 
-      logger.error('Notification settings update failed', error as Error, {
+      logger.error('Notification settings update failed', toError(error), {
         metadata: { userId: variables.userId, settings: variables.settings },
       });
     },
@@ -230,17 +230,15 @@ export function useDeleteAccountMutation() {
 
   return useMutation({
     mutationFn: () => settingsService.deleteAccount(),
-    onSuccess: data => {
-      if (data && typeof data === 'object' && 'success' in data) {
-        if (data.success) {
-          // Clear all cached data
-          queryClient.clear();
+    onSuccess: result => {
+      if (result.success && result.data) {
+        // Clear all cached data
+        queryClient.clear();
 
-          notifications.success('Account deleted successfully');
-          logger.info('Account deleted successfully');
-        } else if ('error' in data && typeof data.error === 'string') {
-          throw new Error(data.error);
-        }
+        notifications.success('Account deleted successfully');
+        logger.info('Account deleted successfully');
+      } else {
+        throw new Error(result.error || 'Failed to delete account');
       }
     },
     onError: error => {
@@ -250,7 +248,7 @@ export function useDeleteAccountMutation() {
         description: errorMessage,
       });
 
-      logger.error('Account deletion failed', error as Error);
+      logger.error('Account deletion failed', toError(error));
     },
   });
 }

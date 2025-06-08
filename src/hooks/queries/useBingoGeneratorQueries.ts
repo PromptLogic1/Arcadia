@@ -12,6 +12,7 @@ import {
 } from '@/src/services/bingo-generator.service';
 import type { BingoCard } from '@/types';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 
 /**
  * Hook for generating a new bingo board
@@ -38,7 +39,7 @@ export function useGenerateBoardMutation() {
       return result.data;
     },
     onError: error => {
-      logger.error('Board generation failed', error as Error, {
+      logger.error('Board generation failed', toError(error), {
         component: 'useGenerateBoardMutation',
       });
     },
@@ -79,7 +80,7 @@ export function useReshuffleCardsMutation() {
       return result.data;
     },
     onError: error => {
-      logger.error('Card reshuffle failed', error as Error, {
+      logger.error('Card reshuffle failed', toError(error), {
         component: 'useReshuffleCardsMutation',
       });
     },

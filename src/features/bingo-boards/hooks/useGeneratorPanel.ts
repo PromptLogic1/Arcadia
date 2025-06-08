@@ -22,7 +22,7 @@ import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
 import { useAuth } from '@/lib/stores/auth-store';
 import type { CardCategory } from '../types/generator.types';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 
 type DifficultyLevel = Enums<'difficulty_level'>;
 type GeneratorDifficulty = DifficultyLevel;

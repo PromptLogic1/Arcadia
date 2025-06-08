@@ -4,6 +4,23 @@ import type { BoardSettings } from '@/types';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
 
+// Type-safe error conversion
+function toError(value: unknown): Error {
+  if (value instanceof Error) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return new Error(value);
+  }
+
+  if (value && typeof value === 'object' && 'message' in value) {
+    return new Error(String(value.message));
+  }
+
+  return new Error(String(value));
+}
+
 // Query keys factory
 export const gameSettingsKeys = {
   all: ['gameSettings'] as const,
@@ -69,7 +86,7 @@ export function useUpdateGameSettings(boardId: string) {
         context?.previousSettings
       );
 
-      logger.error('Failed to update game settings', err as Error, {
+      logger.error('Failed to update game settings', toError(err), {
         metadata: { boardId, newSettings },
       });
 

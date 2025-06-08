@@ -6,12 +6,13 @@
  */
 
 import { createClient } from '@/lib/supabase';
+import { cacheService } from '@/services/redis.service';
 import type {
   Tables,
   TablesInsert,
   TablesUpdate,
   Enums,
-} from '@/types/database-generated';
+} from '@/types/database.types';
 import type {
   BingoBoardDomain,
   BoardCell,
@@ -21,18 +22,44 @@ import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
 import {
-  bingoBoardSchema,
-  bingoBoardsArraySchema,
   zBoardState,
-  zBoardSettings,
   sessionSettingsSchema,
 } from '@/lib/validation/schemas/bingo';
+import type { zBoardSettings } from '@/lib/validation/schemas/bingo';
 import { log } from '@/lib/logger';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 // Type aliases for clean usage
 export type GameCategory = Enums<'game_category'>;
 export type DifficultyLevel = Enums<'difficulty_level'>;
+
+// Type guard for creator info
+function isCreatorInfo(
+  value: unknown
+): value is { id: string; username: string; avatar_url: string | null } {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  // Check properties exist
+  if (!('id' in value) || !('username' in value) || !('avatar_url' in value)) {
+    return false;
+  }
+
+  // Access properties through Object.getOwnPropertyDescriptor to avoid type assertions
+  const idDesc = Object.getOwnPropertyDescriptor(value, 'id');
+  const usernameDesc = Object.getOwnPropertyDescriptor(value, 'username');
+  const avatarDesc = Object.getOwnPropertyDescriptor(value, 'avatar_url');
+
+  return (
+    idDesc !== undefined &&
+    typeof idDesc.value === 'string' &&
+    usernameDesc !== undefined &&
+    typeof usernameDesc.value === 'string' &&
+    avatarDesc !== undefined &&
+    (avatarDesc.value === null || typeof avatarDesc.value === 'string')
+  );
+}
 
 export interface CreateBoardData {
   title: string;
@@ -121,21 +148,35 @@ export const bingoBoardsService = {
     boardId: string
   ): Promise<ServiceResponse<BingoBoardDomain | null>> {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('bingo_boards')
-        .select('*')
-        .eq('id', boardId)
-        .single();
+      // Try cache first
+      const cacheKey = cacheService.createKey('bingo-board', boardId);
+      const cached = await cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const supabase = createClient();
+          const { data, error } = await supabase
+            .from('bingo_boards')
+            .select('*')
+            .eq('id', boardId)
+            .single();
 
-      if (error) throw error;
-      if (!data) return createServiceSuccess(null);
+          if (error) throw error;
+          if (!data) return null;
 
-      const transformedData = _transformDbBoardToDomain(data);
-      if (!transformedData) {
-        return createServiceError('Invalid board data format in database.');
+          const transformedData = _transformDbBoardToDomain(data);
+          if (!transformedData) {
+            throw new Error('Invalid board data format in database.');
+          }
+          return transformedData;
+        },
+        300 // Cache for 5 minutes
+      );
+
+      if (!cached.success) {
+        throw new Error(cached.error || 'Cache operation failed');
       }
-      return createServiceSuccess(transformedData);
+
+      return createServiceSuccess(cached.data);
     } catch (error) {
       log.error(
         'Unexpected error getting board',
@@ -161,43 +202,69 @@ export const bingoBoardsService = {
     limit = 20
   ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
-      const supabase = createClient();
-      let query = supabase
-        .from('bingo_boards')
-        .select('*', { count: 'exact' })
-        .eq('is_public', true);
+      // Create cache key based on filters and pagination
+      const cacheKey = cacheService.createKey(
+        'public-boards',
+        JSON.stringify({
+          filters,
+          page,
+          limit,
+        })
+      );
 
-      // Apply filters
-      if (filters.gameType) {
-        query = query.eq('game_type', filters.gameType);
+      const cached = await cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const supabase = createClient();
+          let query = supabase
+            .from('bingo_boards')
+            .select('*', { count: 'exact' })
+            .eq('is_public', true);
+
+          // Apply filters
+          if (filters.gameType) {
+            query = query.eq('game_type', filters.gameType);
+          }
+          if (filters.difficulty && filters.difficulty !== 'all') {
+            query = query.eq('difficulty', filters.difficulty);
+          }
+          if (filters.search) {
+            query = query.or(
+              `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+            );
+          }
+
+          const start = (page - 1) * limit;
+          const end = start + limit - 1;
+
+          const { data, error, count } = await query
+            .order('votes', { ascending: false })
+            .range(start, end);
+
+          if (error) throw error;
+
+          const transformedBoards = (data || [])
+            .map(_transformDbBoardToDomain)
+            .filter((b): b is BingoBoardDomain => b !== null);
+
+          return {
+            boards: transformedBoards,
+            totalCount: count || 0,
+            hasMore: (count || 0) > end + 1,
+          };
+        },
+        180 // Cache for 3 minutes (public boards change less frequently)
+      );
+
+      if (!cached.success) {
+        throw new Error(cached.error || 'Cache operation failed');
       }
-      if (filters.difficulty && filters.difficulty !== 'all') {
-        query = query.eq('difficulty', filters.difficulty);
-      }
-      if (filters.search) {
-        query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-        );
+
+      if (cached.data === null) {
+        throw new Error('Cache returned null data for public boards');
       }
 
-      const start = (page - 1) * limit;
-      const end = start + limit - 1;
-
-      const { data, error, count } = await query
-        .order('votes', { ascending: false })
-        .range(start, end);
-
-      if (error) throw error;
-
-      const transformedBoards = (data || [])
-        .map(_transformDbBoardToDomain)
-        .filter((b): b is BingoBoardDomain => b !== null);
-
-      return createServiceSuccess({
-        boards: transformedBoards,
-        totalCount: count || 0,
-        hasMore: (count || 0) > end + 1,
-      });
+      return createServiceSuccess(cached.data);
     } catch (error) {
       log.error(
         'Unexpected error getting public boards',
@@ -224,47 +291,74 @@ export const bingoBoardsService = {
     limit = 20
   ): Promise<ServiceResponse<PaginatedBoardsResponse>> {
     try {
-      const supabase = createClient();
-      let query = supabase
-        .from('bingo_boards')
-        .select('*', { count: 'exact' })
-        .eq('creator_id', userId);
+      // Create cache key based on userId, filters and pagination
+      const cacheKey = cacheService.createKey(
+        'user-boards',
+        JSON.stringify({
+          userId,
+          filters,
+          page,
+          limit,
+        })
+      );
 
-      // Apply filters (same as getPublicBoards)
-      if (filters.gameType) {
-        query = query.eq('game_type', filters.gameType);
+      const cached = await cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const supabase = createClient();
+          let query = supabase
+            .from('bingo_boards')
+            .select('*', { count: 'exact' })
+            .eq('creator_id', userId);
+
+          // Apply filters (same as getPublicBoards)
+          if (filters.gameType) {
+            query = query.eq('game_type', filters.gameType);
+          }
+          if (filters.difficulty && filters.difficulty !== 'all') {
+            query = query.eq('difficulty', filters.difficulty);
+          }
+          if (filters.search) {
+            query = query.or(
+              `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+            );
+          }
+
+          if (typeof filters.isPublic === 'boolean') {
+            query = query.eq('is_public', filters.isPublic);
+          }
+
+          const start = (page - 1) * limit;
+          const end = start + limit - 1;
+
+          const { data, error, count } = await query
+            .order('updated_at', { ascending: false })
+            .range(start, end);
+
+          if (error) throw error;
+
+          const transformedBoards = (data || [])
+            .map(_transformDbBoardToDomain)
+            .filter((b): b is BingoBoardDomain => b !== null);
+
+          return {
+            boards: transformedBoards,
+            totalCount: count || 0,
+            hasMore: (count || 0) > end + 1,
+          };
+        },
+        240 // Cache for 4 minutes (user boards change more frequently)
+      );
+
+      if (!cached.success) {
+        throw new Error(cached.error || 'Cache operation failed');
       }
-      if (filters.difficulty && filters.difficulty !== 'all') {
-        query = query.eq('difficulty', filters.difficulty);
-      }
-      if (filters.search) {
-        query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-        );
+
+      if (cached.data === null) {
+        throw new Error('Cache returned null data for user boards');
       }
 
-      if (typeof filters.isPublic === 'boolean') {
-        query = query.eq('is_public', filters.isPublic);
-      }
-
-      const start = (page - 1) * limit;
-      const end = start + limit - 1;
-
-      const { data, error, count } = await query
-        .order('updated_at', { ascending: false })
-        .range(start, end);
-
-      if (error) throw error;
-
-      const transformedBoards = (data || [])
-        .map(_transformDbBoardToDomain)
-        .filter((b): b is BingoBoardDomain => b !== null);
-
-      return createServiceSuccess({
-        boards: transformedBoards,
-        totalCount: count || 0,
-        hasMore: (count || 0) > end + 1,
-      });
+      return createServiceSuccess(cached.data);
     } catch (error) {
       log.error(
         'Unexpected error getting user boards',
@@ -363,6 +457,14 @@ export const bingoBoardsService = {
         return createServiceError('Failed to create and transform board');
       }
 
+      // Invalidate relevant caches after board creation
+      if (transformedData.is_public) {
+        await cacheService.invalidatePattern('public-boards:*');
+      }
+      await cacheService.invalidatePattern(
+        `user-boards:*"userId":"${user.id}"*`
+      );
+
       return createServiceSuccess(transformedData);
     } catch (error) {
       log.error(
@@ -421,6 +523,19 @@ export const bingoBoardsService = {
       if (!transformedData) {
         return createServiceError('Invalid board data on update');
       }
+
+      // Invalidate related caches after successful update
+      const boardCacheKey = cacheService.createKey('bingo-board', boardId);
+      await cacheService.invalidate(boardCacheKey);
+
+      // Invalidate public boards cache (with wildcard pattern)
+      await cacheService.invalidatePattern('public-boards:*');
+
+      // Invalidate user boards cache for the board creator
+      await cacheService.invalidatePattern(
+        `user-boards:*"userId":"${transformedData.creator_id}"*`
+      );
+
       return createServiceSuccess(transformedData);
     } catch (error) {
       log.error(
@@ -451,6 +566,14 @@ export const bingoBoardsService = {
         });
         return createServiceError(error.message);
       }
+
+      // Invalidate related caches after successful deletion
+      const boardCacheKey = cacheService.createKey('bingo-board', boardId);
+      await cacheService.invalidate(boardCacheKey);
+
+      // Invalidate public boards and user boards caches
+      await cacheService.invalidatePattern('public-boards:*');
+      await cacheService.invalidatePattern('user-boards:*');
 
       return createServiceSuccess(undefined);
     } catch (error) {
@@ -687,23 +810,13 @@ export const bingoBoardsService = {
       if (!transformedData)
         return createServiceError('Invalid board data format');
 
-      const creator = data.creator as unknown;
+      const creator = data.creator;
 
       let creatorInfo:
         | { id: string; username: string; avatar_url: string | null }
         | undefined;
-      if (
-        creator &&
-        typeof creator === 'object' &&
-        'id' in creator &&
-        'username' in creator &&
-        'avatar_url' in creator
-      ) {
-        creatorInfo = {
-          id: String(creator.id),
-          username: String(creator.username),
-          avatar_url: creator.avatar_url ? String(creator.avatar_url) : null,
-        };
+      if (isCreatorInfo(creator)) {
+        creatorInfo = creator;
       }
 
       const result: BoardWithCreator = {
@@ -900,25 +1013,42 @@ export const bingoBoardsService = {
       for (const board of data || []) {
         const transformedBoard = _transformDbBoardToDomain(board);
         if (transformedBoard) {
-          const creator = board.creator as unknown;
+          const creator = board.creator;
           let creatorInfo:
             | { id: string; username: string; avatar_url: string | null }
             | undefined;
 
-          if (
+          if (isCreatorInfo(creator)) {
+            creatorInfo = creator;
+          } else if (
             creator &&
             typeof creator === 'object' &&
             'username' in creator &&
-            'avatar_url' in creator
+            'avatar_url' in creator &&
+            board.creator_id
           ) {
-            // Get the creator_id from the board itself since it's always present
-            creatorInfo = {
-              id: board.creator_id || '',
-              username: String(creator.username),
-              avatar_url: creator.avatar_url
-                ? String(creator.avatar_url)
-                : null,
-            };
+            // Fallback: construct creator info from partial data
+            const usernameDesc = Object.getOwnPropertyDescriptor(
+              creator,
+              'username'
+            );
+            const avatarDesc = Object.getOwnPropertyDescriptor(
+              creator,
+              'avatar_url'
+            );
+
+            if (usernameDesc && typeof usernameDesc.value === 'string') {
+              creatorInfo = {
+                id: board.creator_id,
+                username: usernameDesc.value,
+                avatar_url:
+                  avatarDesc &&
+                  (avatarDesc.value === null ||
+                    typeof avatarDesc.value === 'string')
+                    ? avatarDesc.value
+                    : null,
+              };
+            }
           }
 
           boards.push({

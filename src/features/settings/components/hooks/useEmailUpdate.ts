@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
+import { toError } from '@/lib/error-guards';
 import { SETTINGS_CONSTANTS } from '../constants';
 import type { FormState } from '../constants';
 
@@ -95,7 +96,7 @@ export function useEmailUpdate(): UseEmailUpdateReturn {
 
       resetEmailForm();
     } catch (error) {
-      logger.error('Email update failed', error as Error, {
+      logger.error('Email update failed', toError(error), {
         component: 'useEmailUpdate',
         metadata: { userId: userData?.id, newEmail },
       });

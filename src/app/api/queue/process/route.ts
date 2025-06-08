@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 // import { createClient } from '@/lib/supabase';
 // import { QueueMatcherService } from '@/features/bingo-boards/services/queue-matcher.service';
 
@@ -16,7 +17,7 @@ export async function POST() {
         'Queue system not yet implemented - missing bingo_queue_entries table',
     });
   } catch (_error) {
-    logger.error('Queue processing error', _error as Error, {
+    logger.error('Queue processing error', toError(_error), {
       metadata: { apiRoute: 'queue/process' },
     });
     return NextResponse.json(
@@ -55,7 +56,7 @@ export async function GET() {
       matched: 0,
       expired: 0,
       averageWaitTime: 0,
-      popularBoards: {} as Record<string, number>,
+      popularBoards: {},
       message:
         'Queue system not yet implemented - missing bingo_queue_entries table',
     };

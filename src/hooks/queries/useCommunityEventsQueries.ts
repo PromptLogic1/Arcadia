@@ -7,7 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { communityEventsService } from '@/services/community-events.service';
 import { queryKeys } from './index';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 
 type GameCategory = Enums<'game_category'>;
 type EventStatus = Enums<'event_status'>;

@@ -9,8 +9,9 @@ import {
 } from '@/hooks/queries/useBingoBoardsQueries';
 import { realtimeBoardService } from '../../../services/realtime-board.service';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import type { BoardCell, BingoBoardRow } from '../types';
-import type { CompositeTypes, Tables } from '@/types/database-generated';
+import type { CompositeTypes, Tables } from '@/types/database.types';
 
 // Props interface
 export interface UseBingoBoardProps {
@@ -95,14 +96,10 @@ export const useBingoBoard = ({
           currentVersion: board.version || undefined,
         });
       } catch (error) {
-        logger.error(
-          'Failed to update board state',
-          error instanceof Error ? error : new Error(String(error)),
-          {
-            boardId,
-            feature: 'bingo-boards',
-          }
-        );
+        logger.error('Failed to update board state', toError(error), {
+          boardId,
+          feature: 'bingo-boards',
+        });
         throw error;
       } finally {
         setOptimisticUpdating(false);
@@ -148,14 +145,10 @@ export const useBingoBoard = ({
           currentVersion: board.version || undefined,
         });
       } catch (error) {
-        logger.error(
-          'Failed to update board settings',
-          error instanceof Error ? error : new Error(String(error)),
-          {
-            boardId,
-            feature: 'bingo-boards',
-          }
-        );
+        logger.error('Failed to update board settings', toError(error), {
+          boardId,
+          feature: 'bingo-boards',
+        });
         throw error;
       }
     },
@@ -207,10 +200,10 @@ export const useBingoBoard = ({
       );
     } catch (error) {
       if (!isCleanedUp) {
-        logger.error('Failed to setup realtime subscription', error as Error, {
+        logger.error('Failed to setup realtime subscription', toError(error), {
           metadata: { boardId },
         });
-        setRealtimeError(error as Error);
+        setRealtimeError(toError(error));
       }
     }
 

@@ -45,6 +45,16 @@ const STATUS_COLORS = {
 } as const;
 
 type StatusColorKey = keyof typeof STATUS_COLORS;
+type DifficultyColorKey = keyof typeof DIFFICULTY_COLORS;
+
+// Type guards for safe color mapping
+function isValidDifficulty(value: unknown): value is DifficultyColorKey {
+  return typeof value === 'string' && value in DIFFICULTY_COLORS;
+}
+
+function isValidStatus(value: unknown): value is StatusColorKey {
+  return typeof value === 'string' && value in STATUS_COLORS;
+}
 
 /**
  * Session Card Component
@@ -62,17 +72,13 @@ export function SessionCard({
   const isFull = currentCount >= maxCount;
   const canJoin = !isHost && !isFull && session.status === 'waiting';
 
-  const difficultyColor =
-    session.board_difficulty && session.board_difficulty in DIFFICULTY_COLORS
-      ? DIFFICULTY_COLORS[
-          session.board_difficulty as keyof typeof DIFFICULTY_COLORS
-        ]
-      : 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  const difficultyColor = isValidDifficulty(session.board_difficulty)
+    ? DIFFICULTY_COLORS[session.board_difficulty]
+    : 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
-  const statusColor =
-    session.status && session.status in STATUS_COLORS
-      ? STATUS_COLORS[session.status as StatusColorKey]
-      : 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  const statusColor = isValidStatus(session.status)
+    ? STATUS_COLORS[session.status]
+    : 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
   const createdAt = session.created_at ? new Date(session.created_at) : null;
   const timeAgo = createdAt

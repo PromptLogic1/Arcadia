@@ -2,6 +2,7 @@
 
 import { BaseErrorBoundary } from './BaseErrorBoundary';
 import { usePathname } from 'next/navigation';
+import { log } from '@/lib/logger';
 import type { ReactNode, ErrorInfo } from 'react';
 
 interface RouteErrorBoundaryProps {
@@ -20,11 +21,14 @@ export function RouteErrorBoundary({
 
   const handleError = (error: Error, errorInfo: ErrorInfo, errorId: string) => {
     // Additional route-specific error handling
-    console.error(`Route error in ${routeName || pathname}:`, {
-      error,
-      errorInfo,
-      errorId,
-      route: pathname,
+    log.error(`Route error in ${routeName || pathname}`, error, {
+      metadata: {
+        component: 'RouteErrorBoundary',
+        errorInfo,
+        errorId,
+        route: pathname,
+        routeName,
+      },
     });
   };
 

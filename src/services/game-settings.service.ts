@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase';
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';

@@ -3,6 +3,7 @@ import type {
   FormPersistence,
 } from '../types/signup-form.types';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 
 // 🧼 Pure Functions - Storage Keys
 const STORAGE_KEYS = {
@@ -66,16 +67,13 @@ const deserializeFormData = (
 const isValidFormData = (
   data: unknown
 ): data is Partial<PersistentFormData> => {
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || data === null) {
     return false;
   }
 
-  // Type assertion after checking it's an object
-  const obj = data as Record<string, unknown>;
-
   // Check that only allowed fields are present
   const allowedFields = ['username', 'email'];
-  const dataKeys = Object.keys(obj);
+  const dataKeys = Object.keys(data);
 
   for (const key of dataKeys) {
     if (!allowedFields.includes(key)) {
@@ -91,11 +89,11 @@ const isValidFormData = (
   }
 
   // Validate field types
-  if (obj.username !== undefined && typeof obj.username !== 'string') {
+  if ('username' in data && typeof data.username !== 'string') {
     return false;
   }
 
-  if (obj.email !== undefined && typeof obj.email !== 'string') {
+  if ('email' in data && typeof data.email !== 'string') {
     return false;
   }
 
@@ -132,7 +130,7 @@ const saveToStorage = (data: Partial<PersistentFormData>): boolean => {
 
     return true;
   } catch (error) {
-    logger.error('Failed to save form data to localStorage', error as Error, {
+    logger.error('Failed to save form data to localStorage', toError(error), {
       component: 'SignUpFormPersistence',
     });
     return false;
@@ -171,7 +169,7 @@ const loadFromStorage = (): Partial<PersistentFormData> | null => {
 
     return data;
   } catch (error) {
-    logger.error('Failed to load form data from localStorage', error as Error, {
+    logger.error('Failed to load form data from localStorage', toError(error), {
       component: 'SignUpFormPersistence',
     });
 
@@ -200,7 +198,7 @@ const clearFromStorage = (): boolean => {
   } catch (error) {
     logger.error(
       'Failed to clear form data from localStorage',
-      error as Error,
+      toError(error),
       {
         component: 'SignUpFormPersistence',
       }

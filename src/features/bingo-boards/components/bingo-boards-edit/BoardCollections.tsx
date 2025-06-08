@@ -31,8 +31,30 @@ import { useBoardCollections } from '../../hooks/useBoardCollections';
 import type {
   BoardCollection,
   BoardCollectionFilters,
-  BoardStateCell,
 } from '../../../../services/board-collections.service';
+
+// Type guards
+function isDifficultyOrAll(value: string): value is Difficulty | 'all' {
+  return (
+    value === 'all' ||
+    value === 'beginner' ||
+    value === 'easy' ||
+    value === 'medium' ||
+    value === 'hard' ||
+    value === 'expert'
+  );
+}
+
+function isSortByOption(
+  value: string
+): value is BoardCollectionFilters['sortBy'] {
+  return (
+    value === 'trending' ||
+    value === 'newest' ||
+    value === 'rating' ||
+    value === 'usage'
+  );
+}
 
 // Design System
 import {
@@ -113,9 +135,11 @@ export function BoardCollections({
         <div className="flex flex-wrap gap-2">
           <Select
             value={filters.difficulty}
-            onValueChange={(value: string) =>
-              updateFilter('difficulty', value as Difficulty | 'all')
-            }
+            onValueChange={(value: string) => {
+              if (isDifficultyOrAll(value)) {
+                updateFilter('difficulty', value);
+              }
+            }}
           >
             <SelectTrigger className="w-32 border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Difficulty" />
@@ -132,9 +156,11 @@ export function BoardCollections({
 
           <Select
             value={filters.sortBy}
-            onValueChange={value =>
-              updateFilter('sortBy', value as BoardCollectionFilters['sortBy'])
-            }
+            onValueChange={value => {
+              if (isSortByOption(value)) {
+                updateFilter('sortBy', value);
+              }
+            }}
           >
             <SelectTrigger className="w-36 border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Sort by" />

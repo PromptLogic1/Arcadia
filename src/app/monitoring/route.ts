@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { log } from '@/lib/logger';
 
 const SENTRY_HOST = 'o4509444949934080.ingest.de.sentry.io';
 const SENTRY_PROJECT_IDS = ['4509444951244880'];
@@ -31,7 +32,13 @@ export async function POST(request: NextRequest) {
     try {
       header = JSON.parse(firstPiece);
     } catch (parseError) {
-      console.error('Failed to parse envelope header:', parseError);
+      log.error('Failed to parse envelope header', parseError, {
+        metadata: {
+          apiRoute: 'monitoring',
+          method: 'POST',
+          firstPiece,
+        },
+      });
       return NextResponse.json(
         { error: 'Invalid envelope header' },
         { status: 400 }
@@ -50,7 +57,18 @@ export async function POST(request: NextRequest) {
 
     // Validate project ID
     if (!projectId || !SENTRY_PROJECT_IDS.includes(projectId)) {
-      console.error('Invalid Sentry project ID:', projectId);
+      log.error(
+        'Invalid Sentry project ID',
+        new Error('Unauthorized project'),
+        {
+          metadata: {
+            apiRoute: 'monitoring',
+            method: 'POST',
+            projectId,
+            validProjectIds: SENTRY_PROJECT_IDS,
+          },
+        }
+      );
       return NextResponse.json({ error: 'Invalid project' }, { status: 401 });
     }
 
@@ -72,7 +90,12 @@ export async function POST(request: NextRequest) {
       statusText: response.statusText,
     });
   } catch (error) {
-    console.error('Sentry tunnel error:', error);
+    log.error('Sentry tunnel error', error, {
+      metadata: {
+        apiRoute: 'monitoring',
+        method: 'POST',
+      },
+    });
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 }

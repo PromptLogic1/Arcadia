@@ -22,6 +22,7 @@ import {
 } from '@/lib/stores/settings-store';
 import { settingsService } from '../../../services/settings.service';
 import { logger } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 import type {
   EmailUpdateData,
   PasswordUpdateData,
@@ -215,7 +216,7 @@ export function useSettings(): UseSettingsReturn {
           metadata: { userId, newEmail: data.newEmail },
         });
       } catch (error) {
-        logger.error('Email update failed', error as Error, {
+        logger.error('Email update failed', toError(error), {
           metadata: { userId, newEmail: data.newEmail },
         });
         throw error; // Re-throw to let the mutation handle error notifications
@@ -257,7 +258,7 @@ export function useSettings(): UseSettingsReturn {
           metadata: { userId },
         });
       } catch (error) {
-        logger.error('Password update failed', error as Error, {
+        logger.error('Password update failed', toError(error), {
           metadata: { userId },
         });
         throw error; // Re-throw to let the mutation handle error notifications
@@ -287,7 +288,7 @@ export function useSettings(): UseSettingsReturn {
           metadata: { userId, updates: data },
         });
       } catch (error) {
-        logger.error('Profile update failed', error as Error, {
+        logger.error('Profile update failed', toError(error), {
           metadata: { userId, updates: data },
         });
         throw error; // Re-throw to let the mutation handle error notifications
@@ -309,7 +310,7 @@ export function useSettings(): UseSettingsReturn {
           metadata: { userId, settings },
         });
       } catch (error) {
-        logger.error('Notification settings update failed', error as Error, {
+        logger.error('Notification settings update failed', toError(error), {
           metadata: { userId, settings },
         });
         throw error;
@@ -327,7 +328,7 @@ export function useSettings(): UseSettingsReturn {
         metadata: { userId },
       });
     } catch (error) {
-      logger.error('Account deletion failed', error as Error, {
+      logger.error('Account deletion failed', toError(error), {
         metadata: { userId },
       });
       throw error;

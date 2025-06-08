@@ -12,7 +12,7 @@ import {
   type UpdateBoardData,
 } from '../../services/bingo-boards.service';
 import type { BingoBoard } from '@/types';
-import type { CompositeTypes } from '@/types/database-generated';
+import type { CompositeTypes } from '@/types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
@@ -219,10 +219,11 @@ export function useUpdateBoardStateMutation() {
       // Optimistically update to the new value
       queryClient.setQueryData(
         ['bingoBoards', 'byId', boardId],
-        (old: unknown) =>
-          old
-            ? { ...(old as Record<string, unknown>), board_state: boardState }
-            : old
+        (old: unknown) => {
+          if (!old || typeof old !== 'object') return old;
+          // Create a new object with the updated board_state
+          return { ...old, board_state: boardState };
+        }
       );
 
       // Return a context object with the snapshotted value

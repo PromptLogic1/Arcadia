@@ -11,6 +11,7 @@ import { DIFFICULTIES } from '@/types';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import { log } from '@/lib/logger';
+import { toError } from '@/lib/error-guards';
 
 interface FilterBingoCardsProps {
   onFilter: (filters: FilterOptions) => void;
@@ -26,7 +27,7 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
       setIsLoading(true);
       onFilter(filters);
     } catch (error) {
-      log.error('Error applying filters', error as Error, {
+      log.error('Error applying filters', toError(error), {
         component: 'FilterBingoCards',
         metadata: { filters: filters },
       });
@@ -43,7 +44,7 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
       });
       onClear();
     } catch (error) {
-      log.error('Error clearing filters', error as Error, {
+      log.error('Error clearing filters', toError(error), {
         component: 'FilterBingoCards',
       });
     } finally {

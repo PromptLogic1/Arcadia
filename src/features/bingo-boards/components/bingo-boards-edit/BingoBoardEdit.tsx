@@ -26,6 +26,7 @@ import {
   createNewBingoCard,
 } from '@/src/types';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import { toError } from '@/lib/error-guards';
 
 // Components
 import { BoardHeader } from './BoardHeader';
@@ -235,7 +236,7 @@ export function BingoBoardEdit({
   // Grid card removal
   const handleRemoveGridCard = useCallback(
     (index: number) => {
-      updateGridCard(index, { ...DEFAULT_BINGO_CARD } as BingoCard);
+      updateGridCard(index, createEmptyBingoCard());
     },
     [updateGridCard]
   );
@@ -323,7 +324,7 @@ export function BingoBoardEdit({
           description: `Applied ${selectedCards.length} shuffled cards to your board.`,
         });
       } catch (error) {
-        log.error('Failed to shuffle cards', error as Error);
+        log.error('Failed to shuffle cards', toError(error));
         notifications.error('Failed to shuffle cards', {
           description: 'Please try again or contact support.',
         });
@@ -365,7 +366,7 @@ export function BingoBoardEdit({
           description: `Applied ${selectedCards.length} cards from collection to your board.`,
         });
       } catch (error) {
-        log.error('Failed to apply collection', error as Error);
+        log.error('Failed to apply collection', toError(error));
         notifications.error('Failed to apply collection', {
           description: 'Please try again or contact support.',
         });
@@ -386,7 +387,7 @@ export function BingoBoardEdit({
           description: `Added ${cards.length} cards to your private collection.`,
         });
       } catch (error) {
-        log.error('Failed to add cards', error as Error);
+        log.error('Failed to add cards', toError(error));
         notifications.error('Failed to add cards', {
           description: 'Please try again or contact support.',
         });

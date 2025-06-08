@@ -13,11 +13,13 @@ import {
 import { logger } from '@/lib/logger';
 
 // 🧼 Types
+type OAuthProvider = 'google';
+
 export interface LoginOAuthSectionProps {
   enableOAuth?: boolean;
   showOAuth?: boolean;
-  supportedProviders?: readonly string[];
-  onOAuthLogin: (provider: string) => void;
+  supportedProviders?: readonly OAuthProvider[];
+  onOAuthLogin: (provider: OAuthProvider) => void;
   loading?: boolean;
   disabled?: boolean;
   variant?: 'default' | 'gaming' | 'neon' | 'cyber';
@@ -107,9 +109,8 @@ export const LoginOAuthSection = React.forwardRef<
 
         {/* OAuth Buttons Section */}
         <div className={LOGIN_STYLES.OAUTH.BUTTONS_CONTAINER}>
-          {supportedProviders.map((provider: string) => {
-            const config =
-              providerConfigs[provider as keyof typeof providerConfigs];
+          {supportedProviders.map(provider => {
+            const config = providerConfigs[provider];
             if (!config) {
               logger.error(
                 'OAuth provider not configured',

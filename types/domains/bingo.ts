@@ -2,7 +2,7 @@
 // BINGO DOMAIN TYPES - Application types that extend database types
 // =============================================================================
 
-import type { Tables, Enums, CompositeTypes } from '../database-generated';
+import type { Tables, Enums, CompositeTypes } from '../database.types';
 import type { User, Tag } from '../index';
 import { PLAYER_COLORS } from '../index'; // Value import
 
@@ -507,8 +507,8 @@ export function isGameBoard(obj: unknown): obj is GameBoardDomain {
     typeof obj === 'object' &&
     'id' in obj &&
     'title' in obj &&
-    typeof (obj as Record<string, unknown>).id === 'string' &&
-    typeof (obj as Record<string, unknown>).title === 'string'
+    typeof obj.id === 'string' &&
+    typeof obj.title === 'string'
   );
 }
 
@@ -518,8 +518,8 @@ export function isGameSession(obj: unknown): obj is GameSessionDomain {
     typeof obj === 'object' &&
     'id' in obj &&
     'board_id' in obj &&
-    typeof (obj as Record<string, unknown>).id === 'string' &&
-    typeof (obj as Record<string, unknown>).board_id === 'string'
+    typeof obj.id === 'string' &&
+    typeof obj.board_id === 'string'
   );
 }
 
@@ -529,8 +529,8 @@ export function isGamePlayer(obj: unknown): obj is GamePlayer {
     typeof obj === 'object' &&
     'user_id' in obj &&
     'session_id' in obj &&
-    typeof (obj as Record<string, unknown>).user_id === 'string' &&
-    typeof (obj as Record<string, unknown>).session_id === 'string'
+    typeof obj.user_id === 'string' &&
+    typeof obj.session_id === 'string'
   );
 }
 

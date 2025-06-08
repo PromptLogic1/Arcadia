@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { sessionsService } from '@/services/sessions.service';
 import { authService } from '@/services/auth.service';
-import { rateLimiter } from '@/lib/rate-limiter';
+import {
+  withRateLimit,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limiter-middleware';
 import {
   validateRequestBody,
   validateQueryParams,
@@ -13,113 +16,107 @@ import {
   leaveSessionRequestSchema,
 } from '@/lib/validation/schemas/sessions';
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authResult = await authService.getCurrentUser();
-  if (!authResult.success || !authResult.data) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const user = authResult.data;
+export const POST = withRateLimit(
+  async (request: NextRequest): Promise<NextResponse> => {
+    const authResult = await authService.getCurrentUser();
+    if (!authResult.success || !authResult.data) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = authResult.data;
 
-  const rateLimitResult = await rateLimiter.check(request, 20, user.id);
-  if (!rateLimitResult.success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
+    const validation = await validateRequestBody(
+      request,
+      joinSessionRequestSchema
+    );
+    if (!validation.success) {
+      return validation.error;
+    }
 
-  const validation = await validateRequestBody(
-    request,
-    joinSessionRequestSchema
-  );
-  if (!validation.success) {
-    return validation.error;
-  }
+    const { sessionId, displayName, color, team } = validation.data;
 
-  const { sessionId, displayName, color, team } = validation.data;
+    const result = await sessionsService.joinSession({
+      session_id: sessionId,
+      user_id: user.id,
+      display_name: displayName,
+      color,
+      team,
+    });
 
-  const result = await sessionsService.joinSession({
-    session_id: sessionId,
-    user_id: user.id,
-    display_name: displayName,
-    color,
-    team,
-  });
+    if (!result.success) {
+      const errorMessage = result.error || 'An unknown error occurred';
+      const status = errorMessage.includes('not found')
+        ? 404
+        : errorMessage.includes('already')
+          ? 409
+          : 400;
+      return NextResponse.json({ error: errorMessage }, { status });
+    }
 
-  if (!result.success) {
-    const errorMessage = result.error || 'An unknown error occurred';
-    const status = errorMessage.includes('not found')
-      ? 404
-      : errorMessage.includes('already')
-        ? 409
-        : 400;
-    return NextResponse.json({ error: errorMessage }, { status });
-  }
+    return NextResponse.json(result.data);
+  },
+  RATE_LIMIT_CONFIGS.gameAction
+);
 
-  return NextResponse.json(result.data);
-}
+export const PATCH = withRateLimit(
+  async (request: NextRequest): Promise<NextResponse> => {
+    const authResult = await authService.getCurrentUser();
+    if (!authResult.success || !authResult.data) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = authResult.data;
 
-export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  const authResult = await authService.getCurrentUser();
-  if (!authResult.success || !authResult.data) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const user = authResult.data;
+    const validation = await validateRequestBody(
+      request,
+      updatePlayerRequestSchema
+    );
+    if (!validation.success) {
+      return validation.error;
+    }
 
-  const rateLimitResult = await rateLimiter.check(request, 30, user.id);
-  if (!rateLimitResult.success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
+    const { sessionId, ...updates } = validation.data;
 
-  const validation = await validateRequestBody(
-    request,
-    updatePlayerRequestSchema
-  );
-  if (!validation.success) {
-    return validation.error;
-  }
+    const result = await sessionsService.updatePlayer(
+      sessionId,
+      user.id,
+      updates
+    );
 
-  const { sessionId, ...updates } = validation.data;
+    if (!result.success) {
+      const errorMessage = result.error || 'An unknown error occurred';
+      const status = errorMessage.includes('taken') ? 409 : 400;
+      return NextResponse.json({ error: errorMessage }, { status });
+    }
 
-  const result = await sessionsService.updatePlayer(
-    sessionId,
-    user.id,
-    updates
-  );
+    return NextResponse.json(result.data);
+  },
+  RATE_LIMIT_CONFIGS.gameAction
+);
 
-  if (!result.success) {
-    const errorMessage = result.error || 'An unknown error occurred';
-    const status = errorMessage.includes('taken') ? 409 : 400;
-    return NextResponse.json({ error: errorMessage }, { status });
-  }
+export const DELETE = withRateLimit(
+  async (request: NextRequest): Promise<NextResponse> => {
+    const authResult = await authService.getCurrentUser();
+    if (!authResult.success || !authResult.data) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = authResult.data;
 
-  return NextResponse.json(result.data);
-}
+    const { searchParams } = new URL(request.url);
+    const validation = validateQueryParams(
+      searchParams,
+      leaveSessionRequestSchema
+    );
+    if (!validation.success) {
+      return validation.error;
+    }
 
-export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  const authResult = await authService.getCurrentUser();
-  if (!authResult.success || !authResult.data) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const user = authResult.data;
+    const { sessionId } = validation.data;
+    const result = await sessionsService.leaveSession(sessionId, user.id);
 
-  const rateLimitResult = await rateLimiter.check(request, 20, user.id);
-  if (!rateLimitResult.success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
 
-  const { searchParams } = new URL(request.url);
-  const validation = validateQueryParams(
-    searchParams,
-    leaveSessionRequestSchema
-  );
-  if (!validation.success) {
-    return validation.error;
-  }
-
-  const { sessionId } = validation.data;
-  const result = await sessionsService.leaveSession(sessionId, user.id);
-
-  if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
-  }
-
-  return new NextResponse(null, { status: 204 });
-}
+    return new NextResponse(null, { status: 204 });
+  },
+  RATE_LIMIT_CONFIGS.gameAction
+);

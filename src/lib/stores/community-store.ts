@@ -9,7 +9,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 
 // Re-export types for backward compatibility
 export type Discussion = Tables<'discussions'>;

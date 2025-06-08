@@ -6,8 +6,10 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, TablesUpdate } from '@/types/database-generated';
+import type { Tables, TablesUpdate } from '@/types/database.types';
 import { logger } from '@/lib/logger';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 
 export type UserProfile = Tables<'users'>;
 export type UserProfileUpdate = TablesUpdate<'users'>;
@@ -45,10 +47,7 @@ export const settingsService = {
   /**
    * Get user profile settings
    */
-  async getUserProfile(userId: string): Promise<{
-    profile: UserProfile | null;
-    error?: string;
-  }> {
+  async getUserProfile(userId: string): Promise<ServiceResponse<UserProfile>> {
     try {
       const supabase = createClient();
 
@@ -59,16 +58,20 @@ export const settingsService = {
         .single();
 
       if (error) {
-        return { profile: null, error: error.message };
+        logger.error('Failed to fetch user profile', error, {
+          metadata: { userId },
+        });
+        return createServiceError(error.message);
       }
 
-      return { profile: data };
+      return createServiceSuccess(data);
     } catch (error) {
-      return {
-        profile: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch profile',
-      };
+      logger.error('Unexpected error in getUserProfile', error, {
+        metadata: { userId },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch profile'
+      );
     }
   },
 
@@ -78,10 +81,7 @@ export const settingsService = {
   async updateProfile(
     userId: string,
     updates: ProfileUpdateData
-  ): Promise<{
-    profile: UserProfile | null;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<UserProfile>> {
     try {
       const supabase = createClient();
 
@@ -93,32 +93,35 @@ export const settingsService = {
         .single();
 
       if (error) {
-        return { profile: null, error: error.message };
+        logger.error('Failed to update user profile', error, {
+          metadata: { userId, updates },
+        });
+        return createServiceError(error.message);
       }
 
-      return { profile: data };
+      return createServiceSuccess(data);
     } catch (error) {
-      return {
-        profile: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to update profile',
-      };
+      logger.error('Unexpected error in updateProfile', error, {
+        metadata: { userId, updates },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to update profile'
+      );
     }
   },
 
   /**
    * Update user email
    */
-  async updateEmail(emailData: EmailUpdateData): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  async updateEmail(
+    emailData: EmailUpdateData
+  ): Promise<ServiceResponse<{ message: string }>> {
     try {
       const { newEmail, confirmEmail } = emailData;
 
       // Validation
       if (newEmail !== confirmEmail) {
-        return { success: false, error: 'Email addresses do not match' };
+        return createServiceError('Email addresses do not match');
       }
 
       const supabase = createClient();
@@ -129,32 +132,33 @@ export const settingsService = {
       });
 
       if (error) {
-        return { success: false, error: error.message };
+        logger.error('Failed to update email', error, {
+          metadata: { newEmail },
+        });
+        return createServiceError(error.message);
       }
 
-      return { success: true };
+      return createServiceSuccess({ message: 'Email updated successfully' });
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to update email',
-      };
+      logger.error('Unexpected error in updateEmail', error);
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to update email'
+      );
     }
   },
 
   /**
    * Update user password
    */
-  async updatePassword(passwordData: PasswordUpdateData): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  async updatePassword(
+    passwordData: PasswordUpdateData
+  ): Promise<ServiceResponse<{ message: string }>> {
     try {
       const { currentPassword, newPassword, confirmPassword } = passwordData;
 
       // Validation
       if (newPassword !== confirmPassword) {
-        return { success: false, error: 'Passwords do not match' };
+        return createServiceError('Passwords do not match');
       }
 
       const supabase = createClient();
@@ -164,7 +168,7 @@ export const settingsService = {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
       if (!currentUser?.email) {
-        return { success: false, error: 'User not authenticated' };
+        return createServiceError('User not authenticated');
       }
 
       // Verify current password
@@ -174,7 +178,10 @@ export const settingsService = {
       });
 
       if (verifyError) {
-        return { success: false, error: 'Current password is incorrect' };
+        logger.warn('Current password verification failed', {
+          metadata: { userId: currentUser.id },
+        });
+        return createServiceError('Current password is incorrect');
       }
 
       // Update password
@@ -183,16 +190,18 @@ export const settingsService = {
       });
 
       if (updateError) {
-        return { success: false, error: updateError.message };
+        logger.error('Failed to update password', updateError, {
+          metadata: { userId: currentUser.id },
+        });
+        return createServiceError(updateError.message);
       }
 
-      return { success: true };
+      return createServiceSuccess({ message: 'Password updated successfully' });
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to update password',
-      };
+      logger.error('Unexpected error in updatePassword', error);
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to update password'
+      );
     }
   },
 
@@ -204,10 +213,7 @@ export const settingsService = {
   async updateNotificationSettings(
     userId: string,
     settings: NotificationSettingsData
-  ): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<{ message: string }>> {
     try {
       // For now, just return success as notification settings
       // would need a dedicated table or JSON column
@@ -215,25 +221,23 @@ export const settingsService = {
         userId,
         metadata: { settings },
       });
-      return { success: true };
+      return createServiceSuccess({ message: 'Settings updated successfully' });
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to update notification settings',
-      };
+      logger.error('Unexpected error in updateNotificationSettings', error, {
+        metadata: { userId, settings },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update notification settings'
+      );
     }
   },
 
   /**
    * Delete user account
    */
-  async deleteAccount(): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
+  async deleteAccount(): Promise<ServiceResponse<{ message: string }>> {
     try {
       // Note: This is a placeholder - actual account deletion would need
       // to be handled server-side for security and to clean up related data
@@ -241,13 +245,12 @@ export const settingsService = {
       logger.warn('Account deletion requested but not implemented', {
         feature: 'settings',
       });
-      return { success: false, error: 'Account deletion not yet implemented' };
+      return createServiceError('Account deletion not yet implemented');
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to delete account',
-      };
+      logger.error('Unexpected error in deleteAccount', error);
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to delete account'
+      );
     }
   },
 
@@ -280,25 +283,25 @@ export const settingsService = {
   /**
    * Check if email is available
    */
-  async checkEmailAvailability(email: string): Promise<{
-    available: boolean;
-    error?: string;
-  }> {
+  async checkEmailAvailability(
+    email: string
+  ): Promise<ServiceResponse<{ available: boolean }>> {
     try {
       // This would typically be handled by a database function
       // For now, we'll just return true (email validation happens in auth)
       logger.debug('Email availability check requested', {
         metadata: { email },
       });
-      return { available: true };
+      return createServiceSuccess({ available: true });
     } catch (error) {
-      return {
-        available: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to check email availability',
-      };
+      logger.error('Unexpected error in checkEmailAvailability', error, {
+        metadata: { email },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to check email availability'
+      );
     }
   },
 };

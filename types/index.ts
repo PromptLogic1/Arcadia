@@ -3,7 +3,7 @@
 // =============================================================================
 
 // Import everything as namespace to avoid conflicts with re-exports
-import type * as DatabaseTypes from './database-generated';
+import type * as DatabaseTypes from './database.types';
 
 // Re-export essential database types directly (primary source of truth)
 export type {
@@ -14,7 +14,7 @@ export type {
   TablesUpdate,
   Enums,
   CompositeTypes,
-} from './database-generated';
+} from './database.types';
 
 // =============================================================================
 // TYPE ALIASES FOR CLEAN API

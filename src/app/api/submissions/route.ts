@@ -1,117 +1,169 @@
 import { createServerComponentClient } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { log } from '@/lib/logger';
-import { RateLimiter } from '@/lib/rate-limiter';
+import {
+  withRateLimit,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limiter-middleware';
 import { submissionsService } from '@/src/services/submissions.service';
+import {
+  createSubmissionRequestSchema,
+  getSubmissionsQuerySchema,
+} from '@/lib/validation/schemas/submissions';
+import {
+  validateRequestBody,
+  validateQueryParams,
+  isValidationError,
+} from '@/lib/validation/middleware';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs'; // Changed from 'edge' for Redis compatibility
 export const dynamic = 'force-dynamic';
 
-const rateLimiter = new RateLimiter();
+// POST handler with Redis rate limiting
+export const POST = withRateLimit(
+  async (request: NextRequest): Promise<NextResponse> => {
+    try {
+      const supabase = await createServerComponentClient();
 
-interface SubmissionPostBody {
-  challenge_id: string;
-  code: string;
-  language: string;
-}
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-export async function POST(request: Request): Promise<NextResponse> {
-  try {
-    const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    if (await rateLimiter.isLimited(ip)) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    }
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
 
-    const supabase = await createServerComponentClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = (await request.json()) as SubmissionPostBody;
-    const { challenge_id, code, language } = body;
-
-    // Use submissions service to create submission
-    const result = await submissionsService.createSubmission({
-      challenge_id,
-      user_id: user.id,
-      code,
-      language,
-    });
-
-    if (result.error) {
-      log.error('Error creating submission', new Error(result.error), {
-        metadata: {
+      // Validate request body with Zod
+      const validation = await validateRequestBody(
+        request,
+        createSubmissionRequestSchema,
+        {
           apiRoute: 'submissions',
           method: 'POST',
-          submissionData: { challenge_id, code, language },
           userId: user.id,
-        },
+        }
+      );
+
+      if (isValidationError(validation)) {
+        return validation.error;
+      }
+
+      const { challenge_id, code, language } = validation.data;
+
+      // Use submissions service to create submission
+      const result = await submissionsService.createSubmission({
+        challenge_id,
+        user_id: user.id,
+        code,
+        language,
       });
-      return NextResponse.json({ error: result.error }, { status: 500 });
+
+      if (!result.success || !result.data) {
+        log.error(
+          'Error creating submission',
+          new Error(result.error || 'Unknown error'),
+          {
+            metadata: {
+              apiRoute: 'submissions',
+              method: 'POST',
+              submissionData: { challenge_id, code, language },
+              userId: user.id,
+            },
+          }
+        );
+        return NextResponse.json(
+          { error: result.error || 'Failed to create submission' },
+          { status: 500 }
+        );
+      }
+
+      const response = NextResponse.json(result.data);
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    } catch (error) {
+      log.error('Unhandled error in POST /api/submissions', error, {
+        metadata: { apiRoute: 'submissions', method: 'POST' },
+      });
+      return NextResponse.json(
+        { error: 'Error creating submission' },
+        { status: 500 }
+      );
     }
+  },
+  RATE_LIMIT_CONFIGS.create
+);
 
-    const response = NextResponse.json(result.submission);
-    response.headers.set('Cache-Control', 'no-store');
-    return response;
-  } catch (error) {
-    log.error('Unhandled error in POST /api/submissions', error as Error, {
-      metadata: { apiRoute: 'submissions', method: 'POST' },
-    });
-    return NextResponse.json(
-      { error: 'Error creating submission' },
-      { status: 500 }
-    );
-  }
-}
+// GET handler with Redis rate limiting
+export const GET = withRateLimit(
+  async (request: NextRequest): Promise<NextResponse> => {
+    try {
+      const { searchParams } = new URL(request.url);
 
-export async function GET(request: Request): Promise<NextResponse> {
-  try {
-    const { searchParams } = new URL(request.url);
-    const challenge_id = searchParams.get('challenge_id');
+      const supabase = await createServerComponentClient();
 
-    const supabase = await createServerComponentClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Use submissions service to fetch submissions
-    const result = await submissionsService.getSubmissions({
-      user_id: user.id,
-      challenge_id: challenge_id || undefined,
-    });
-
-    if (result.error) {
-      log.error('Error fetching submissions', new Error(result.error), {
-        metadata: {
+      // Validate query parameters with Zod
+      const validation = validateQueryParams(
+        searchParams,
+        getSubmissionsQuerySchema,
+        {
           apiRoute: 'submissions',
           method: 'GET',
-          challengeId: challenge_id,
           userId: user.id,
-        },
-      });
-      return NextResponse.json({ error: result.error }, { status: 500 });
-    }
+        }
+      );
 
-    const response = NextResponse.json(result.submissions);
-    response.headers.set('Cache-Control', 'no-store');
-    return response;
-  } catch (error) {
-    log.error('Unhandled error in GET /api/submissions', error as Error, {
-      metadata: { apiRoute: 'submissions', method: 'GET' },
-    });
-    return NextResponse.json(
-      { error: 'Error fetching submissions' },
-      { status: 500 }
-    );
-  }
-}
+      if (isValidationError(validation)) {
+        return validation.error;
+      }
+
+      const { challenge_id } = validation.data;
+
+      // Use submissions service to fetch submissions
+      const result = await submissionsService.getSubmissions({
+        user_id: user.id,
+        challenge_id: challenge_id || undefined,
+      });
+
+      if (!result.success || !result.data) {
+        log.error(
+          'Error fetching submissions',
+          new Error(result.error || 'Unknown error'),
+          {
+            metadata: {
+              apiRoute: 'submissions',
+              method: 'GET',
+              challengeId: challenge_id,
+              userId: user.id,
+            },
+          }
+        );
+        return NextResponse.json(
+          { error: result.error || 'Failed to fetch submissions' },
+          { status: 500 }
+        );
+      }
+
+      const response = NextResponse.json(result.data);
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    } catch (error) {
+      log.error('Unhandled error in GET /api/submissions', error, {
+        metadata: { apiRoute: 'submissions', method: 'GET' },
+      });
+      return NextResponse.json(
+        { error: 'Error fetching submissions' },
+        { status: 500 }
+      );
+    }
+  },
+  RATE_LIMIT_CONFIGS.read
+);

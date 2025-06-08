@@ -6,10 +6,11 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, Enums } from '@/types/database-generated';
+import type { Tables, Enums } from '@/types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { log } from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error-guards';
 import {
   bingoCardSchema,
   bingoCardsArraySchema,
@@ -90,12 +91,10 @@ export const bingoCardsService = {
 
       return createServiceSuccess(validation.data);
     } catch (error) {
-      log.error('Unexpected error in getCardsByIds', error as Error, {
+      log.error('Unexpected error in getCardsByIds', error, {
         metadata: { cardIds, service: 'bingoCardsService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to fetch cards'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -162,12 +161,10 @@ export const bingoCardsService = {
         hasMore,
       });
     } catch (error) {
-      log.error('Unexpected error in getPublicCards', error as Error, {
+      log.error('Unexpected error in getPublicCards', error, {
         metadata: { filters, page, limit, service: 'bingoCardsService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to fetch public cards'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -248,7 +245,7 @@ export const bingoCardsService = {
         hasMore,
       });
     } catch (error) {
-      log.error('Unexpected error in getUserCards', error as Error, {
+      log.error('Unexpected error in getUserCards', error, {
         metadata: {
           userId,
           filters,
@@ -257,9 +254,7 @@ export const bingoCardsService = {
           service: 'bingoCardsService',
         },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to fetch user cards'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -309,12 +304,10 @@ export const bingoCardsService = {
 
       return createServiceSuccess(validation.data);
     } catch (error) {
-      log.error('Unexpected error in createCard', error as Error, {
+      log.error('Unexpected error in createCard', error, {
         metadata: { cardData, service: 'bingoCardsService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to create card'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -359,12 +352,10 @@ export const bingoCardsService = {
 
       return createServiceSuccess(validation.data);
     } catch (error) {
-      log.error('Unexpected error in updateCard', error as Error, {
+      log.error('Unexpected error in updateCard', error, {
         metadata: { cardId, updates, service: 'bingoCardsService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to update card'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -388,12 +379,10 @@ export const bingoCardsService = {
 
       return createServiceSuccess(undefined);
     } catch (error) {
-      log.error('Unexpected error in deleteCard', error as Error, {
+      log.error('Unexpected error in deleteCard', error, {
         metadata: { cardId, service: 'bingoCardsService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to delete card'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -454,12 +443,10 @@ export const bingoCardsService = {
 
       return createServiceSuccess(validation.data);
     } catch (error) {
-      log.error('Unexpected error in voteCard', error as Error, {
+      log.error('Unexpected error in voteCard', error, {
         metadata: { cardId, service: 'bingoCardsService' },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to vote on card'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -516,15 +503,13 @@ export const bingoCardsService = {
 
       return createServiceSuccess(validation.data);
     } catch (error) {
-      log.error('Unexpected error in createCards', error as Error, {
+      log.error('Unexpected error in createCards', error, {
         metadata: {
           cardsCount: cardsData.length,
           service: 'bingoCardsService',
         },
       });
-      return createServiceError(
-        error instanceof Error ? error.message : 'Failed to create cards'
-      );
+      return createServiceError(getErrorMessage(error));
     }
   },
 };

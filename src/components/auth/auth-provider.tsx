@@ -13,6 +13,7 @@ import { useAuthActions } from '@/lib/stores';
 import { authService } from '../../services/auth.service';
 import { logger } from '@/lib/logger';
 import { setSentryUser, addSentryContext } from '@/lib/sentry-utils';
+import { toError } from '@/lib/error-guards';
 
 interface AuthUser {
   id: string;
@@ -142,7 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               } catch (error) {
                 logger.error(
                   'Failed to initialize app after sign in',
-                  error as Error,
+                  toError(error),
                   {
                     metadata: { component: 'AuthProvider' },
                   }
@@ -163,7 +164,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               } catch (error) {
                 logger.error(
                   'Failed to refresh user data after update',
-                  error as Error,
+                  toError(error),
                   {
                     metadata: { component: 'AuthProvider' },
                   }
@@ -176,7 +177,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Store unsubscribe function
         unsubscribe = authListener.unsubscribe;
       } catch (error) {
-        logger.error('Auth initialization failed', error as Error, {
+        logger.error('Auth initialization failed', toError(error), {
           metadata: { component: 'AuthProvider' },
         });
         if (mounted) {

@@ -6,7 +6,10 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import type { Tables, TablesInsert, Enums } from '@/types/database-generated';
+import type { Tables, TablesInsert, Enums } from '@/types/database.types';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { log } from '@/lib/logger';
 
 // Use types directly from database-generated (no duplicate exports)
 type BingoCard = Tables<'bingo_cards'>;
@@ -34,7 +37,7 @@ export const cardLibraryService = {
     filters: CardLibraryFilters,
     page = 1,
     limit = 50
-  ): Promise<{ response: CardLibraryPaginatedResponse; error?: string }> {
+  ): Promise<ServiceResponse<CardLibraryPaginatedResponse>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -80,30 +83,27 @@ export const cardLibraryService = {
       const { data, error, count } = await query.range(start, end);
 
       if (error) {
-        return {
-          response: { cards: [], totalCount: 0, hasMore: false },
-          error: error.message,
-        };
+        log.error('Failed to fetch public cards', error, {
+          metadata: { filters, page, limit },
+        });
+        return createServiceError(error.message);
       }
 
       const totalCount = count || 0;
       const hasMore = totalCount > end + 1;
 
-      return {
-        response: {
-          cards: data || [],
-          totalCount,
-          hasMore,
-        },
-      };
+      return createServiceSuccess({
+        cards: data || [],
+        totalCount,
+        hasMore,
+      });
     } catch (error) {
-      return {
-        response: { cards: [], totalCount: 0, hasMore: false },
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch public cards',
-      };
+      log.error('Unexpected error in getPublicCards', error, {
+        metadata: { filters, page, limit },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to fetch public cards'
+      );
     }
   },
 
@@ -112,10 +112,7 @@ export const cardLibraryService = {
    */
   async createBulkCards(
     cards: Omit<BingoCard, 'id' | 'created_at' | 'updated_at' | 'votes'>[]
-  ): Promise<{
-    cards: BingoCard[];
-    error?: string;
-  }> {
+  ): Promise<ServiceResponse<BingoCard[]>> {
     try {
       const supabase = createClient();
 
@@ -125,7 +122,10 @@ export const cardLibraryService = {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        return { cards: [], error: 'Must be authenticated to create cards' };
+        if (userError) {
+          log.error('Authentication required for card creation', userError);
+        }
+        return createServiceError('Must be authenticated to create cards');
       }
 
       const cardInserts: TablesInsert<'bingo_cards'>[] = cards.map(card => ({
@@ -144,16 +144,20 @@ export const cardLibraryService = {
         .select();
 
       if (error) {
-        return { cards: [], error: error.message };
+        log.error('Failed to create bulk cards', error, {
+          metadata: { cardCount: cards.length, userId: user.id },
+        });
+        return createServiceError(error.message);
       }
 
-      return { cards: data || [] };
+      return createServiceSuccess(data || []);
     } catch (error) {
-      return {
-        cards: [],
-        error:
-          error instanceof Error ? error.message : 'Failed to create cards',
-      };
+      log.error('Unexpected error in createBulkCards', error, {
+        metadata: { cardCount: cards.length },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to create cards'
+      );
     }
   },
 
@@ -163,7 +167,7 @@ export const cardLibraryService = {
   async getRandomCards(
     filters: Pick<CardLibraryFilters, 'gameType' | 'difficulty'>,
     count: number
-  ): Promise<{ cards: BingoCard[]; error?: string }> {
+  ): Promise<ServiceResponse<BingoCard[]>> {
     try {
       const supabase = createClient();
       let query = supabase
@@ -183,34 +187,39 @@ export const cardLibraryService = {
         .limit(count * 3); // Get more than needed for randomization
 
       if (error) {
-        return { cards: [], error: error.message };
+        log.error('Failed to get random cards', error, {
+          metadata: { filters, count },
+        });
+        return createServiceError(error.message);
       }
 
       // Randomize in JavaScript (for simplicity)
       const shuffled = (data || []).sort(() => Math.random() - 0.5);
-      return { cards: shuffled.slice(0, count) };
+      return createServiceSuccess(shuffled.slice(0, count));
     } catch (error) {
-      return {
-        cards: [],
-        error:
-          error instanceof Error ? error.message : 'Failed to get random cards',
-      };
+      log.error('Unexpected error in getRandomCards', error, {
+        metadata: { filters, count },
+      });
+      return createServiceError(
+        error instanceof Error ? error.message : 'Failed to get random cards'
+      );
     }
   },
 
   /**
    * Get featured card collections
    */
-  async getFeaturedCollections(gameType: GameCategory): Promise<{
-    collections: Array<{
-      name: string;
-      description: string;
-      difficulty: Difficulty;
-      cardCount: number;
-      cards: BingoCard[];
-    }>;
-    error?: string;
-  }> {
+  async getFeaturedCollections(gameType: GameCategory): Promise<
+    ServiceResponse<
+      Array<{
+        name: string;
+        description: string;
+        difficulty: Difficulty;
+        cardCount: number;
+        cards: BingoCard[];
+      }>
+    >
+  > {
     try {
       const supabase = createClient();
 
@@ -247,39 +256,53 @@ export const cardLibraryService = {
           .limit(25),
       ]);
 
+      // Check for errors in any of the queries
+      const errors = collections.filter(c => c.error);
+      if (errors.length > 0 && errors[0]) {
+        const firstError = errors[0].error;
+        if (firstError) {
+          log.error('Failed to fetch featured collections', firstError, {
+            metadata: { gameType },
+          });
+          return createServiceError(firstError.message);
+        }
+        return createServiceError('Failed to fetch collections');
+      }
+
       const result = [
         {
           name: 'Beginner Favorites',
           description: 'Easy and fun cards perfect for new players',
-          difficulty: 'beginner' as Difficulty,
+          difficulty: 'beginner' as const,
           cardCount: collections[0].data?.length || 0,
           cards: collections[0].data || [],
         },
         {
           name: 'Community Picks',
           description: 'Most popular medium difficulty cards',
-          difficulty: 'medium' as Difficulty,
+          difficulty: 'medium' as const,
           cardCount: collections[1].data?.length || 0,
           cards: collections[1].data || [],
         },
         {
           name: 'Expert Challenge',
           description: 'Hardcore cards for experienced players',
-          difficulty: 'expert' as Difficulty,
+          difficulty: 'expert' as const,
           cardCount: collections[2].data?.length || 0,
           cards: collections[2].data || [],
         },
       ].filter(collection => collection.cardCount > 0);
 
-      return { collections: result };
+      return createServiceSuccess(result);
     } catch (error) {
-      return {
-        collections: [],
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to get featured collections',
-      };
+      log.error('Unexpected error in getFeaturedCollections', error, {
+        metadata: { gameType },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to get featured collections'
+      );
     }
   },
 };

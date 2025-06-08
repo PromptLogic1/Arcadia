@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 
 // Database types
 export type Comment = Tables<'comments'>;

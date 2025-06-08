@@ -11,11 +11,23 @@ import {
 } from '@/components/ui/select';
 import { Gauge } from 'lucide-react';
 import type { Difficulty as _Difficulty } from '@/types';
-import type { Enums } from '@/types/database-generated';
+import type { Enums } from '@/types/database.types';
 import { DIFFICULTIES } from '@/src/types/index';
 
 // Type alias for clean usage
 type DifficultyLevel = Enums<'difficulty_level'>;
+
+// Type guard for difficulty level
+function isDifficultyLevel(value: string): value is DifficultyLevel {
+  // Check against known difficulty values
+  return (
+    value === 'beginner' ||
+    value === 'easy' ||
+    value === 'medium' ||
+    value === 'hard' ||
+    value === 'expert'
+  );
+}
 
 interface DifficultySelectorProps {
   difficulty: DifficultyLevel;
@@ -37,7 +49,10 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({
       <Select
         value={difficulty}
         onValueChange={async value => {
-          await onDifficultyChangeAction(value as DifficultyLevel);
+          // Type guard for difficulty values
+          if (isDifficultyLevel(value)) {
+            await onDifficultyChangeAction(value);
+          }
         }}
       >
         <SelectTrigger>

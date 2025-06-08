@@ -1,4 +1,4 @@
-import type { Database as _Database } from '@/types/database-generated';
+import type { Database as _Database } from '@/types/database.types';
 
 interface QueuePreferences {
   minPlayers?: number;

@@ -5,7 +5,10 @@ import { sessionsService } from '@/services/sessions.service';
 import { boardCellSchema } from '@/lib/validation/schemas/common';
 import { withErrorHandling } from '@/lib/error-handler';
 import { validateRequestBody } from '@/lib/validation/middleware';
-import { rateLimiter } from '@/lib/rate-limiter';
+import {
+  withRateLimit,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limiter-middleware';
 import { log } from '@/lib/logger';
 
 // Request validation schemas
@@ -16,107 +19,96 @@ const updateBoardStateSchema = z.object({
 
 type UpdateBoardStateRequest = z.infer<typeof updateBoardStateSchema>;
 
-export const PATCH = withErrorHandling(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimiter.check(request, 30, params.id);
-
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-        }
+export const PATCH = withRateLimit(
+  withErrorHandling(
+    async (request: NextRequest, { params }: { params: { id: string } }) => {
+      // Parse and validate request body
+      const validationResult = await validateRequestBody(
+        request,
+        updateBoardStateSchema
       );
-    }
 
-    // Parse and validate request body
-    const validationResult = await validateRequestBody(
-      request,
-      updateBoardStateSchema
-    );
+      if (!validationResult.success) {
+        return validationResult.error;
+      }
 
-    if (!validationResult.success) {
-      return validationResult.error;
-    }
+      const { board_state, version }: UpdateBoardStateRequest =
+        validationResult.data;
 
-    const { board_state, version }: UpdateBoardStateRequest =
-      validationResult.data;
+      // Use service to update board state with optimistic locking
+      const result = await sessionsService.updateBoardState(
+        params.id,
+        board_state,
+        version
+      );
 
-    // Use service to update board state with optimistic locking
-    const result = await sessionsService.updateBoardState(
-      params.id,
-      board_state,
-      version
-    );
+      if (result.error) {
+        // Check if it's a version conflict
+        if (result.error.includes('Version conflict')) {
+          log.info('Board state version conflict', {
+            metadata: {
+              sessionId: params.id,
+              requestedVersion: version,
+              apiRoute: 'bingo/sessions/[id]/board-state',
+              method: 'PATCH',
+            },
+          });
 
-    if (result.error) {
-      // Check if it's a version conflict
-      if (result.error.includes('Version conflict')) {
-        log.info('Board state version conflict', {
+          return NextResponse.json({ error: result.error }, { status: 409 });
+        }
+
+        log.error('Failed to update board state', new Error(result.error), {
           metadata: {
             sessionId: params.id,
-            requestedVersion: version,
             apiRoute: 'bingo/sessions/[id]/board-state',
             method: 'PATCH',
           },
         });
 
-        return NextResponse.json({ error: result.error }, { status: 409 });
+        return NextResponse.json({ error: result.error }, { status: 400 });
       }
 
-      log.error('Failed to update board state', new Error(result.error), {
-        metadata: {
-          sessionId: params.id,
-          apiRoute: 'bingo/sessions/[id]/board-state',
-          method: 'PATCH',
-        },
-      });
-
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json(result.data);
     }
-
-    return NextResponse.json(result.data);
-  }
+  ),
+  RATE_LIMIT_CONFIGS.gameAction
 );
 
-export const GET = withErrorHandling(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimiter.check(request, 60, params.id);
+export const GET = withRateLimit(
+  withErrorHandling(
+    async (request: NextRequest, { params }: { params: { id: string } }) => {
+      // Use service to get session board state
+      const result = await sessionsService.getSessionById(params.id);
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-        }
-      );
-    }
+      if (result.error) {
+        log.error(
+          'Failed to get session board state',
+          new Error(result.error),
+          {
+            metadata: {
+              sessionId: params.id,
+              apiRoute: 'bingo/sessions/[id]/board-state',
+              method: 'GET',
+            },
+          }
+        );
 
-    // Use service to get session board state
-    const result = await sessionsService.getSessionById(params.id);
+        return NextResponse.json({ error: result.error }, { status: 404 });
+      }
 
-    if (result.error) {
-      log.error('Failed to get session board state', new Error(result.error), {
-        metadata: {
-          sessionId: params.id,
-          apiRoute: 'bingo/sessions/[id]/board-state',
-          method: 'GET',
-        },
+      if (!result.data) {
+        return NextResponse.json(
+          { error: 'Session not found' },
+          { status: 404 }
+        );
+      }
+
+      // Return only the board state and version
+      return NextResponse.json({
+        current_state: result.data.current_state,
+        version: result.data.version,
       });
-
-      return NextResponse.json({ error: result.error }, { status: 404 });
     }
-
-    if (!result.data) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    // Return only the board state and version
-    return NextResponse.json({
-      current_state: result.data.current_state,
-      version: result.data.version,
-    });
-  }
+  ),
+  RATE_LIMIT_CONFIGS.read
 );

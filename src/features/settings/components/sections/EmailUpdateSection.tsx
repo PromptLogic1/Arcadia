@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS } from '../constants';
 import { useSettings } from '../../hooks/useSettings';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import { log } from '@/lib/logger';
 
 // Zod schema for email update validation
 const emailUpdateSchema = z
@@ -57,7 +58,12 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
       reset(); // Reset form after successful submission
     } catch (error) {
       // Error handling is done by the modern hook
-      console.error('Email update failed:', error);
+      log.error('Email update failed', error, {
+        metadata: {
+          component: 'EmailUpdateSection',
+          method: 'onSubmit',
+        },
+      });
     }
   };
 

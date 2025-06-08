@@ -1,4 +1,4 @@
-import type { Tables, Enums, CompositeTypes } from '@/types/database-generated';
+import type { Tables, Enums, CompositeTypes } from '@/types/database.types';
 
 // Database types
 export type BingoSession = Tables<'bingo_sessions'>;

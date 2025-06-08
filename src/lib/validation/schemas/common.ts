@@ -73,3 +73,12 @@ export const requestMetadataSchema = z.object({
   ip: z.string().optional(),
   userAgent: z.string().optional(),
 });
+
+// Revalidate request schema
+export const revalidateRequestSchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+  path: z
+    .string()
+    .min(1, 'Path is required')
+    .startsWith('/', 'Path must start with /'),
+});

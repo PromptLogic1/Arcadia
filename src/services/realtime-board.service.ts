@@ -8,7 +8,7 @@
 import { createClient } from '@/lib/supabase';
 import type { QueryClient } from '@tanstack/react-query';
 import { logger } from '@/lib/logger';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 
 type BingoBoardRow = Tables<'bingo_boards'>;
 type PostgresChangesPayload<T> = {
@@ -239,9 +239,13 @@ class RealtimeBoardService {
         queryKey: ['bingoBoards', 'withCreator', boardId],
       });
     } catch (error) {
-      logger.error('Failed to refresh board', error as Error, {
-        metadata: { boardId },
-      });
+      logger.error(
+        'Failed to refresh board',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { boardId },
+        }
+      );
       throw error;
     }
   }

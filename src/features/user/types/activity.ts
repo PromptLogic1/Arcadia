@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database-generated';
+import type { Database } from '@/types/database.types';
 
 // Database types
 export type UserActivityRow =
@@ -75,6 +75,78 @@ export type ActivityData =
   | DiscussionActivityData
   | CommentActivityData
   | AchievementActivityData;
+
+// Type guards for activity data validation
+export function isBoardActivityData(
+  data: ActivityData
+): data is BoardActivityData {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'board_id' in data &&
+    'board_title' in data &&
+    typeof data.board_id === 'string' &&
+    typeof data.board_title === 'string'
+  );
+}
+
+export function isSubmissionActivityData(
+  data: ActivityData
+): data is SubmissionActivityData {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'challenge_id' in data &&
+    'challenge_title' in data &&
+    typeof data.challenge_id === 'string' &&
+    typeof data.challenge_title === 'string'
+  );
+}
+
+export function isDiscussionActivityData(
+  data: ActivityData
+): data is DiscussionActivityData {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'discussion_id' in data &&
+    'title' in data &&
+    typeof data.discussion_id === 'number' &&
+    typeof data.title === 'string'
+  );
+}
+
+export function isCommentActivityData(
+  data: ActivityData
+): data is CommentActivityData {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'comment_id' in data &&
+    'discussion_title' in data &&
+    typeof data.comment_id === 'number' &&
+    typeof data.discussion_title === 'string'
+  );
+}
+
+export function isAchievementActivityData(
+  data: ActivityData
+): data is AchievementActivityData {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'achievement_id' in data &&
+    'achievement_name' in data &&
+    typeof data.achievement_id === 'string' &&
+    typeof data.achievement_name === 'string'
+  );
+}
+
+export function isLoginActivityData(
+  data: ActivityData
+): data is LoginActivityData {
+  return data !== null && typeof data === 'object';
+}
 
 // Activity with typed data
 export interface TypedUserActivity<T extends ActivityType>
@@ -202,18 +274,46 @@ export const ACTIVITY_MESSAGES: Record<
 > = {
   login: (data, username) => `${username} logged in`,
   logout: (data, username) => `${username} logged out`,
-  board_create: (data, username) =>
-    `${username} created a new bingo board: ${(data as BoardActivityData).board_title}`,
-  board_join: (data, username) =>
-    `${username} joined a bingo game: ${(data as BoardActivityData).board_title}`,
-  board_complete: (data, username) =>
-    `${username} completed a bingo board: ${(data as BoardActivityData).board_title}`,
-  submission_create: (data, username) =>
-    `${username} submitted a solution for: ${(data as SubmissionActivityData).challenge_title}`,
-  discussion_create: (data, username) =>
-    `${username} started a discussion: ${(data as DiscussionActivityData).title}`,
-  comment_create: (data, username) =>
-    `${username} commented on: ${(data as CommentActivityData).discussion_title}`,
-  achievement_unlock: (data, username) =>
-    `${username} unlocked achievement: ${(data as AchievementActivityData).achievement_name}`,
+  board_create: (data, username) => {
+    if (isBoardActivityData(data)) {
+      return `${username} created a new bingo board: ${data.board_title}`;
+    }
+    return `${username} created a new bingo board`;
+  },
+  board_join: (data, username) => {
+    if (isBoardActivityData(data)) {
+      return `${username} joined a bingo game: ${data.board_title}`;
+    }
+    return `${username} joined a bingo game`;
+  },
+  board_complete: (data, username) => {
+    if (isBoardActivityData(data)) {
+      return `${username} completed a bingo board: ${data.board_title}`;
+    }
+    return `${username} completed a bingo board`;
+  },
+  submission_create: (data, username) => {
+    if (isSubmissionActivityData(data)) {
+      return `${username} submitted a solution for: ${data.challenge_title}`;
+    }
+    return `${username} submitted a solution`;
+  },
+  discussion_create: (data, username) => {
+    if (isDiscussionActivityData(data)) {
+      return `${username} started a discussion: ${data.title}`;
+    }
+    return `${username} started a discussion`;
+  },
+  comment_create: (data, username) => {
+    if (isCommentActivityData(data)) {
+      return `${username} commented on: ${data.discussion_title}`;
+    }
+    return `${username} commented on a discussion`;
+  },
+  achievement_unlock: (data, username) => {
+    if (isAchievementActivityData(data)) {
+      return `${username} unlocked achievement: ${data.achievement_name}`;
+    }
+    return `${username} unlocked an achievement`;
+  },
 };

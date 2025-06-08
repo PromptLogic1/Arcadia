@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase';
 import { createServiceError, createServiceSuccess } from '@/lib/service-types';
 import type { ServiceResponse } from '@/lib/service-types';
-import type { Tables, Enums } from '@/types/database-generated';
+import type { Tables, Enums } from '@/types/database.types';
 import { log } from '@/lib/logger';
 
 // Type aliases for cleaner code
@@ -111,7 +111,10 @@ export const communityEventsService = {
         hasMore: (count ?? 0) > page * pageSize,
       });
     } catch (e) {
-      log.error('Unexpected error fetching community events', e as Error);
+      log.error(
+        'Unexpected error fetching community events',
+        e instanceof Error ? e : new Error(String(e))
+      );
       return createServiceError('An unexpected error occurred.');
     }
   },

@@ -26,7 +26,7 @@ export function useSessionJoinDetailsQuery(sessionId: string, enabled = true) {
       }
       return failureCount < 3;
     },
-    select: data => data.details,
+    select: data => data.data,
   });
 }
 
@@ -39,10 +39,13 @@ export function useUserInSessionQuery(sessionId: string, enabled = true) {
     queryFn: () => sessionJoinService.checkUserInSession(sessionId),
     enabled: enabled && !!sessionId,
     staleTime: 60 * 1000, // 1 minute
-    select: data => ({
-      isInSession: data.isInSession,
-      player: data.player,
-    }),
+    select: data =>
+      data.data
+        ? {
+            isInSession: data.data.isInSession,
+            player: data.data.player,
+          }
+        : undefined,
   });
 }
 
@@ -55,10 +58,13 @@ export function useAvailableColorsQuery(sessionId: string, enabled = true) {
     queryFn: () => sessionJoinService.getAvailableColors(sessionId),
     enabled: enabled && !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
-    select: data => ({
-      available: data.availableColors,
-      used: data.usedColors,
-    }),
+    select: data =>
+      data.data
+        ? {
+            available: data.data.availableColors,
+            used: data.data.usedColors,
+          }
+        : undefined,
   });
 }
 
@@ -72,28 +78,26 @@ export function useSessionJoinMutation() {
   return useMutation({
     mutationFn: (data: SessionJoinData) => sessionJoinService.joinSession(data),
     onSuccess: (result, variables) => {
-      if (result.error) {
-        notifications.error(result.error);
+      if (!result.success || !result.data) {
+        notifications.error(result.error || 'Failed to join session');
         return;
       }
 
-      if (result.player) {
-        notifications.success('Successfully joined session!');
+      notifications.success('Successfully joined session!');
 
-        // Invalidate related queries
-        queryClient.invalidateQueries({
-          queryKey: ['sessionJoin', 'userStatus', variables.sessionId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['sessionJoin', 'colors', variables.sessionId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['sessions', 'players', variables.sessionId],
-        });
+      // Invalidate related queries
+      queryClient.invalidateQueries({
+        queryKey: ['sessionJoin', 'userStatus', variables.sessionId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['sessionJoin', 'colors', variables.sessionId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['sessions', 'players', variables.sessionId],
+      });
 
-        // Navigate to session
-        router.push(`/play-area/session/${variables.sessionId}`);
-      }
+      // Navigate to session
+      router.push(`/play-area/session/${variables.sessionId}`);
     },
     onError: error => {
       const message =

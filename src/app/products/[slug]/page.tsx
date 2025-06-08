@@ -4,14 +4,19 @@ import { notFound as _notFound } from 'next/navigation';
 import type { ProductRow } from '@/src/types/product-types';
 import type { QueryResultRow } from '@vercel/postgres';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
+import { log } from '@/lib/logger';
 
 export async function generateStaticParams() {
   try {
     // Skip static generation if no database connection is available
     if (!process.env.POSTGRES_URL_NON_POOLING && !process.env.POSTGRES_URL) {
-      console.log(
-        'No PostgreSQL connection available during build, skipping static generation'
-      );
+      log.info('No PostgreSQL connection available during build', {
+        metadata: {
+          page: 'products',
+          method: 'generateStaticParams',
+          action: 'skipping static generation',
+        },
+      });
       return [];
     }
 
@@ -23,7 +28,13 @@ export async function generateStaticParams() {
       slug: row.slug,
     }));
   } catch (error) {
-    console.log('Failed to fetch products for static generation:', error);
+    log.info('Failed to fetch products for static generation', {
+      metadata: {
+        page: 'products',
+        method: 'generateStaticParams',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
     // Return empty array to skip static generation
     return [];
   }
@@ -49,7 +60,13 @@ async function ProductContent({ params }: { params: { slug: string } }) {
       </div>
     );
   } catch (error) {
-    console.error('Database connection error:', error);
+    log.error('Database connection error', error, {
+      metadata: {
+        page: 'products',
+        method: 'ProductContent',
+        slug: params.slug,
+      },
+    });
     return <div>Unable to load product. Please try again later.</div>;
   }
 }

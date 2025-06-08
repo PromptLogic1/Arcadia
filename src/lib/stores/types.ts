@@ -1,5 +1,5 @@
 // Import database types
-import type { Tables, Enums } from '../../../types/database-generated';
+import type { Tables, Enums } from '../../../types/database.types';
 
 // User Types
 export type UserRole = 'user' | 'premium' | 'moderator' | 'admin';

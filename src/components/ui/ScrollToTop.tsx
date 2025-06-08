@@ -105,7 +105,9 @@ const scrollToTopVariants = cva(
   }
 );
 
-const getAnimationVariants = (animation: string) => {
+const getAnimationVariants = (
+  animation: 'fade' | 'scale' | 'slide' | 'bounce'
+) => {
   const variants = {
     fade: {
       initial: { opacity: 0 },
@@ -129,8 +131,7 @@ const getAnimationVariants = (animation: string) => {
     },
   };
 
-  const defaultVariant =
-    variants[animation as keyof typeof variants] || variants.scale;
+  const defaultVariant = variants[animation] || variants.scale;
 
   // Return variant with optional transition
   if (animation === 'bounce') {

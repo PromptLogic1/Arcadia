@@ -6,6 +6,11 @@ import {
 } from '@/lib/rate-limiter-middleware';
 import { log } from '@/lib/logger';
 import { gameStateService } from '@/src/services';
+import { markCellRequestSchema } from '@/lib/validation/schemas/bingo';
+import {
+  validateRequestBody,
+  isValidationError,
+} from '@/lib/validation/middleware';
 
 // POST handler with rate limiting for game actions
 export const POST = withRateLimit(
@@ -21,13 +26,27 @@ export const POST = withRateLimit(
     try {
       sessionId = params.id;
 
-      const body = await request.json();
+      // Validate request body with Zod
+      const validation = await validateRequestBody(
+        request,
+        markCellRequestSchema,
+        {
+          apiRoute: 'bingo/sessions/[id]/mark-cell',
+          method: 'POST',
+          sessionId,
+        }
+      );
+
+      if (isValidationError(validation)) {
+        return validation.error;
+      }
+
       const {
         cell_position,
         user_id,
-        action: actionValue, // 'mark' | 'unmark'
+        action: actionValue,
         version,
-      } = body;
+      } = validation.data;
 
       userId = user_id;
       cellPosition = cell_position;
@@ -38,7 +57,7 @@ export const POST = withRateLimit(
         cell_position,
         user_id,
         action: actionValue,
-        version,
+        version: version ?? 0, // Default to 0 if version is not provided
       });
 
       if (result.error === 'VERSION_CONFLICT') {
@@ -62,7 +81,7 @@ export const POST = withRateLimit(
         version: result.data?.version,
       });
     } catch (error) {
-      log.error('Error marking cell in bingo session', error as Error, {
+      log.error('Error marking cell in bingo session', error, {
         metadata: {
           apiRoute: 'bingo/sessions/[id]/mark-cell',
           method: 'POST',
@@ -73,7 +92,9 @@ export const POST = withRateLimit(
         },
       });
       return NextResponse.json(
-        { error: (error as Error).message || 'Failed to mark cell' },
+        {
+          error: error instanceof Error ? error.message : 'Failed to mark cell',
+        },
         { status: 500 }
       );
     }

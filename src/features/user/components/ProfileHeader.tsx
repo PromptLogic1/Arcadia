@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 import NeonBorder from '@/components/ui/NeonBorder';
 import { NeonText } from '@/components/ui/NeonText';
 import { Button } from '@/components/ui/button';

@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase';
 import { safeRealtimeManager } from '@/lib/realtime-manager';
 import { log } from '@/lib/logger';
 import type { BingoSession, BoardCell, SessionStats } from '@/types';
-import type { Tables } from '@/types/database-generated';
+import type { Tables } from '@/types/database.types';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';

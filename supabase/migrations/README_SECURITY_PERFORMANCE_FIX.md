@@ -12,8 +12,9 @@ This migration addresses critical security vulnerabilities and performance issue
 ### 1. 🔴 **SECURITY DEFINER Views (Critical)**
 
 **Problem**: Three views were using `SECURITY DEFINER` which bypasses RLS policies:
+
 - `leaderboards`
-- `public_boards` 
+- `public_boards`
 - `session_stats`
 
 **Solution**: Recreated all views without `SECURITY DEFINER` property.
@@ -29,10 +30,13 @@ This migration addresses critical security vulnerabilities and performance issue
 **Problem**: 25+ RLS policies were calling `auth.uid()` directly, causing re-evaluation for every row.
 
 **Solution**: Changed all instances from:
+
 ```sql
 auth.uid() = user_id
 ```
+
 To:
+
 ```sql
 (SELECT auth.uid()) = user_id
 ```
@@ -42,6 +46,7 @@ To:
 **Problem**: Several tables had 3-4 overlapping policies for the same action.
 
 **Solution**: Consolidated policies for:
+
 - `user_statistics` (4 SELECT → 1 SELECT policy)
 - `community_event_participants` (3 policies per action → 1 per action)
 - `categories`, `tags`, `challenge_tags`, `tag_votes`, `submissions`, `challenges`
@@ -49,11 +54,13 @@ To:
 ## Testing
 
 Run the test script before applying:
+
 ```bash
 npm run test:migration
 ```
 
 Or manually:
+
 ```bash
 ts-node scripts/test-migration.ts
 ```
@@ -61,11 +68,13 @@ ts-node scripts/test-migration.ts
 ## Applying the Migration
 
 ### Using Supabase CLI:
+
 ```bash
 supabase db push
 ```
 
 ### Using MCP Server:
+
 ```typescript
 await mcp__supabase__apply_migration({
   project_id: 'your-project-id',
@@ -85,6 +94,7 @@ If issues occur, rollback by:
 ## Performance Impact
 
 Expected improvements:
+
 - **50-80% faster** queries on tables with fixed RLS policies
 - **Reduced database CPU usage** from consolidated policies
 - **Better query plan optimization** with SELECT subqueries

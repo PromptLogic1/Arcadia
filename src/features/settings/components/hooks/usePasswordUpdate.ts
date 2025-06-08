@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
+import { toError } from '@/lib/error-guards';
 import { SETTINGS_CONSTANTS } from '../constants';
 import type { FormState, PasswordCheck } from '../constants';
 
@@ -110,7 +111,7 @@ export function usePasswordUpdate(): UsePasswordUpdateReturn {
 
       resetPasswordForm();
     } catch (error) {
-      logger.error('Password update failed', error as Error, {
+      logger.error('Password update failed', toError(error), {
         component: 'usePasswordUpdate',
         metadata: { userId: userData?.id },
       });

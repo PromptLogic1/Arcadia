@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/stores';
 import { useLogActivityMutation } from '@/hooks/queries/useUserProfileQueries';
 import type { ActivityLogRequest } from '../../../services/user.service';
 import { logger } from '@/lib/logger';
+// Removed unused import: toError
 import type {
   ActivityType,
   ActivityData,
@@ -20,6 +21,13 @@ import type {
   CommentActivityData,
   AchievementActivityData,
   LoginActivityData,
+} from '@/features/user/types/activity';
+import {
+  isBoardActivityData,
+  isSubmissionActivityData,
+  isDiscussionActivityData,
+  isCommentActivityData,
+  isAchievementActivityData,
 } from '@/features/user/types/activity';
 
 interface UseActivityTrackerOptions {
@@ -103,7 +111,7 @@ export function useActivityTracker(
         const activityData: ActivityLogRequest = {
           type: activityType,
           description: generateActivityDescription(activityType, data),
-          metadata: data || ({} as ActivityData),
+          metadata: data || {},
           points_earned: calculatePointsEarned(activityType, data),
         };
 
@@ -118,7 +126,7 @@ export function useActivityTracker(
           'error' in result &&
           result.error
         ) {
-          throw new Error(result.error as string);
+          throw new Error(String(result.error));
         }
 
         const activityId =
@@ -135,7 +143,7 @@ export function useActivityTracker(
           onSuccess?.(activityId);
         }
 
-        return activityId as string | null;
+        return typeof activityId === 'string' ? activityId : null;
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error('Unknown error occurred');
@@ -212,7 +220,7 @@ export function useActivityTracker(
                 activity.activity_type,
                 activity.data
               ),
-              metadata: activity.data || ({} as ActivityData),
+              metadata: activity.data || {},
               points_earned: calculatePointsEarned(
                 activity.activity_type,
                 activity.data
@@ -308,31 +316,82 @@ export function useActivityTracker(
 }
 
 /**
+ * Helper function to get default descriptions for activity types
+ */
+function getDefaultDescription(activityType: ActivityType): string {
+  switch (activityType) {
+    case 'login':
+      return 'User logged in';
+    case 'logout':
+      return 'User logged out';
+    case 'board_create':
+      return 'Created a new board';
+    case 'board_join':
+      return 'Joined a board';
+    case 'board_complete':
+      return 'Completed a board';
+    case 'submission_create':
+      return 'Created a new submission';
+    case 'discussion_create':
+      return 'Started a new discussion';
+    case 'comment_create':
+      return 'Posted a comment';
+    case 'achievement_unlock':
+      return 'Unlocked an achievement';
+    default:
+      return `Performed activity: ${activityType}`;
+  }
+}
+
+/**
  * Helper function to generate human-readable activity descriptions
  */
 function generateActivityDescription(
   activityType: ActivityType,
   data?: ActivityData
 ): string {
-  const activityData = data as Record<string, unknown>;
+  if (!data) {
+    return getDefaultDescription(activityType);
+  }
 
   switch (activityType) {
     case 'login':
       return 'User logged in';
     case 'board_create':
-      return `Created a new board${activityData?.title ? `: ${activityData.title}` : ''}`;
+      if (isBoardActivityData(data)) {
+        return `Created a new board: ${data.board_title}`;
+      }
+      return 'Created a new board';
     case 'board_join':
-      return `Joined a board${activityData?.title ? `: ${activityData.title}` : ''}`;
+      if (isBoardActivityData(data)) {
+        return `Joined a board: ${data.board_title}`;
+      }
+      return 'Joined a board';
     case 'board_complete':
-      return `Completed a board${activityData?.title ? `: ${activityData.title}` : ''}`;
+      if (isBoardActivityData(data)) {
+        return `Completed a board: ${data.board_title}`;
+      }
+      return 'Completed a board';
     case 'submission_create':
-      return `Created a new submission${activityData?.title ? `: ${activityData.title}` : ''}`;
+      if (isSubmissionActivityData(data)) {
+        return `Created a submission: ${data.challenge_title}`;
+      }
+      return 'Created a new submission';
     case 'discussion_create':
-      return `Started a new discussion${activityData?.title ? `: ${activityData.title}` : ''}`;
+      if (isDiscussionActivityData(data)) {
+        return `Started a discussion: ${data.title}`;
+      }
+      return 'Started a new discussion';
     case 'comment_create':
+      if (isCommentActivityData(data)) {
+        return `Commented on: ${data.discussion_title}`;
+      }
       return 'Posted a comment';
     case 'achievement_unlock':
-      return `Unlocked achievement${activityData?.name ? `: ${activityData.name}` : ''}`;
+      if (isAchievementActivityData(data)) {
+        return `Unlocked achievement: ${data.achievement_name}`;
+      }
+      return 'Unlocked an achievement';
     default:
       return `Performed activity: ${activityType}`;
   }
@@ -358,20 +417,24 @@ function calculatePointsEarned(
   };
 
   let points = basePoints[activityType] || 0;
-  const activityData = data as Record<string, unknown>;
 
-  // Bonus points based on data
-  if (activityData?.difficulty === 'hard') {
-    points *= 1.5;
-  } else if (activityData?.difficulty === 'expert') {
-    points *= 2;
+  if (!data) {
+    return points;
   }
 
-  if (
-    activityData?.bonus_multiplier &&
-    typeof activityData.bonus_multiplier === 'number'
-  ) {
-    points *= activityData.bonus_multiplier;
+  // Bonus points based on difficulty for board activities
+  if (isBoardActivityData(data)) {
+    if (data.difficulty === 'hard') {
+      points *= 1.5;
+    } else if (data.difficulty === 'expert') {
+      points *= 2;
+    }
+  }
+
+  // Bonus points for submission activities
+  if (isSubmissionActivityData(data)) {
+    // Submissions don't have difficulty, but could have other bonuses
+    // For now, keep base points
   }
 
   return Math.round(points);

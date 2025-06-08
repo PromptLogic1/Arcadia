@@ -20,7 +20,7 @@ import {
 } from '@/hooks/queries/useUserProfileQueries';
 import { useUserProfileEditState } from '@/lib/stores/user-profile-store';
 import { notifications } from '@/lib/notifications';
-import type { Database } from '@/types/database-generated';
+import type { Database } from '@/types/database.types';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
 
@@ -243,7 +243,11 @@ export function useUserProfileEdit({
           'error' in result &&
           result.error
         ) {
-          throw new Error(result.error as string);
+          throw new Error(
+            typeof result.error === 'string'
+              ? result.error
+              : String(result.error)
+          );
         }
 
         // Success - check if still mounted before updating state

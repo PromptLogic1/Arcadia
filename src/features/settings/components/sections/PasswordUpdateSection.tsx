@@ -11,6 +11,7 @@ import { SETTINGS_CONSTANTS, type PasswordCheck } from '../constants';
 import { useSettings } from '../../hooks/useSettings';
 import { PasswordRequirements } from '../ui/PasswordRequirements';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import { log } from '@/lib/logger';
 
 // Zod schema for password update validation
 const passwordUpdateSchema = z
@@ -70,7 +71,12 @@ export function PasswordUpdateSection() {
       reset(); // Reset form after successful submission
     } catch (error) {
       // Error handling is done by the modern hook
-      console.error('Password update failed:', error);
+      log.error('Password update failed', error, {
+        metadata: {
+          component: 'PasswordUpdateSection',
+          method: 'onSubmit',
+        },
+      });
     }
   };
 

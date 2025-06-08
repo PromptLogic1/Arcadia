@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { Constants } from '@/types/database-generated';
+import { Constants } from '@/types/database.types';
 
 // Enums from database - must match database-generated.ts exactly
 export const difficultyLevelSchema = z.enum(
@@ -143,9 +143,9 @@ export const bingoSessionSchema = z.object({
 
 // Bingo session player schema
 export const bingoSessionPlayerSchema = z.object({
-  id: z.string().uuid(),
-  session_id: z.string().uuid().nullable(),
-  user_id: z.string().nullable(),
+  id: z.string().uuid().nullable(),
+  session_id: z.string().uuid(),
+  user_id: z.string(),
   display_name: z.string(),
   joined_at: z.string().nullable(),
   team: z.number().int().nullable(),
@@ -153,7 +153,11 @@ export const bingoSessionPlayerSchema = z.object({
   color: z.string(),
   is_ready: z.boolean().nullable(),
   is_host: z.boolean().nullable(),
-  last_activity: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+  created_at: z.string().nullable(),
+  left_at: z.string().nullable(),
+  position: z.number().nullable(),
+  updated_at: z.string().nullable(),
 });
 
 // Board collections schema
@@ -248,6 +252,14 @@ export const createBoardApiSchema = z.object({
 
 // Alias for backwards compatibility
 export const createBingoBoardSchema = createBoardApiSchema;
+
+// Mark cell API schema
+export const markCellRequestSchema = z.object({
+  cell_position: z.number().int().min(0).max(99), // Assuming max 10x10 grid
+  user_id: z.string().uuid('Invalid user ID format'),
+  action: z.enum(['mark', 'unmark']),
+  version: z.number().int().min(0).optional(),
+});
 
 // Type exports for convenience
 export type BingoBoardSchema = z.infer<typeof bingoBoardSchema>;
