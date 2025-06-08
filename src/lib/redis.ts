@@ -27,6 +27,20 @@ export function isRedisConfigured(): boolean {
  * IMPORTANT: Always call isRedisConfigured() before calling this function!
  */
 export function getRedisClient(): Redis {
+  // Check if running in browser environment
+  if (typeof window !== 'undefined') {
+    const error = new Error(
+      'Redis client cannot be initialized in browser environment. Redis operations are server-side only.'
+    );
+    log.error('Attempted to initialize Redis client in browser', error, {
+      metadata: {
+        environment: 'browser',
+        stack: new Error().stack,
+      },
+    });
+    throw error;
+  }
+
   // Always check configuration first - this should never be called without checking
   if (!isRedisConfigured()) {
     const error = new Error(

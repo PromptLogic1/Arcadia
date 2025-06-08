@@ -114,49 +114,61 @@ export interface BoardWithCreator extends GameBoardDomain {
 const _transformDbBoardToDomain = (
   board: Tables<'bingo_boards'>
 ): BingoBoardDomain | null => {
-  // Handle null/undefined board_state by providing empty array default
-  // board_state is expected to be an array of board_cell objects
-  const boardStateValue = board.board_state ?? [];
-  const boardStateParseResult = zBoardState.safeParse(boardStateValue);
+  try {
+    // Handle null/undefined board_state by providing empty array default
+    // board_state is expected to be an array of board_cell objects
+    const boardStateValue = board.board_state ?? [];
+    const boardStateParseResult = zBoardState.safeParse(boardStateValue);
 
-  // Settings should use zBoardSettings schema, not sessionSettingsSchema
-  // Provide proper default values for board settings - handle all falsy values
-  const settingsValue = board.settings || {
-    team_mode: null,
-    lockout: null,
-    sound_enabled: null,
-    win_conditions: null,
-  };
-  const settingsParseResult = zBoardSettings.safeParse(settingsValue);
+    // Settings should use zBoardSettings schema, not sessionSettingsSchema
+    // Provide proper default values for board settings - handle all falsy values
+    const settingsValue = board.settings || {
+      team_mode: null,
+      lockout: null,
+      sound_enabled: null,
+      win_conditions: null,
+    };
+    const settingsParseResult = zBoardSettings.safeParse(settingsValue);
 
-  if (!boardStateParseResult.success || !settingsParseResult.success) {
-    // Log as debug instead of error to reduce Sentry noise
-    // Invalid boards are expected and filtered out gracefully
-    log.debug('Skipping board with invalid data format', {
+    if (!boardStateParseResult.success || !settingsParseResult.success) {
+      // Log as debug instead of error to reduce Sentry noise
+      // Invalid boards are expected and filtered out gracefully
+      // Note: Avoid including any error objects in metadata to prevent Sentry capture
+      log.debug('Skipping board with invalid data format', {
+        metadata: {
+          boardId: board.id,
+          reason: 'Invalid board_state or settings format',
+          boardStateValid: boardStateParseResult.success,
+          settingsValid: settingsParseResult.success,
+          boardStateIssue: boardStateParseResult.success
+            ? null
+            : boardStateParseResult.error.issues?.[0]?.message ||
+              'Invalid board state',
+          settingsIssue: settingsParseResult.success
+            ? null
+            : settingsParseResult.error.issues?.[0]?.message ||
+              'Invalid settings',
+        },
+      });
+      return null;
+    }
+
+    return {
+      ...board,
+      board_state: boardStateParseResult.data,
+      settings: settingsParseResult.data,
+      updated_at: board.updated_at || null,
+    };
+  } catch (error) {
+    // Catch any unexpected errors and return null to prevent throwing
+    log.warn('Unexpected error in board transformation, skipping board', {
       metadata: {
-        boardId: board.id,
-        reason: 'Invalid board_state or settings format',
-        boardStateValid: boardStateParseResult.success,
-        settingsValid: settingsParseResult.success,
-        boardStateError: boardStateParseResult.success
-          ? null
-          : boardStateParseResult.error.message,
-        settingsError: settingsParseResult.success
-          ? null
-          : settingsParseResult.error.message,
-        originalBoardState: board.board_state,
-        originalSettings: board.settings,
+        boardId: board?.id || 'unknown',
+        error: error instanceof Error ? error.message : String(error),
       },
     });
     return null;
   }
-
-  return {
-    ...board,
-    board_state: boardStateParseResult.data,
-    settings: settingsParseResult.data,
-    updated_at: board.updated_at || null,
-  };
 };
 
 export const bingoBoardsService = {

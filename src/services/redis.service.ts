@@ -3,6 +3,9 @@
  *
  * Service layer for Redis operations following the project's service pattern.
  * All operations return ServiceResponse for consistent error handling.
+ *
+ * IMPORTANT: All Redis operations are server-side only. Client-side calls
+ * will be handled gracefully by falling back to direct fetcher execution.
  */
 
 import {
@@ -16,6 +19,14 @@ import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 
 /**
+ * Check if we're running in a browser environment
+ * Redis operations should never run client-side
+ */
+function isClientSide(): boolean {
+  return typeof window !== 'undefined';
+}
+
+/**
  * Basic Redis service with fundamental operations
  */
 export const redisService = {
@@ -27,6 +38,16 @@ export const redisService = {
     value: unknown,
     ttlSeconds?: number
   ): Promise<ServiceResponse<void>> {
+    if (isClientSide()) {
+      log.debug(
+        'Redis operations not available client-side - skipping SET operation',
+        {
+          metadata: { key },
+        }
+      );
+      return createServiceSuccess(undefined);
+    }
+
     if (!isRedisConfigured()) {
       log.debug('Redis not configured - skipping SET operation', {
         metadata: { key },
@@ -67,6 +88,16 @@ export const redisService = {
    * Returns unknown type - caller should validate/parse as needed
    */
   async get(key: string): Promise<ServiceResponse<unknown>> {
+    if (isClientSide()) {
+      log.debug(
+        'Redis operations not available client-side - returning null for GET operation',
+        {
+          metadata: { key },
+        }
+      );
+      return createServiceSuccess(null);
+    }
+
     if (!isRedisConfigured()) {
       log.debug('Redis not configured - returning null for GET operation', {
         metadata: { key },
@@ -271,10 +302,12 @@ export const redisService = {
 
 /**
  * Cache service for commonly used caching patterns
+ * Automatically handles client-side vs server-side execution
  */
 export const cacheService = {
   /**
    * Set a value in cache with TTL
+   * On client-side, this is a no-op
    */
   async set<T>(
     key: string,
@@ -286,6 +319,7 @@ export const cacheService = {
 
   /**
    * Get a value from cache
+   * On client-side, always returns null (cache miss)
    */
   async get(key: string): Promise<ServiceResponse<unknown>> {
     const result = await redisService.get(key);
@@ -315,6 +349,26 @@ export const cacheService = {
     ttlSeconds = 300,
     schema?: { parse: (data: unknown) => T }
   ): Promise<ServiceResponse<T>> {
+    // If running client-side, always fetch directly (no caching)
+    if (isClientSide()) {
+      log.debug('Redis not available client-side - fetching directly', {
+        metadata: { key },
+      });
+      try {
+        const fresh = await fetcher();
+        return createServiceSuccess(fresh);
+      } catch (error) {
+        log.error(
+          'Direct fetch failed on client-side',
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            metadata: { key },
+          }
+        );
+        return createServiceError('Failed to fetch data');
+      }
+    }
+
     // If Redis is not configured, just fetch directly
     if (!isRedisConfigured()) {
       log.debug('Redis not configured - fetching directly', {
