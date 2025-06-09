@@ -23,6 +23,10 @@ import {
   zBoardState,
   zBoardSettings,
 } from '@/lib/validation/schemas/bingo';
+import {
+  transformBoardState,
+  transformBoardSettings,
+} from '@/lib/validation/transforms';
 import type { BingoBoard, BingoCard } from '@/types';
 import type { BingoBoardDomain } from '@/types/domains/bingo';
 
@@ -59,8 +63,8 @@ const _transformDbBoardToDomain = (
 
   return {
     ...board,
-    board_state: boardStateParseResult.data,
-    settings: settingsParseResult.data,
+    board_state: transformBoardState(boardStateParseResult.data),
+    settings: transformBoardSettings(settingsParseResult.data),
   };
 };
 
@@ -123,7 +127,20 @@ export const bingoBoardEditService = {
         return createServiceError('Invalid board data format');
       }
 
-      const transformedBoard = _transformDbBoardToDomain(boardValidation.data);
+      // Transform the validated data to ensure proper types
+      const boardWithTransformedState = {
+        ...boardValidation.data,
+        board_state: boardValidation.data.board_state
+          ? transformBoardState(boardValidation.data.board_state)
+          : null,
+        settings: boardValidation.data.settings
+          ? transformBoardSettings(boardValidation.data.settings)
+          : null,
+      };
+
+      const transformedBoard = _transformDbBoardToDomain(
+        boardWithTransformedState
+      );
       if (!transformedBoard) {
         return createServiceError('Failed to transform board data');
       }
@@ -288,7 +305,20 @@ export const bingoBoardEditService = {
         return createServiceError('Invalid updated board data format');
       }
 
-      const transformedBoard = _transformDbBoardToDomain(boardValidation.data);
+      // Transform the validated data to ensure proper types
+      const boardWithTransformedState = {
+        ...boardValidation.data,
+        board_state: boardValidation.data.board_state
+          ? transformBoardState(boardValidation.data.board_state)
+          : null,
+        settings: boardValidation.data.settings
+          ? transformBoardSettings(boardValidation.data.settings)
+          : null,
+      };
+
+      const transformedBoard = _transformDbBoardToDomain(
+        boardWithTransformedState
+      );
       if (!transformedBoard) {
         return createServiceError('Failed to transform updated board data');
       }

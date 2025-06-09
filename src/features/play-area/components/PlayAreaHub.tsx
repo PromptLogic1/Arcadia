@@ -141,10 +141,27 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
     boardId: string,
     settings: SessionSettings
   ) => {
+    // Ensure user is authenticated before creating session
+    if (!authUser || !authUser.id) {
+      log.error(
+        'Cannot create session without authentication',
+        new Error('User not authenticated'),
+        {
+          metadata: {
+            component: 'PlayAreaHub',
+            boardId,
+            settings,
+          },
+        }
+      );
+      // Could show a notification here, but the dialog should already prevent this
+      return;
+    }
+
     try {
       const result = await createSessionMutation.mutateAsync({
         board_id: boardId,
-        host_id: authUser?.id || '',
+        host_id: authUser.id,
         settings: {
           max_players: settings.max_players ?? 8,
           allow_spectators: settings.allow_spectators ?? true,

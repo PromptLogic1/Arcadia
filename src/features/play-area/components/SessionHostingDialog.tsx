@@ -160,6 +160,13 @@ export function SessionHostingDialog({
       return;
     }
 
+    // Double-check authentication
+    if (!authUser?.id) {
+      notifications.error('You must be logged in to create a session');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     const sessionSettings: SessionSettings = {

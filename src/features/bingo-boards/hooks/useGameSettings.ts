@@ -16,6 +16,21 @@ import { toError } from '@/lib/error-guards';
 import { notifications } from '@/lib/notifications';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
+// Helper function to ensure win conditions have all required fields
+function normalizeWinConditions(
+  conditions: Partial<WinConditions> | null | undefined
+): WinConditions | null {
+  if (conditions === null || conditions === undefined) {
+    return null;
+  }
+  return {
+    line: conditions.line ?? true,
+    majority: conditions.majority ?? false,
+    diagonal: conditions.diagonal ?? false,
+    corners: conditions.corners ?? false,
+  };
+}
+
 // Event-System Types
 interface SettingsChangeEventDetail {
   type: 'change' | 'reset' | 'modeSwitch';
@@ -62,10 +77,17 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
   const { error: validationError, setError: setValidationError } =
     useGameSettingsValidation();
 
-  // Derived state
-  const settings = useMemo(() => {
+  // Derived state - ensure proper typing
+  const settings: BoardSettings = useMemo(() => {
     if (boardId && settingsResponse?.data) {
-      return settingsResponse.data;
+      // Ensure the response data has all required fields
+      const data = settingsResponse.data;
+      return {
+        team_mode: data.team_mode ?? null,
+        lockout: data.lockout ?? null,
+        sound_enabled: data.sound_enabled ?? null,
+        win_conditions: normalizeWinConditions(data.win_conditions),
+      };
     }
     return localSettings || DEFAULT_BOARD_SETTINGS;
   }, [boardId, settingsResponse?.data, localSettings]);
@@ -108,9 +130,32 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
   const updateSettings = useCallback(
     async (updates: Partial<BoardSettings>) => {
       try {
-        let newSettings = {
-          ...settings,
-          ...updates,
+        // Start with current settings
+        const currentSettings: BoardSettings = {
+          team_mode: settings.team_mode ?? null,
+          lockout: settings.lockout ?? null,
+          sound_enabled: settings.sound_enabled ?? null,
+          win_conditions: normalizeWinConditions(settings.win_conditions),
+        };
+
+        // Apply updates
+        let newSettings: BoardSettings = {
+          team_mode:
+            updates.team_mode !== undefined
+              ? updates.team_mode
+              : currentSettings.team_mode,
+          lockout:
+            updates.lockout !== undefined
+              ? updates.lockout
+              : currentSettings.lockout,
+          sound_enabled:
+            updates.sound_enabled !== undefined
+              ? updates.sound_enabled
+              : currentSettings.sound_enabled,
+          win_conditions:
+            updates.win_conditions !== undefined
+              ? normalizeWinConditions(updates.win_conditions)
+              : currentSettings.win_conditions,
         };
 
         // Enforce team mode rules
@@ -213,7 +258,14 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       lockout: !settings.team_mode || settings.lockout, // Force lockout when enabling team mode
     };
     await updateSettings(newSettings);
-    emitSettingsEvent('modeSwitch', { ...settings, ...newSettings });
+    // Create a properly typed complete settings object for the event
+    const completeSettings: BoardSettings = {
+      team_mode: newSettings.team_mode ?? settings.team_mode ?? null,
+      lockout: newSettings.lockout ?? settings.lockout ?? null,
+      sound_enabled: settings.sound_enabled ?? null,
+      win_conditions: normalizeWinConditions(settings.win_conditions),
+    };
+    emitSettingsEvent('modeSwitch', completeSettings);
   }, [settings, updateSettings, emitSettingsEvent]);
 
   const toggleLockout = useCallback(async () => {
@@ -239,8 +291,11 @@ export const useGameSettings = (boardId: string): UseGameSettingsReturn => {
       };
 
       // Check if this would disable all win conditions
-      const newConditions = {
-        ...currentConditions,
+      const newConditions: WinConditions = {
+        line: currentConditions.line ?? false,
+        majority: currentConditions.majority ?? false,
+        diagonal: currentConditions.diagonal ?? false,
+        corners: currentConditions.corners ?? false,
         [condition]: !currentConditions[condition],
       };
 

@@ -15,6 +15,10 @@ import {
   sessionStatsArraySchema,
 } from '@/lib/validation/schemas/bingo';
 import { log } from '@/lib/logger';
+import {
+  transformBoardState,
+  transformSessionSettings,
+} from '@/lib/validation/transforms';
 
 // Use database types
 export type BingoSession = Tables<'bingo_sessions'>;
@@ -123,7 +127,18 @@ export const sessionsService = {
         return createServiceError('Invalid session data format');
       }
 
-      return createServiceSuccess(validationResult.data);
+      // Transform the validated data to ensure proper types
+      const transformedSession = {
+        ...validationResult.data,
+        current_state: validationResult.data.current_state
+          ? transformBoardState(validationResult.data.current_state)
+          : [],
+        settings: validationResult.data.settings
+          ? transformSessionSettings(validationResult.data.settings)
+          : null,
+      };
+
+      return createServiceSuccess(transformedSession);
     } catch (error) {
       log.error(
         'Unexpected error getting session',
@@ -179,7 +194,18 @@ export const sessionsService = {
         return createServiceError('Invalid session data format');
       }
 
-      return createServiceSuccess(validationResult.data);
+      // Transform the validated data to ensure proper types
+      const transformedSession = {
+        ...validationResult.data,
+        current_state: validationResult.data.current_state
+          ? transformBoardState(validationResult.data.current_state)
+          : [],
+        settings: validationResult.data.settings
+          ? transformSessionSettings(validationResult.data.settings)
+          : null,
+      };
+
+      return createServiceSuccess(transformedSession);
     } catch (error) {
       log.error(
         'Unexpected error getting session by code',
@@ -268,8 +294,19 @@ export const sessionsService = {
         });
       }
 
+      // Transform the validated sessions to ensure proper types
+      const transformedSessions = validationResult.data.map(session => ({
+        ...session,
+        current_state: session.current_state
+          ? transformBoardState(session.current_state)
+          : [],
+        settings: session.settings
+          ? transformSessionSettings(session.settings)
+          : null,
+      }));
+
       return createServiceSuccess({
-        sessions: validationResult.data,
+        sessions: transformedSessions,
         totalCount: count || 0,
       });
     } catch (error) {
@@ -295,7 +332,66 @@ export const sessionsService = {
     sessionData: CreateSessionData
   ): Promise<ServiceResponse<BingoSession>> {
     try {
+      // Validate host_id is provided and not empty
+      if (!sessionData.host_id || sessionData.host_id.trim() === '') {
+        log.error(
+          'Invalid host_id provided',
+          new Error('host_id is required'),
+          {
+            metadata: {
+              service: 'sessions.service',
+              method: 'createSession',
+              boardId: sessionData.board_id,
+              hostId: sessionData.host_id,
+            },
+          }
+        );
+        return createServiceError(
+          'Valid host ID is required to create a session'
+        );
+      }
+
       const supabase = createClient();
+
+      // Verify the user exists before creating session
+      const { data: userExists, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', sessionData.host_id)
+        .single();
+
+      if (userError || !userExists) {
+        // Handle the error properly based on its type
+        if (userError) {
+          log.error('Host user not found', toStandardError(userError), {
+            metadata: {
+              service: 'sessions.service',
+              method: 'createSession',
+              boardId: sessionData.board_id,
+              hostId: sessionData.host_id,
+              errorCode: userError.code,
+              errorDetails: userError.details,
+            },
+          });
+        } else {
+          // User query succeeded but returned null
+          log.error(
+            'Host user not found',
+            new Error('User not found in database'),
+            {
+              metadata: {
+                service: 'sessions.service',
+                method: 'createSession',
+                boardId: sessionData.board_id,
+                hostId: sessionData.host_id,
+              },
+            }
+          );
+        }
+        return createServiceError(
+          'User not found. Please ensure you are logged in.'
+        );
+      }
 
       // Generate session code
       const sessionCode = Math.random()
@@ -342,7 +438,18 @@ export const sessionsService = {
         return createServiceError('Invalid session data format');
       }
 
-      return createServiceSuccess(validationResult.data);
+      // Transform the validated data to ensure proper types
+      const transformedSession = {
+        ...validationResult.data,
+        current_state: validationResult.data.current_state
+          ? transformBoardState(validationResult.data.current_state)
+          : [],
+        settings: validationResult.data.settings
+          ? transformSessionSettings(validationResult.data.settings)
+          : null,
+      };
+
+      return createServiceSuccess(transformedSession);
     } catch (error) {
       log.error(
         'Unexpected error creating session',
@@ -1226,7 +1333,18 @@ export const sessionsService = {
         return createServiceError('Invalid session data format');
       }
 
-      return createServiceSuccess(validationResult.data);
+      // Transform the validated data to ensure proper types
+      const transformedSession = {
+        ...validationResult.data,
+        current_state: validationResult.data.current_state
+          ? transformBoardState(validationResult.data.current_state)
+          : [],
+        settings: validationResult.data.settings
+          ? transformSessionSettings(validationResult.data.settings)
+          : null,
+      };
+
+      return createServiceSuccess(transformedSession);
     } catch (error) {
       log.error(
         'Unexpected error updating board state',

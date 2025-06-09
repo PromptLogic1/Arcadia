@@ -103,6 +103,19 @@ export const POST = withRateLimit(
         board_state,
       } = validation.data;
 
+      // Transform board_state to ensure undefined values are converted to null
+      const transformedBoardState = board_state.map(cell => ({
+        cell_id: cell.cell_id ?? null,
+        text: cell.text ?? null,
+        colors: cell.colors ?? null,
+        completed_by: cell.completed_by ?? null,
+        blocked: cell.blocked ?? null,
+        is_marked: cell.is_marked ?? null,
+        version: cell.version ?? null,
+        last_updated: cell.last_updated ?? null,
+        last_modified_by: cell.last_modified_by ?? null,
+      }));
+
       // Use service layer to create board
       const createResponse = await bingoBoardsService.createBoardFromAPI({
         title,
@@ -111,7 +124,7 @@ export const POST = withRateLimit(
         game_type,
         difficulty,
         is_public: is_public ?? false,
-        board_state,
+        board_state: transformedBoardState,
         userId: user.id,
       });
 
