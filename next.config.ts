@@ -289,6 +289,16 @@ const nextConfig: NextConfig = {
 
       // Production optimizations
       if (!dev) {
+        // Enable filesystem cache for production builds
+        if (!config.cache) {
+          config.cache = {
+            type: 'filesystem',
+            buildDependencies: {
+              config: [__filename]
+            }
+          };
+        }
+        
         // Simplified code splitting - let Next.js handle most optimizations
         config.optimization = {
           ...config.optimization,

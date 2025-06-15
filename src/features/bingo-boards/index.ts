@@ -1,4 +1,16 @@
-export { BingoBoardEdit } from './components/bingo-boards-edit/BingoBoardEdit';
-export { BingoErrorBoundary } from './components/BingoErrorBoundary';
-export { default as BoardCard } from './components/BoardCard';
+import dynamic from 'next/dynamic';
+
+// Immediate loading (core functionality)
 export { default as BingoBoardsHub } from './components/BingoBoardsHub';
+export { BingoErrorBoundary } from './components/BingoErrorBoundary';
+
+// Deferred loading (user interaction required)
+export const BingoBoardEdit = dynamic(() => 
+  import('./components/bingo-boards-edit/BingoBoardEdit').then(mod => ({ default: mod.BingoBoardEdit })),
+  { loading: () => null }
+);
+
+export const BoardCard = dynamic(() => 
+  import('./components/BoardCard'),
+  { loading: () => null }
+);

@@ -2,7 +2,12 @@ import {
   RouteErrorBoundary,
   AsyncBoundary,
 } from '@/components/error-boundaries';
-import SettingsComponent from '@/features/settings/components/settings';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for SettingsComponent (heavy form with validation)
+const SettingsComponent = dynamic(() => import('@/features/settings/components/settings'), {
+  loading: () => null, // AsyncBoundary already provides loading state
+});
 
 export default function SettingsPage() {
   return (

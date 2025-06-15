@@ -1,6 +1,12 @@
-import { SignUpForm } from '@/features/auth/components/SignUpForm';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import dynamic from 'next/dynamic';
 import type { Metadata } from 'next';
+
+// Dynamic import for SignUpForm (heavy form with validation)
+const SignUpForm = dynamic(() => import('@/features/auth/components/SignUpForm').then(mod => ({ default: mod.SignUpForm })), {
+  loading: () => <LoadingSpinner />,
+});
 
 export const metadata: Metadata = {
   title: 'Sign Up | Arcadia',

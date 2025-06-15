@@ -13,7 +13,13 @@ import {
 } from '@/components/ui/Select';
 import { DIFFICULTY_OPTIONS } from '@/types';
 import { default as BoardCard } from './BoardCard';
-import { CreateBoardForm } from './CreateBoardForm';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for CreateBoardForm (only load when needed)
+const CreateBoardForm = dynamic(() => import('./CreateBoardForm').then(mod => ({ default: mod.CreateBoardForm })), {
+  loading: () => <LoadingSpinner size="sm" />,
+  ssr: false, // Form is interactive, no need for SSR
+});
 import { NeonText } from '@/components/ui/NeonText';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Skeleton } from '@/components/ui/Skeleton';
