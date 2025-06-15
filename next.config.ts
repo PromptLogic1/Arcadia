@@ -120,6 +120,8 @@ const nextConfig: NextConfig = {
     // Production optimizations
     serverMinification: true,
     serverSourceMaps: false,
+    // Enable webpack build worker for memory optimization (Phase 1.1)
+    webpackBuildWorker: true,
     // instrumentationHook: true, // For monitoring - removed as not available in current Next.js version
     // React 19 Compiler for automatic optimizations
     // reactCompiler: process.env.NODE_ENV === 'production', // Disabled due to missing babel plugin
@@ -312,17 +314,37 @@ const nextConfig: NextConfig = {
                 priority: 30,
                 reuseExistingChunk: true,
               },
+              // NEW: Async-load monitoring (Phase 1.1)
               sentry: {
                 test: /[\\/]node_modules[\\/]@sentry[\\/]/,
                 name: 'sentry',
-                priority: 30,
+                chunks: 'async', // ← CRITICAL CHANGE: Load Sentry asynchronously
+                priority: 35,
                 reuseExistingChunk: true,
               },
-              // Vendor chunk for remaining node_modules
+              // NEW: UI library consolidation (Phase 1.1)
+              ui: {
+                test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+                name: 'ui-library',
+                priority: 30,
+                minSize: 20000,
+                maxSize: 200000, // Prevent mega-chunks
+                reuseExistingChunk: true,
+              },
+              // NEW: Database operations (route-specific)
+              database: {
+                test: /[\\/]node_modules[\\/]@supabase[\\/]/,
+                name: 'database',
+                chunks: 'async', // Route-specific loading
+                priority: 25,
+                reuseExistingChunk: true,
+              },
+              // MODIFIED: Size-limited vendor (Phase 1.1)
               vendor: {
                 test: /[\\/]node_modules[\\/]/,
                 name: 'vendor',
                 priority: 10,
+                maxSize: 200000, // ← Break large vendor chunk into smaller chunks
                 reuseExistingChunk: true,
               },
             },
