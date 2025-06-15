@@ -10,7 +10,7 @@
  */
 
 import { devtools } from 'zustand/middleware';
-import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { createWithEqualityFn } from 'zustand/traditional';
 import type { BoardCollectionFilters } from '../../services/board-collections.service';
 import type { GameCategory } from '../../types';
@@ -80,27 +80,24 @@ export const useBoardCollectionsStore =
       {
         name: 'board-collections-store',
       }
-    ),
-    Object.is
+    )
   );
 
 // Selectors for optimal performance
 export const useBoardCollectionsState = () =>
   useBoardCollectionsStore(
-    state => ({
+    useShallow(state => ({
       filters: state.filters,
       isShuffling: state.isShuffling,
-    }),
-    shallow
+    }))
   );
 
 export const useBoardCollectionsActions = () =>
   useBoardCollectionsStore(
-    state => ({
+    useShallow(state => ({
       setFilters: state.setFilters,
       resetFilters: state.resetFilters,
       updateFilter: state.updateFilter,
       setIsShuffling: state.setIsShuffling,
-    }),
-    shallow
+    }))
   );

@@ -6,10 +6,15 @@ import {
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
-} from '@/components/ui/accordion';
+} from '@/components/ui/Accordion';
 import { NeonText } from '@/components/ui/NeonText';
 import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
-import FloatingElements from '@/components/ui/FloatingElements';
+import dynamic from 'next/dynamic';
+
+const FloatingElements = dynamic(
+  () => import('@/components/ui/FloatingElements'),
+  { ssr: false }
+);
 
 interface FAQ {
   id: string;
@@ -62,33 +67,29 @@ const FAQSection: React.FC = () => {
         count={15}
         speed="slow"
         color="purple"
-        repositioning={true}
       />
       <section className="relative z-20" aria-labelledby="faq-heading">
         <div className="container mx-auto flex flex-col items-center px-4">
           <h2 id="faq-heading" className="mb-16 text-center">
             <NeonText
-              variant="gradient"
+              variant="solid"
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
             >
               FAQ
             </NeonText>
           </h2>
           <div className="mx-auto w-full max-w-4xl">
-            <Accordion type="single" collapsible>
+            <Accordion type="single" collapsible className="w-full space-y-4">
               {faqs.map(faq => (
                 <AccordionItem
                   key={faq.id}
                   value={faq.id}
-                  className="cyber-card mb-6 rounded-lg border-cyan-500/30 shadow-lg shadow-cyan-500/10"
+                  className="cyber-card rounded-lg border-cyan-500/30 shadow-lg shadow-cyan-500/10 transition-all duration-300"
                 >
-                  <AccordionTrigger
-                    className="px-8 py-6 text-xl font-semibold text-cyan-200 transition-colors hover:text-cyan-300 [&[data-state=open]]:text-cyan-300"
-                    aria-expanded={false}
-                  >
+                  <AccordionTrigger className="px-8 py-6 text-xl font-semibold text-cyan-200 transition-colors hover:text-cyan-300 [&[data-state=open]]:text-cyan-300">
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent className="px-8 pb-6 text-base leading-relaxed text-cyan-100/90">
+                  <AccordionContent className="px-8 pb-6 text-base leading-relaxed text-cyan-50">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>

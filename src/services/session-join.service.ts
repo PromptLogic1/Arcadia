@@ -15,6 +15,10 @@ import {
   bingoSessionSchema,
   bingoSessionPlayerSchema,
 } from '@/lib/validation/schemas/bingo';
+import {
+  transformBoardState,
+  transformSessionSettings,
+} from '@/lib/validation/transforms';
 
 // Use types directly from database-generated (no duplicate exports)
 type BingoSession = Tables<'bingo_sessions'>;
@@ -126,8 +130,17 @@ export const sessionJoinService = {
       const maxPlayers = sessionValidation.data.settings?.max_players || 4;
       const canJoin = currentPlayerCount < maxPlayers;
 
+      // Transform the validated data to ensure proper null values
+      const transformedSession: BingoSession = {
+        ...sessionValidation.data,
+        current_state: sessionValidation.data.current_state
+          ? transformBoardState(sessionValidation.data.current_state)
+          : null,
+        settings: transformSessionSettings(sessionValidation.data.settings),
+      };
+
       const details: SessionJoinDetails = {
-        session: sessionValidation.data,
+        session: transformedSession,
         currentPlayerCount,
         canJoin,
         reason: canJoin ? undefined : 'Session is full',

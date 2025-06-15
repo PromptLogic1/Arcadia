@@ -38,7 +38,19 @@ export function transformBoardCell(cell: {
 /**
  * Transform an array of board cells
  */
-export function transformBoardState(cells: Array<any>): BoardCell[] {
+export function transformBoardState(
+  cells: Array<{
+    cell_id?: string | null;
+    text?: string | null;
+    colors?: string[] | null;
+    completed_by?: string[] | null;
+    blocked?: boolean | null;
+    is_marked?: boolean | null;
+    version?: number | null;
+    last_updated?: number | null;
+    last_modified_by?: string | null;
+  }>
+): BoardCell[] {
   return cells.map(transformBoardCell);
 }
 

@@ -127,4 +127,29 @@ export const queryKeys = {
     status: (userId: string) => ['queue', 'status', userId] as const,
     waiting: () => ['queue', 'waiting'] as const,
   },
+  boardEdit: {
+    all: () => ['boardEdit'] as const,
+    data: (boardId: string) => ['boardEdit', 'data', boardId] as const,
+    initialize: (boardId: string) =>
+      ['boardEdit', 'initialize', boardId] as const,
+  },
+  cardLibrary: {
+    all: () => ['cardLibrary'] as const,
+    public: (filters?: FilterOptions, page?: number) =>
+      ['cardLibrary', 'public', filters, page] as const,
+    user: (userId: string, filters?: FilterOptions, page?: number) =>
+      ['cardLibrary', 'user', userId, filters, page] as const,
+  },
+  settings: {
+    user: (userId: string) => ['settings', 'user', userId] as const,
+  },
+  boardCollections: {
+    user: (userId: string) => ['boardCollections', 'user', userId] as const,
+    collection: (collectionId: string) =>
+      ['boardCollections', 'collection', collectionId] as const,
+  },
+  userProfile: {
+    profile: (userId: string) => ['userProfile', 'profile', userId] as const,
+    stats: (userId: string) => ['userProfile', 'stats', userId] as const,
+  },
 } as const;

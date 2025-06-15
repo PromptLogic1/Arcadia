@@ -5,9 +5,14 @@
 
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import useBoardEditStore, { useBoardEditActions } from '@/lib/stores/board-edit-store';
+import useBoardEditStore, {
+  useBoardEditActions,
+} from '@/lib/stores/board-edit-store';
 import { useAuth } from '@/lib/stores/auth-store';
-import { useCreateCardMutation, useUpdateCardMutation } from '@/hooks/queries/useBingoBoardEditQueries';
+import {
+  useCreateCardMutation,
+  useUpdateCardMutation,
+} from '@/hooks/queries/useBingoBoardEditQueries';
 import { queryKeys } from '@/hooks/queries';
 import type { BingoCard } from '@/types';
 
@@ -63,25 +68,25 @@ export function useBoardActions(boardId: string) {
     // UI toggle actions
     toggleEditMode,
     toggleAdvancedSettings,
-    
+
     // Editor actions
     openCardEditor: uiActions.openCardEditor,
     closeCardEditor,
-    
+
     // Form actions
     updateFormField: uiActions.updateFormField,
     setFormData: uiActions.setFormData,
-    
+
     // Grid management
     setLocalGridCards: uiActions.setLocalGridCards,
     setLocalPrivateCards: uiActions.setLocalPrivateCards,
     addPrivateCard: uiActions.addPrivateCard,
-    
+
     // Save state
     setIsSaving: uiActions.setIsSaving,
     setShowSaveSuccess: uiActions.setShowSaveSuccess,
     setAutoSave: uiActions.setAutoSave,
-    
+
     // Reset
     reset: uiActions.reset,
   };
@@ -95,7 +100,11 @@ export function useCardOperations(boardId: string) {
   const updateCardMutation = useUpdateCardMutation();
 
   const createCard = useCallback(
-    async (cardData: { title: string; description?: string; tags?: string[] }) => {
+    async (cardData: {
+      title: string;
+      description?: string;
+      tags?: string[];
+    }) => {
       if (!authUser) return null;
 
       try {

@@ -13,6 +13,10 @@ import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
 import { zBoardState, zBoardSettings } from '@/lib/validation/schemas/bingo';
+import {
+  transformBoardState,
+  transformBoardSettings,
+} from '@/lib/validation/transforms';
 
 // Type from database
 type DBBingoBoard = Database['public']['Tables']['bingo_boards']['Row'];
@@ -55,8 +59,8 @@ const _transformDbBoardToDomain = (
 
   return {
     ...board,
-    board_state: boardStateParseResult.data,
-    settings: settingsParseResult.data,
+    board_state: transformBoardState(boardStateParseResult.data),
+    settings: transformBoardSettings(settingsParseResult.data),
     updated_at: board.updated_at || null,
   };
 };

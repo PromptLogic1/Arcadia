@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
 import dynamic from 'next/dynamic';
 
@@ -23,7 +23,7 @@ export default function BingoPage() {
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8 text-center">
-            <h1 className="mb-4 bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-4xl font-bold text-transparent">
+            <h1 className="text-gradient-high-contrast color-cyan mb-4 text-4xl font-bold">
               Bingo Boards
             </h1>
             <p className="text-xl text-gray-300">

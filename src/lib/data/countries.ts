@@ -94,7 +94,11 @@ export const countries: Country[] = [
   { code: 'GP', name: 'Guadeloupe', flag: '🇬🇵' },
   { code: 'GQ', name: 'Equatorial Guinea', flag: '🇬🇶' },
   { code: 'GR', name: 'Greece', flag: '🇬🇷' },
-  { code: 'GS', name: 'South Georgia and the South Sandwich Islands', flag: '🇬🇸' },
+  {
+    code: 'GS',
+    name: 'South Georgia and the South Sandwich Islands',
+    flag: '🇬🇸',
+  },
   { code: 'GT', name: 'Guatemala', flag: '🇬🇹' },
   { code: 'GU', name: 'Guam', flag: '🇬🇺' },
   { code: 'GW', name: 'Guinea-Bissau', flag: '🇬🇼' },

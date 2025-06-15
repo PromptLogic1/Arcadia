@@ -11,7 +11,7 @@ export const GENERATOR_CONFIG = {
     Small: 50, // Example value
     Medium: 100, // Example value
     Large: 200, // Example value
-  } as CardPoolSizeLimits,
+  } as const satisfies CardPoolSizeLimits,
   // Add other generator configurations here if needed
 };
 

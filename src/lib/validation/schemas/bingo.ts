@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { Constants } from '@/types/database.types';
+import { sanitizeBoardContent, sanitizeCardContent } from '@/lib/sanitization';
 
 // Enums from database - must match database-generated.ts exactly
 export const difficultyLevelSchema = z.enum(
@@ -81,7 +82,15 @@ export const zBoardSettings = z
 export const zBoardCell = z
   .object({
     cell_id: z.string().uuid().nullable().optional(),
-    text: z.string().nullable().optional(),
+    text: z
+      .string()
+      .nullable()
+      .optional()
+      .transform(value => {
+        if (!value) return value;
+        // Sanitize card content to prevent XSS
+        return sanitizeCardContent(value);
+      }),
     colors: z.array(z.string()).nullable().optional(),
     completed_by: z.array(z.string().uuid()).nullable().optional(),
     blocked: z.boolean().nullable().optional(),
@@ -263,7 +272,20 @@ export const getBingoBoardsQuerySchema = z.object({
 });
 
 export const createBoardApiSchema = z.object({
-  title: z.string().min(3).max(100),
+  title: z
+    .string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(100, 'Title must be less than 100 characters')
+    .transform(value => {
+      const sanitized = sanitizeBoardContent(value);
+      if (!sanitized || sanitized.trim().length === 0) {
+        throw new Error('Title contains invalid characters');
+      }
+      return sanitized;
+    })
+    .refine(value => value.length >= 3, {
+      message: 'Title must be at least 3 characters after sanitization',
+    }),
   size: z.number().int().min(3).max(10),
   settings: zBoardSettings,
   game_type: gameCategorySchema,
@@ -275,10 +297,9 @@ export const createBoardApiSchema = z.object({
 // Alias for backwards compatibility
 export const createBingoBoardSchema = createBoardApiSchema;
 
-// Mark cell API schema
+// Mark cell API schema - no user_id as it comes from auth
 export const markCellRequestSchema = z.object({
   cell_position: z.number().int().min(0).max(99), // Assuming max 10x10 grid
-  user_id: z.string().uuid('Invalid user ID format'),
   action: z.enum(['mark', 'unmark']),
   version: z.number().int().min(0).optional(),
 });

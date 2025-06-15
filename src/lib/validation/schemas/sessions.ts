@@ -49,6 +49,7 @@ export const joinSessionRequestSchema = z.object({
   displayName: displayNameSchema,
   color: hexColorSchema,
   team: teamSchema.optional(),
+  password: z.string().optional(),
 });
 
 export type JoinSessionRequest = z.infer<typeof joinSessionRequestSchema>;
@@ -74,14 +75,8 @@ export const startSessionRequestSchema = z.object({
 
 export type StartSessionRequest = z.infer<typeof startSessionRequestSchema>;
 
-// POST /api/bingo/sessions/[id]/mark-cell - Mark cell
-export const markCellRequestSchema = z.object({
-  sessionId: uuidSchema,
-  cellIndex: z.number().int().min(0).max(99), // Assuming max 10x10 grid
-  playerId: uuidSchema,
-});
-
-export type MarkCellRequest = z.infer<typeof markCellRequestSchema>;
+// NOTE: markCellRequestSchema moved to bingo.ts for security
+// The schema there properly excludes user_id to prevent spoofing attacks
 
 // POST /api/bingo/sessions/[id]/complete - Complete session
 export const completeSessionRequestSchema = z.object({

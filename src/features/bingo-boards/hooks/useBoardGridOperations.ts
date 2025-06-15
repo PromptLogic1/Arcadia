@@ -4,7 +4,10 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import useBoardEditStore, { useBoardEditState, useBoardEditActions } from '@/lib/stores/board-edit-store';
+import useBoardEditStore, {
+  useBoardEditState,
+  useBoardEditActions,
+} from '@/lib/stores/board-edit-store';
 import { useAuth } from '@/lib/stores/auth-store';
 import { useBoardData } from './useBoardData';
 import type { BingoCard, GameCategory, Difficulty } from '@/types';
@@ -88,7 +91,7 @@ export function useBoardGridOperations(boardId: string) {
       const updatedGrid = [...localGridCards];
       const card1 = updatedGrid[position1];
       const card2 = updatedGrid[position2];
-      
+
       if (card1 !== undefined && card2 !== undefined) {
         updatedGrid[position1] = card2;
         updatedGrid[position2] = card1;
@@ -145,7 +148,7 @@ export function useBoardGridOperations(boardId: string) {
     swapGridCards,
     placeCardInGrid,
     handlePositionSelect,
-    
+
     // State
     hasChanges,
     gridCards: localGridCards,

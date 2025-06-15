@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { GameSettings } from './GameSettings';
 import { PlayerManagement } from './PlayerManagement';
 import { TimerControls } from './TimerControls';
 import { useGameModern } from '../../hooks/useSessionGame';
 import { cn } from '@/lib/utils';
-import { Gamepad2, Users2, Timer, AlertCircle } from 'lucide-react';
+import { Gamepad2, Users2, Timer, AlertCircle } from '@/components/ui/Icons';
 import type { GamePlayer } from '../../types';
 import type { GameSettings as GameSettingsType } from '../../types/game-settings.types';
 import { useTransition } from 'react';

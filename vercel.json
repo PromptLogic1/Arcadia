@@ -1,8 +1,88 @@
 {
-  "regions": ["fra1"],
+  "regions": ["fra1", "iad1", "sfo1", "sin1"],
   "build": {
     "env": {
       "EDGE_CONFIG": "arcadia-config"
     }
-  }
+  },
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 10,
+      "memory": 1024,
+      "regions": ["fra1", "iad1", "sfo1"]
+    },
+    "app/api/health/**/*.ts": {
+      "maxDuration": 5,
+      "memory": 512,
+      "regions": ["fra1", "iad1", "sfo1", "sin1"]
+    },
+    "app/api/redis-test/**/*.ts": {
+      "maxDuration": 10,
+      "memory": 512,
+      "regions": ["fra1", "iad1"]
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/health/detailed",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/cache-warmup",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, must-revalidate"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/api/health/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/monitoring",
+      "destination": "/api/sentry-tunnel"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/health/cache",
+      "destination": "/api/health/cache"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/healthcheck",
+      "destination": "/api/health",
+      "permanent": false
+    }
+  ]
 }

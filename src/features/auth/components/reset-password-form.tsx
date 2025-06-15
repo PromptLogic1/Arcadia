@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Info, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Info, Check, X } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { useResetPasswordForm } from './hooks/useResetPasswordForm';
 import { useResetPasswordSubmission } from './hooks/useResetPasswordSubmission';

@@ -5,15 +5,8 @@ interface UseIdleCallbackOptions {
   enabled?: boolean;
 }
 
-declare global {
-  interface Window {
-    requestIdleCallback?: (
-      callback: (deadline: IdleDeadline) => void,
-      options?: { timeout?: number }
-    ) => number;
-    cancelIdleCallback?: (handle: number) => void;
-  }
-}
+// Standard IdleRequestCallback type is available globally
+// No need to redeclare these types
 
 interface IdleDeadline {
   didTimeout: boolean;
@@ -22,20 +15,22 @@ interface IdleDeadline {
 
 // Polyfill for browsers that don't support requestIdleCallback
 function requestIdleCallbackPolyfill(
-  callback: (deadline: IdleDeadline) => void,
-  options: { timeout?: number } = {}
+  callback: IdleRequestCallback,
+  options?: IdleRequestOptions
 ): number {
-  const timeout = options.timeout || 0;
+  const timeout = options?.timeout || 0;
   const startTime = performance.now();
 
-  return setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     callback({
       didTimeout: timeout > 0 && performance.now() - startTime >= timeout,
       timeRemaining() {
         return Math.max(0, 50 - (performance.now() - startTime));
       },
     });
-  }, 1) as unknown as number;
+  }, 1);
+  // setTimeout returns number in browsers, NodeJS.Timeout in Node
+  return Number(timeoutId);
 }
 
 function cancelIdleCallbackPolyfill(id: number): void {
@@ -69,7 +64,7 @@ export function useIdleCallback(
     // Schedule new idle callback
     const requestFn = window.requestIdleCallback || requestIdleCallbackPolyfill;
     idleIdRef.current = requestFn(
-      (deadline) => {
+      deadline => {
         // Only execute if we have time remaining or if we timed out
         if (deadline.timeRemaining() > 0 || deadline.didTimeout) {
           callbackRef.current();
@@ -80,7 +75,8 @@ export function useIdleCallback(
 
     return () => {
       if (idleIdRef.current !== null) {
-        const cancelFn = window.cancelIdleCallback || cancelIdleCallbackPolyfill;
+        const cancelFn =
+          window.cancelIdleCallback || cancelIdleCallbackPolyfill;
         cancelFn(idleIdRef.current);
         idleIdRef.current = null;
       }
@@ -120,7 +116,11 @@ export function useIdleWork<T>(
     }
   }, [work, onComplete, onError]);
 
-  const { cancelIdleCallback } = useIdleCallback(workCallback, deps, idleOptions);
+  const { cancelIdleCallback } = useIdleCallback(
+    workCallback,
+    deps,
+    idleOptions
+  );
 
   return {
     result: resultRef.current,
@@ -144,14 +144,14 @@ export function useIdleBatch<T>(
     onAllComplete,
     ...idleOptions
   } = options;
-  
+
   const processedCountRef = useRef(0);
   const currentIndexRef = useRef(0);
 
   const processBatch = useCallback(() => {
     const startIndex = currentIndexRef.current;
     const endIndex = Math.min(startIndex + batchSize, items.length);
-    
+
     for (let i = startIndex; i < endIndex; i++) {
       processor(items[i]!);
       processedCountRef.current++;
@@ -162,12 +162,20 @@ export function useIdleBatch<T>(
 
     // If there are more items, schedule next batch
     if (endIndex < items.length) {
-      const requestFn = window.requestIdleCallback || requestIdleCallbackPolyfill;
+      const requestFn =
+        window.requestIdleCallback || requestIdleCallbackPolyfill;
       requestFn(processBatch, { timeout: idleOptions.timeout });
     } else {
       onAllComplete?.();
     }
-  }, [items, processor, batchSize, onBatchComplete, onAllComplete, idleOptions.timeout]);
+  }, [
+    items,
+    processor,
+    batchSize,
+    onBatchComplete,
+    onAllComplete,
+    idleOptions.timeout,
+  ]);
 
   // Reset counters when items change
   useEffect(() => {

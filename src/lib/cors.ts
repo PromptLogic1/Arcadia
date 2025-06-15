@@ -13,13 +13,27 @@ interface CorsOptions {
   maxAge?: number;
 }
 
+// Get production origins from environment
+function getProductionOrigins(): string[] {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return [];
+
+  // Create variations of the domain for CORS
+  const origins = [appUrl];
+
+  // Add www variant if it doesn't already exist
+  if (!appUrl.includes('www.')) {
+    const url = new URL(appUrl);
+    origins.push(
+      `${url.protocol}//www.${url.hostname}${url.port ? ':' + url.port : ''}`
+    );
+  }
+
+  return origins;
+}
+
 const DEFAULT_CORS_OPTIONS: CorsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://your-domain.com', // Replace with actual production domain
-        'https://www.your-domain.com', // Replace with actual production domain
-      ] 
-    : true, // Allow all origins in development
+  origin: process.env.NODE_ENV === 'production' ? getProductionOrigins() : true, // Allow all origins in development
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
@@ -38,20 +52,23 @@ const DEFAULT_CORS_OPTIONS: CorsOptions = {
 /**
  * Check if origin is allowed based on CORS configuration
  */
-function isOriginAllowed(origin: string | null, allowedOrigins: string | string[] | boolean): boolean {
+function isOriginAllowed(
+  origin: string | null,
+  allowedOrigins: string | string[] | boolean
+): boolean {
   if (!origin) return false;
-  
+
   if (allowedOrigins === true) return true;
   if (allowedOrigins === false) return false;
-  
+
   if (typeof allowedOrigins === 'string') {
     return origin === allowedOrigins;
   }
-  
+
   if (Array.isArray(allowedOrigins)) {
     return allowedOrigins.includes(origin);
   }
-  
+
   return false;
 }
 
@@ -59,41 +76,55 @@ function isOriginAllowed(origin: string | null, allowedOrigins: string | string[
  * Apply CORS headers to a response
  */
 export function applyCorsHeaders(
-  request: NextRequest, 
+  request: NextRequest,
   response: NextResponse,
   options: CorsOptions = DEFAULT_CORS_OPTIONS
 ): NextResponse {
   const origin = request.headers.get('origin');
-  
+
   // Handle origin
   if (options.origin !== false) {
-    if (isOriginAllowed(origin, options.origin || DEFAULT_CORS_OPTIONS.origin!)) {
+    if (
+      isOriginAllowed(
+        origin,
+        options.origin ?? DEFAULT_CORS_OPTIONS.origin ?? false
+      )
+    ) {
       response.headers.set('Access-Control-Allow-Origin', origin || '*');
-    } else if (options.origin === true || process.env.NODE_ENV === 'development') {
+    } else if (
+      options.origin === true ||
+      process.env.NODE_ENV === 'development'
+    ) {
       response.headers.set('Access-Control-Allow-Origin', '*');
     }
   }
-  
+
   // Handle credentials
   if (options.credentials) {
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
-  
+
   // Handle methods
   if (options.methods) {
-    response.headers.set('Access-Control-Allow-Methods', options.methods.join(', '));
+    response.headers.set(
+      'Access-Control-Allow-Methods',
+      options.methods.join(', ')
+    );
   }
-  
+
   // Handle headers
   if (options.allowedHeaders) {
-    response.headers.set('Access-Control-Allow-Headers', options.allowedHeaders.join(', '));
+    response.headers.set(
+      'Access-Control-Allow-Headers',
+      options.allowedHeaders.join(', ')
+    );
   }
-  
+
   // Handle max age
   if (options.maxAge) {
     response.headers.set('Access-Control-Max-Age', options.maxAge.toString());
   }
-  
+
   return response;
 }
 
@@ -120,10 +151,10 @@ export function withCors(
     if (request.method === 'OPTIONS') {
       return handleCorsPreflightRequest(request, options);
     }
-    
+
     // Process the actual request
     const response = await handler(request);
-    
+
     // Apply CORS headers to the response
     return applyCorsHeaders(request, response, options);
   };
@@ -134,17 +165,14 @@ export function withCors(
  */
 export function validateWebSocketOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
-  
+
   if (process.env.NODE_ENV === 'development') {
     return true; // Allow all origins in development
   }
-  
+
   // In production, check against allowed origins
-  const allowedOrigins = [
-    'https://your-domain.com', // Replace with actual production domain
-    'https://www.your-domain.com', // Replace with actual production domain
-  ];
-  
+  const allowedOrigins = getProductionOrigins();
+
   return origin ? allowedOrigins.includes(origin) : false;
 }
 
@@ -158,19 +186,19 @@ export function getApiCorsConfig(endpoint: string): CorsOptions {
         ...DEFAULT_CORS_OPTIONS,
         credentials: true, // Auth endpoints need credentials
       };
-    
+
     case 'realtime':
       return {
         ...DEFAULT_CORS_OPTIONS,
         methods: ['GET', 'POST', 'OPTIONS'], // WebSocket specific
       };
-    
+
     case 'public':
       return {
         ...DEFAULT_CORS_OPTIONS,
         credentials: false, // Public endpoints don't need credentials
       };
-    
+
     default:
       return DEFAULT_CORS_OPTIONS;
   }

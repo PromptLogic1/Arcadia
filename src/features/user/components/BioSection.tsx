@@ -1,7 +1,7 @@
-import { motion } from 'framer-motion';
 import type { Tables } from '@/types/database.types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { NeonText } from '@/components/ui/NeonText';
+import { sanitizeUserBio } from '@/lib/sanitization';
 import { USER_PAGE_CONSTANTS } from './constants';
 
 /**
@@ -23,7 +23,7 @@ export interface BioSectionProps {
  *
  * Features:
  * - Conditional rendering (only shows if bio exists)
- * - Framer Motion animations
+ * - CSS animations
  * - Consistent card styling
  * - Accessible content structure
  * - Type-safe props interface
@@ -38,20 +38,20 @@ export function BioSection({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: animationDelay }}
-      className="mb-8"
+    <div
+      className={`animate-in fade-in slide-in-from-bottom-4 fill-mode-both mb-8 duration-500 [--animation-delay:${animationDelay}s]`}
     >
       <Card className="border-cyan-500/20 bg-gray-800/50">
         <CardContent className="p-6">
           <h3 className="mb-4 text-2xl font-bold">
             <NeonText>About Me</NeonText>
           </h3>
-          <p className="leading-relaxed text-gray-300">{userData.bio}</p>
+          <div
+            className="leading-relaxed text-gray-300"
+            dangerouslySetInnerHTML={{ __html: sanitizeUserBio(userData.bio) }}
+          />
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/Label';
 import { useAuth } from '@/lib/stores';
 import { SETTINGS_CONSTANTS } from './constants';
 import { SettingsMessage } from './ui/SettingsMessage';

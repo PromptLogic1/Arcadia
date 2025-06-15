@@ -15,12 +15,12 @@ import type {
 import {
   validateForm,
   checkPasswordRequirements,
-  isFormValid as validateFormComplete,
+  isFormValid,
 } from '../../utils/validation.utils';
 import { createFormPersistence } from '../../utils/persistence.utils';
 import {
   SIGNUP_FORM_CONFIG,
-  SIGNUP_MESSAGES as _SIGNUP_MESSAGES,
+  SIGNUP_MESSAGES,
   LOG_MESSAGES,
 } from '../constants';
 
@@ -263,7 +263,7 @@ export function useSignUpForm({
 
   // 🧼 Computed Values
   const isFormCompletelyValid = React.useMemo(
-    (): boolean => validateFormComplete(formData, customValidation),
+    (): boolean => isFormValid(formData, customValidation),
     [formData, customValidation]
   );
 

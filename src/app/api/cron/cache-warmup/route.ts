@@ -1,10 +1,11 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { enhancedCache } from '@/lib/cache-enhanced';
 import { log } from '@/lib/logger';
 
 /**
  * Cache Warmup Cron Job
- * 
+ *
  * Scheduled endpoint to warm critical cache entries
  * Configured in vercel.json to run every 15 minutes
  */
@@ -86,7 +87,10 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString(),
       });
     } else {
-      log.error('Cache warmup failed', new Error(result.error || 'Unknown error'));
+      log.error(
+        'Cache warmup failed',
+        new Error(result.error || 'Unknown error')
+      );
 
       return NextResponse.json(
         {

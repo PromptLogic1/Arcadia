@@ -6,10 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { loginFormSchema, type LoginFormData } from '../../types/auth-schemas';
-import {
-  LOGIN_FORM_CONFIG,
-  LOGIN_MESSAGES as _LOGIN_MESSAGES,
-} from '../constants';
+import { LOGIN_FORM_CONFIG, LOGIN_MESSAGES } from '../constants';
 
 // 🧼 Types
 export interface UseLoginFormProps {

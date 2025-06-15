@@ -16,7 +16,8 @@ type Difficulty = Enums<'difficulty_level'>;
 
 export interface EditingCardState {
   card: BingoCard;
-  index: number;
+  index?: number;
+  isNew?: boolean;
 }
 
 export interface BoardEditFormData {

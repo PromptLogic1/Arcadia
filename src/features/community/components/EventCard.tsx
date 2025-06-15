@@ -1,24 +1,25 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { CardContent, CardHeader } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import {
   Users,
   Trophy,
   Calendar,
   ChevronDown,
-  MapPin,
   Star,
   Bell,
   Share2,
-} from 'lucide-react';
+  MapPin,
+} from '@/components/ui/Icons';
 import { CardWrapper } from './shared/CardWrapper';
 import type { Event } from '@/lib/stores/community-store';
-import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { Button } from '@/components/ui/Button';
+import { formatDateFallback } from '@/lib/date-utils-lazy';
 import { log } from '@/lib/logger';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import type { CSSCustomProperties } from '@/types/css-properties';
 import './animations.css';
 
 interface EventCardProps {
@@ -111,7 +112,7 @@ const EventCard = React.memo(
 
     const handleShare = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
-      // Implementiere Share-Funktionalität
+      // TODO: Implement share functionality
     }, []);
 
     const handleRegister = () => {
@@ -138,22 +139,20 @@ const EventCard = React.memo(
                   </h2>
                   <div className="flex items-center space-x-3 text-sm text-gray-400">
                     <Badge
-                      variant="outline"
+                      variant="cyber-emerald"
                       className="border-lime-500/20 bg-gradient-to-r from-lime-500/10 to-emerald-500/10 text-lime-400"
                     >
                       {event.game}
                     </Badge>
                     <span className="text-gray-600">•</span>
                     <time className="text-gray-500">
-                      {event.date
-                        ? format(new Date(event.date), 'MMM d, yyyy')
-                        : 'Date TBD'}
+                      {event.date ? formatDateFallback(event.date) : 'Date TBD'}
                     </time>
                   </div>
                 </div>
                 <div className="ml-4 flex items-center space-x-3">
                   <Badge
-                    variant="outline"
+                    variant="cyber"
                     className="border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 text-yellow-400"
                   >
                     {event.prize}
@@ -179,7 +178,7 @@ const EventCard = React.memo(
                     <p className="text-sm font-medium text-gray-300">Date</p>
                     <p className="text-sm text-gray-400">
                       {event.date
-                        ? format(new Date(event.date), 'MMM d, h:mm a')
+                        ? formatDateFallback(event.date, 'MMM d, h:mm a')
                         : 'Date TBD'}
                     </p>
                   </div>
@@ -210,11 +209,9 @@ const EventCard = React.memo(
             <div
               className="expandable-content"
               data-state={isExpanded ? 'open' : 'closed'}
-              style={
-                {
-                  '--content-height': isExpanded ? 'auto' : '0px',
-                } as React.CSSProperties
-              }
+              style={{
+                '--content-height': isExpanded ? 'auto' : '0px',
+              }}
             >
               {isExpanded && (
                 <div className="space-y-6 bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-6 py-5">
@@ -239,8 +236,8 @@ const EventCard = React.memo(
                         <p className="font-medium">Date & Time</p>
                         <p className="text-sm text-gray-400">
                           {event.date
-                            ? format(
-                                new Date(event.date),
+                            ? formatDateFallback(
+                                event.date,
                                 'EEEE, MMMM d, yyyy h:mm a'
                               )
                             : 'Date TBD'}

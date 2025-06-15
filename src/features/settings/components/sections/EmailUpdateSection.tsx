@@ -2,10 +2,10 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { X, Info } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { X, Info } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS } from '../constants';
 import { useSettings } from '../../hooks/useSettings';
@@ -85,7 +85,7 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
           {!settings.isChangingEmail && (
             <Button
               onClick={() => settings.setIsChangingEmail(true)}
-              variant="outline"
+              variant="secondary"
               className={SETTINGS_CONSTANTS.STYLES.BUTTON_OUTLINE}
             >
               {SETTINGS_CONSTANTS.BUTTONS.CHANGE_EMAIL}
@@ -169,7 +169,7 @@ export function EmailUpdateSection({ currentEmail }: EmailUpdateSectionProps) {
                 <Button
                   type="button"
                   onClick={handleCancel}
-                  variant="outline"
+                  variant="secondary"
                   className={SETTINGS_CONSTANTS.STYLES.BUTTON_OUTLINE}
                   disabled={isLoading}
                 >

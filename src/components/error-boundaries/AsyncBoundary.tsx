@@ -2,7 +2,7 @@
 
 import { Suspense, type ReactNode } from 'react';
 import { BaseErrorBoundary } from './BaseErrorBoundary';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface AsyncBoundaryProps {
   children: ReactNode;

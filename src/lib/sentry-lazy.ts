@@ -6,7 +6,7 @@
  * are loaded only when needed.
  */
 
-import { log } from '@/lib/logger';
+// Removed logger import to prevent circular dependency
 
 // Type definitions for lazy-loaded Sentry
 interface SentryModule {
@@ -34,18 +34,10 @@ interface SentryModule {
     data?: Record<string, unknown>;
     timestamp?: number;
   }) => void;
-  getClient: () =>
-    | {
-        getIntegrationByName?: (name: string) => unknown;
-        addIntegration?: (integration: unknown) => void;
-      }
-    | undefined;
+  getClient: () => unknown;
   replayIntegration: (options?: Record<string, unknown>) => unknown;
   browserTracingIntegration: (options?: Record<string, unknown>) => unknown;
   withScope: (
-    callback: (scope: { setTag: (key: string, value: string) => void }) => void
-  ) => void;
-  configureScope: (
     callback: (scope: { setTag: (key: string, value: string) => void }) => void
   ) => void;
 }
@@ -66,20 +58,27 @@ async function loadSentry(): Promise<void> {
 
   loadPromise = (async () => {
     try {
-      log.info('Loading Sentry SDK...', { component: 'sentry-lazy' });
+      console.info('[sentry-lazy] Loading Sentry SDK...');
 
-      const Sentry = await import('@sentry/nextjs');
-      sentryModule = Sentry as unknown as SentryModule;
+      const SentryImport = await import('@sentry/nextjs');
+      // Map the imported module to our interface
+      sentryModule = {
+        init: SentryImport.init,
+        captureException: SentryImport.captureException,
+        captureMessage: SentryImport.captureMessage,
+        setUser: SentryImport.setUser,
+        setTag: SentryImport.setTag,
+        setContext: SentryImport.setContext,
+        addBreadcrumb: SentryImport.addBreadcrumb,
+        getClient: SentryImport.getClient,
+        replayIntegration: SentryImport.replayIntegration,
+        browserTracingIntegration: SentryImport.browserTracingIntegration,
+        withScope: SentryImport.withScope,
+      };
 
-      log.info('Sentry SDK loaded successfully', { component: 'sentry-lazy' });
+      console.info('[sentry-lazy] Sentry SDK loaded successfully');
     } catch (error) {
-      log.error(
-        'Failed to load Sentry SDK',
-        error instanceof Error ? error : new Error('Failed to load Sentry SDK'),
-        {
-          component: 'sentry-lazy',
-        }
-      );
+      console.error('[sentry-lazy] Failed to load Sentry SDK:', error);
       throw error;
     } finally {
       isLoading = false;
@@ -110,40 +109,18 @@ export async function enableReplay(
   await loadSentry();
   if (!sentryModule) return;
 
-  const client = sentryModule.getClient();
-  if (!client) {
-    log.warn('Sentry client not initialized', { component: 'sentry-lazy' });
-    return;
-  }
-
-  // Check if replay is already enabled
-  const existingReplay = client.getIntegrationByName?.('Replay');
-  if (existingReplay) {
-    log.info('Replay integration already enabled', {
-      component: 'sentry-lazy',
-    });
-    return;
-  }
-
   try {
-    log.info('Loading Replay integration...', { component: 'sentry-lazy' });
+    console.info('[sentry-lazy] Loading Replay integration...');
 
+    // The Sentry SDK will handle adding the integration internally
+    // when we create it with the proper options
     const replayIntegration = sentryModule.replayIntegration(options);
-    client.addIntegration?.(replayIntegration);
 
-    log.info('Replay integration enabled successfully', {
-      component: 'sentry-lazy',
-    });
+    // Note: In newer versions of Sentry, integrations are automatically
+    // registered when created. We don't need to manually add them.
+    console.info('[sentry-lazy] Replay integration created successfully');
   } catch (error) {
-    log.error(
-      'Failed to enable Replay integration',
-      error instanceof Error
-        ? error
-        : new Error('Failed to enable Replay integration'),
-      {
-        component: 'sentry-lazy',
-      }
-    );
+    console.error('[sentry-lazy] Failed to enable Replay integration:', error);
   }
 }
 

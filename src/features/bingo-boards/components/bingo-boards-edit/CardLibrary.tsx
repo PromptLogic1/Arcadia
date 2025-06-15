@@ -1,40 +1,35 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '@/components/ui/Select';
+import { ScrollArea } from '@/components/ui/ScrollArea';
+import { Badge } from '@/components/ui/Badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { cn } from '@/lib/utils';
 import {
-  Search as _Search,
-  Shuffle,
   Star,
-  TrendingUp as _TrendingUp,
-  Clock as _Clock,
-  Package2,
-  Sparkles as _Sparkles,
   RefreshCw,
-  Layers as _Layers,
   Plus,
-  Check as _Check,
   X,
-} from 'lucide-react';
+  Shuffle,
+  Package2,
+} from '@/components/ui/Icons';
 
 // Modern architecture imports
 import { useCardLibrary } from '../../hooks/useCardLibrary';
 import { useCardLibraryVirtualization } from '../../hooks/useCardLibraryVirtualization';
+import { useDebouncedCallback } from '@/hooks/useDebounce';
 
 // Types
-import type { BingoCard, GameCategory, Difficulty } from '@/types';
+import type { BingoCard, GameCategory } from '@/types';
 import type { VirtualItem } from '@tanstack/react-virtual';
 
 // Design System
@@ -58,7 +53,7 @@ interface CardLibraryProps {
  * Modern Card Library Component
  * Uses TanStack Query + Zustand architecture
  */
-export function CardLibrary({
+export const CardLibrary = React.memo(function CardLibrary({
   gameType,
   onCardSelect,
   onShuffle,
@@ -98,25 +93,30 @@ export function CardLibrary({
     isCreatingBulkCards,
   } = useCardLibrary({ gameType });
 
-  // Responsive columns calculation
-  const [columns, setColumns] = useState(3);
+  // Responsive columns calculation with debounced resize handling
+  const [columns, setColumns] = useState(() => {
+    if (typeof window === 'undefined') return 3;
+    const width = window.innerWidth;
+    if (width < 640) return 1;
+    if (width < 1024) return 2;
+    return 3;
+  });
+
+  const handleResize = useDebouncedCallback(() => {
+    const width = window.innerWidth;
+    if (width < 640) {
+      setColumns(1); // Mobile
+    } else if (width < 1024) {
+      setColumns(2); // Tablet
+    } else {
+      setColumns(3); // Desktop
+    }
+  }, 150); // Debounce by 150ms
 
   useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width < 640) {
-        setColumns(1); // Mobile
-      } else if (width < 1024) {
-        setColumns(2); // Tablet
-      } else {
-        setColumns(3); // Desktop
-      }
-    };
-
-    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [handleResize]);
 
   // Setup virtualization for cards grid
   const { containerRef, virtualizer, getCardAtIndex } =
@@ -124,6 +124,48 @@ export function CardLibrary({
       cards: publicCards,
       columns,
     });
+
+  // Memoized styles for virtualization to prevent unnecessary re-renders
+  const virtualContainerStyle = useMemo(
+    () => ({
+      height: `${virtualizer.getTotalSize()}px`,
+      width: '100%',
+      position: 'relative' as const,
+      padding: '1rem',
+    }),
+    [virtualizer]
+  );
+
+  const loadMoreStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    }),
+    []
+  );
+
+  // Function to create virtual item style (called per item but stable structure)
+  const createVirtualItemStyle = useCallback(
+    (virtualRow: VirtualItem) => ({
+      position: 'absolute' as const,
+      top: 0,
+      left: '1rem',
+      right: '1rem',
+      height: `${virtualRow.size}px`,
+      transform: `translateY(${virtualRow.start}px)`,
+    }),
+    []
+  );
+
+  // Memoized grid style that changes only when columns change
+  const gridStyle = useMemo(
+    () => ({
+      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+    }),
+    [columns]
+  );
 
   // Handle shuffle action
   const handleShuffleClick = useCallback(async () => {
@@ -176,6 +218,38 @@ export function CardLibrary({
     }
   }, [selectedCardsArray, onBulkAddCards, clearSelectedCards, setBulkMode]);
 
+  // Memoized callbacks for filter changes
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleFilterChange('search', e.target.value);
+    },
+    [handleFilterChange]
+  );
+
+  const handleDifficultyChange = useCallback(
+    (value: string) => {
+      handleFilterChange('difficulty', value);
+    },
+    [handleFilterChange]
+  );
+
+  const handleSortByChange = useCallback(
+    (value: string) => {
+      handleFilterChange(
+        'sortBy',
+        value as 'popular' | 'newest' | 'rating' | 'title'
+      );
+    },
+    [handleFilterChange]
+  );
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      setActiveTab(value as 'library' | 'collections' | 'create');
+    },
+    [setActiveTab]
+  );
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -185,7 +259,7 @@ export function CardLibrary({
             Card Library
           </h3>
           <Badge
-            variant="outline"
+            variant="cyber"
             className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
           >
             {totalCount} cards
@@ -194,7 +268,7 @@ export function CardLibrary({
           {/* Bulk Operations Toggle */}
           <Button
             size="sm"
-            variant={bulkMode ? 'default' : 'outline'}
+            variant={bulkMode ? 'primary' : 'ghost'}
             onClick={() => setBulkMode(!bulkMode)}
             className="ml-auto gap-2"
           >
@@ -218,16 +292,14 @@ export function CardLibrary({
             <Input
               placeholder="Search cards..."
               value={filters.search}
-              onChange={e => handleFilterChange('search', e.target.value)}
+              onChange={handleSearchChange}
               className="border-gray-700 bg-gray-800/50"
             />
           </div>
 
           <Select
             value={filters.difficulty}
-            onValueChange={value =>
-              handleFilterChange('difficulty', value as Difficulty | 'all')
-            }
+            onValueChange={handleDifficultyChange}
           >
             <SelectTrigger className="w-[140px] border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Difficulty" />
@@ -242,15 +314,7 @@ export function CardLibrary({
             </SelectContent>
           </Select>
 
-          <Select
-            value={filters.sortBy}
-            onValueChange={value =>
-              handleFilterChange(
-                'sortBy',
-                value as 'popular' | 'newest' | 'rating' | 'title'
-              )
-            }
-          >
+          <Select value={filters.sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[120px] border-gray-700 bg-gray-800/50">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
@@ -282,7 +346,11 @@ export function CardLibrary({
               {selectedCardsArray.length} cards selected
             </span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={clearSelectedCards}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={clearSelectedCards}
+              >
                 Clear
               </Button>
               <Button
@@ -305,9 +373,7 @@ export function CardLibrary({
       <div className="flex-1 overflow-hidden">
         <Tabs
           value={activeTab}
-          onValueChange={value =>
-            setActiveTab(value as 'library' | 'collections' | 'create')
-          }
+          onValueChange={handleTabChange}
           className="flex h-full flex-col"
         >
           <TabsList className="grid w-full grid-cols-2">
@@ -324,7 +390,7 @@ export function CardLibrary({
               <div className="flex h-64 flex-col items-center justify-center text-gray-400">
                 <p>Failed to load cards</p>
                 <Button
-                  variant="outline"
+                  variant="primary"
                   onClick={() => refetchCards()}
                   className="mt-2"
                 >
@@ -333,35 +399,16 @@ export function CardLibrary({
               </div>
             ) : (
               <div ref={containerRef} className="h-full overflow-auto">
-                <div
-                  style={{
-                    height: `${virtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                    padding: '1rem',
-                  }}
-                >
+                <div style={virtualContainerStyle}>
                   {virtualizer
                     .getVirtualItems()
                     .map((virtualRow: VirtualItem) => {
                       return (
                         <div
                           key={virtualRow.key}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: '1rem',
-                            right: '1rem',
-                            height: `${virtualRow.size}px`,
-                            transform: `translateY(${virtualRow.start}px)`,
-                          }}
+                          style={createVirtualItemStyle(virtualRow)}
                         >
-                          <div
-                            className="grid gap-3"
-                            style={{
-                              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                            }}
-                          >
+                          <div className="grid gap-3" style={gridStyle}>
                             {Array.from({ length: columns }).map(
                               (_, colIndex) => {
                                 const card = getCardAtIndex(
@@ -411,7 +458,7 @@ export function CardLibrary({
 
                                       <div className="flex items-center justify-between">
                                         <Badge
-                                          variant="outline"
+                                          variant="cyber"
                                           className={getDifficultyStyles(
                                             card.difficulty
                                           )}
@@ -435,17 +482,9 @@ export function CardLibrary({
 
                   {/* Load More - positioned after virtual items */}
                   {hasMore && (
-                    <div
-                      className="p-4 text-center"
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                      }}
-                    >
+                    <div className="p-4 text-center" style={loadMoreStyle}>
                       <Button
-                        variant="outline"
+                        variant="primary"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={isLoading}
                       >
@@ -495,7 +534,7 @@ export function CardLibrary({
                         {collection.cardCount} cards
                       </div>
                       <Badge
-                        variant="outline"
+                        variant="cyber"
                         className={getDifficultyStyles(collection.difficulty)}
                       >
                         {collection.difficulty}
@@ -510,4 +549,4 @@ export function CardLibrary({
       </div>
     </div>
   );
-}
+});

@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Wand2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Wand2 } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 
 interface GeneratorControlsProps {

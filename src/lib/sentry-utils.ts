@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/nextjs';
+// Lazy import Sentry to prevent webpack loading issues
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 // Augment the Navigator interface for Network Information API
@@ -17,53 +17,73 @@ declare global {
  */
 export function setSentryUser(
   user: { id: string; email?: string; username?: string } | null
-) {
-  if (user) {
-    Sentry.setUser({
-      id: user.id,
-      email: user.email,
-      username: user.username,
-    });
-  } else {
-    Sentry.setUser(null);
+): void {
+  try {
+    import('@sentry/nextjs')
+      .then(({ setUser }) => {
+        if (user) {
+          setUser({
+            id: user.id,
+            email: user.email,
+            username: user.username,
+          });
+        } else {
+          setUser(null);
+        }
+      })
+      .catch(() => {
+        // Silently fail if Sentry is not available
+      });
+  } catch {
+    // Silently fail if dynamic import is not supported
   }
 }
 
 /**
  * Add additional context to Sentry errors
  */
-export function addSentryContext() {
-  // Add build info
-  Sentry.setContext('build', {
-    version: process.env.NEXT_PUBLIC_APP_VERSION || 'unknown',
-    environment: process.env.NODE_ENV,
-    buildTime: process.env.NEXT_PUBLIC_BUILD_TIME || 'unknown',
-  });
+export function addSentryContext(): void {
+  try {
+    import('@sentry/nextjs')
+      .then(({ setContext }) => {
+        // Add build info
+        setContext('build', {
+          version: process.env.NEXT_PUBLIC_APP_VERSION || 'unknown',
+          environment: process.env.NODE_ENV,
+          buildTime: process.env.NEXT_PUBLIC_BUILD_TIME || 'unknown',
+        });
 
-  // Add browser info (client-side only)
-  if (typeof window !== 'undefined') {
-    Sentry.setContext('browser', {
-      userAgent: navigator.userAgent,
-      language: navigator.language,
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-      screen: {
-        width: window.screen.width,
-        height: window.screen.height,
-      },
-    });
+        // Add browser info (client-side only)
+        if (typeof window !== 'undefined') {
+          setContext('browser', {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            viewport: {
+              width: window.innerWidth,
+              height: window.innerHeight,
+            },
+            screen: {
+              width: window.screen.width,
+              height: window.screen.height,
+            },
+          });
 
-    // Add performance context
-    // Now TypeScript knows about the connection property through global augmentation
-    if (navigator.connection) {
-      Sentry.setContext('network', {
-        effectiveType: navigator.connection.effectiveType,
-        downlink: navigator.connection.downlink,
-        rtt: navigator.connection.rtt,
+          // Add performance context
+          // Now TypeScript knows about the connection property through global augmentation
+          if (navigator.connection) {
+            setContext('network', {
+              effectiveType: navigator.connection.effectiveType,
+              downlink: navigator.connection.downlink,
+              rtt: navigator.connection.rtt,
+            });
+          }
+        }
+      })
+      .catch(() => {
+        // Silently fail if Sentry is not available
       });
-    }
+  } catch {
+    // Silently fail if dynamic import is not supported
   }
 }
 
@@ -73,20 +93,30 @@ export function addSentryContext() {
 export function captureErrorWithContext(
   error: Error,
   context: Record<string, Record<string, unknown> | null>,
-  level: Sentry.SeverityLevel = 'error'
-) {
-  Sentry.withScope(scope => {
-    // Set level
-    scope.setLevel(level);
+  level: 'debug' | 'info' | 'warning' | 'error' | 'fatal' = 'error'
+): void {
+  try {
+    import('@sentry/nextjs')
+      .then(({ withScope, captureException }) => {
+        withScope(scope => {
+          // Set level
+          scope.setLevel(level);
 
-    // Add context
-    Object.entries(context).forEach(([key, value]) => {
-      scope.setContext(key, value);
-    });
+          // Add context
+          Object.entries(context).forEach(([key, value]) => {
+            scope.setContext(key, value);
+          });
 
-    // Capture
-    return Sentry.captureException(error);
-  });
+          // Capture
+          captureException(error);
+        });
+      })
+      .catch(() => {
+        // Silently fail if Sentry is not available
+      });
+  } catch {
+    // Silently fail if dynamic import is not supported
+  }
 }
 
 /**
@@ -96,15 +126,25 @@ export function addBreadcrumb(
   message: string,
   category: string,
   data?: Record<string, unknown>,
-  level: Sentry.SeverityLevel = 'info'
-) {
-  Sentry.addBreadcrumb({
-    message,
-    category,
-    level,
-    data,
-    timestamp: Date.now() / 1000,
-  });
+  level: 'debug' | 'info' | 'warning' | 'error' | 'fatal' = 'info'
+): void {
+  try {
+    import('@sentry/nextjs')
+      .then(({ addBreadcrumb: sentryAddBreadcrumb }) => {
+        sentryAddBreadcrumb({
+          message,
+          category,
+          level,
+          data,
+          timestamp: Date.now() / 1000,
+        });
+      })
+      .catch(() => {
+        // Silently fail if Sentry is not available
+      });
+  } catch {
+    // Silently fail if dynamic import is not supported
+  }
 }
 
 /**
@@ -115,21 +155,33 @@ export function trackTransaction<T>(
   operation: string,
   callback: () => Promise<T>
 ): Promise<T> {
-  // In Sentry v8, use startSpan instead of startTransaction
-  return Sentry.startSpan(
-    {
-      name,
-      op: operation,
-    },
-    async () => {
-      try {
-        const result = await callback();
-        return result;
-      } catch (error) {
-        throw error;
-      }
-    }
-  );
+  try {
+    return import('@sentry/nextjs')
+      .then(({ startSpan }) => {
+        // In Sentry v8, use startSpan instead of startTransaction
+        return startSpan(
+          {
+            name,
+            op: operation,
+          },
+          async () => {
+            try {
+              const result = await callback();
+              return result;
+            } catch (error) {
+              throw error;
+            }
+          }
+        );
+      })
+      .catch(() => {
+        // Fallback to just running the callback if Sentry is not available
+        return callback();
+      });
+  } catch (error) {
+    // Fallback to just running the callback if dynamic import is not supported
+    return callback();
+  }
 }
 
 /**

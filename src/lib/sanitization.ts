@@ -2,6 +2,7 @@ import DOMPurify from 'dompurify';
 import type React from 'react';
 import type { ReactElement } from 'react';
 import { createElement } from 'react';
+import { log } from '@/lib/logger';
 
 /**
  * Configuration for different content types
@@ -10,11 +11,27 @@ const SANITIZATION_CONFIGS = {
   // For user-generated content like descriptions, bios, comments
   userContent: {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'blockquote', 'code'
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      'ol',
+      'ul',
+      'li',
+      'blockquote',
+      'code',
     ] as string[],
     ALLOWED_ATTR: [] as string[],
     FORBID_ATTR: ['style', 'class', 'id'] as string[],
-    FORBID_TAGS: ['script', 'object', 'embed', 'link', 'style', 'meta'] as string[],
+    FORBID_TAGS: [
+      'script',
+      'object',
+      'embed',
+      'link',
+      'style',
+      'meta',
+    ] as string[],
     KEEP_CONTENT: true,
   },
   // For plain text that should not contain any HTML
@@ -32,12 +49,43 @@ const SANITIZATION_CONFIGS = {
   // For rich content that might contain safe HTML
   richContent: {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'blockquote', 'code',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'hr'
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      'ol',
+      'ul',
+      'li',
+      'blockquote',
+      'code',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'pre',
+      'hr',
     ] as string[],
     ALLOWED_ATTR: [] as string[],
-    FORBID_ATTR: ['style', 'class', 'id', 'onclick', 'onload', 'onerror'] as string[],
-    FORBID_TAGS: ['script', 'object', 'embed', 'link', 'style', 'meta', 'iframe'] as string[],
+    FORBID_ATTR: [
+      'style',
+      'class',
+      'id',
+      'onclick',
+      'onload',
+      'onerror',
+    ] as string[],
+    FORBID_TAGS: [
+      'script',
+      'object',
+      'embed',
+      'link',
+      'style',
+      'meta',
+      'iframe',
+    ] as string[],
     KEEP_CONTENT: true,
   },
 };
@@ -63,7 +111,9 @@ export function sanitizeHtml(
     return DOMPurify.sanitize(dirty, config);
   } catch (error) {
     // If DOMPurify fails, strip all HTML as fallback
-    console.error('DOMPurify sanitization failed:', error);
+    log.error('DOMPurify sanitization failed', error, {
+      metadata: { service: 'sanitization', type, inputLength: dirty.length },
+    });
     return dirty.replace(/<[^>]*>/g, '');
   }
 }
@@ -156,7 +206,7 @@ export function SanitizedHtml({
   tag = 'div',
 }: SanitizedHtmlProps): ReactElement {
   const sanitizedContent = sanitizeHtml(html, type);
-  
+
   return createElement(tag, {
     className,
     dangerouslySetInnerHTML: { __html: sanitizedContent },

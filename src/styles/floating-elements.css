@@ -1,0 +1,67 @@
+/* Optimized CSS animations for floating elements */
+/* Using GPU-accelerated transforms only */
+
+@keyframes subtle-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes gentle-glow {
+  0%, 100% {
+    opacity: 0.1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.15;
+    transform: translate3d(0, -5px, 0) scale(1.05);
+  }
+}
+
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.1);
+  }
+}
+
+/* Apply animations with will-change for better performance */
+.animate-subtle-float {
+  animation: subtle-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-gentle-glow {
+  animation: gentle-glow 4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-subtle-float,
+  .animate-gentle-glow,
+  .animate-soft-pulse {
+    animation: none;
+  }
+}
+
+/* Performance optimization for mobile devices */
+@media (max-width: 768px) {
+  .animate-subtle-float,
+  .animate-gentle-glow,
+  .animate-soft-pulse {
+    animation-duration: 10s; /* Slower animations on mobile */
+  }
+}

@@ -3,7 +3,7 @@
  * Using shadcn toast components for consistent UI
  */
 
-import { useToast } from '@/src/components/ui/use-toast';
+import { useToast } from '@/components/ui/UseToast';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 

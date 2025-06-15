@@ -6,6 +6,8 @@
  */
 
 import { cva, type VariantProps } from 'class-variance-authority';
+import { getDifficultyColorClasses } from '@/src/config/theme';
+import type { Difficulty } from '@/types';
 
 // =============================================================================
 // COLOR PALETTE
@@ -305,21 +307,10 @@ export const badgeVariants = cva(
 // =============================================================================
 
 /**
- * Get difficulty badge styles
+ * Get difficulty badge styles - delegates to global theme
  */
-export function getDifficultyStyles(difficulty: string) {
-  const difficultyMap = {
-    beginner: 'bg-green-500/20 text-green-300 border-green-500/30',
-    easy: 'bg-green-500/20 text-green-300 border-green-500/30',
-    medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-    hard: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-    expert: 'bg-red-500/20 text-red-300 border-red-500/30',
-  };
-
-  return (
-    difficultyMap[difficulty as keyof typeof difficultyMap] ||
-    difficultyMap.medium
-  );
+export function getDifficultyStyles(difficulty: Difficulty) {
+  return getDifficultyColorClasses(difficulty);
 }
 
 /**

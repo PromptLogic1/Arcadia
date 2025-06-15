@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Video, VideoOff, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Video, VideoOff, Loader2 } from '@/components/ui/Icons';
 import { useSentryReplayWithConsent } from '@/hooks/useSentryReplay';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@/components/ui/Tooltip';
 
 /**
  * Toggle component for enabling/disabling Sentry Session Replay
@@ -89,7 +89,7 @@ export function SentryReplaySettings() {
           </p>
         </div>
         <Button
-          variant={isEnabled ? 'destructive' : 'default'}
+          variant={isEnabled ? 'danger' : 'primary'}
           size="sm"
           onClick={handleToggle}
           disabled={isLoading}

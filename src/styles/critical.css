@@ -1,0 +1,279 @@
+/* Critical CSS - Inlined into HTML for immediate rendering */
+
+/* Base reset and critical styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+/* Prevent layout shifts */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-strict {
+  contain: strict;
+}
+
+/* Reserve space for images to prevent CLS */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Optimize font loading */
+.font-display-swap {
+  font-display: swap;
+}
+
+/* Prevent FOUC (Flash of Unstyled Content) */
+html {
+  visibility: visible;
+  -webkit-text-size-adjust: 100%;
+  line-height: 1.5;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Fixed height sections to prevent shifts */
+.min-h-hero {
+  min-height: 100vh;
+}
+
+.min-h-section {
+  min-height: 400px;
+}
+
+/* Ensure dark mode is always on */
+:root {
+  color-scheme: dark;
+  --radius: 0.5rem;
+  /* Critical color variables for immediate rendering */
+  --background: 2 6 23;
+  --foreground: 236 254 255;
+  --primary: 34 211 238;
+  --primary-foreground: 2 6 23;
+  --card: 20 21 28;
+  --card-foreground: 236 254 255;
+  --border: 34 34 42;
+}
+
+body {
+  background-color: rgb(2 6 23);
+  color: rgb(236 254 255);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Critical layout containers */
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+/* Critical text styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+/* Critical button styles */
+button, [role="button"] {
+  cursor: pointer;
+  font-family: inherit;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Critical input styles */
+input, textarea, select {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+/* Critical link styles */
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/* Skeleton loader for dynamic imports */
+.skeleton {
+  animation: skeleton-loading 1s linear infinite alternate;
+  background-color: rgb(34 34 42);
+  border-radius: 0.25rem;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: rgb(34 34 42);
+  }
+  100% {
+    background-color: rgb(52 52 62);
+  }
+}
+
+/* Header animations - replacing Framer Motion */
+.search-input-wrapper {
+  will-change: width, opacity;
+}
+
+.mobile-menu {
+  overflow: hidden;
+  will-change: max-height, opacity;
+}
+
+.mobile-menu-closed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.mobile-menu-open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+/* Smooth fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Fade in animation for modals */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Slide up animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Subtle bounce for icons */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 1s ease-in-out infinite;
+}
+
+/* Fade in with slide animation */
+@keyframes fade-in-slide {
+  from {
+    opacity: 0;
+    transform: translateX(var(--slide-from, 0));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-slide {
+  animation: fade-in-slide 0.5s ease-out;
+}
+
+/* Float animation for particles */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  33% {
+    transform: translateY(-10px) translateX(5px);
+  }
+  66% {
+    transform: translateY(5px) translateX(-5px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}

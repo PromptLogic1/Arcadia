@@ -80,7 +80,9 @@ const mockAuthActions = {
   setAuthUser: jest.fn() as jest.MockedFunction<
     (user: AuthUser | null) => void
   >,
-  setUserData: jest.fn() as jest.MockedFunction<(userData: any) => void>,
+  setUserData: jest.fn() as jest.MockedFunction<
+    (userData: UserData | null) => void
+  >,
   clearUser: jest.fn() as jest.MockedFunction<() => void>,
 };
 
@@ -275,7 +277,7 @@ const renderWithUserEvent = (ui: React.ReactElement) => {
 };
 
 describe('Authentication Integration Tests', () => {
-  let _mockSupabaseClient: any;
+  let _mockSupabaseClient: unknown;
 
   beforeEach(() => {
     // Reset all mocks

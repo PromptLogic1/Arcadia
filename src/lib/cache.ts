@@ -7,6 +7,7 @@ import { cacheService } from '@/services/redis.service';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { log } from '@/lib/logger';
+import { cacheMetrics, measureLatency } from '@/lib/cache-metrics';
 
 /**
  * Centralized TTL strategy for consistent caching
@@ -40,15 +41,25 @@ class RedisCache {
     data: T,
     ttlSeconds = 300
   ): Promise<ServiceResponse<void>> {
+    const setLatency = measureLatency();
+
     try {
       const result = await cacheService.set(key, data, ttlSeconds);
-      if (!result.success) {
+      const latency = setLatency();
+
+      if (result.success) {
+        cacheMetrics.recordSet(latency);
+      } else {
+        cacheMetrics.recordError(latency);
         log.warn('Cache set operation failed', {
           metadata: { key, ttl: ttlSeconds, error: result.error },
         });
       }
       return result;
     } catch (error) {
+      const latency = setLatency();
+      cacheMetrics.recordError(latency);
+
       log.error(
         'Cache set operation threw error',
         error instanceof Error ? error : new Error(String(error)),
@@ -68,9 +79,13 @@ class RedisCache {
     key: string,
     schema?: { parse: (data: unknown) => T }
   ): Promise<ServiceResponse<T | null>> {
+    const getLatency = measureLatency();
+
     try {
+      let result: ServiceResponse<T | null>;
+
       if (schema) {
-        return await cacheService.getWithSchema(key, schema);
+        result = await cacheService.getWithSchema(key, schema);
       } else {
         // Without schema, we delegate to the lower-level service
         // which will return unknown data that the caller must handle
@@ -79,9 +94,25 @@ class RedisCache {
         });
         // For type safety without schema, we must return null
         // This forces callers to either provide a schema or handle null
-        return createServiceSuccess(null);
+        result = createServiceSuccess(null);
       }
+
+      const latency = getLatency();
+
+      // Track metrics
+      if (result.success && result.data !== null) {
+        cacheMetrics.recordHit(latency);
+      } else if (result.success && result.data === null) {
+        cacheMetrics.recordMiss(latency);
+      } else {
+        cacheMetrics.recordError(latency);
+      }
+
+      return result;
     } catch (error) {
+      const latency = getLatency();
+      cacheMetrics.recordError(latency);
+
       log.error(
         'Cache get operation threw error',
         error instanceof Error ? error : new Error(String(error)),
@@ -197,15 +228,11 @@ class RedisCache {
   async setAuto<T>(key: string, data: T): Promise<ServiceResponse<void>> {
     // Extract prefix from key to determine TTL
     const keyPrefix = key.split(':')[1]; // Skip '@arcadia/cache:' prefix
-    const ttlCategory =
-      CACHE_KEY_TTL_MAP[keyPrefix as keyof typeof CACHE_KEY_TTL_MAP];
 
-    if (ttlCategory) {
-      return await this.setWithCategory(
-        key,
-        data,
-        ttlCategory as keyof typeof CACHE_TTL
-      );
+    if (keyPrefix && keyPrefix in CACHE_KEY_TTL_MAP) {
+      const ttlKey = keyPrefix as keyof typeof CACHE_KEY_TTL_MAP;
+      const ttlCategory = CACHE_KEY_TTL_MAP[ttlKey];
+      return await this.setWithCategory(key, data, ttlCategory);
     } else {
       // Default TTL for unknown key types
       return await this.set(key, data, CACHE_TTL.QUERY_RESULT);

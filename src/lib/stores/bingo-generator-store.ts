@@ -1,5 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
+import { useShallow } from 'zustand/react/shallow';
 import type { BingoCard } from './types';
 import type { GameCategory } from '@/types';
 import type { Enums } from '@/types/database.types';
@@ -156,17 +157,13 @@ export const useBingoGeneratorStore =
 
 // Selector hooks for better performance
 export const useBingoGenerator = () => {
-  const cardsForSelection = useBingoGeneratorStore(
-    state => state.cardsForSelection
+  return useBingoGeneratorStore(
+    useShallow(state => ({
+      cardsForSelection: state.cardsForSelection,
+      selectedCards: state.selectedCards,
+      settings: state.settings,
+    }))
   );
-  const selectedCards = useBingoGeneratorStore(state => state.selectedCards);
-  const settings = useBingoGeneratorStore(state => state.settings);
-
-  return {
-    cardsForSelection,
-    selectedCards,
-    settings,
-  };
 };
 
 // Separate selector for just generator settings

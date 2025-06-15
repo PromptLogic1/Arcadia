@@ -5,6 +5,7 @@ import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
 import { zBoardSettings } from '@/lib/validation/schemas/bingo';
 import { log } from '@/lib/logger';
+import { transformBoardSettings } from '@/lib/validation/transforms';
 
 // Type alias for the inferred Zod schema
 type BoardSettings = z.infer<typeof zBoardSettings>;
@@ -86,7 +87,7 @@ export const gameSettingsService = {
 
       let query = supabase
         .from('bingo_boards')
-        .update({ settings })
+        .update({ settings: transformBoardSettings(settings) })
         .eq('id', boardId)
         .select('settings');
 
@@ -217,7 +218,7 @@ export const gameSettingsService = {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('bingo_boards')
-        .update({ settings })
+        .update({ settings: transformBoardSettings(settings) })
         .eq('id', boardId)
         .select('settings')
         .single();

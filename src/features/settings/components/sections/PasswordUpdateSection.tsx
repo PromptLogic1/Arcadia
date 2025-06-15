@@ -2,10 +2,10 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { X } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { X } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS, type PasswordCheck } from '../constants';
 import { useSettings } from '../../hooks/useSettings';
@@ -100,7 +100,7 @@ export function PasswordUpdateSection() {
           {!settings.isChangingPassword && (
             <Button
               onClick={() => settings.setIsChangingPassword(true)}
-              variant="outline"
+              variant="secondary"
               className={SETTINGS_CONSTANTS.STYLES.BUTTON_OUTLINE}
             >
               {SETTINGS_CONSTANTS.BUTTONS.CHANGE_PASSWORD}
@@ -197,7 +197,7 @@ export function PasswordUpdateSection() {
                 <Button
                   type="button"
                   onClick={handleCancel}
-                  variant="outline"
+                  variant="secondary"
                   className={SETTINGS_CONSTANTS.STYLES.BUTTON_OUTLINE}
                   disabled={isLoading}
                 >

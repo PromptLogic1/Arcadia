@@ -15,7 +15,7 @@
     "dev:turbo": "next dev",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
-    "bundle:analyze": "node scripts/performance/bundle-analyzer.js",
+    "bundle:analyze": "node scripts/performance/bundle-optimizer.js",
     "bundle:check": "npm run build && npm run bundle:analyze",
     "start": "next start",
     "lint": "next lint",
@@ -59,7 +59,6 @@
     "seed:demo:verify": "tsx scripts/database/seed-demo-boards.ts verify",
     "test:migration": "tsx scripts/database/test-migration.ts",
     "deps:clean": "node scripts/utilities/remove-unused-deps.js",
-    "bundle:analyze": "node scripts/performance/bundle-optimizer.js",
     "bundle:optimize": "node scripts/performance/analyze-bundle.js"
   },
   "dependencies": {
@@ -122,8 +121,8 @@
     "@types/node": "^22.15.27",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.3.3",

@@ -145,7 +145,7 @@ export class ScoringService {
 
   // Get difficulty modifier based on board settings
   getDifficultyMultiplier(difficulty: string): number {
-    const multipliers = {
+    const multipliers: Record<string, number> = {
       beginner: 0.8,
       easy: 1.0,
       medium: 1.2,
@@ -153,7 +153,7 @@ export class ScoringService {
       expert: 2.0,
     };
 
-    return multipliers[difficulty as keyof typeof multipliers] || 1.0;
+    return multipliers[difficulty] || 1.0;
   }
 
   // Calculate placement bonus

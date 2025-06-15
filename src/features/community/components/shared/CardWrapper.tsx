@@ -6,7 +6,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 
 interface CardWrapperProps {
@@ -34,10 +34,9 @@ export const CardWrapper: React.FC<CardWrapperProps> = ({
 }) => {
   return (
     <Card
-      variant="cyber"
-      glow="subtle"
+      variant="primary"
       className={cn(
-        'group w-full transition-all duration-300 hover:scale-[1.02]',
+        'group w-full transition-all duration-300 will-change-transform hover:scale-[1.02]',
         className
       )}
       onClick={onClick}

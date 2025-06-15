@@ -1,16 +1,20 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import {
+  OptimizedAvatar as Avatar,
+  OptimizedAvatarImage as AvatarImage,
+  OptimizedAvatarFallback as AvatarFallback,
+} from '@/components/ui/OptimizedAvatar';
+import { Badge } from '@/components/ui/Badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -19,8 +23,14 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
-import { UserPlus, UserMinus, User, Users2, Crown } from 'lucide-react';
+} from '@/components/ui/AlertDialog';
+import {
+  UserPlus,
+  UserMinus,
+  User,
+  Users2,
+  Crown,
+} from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { GamePlayer } from '../../types';
 import { PLAYER_CONSTANTS } from '../../types/player-management.constants';
@@ -81,7 +91,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
           <div className="flex gap-2">
             <Button
               onClick={handleGenerateInviteLink}
-              variant="outline"
+              variant="secondary"
               size="sm"
               disabled={queue.isGeneratingLink}
               className={cn(
@@ -96,7 +106,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             </Button>
             <Button
               onClick={() => queue.setShowQueueDialog(true)}
-              variant="outline"
+              variant="secondary"
               size="sm"
               className={cn(
                 'h-8 px-3',
@@ -161,15 +171,19 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
             {/* Player Info */}
             <div className="flex items-center gap-3">
               <Avatar
+                size="sm"
                 className={cn(
-                  'h-8 w-8 shrink-0 border-2',
+                  'shrink-0 border-2',
                   'transition-colors duration-200'
                 )}
                 style={{
                   borderColor: `rgb(var(--${player.color.replace('bg-', '')}))`,
                 }}
               >
-                <AvatarImage src={player.avatarUrl} alt={player.name} />
+                <AvatarImage
+                  src={player.avatarUrl}
+                  alt={`${player.name}'s avatar`}
+                />
                 <AvatarFallback className="bg-gray-900/50">
                   <User className="h-4 w-4 text-gray-400" />
                 </AvatarFallback>
@@ -333,7 +347,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     <Button
                       onClick={() => queue.acceptPlayer(entry.id)}
                       size="sm"
-                      variant="default"
+                      variant="primary"
                       disabled={queue.isAcceptingPlayer}
                     >
                       Accept
@@ -341,7 +355,7 @@ export const PlayerManagement: React.FC<PlayerManagementProps> = ({
                     <Button
                       onClick={() => queue.rejectPlayer(entry.id)}
                       size="sm"
-                      variant="destructive"
+                      variant="danger"
                       disabled={queue.isRejectingPlayer}
                     >
                       Reject

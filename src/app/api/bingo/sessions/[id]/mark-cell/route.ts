@@ -5,7 +5,7 @@ import {
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limiter-middleware';
 import { log } from '@/lib/logger';
-import { gameStateService } from '@/src/services';
+import { gameStateService, authService } from '@/src/services';
 import { markCellRequestSchema } from '@/lib/validation/schemas/bingo';
 import {
   validateRequestBody,
@@ -26,7 +26,17 @@ export const POST = withRateLimit(
     try {
       sessionId = params.id;
 
-      // Validate request body with Zod
+      // CRITICAL: Authenticate user first
+      const { data: user, success: authSuccess } =
+        await authService.getCurrentUser();
+      if (!authSuccess || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      // Use authenticated user ID
+      userId = user.id;
+
+      // Validate request body with Zod - but we'll ignore the user_id from request
       const validation = await validateRequestBody(
         request,
         markCellRequestSchema,
@@ -34,6 +44,7 @@ export const POST = withRateLimit(
           apiRoute: 'bingo/sessions/[id]/mark-cell',
           method: 'POST',
           sessionId,
+          userId, // Log the authenticated user ID
         }
       );
 
@@ -41,21 +52,15 @@ export const POST = withRateLimit(
         return validation.error;
       }
 
-      const {
-        cell_position,
-        user_id,
-        action: actionValue,
-        version,
-      } = validation.data;
+      const { cell_position, action: actionValue, version } = validation.data;
 
-      userId = user_id;
       cellPosition = cell_position;
       action = actionValue;
 
-      // Use the game state service
+      // Use the game state service with authenticated user ID
       const result = await gameStateService.markCell(sessionId, {
         cell_position,
-        user_id,
+        user_id: userId, // Use the authenticated user ID, not from request
         action: actionValue,
         version: version ?? 0, // Default to 0 if version is not provided
       });

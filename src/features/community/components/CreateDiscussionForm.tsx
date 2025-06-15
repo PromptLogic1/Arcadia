@@ -5,15 +5,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { DialogWrapper } from './shared/DialogWrapper';
 import { CommunityGameFilters } from './CommunityGameFilters';
 
-import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { X } from '@/components/ui/Icons';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
 
 interface CreateDiscussionFormProps {
@@ -171,7 +171,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
           <DialogFooter className="gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
               className="border-gray-600 bg-gray-700/50 transition-colors hover:bg-gray-600"
             >

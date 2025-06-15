@@ -28,8 +28,9 @@ export interface UseCommunityVirtualizationReturn {
 // =============================================================================
 
 const VIRTUALIZER_CONFIG = {
-  estimateSize: () => 200,
-  overscan: 5,
+  estimateSize: () => 280, // Increased to account for actual card height + gap
+  overscan: 3,
+  gap: 24, // Gap between cards
 } as const;
 
 // =============================================================================

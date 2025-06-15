@@ -17,6 +17,7 @@ import {
 import { log } from '@/lib/logger';
 import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { redisCircuitBreaker } from '@/lib/circuit-breaker';
 
 /**
  * Check if we're running in a browser environment
@@ -56,19 +57,22 @@ export const redisService = {
     }
 
     try {
-      const redis = getRedisClient();
+      // Use circuit breaker for fault tolerance
+      await redisCircuitBreaker.execute(async () => {
+        const redis = getRedisClient();
 
-      // Serialize objects to JSON for storage
-      const serializedValue =
-        typeof value === 'object' && value !== null
-          ? JSON.stringify(value)
-          : value;
+        // Serialize objects to JSON for storage
+        const serializedValue =
+          typeof value === 'object' && value !== null
+            ? JSON.stringify(value)
+            : value;
 
-      if (ttlSeconds) {
-        await redis.setex(key, ttlSeconds, serializedValue);
-      } else {
-        await redis.set(key, serializedValue);
-      }
+        if (ttlSeconds) {
+          await redis.setex(key, ttlSeconds, serializedValue);
+        } else {
+          await redis.set(key, serializedValue);
+        }
+      });
 
       log.debug('Redis SET operation successful', {
         metadata: { key, ttl: ttlSeconds },
@@ -80,7 +84,7 @@ export const redisService = {
         'Redis SET operation failed',
         error instanceof Error ? error : new Error(String(error)),
         {
-          metadata: { key },
+          metadata: { key, circuitState: redisCircuitBreaker.getState() },
         }
       );
 
@@ -104,11 +108,22 @@ export const redisService = {
     }
 
     try {
-      const redis = getRedisClient();
-      const value = await redis.get(key);
+      // Use circuit breaker with fallback to null
+      const value = await redisCircuitBreaker.execute(
+        async () => {
+          const redis = getRedisClient();
+          return await redis.get(key);
+        },
+        // Fallback returns null (cache miss) when circuit is open
+        () => null
+      );
 
-      log.debug('Redis GET operation successful', {
-        metadata: { key },
+      log.debug('Redis GET operation completed', {
+        metadata: {
+          key,
+          found: value !== null,
+          circuitState: redisCircuitBreaker.getState(),
+        },
       });
 
       return createServiceSuccess(value);
@@ -125,11 +140,12 @@ export const redisService = {
         'Redis GET operation failed',
         error instanceof Error ? error : new Error(String(error)),
         {
-          metadata: { key },
+          metadata: { key, circuitState: redisCircuitBreaker.getState() },
         }
       );
 
-      return createServiceError('Failed to retrieve data from Redis');
+      // Return null instead of error for graceful degradation
+      return createServiceSuccess(null);
     }
   },
 

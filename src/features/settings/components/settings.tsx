@@ -3,7 +3,7 @@
 import React from 'react';
 import { GeneralSettings } from './GeneralSettings';
 import { useAuth } from '@/lib/stores/auth-store';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function SettingsComponent() {
   const { isAuthenticated, loading } = useAuth();

@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Mail } from 'lucide-react';
+import { Mail } from '@/components/ui/Icons';
 import { notifications } from '@/src/lib/notifications';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
 
@@ -18,7 +18,7 @@ function VerifyEmailContent() {
       <div className="w-full max-w-md space-y-6 text-center">
         <div className="flex justify-center">
           <div className="rounded-full bg-cyan-500/10 p-3">
-            <Mail className="h-12 w-12 text-cyan-400" />
+            <Mail className="h-12 w-12 text-cyan-200" />
           </div>
         </div>
 
@@ -43,7 +43,7 @@ function VerifyEmailContent() {
         <p className="text-sm text-gray-400">
           Didn&apos;t receive an email?{' '}
           <button
-            className="text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
+            className="text-cyan-200 transition-colors duration-200 hover:text-fuchsia-200"
             onClick={() => {
               // TODO: Implement resend verification email
               notifications.info(

@@ -3,37 +3,100 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import {
   bingoBoardEditService,
   type BoardEditData,
   type CardInsertData,
 } from '../../services/bingo-board-edit.service';
 import { notifications } from '@/lib/notifications';
+import { queryKeys } from './index';
 import type { BingoCard, BingoBoard } from '@/types';
 
+// Memoized selectors for query optimization
+const selectBoardData = (response: any) => {
+  if (response.success && response.data) {
+    return {
+      success: true,
+      data: {
+        board: response.data.board,
+        cards: response.data.cards,
+      },
+      error: null,
+    };
+  }
+  return {
+    success: false,
+    data: null,
+    error: response.error || 'Failed to load board data',
+  };
+};
+
+const selectBoardOnly = (response: any) => {
+  return response?.success ? response.data?.board : null;
+};
+
+const selectCardsOnly = (response: any) => {
+  return response?.success ? response.data?.cards : [];
+};
+
+const selectBoardTitle = (response: any) => {
+  return response?.success ? response.data?.board?.title : '';
+};
+
+const selectBoardState = (response: any) => {
+  return response?.success ? response.data?.board?.board_state : [];
+};
+
 /**
- * Get board data for editing
+ * Get board data for editing - with optimized selectors
  */
-export function useBoardEditDataQuery(boardId: string, enabled = true) {
+export function useBoardEditDataQuery(
+  boardId: string,
+  options?: {
+    enabled?: boolean;
+    select?: (response: any) => any;
+  }
+) {
+  const { enabled = true, select = selectBoardData } = options || {};
+
   return useQuery({
-    queryKey: ['boardEdit', 'data', boardId],
+    queryKey: queryKeys.boardEdit.data(boardId),
     queryFn: () => bingoBoardEditService.getBoardForEdit(boardId),
     enabled: enabled && !!boardId,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select: response => {
-      if (response.success && response.data) {
-        return {
-          board: response.data.board,
-          cards: response.data.cards,
-          error: undefined,
-        };
-      }
-      return {
-        board: null,
-        cards: [],
-        error: response.error || 'Failed to load board data',
-      };
-    },
+    select,
+  });
+}
+
+/**
+ * Focused queries for specific data - prevents unnecessary re-renders
+ */
+export function useBoardDataOnly(boardId: string, enabled = true) {
+  return useBoardEditDataQuery(boardId, {
+    enabled,
+    select: selectBoardOnly,
+  });
+}
+
+export function useBoardCardsOnly(boardId: string, enabled = true) {
+  return useBoardEditDataQuery(boardId, {
+    enabled,
+    select: selectCardsOnly,
+  });
+}
+
+export function useBoardTitleOnly(boardId: string, enabled = true) {
+  return useBoardEditDataQuery(boardId, {
+    enabled,
+    select: selectBoardTitle,
+  });
+}
+
+export function useBoardStateOnly(boardId: string, enabled = true) {
+  return useBoardEditDataQuery(boardId, {
+    enabled,
+    select: selectBoardState,
   });
 }
 
@@ -42,7 +105,7 @@ export function useBoardEditDataQuery(boardId: string, enabled = true) {
  */
 export function useBoardInitializationQuery(boardId: string, enabled = true) {
   return useQuery({
-    queryKey: ['boardEdit', 'initialize', boardId],
+    queryKey: queryKeys.boardEdit.initialize(boardId),
     queryFn: () => bingoBoardEditService.initializeBoardData(boardId),
     enabled: enabled && !!boardId,
     staleTime: 5 * 60 * 1000, // 5 minutes

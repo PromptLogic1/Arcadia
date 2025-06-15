@@ -1,29 +1,29 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+} from '@/components/ui/Select';
+import { ScrollArea } from '@/components/ui/ScrollArea';
+import { Badge } from '@/components/ui/Badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn } from '@/lib/utils';
 import {
   Search,
-  Shuffle,
   Star,
-  TrendingUp,
   Clock,
-  Package2,
   RefreshCw,
-  Copy,
   Users,
   Grid3X3,
-} from 'lucide-react';
+  Shuffle,
+  Copy,
+  Package2,
+  TrendingUp,
+} from '@/components/ui/Icons';
 
 // Types
 import type { GameCategory, Difficulty } from '@/types';
@@ -115,7 +115,7 @@ export function BoardCollections({
               Board Collections
             </h3>
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="secondary" className="text-xs">
             {collectionCount} collections
           </Badge>
         </div>
@@ -195,7 +195,7 @@ export function BoardCollections({
 
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={refresh}
             disabled={isLoading}
             className="gap-2"
@@ -292,7 +292,7 @@ function CollectionCard({ collection, onUse }: CollectionCardProps) {
           >
             {collection.difficulty}
           </Badge>
-          <Badge variant="outline" className="px-2 py-0.5 text-xs">
+          <Badge variant="secondary" className="px-2 py-0.5 text-xs">
             <Grid3X3 className="mr-1 h-3 w-3" />
             {collection.size}x{collection.size}
           </Badge>

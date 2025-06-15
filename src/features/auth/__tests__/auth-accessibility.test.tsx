@@ -14,7 +14,9 @@ const expectToHaveAccessibleName = (element: HTMLElement) => {
   const accessibleName =
     element.getAttribute('aria-label') ||
     element.getAttribute('aria-labelledby') ||
-    (element as HTMLInputElement).labels?.[0]?.textContent ||
+    ('labels' in element && element.labels instanceof NodeList
+      ? element.labels[0]?.textContent
+      : null) ||
     element.textContent;
   expect(accessibleName).toBeTruthy();
 };

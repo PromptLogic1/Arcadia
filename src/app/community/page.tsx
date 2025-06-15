@@ -1,19 +1,25 @@
-// Suspense and LoadingSpinner removed - not currently used
-import Community from '@/features/community/components/community';
+import React, { Suspense, lazy } from 'react';
 import {
   RouteErrorBoundary,
   AsyncBoundary,
 } from '@/components/error-boundaries';
 
-// Konfiguration für dynamisches Rendering
+const Community = lazy(() =>
+  import('@/features/community/components/community').then(mod => ({
+    default: mod.default,
+  }))
+);
+
+// Configuration for dynamic rendering
 export const dynamic = 'force-dynamic';
-export const revalidate = 30; // Häufigere Revalidierung für Community-Inhalte
 
 export default function CommunityPage() {
   return (
     <RouteErrorBoundary routeName="Community">
       <AsyncBoundary loadingMessage="Loading community...">
-        <Community />
+        <Suspense fallback={null}>
+          <Community />
+        </Suspense>
       </AsyncBoundary>
     </RouteErrorBoundary>
   );

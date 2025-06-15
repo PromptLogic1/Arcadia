@@ -1,11 +1,14 @@
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import React, { lazy, Suspense } from 'react';
+import { Card } from '@/components/ui/Card';
+import { ScrollArea } from '@/components/ui/ScrollArea';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
 
-// Components
-import { BingoGrid } from './BingoGrid';
+// Components - Dynamic import for heavy BingoGrid component
+const BingoGrid = lazy(() =>
+  import('./BingoGrid').then(module => ({ default: module.BingoGrid }))
+);
 
 // Design System
 import { cardVariants, getDifficultyStyles } from './design-system';
@@ -49,13 +52,25 @@ export function BoardEditMainLayout({
       )}
     >
       {activeView === 'grid' ? (
-        <BingoGrid
-          gridCards={gridCards}
-          gridSize={gridSize}
-          isLoading={isLoading}
-          onCardClick={onCardClick}
-          onRemoveCard={onRemoveCard}
-        />
+        <Suspense
+          fallback={
+            <Card className={cardVariants({ variant: 'default' })}>
+              <div className="grid grid-cols-3 gap-4 p-6 sm:grid-cols-4 md:grid-cols-5">
+                {Array.from({ length: gridSize * gridSize }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-lg" />
+                ))}
+              </div>
+            </Card>
+          }
+        >
+          <BingoGrid
+            gridCards={gridCards}
+            gridSize={gridSize}
+            isLoading={isLoading}
+            onCardClick={onCardClick}
+            onRemoveCard={onRemoveCard}
+          />
+        </Suspense>
       ) : (
         <Card className={cardVariants({ variant: 'default' })}>
           {/* Improved scrolling with proper viewport height calculation */}

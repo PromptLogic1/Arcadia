@@ -8,8 +8,36 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // CRITICAL: Enable standalone output for optimized deployment
+  output: 'standalone',
+  // Transpile packages to ensure modern output
+  transpilePackages: ['@supabase/ssr', '@supabase/supabase-js'],
+  // Target modern browsers to reduce polyfills
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+    // Enable emotion if needed for CSS-in-JS
+    // emotion: true,
+  },
+  // Exclude specific polyfills
+  excludeDefaultMomentLocales: true,
+  // Optimize module IDs for better long-term caching
+  productionBrowserSourceMaps: false,
+  // Configure module resolution for better tree-shaking
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{member}}',
+    },
+    '@radix-ui/react-icons': {
+      transform: '@radix-ui/react-icons/dist/{{member}}',
+    },
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Enhanced configuration for production
+    loader: 'default',
+    minimumCacheTTL: 60,
+    deviceSizes: [640, 828, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
     remotePatterns: [
       // Development domains
       {
@@ -89,19 +117,54 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    // Production optimizations
+    serverMinification: true,
+    serverSourceMaps: false,
+    // instrumentationHook: true, // For monitoring - removed as not available in current Next.js version
+    // React 19 Compiler for automatic optimizations
+    // reactCompiler: process.env.NODE_ENV === 'production', // Disabled due to missing babel plugin
     // Enable optimizePackageImports for better tree shaking
     optimizePackageImports: [
       '@radix-ui/react-icons',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-collapsible',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-scroll-area',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-slider',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toggle',
+      '@radix-ui/react-toggle-group',
+      '@radix-ui/react-tooltip',
       'lucide-react',
-      'react-icons',
-      'framer-motion',
       'date-fns',
-      '@sentry/nextjs',
+      '@supabase/supabase-js',
+      '@tanstack/react-query',
+      'zod',
+      'zustand',
+      'framer-motion',
+      'react-hook-form',
+      '@hookform/resolvers',
+      'clsx',
+      'tailwind-merge',
     ],
     // Enable typed routes for better type safety
     typedRoutes: true,
     // Enable CSS chunking for better performance (default but explicit)
     cssChunking: true,
+    // Enable Web Vitals attribution for debugging
+    webVitalsAttribution: ['CLS', 'LCP', 'FCP', 'TTFB', 'INP'],
+    // Enable memory optimizations for builds
+    webpackMemoryOptimizations: true,
   },
   env: {
     EDGE_CONFIG_ID: process.env.EDGE_CONFIG_ID,
@@ -136,6 +199,44 @@ const nextConfig: NextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
           },
+          // CORS Configuration - Explicit policy for API security
+          {
+            key: 'Access-Control-Allow-Origin',
+            value:
+              process.env.NODE_ENV === 'production'
+                ? 'https://your-domain.com' // Replace with actual production domain
+                : '*', // Allow all origins in development
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value:
+              'Content-Type, Authorization, X-Requested-With, X-Forwarded-For, X-Real-IP',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400', // 24 hours
+          },
+          // CSP is handled dynamically in middleware.ts with nonces
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'require-corp',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-origin',
+          },
         ],
       },
       // Cache static assets
@@ -154,14 +255,24 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache fonts
+      {
+        source: '/fonts/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
     ];
   },
   // Simplified webpack configuration following Next.js best practices
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Only add essential configurations
     if (!isServer) {
       // Minimal client-side fallbacks for Node.js modules
@@ -173,6 +284,51 @@ const nextConfig: NextConfig = {
         worker_threads: false,
         child_process: false,
       };
+
+      // Production optimizations
+      if (!dev) {
+        // Simplified code splitting - let Next.js handle most optimizations
+        config.optimization = {
+          ...config.optimization,
+          splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+              default: {
+                minChunks: 2,
+                priority: -20,
+                reuseExistingChunk: true,
+              },
+              // Framework essentials
+              framework: {
+                name: 'framework',
+                test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+                priority: 40,
+                enforce: true,
+              },
+              // Larger libraries that benefit from separate chunks
+              supabase: {
+                test: /[\\/]node_modules[\\/]@supabase[\\/]/,
+                name: 'supabase',
+                priority: 30,
+                reuseExistingChunk: true,
+              },
+              sentry: {
+                test: /[\\/]node_modules[\\/]@sentry[\\/]/,
+                name: 'sentry',
+                priority: 30,
+                reuseExistingChunk: true,
+              },
+              // Vendor chunk for remaining node_modules
+              vendor: {
+                test: /[\\/]node_modules[\\/]/,
+                name: 'vendor',
+                priority: 10,
+                reuseExistingChunk: true,
+              },
+            },
+          },
+        };
+      }
     }
 
     // Handle worker files if you actually need them

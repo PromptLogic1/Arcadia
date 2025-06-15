@@ -1,18 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Check, User, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Check, User, Settings } from '@/components/ui/Icons';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
 import {
   useAuthSessionQuery,
   useUserDataQuery,
 } from '@/hooks/queries/useAuthQueries';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 function OAuthSuccessContent() {
   const router = useRouter();
+
+  // Navigation handlers
+  const handleGoToProfile = useCallback(() => {
+    router.push('/user/user-page');
+  }, [router]);
+
+  const handleGoToSettings = useCallback(() => {
+    router.push('/user/settings');
+  }, [router]);
+
+  const handleGoHome = useCallback(() => {
+    router.push('/');
+  }, [router]);
 
   // Use TanStack Query for session and user data
   const {
@@ -80,7 +93,7 @@ function OAuthSuccessContent() {
 
       <div className="space-y-4">
         <Button
-          onClick={() => router.push('/user/user-page')}
+          onClick={handleGoToProfile}
           className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500"
         >
           <User className="h-4 w-4" />
@@ -88,8 +101,8 @@ function OAuthSuccessContent() {
         </Button>
 
         <Button
-          onClick={() => router.push('/user/settings')}
-          variant="outline"
+          onClick={handleGoToSettings}
+          variant="secondary"
           className="flex w-full items-center justify-center gap-2"
         >
           <Settings className="h-4 w-4" />
@@ -97,7 +110,7 @@ function OAuthSuccessContent() {
         </Button>
 
         <Button
-          onClick={() => router.push('/')}
+          onClick={handleGoHome}
           variant="ghost"
           className="w-full text-gray-400 hover:text-white"
         >

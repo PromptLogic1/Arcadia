@@ -1,17 +1,17 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/Label';
+import { Input } from '@/components/ui/Input';
+import { Checkbox } from '@/components/ui/Checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldError, Path, FieldValues } from 'react-hook-form';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from '@/components/ui/Icons';
 import { GENERATOR_STYLES, SPACING } from './constants';
 import type { GeneratorFormData } from './hooks/useGeneratorForm';
 import { cn } from '@/lib/utils';

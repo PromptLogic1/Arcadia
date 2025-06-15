@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+} from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   Users,
   Plus,
@@ -25,7 +25,7 @@ import {
   RefreshCw,
   ArrowLeft,
   ChevronRight,
-} from 'lucide-react';
+} from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { log } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
@@ -89,7 +89,9 @@ interface PlayAreaHubProps {
  *
  * Uses the new Zustand + TanStack Query pattern for clean state management
  */
-export function PlayAreaHub({ className }: PlayAreaHubProps) {
+export const PlayAreaHub = React.memo(function PlayAreaHub({
+  className,
+}: PlayAreaHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authUser, isAuthenticated, loading: authLoading } = useAuth();
@@ -119,6 +121,19 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
 
   // Extract sessions from response
   const sessions = sessionsResponse?.sessions || [];
+
+  // Memoize the total player count calculation
+  const totalPlayerCount = React.useMemo(() => {
+    return sessions.reduce((total: number, session: SessionWithStats) => {
+      const count =
+        'current_player_count' in session
+          ? typeof session.current_player_count === 'number'
+            ? session.current_player_count
+            : 0
+          : 0;
+      return total + count;
+    }, 0);
+  }, [sessions]);
 
   // Derive hosting intent from URL parameters
   const boardIdFromUrl = searchParams?.get('boardId');
@@ -271,6 +286,29 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
     sessions: filteredSessions,
   });
 
+  // Memoized styles for virtualization to prevent unnecessary re-renders
+  const virtualContainerStyle = useMemo(
+    () => ({
+      height: `${virtualizer.getTotalSize()}px`,
+      width: '100%',
+      position: 'relative' as const,
+    }),
+    [virtualizer]
+  );
+
+  // Function to create virtual item style
+  const createVirtualItemStyle = useCallback(
+    (virtualItem: any) => ({
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: `${virtualItem.size}px`,
+      transform: `translateY(${virtualItem.start}px)`,
+    }),
+    []
+  );
+
   // Loading state
   if (authLoading || isLoading) {
     return (
@@ -306,7 +344,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           {cameFromChallengeHub && (
             <div className="mb-2 flex items-center gap-2 text-sm text-gray-400">
               <Button
-                variant="ghost"
+                variant="primary"
                 size="sm"
                 onClick={() => router.push('/challenge-hub')}
                 className="h-auto p-0 text-gray-400 hover:text-cyan-400"
@@ -328,15 +366,12 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="cyber" onClick={() => setShowHostDialog(true)}>
+          <Button variant="primary" onClick={() => setShowHostDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Host Session
           </Button>
 
-          <Button
-            variant="cyber-outline"
-            onClick={() => setShowJoinDialog(true)}
-          >
+          <Button variant="primary" onClick={() => setShowJoinDialog(true)}>
             <Search className="mr-2 h-4 w-4" />
             Join by Code
           </Button>
@@ -345,7 +380,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card variant="cyber" glow="subtle">
+        <Card variant="primary">
           <CardHeader className="pb-3">
             <CardTitle className="neon-glow-cyan flex items-center gap-2 text-lg">
               <Users className="h-5 w-5 text-cyan-400 drop-shadow-lg" />
@@ -357,15 +392,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           </CardHeader>
           <CardContent>
             <div className="neon-glow-cyan animate-glow text-2xl font-bold">
-              {sessions.reduce((total: number, session: SessionWithStats) => {
-                const count =
-                  'current_player_count' in session
-                    ? typeof session.current_player_count === 'number'
-                      ? session.current_player_count
-                      : 0
-                    : 0;
-                return total + count;
-              }, 0)}
+              {totalPlayerCount}
             </div>
             <p className="text-sm text-cyan-300/70">
               Across {sessions.length} sessions
@@ -373,7 +400,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           </CardContent>
         </Card>
 
-        <Card variant="cyber" glow="subtle">
+        <Card variant="primary">
           <CardHeader className="pb-3">
             <CardTitle className="neon-glow-purple flex items-center gap-2 text-lg">
               <Clock className="h-5 w-5 text-purple-400 drop-shadow-lg" />
@@ -385,7 +412,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           </CardHeader>
           <CardContent>
             <Button
-              variant="cyber-outline"
+              variant="primary"
               size="sm"
               onClick={() => refetch()}
               disabled={isRefetching}
@@ -433,7 +460,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
           )}
 
           {filteredSessions.length === 0 ? (
-            <Card variant="cyber">
+            <Card variant="primary">
               <CardContent className="pt-6">
                 <div className="py-8 text-center">
                   <Gamepad2 className="mx-auto mb-4 h-16 w-16 text-cyan-400/60" />
@@ -444,7 +471,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
                     Be the first to host a gaming session!
                   </p>
                   <Button
-                    variant="cyber"
+                    variant="primary"
                     onClick={() => setShowHostDialog(true)}
                   >
                     <Plus className="mr-2 h-4 w-4" />
@@ -458,13 +485,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
               ref={containerRef}
               className="h-[calc(100vh-400px)] overflow-auto"
             >
-              <div
-                style={{
-                  height: `${virtualizer.getTotalSize()}px`,
-                  width: '100%',
-                  position: 'relative',
-                }}
-              >
+              <div style={virtualContainerStyle}>
                 {virtualizer
                   .getVirtualItems()
                   .map((virtualItem: VirtualItem) => {
@@ -474,14 +495,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
                     return (
                       <div
                         key={virtualItem.key}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: `${virtualItem.size}px`,
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
+                        style={createVirtualItemStyle(virtualItem)}
                       >
                         <SessionCard
                           session={session}
@@ -497,7 +511,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
         </TabsContent>
 
         <TabsContent value="join-session" className="space-y-4">
-          <Card variant="cyber" glow="subtle">
+          <Card variant="primary">
             <CardHeader>
               <CardTitle className="neon-glow-purple flex items-center gap-2">
                 <Lock className="h-5 w-5 text-purple-400 drop-shadow-lg" />
@@ -523,7 +537,7 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
                   }}
                 />
                 <Button
-                  variant="cyber"
+                  variant="primary"
                   onClick={handleJoinByCode}
                   disabled={
                     !joinSessionCode.trim() || joinSessionMutation.isPending
@@ -563,4 +577,4 @@ export function PlayAreaHub({ className }: PlayAreaHubProps) {
       </Suspense>
     </div>
   );
-}
+});

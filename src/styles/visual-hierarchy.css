@@ -1,0 +1,131 @@
+/* Visual Hierarchy Improvements */
+
+/* Reduced shadow intensities for better accessibility */
+@layer utilities {
+  /* Subtle shadows - default for most UI elements */
+  .shadow-subtle {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  
+  .shadow-subtle-colored {
+    box-shadow: 0 1px 3px 0 var(--shadow-color) / 0.2, 0 1px 2px -1px var(--shadow-color) / 0.1;
+  }
+
+  /* Medium shadows - for elevated elements */
+  .shadow-moderate {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  
+  .shadow-moderate-colored {
+    box-shadow: 0 4px 6px -1px var(--shadow-color) / 0.15, 0 2px 4px -2px var(--shadow-color) / 0.1;
+  }
+
+  /* Enhanced shadows - for interactive elements */
+  .shadow-enhanced {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  
+  .shadow-enhanced-colored {
+    box-shadow: 0 10px 15px -3px var(--shadow-color) / 0.15, 0 4px 6px -4px var(--shadow-color) / 0.1;
+  }
+
+  /* Accessible gradient text with fallback */
+  .text-gradient-accessible {
+    background: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Fallback for browsers that don't support background-clip: text */
+    color: var(--fallback-color, rgb(6 182 212)); /* cyan-500 */
+  }
+
+  /* High contrast gradient text */
+  .text-gradient-high-contrast {
+    background: linear-gradient(135deg, 
+      var(--gradient-from, rgb(6 182 212)), 
+      var(--gradient-to, rgb(168 85 247))
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* High contrast fallback */
+    color: rgb(255 255 255);
+    font-weight: 600;
+  }
+
+  /* Color system variables for consistency */
+  .color-cyan {
+    --shadow-color: 6 182 212;
+    --gradient-from: rgb(6 182 212);
+    --gradient-to: rgb(8 145 178);
+    --fallback-color: rgb(6 182 212);
+  }
+
+  .color-purple {
+    --shadow-color: 168 85 247;
+    --gradient-from: rgb(168 85 247);
+    --gradient-to: rgb(147 51 234);
+    --fallback-color: rgb(168 85 247);
+  }
+
+  .color-fuchsia {
+    --shadow-color: 217 70 239;
+    --gradient-from: rgb(217 70 239);
+    --gradient-to: rgb(192 38 211);
+    --fallback-color: rgb(217 70 239);
+  }
+
+  .color-emerald {
+    --shadow-color: 16 185 129;
+    --gradient-from: rgb(16 185 129);
+    --gradient-to: rgb(5 150 105);
+    --fallback-color: rgb(16 185 129);
+  }
+
+  /* Text contrast utilities */
+  .text-high-contrast {
+    color: rgb(255 255 255);
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+  }
+
+  .text-medium-contrast {
+    color: rgb(203 213 225); /* slate-300 */
+  }
+
+  .text-low-contrast {
+    color: rgb(148 163 184); /* slate-400 */
+  }
+
+  /* Focus states with proper contrast */
+  .focus-visible-enhanced {
+    outline: 2px solid rgb(6 182 212);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Reduced motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .shadow-enhanced-colored,
+    .shadow-moderate-colored,
+    .shadow-subtle-colored {
+      transition: none;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .text-gradient-accessible,
+    .text-gradient-high-contrast {
+      background: none;
+      -webkit-text-fill-color: unset;
+      color: rgb(255 255 255);
+      font-weight: 700;
+    }
+
+    .shadow-enhanced-colored,
+    .shadow-moderate-colored,
+    .shadow-subtle-colored {
+      box-shadow: 0 2px 4px 0 rgb(255 255 255 / 0.3);
+    }
+  }
+}

@@ -3,40 +3,30 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
-import { GiGamepadCross } from 'react-icons/gi';
-import { BiSearchAlt } from 'react-icons/bi';
-import { IoNotificationsSharp } from 'react-icons/io5';
-import { FaDownload } from 'react-icons/fa';
-import { Button } from '../ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Input } from '../ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import {
+  Menu,
+  X,
+  Search,
+  Bell,
+  Download,
+  Gamepad2,
+} from '@/components/ui/Icons';
+import { Button } from '../ui/Button';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/Popover';
+import { Input } from '../ui/Input';
+import { OptimizedAvatar } from '../ui/OptimizedAvatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { motion, AnimatePresence } from 'framer-motion';
+} from '../ui/DropdownMenu';
+// Removed Framer Motion - using CSS animations instead
 import { cn } from '@/lib/utils';
+import { throttle } from '@/lib/throttle';
 import { useAuthStore, useAuthActions } from '@/lib/stores';
+import { useShallow } from 'zustand/shallow';
 import { NeonText } from '../ui/NeonText';
-
-// NeonText Component for Gradient Text
-// const NeonText = ({
-//   children,
-//   className = '',
-// }: {
-//   children: React.ReactNode
-//   className?: string
-// }) => (
-//   <span
-//     className={`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 font-bold ${className}`}
-//   >
-//     {children}
-//   </span>
-// )
 
 // Navigation Item Interface
 interface NavItem {
@@ -51,23 +41,54 @@ const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState<boolean>(false);
   const pathname = usePathname() ?? '';
 
-  // Use Zustand auth state - selecting individual values
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-  const userData = useAuthStore(state => state.userData);
-  // If other properties like authUser, loading, error are needed, select them individually too:
-  // const authUser = useAuthStore((state) => state.authUser);
-  // const loading = useAuthStore((state) => state.loading);
-  // const error = useAuthStore((state) => state.error);
+  // Use Zustand auth state with useShallow for optimal performance
+  const { isAuthenticated, userData } = useAuthStore(
+    useShallow(state => ({
+      isAuthenticated: state.isAuthenticated,
+      userData: state.userData,
+    }))
+  );
 
   const { clearUser } = useAuthActions();
 
-  // Handle scroll effect remains the same
+  // Memoize mobile menu style to prevent re-renders
+  const mobileMenuStyle = useMemo(
+    () => ({
+      maxHeight: isMenuOpen ? '600px' : '0',
+      opacity: isMenuOpen ? '1' : '0',
+      overflow: 'hidden' as const,
+    }),
+    [isMenuOpen]
+  );
+
+  // Handle scroll effect with throttling for better performance
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    // Throttle the scroll handler to run at most once every 50ms
+    const throttledHandleScroll = throttle(handleScroll, 50);
+
+    // Check initial scroll position after mount
+    handleScroll();
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', throttledHandleScroll);
+  }, []);
+
+  // Close mobile menu when resizing to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const throttledHandleResize = throttle(handleResize, 100);
+
+    window.addEventListener('resize', throttledHandleResize);
+    return () => window.removeEventListener('resize', throttledHandleResize);
   }, []);
 
   // Verbesserte isActive Funktion
@@ -96,26 +117,56 @@ const Header: React.FC = () => {
     clearUser();
   };
 
+  // UI handlers
+  const toggleSearchOpen = useCallback(() => {
+    setIsSearchOpen(prev => !prev);
+  }, []);
+
+  const toggleMenuOpen = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
   return (
     <header
-      className={`fixed top-0 right-0 left-0 z-[9999] w-full transition-all duration-300 ${
+      className={cn(
+        'fixed top-0 right-0 left-0 z-40 min-h-[80px] w-full transition-all duration-300',
         scrolled
           ? 'cyber-card border-b-2 border-cyan-400/30 shadow-2xl shadow-cyan-500/20 backdrop-blur-xl'
           : 'border-b border-cyan-500/10 bg-slate-950/90 backdrop-blur-md'
-      }`}
+      )}
       role="banner"
-      style={{ position: 'fixed', top: 0, zIndex: 9999 }}
+      suppressHydrationWarning
     >
-      <div className="container mx-auto flex items-center justify-between px-4 py-3">
+      {/* Skip Navigation Links */}
+      <div className="sr-only focus-within:not-sr-only">
+        <a
+          href="#main-content"
+          className="absolute top-0 left-0 z-50 -translate-y-full transform bg-cyan-600 px-4 py-2 font-medium text-white transition-transform duration-200 focus:translate-y-0"
+        >
+          Skip to main content
+        </a>
+        <a
+          href="#navigation"
+          className="absolute top-0 left-24 z-50 -translate-y-full transform bg-cyan-600 px-4 py-2 font-medium text-white transition-transform duration-200 focus:translate-y-0"
+        >
+          Skip to navigation
+        </a>
+      </div>
+
+      <div className="container mx-auto flex min-h-[80px] items-center justify-between px-4 py-3">
         {/* Logo */}
         <Link
           href="/"
           className="group flex items-center"
           aria-label="Arcadia Home"
         >
-          <GiGamepadCross className="mr-2 h-8 w-8 text-cyan-400 transition-colors duration-300 group-hover:text-fuchsia-400" />
+          <Gamepad2 className="mr-2 h-8 w-8 text-cyan-400 transition-colors duration-300 group-hover:text-fuchsia-400" />
           <NeonText
-            variant="gradient"
+            variant="solid"
             className="text-2xl transition-colors duration-300 group-hover:text-fuchsia-400"
           >
             Arcadia
@@ -124,6 +175,7 @@ const Header: React.FC = () => {
 
         {/* Desktop Navigation */}
         <nav
+          id="main-navigation"
           className="hidden space-x-6 md:flex"
           aria-label="Primary Navigation"
         >
@@ -148,51 +200,45 @@ const Header: React.FC = () => {
         {/* Desktop Actions */}
         <div className="hidden items-center space-x-4 md:flex">
           {/* Search */}
-          <AnimatePresence>
-            {isSearchOpen && (
-              <motion.div
-                key="search-input"
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: '200px', opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <Input
-                  type="search"
-                  placeholder="Search..."
-                  className="h-10 border-cyan-500/50 bg-gray-800/50 text-white placeholder-gray-400 transition-colors duration-200 focus:border-fuchsia-500"
-                  aria-label="Search"
-                />
-              </motion.div>
+          <div
+            className={cn(
+              'search-input-wrapper overflow-hidden transition-all duration-300',
+              isSearchOpen ? 'w-[200px] opacity-100' : 'w-0 opacity-0'
             )}
-          </AnimatePresence>
+          >
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="h-10 border-cyan-500/50 bg-gray-800/50 text-white placeholder-gray-400 transition-colors duration-200 focus:border-fuchsia-500"
+              aria-label="Search"
+            />
+          </div>
           <Button
-            variant="cyber-outline"
-            size="sm"
-            onClick={() => setIsSearchOpen(prev => !prev)}
-            className="rounded-full border-cyan-500/30 hover:border-cyan-400/60"
+            variant="ghost"
+            size="icon"
+            onClick={toggleSearchOpen}
+            className="h-11 min-h-[44px] w-11 min-w-[44px] rounded-full border border-cyan-500/30 text-cyan-300 transition-all duration-200 hover:border-cyan-400/60 hover:bg-cyan-500/10"
             aria-label="Toggle search"
           >
-            <BiSearchAlt className="h-5 w-5" />
+            <Search className="h-5 w-5" />
           </Button>
 
           {/* Notifications */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                variant="cyber-outline"
+                variant="ghost"
                 size="icon"
-                className="relative border-cyan-500/30 hover:border-cyan-400/60"
+                className="relative h-11 min-h-[44px] w-11 min-w-[44px] rounded-full border border-cyan-500/30 text-cyan-300 transition-all duration-200 hover:border-cyan-400/60 hover:bg-cyan-500/10"
                 aria-label="Notifications"
               >
-                <IoNotificationsSharp className="h-6 w-6" aria-hidden="true" />
-                <span className="animate-cyberpunk-glow absolute top-0 right-0 block h-2 w-2 rounded-full bg-fuchsia-500 ring-2 ring-slate-900" />
+                <Bell className="h-5 w-5" aria-hidden="true" />
+                <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-fuchsia-500 ring-2 ring-slate-900" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="cyber-card w-80 border-cyan-400/50 p-4 text-cyan-100 backdrop-blur-xl">
               <h3 className="mb-2 text-lg font-semibold">
-                <NeonText variant="gradient">Notifications</NeonText>
+                <NeonText variant="solid">Notifications</NeonText>
               </h3>
               <p className="text-cyan-300/80">No new notifications</p>
             </PopoverContent>
@@ -200,11 +246,8 @@ const Header: React.FC = () => {
 
           {/* Download Button */}
           <Link href="/download">
-            <Button
-              variant="cyber"
-              className="rounded-full border-cyan-400/40 shadow-lg shadow-cyan-500/30"
-            >
-              <FaDownload className="mr-2 h-4 w-4" />
+            <Button variant="primary" className="rounded-full">
+              <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
           </Link>
@@ -216,21 +259,22 @@ const Header: React.FC = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-10 w-10 rounded-full focus:ring-2 focus:ring-cyan-400"
+                    className="relative h-11 min-h-[44px] w-11 min-w-[44px] rounded-full border border-cyan-500/30 text-cyan-300 transition-all duration-200 hover:border-cyan-400/60 hover:bg-cyan-500/10 focus:ring-2 focus:ring-cyan-400"
                     aria-label="User menu"
                   >
-                    <Avatar className="h-10 w-10 transition-transform duration-200 hover:scale-110">
-                      <AvatarImage
-                        src={
-                          userData.avatar_url ||
-                          '/images/placeholder-avatar.jpg'
-                        }
-                        alt="User avatar"
-                      />
-                      <AvatarFallback>
-                        {userData.username?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <OptimizedAvatar
+                      className="h-8 w-8 transition-transform duration-200 hover:scale-105"
+                      src={
+                        userData.avatar_url ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          userData.username || 'User'
+                        )}&background=0D1117&color=06B6D4&bold=true&size=100`
+                      }
+                      alt={`${userData.username || 'User'}'s avatar`}
+                      fallback={
+                        userData.username?.charAt(0).toUpperCase() || 'U'
+                      }
+                    />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -260,17 +304,14 @@ const Header: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Link href="/auth/login">
                   <Button
-                    variant="cyber-outline"
-                    className="border-cyan-500/30 text-cyan-200 hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-300"
+                    variant="ghost"
+                    className="border border-cyan-500/30 text-cyan-200 hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-300"
                   >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button
-                    variant="cyber"
-                    className="rounded-full shadow-lg shadow-cyan-500/30"
-                  >
+                  <Button variant="primary" className="rounded-full">
                     Sign Up
                   </Button>
                 </Link>
@@ -284,11 +325,11 @@ const Header: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsMenuOpen(prev => !prev)}
+            onClick={toggleMenuOpen}
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMenuOpen}
             aria-controls="mobile-menu"
-            className="border border-cyan-500/30 text-cyan-200 transition-colors duration-200 hover:border-cyan-400/60 hover:text-cyan-300"
+            className="min-h-[44px] min-w-[44px] border border-cyan-500/30 text-cyan-200 transition-colors duration-200 hover:border-cyan-400/60 hover:text-cyan-300"
           >
             {isMenuOpen ? (
               <X className="h-6 w-6" aria-hidden="true" />
@@ -300,85 +341,82 @@ const Header: React.FC = () => {
       </div>
 
       {/* Mobile Navigation Menu */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.nav
-            key="mobile-menu"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="cyber-card overflow-hidden border-t border-cyan-500/30 backdrop-blur-xl md:hidden"
-            id="mobile-menu"
-            aria-label="Mobile Navigation"
-          >
-            <div className="space-y-2 p-4">
-              {navItems.map(item => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`block rounded-md border px-3 py-2 text-lg font-medium transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? 'neon-glow-cyan border-cyan-400/50 bg-cyan-500/15 text-cyan-300'
-                      : 'border-transparent text-cyan-200/90 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300'
-                  }`}
-                  aria-current={isActive(item.href) ? 'page' : undefined}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <Link
-                href="/download"
-                className="block rounded-md px-3 py-2 text-lg font-medium text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Download
-              </Link>
-              {isAuthenticated && userData ? (
-                <>
-                  <Link
-                    href={`/user`}
-                    className="block rounded-md px-3 py-2 text-lg font-medium text-gray-300 transition-colors duration-200 hover:text-cyan-400"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="block rounded-md px-3 py-2 text-lg font-medium text-gray-300 transition-colors duration-200 hover:text-cyan-400"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Settings
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full rounded-md px-3 py-2 text-left text-lg font-medium text-red-400 transition-colors duration-200 hover:bg-red-500/10 hover:text-red-300"
-                  >
-                    Log out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/auth/login"
-                    className="block rounded-md px-3 py-2 text-lg font-medium text-gray-300 transition-colors duration-200 hover:text-cyan-400"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="block rounded-md px-3 py-2 text-lg font-medium text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
-          </motion.nav>
+      <nav
+        className={cn(
+          'mobile-menu cyber-card border-t border-cyan-500/30 backdrop-blur-xl transition-all duration-300 md:hidden',
+          isMenuOpen ? 'mobile-menu-open' : 'mobile-menu-closed'
         )}
-      </AnimatePresence>
+        id="mobile-menu"
+        aria-label="Mobile Navigation"
+        aria-hidden={!isMenuOpen}
+        style={mobileMenuStyle}
+      >
+        <div className="space-y-2 p-4">
+          {navItems.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`block rounded-md border px-3 py-2 text-lg font-medium transition-colors duration-200 ${
+                isActive(item.href)
+                  ? 'neon-glow-cyan border-cyan-400/50 bg-cyan-500/15 text-cyan-300'
+                  : 'border-transparent text-cyan-200/90 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300'
+              }`}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              onClick={closeMenu}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <Link
+            href="/download"
+            className="block rounded-md px-3 py-2 text-lg font-medium text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Download
+          </Link>
+          {isAuthenticated && userData ? (
+            <>
+              <Link
+                href={`/user`}
+                className="block rounded-md px-3 py-2 text-lg font-medium text-gray-300 transition-colors duration-200 hover:text-cyan-400"
+                onClick={closeMenu}
+              >
+                Profile
+              </Link>
+              <Link
+                href="/settings"
+                className="block rounded-md px-3 py-2 text-lg font-medium text-gray-300 transition-colors duration-200 hover:text-cyan-400"
+                onClick={closeMenu}
+              >
+                Settings
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="block w-full rounded-md px-3 py-2 text-left text-lg font-medium text-red-400 transition-colors duration-200 hover:bg-red-500/10 hover:text-red-300"
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/login"
+                className="block rounded-md px-3 py-2 text-lg font-medium text-gray-300 transition-colors duration-200 hover:text-cyan-400"
+                onClick={closeMenu}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="block rounded-md px-3 py-2 text-lg font-medium text-cyan-400 transition-colors duration-200 hover:text-fuchsia-400"
+                onClick={closeMenu}
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
     </header>
   );
 };

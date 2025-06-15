@@ -1,8 +1,8 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, Sparkles, Package, Globe } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { Plus, Sparkles, Package, Globe, Archive } from '@/components/ui/Icons';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn } from '@/lib/utils';
 import { BingoCardPreview } from './BingoCard';
 import { BingoCardPublic } from './BingoCardPublic';
@@ -12,7 +12,6 @@ import { CardLibrary } from './CardLibrary';
 import { TABS, UI_MESSAGES } from './constants';
 import type { BingoCard, FilterOptions, GameCategory } from '@/types';
 import { useDroppable } from '@dnd-kit/core';
-import { Archive } from 'lucide-react';
 import {
   layout,
   componentStyles,
@@ -53,7 +52,7 @@ interface CardManagementTabsProps {
  * Card management tabs component using compound pattern
  * Handles private cards, public cards, and generator functionality
  */
-export function CardManagementTabs({
+const CardManagementTabsComponent = ({
   privateCards,
   publicCards,
   currentBoard,
@@ -70,7 +69,7 @@ export function CardManagementTabs({
   onUseCollection,
   onBulkAddCards,
   onCardReturnToPrivate,
-}: CardManagementTabsProps) {
+}: CardManagementTabsProps) => {
   return (
     <div
       className={cn(
@@ -152,7 +151,39 @@ export function CardManagementTabs({
       </Tabs>
     </div>
   );
-}
+};
+
+// Memoized CardManagementTabs for performance optimization
+export const CardManagementTabs = React.memo(
+  CardManagementTabsComponent,
+  (prevProps, nextProps) => {
+    // Custom comparison for performance
+    return (
+      prevProps.privateCards.length === nextProps.privateCards.length &&
+      prevProps.publicCards.length === nextProps.publicCards.length &&
+      prevProps.currentBoard.game_type === nextProps.currentBoard.game_type &&
+      prevProps.currentBoard.size === nextProps.currentBoard.size &&
+      prevProps.isLoadingPrivateCards === nextProps.isLoadingPrivateCards &&
+      prevProps.isLoadingPublicCards === nextProps.isLoadingPublicCards &&
+      // Check if private cards changed (shallow comparison)
+      prevProps.privateCards.every(
+        (card, index) =>
+          card.id === nextProps.privateCards[index]?.id &&
+          card.title === nextProps.privateCards[index]?.title &&
+          card.updated_at === nextProps.privateCards[index]?.updated_at
+      ) &&
+      // Check if public cards changed (shallow comparison)
+      prevProps.publicCards.every(
+        (card, index) =>
+          card.id === nextProps.publicCards[index]?.id &&
+          card.title === nextProps.publicCards[index]?.title &&
+          card.updated_at === nextProps.publicCards[index]?.updated_at
+      )
+    );
+  }
+);
+
+CardManagementTabs.displayName = 'CardManagementTabs';
 
 interface PrivateCardsTabProps {
   cards: BingoCard[];

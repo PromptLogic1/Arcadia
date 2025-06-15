@@ -129,21 +129,40 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 - Supabase 2.49.8 + Sentry 9.26.0 ✅
 - Upstash Redis 1.35.0 + Ratelimit 2.0.5 ✅
 
+## Deployment & Local Development Rule (CRITICAL)
+
+**NEVER run `npm run dev` or start a development server.** The user is always running their own dev server. Starting another one will cause port conflicts and get stuck. Only run build, type-check, lint, or other non-server commands.
+
+**NO LOCAL DEPLOYMENT**: This project is designed for cloud deployment only (Vercel). It is NOT meant to be deployed locally or containerized with Docker. All infrastructure is cloud-native and depends on external services (Supabase, Upstash Redis, Sentry).
+
 ## Common Pitfalls Progress
 
 1. ✅ UI/server state mixing in Zustand (EXEMPLARY - 98/100 compliance) 🎉
-2. ❌ useEffect for data fetching (1 file left - auth-provider.tsx)
-3. ❌ Direct Supabase calls in components (1 file left - session/[id]/page.tsx)
+2. ✅ useEffect for data fetching (FIXED - auth-provider.tsx refactored)
+3. ✅ Direct Supabase calls in components (FIXED - session/[id]/page.tsx refactored)
 4. ✅ Missing error handling (FIXED)
 5. ✅ Type assertions everywhere (COMPLETELY FIXED - 207/207) 🎉
 6. ✅ Memory leaks in realtime (FIXED)
 7. ✅ Redis infrastructure (FULLY IMPLEMENTED - production-ready) 🎉
 
-## Performance Issues
+## Performance Optimizations & Code Quality (Complete)
 
-- Bundle: 2.4MB → target <500KB
-- Load: 10s → target <3s
-- Missing: Code splitting, virtualization, image optimization
+### ✅ **Critical Fixes (High Priority)**
+
+- ✅ ESLint TypeScript plugins updated (v7.18.0 → v8.34.0) - compatibility resolved
+- ✅ Virtualization threshold optimized (20 → 100 items) - better performance for large lists
+- ✅ React.memo added to heavy components (SessionCard, CreateBoardForm, GeneratorPanel)
+- ✅ Production CORS configured with dynamic NEXT_PUBLIC_APP_URL
+- ✅ **Code cleanup**: Removed redundancies, unused imports, ~100+ ESLint warnings fixed
+- ✅ **Type safety**: All type errors resolved, stricter linting rules applied
+
+### 🎯 **Next Phase (Medium Priority)**
+
+- Bundle optimization: 2.4MB → target <500KB
+- Load time optimization: target <3s
+- Bundle analyzer monitoring
+- Cache warming strategy
+- Semantic HTML improvements
 
 ## Essential Commands
 
@@ -152,6 +171,7 @@ npm run dev           # Development
 npm run build         # Production build
 npm run validate      # Type-check + lint
 npm run build:analyze # Bundle analysis
+npm run type-check    # Type-check
 ```
 
 ## Development Workflow

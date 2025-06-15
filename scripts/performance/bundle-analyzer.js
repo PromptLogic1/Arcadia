@@ -46,7 +46,7 @@ function analyzeBundle() {
     const analysis = {
       name: chunk,
       size: stats.size,
-      formattedSize: formatBytes(stats.size)
+      formattedSize: formatBytes(stats.size),
     };
 
     chunkAnalysis.push(analysis);
@@ -61,10 +61,12 @@ function analyzeBundle() {
 
   // Results
   console.log('📊 Bundle Analysis Results:');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
   console.log(`Total bundle size: ${formatBytes(totalSize)}`);
   console.log(`Target size: ${formatBytes(BUNDLE_SIZE_TARGET)}`);
-  console.log(`Status: ${totalSize > BUNDLE_SIZE_TARGET ? '❌ EXCEEDS TARGET' : '✅ WITHIN TARGET'}`);
+  console.log(
+    `Status: ${totalSize > BUNDLE_SIZE_TARGET ? '❌ EXCEEDS TARGET' : '✅ WITHIN TARGET'}`
+  );
   console.log(`Total chunks: ${chunks.length}`);
   console.log();
 
@@ -73,7 +75,9 @@ function analyzeBundle() {
   console.log('-'.repeat(50));
   chunkAnalysis.slice(0, 10).forEach((chunk, index) => {
     const status = chunk.size > CHUNK_SIZE_TARGET ? '⚠️' : '✅';
-    console.log(`${index + 1}. ${chunk.name} - ${chunk.formattedSize} ${status}`);
+    console.log(
+      `${index + 1}. ${chunk.name} - ${chunk.formattedSize} ${status}`
+    );
   });
   console.log();
 
@@ -90,7 +94,7 @@ function analyzeBundle() {
   // Recommendations
   console.log('💡 Optimization Recommendations:');
   console.log('-'.repeat(50));
-  
+
   if (totalSize > BUNDLE_SIZE_TARGET) {
     const excess = totalSize - BUNDLE_SIZE_TARGET;
     console.log(`❌ Bundle exceeds target by ${formatBytes(excess)}`);
@@ -124,7 +128,7 @@ function analyzeBundle() {
     withinTarget: totalSize <= BUNDLE_SIZE_TARGET,
     chunkCount: chunks.length,
     largeChunkCount: largeChunks.length,
-    chunks: chunkAnalysis
+    chunks: chunkAnalysis,
   };
 }
 

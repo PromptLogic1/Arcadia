@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import Image from 'next/image';
+import { OptimizedImage } from '@/components/ui/Image';
 import NeonBorder from '@/components/ui/NeonBorder';
 import { NeonText } from '@/components/ui/NeonText';
 import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
-import FloatingElements from '@/components/ui/FloatingElements';
+import dynamic from 'next/dynamic';
+
+const FloatingElements = dynamic(
+  () => import('@/components/ui/FloatingElements'),
+  { ssr: false }
+);
 
 interface Partner {
   id: string;
@@ -57,13 +62,14 @@ const PartnersSection: React.FC = () => {
             className="group flex h-full w-full items-center justify-center rounded-lg transition-transform duration-300 hover:scale-105"
             aria-label={`Visit ${partner.name}`}
           >
-            <Image
+            <OptimizedImage
               src={partner.logoUrl}
               alt={`${partner.name} Logo`}
               width={180}
               height={60}
               className="object-contain brightness-90 filter transition-all duration-300 group-hover:brightness-110"
               loading="lazy"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           </a>
         </NeonBorder>
@@ -82,13 +88,12 @@ const PartnersSection: React.FC = () => {
         count={15}
         speed="medium"
         color="yellow"
-        repositioning={true}
       />
       <section className="relative z-20" aria-labelledby="partners-heading">
         <div className="container mx-auto flex flex-col items-center px-4">
           <h2 id="partners-heading" className="mb-16 text-center">
             <NeonText
-              variant="gradient"
+              variant="solid"
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
             >
               Our Partners

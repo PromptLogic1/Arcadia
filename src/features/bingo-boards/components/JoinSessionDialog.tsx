@@ -9,11 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+} from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { useToast } from '@/components/ui/UseToast';
 import { useAuth } from '@/lib/stores/auth-store';
 
 interface JoinSessionDialogProps {
@@ -82,7 +82,7 @@ export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" size="lg">
+          <Button variant="secondary" size="lg">
             Join Game
           </Button>
         )}
@@ -114,7 +114,7 @@ export function JoinSessionDialog({ trigger }: JoinSessionDialogProps) {
         </div>
         <div className="flex justify-end space-x-2">
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={() => setOpen(false)}
             disabled={loading}
           >

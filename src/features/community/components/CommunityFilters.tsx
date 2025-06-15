@@ -1,13 +1,13 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus } from '@/components/ui/Icons';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+} from '@/components/ui/Select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/ToggleGroup';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { SearchInput } from './SearchInput';
 import { GAMES, CHALLENGE_TYPES } from '@/features/community/constants';

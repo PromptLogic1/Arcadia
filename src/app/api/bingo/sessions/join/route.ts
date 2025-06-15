@@ -32,7 +32,7 @@ export const POST = withRateLimit(
         return validation.error;
       }
 
-      const { sessionId, displayName, color, team } = validation.data;
+      const { sessionId, displayName, color, team, password } = validation.data;
       sessionIdForLog = sessionId;
 
       // Use the service to join the session
@@ -40,6 +40,7 @@ export const POST = withRateLimit(
         display_name: displayName,
         color,
         team,
+        password,
       });
 
       if (!result.success) {

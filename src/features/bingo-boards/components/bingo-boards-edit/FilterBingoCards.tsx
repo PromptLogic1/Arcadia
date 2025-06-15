@@ -1,14 +1,14 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import type { Difficulty, FilterOptions } from '@/types';
 import { DIFFICULTIES } from '@/types';
-import { X } from 'lucide-react';
+import { X } from '@/components/ui/Icons';
 import { useState } from 'react';
 import { log } from '@/lib/logger';
 import { toError } from '@/lib/error-guards';
@@ -79,7 +79,7 @@ export function FilterBingoCards({ onFilter, onClear }: FilterBingoCardsProps) {
 
       <div className="flex justify-end gap-2">
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={handleClear}
           className="gap-1"

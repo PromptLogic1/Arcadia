@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Clock, Play, Pause } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Clock, Play, Pause } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { GAME_SETTINGS } from '../../types/game-settings.constants';
 
@@ -64,7 +64,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
         <Button
           onClick={onTimerToggle}
           disabled={!isOwner}
-          variant="outline"
+          variant="secondary"
           size="sm"
           className={cn(
             'h-9 px-3',

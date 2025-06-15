@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
 import { cn } from '@/lib/utils';
 import type { FormFieldProps } from '../types/signup-form.types';
 

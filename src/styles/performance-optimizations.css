@@ -1,0 +1,178 @@
+/**
+ * Performance Optimizations CSS
+ * 
+ * CSS Containment and performance-critical styles for animated components
+ * to improve rendering performance by limiting the scope of browser calculations
+ */
+
+/* Apply CSS containment to animated components */
+.floating-elements,
+.cyberpunk-background,
+.neon-border,
+.neon-text,
+.neon-button {
+  /* Layout containment prevents layout changes from affecting other elements */
+  contain: layout style;
+  
+  /* Ensure animations run on compositor thread */
+  will-change: transform, opacity;
+  
+  /* Enable GPU acceleration */
+  transform: translateZ(0);
+}
+
+/* Stricter containment for continuously animated elements */
+.animate-pulse,
+.animate-spin,
+.animate-float,
+.animate-bounce,
+.animate-subtle-float,
+.animate-gentle-glow,
+.animate-soft-pulse {
+  /* Full containment for best performance */
+  contain: strict;
+  
+  /* Optimize for animations */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Loading spinners need special handling */
+.loading-spinner {
+  contain: strict;
+  will-change: transform;
+  transform: translateZ(0) rotate(0deg);
+}
+
+/* Card hover effects */
+.group:hover .group-hover\:scale-105,
+.hover\:scale-105:hover,
+.hover\:scale-110:hover {
+  /* Only contain during interaction */
+  contain: layout style;
+  will-change: transform;
+  transform-origin: center;
+}
+
+/* Transition optimization for interactive elements */
+.transition-all,
+.transition-transform,
+.transition-colors,
+.transition-opacity {
+  /* Hint browser about upcoming changes */
+  will-change: auto;
+}
+
+/* Virtual scroll containers */
+[data-virtual-scroll],
+.virtual-scroll-container {
+  /* Size containment for virtual scrolling */
+  contain: size layout style;
+  overflow-anchor: none; /* Prevent scroll anchoring issues */
+}
+
+/* Modal and dialog containment */
+.dialog-content,
+.modal-content,
+[role="dialog"] {
+  /* Isolate modal rendering from main content */
+  contain: layout style;
+}
+
+/* Performance mode for low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Remove will-change in reduced motion */
+  .floating-elements,
+  .cyberpunk-background,
+  .neon-border,
+  .neon-text,
+  .neon-button {
+    will-change: auto;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Reduce containment on mobile for memory efficiency */
+  .floating-elements,
+  .cyberpunk-background {
+    contain: layout;
+    will-change: auto;
+  }
+  
+  /* Disable complex animations on mobile */
+  .animate-float,
+  .animate-subtle-float,
+  .animate-gentle-glow {
+    animation: none;
+  }
+}
+
+/* High contrast mode optimizations */
+@media (prefers-contrast: high) {
+  .neon-glow,
+  .glow,
+  .shadow-glow {
+    filter: none;
+    box-shadow: none;
+  }
+}
+
+/* Optimize paint for frequently changing elements */
+.score-display,
+.timer-display,
+.player-count {
+  contain: strict;
+  will-change: contents;
+}
+
+/* Carousel performance */
+.carousel-container {
+  contain: size layout style;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.carousel-item {
+  scroll-snap-align: center;
+  contain: layout style;
+}
+
+/* Skeleton loading optimization */
+.skeleton {
+  contain: strict;
+  will-change: opacity;
+}
+
+/* Tab content isolation */
+.tabs-content {
+  contain: size layout style;
+}
+
+/* Form input performance */
+input:focus,
+textarea:focus,
+select:focus {
+  /* Only apply will-change during interaction */
+  will-change: border-color, box-shadow;
+}
+
+/* After interaction cleanup */
+input:not(:focus),
+textarea:not(:focus),
+select:not(:focus) {
+  will-change: auto;
+}

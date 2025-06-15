@@ -1,24 +1,25 @@
 'use client';
 
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+} from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Badge } from '@/components/ui/Badge';
 import { useSessionJoin } from '@/features/play-area/hooks/useSessionJoin';
-import { Users, Crown, Gamepad2, AlertCircle } from 'lucide-react';
+import { Users, Crown, Gamepad2, AlertCircle } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import {
   RouteErrorBoundary,
   AsyncBoundary,
 } from '@/components/error-boundaries';
+import { useCallback } from 'react';
 
 interface ColorOption {
   color: string;
@@ -71,6 +72,19 @@ function JoinSessionContent({ params }: { params: { sessionId: string } }) {
     handleJoinSession,
   } = useSessionJoin({ sessionId: params.sessionId });
 
+  // Navigation handler
+  const handleGoBack = useCallback(() => {
+    window.history.back();
+  }, []);
+
+  // Color selection handler
+  const handleColorSelect = useCallback(
+    (color: string) => {
+      setSelectedColor(color);
+    },
+    [setSelectedColor]
+  );
+
   // Loading state
   if (isLoading) {
     return (
@@ -95,11 +109,7 @@ function JoinSessionContent({ params }: { params: { sessionId: string } }) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              onClick={() => window.history.back()}
-              className="w-full"
-              variant="outline"
-            >
+            <Button onClick={handleGoBack} className="w-full" variant="primary">
               Go Back
             </Button>
           </CardContent>
@@ -120,18 +130,18 @@ function JoinSessionContent({ params }: { params: { sessionId: string } }) {
         <Card className="mb-6 border-gray-700 bg-gray-800/50">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <Gamepad2 className="h-8 w-8 text-cyan-400" />
+              <Gamepad2 className="h-8 w-8 text-cyan-200" />
               <div className="flex-1">
                 <CardTitle className="text-cyan-100">{sessionTitle}</CardTitle>
                 <CardDescription className="mt-1 flex items-center gap-4">
                   <Badge
-                    variant="outline"
+                    variant="cyber"
                     className="border-cyan-500/30 text-cyan-300"
                   >
                     {gameType}
                   </Badge>
                   <Badge
-                    variant="outline"
+                    variant="cyber-purple"
                     className="border-purple-500/30 text-purple-300"
                   >
                     {difficulty}
@@ -186,7 +196,7 @@ function JoinSessionContent({ params }: { params: { sessionId: string } }) {
                   <button
                     key={option.color}
                     type="button"
-                    onClick={() => setSelectedColor(option.color)}
+                    onClick={() => handleColorSelect(option.color)}
                     disabled={!canJoin}
                     className={cn(
                       'h-12 w-12 rounded-lg border-2 transition-all',

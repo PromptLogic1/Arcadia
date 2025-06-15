@@ -35,6 +35,7 @@ let apiRateLimiter: Ratelimit | null = null;
 let authRateLimiter: Ratelimit | null = null;
 let uploadRateLimiter: Ratelimit | null = null;
 let gameSessionRateLimiter: Ratelimit | null = null;
+let gameActionRateLimiter: Ratelimit | null = null;
 
 /**
  * Get API rate limiter instance
@@ -122,6 +123,28 @@ function getGameSessionRateLimiter(): Ratelimit | null {
     }
   }
   return gameSessionRateLimiter;
+}
+
+/**
+ * Get Game Action rate limiter instance (for marking cells, etc.)
+ */
+function getGameActionRateLimiter(): Ratelimit | null {
+  if (!gameActionRateLimiter && isRedisConfigured()) {
+    try {
+      gameActionRateLimiter = new Ratelimit({
+        redis: getRedisClient(),
+        limiter: Ratelimit.slidingWindow(30, '60 s'), // 30 game actions per minute
+        prefix: `${REDIS_PREFIXES.RATE_LIMIT}:game-action`,
+        analytics: false, // Disable analytics to reduce Redis calls
+      });
+    } catch (error) {
+      log.error(
+        'Failed to initialize game action rate limiter',
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+  return gameActionRateLimiter;
 }
 
 /**
@@ -416,6 +439,80 @@ export const rateLimitingService = {
   },
 
   /**
+   * Check game action rate limit (for marking cells, etc.)
+   */
+  async checkGameActionLimit(
+    identifier: string
+  ): Promise<ServiceResponse<RateLimitResponse>> {
+    try {
+      const limiter = getGameActionRateLimiter();
+
+      // If Redis is not configured, allow the request (fail open)
+      if (!limiter) {
+        log.debug(
+          'Game action rate limit check skipped - Redis not configured',
+          {
+            metadata: { identifier },
+          }
+        );
+
+        return {
+          success: true,
+          data: {
+            allowed: true,
+            limit: 30,
+            remaining: 30,
+            resetTime: Date.now() + 60000,
+          },
+          error: null,
+        };
+      }
+
+      const result = await limiter.limit(identifier);
+
+      log.debug('Game action rate limit check', {
+        metadata: {
+          identifier,
+          allowed: result.success,
+          remaining: result.remaining,
+        },
+      });
+
+      return {
+        success: true,
+        data: {
+          allowed: result.success,
+          limit: result.limit,
+          remaining: result.remaining,
+          resetTime: result.reset,
+          reason: result.reason,
+        },
+        error: null,
+      };
+    } catch (error) {
+      log.error(
+        'Game action rate limit check failed',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { identifier },
+        }
+      );
+
+      // Fail open - allow request if rate limiting fails
+      return {
+        success: true,
+        data: {
+          allowed: true,
+          limit: 30,
+          remaining: 30,
+          resetTime: Date.now() + 60000,
+        },
+        error: null,
+      };
+    }
+  },
+
+  /**
    * Get client identifier from request
    * Uses IP as fallback, but can be enhanced with user ID, API key, etc.
    */
@@ -442,7 +539,7 @@ export const rateLimitingService = {
 export async function withRateLimit<T>(
   request: Request,
   handler: () => Promise<T>,
-  limitType: 'api' | 'auth' | 'upload' | 'gameSession' = 'api',
+  limitType: 'api' | 'auth' | 'upload' | 'gameSession' | 'gameAction' = 'api',
   userId?: string
 ): Promise<ServiceResponse<T>> {
   const identifier = rateLimitingService.getIdentifier(request, userId);
@@ -458,6 +555,9 @@ export async function withRateLimit<T>(
       break;
     case 'gameSession':
       limitCheck = await rateLimitingService.checkGameSessionLimit(identifier);
+      break;
+    case 'gameAction':
+      limitCheck = await rateLimitingService.checkGameActionLimit(identifier);
       break;
     default:
       limitCheck = await rateLimitingService.checkApiLimit(identifier);

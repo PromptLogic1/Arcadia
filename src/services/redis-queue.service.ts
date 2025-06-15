@@ -33,7 +33,7 @@ const jobDataSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
-const jobResultSchema = z.object({
+const _jobResultSchema = z.object({
   jobId: z.string(),
   success: z.boolean(),
   result: z.unknown().optional(),
@@ -43,7 +43,7 @@ const jobResultSchema = z.object({
 });
 
 export type JobData = z.infer<typeof jobDataSchema>;
-export type JobResult = z.infer<typeof jobResultSchema>;
+export type JobResult = z.infer<typeof _jobResultSchema>;
 
 // Constants
 export const QUEUE_CONSTANTS = {
@@ -882,7 +882,7 @@ class RedisQueueService {
               const job = jobDataSchema.parse(parsedData);
               await this.failJob(job, 'Job processing timeout');
               cleanedCount++;
-            } catch (parseError) {
+            } catch {
               // Invalid job data, just delete the key
               await redis.del(key);
               cleanedCount++;

@@ -1,25 +1,21 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 import { NeonText } from '@/components/ui/NeonText';
 import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
-import FloatingElements from '@/components/ui/FloatingElements';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/stores/auth-store';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-import {
-  GiPlayButton,
-  GiTeamIdea,
-  GiSandsOfTime,
-  GiTrophyCup,
-  GiLightningTrio,
-  GiStarMedal,
-  GiConsoleController,
-} from 'react-icons/gi';
+import { Loader2 } from '@/components/ui/Icons';
+
+const FloatingElements = dynamic(
+  () => import('@/components/ui/FloatingElements'),
+  { ssr: false }
+);
 import { log } from '@/lib/logger';
 import {
   useCreateSessionMutation,
@@ -31,7 +27,7 @@ interface DemoBoard {
   id: string;
   title: string;
   description: string;
-  game_type: string;
+  game_type: keyof typeof gameTypeIcons;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   votes: number;
   playerCount?: number; // Number of players currently in sessions
@@ -286,13 +282,11 @@ function TryDemoGame() {
 
   if (selectedBoard) {
     return (
-      <Card variant="cyber" glow="subtle" className="mx-auto max-w-2xl p-8">
+      <Card variant="primary" className="mx-auto max-w-2xl p-8">
         <div className="space-y-6 text-center">
           <div className="space-y-4">
             <div className="text-6xl">
-              {gameTypeIcons[
-                selectedBoard.game_type as keyof typeof gameTypeIcons
-              ] || '🎮'}
+              {gameTypeIcons[selectedBoard.game_type] || '🎮'}
             </div>
             <h3 className="neon-glow-cyan text-3xl font-bold">
               {selectedBoard.title}
@@ -309,7 +303,14 @@ function TryDemoGame() {
                 {selectedBoard.difficulty}
               </Badge>
               <div className="flex items-center gap-1 text-cyan-300">
-                <GiStarMedal className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <svg
+                  className="h-4 w-4 fill-yellow-400 text-yellow-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                </svg>
                 <span>{selectedBoard.votes} votes</span>
               </div>
             </div>
@@ -340,7 +341,7 @@ function TryDemoGame() {
           <div className="flex justify-center gap-4">
             <Button
               onClick={() => setSelectedBoard(null)}
-              variant="cyber-outline"
+              variant="primary"
               size="lg"
               disabled={
                 createSessionMutation.isPending ||
@@ -350,7 +351,7 @@ function TryDemoGame() {
               Choose Different Board
             </Button>
             <Button
-              variant="cyber"
+              variant="primary"
               size="lg"
               onClick={createDemoSession}
               disabled={
@@ -367,7 +368,14 @@ function TryDemoGame() {
                 </>
               ) : (
                 <>
-                  <GiPlayButton className="mr-2 h-5 w-5" />
+                  <svg
+                    className="mr-2 h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
                   Start Playing Now!
                 </>
               )}
@@ -387,16 +395,15 @@ function TryDemoGame() {
 
   return (
     <CyberpunkBackground
-      variant="circuit"
-      intensity="strong"
+      variant="grid"
+      intensity="medium"
       className="bg-gradient-to-b from-slate-950/90 via-slate-900/95 to-slate-950/90 py-24"
     >
       <FloatingElements
-        variant="orbs"
+        variant="particles"
         count={15}
         speed="fast"
         color="fuchsia"
-        repositioning={true}
       />
       <div className="relative z-20 container mx-auto px-4">
         <div className="space-y-12">
@@ -404,7 +411,7 @@ function TryDemoGame() {
           <div className="space-y-6 text-center">
             <h2 className="">
               <NeonText
-                variant="gradient"
+                variant="solid"
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
               >
                 🎮 Try Multiplayer Bingo
@@ -431,7 +438,7 @@ function TryDemoGame() {
                   joinSessionByCodeMutation.isPending ||
                   waitingSessionsQuery.isLoading
                 }
-                variant="cyber"
+                variant="primary"
                 size="lg"
                 className="px-8 py-6 text-lg"
                 aria-label="Join a random multiplayer bingo game session"
@@ -448,10 +455,14 @@ function TryDemoGame() {
                   </>
                 ) : (
                   <>
-                    <GiLightningTrio
+                    <svg
                       className="mr-2 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
                       aria-hidden="true"
-                    />
+                    >
+                      <path d="M7 2v11h3v9l7-12h-4l4-8z" />
+                    </svg>
                     Quick Play (30s)
                   </>
                 )}
@@ -470,17 +481,14 @@ function TryDemoGame() {
             {DEMO_BOARDS.map(board => (
               <Card
                 key={board.id}
-                variant="cyber"
-                glow="subtle"
-                className="group cursor-pointer p-8 transition-all hover:scale-105"
+                variant="primary"
+                className="group h-full cursor-pointer p-8 transition-all hover:scale-105"
                 onClick={() => handleQuickPlay(board)}
               >
-                <div className="space-y-6">
-                  <div className="flex items-start justify-between">
+                <div className="flex h-full flex-col space-y-6">
+                  <div className="flex items-center justify-between">
                     <div className="text-5xl">
-                      {gameTypeIcons[
-                        board.game_type as keyof typeof gameTypeIcons
-                      ] || '🎮'}
+                      {gameTypeIcons[board.game_type] || '🎮'}
                     </div>
                     <Badge
                       variant={difficultyColors[board.difficulty]}
@@ -490,7 +498,7 @@ function TryDemoGame() {
                     </Badge>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex flex-1 flex-col space-y-3 text-center">
                     <h3 className="neon-glow-cyan text-xl font-bold transition-colors group-hover:text-cyan-300">
                       {board.title}
                     </h3>
@@ -501,19 +509,33 @@ function TryDemoGame() {
 
                   <div className="flex items-center justify-center text-cyan-300/80">
                     <div className="flex items-center gap-2">
-                      <GiStarMedal className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                      <svg
+                        className="h-5 w-5 fill-yellow-400 text-yellow-400"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                      </svg>
                       <span className="font-medium">{board.votes} votes</span>
                     </div>
                   </div>
 
                   <Button
-                    variant="cyber-outline"
+                    variant="primary"
                     className="group-hover:variant-cyber w-full transition-all"
                     size="lg"
                     onClick={() => handleQuickPlay(board)}
                     aria-label={`Play ${board.title} bingo board`}
                   >
-                    <GiConsoleController className="mr-2 h-5 w-5" />
+                    <svg
+                      className="mr-2 h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+                    </svg>
                     Play This Board
                   </Button>
                 </div>
@@ -525,7 +547,14 @@ function TryDemoGame() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="space-y-4 text-center">
               <div className="cyber-card mx-auto flex h-16 w-16 items-center justify-center rounded-full border-cyan-500/50">
-                <GiSandsOfTime className="h-8 w-8 text-cyan-400" />
+                <svg
+                  className="h-8 w-8 text-cyan-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6V22h12v-5.99h-.01L18 16l-4-4 4-3.99-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zm-4-5l-4-4V4h8v3.5l-4 4z" />
+                </svg>
               </div>
               <h4 className="neon-glow-cyan text-xl font-bold">
                 Instant Multiplayer
@@ -538,7 +567,14 @@ function TryDemoGame() {
 
             <div className="space-y-4 text-center">
               <div className="cyber-card mx-auto flex h-16 w-16 items-center justify-center rounded-full border-purple-500/50">
-                <GiTrophyCup className="h-8 w-8 text-purple-400" />
+                <svg
+                  className="h-8 w-8 text-purple-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" />
+                </svg>
               </div>
               <h4 className="neon-glow-purple text-xl font-bold">
                 Win Detection
@@ -551,7 +587,14 @@ function TryDemoGame() {
 
             <div className="space-y-4 text-center">
               <div className="cyber-card mx-auto flex h-16 w-16 items-center justify-center rounded-full border-emerald-500/50">
-                <GiTeamIdea className="h-8 w-8 text-emerald-400" />
+                <svg
+                  className="h-8 w-8 text-emerald-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                </svg>
               </div>
               <h4 className="neon-glow-emerald text-xl font-bold">
                 Social Gaming

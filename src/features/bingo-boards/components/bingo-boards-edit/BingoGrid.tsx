@@ -1,6 +1,6 @@
 import React from 'react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { X, Sparkles } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { X, Sparkles } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { BingoCard } from '@/types';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
@@ -12,13 +12,13 @@ import {
   typography,
   animations,
 } from './design-system';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/Badge';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@/components/ui/Tooltip';
 
 interface BingoGridProps {
   gridCards: BingoCard[];
@@ -32,13 +32,38 @@ interface BingoGridProps {
  * Bingo grid display component
  * Renders the interactive grid of bingo cards with editing capabilities
  */
-export function BingoGrid({
+const BingoGridComponent = ({
   gridCards,
   gridSize,
   isLoading,
   onCardClick,
   onRemoveCard,
-}: BingoGridProps) {
+}: BingoGridProps) => {
+  const gridStyle = React.useMemo(
+    () => ({
+      gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+    }),
+    [gridSize]
+  );
+
+  // Memoize click handlers to prevent re-renders
+  const handleCardClick = React.useCallback(
+    (index: number) => {
+      const card = gridCards[index];
+      if (card) {
+        onCardClick(card, index);
+      }
+    },
+    [gridCards, onCardClick]
+  );
+
+  const handleRemoveCard = React.useCallback(
+    (index: number) => {
+      onRemoveCard(index);
+    },
+    [onRemoveCard]
+  );
+
   if (isLoading) {
     return (
       <div
@@ -68,9 +93,7 @@ export function BingoGrid({
           layout.grid.gap,
           'place-items-center'
         )}
-        style={{
-          gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-        }}
+        style={gridStyle}
         role="grid"
         aria-label="Bingo board grid"
       >
@@ -80,21 +103,42 @@ export function BingoGrid({
             card={card}
             index={index}
             gridSize={gridSize}
-            onClick={() => onCardClick(card, index)}
-            onRemove={() => onRemoveCard(index)}
+            onClick={handleCardClick}
+            onRemove={handleRemoveCard}
           />
         ))}
       </div>
     </div>
   );
-}
+};
+
+// Memoized BingoGrid for performance optimization
+export const BingoGrid = React.memo(
+  BingoGridComponent,
+  (prevProps, nextProps) => {
+    // Custom comparison for performance
+    return (
+      prevProps.gridSize === nextProps.gridSize &&
+      prevProps.isLoading === nextProps.isLoading &&
+      prevProps.gridCards.length === nextProps.gridCards.length &&
+      prevProps.gridCards.every(
+        (card, index) =>
+          card.id === nextProps.gridCards[index]?.id &&
+          card.title === nextProps.gridCards[index]?.title &&
+          card.updated_at === nextProps.gridCards[index]?.updated_at
+      )
+    );
+  }
+);
+
+BingoGrid.displayName = 'BingoGrid';
 
 interface GridCardProps {
   card: BingoCard;
   index: number;
   gridSize: number;
-  onClick: () => void;
-  onRemove: () => void;
+  onClick: (index: number) => void;
+  onRemove: (index: number) => void;
 }
 
 /**
@@ -139,11 +183,15 @@ const GridCard = React.memo(
       }
     };
 
-    const style = transform
-      ? {
-          transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        }
-      : undefined;
+    const style = React.useMemo(
+      () =>
+        transform
+          ? {
+              transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+            }
+          : undefined,
+      [transform]
+    );
 
     // Determine card variant and state
     const cardState = isDragging
@@ -174,7 +222,7 @@ const GridCard = React.memo(
             !isEmpty && !isTemplate && componentStyles.gridCell.custom,
             animations.transition.default
           )}
-          onClick={onClick}
+          onClick={() => onClick(index)}
           {...(!isEmpty ? listeners : {})}
           role="gridcell"
           aria-label={
@@ -186,7 +234,7 @@ const GridCard = React.memo(
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              onClick();
+              onClick(index);
             }
           }}
         >
@@ -220,7 +268,7 @@ const GridCard = React.memo(
                   )}
                   onClick={e => {
                     e.stopPropagation();
-                    onRemove();
+                    onRemove(index);
                   }}
                   aria-label={`Remove ${card.title} from position ${gridPosition}`}
                   tabIndex={-1}
@@ -266,7 +314,7 @@ const GridCard = React.memo(
                 </Badge>
                 {isTemplate && (
                   <Badge
-                    variant="outline"
+                    variant="cyber"
                     className="border-blue-400/50 px-1.5 py-0 text-[10px] text-blue-300"
                   >
                     Template
@@ -351,8 +399,12 @@ const GridCard = React.memo(
       prevProps.card.title === nextProps.card.title &&
       prevProps.card.difficulty === nextProps.card.difficulty &&
       prevProps.card.description === nextProps.card.description &&
-      JSON.stringify(prevProps.card.tags) ===
-        JSON.stringify(nextProps.card.tags)
+      // More efficient tag comparison without JSON.stringify
+      prevProps.card.tags?.length === nextProps.card.tags?.length &&
+      (prevProps.card.tags?.every(
+        (tag, idx) => tag === nextProps.card.tags?.[idx]
+      ) ??
+        true)
     );
   }
 );

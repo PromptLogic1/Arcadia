@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Lightbulb } from 'lucide-react';
+import { AlertCircle, Lightbulb } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { GENERATOR_ERRORS, ERROR_TIPS, GENERATOR_STYLES } from './constants';
 

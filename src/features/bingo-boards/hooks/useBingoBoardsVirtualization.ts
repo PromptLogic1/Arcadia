@@ -25,9 +25,9 @@ export interface UseBingoBoardsVirtualizationReturn {
 // =============================================================================
 
 const VIRTUALIZER_CONFIG = {
-  estimateSize: () => 140, // Estimated height for each board card
+  estimateSize: () => 200, // Increased to account for actual card height + gap
   overscan: 3,
-  gap: 16, // Gap between cards
+  gap: 24, // Increased gap between cards for better spacing
 } as const;
 
 // =============================================================================

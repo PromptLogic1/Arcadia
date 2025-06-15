@@ -22,6 +22,10 @@ import type { ServiceResponse } from '@/lib/service-types';
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
 import { zBoardState, zBoardSettings } from '@/lib/validation/schemas/bingo';
+import {
+  transformBoardState,
+  transformBoardSettings,
+} from '@/lib/validation/transforms';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -130,8 +134,8 @@ const _transformDbBoardToDomain = (
 
     return {
       ...board,
-      board_state: boardState,
-      settings: settings,
+      board_state: transformBoardState(boardState),
+      settings: transformBoardSettings(settings),
       updated_at: board.updated_at || null,
     };
   } catch (error) {
@@ -1116,7 +1120,7 @@ export const bingoBoardsService = {
       const insertData: TablesInsert<'bingo_boards'> = {
         title: params.title,
         size: params.size,
-        settings: params.settings,
+        settings: transformBoardSettings(params.settings),
         game_type: params.game_type,
         difficulty: params.difficulty,
         is_public: params.is_public,

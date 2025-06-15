@@ -8,21 +8,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Card, CardContent } from '@/components/ui/card';
+} from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Card, CardContent } from '@/components/ui/Card';
 import {
   Search,
   Lock,
   Users,
   Play,
   AlertCircle,
-  CheckCircle,
   Info,
-} from 'lucide-react';
+  CheckCircle,
+} from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 
 interface SessionJoinDialogProps {
@@ -195,7 +195,7 @@ export function SessionJoinDialog({
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="primary"
             onClick={onClose}
             className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
           >

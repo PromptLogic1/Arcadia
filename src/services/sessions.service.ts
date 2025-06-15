@@ -14,6 +14,11 @@ import {
   bingoSessionSchema,
   sessionStatsArraySchema,
 } from '@/lib/validation/schemas/bingo';
+import {
+  hashPassword,
+  verifyPassword,
+  generateSessionCode,
+} from '@/lib/crypto-utils';
 import { log } from '@/lib/logger';
 import {
   transformBoardState,
@@ -36,6 +41,21 @@ export interface SessionWithStats extends BingoSession {
   has_password?: boolean | null;
   max_players?: number | null;
   host_username?: string | null;
+}
+
+// Type for session with joined players
+export interface SessionWithPlayers extends BingoSession {
+  bingo_session_players: SessionPlayer[];
+}
+
+// Type for session with minimal player data (for performance)
+export interface SessionWithMinimalPlayers extends BingoSession {
+  bingo_session_players: {
+    user_id: string;
+    display_name: string;
+    color: string;
+    team: number | null;
+  }[];
 }
 
 // Helper to convert Supabase errors to standard Error objects
@@ -393,11 +413,19 @@ export const sessionsService = {
         );
       }
 
-      // Generate session code
-      const sessionCode = Math.random()
-        .toString(36)
-        .substring(2, 8)
-        .toUpperCase();
+      // Generate secure session code
+      const sessionCode = generateSessionCode(6);
+
+      // Hash password if provided
+      let hashedPassword = null;
+      if (
+        sessionData.settings?.password &&
+        sessionData.settings.password.trim()
+      ) {
+        hashedPassword = await hashPassword(
+          sessionData.settings.password.trim()
+        );
+      }
 
       const { data, error } = await supabase
         .from('bingo_sessions')
@@ -412,7 +440,7 @@ export const sessionsService = {
             auto_start: sessionData.settings?.auto_start || false,
             time_limit: sessionData.settings?.time_limit || null,
             require_approval: sessionData.settings?.require_approval || false,
-            password: sessionData.settings?.password || null,
+            password: hashedPassword,
           },
           current_state: [],
         })
@@ -597,10 +625,15 @@ export const sessionsService = {
       // Check password if session is password protected
       const sessionPassword = session.settings?.password;
       if (sessionPassword && sessionPassword.trim()) {
-        if (
-          !playerData.password ||
-          playerData.password.trim() !== sessionPassword.trim()
-        ) {
+        if (!playerData.password) {
+          return { session: null, player: null, error: 'Password required' };
+        }
+
+        const isPasswordValid = await verifyPassword(
+          playerData.password.trim(),
+          sessionPassword
+        );
+        if (!isPasswordValid) {
           return { session: null, player: null, error: 'Incorrect password' };
         }
       }
@@ -1067,6 +1100,76 @@ export const sessionsService = {
   },
 
   /**
+   * Get sessions by board ID with players in a single query (fixes N+1 issue)
+   */
+  async getSessionsByBoardIdWithPlayers(
+    boardId: string,
+    status?: SessionStatus
+  ): Promise<ServiceResponse<SessionWithMinimalPlayers[]>> {
+    try {
+      const supabase = createClient();
+      let query = supabase
+        .from('bingo_sessions')
+        .select(
+          `
+          *,
+          bingo_session_players (
+            user_id,
+            display_name,
+            color,
+            team
+          )
+        `
+        )
+        .eq('board_id', boardId);
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        log.error(
+          'Failed to get sessions with players by board ID',
+          toStandardError(error),
+          {
+            metadata: {
+              service: 'sessions.service',
+              method: 'getSessionsByBoardIdWithPlayers',
+              boardId,
+              status,
+            },
+          }
+        );
+        return createServiceError(error.message);
+      }
+
+      // Transform the data to match expected format
+      const sessionsWithPlayers = (data || []).map(session => ({
+        ...session,
+        bingo_session_players: session.bingo_session_players || [],
+      }));
+
+      return createServiceSuccess(sessionsWithPlayers);
+    } catch (error) {
+      log.error(
+        'Unexpected error getting sessions with players by board ID',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'sessions.service',
+            method: 'getSessionsByBoardIdWithPlayers',
+            boardId,
+            status,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
    * Start a session (host only)
    */
   async startSession(
@@ -1170,6 +1273,7 @@ export const sessionsService = {
       display_name: string;
       color: string;
       team?: number | null;
+      password?: string;
     }
   ): Promise<
     ServiceResponse<{ session: BingoSession; player: SessionPlayer }>
@@ -1186,6 +1290,22 @@ export const sessionsService = {
 
       if (sessionError || !session) {
         return createServiceError('Session not found or has already started.');
+      }
+
+      // CRITICAL: Check password if session is password protected
+      const sessionPassword = session.settings?.password;
+      if (sessionPassword && sessionPassword.trim()) {
+        if (!playerData.password) {
+          return createServiceError('Password required');
+        }
+
+        const isPasswordValid = await verifyPassword(
+          playerData.password.trim(),
+          sessionPassword
+        );
+        if (!isPasswordValid) {
+          return createServiceError('Incorrect password');
+        }
       }
 
       // Check if player is already in the session

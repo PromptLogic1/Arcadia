@@ -9,6 +9,10 @@ import {
 import { getErrorMessage, isError } from '@/lib/error-guards';
 import { log } from '@/lib/logger';
 import { boardStateSchema } from '@/lib/validation/schemas/bingo';
+import {
+  transformBoardState,
+  transformBoardCell,
+} from '@/lib/validation/transforms';
 
 // Type for bingo_session_players
 type SessionPlayer = Tables<'bingo_session_players'>;
@@ -164,12 +168,12 @@ export const gameStateService = {
 
       const existingCell = newState[data.cell_position];
       if (existingCell) {
-        const newCellData: BoardCell = {
+        const newCellData = transformBoardCell({
           ...existingCell,
           is_marked: data.action === 'mark',
           last_updated: Date.now(),
           last_modified_by: data.user_id,
-        };
+        });
         newState[data.cell_position] = newCellData;
       }
 
@@ -177,7 +181,7 @@ export const gameStateService = {
       const { data: updatedSession, error: updateError } = await supabase
         .from('bingo_sessions')
         .update({
-          current_state: newState,
+          current_state: transformBoardState(newState),
           version: data.version + 1,
         })
         .eq('id', sessionId)
@@ -225,7 +229,7 @@ export const gameStateService = {
       }
 
       return createServiceSuccess({
-        boardState: updatedParseResult.data,
+        boardState: transformBoardState(updatedParseResult.data),
         version: updatedSession.version ?? 0,
       });
     } catch (error) {
@@ -463,7 +467,7 @@ export const gameStateService = {
       }
 
       return createServiceSuccess({
-        boardState: parseResult.data,
+        boardState: transformBoardState(parseResult.data),
         version: session.version ?? 0,
       });
     } catch (error) {

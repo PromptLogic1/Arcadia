@@ -1,27 +1,28 @@
 'use client';
 
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/ui/Dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '@/components/ui/Select';
+import { Textarea } from '@/components/ui/Textarea';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { Controller } from 'react-hook-form';
 import { GAME_CATEGORIES } from '@/src/types/index';
 import type { GameCategory } from '@/types';
@@ -64,12 +65,7 @@ const createBoardSchema = z.object({
         message: 'Invalid board size',
       }
     ),
-  board_game_type: z.custom<GameCategory>(
-    game => GAME_CATEGORIES.includes(game as GameCategory),
-    {
-      message: 'Invalid game type',
-    }
-  ),
+  board_game_type: z.enum(GAME_CATEGORIES as [GameCategory, ...GameCategory[]]),
   board_difficulty: z.enum([
     'beginner',
     'easy',
@@ -201,269 +197,275 @@ function FormField({
 // MAIN COMPONENT
 // =============================================================================
 
-export function CreateBoardForm({
-  isOpen,
-  onOpenChange,
-  createBoardAction,
-}: CreateBoardFormProps) {
-  const form = useForm<FormData>({
-    resolver: zodResolver(createBoardSchema),
-    defaultValues: DEFAULT_VALUES,
-    mode: 'onChange', // Validate on change for better UX
-  });
+const CreateBoardForm = React.memo<CreateBoardFormProps>(
+  ({ isOpen, onOpenChange, createBoardAction }) => {
+    const form = useForm<FormData>({
+      resolver: zodResolver(createBoardSchema),
+      defaultValues: DEFAULT_VALUES,
+      mode: 'onChange', // Validate on change for better UX
+    });
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors, isSubmitting, isDirty },
-  } = form;
+    const {
+      register,
+      control,
+      handleSubmit,
+      reset,
+      watch,
+      formState: { errors, isSubmitting, isDirty },
+    } = form;
 
-  // Watch specific fields for dynamic UI updates
-  const titleValue = watch('board_title');
-  const descriptionValue = watch('board_description');
-  const tagsValue = watch('board_tags');
+    // Watch specific fields for dynamic UI updates
+    const titleValue = watch('board_title');
+    const descriptionValue = watch('board_description');
+    const tagsValue = watch('board_tags');
 
-  const onSubmit = useCreateBoardSubmission(createBoardAction, onOpenChange);
+    const onSubmit = useCreateBoardSubmission(createBoardAction, onOpenChange);
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      log.info('CreateBoardForm dialog closed', {
-        component: 'CreateBoardForm',
-        metadata: { isDirty, hasUnsavedChanges: isDirty },
-      });
+    const handleOpenChange = (open: boolean) => {
+      if (!open) {
+        log.info('CreateBoardForm dialog closed', {
+          component: 'CreateBoardForm',
+          metadata: { isDirty, hasUnsavedChanges: isDirty },
+        });
 
-      // Reset form when closing to prevent stale data
-      reset(DEFAULT_VALUES);
-    }
-    onOpenChange?.(open);
-  };
+        // Reset form when closing to prevent stale data
+        reset(DEFAULT_VALUES);
+      }
+      onOpenChange?.(open);
+    };
 
-  const handleTagsChange = (value: string) => {
-    const tags = value
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag !== '');
-    return tags;
-  };
+    const handleTagsChange = (value: string) => {
+      const tags = value
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag !== '');
+      return tags;
+    };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto bg-gray-900 text-gray-100 sm:max-w-[500px]">
-        <BaseErrorBoundary level="component">
-          <DialogHeader>
-            <DialogTitle className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-2xl font-bold text-transparent">
-              Create New Bingo Board
-            </DialogTitle>
-          </DialogHeader>
+    return (
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto bg-gray-900 text-gray-100 sm:max-w-[500px]">
+          <BaseErrorBoundary level="component">
+            <DialogHeader>
+              <DialogTitle className="bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text text-2xl font-bold text-transparent">
+                Create New Bingo Board
+              </DialogTitle>
+            </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-6">
-            {/* Board Title */}
-            <FormField
-              label="Board Title"
-              required
-              htmlFor="board_title"
-              error={errors.board_title?.message}
-              description={`${titleValue?.length || 0}/${TITLE_LENGTH_LIMITS.MAX} characters`}
-            >
-              <Input
-                id="board_title"
-                {...register('board_title')}
-                className={cn(
-                  'border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
-                  errors.board_title && 'border-red-500/50 focus:border-red-500'
-                )}
-                placeholder="Enter board title"
-                disabled={isSubmitting}
-              />
-            </FormField>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-6">
+              {/* Board Title */}
+              <FormField
+                label="Board Title"
+                required
+                htmlFor="board_title"
+                error={errors.board_title?.message}
+                description={`${titleValue?.length || 0}/${TITLE_LENGTH_LIMITS.MAX} characters`}
+              >
+                <Input
+                  id="board_title"
+                  {...register('board_title')}
+                  className={cn(
+                    'border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
+                    errors.board_title &&
+                      'border-red-500/50 focus:border-red-500'
+                  )}
+                  placeholder="Enter board title"
+                  disabled={isSubmitting}
+                />
+              </FormField>
 
-            {/* Board Description */}
-            <FormField
-              label="Description"
-              htmlFor="board_description"
-              error={errors.board_description?.message}
-              description={`${descriptionValue?.length || 0}/${DESCRIPTION_LENGTH_LIMIT} characters (Optional)`}
-            >
-              <Textarea
-                id="board_description"
-                {...register('board_description')}
-                className={cn(
-                  'min-h-[80px] border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
-                  errors.board_description &&
-                    'border-red-500/50 focus:border-red-500'
-                )}
-                placeholder="Enter board description"
-                disabled={isSubmitting}
-              />
-            </FormField>
+              {/* Board Description */}
+              <FormField
+                label="Description"
+                htmlFor="board_description"
+                error={errors.board_description?.message}
+                description={`${descriptionValue?.length || 0}/${DESCRIPTION_LENGTH_LIMIT} characters (Optional)`}
+              >
+                <Textarea
+                  id="board_description"
+                  {...register('board_description')}
+                  className={cn(
+                    'min-h-[80px] border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500',
+                    errors.board_description &&
+                      'border-red-500/50 focus:border-red-500'
+                  )}
+                  placeholder="Enter board description"
+                  disabled={isSubmitting}
+                />
+              </FormField>
 
-            {/* Board Size */}
-            <FormField
-              label="Board Size"
-              required
-              error={errors.board_size?.message}
-            >
-              <Controller
-                name="board_size"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value.toString()}
-                    onValueChange={value => field.onChange(parseInt(value))}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500">
-                      <SelectValue placeholder="Select board size" />
-                    </SelectTrigger>
-                    <SelectContent className="border-cyan-500 bg-gray-800">
-                      {BOARD_SIZES.map(size => (
-                        <SelectItem key={size} value={size.toString()}>
-                          {size}x{size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
+              {/* Board Size */}
+              <FormField
+                label="Board Size"
+                required
+                error={errors.board_size?.message}
+              >
+                <Controller
+                  name="board_size"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value.toString()}
+                      onValueChange={value => field.onChange(parseInt(value))}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500">
+                        <SelectValue placeholder="Select board size" />
+                      </SelectTrigger>
+                      <SelectContent className="border-cyan-500 bg-gray-800">
+                        {BOARD_SIZES.map(size => (
+                          <SelectItem key={size} value={size.toString()}>
+                            {size}x{size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
 
-            {/* Game Type */}
-            <FormField
-              label="Game"
-              required
-              error={errors.board_game_type?.message}
-            >
-              <Controller
-                name="board_game_type"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500">
-                      <SelectValue placeholder="Select Game" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[200px] border-cyan-500 bg-gray-800">
-                      {sortedGames.map(game => (
-                        <SelectItem key={game} value={game}>
-                          {game}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
+              {/* Game Type */}
+              <FormField
+                label="Game"
+                required
+                error={errors.board_game_type?.message}
+              >
+                <Controller
+                  name="board_game_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500">
+                        <SelectValue placeholder="Select Game" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px] border-cyan-500 bg-gray-800">
+                        {sortedGames.map(game => (
+                          <SelectItem key={game} value={game}>
+                            {game}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
 
-            {/* Difficulty */}
-            <FormField
-              label="Difficulty"
-              required
-              error={errors.board_difficulty?.message}
-            >
-              <Controller
-                name="board_difficulty"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500">
-                      <SelectValue placeholder="Select Difficulty" />
-                    </SelectTrigger>
-                    <SelectContent className="border-cyan-500 bg-gray-800">
-                      {DIFFICULTY_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
+              {/* Difficulty */}
+              <FormField
+                label="Difficulty"
+                required
+                error={errors.board_difficulty?.message}
+              >
+                <Controller
+                  name="board_difficulty"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500">
+                        <SelectValue placeholder="Select Difficulty" />
+                      </SelectTrigger>
+                      <SelectContent className="border-cyan-500 bg-gray-800">
+                        {DIFFICULTY_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
 
-            {/* Tags */}
-            <FormField
-              label="Tags"
-              htmlFor="board_tags"
-              error={errors.board_tags?.message}
-              description={`${tagsValue?.length || 0} tags entered (Optional, comma-separated)`}
-            >
-              <Controller
-                name="board_tags"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    id="board_tags"
-                    value={field.value.join(', ')}
-                    onChange={e =>
-                      field.onChange(handleTagsChange(e.target.value))
-                    }
-                    className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500"
-                    placeholder="e.g. raiding, pvp, fun"
-                    disabled={isSubmitting}
-                  />
-                )}
-              />
-            </FormField>
-
-            {/* Public Checkbox */}
-            <FormField label="" error={errors.is_public?.message}>
-              <Controller
-                name="is_public"
-                control={control}
-                render={({ field }) => (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_public"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+              {/* Tags */}
+              <FormField
+                label="Tags"
+                htmlFor="board_tags"
+                error={errors.board_tags?.message}
+                description={`${tagsValue?.length || 0} tags entered (Optional, comma-separated)`}
+              >
+                <Controller
+                  name="board_tags"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="board_tags"
+                      value={field.value.join(', ')}
+                      onChange={e =>
+                        field.onChange(handleTagsChange(e.target.value))
+                      }
+                      className="border-cyan-500/50 bg-gray-800/50 focus:border-fuchsia-500"
+                      placeholder="e.g. raiding, pvp, fun"
                       disabled={isSubmitting}
                     />
-                    <Label htmlFor="is_public" className="text-sm font-normal">
-                      Make this board public
-                    </Label>
-                  </div>
-                )}
-              />
-            </FormField>
+                  )}
+                />
+              </FormField>
 
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-2 border-t border-gray-800 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                className="border-cyan-500/50 hover:bg-cyan-500/10"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className={cn(
-                  'bg-gradient-to-r from-cyan-500 to-fuchsia-500',
-                  'font-medium text-white',
-                  'transition-all duration-200 hover:opacity-90',
-                  'shadow-lg shadow-cyan-500/25',
-                  'disabled:cursor-not-allowed disabled:opacity-50'
-                )}
-              >
-                {isSubmitting ? 'Creating...' : 'Create Board'}
-              </Button>
-            </div>
-          </form>
-        </BaseErrorBoundary>
-      </DialogContent>
-    </Dialog>
-  );
-}
+              {/* Public Checkbox */}
+              <FormField label="" error={errors.is_public?.message}>
+                <Controller
+                  name="is_public"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="is_public"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting}
+                      />
+                      <Label
+                        htmlFor="is_public"
+                        className="text-sm font-normal"
+                      >
+                        Make this board public
+                      </Label>
+                    </div>
+                  )}
+                />
+              </FormField>
+
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-2 border-t border-gray-800 pt-4">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => handleOpenChange(false)}
+                  className="border-cyan-500/50 hover:bg-cyan-500/10"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={cn(
+                    'bg-gradient-to-r from-cyan-500 to-fuchsia-500',
+                    'font-medium text-white',
+                    'transition-all duration-200 hover:opacity-90',
+                    'shadow-lg shadow-cyan-500/25',
+                    'disabled:cursor-not-allowed disabled:opacity-50'
+                  )}
+                >
+                  {isSubmitting ? 'Creating...' : 'Create Board'}
+                </Button>
+              </div>
+            </form>
+          </BaseErrorBoundary>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+);
+
+CreateBoardForm.displayName = 'CreateBoardForm';
+
+export { CreateBoardForm };

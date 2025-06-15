@@ -1,29 +1,33 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+} from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import {
+  OptimizedAvatar as Avatar,
+  OptimizedAvatarFallback as AvatarFallback,
+  OptimizedAvatarImage as AvatarImage,
+} from '@/components/ui/OptimizedAvatar';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   Users,
   Play,
   Crown,
   ExternalLink,
-  Copy,
   Check,
   AlertCircle,
   Clock,
+  Copy,
   Share2,
-} from 'lucide-react';
+} from '@/components/ui/Icons';
 import { useAuth } from '@/lib/stores/auth-store';
 import { notifications } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
@@ -32,6 +36,34 @@ import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGame';
 import { useStartGameSessionMutation } from '@/hooks/queries/useGameStateQueries';
 import { RealtimeErrorBoundary } from '@/components/error-boundaries';
 import type { Player } from '../../../services/session-state.service';
+
+// Constants moved outside component to prevent recreation
+const DIFFICULTY_COLORS = {
+  beginner: 'bg-green-500/20 text-green-400 border-green-500/30',
+  easy: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  hard: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  expert: 'bg-red-500/20 text-red-400 border-red-500/30',
+} as const;
+
+const STATUS_COLORS = {
+  waiting: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  active: 'bg-green-500/20 text-green-400 border-green-500/30',
+  completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+  cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+} as const;
+
+const DEFAULT_COLOR = 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+
+// Generate stable color based on user ID
+const generateUserColor = (userId: string): string => {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 50%)`;
+};
 
 interface GameSessionProps {
   sessionId: string;
@@ -53,6 +85,19 @@ export function GameSession({ sessionId }: GameSessionProps) {
 
   // UI state
   const [copySuccess, setCopySuccess] = useState(false);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Memoized helper functions - must be defined before any conditional returns
+  const getDifficultyColor = useCallback((difficulty: string) => {
+    return (
+      DIFFICULTY_COLORS[difficulty as keyof typeof DIFFICULTY_COLORS] ||
+      DEFAULT_COLOR
+    );
+  }, []);
+
+  const getStatusColor = useCallback((status: string) => {
+    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || DEFAULT_COLOR;
+  }, []);
 
   // Derived state from the session
   const players = session.players || [];
@@ -62,7 +107,19 @@ export function GameSession({ sessionId }: GameSessionProps) {
   const playerInSession =
     (session.players || []).find(p => p.id === authUser?.id) || null;
   const loading = session.isLoading;
-  const error = session.error?.message || null;
+  const error =
+    typeof session.error === 'string'
+      ? session.error
+      : session.error?.message || null;
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Copy session code to clipboard
   const copySessionCode = useCallback(async () => {
@@ -73,9 +130,15 @@ export function GameSession({ sessionId }: GameSessionProps) {
       setCopySuccess(true);
       notifications.success('Session code copied to clipboard!');
 
+      // Clear any existing timeout
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+
       // Reset success state after 2 seconds
-      setTimeout(() => {
+      copyTimeoutRef.current = setTimeout(() => {
         setCopySuccess(false);
+        copyTimeoutRef.current = null;
       }, 2000);
     } catch {
       notifications.error('Failed to copy session code');
@@ -142,7 +205,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
       avatar_url: authUser.avatar_url || undefined,
       joined_at: new Date().toISOString(),
       is_active: true,
-      color: '#' + Math.floor(Math.random() * 16777215).toString(16), // Random color
+      color: generateUserColor(authUser.id),
       is_host: false,
       is_ready: true,
     };
@@ -190,7 +253,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
             </p>
             <Button
               onClick={() => router.push('/play-area')}
-              variant="outline"
+              variant="primary"
               className="border-red-500/50 text-red-300 hover:bg-red-500/10"
             >
               Back to Play Area
@@ -226,40 +289,6 @@ export function GameSession({ sessionId }: GameSessionProps) {
     );
   }
 
-  const getDifficultyColor = (difficulty: string) => {
-    const colors = {
-      beginner: 'bg-green-500/20 text-green-400 border-green-500/30',
-      easy: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      hard: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      expert: 'bg-red-500/20 text-red-400 border-red-500/30',
-    } as const;
-
-    if (difficulty === 'beginner') return colors.beginner;
-    if (difficulty === 'easy') return colors.easy;
-    if (difficulty === 'medium') return colors.medium;
-    if (difficulty === 'hard') return colors.hard;
-    if (difficulty === 'expert') return colors.expert;
-
-    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      waiting: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      active: 'bg-green-500/20 text-green-400 border-green-500/30',
-      completed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-      cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-    } as const;
-
-    if (status === 'waiting') return colors.waiting;
-    if (status === 'active') return colors.active;
-    if (status === 'completed') return colors.completed;
-    if (status === 'cancelled') return colors.cancelled;
-
-    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
-
   return (
     <RealtimeErrorBoundary componentName="GameSession">
       <div className="container mx-auto px-4 py-8">
@@ -277,7 +306,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
           <div className="flex gap-2">
             {session.session_code && (
               <Button
-                variant="outline"
+                variant="primary"
                 size="sm"
                 onClick={copySessionCode}
                 className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
@@ -292,7 +321,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
             )}
 
             <Button
-              variant="outline"
+              variant="primary"
               size="sm"
               onClick={shareSession}
               className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
@@ -302,7 +331,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
             </Button>
 
             <Button
-              variant="outline"
+              variant="primary"
               size="sm"
               onClick={() => router.push('/play-area')}
               className="border-gray-600 text-gray-300 hover:bg-gray-700/50"
@@ -324,7 +353,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
                 </CardTitle>
                 <div className="flex gap-2">
                   <Badge
-                    variant="outline"
+                    variant="cyber"
                     className={getDifficultyColor(
                       session.difficulty || 'medium'
                     )}
@@ -332,7 +361,7 @@ export function GameSession({ sessionId }: GameSessionProps) {
                     {session.difficulty || 'Medium'}
                   </Badge>
                   <Badge
-                    variant="outline"
+                    variant="cyber"
                     className={getStatusColor(session.status || 'waiting')}
                   >
                     {session.status === 'waiting'
@@ -425,9 +454,12 @@ export function GameSession({ sessionId }: GameSessionProps) {
             <CardContent className="space-y-3">
               {players.map(player => (
                 <div key={player.id} className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={player.avatar_url} />
-                    <AvatarFallback className="bg-gray-700 text-xs text-gray-300">
+                  <Avatar size="sm">
+                    <AvatarImage
+                      src={player.avatar_url}
+                      alt={`${player.display_name}'s avatar`}
+                    />
+                    <AvatarFallback className="bg-gray-700 text-gray-300">
                       {player.display_name[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>

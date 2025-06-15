@@ -2,7 +2,14 @@
 
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Check, X, AlertCircle, Info, Clock, ExternalLink } from 'lucide-react';
+import {
+  Check,
+  X,
+  AlertCircle,
+  Info,
+  Clock,
+  ExternalLink,
+} from '@/components/ui/Icons';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { FormMessageProps } from '../types/signup-form.types';

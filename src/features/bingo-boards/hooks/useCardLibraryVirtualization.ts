@@ -29,7 +29,7 @@ export interface UseCardLibraryVirtualizationReturn {
 
 const VIRTUALIZER_CONFIG = {
   estimateSize: () => 150, // Estimated height for each card row
-  overscan: 3,
+  overscan: 2, // Reduced overscan for better performance
   gap: 12, // Gap between cards
 } as const;
 

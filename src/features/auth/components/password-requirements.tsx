@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Check, X, Info } from 'lucide-react';
+import { Check, X, Info } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { PasswordRequirementsProps } from '../types/signup-form.types';
 import { getPasswordRequirementsList } from '../utils/validation.utils';

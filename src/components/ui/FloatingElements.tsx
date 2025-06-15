@@ -1,16 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, memo } from 'react';
+import React, { useMemo, memo, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-
-interface ElementStyle {
-  left: string;
-  top: string;
-  width?: string;
-  height?: string;
-  animationDelay: string;
-  transform?: string; // For lines variant
-}
 
 interface FloatingElementsProps {
   variant?: 'particles' | 'circuits' | 'hexagons' | 'orbs' | 'lines';
@@ -18,264 +9,87 @@ interface FloatingElementsProps {
   speed?: 'slow' | 'medium' | 'fast';
   color?: 'cyan' | 'purple' | 'fuchsia' | 'emerald' | 'yellow';
   size?: 'sm' | 'md' | 'lg';
-  repositioning?: boolean; // Use smooth repositioning animations
   className?: string;
 }
+
+// Hook to detect if we should disable animations for performance
+const usePerformanceMode = () => {
+  const [shouldDisable, setShouldDisable] = useState(false);
+
+  useEffect(() => {
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+
+    // Check for mobile device (basic heuristic)
+    const isMobile = window.innerWidth < 768;
+
+    // Check for low-end device indicators
+    const isLowEnd = Boolean(
+      navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2
+    );
+
+    setShouldDisable(prefersReducedMotion || (isMobile && isLowEnd));
+  }, []);
+
+  return shouldDisable;
+};
 
 export const FloatingElements: React.FC<FloatingElementsProps> = memo(
   ({
     variant = 'particles',
-    count = 15,
+    count = 5,
     speed = 'medium',
     color = 'cyan',
     size = 'md',
-    repositioning = false,
     className,
   }) => {
-    const [elementStyles, setElementStyles] = useState<ElementStyle[]>([]);
-    const [isClient, setIsClient] = useState(false);
+    // Performance optimization: disable on low-end devices
+    const shouldDisableAnimations = usePerformanceMode();
 
-    useEffect(() => {
-      setIsClient(true);
-    }, []);
+    // Reduce count on mobile for better performance
+    const effectiveCount = count;
+    // Generate positions deterministically based on index
+    const elements = useMemo(() => {
+      const items = [];
+      const goldenRatio = 1.618033988749895;
+      const angleIncrement = 360 / goldenRatio;
 
-    useEffect(() => {
-      if (!isClient || count === 0) {
-        setElementStyles([]);
-        return;
+      for (let i = 0; i < effectiveCount; i++) {
+        // Use golden ratio spiral for better distribution
+        const angle = (i * angleIncrement) % 360;
+        const radius = 30 + (i / effectiveCount) * 40; // 30-70% from center
+        const radian = (angle * Math.PI) / 180;
+
+        // Position elements in a spiral pattern
+        const x = 50 + radius * Math.cos(radian) * 0.8;
+        const y = 50 + radius * Math.sin(radian) * 0.8;
+
+        // Animation delay based on position
+        const delay = (i * 0.2) % 3;
+
+        items.push({
+          x: Math.max(10, Math.min(90, x)),
+          y: Math.max(10, Math.min(90, y)),
+          delay,
+          size: variant === 'orbs' ? 8 + (i % 3) * 4 : undefined,
+          rotation: variant === 'lines' ? (i * 45) % 180 : undefined,
+        });
       }
+      return items;
+    }, [effectiveCount, variant]);
 
-      // Use a fixed seed for consistent server/client rendering
-      let seed = 12345;
-      const seededRandom = () => {
-        seed = (seed * 16807) % 2147483647;
-        return (seed - 1) / 2147483646;
-      };
+    // Early return for performance-critical scenarios
+    if (shouldDisableAnimations) {
+      return null;
+    }
 
-      const styles: ElementStyle[] = [];
-      const numElements = count;
-
-      // Define edge zones and minimum distance between elements
-      const edgeZonePercentage = 8;
-      const minDistance = 18; // Further increased minimum distance for better spread
-
-      // Store positions to check for overlaps
-      const usedPositions: { x: number; y: number; size: number }[] = [];
-
-      // Function to check if a position overlaps with existing elements
-      const isPositionValid = (x: number, y: number, size = 3): boolean => {
-        for (const pos of usedPositions) {
-          const distance = Math.sqrt(
-            Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
-          );
-          const minRequiredDistance = minDistance + (size + pos.size) * 0.5;
-          if (distance < minRequiredDistance) {
-            return false;
-          }
-        }
-        return true;
-      };
-
-      // Function to find a valid position with collision detection
-      const findValidPosition = (
-        preferredX?: number,
-        preferredY?: number,
-        maxAttempts = 100
-      ): { x: number; y: number } => {
-        let attempts = 0;
-
-        while (attempts < maxAttempts) {
-          let x, y;
-
-          if (
-            preferredX !== undefined &&
-            preferredY !== undefined &&
-            attempts < 20
-          ) {
-            // Try near preferred position first with increasing radius
-            const offset = (attempts + 1) * 3;
-            x = Math.max(
-              8,
-              Math.min(92, preferredX + (seededRandom() - 0.5) * offset)
-            );
-            y = Math.max(
-              8,
-              Math.min(92, preferredY + (seededRandom() - 0.5) * offset)
-            );
-          } else {
-            // Generate random position with better distribution
-            const zoneSelector = seededRandom();
-
-            if (zoneSelector < 0.5) {
-              // Center zones (25-75% of viewport) - increased probability
-              x = 25 + seededRandom() * 50;
-              y = 25 + seededRandom() * 50;
-            } else if (zoneSelector < 0.75) {
-              // Mid zones (10-90% with center bias)
-              x = 10 + seededRandom() * 80;
-              y = 15 + seededRandom() * 70;
-            } else {
-              // Edge zones
-              const edgeChoice = seededRandom();
-              if (edgeChoice < 0.25) {
-                // Top
-                x = 10 + seededRandom() * 80;
-                y = seededRandom() * 20;
-              } else if (edgeChoice < 0.5) {
-                // Bottom
-                x = 10 + seededRandom() * 80;
-                y = 80 + seededRandom() * 20;
-              } else if (edgeChoice < 0.75) {
-                // Left
-                x = seededRandom() * 20;
-                y = 10 + seededRandom() * 80;
-              } else {
-                // Right
-                x = 80 + seededRandom() * 20;
-                y = 10 + seededRandom() * 80;
-              }
-            }
-          }
-
-          if (isPositionValid(x, y)) {
-            return { x, y };
-          }
-
-          attempts++;
-        }
-
-        // Better fallback: distribute in a grid pattern if collision detection fails
-        const gridSize = Math.ceil(Math.sqrt(numElements));
-        const cellWidth = 80 / gridSize; // Leave margins
-        const cellHeight = 80 / gridSize;
-        const gridIndex = usedPositions.length % (gridSize * gridSize);
-        const gridX =
-          10 +
-          (gridIndex % gridSize) * cellWidth +
-          seededRandom() * cellWidth * 0.5;
-        const gridY =
-          10 +
-          Math.floor(gridIndex / gridSize) * cellHeight +
-          seededRandom() * cellHeight * 0.5;
-
-        return { x: gridX, y: gridY };
-      };
-
-      const generateStyle = (
-        x: number,
-        y: number,
-        index: number
-      ): ElementStyle => {
-        const style: ElementStyle = {
-          left: `${x}%`,
-          top: `${y}%`,
-          animationDelay: `${(index * 0.5) % 5}s`,
-        };
-
-        let elementSize = 3; // Default size for collision detection
-
-        if (variant === 'circuits' || variant === 'orbs') {
-          const baseSize = variant === 'circuits' ? 10 : 8;
-          const randomSize = variant === 'circuits' ? 20 : 12;
-          const sizeVariation = seededRandom() * randomSize;
-          const finalSize = baseSize + sizeVariation;
-          style.width = `${finalSize}px`;
-          style.height = style.width;
-          elementSize = finalSize / 10; // Convert to percentage-like value for collision
-        }
-        if (variant === 'lines') {
-          const width = 20 + seededRandom() * 40;
-          style.width = `${width}px`;
-          style.height = '1px';
-          style.transform = `rotate(${seededRandom() * 360}deg)`;
-          elementSize = width / 20; // Lines are thinner but longer
-        }
-
-        // Store position for collision detection
-        usedPositions.push({ x, y, size: elementSize });
-
-        return style;
-      };
-
-      // Initialize counters
-      let distributedCount = 0;
-      const elementsPerDirectEdge = Math.floor(numElements * 0.1); // Reduced to 10% per edge to allow more center elements
-
-      // Top Edge
-      for (
-        let i = 0;
-        i < elementsPerDirectEdge && distributedCount < numElements;
-        i++
-      ) {
-        const preferredX = seededRandom() * 100;
-        const preferredY = seededRandom() * edgeZonePercentage;
-        const { x, y } = findValidPosition(preferredX, preferredY);
-        styles.push(generateStyle(x, y, distributedCount));
-        distributedCount++;
-      }
-
-      // Bottom Edge
-      for (
-        let i = 0;
-        i < elementsPerDirectEdge && distributedCount < numElements;
-        i++
-      ) {
-        const preferredX = seededRandom() * 100;
-        const preferredY =
-          100 - edgeZonePercentage + seededRandom() * edgeZonePercentage;
-        const { x, y } = findValidPosition(preferredX, preferredY);
-        styles.push(generateStyle(x, y, distributedCount));
-        distributedCount++;
-      }
-
-      // Left Edge
-      for (
-        let i = 0;
-        i < elementsPerDirectEdge && distributedCount < numElements;
-        i++
-      ) {
-        const preferredX = seededRandom() * edgeZonePercentage;
-        const preferredY = seededRandom() * 100;
-        const { x, y } = findValidPosition(preferredX, preferredY);
-        styles.push(generateStyle(x, y, distributedCount));
-        distributedCount++;
-      }
-
-      // Right Edge
-      for (
-        let i = 0;
-        i < elementsPerDirectEdge && distributedCount < numElements;
-        i++
-      ) {
-        const preferredX =
-          100 - edgeZonePercentage + seededRandom() * edgeZonePercentage;
-        const preferredY = seededRandom() * 100;
-        const { x, y } = findValidPosition(preferredX, preferredY);
-        styles.push(generateStyle(x, y, distributedCount));
-        distributedCount++;
-      }
-
-      // Distribute remaining elements using collision detection
-      while (distributedCount < numElements) {
-        const { x, y } = findValidPosition(); // Let it choose position automatically
-        styles.push(generateStyle(x, y, distributedCount));
-        distributedCount++;
-      }
-
-      setElementStyles(styles);
-    }, [count, variant, isClient, size]);
-
-    const speedClasses = repositioning
-      ? {
-          slow: 'animate-float-repositioning-slow',
-          medium: 'animate-float-repositioning-medium',
-          fast: 'animate-float-repositioning-fast',
-        }
-      : {
-          slow: 'animate-float-smooth-slow',
-          medium: 'animate-float-smooth',
-          fast: 'animate-float-smooth-fast',
-        };
+    const speedClasses = {
+      slow: 'animate-subtle-float',
+      medium: 'animate-gentle-glow',
+      fast: 'animate-soft-pulse',
+    };
 
     const colorClasses = {
       cyan: 'bg-cyan-400/15 shadow-cyan-400/25',
@@ -291,10 +105,21 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
       lg: 'w-3 h-3',
     };
 
-    const renderElement = (style: ElementStyle | undefined, index: number) => {
-      if (!style) {
-        return null;
-      }
+    const renderElement = (
+      element: {
+        x: number;
+        y: number;
+        delay: number;
+        size?: number;
+        rotation?: number;
+      },
+      index: number
+    ) => {
+      const baseStyle = {
+        left: `${element.x}%`,
+        top: `${element.y}%`,
+        animationDelay: `${element.delay}s`,
+      };
 
       switch (variant) {
         case 'particles':
@@ -302,12 +127,15 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
             <div
               key={index}
               className={cn(
-                'absolute rounded-full blur-sm',
+                'absolute transform-gpu rounded-full blur-sm will-change-transform',
                 speedClasses[speed],
+                'motion-reduce:animate-none',
                 colorClasses[color],
-                sizeClasses[size] // size prop is used here
+                sizeClasses[size],
+                // Hide extra particles on mobile
+                index >= 3 && 'hidden md:block'
               )}
-              style={style}
+              style={baseStyle}
             />
           );
 
@@ -316,11 +144,22 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
             <div
               key={index}
               className={cn(
-                'absolute border border-current opacity-10',
+                'absolute transform-gpu border border-current opacity-10 will-change-transform',
                 speedClasses[speed],
-                `text-${color.replace('/', '-')}-400`
+                'motion-reduce:animate-none',
+                color === 'cyan' && 'text-cyan-400',
+                color === 'purple' && 'text-purple-400',
+                color === 'fuchsia' && 'text-fuchsia-400',
+                color === 'emerald' && 'text-emerald-400',
+                color === 'yellow' && 'text-yellow-400',
+                // Hide extra elements on mobile
+                index >= 3 && 'hidden md:block'
               )}
-              style={style}
+              style={{
+                ...baseStyle,
+                width: element.size ? `${element.size}px` : '20px',
+                height: element.size ? `${element.size}px` : '20px',
+              }}
             />
           );
 
@@ -329,11 +168,18 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
             <div
               key={index}
               className={cn(
-                'absolute opacity-10',
+                'absolute transform-gpu opacity-10 will-change-transform',
                 speedClasses[speed],
-                `text-${color.replace('/', '-')}-400`
+                'motion-reduce:animate-none',
+                color === 'cyan' && 'text-cyan-400',
+                color === 'purple' && 'text-purple-400',
+                color === 'fuchsia' && 'text-fuchsia-400',
+                color === 'emerald' && 'text-emerald-400',
+                color === 'yellow' && 'text-yellow-400',
+                // Hide extra elements on mobile
+                index >= 3 && 'hidden md:block'
               )}
-              style={style}
+              style={baseStyle}
             >
               <svg
                 width="20"
@@ -341,6 +187,7 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
+                className="transform-gpu"
               >
                 <polygon
                   points="13,2 21,7 21,17 13,22 5,17 5,7"
@@ -355,12 +202,19 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
             <div
               key={index}
               className={cn(
-                'absolute rounded-full',
+                'absolute transform-gpu rounded-full will-change-transform',
                 speedClasses[speed],
+                'motion-reduce:animate-none',
                 colorClasses[color],
-                'shadow-lg blur-[1px]'
+                'shadow-lg blur-[1px]',
+                // Hide extra elements on mobile
+                index >= 3 && 'hidden md:block'
               )}
-              style={style}
+              style={{
+                ...baseStyle,
+                width: element.size ? `${element.size}px` : '10px',
+                height: element.size ? `${element.size}px` : '10px',
+              }}
             />
           );
 
@@ -369,11 +223,25 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
             <div
               key={index}
               className={cn(
-                'absolute opacity-10',
+                'absolute transform-gpu opacity-10 will-change-transform',
                 speedClasses[speed],
-                `bg-${color.replace('/', '-')}-400`
+                'motion-reduce:animate-none',
+                color === 'cyan' && 'bg-cyan-400',
+                color === 'purple' && 'bg-purple-400',
+                color === 'fuchsia' && 'bg-fuchsia-400',
+                color === 'emerald' && 'bg-emerald-400',
+                color === 'yellow' && 'bg-yellow-400',
+                // Hide extra elements on mobile
+                index >= 3 && 'hidden md:block'
               )}
-              style={style}
+              style={{
+                ...baseStyle,
+                width: '40px',
+                height: '1px',
+                transform: element.rotation
+                  ? `rotate(${element.rotation}deg)`
+                  : undefined,
+              }}
             />
           );
 
@@ -382,28 +250,26 @@ export const FloatingElements: React.FC<FloatingElementsProps> = memo(
       }
     };
 
-    if (!isClient) {
-      return null;
-    }
-
     return (
       <div
         className={cn(
-          'pointer-events-none absolute z-0 overflow-hidden',
+          'floating-elements pointer-events-none absolute inset-0 overflow-hidden contain-layout',
           className
         )}
-        style={{
-          left: '50%',
-          top: '0',
-          width: '100vw',
-          height: '100%',
-          transform: 'translateX(-50%)',
-        }}
       >
-        {Array.from({ length: count }, (_, i) =>
-          renderElement(elementStyles[i], i)
-        )}
+        {elements.map((element, index) => renderElement(element, index))}
       </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison to prevent unnecessary re-renders
+    return (
+      prevProps.variant === nextProps.variant &&
+      prevProps.count === nextProps.count &&
+      prevProps.speed === nextProps.speed &&
+      prevProps.color === nextProps.color &&
+      prevProps.size === nextProps.size &&
+      prevProps.className === nextProps.className
     );
   }
 );

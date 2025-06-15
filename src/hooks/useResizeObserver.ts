@@ -98,9 +98,10 @@ export function useResponsiveResize<T extends Element = HTMLDivElement>(
 ) {
   const { targetRef, width, height, dimensions } = useResizeObserver<T>();
 
-  const currentBreakpoint = Object.entries(breakpoints)
-    .reverse() // Start from largest
-    .find(([_, size]) => width >= size)?.[0] || 'xs';
+  const currentBreakpoint =
+    Object.entries(breakpoints)
+      .reverse() // Start from largest
+      .find(([_, size]) => width >= size)?.[0] || 'xs';
 
   const isBreakpoint = useCallback(
     (breakpoint: string) => currentBreakpoint === breakpoint,

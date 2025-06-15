@@ -35,12 +35,20 @@ export async function GET(request: NextRequest) {
         data?: unknown;
       }
 
-      const testResults = {
+      interface TestResults {
+        timestamp: string;
+        connection: TestResult | null;
+        basicOperations: TestResult | null;
+        caching: TestResult | null;
+        rateLimit: TestResult | null;
+      }
+
+      const testResults: TestResults = {
         timestamp: new Date().toISOString(),
-        connection: null as TestResult | null,
-        basicOperations: null as TestResult | null,
-        caching: null as TestResult | null,
-        rateLimit: null as TestResult | null,
+        connection: null,
+        basicOperations: null,
+        caching: null,
+        rateLimit: null,
       };
 
       try {

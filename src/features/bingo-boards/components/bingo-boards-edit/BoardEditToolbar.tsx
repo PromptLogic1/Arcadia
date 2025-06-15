@@ -1,16 +1,16 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import {
   Settings,
-  Save,
   ChevronLeft,
   Grid3X3,
+  Layers,
   Eye,
   EyeOff,
-  Layers,
-} from 'lucide-react';
+  Save,
+} from '@/components/ui/Icons';
 
 // Design System
 import { buttonVariants, typography } from './design-system';
@@ -75,7 +75,7 @@ export function BoardEditToolbar({
                 {boardTitle || 'Untitled Board'}
               </h1>
               <div className="mt-0.5 flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="secondary" className="text-xs">
                   {currentBoard.game_type}
                 </Badge>
                 <span className={cn(typography.caption, 'text-gray-500')}>
@@ -89,7 +89,7 @@ export function BoardEditToolbar({
           <div className="hidden items-center gap-2 rounded-lg bg-gray-800/50 p-1 md:flex">
             <Button
               size="sm"
-              variant={activeView === 'grid' ? 'default' : 'ghost'}
+              variant={activeView === 'grid' ? 'primary' : 'ghost'}
               onClick={() => onViewChange('grid')}
               className="gap-2"
               aria-label="Switch to grid view"
@@ -99,7 +99,7 @@ export function BoardEditToolbar({
             </Button>
             <Button
               size="sm"
-              variant={activeView === 'list' ? 'default' : 'ghost'}
+              variant={activeView === 'list' ? 'primary' : 'ghost'}
               onClick={() => onViewChange('list')}
               className="gap-2"
               aria-label="Switch to list view"

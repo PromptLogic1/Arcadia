@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Tags, X, Plus } from 'lucide-react';
+import { Label } from '@/components/ui/Label';
+import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Tags, X, Plus } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 
 interface TagSelectorProps {
@@ -101,7 +101,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
         <Button
           onClick={handleAddTag}
           disabled={!inputValue.trim() || selectedTags.length >= maxTags}
-          variant="outline"
+          variant="secondary"
           size="icon"
         >
           <Plus className="h-4 w-4" />

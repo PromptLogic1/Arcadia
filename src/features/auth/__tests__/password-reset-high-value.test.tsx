@@ -154,7 +154,7 @@ describe('Password Reset - High Value Tests', () => {
 
     it('should disable button during loading state', async () => {
       const user = userEvent.setup();
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: { error?: string }) => void;
       mockResetPasswordForEmail.mockReturnValue(
         new Promise(resolve => {
           resolvePromise = resolve;

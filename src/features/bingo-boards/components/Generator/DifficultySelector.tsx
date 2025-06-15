@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/Label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Gauge } from 'lucide-react';
+} from '@/components/ui/Select';
+import { Gauge } from '@/components/ui/Icons';
 import type { Difficulty as _Difficulty } from '@/types';
 import type { Enums } from '@/types/database.types';
 import { DIFFICULTIES } from '@/src/types/index';

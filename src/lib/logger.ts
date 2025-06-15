@@ -3,8 +3,8 @@
  * Custom implementation without pino to avoid thread-stream dependency issues in Next.js
  */
 
-import * as Sentry from '@sentry/nextjs';
-import { addBreadcrumb } from './sentry-utils';
+// Lazy import Sentry to prevent webpack loading issues
+// import { addBreadcrumb } from './sentry-utils'; // Temporarily disabled to break circular dependency
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -91,14 +91,14 @@ const createCustomLogger = (): LoggerMethods => {
 
     // In development, use colorized console output
     if (process.env.NODE_ENV === 'development') {
-      const levelColors = {
+      const levelColors: Record<LogLevel, string> = {
         debug: '\x1b[36m', // cyan
         info: '\x1b[32m', // green
         warn: '\x1b[33m', // yellow
         error: '\x1b[31m', // red
       };
       const resetColor = '\x1b[0m';
-      const color = levelColors[level as keyof typeof levelColors] || '';
+      const color = levelColors[level] || '';
 
       let logLine = `${color}[${new Date(time).toLocaleTimeString()}] ${level.toUpperCase()}${resetColor}: ${msg}`;
 
@@ -207,8 +207,8 @@ class Logger {
     if (this.shouldLog('info')) {
       activeLogger.info({ context }, message);
 
-      // Add Sentry breadcrumb for info logs
-      addBreadcrumb(message, 'logger', context?.metadata, 'info');
+      // Add Sentry breadcrumb for info logs (async)
+      this.addSentryBreadcrumb(message, 'info', context?.metadata);
     }
   }
 
@@ -216,12 +216,12 @@ class Logger {
     if (this.shouldLog('warn')) {
       activeLogger.warn({ context }, message);
 
-      // Add Sentry breadcrumb for warnings
-      addBreadcrumb(message, 'logger', context?.metadata, 'warning');
+      // Add Sentry breadcrumb for warnings (async)
+      this.addSentryBreadcrumb(message, 'warning', context?.metadata);
 
-      // Also capture warnings as Sentry messages in production
+      // Also capture warnings as Sentry messages in production (async)
       if (this.isProduction) {
-        Sentry.captureMessage(message, 'warning');
+        this.captureSentryMessage(message, 'warning');
       }
     }
   }
@@ -234,51 +234,12 @@ class Logger {
         message
       );
 
-      // Send to Sentry
+      // Send to Sentry (async)
       if (error) {
-        Sentry.withScope(scope => {
-          // Add context
-          if (context) {
-            // Convert LogContext to the format Sentry expects
-            const sentryContext: { [key: string]: unknown } = {
-              userId: context.userId,
-              sessionId: context.sessionId,
-              component: context.component,
-              feature: context.feature,
-              ...context.metadata,
-            };
-            scope.setContext('logger', sentryContext);
-          }
-
-          // Set level
-          scope.setLevel('error');
-
-          // Add breadcrumb
-          scope.addBreadcrumb({
-            category: 'logger',
-            message,
-            level: 'error',
-            data: context,
-          });
-
-          // Capture exception - ensure it's an Error object
-          if (error instanceof Error) {
-            Sentry.captureException(error);
-          } else {
-            // For non-Error objects, create a proper Error with the object as context
-            const wrappedError = new Error(message);
-            Object.defineProperty(wrappedError, 'cause', {
-              value: error,
-              writable: true,
-              enumerable: false,
-              configurable: true,
-            });
-            Sentry.captureException(wrappedError);
-          }
-        });
+        this.captureSentryError(error, message, context);
       } else {
         // For errors without an Error object, capture as message
-        Sentry.captureMessage(message, 'error');
+        this.captureSentryMessage(message, 'error');
       }
 
       // In production, you might want to send errors to a monitoring service
@@ -352,6 +313,105 @@ class Logger {
     }
     // In a real production scenario, this would be an API call to your monitoring service.
     // For example: fetch('https://your-monitoring-service.com/logs', { method: 'POST', body: JSON.stringify(logEntry) });
+  }
+
+  // Sentry helper methods with proper error handling - using the documented approach
+  private addSentryBreadcrumb(
+    message: string,
+    level: 'info' | 'warning' | 'error',
+    metadata?: Record<string, unknown>
+  ): void {
+    try {
+      // Use lazy loading approach as documented by Sentry
+      import('@sentry/nextjs')
+        .then(({ addBreadcrumb }) => {
+          addBreadcrumb({
+            category: 'logger',
+            message,
+            level,
+            data: metadata,
+          });
+        })
+        .catch(() => {
+          // Silently fail if Sentry is not available
+        });
+    } catch {
+      // Silently fail if dynamic import is not supported
+    }
+  }
+
+  private captureSentryMessage(
+    message: string,
+    level: 'warning' | 'error'
+  ): void {
+    try {
+      import('@sentry/nextjs')
+        .then(({ captureMessage }) => {
+          captureMessage(message, level);
+        })
+        .catch(() => {
+          // Silently fail if Sentry is not available
+        });
+    } catch {
+      // Silently fail if dynamic import is not supported
+    }
+  }
+
+  private captureSentryError(
+    error: Error,
+    message: string,
+    context?: LogContext
+  ): void {
+    try {
+      import('@sentry/nextjs')
+        .then(({ withScope, captureException }) => {
+          withScope(scope => {
+            // Add context
+            if (context) {
+              // Convert LogContext to the format Sentry expects
+              const sentryContext: { [key: string]: unknown } = {
+                userId: context.userId,
+                sessionId: context.sessionId,
+                component: context.component,
+                feature: context.feature,
+                ...context.metadata,
+              };
+              scope.setContext('logger', sentryContext);
+            }
+
+            // Set level
+            scope.setLevel('error');
+
+            // Add breadcrumb
+            scope.addBreadcrumb({
+              category: 'logger',
+              message,
+              level: 'error',
+              data: context,
+            });
+
+            // Capture exception - ensure it's an Error object
+            if (error instanceof Error) {
+              captureException(error);
+            } else {
+              // For non-Error objects, create a proper Error with the object as context
+              const wrappedError = new Error(message);
+              Object.defineProperty(wrappedError, 'cause', {
+                value: error,
+                writable: true,
+                enumerable: false,
+                configurable: true,
+              });
+              captureException(wrappedError);
+            }
+          });
+        })
+        .catch(() => {
+          // Silently fail if Sentry is not available
+        });
+    } catch {
+      // Silently fail if dynamic import is not supported
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { SETTINGS_CONSTANTS } from '../constants';
 import type { PasswordCheck } from '../constants';

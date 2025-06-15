@@ -37,7 +37,7 @@ const presenceStateSchema = z.object({
     .optional(),
 });
 
-const presenceUpdateEventSchema = z.object({
+const _presenceUpdateEventSchema = z.object({
   type: z.enum(['join', 'leave', 'update']),
   boardId: z.string(),
   userId: z.string(),
@@ -46,7 +46,7 @@ const presenceUpdateEventSchema = z.object({
 });
 
 export type PresenceState = z.infer<typeof presenceStateSchema>;
-export type PresenceUpdateEvent = z.infer<typeof presenceUpdateEventSchema>;
+export type PresenceUpdateEvent = z.infer<typeof _presenceUpdateEventSchema>;
 
 // Constants
 export const PRESENCE_CONSTANTS = {

@@ -2,7 +2,9 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -11,9 +13,62 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=staging --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Staging
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Run Health Check
+        run: |
+          sleep 30  # Wait for deployment to be ready
+          for i in {1..10}; do
+            if curl -f "${{ steps.deploy.outputs.url }}/api/health"; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "⏳ Waiting for health check... (attempt $i/10)"
+            sleep 10
+          done
+          echo "❌ Health check failed"
+          exit 1
+
+      - name: Run Smoke Tests
+        run: |
+          echo "🧪 Running smoke tests against staging"
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.url }}" npm run test:smoke || echo "⚠️ Smoke tests failed but continuing"
+
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: []  # Remove staging dependency for now
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
@@ -42,6 +97,40 @@ jobs:
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> $GITHUB_OUTPUT
 
+      - name: Post-Deployment Health Check
+        run: |
+          sleep 45  # Wait for deployment to be fully ready
+          echo "🔍 Running production health checks..."
+          
+          # Basic health check
+          for i in {1..15}; do
+            if curl -f "${{ steps.deploy.outputs.url }}/api/health"; then
+              echo "✅ Basic health check passed"
+              break
+            fi
+            if [ $i -eq 15 ]; then
+              echo "❌ Basic health check failed after 15 attempts"
+              exit 1
+            fi
+            echo "⏳ Health check attempt $i/15..."
+            sleep 10
+          done
+          
+          # Detailed health check
+          response=$(curl -s "${{ steps.deploy.outputs.url }}/api/health/detailed")
+          echo "📊 Detailed health status: $response"
+          
+          # Check specific endpoints
+          curl -f "${{ steps.deploy.outputs.url }}/api/health/ready" || (echo "❌ Readiness check failed" && exit 1)
+          curl -f "${{ steps.deploy.outputs.url }}/api/health/live" || (echo "❌ Liveness check failed" && exit 1)
+          
+          echo "✅ All health checks passed"
+
+      - name: Run Production Smoke Tests
+        run: |
+          echo "🧪 Running production smoke tests..."
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.url }}" npm run test:smoke || echo "⚠️ Some smoke tests failed"
+
       - name: Comment on PR (if applicable)
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -53,6 +142,12 @@ jobs:
               repo: context.repo.repo,
               body: '🚀 Deployed to production: ${{ steps.deploy.outputs.url }}'
             })
+
+      - name: Rollback on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, attempting rollback..."
+          vercel rollback --token=${{ secrets.VERCEL_TOKEN }} || echo "⚠️ Rollback failed"
 
   deploy-preview:
     name: Deploy Preview

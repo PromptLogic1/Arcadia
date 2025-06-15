@@ -3,7 +3,7 @@
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
-import * as Sentry from '@sentry/nextjs';
+// Lazy import Sentry to prevent webpack loading issues
 import { shouldSendToSentry } from '@/lib/error-deduplication';
 
 interface Props {
@@ -59,41 +59,59 @@ export class RootErrorBoundary extends Component<Props, State> {
     }
 
     // Send critical error to Sentry with maximum context
-    Sentry.withScope(scope => {
-      // Mark as critical
-      scope.setLevel('fatal');
+    const captureSentryError = async () => {
+      try {
+        const { withScope, captureException } = await import('@sentry/nextjs');
 
-      // Set context
-      scope.setContext('rootErrorBoundary', {
-        errorCount: this.state.errorCount + 1,
-        ...errorContext,
-      });
+        withScope(scope => {
+          // Mark as critical
+          scope.setLevel('fatal');
 
-      // Set tags
-      scope.setTag('errorBoundary', true);
-      scope.setTag('errorBoundary.level', 'root');
-      scope.setTag('critical', true);
+          // Set context
+          scope.setContext('rootErrorBoundary', {
+            errorCount: this.state.errorCount + 1,
+            ...errorContext,
+          });
 
-      // Set fingerprint for grouping critical errors
-      scope.setFingerprint(['root-error-boundary', error.name, error.message]);
+          // Set tags
+          scope.setTag('errorBoundary', true);
+          scope.setTag('errorBoundary.level', 'root');
+          scope.setTag('critical', true);
 
-      // Add breadcrumb
-      scope.addBreadcrumb({
-        category: 'error-boundary',
-        message: 'Critical error caught by root boundary',
-        level: 'fatal',
-        data: errorContext,
-      });
+          // Set fingerprint for grouping critical errors
+          scope.setFingerprint([
+            'root-error-boundary',
+            error.name,
+            error.message,
+          ]);
 
-      // Capture with React context
-      Sentry.captureException(error, {
-        contexts: {
-          react: {
-            componentStack: errorInfo.componentStack,
-          },
-        },
-      });
-    });
+          // Add breadcrumb
+          scope.addBreadcrumb({
+            category: 'error-boundary',
+            message: 'Critical error caught by root boundary',
+            level: 'fatal',
+            data: errorContext,
+          });
+
+          // Capture with React context
+          captureException(error, {
+            contexts: {
+              react: {
+                componentStack: errorInfo.componentStack,
+              },
+            },
+          });
+        });
+      } catch (sentryError) {
+        // Fallback if Sentry fails to load
+        console.error(
+          'RootErrorBoundary: Failed to load Sentry, logging error:',
+          error
+        );
+      }
+    };
+
+    captureSentryError();
 
     // Increment error count
     this.setState(prev => ({ errorCount: prev.errorCount + 1 }));
@@ -105,10 +123,21 @@ export class RootErrorBoundary extends Component<Props, State> {
 
     // For critical errors, also capture a message about app state
     if (this.state.errorCount > 0) {
-      Sentry.captureMessage(
-        `Root boundary caught ${this.state.errorCount + 1} errors - app unstable`,
-        'error'
-      );
+      const captureMessage = async () => {
+        try {
+          const { captureMessage: sentryCapture } = await import(
+            '@sentry/nextjs'
+          );
+          sentryCapture(
+            `Root boundary caught ${this.state.errorCount + 1} errors - app unstable`,
+            'error'
+          );
+        } catch (sentryError) {
+          console.warn('Failed to capture message to Sentry');
+        }
+      };
+
+      captureMessage();
     }
   }
 
@@ -118,6 +147,10 @@ export class RootErrorBoundary extends Component<Props, State> {
       error: null,
       errorCount: 0,
     });
+  };
+
+  handleReload = () => {
+    window.location.reload();
   };
 
   render() {
@@ -139,7 +172,7 @@ export class RootErrorBoundary extends Component<Props, State> {
 
               <div className="space-y-4">
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={this.handleReload}
                   className="w-full rounded-lg bg-cyan-600 px-6 py-3 font-medium text-white transition-colors hover:bg-cyan-700"
                 >
                   Reload Application

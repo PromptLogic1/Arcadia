@@ -2,39 +2,45 @@ import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-const spinnerVariants = cva('animate-spin rounded-full border-b-2', {
-  variants: {
-    size: {
-      sm: 'h-4 w-4',
-      default: 'h-8 w-8',
-      lg: 'h-12 w-12',
-      xl: 'h-16 w-16',
+const spinnerVariants = cva(
+  'animate-spin rounded-full border-b-2 will-change-transform',
+  {
+    variants: {
+      size: {
+        sm: 'h-4 w-4',
+        default: 'h-8 w-8',
+        lg: 'h-12 w-12',
+        xl: 'h-16 w-16',
+      },
+      color: {
+        default: 'border-white',
+        primary: 'border-primary',
+        secondary: 'border-secondary',
+        accent: 'border-accent',
+        muted: 'border-muted-foreground',
+      },
     },
-    color: {
-      default: 'border-white',
-      primary: 'border-primary',
-      secondary: 'border-secondary',
-      accent: 'border-accent',
-      muted: 'border-muted-foreground',
+    defaultVariants: {
+      size: 'default',
+      color: 'default',
     },
-  },
-  defaultVariants: {
-    size: 'default',
-    color: 'default',
-  },
-});
+  }
+);
 
-const containerVariants = cva('flex items-center justify-center', {
-  variants: {
-    fullSize: {
-      true: 'h-full w-full',
-      false: '',
+const containerVariants = cva(
+  'loading-spinner flex items-center justify-center',
+  {
+    variants: {
+      fullSize: {
+        true: 'h-full w-full',
+        false: '',
+      },
     },
-  },
-  defaultVariants: {
-    fullSize: true,
-  },
-});
+    defaultVariants: {
+      fullSize: true,
+    },
+  }
+);
 
 export interface LoadingSpinnerProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'color'>,

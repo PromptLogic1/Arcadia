@@ -47,44 +47,6 @@ SENTRY_PROJECT
 SENTRY_AUTH_TOKEN
 ```
 
-### Docker Deployment
-
-#### 1. Build Docker Image
-
-```dockerfile
-# Dockerfile
-FROM node:22-alpine AS builder
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-
-COPY . .
-RUN npm run build
-
-FROM node:22-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-COPY --from=builder /app/next.config.ts ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-EXPOSE 3000
-ENV PORT 3000
-
-CMD ["node", "server.js"]
-```
-
-#### 2. Build and Run
-
-```bash
-docker build -t arcadia .
-docker run -p 3000:3000 --env-file .env.production arcadia
-```
-
 ### Traditional VPS
 
 #### 1. Server Requirements
@@ -439,13 +401,6 @@ wscat -c wss://yourdomain.com/socket
 
 ```bash
 vercel rollback
-```
-
-### Docker
-
-```bash
-docker stop arcadia
-docker run -p 3000:3000 arcadia:previous-version
 ```
 
 ### Database

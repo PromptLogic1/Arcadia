@@ -2,8 +2,8 @@
  * React hooks for standardized error handling in components
  */
 
-import React, { useCallback, useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
+import { useToast } from '@/components/ui/UseToast';
 import {
   handleError,
   toClientError,
@@ -67,6 +67,21 @@ export function useErrorHandler(
   const [lastFailedAction, setLastFailedAction] = useState<
     (() => Promise<void>) | null
   >(null);
+
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (autoRetryTimeoutRef.current) {
+        clearTimeout(autoRetryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null, retryCount: 0 }));
@@ -134,18 +149,25 @@ export function useErrorHandler(
       retryCount: prev.retryCount + 1,
     }));
 
+    // Clear any existing retry timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+    }
+
     // Retry with exponential backoff
     const delay = retryDelay * Math.pow(2, state.retryCount);
-    setTimeout(() => {
+    retryTimeoutRef.current = setTimeout(() => {
       lastFailedAction()
         .then(() => {
           setState(prev => ({ ...prev, isLoading: false }));
           setLastFailedAction(null);
+          retryTimeoutRef.current = null;
         })
         .catch(error => {
           handleErrorInternal(error, {
             metadata: { isRetry: true, retryAttempt: state.retryCount + 1 },
           });
+          retryTimeoutRef.current = null;
         });
     }, delay);
   }, [
@@ -186,7 +208,14 @@ export function useErrorHandler(
           isRetryableError(error) &&
           state.retryCount < maxRetries
         ) {
-          setTimeout(() => retry(), retryDelay);
+          // Clear any existing auto-retry timeout
+          if (autoRetryTimeoutRef.current) {
+            clearTimeout(autoRetryTimeoutRef.current);
+          }
+          autoRetryTimeoutRef.current = setTimeout(() => {
+            retry();
+            autoRetryTimeoutRef.current = null;
+          }, retryDelay);
         }
 
         return null;

@@ -1,13 +1,13 @@
 import React from 'react';
-import { X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { X } from '@/components/ui/Icons';
+import { Badge } from '@/components/ui/Badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import { FormField } from './FormField';
 import type { Control, FieldErrors } from 'react-hook-form';
 import {

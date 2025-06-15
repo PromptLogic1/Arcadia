@@ -1,18 +1,18 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/stores';
 import { useAuthContext } from './auth-provider';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Loader2, Lock, AlertTriangle } from 'lucide-react';
+} from '@/components/ui/Card';
+import { Loader2, Lock, AlertTriangle } from '@/components/ui/Icons';
 import type { UserRole } from '@/features/auth/types';
 
 interface AuthGuardProps {
@@ -49,6 +49,15 @@ export function AuthGuard({
   const loading = !mounted || !initialized || contextLoading || storeLoading;
   const user = contextUser;
   const hasAuth = isAuthenticated && !!user;
+
+  // Memoized navigation handlers to prevent unnecessary re-renders
+  const handleSignIn = useCallback(() => {
+    router.push(redirectTo);
+  }, [router, redirectTo]);
+
+  const handleGoHome = useCallback(() => {
+    router.push('/');
+  }, [router]);
 
   // Handle authentication redirection
   useEffect(() => {
@@ -99,15 +108,12 @@ export function AuthGuard({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button
-                onClick={() => router.push(redirectTo)}
-                className="w-full"
-              >
+              <Button onClick={handleSignIn} className="w-full">
                 Sign In
               </Button>
               <Button
-                variant="outline"
-                onClick={() => router.push('/')}
+                variant="primary"
+                onClick={handleGoHome}
                 className="w-full"
               >
                 Go Home
@@ -153,8 +159,8 @@ export function AuthGuard({
             </CardHeader>
             <CardContent>
               <Button
-                variant="outline"
-                onClick={() => router.push('/')}
+                variant="primary"
+                onClick={handleGoHome}
                 className="w-full"
               >
                 Go Home

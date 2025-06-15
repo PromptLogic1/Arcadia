@@ -135,16 +135,13 @@ export function useSentryReplay({
     }
   }, [isEnabled, isLoading, replayOptions, onSuccess, onError]);
 
-  // Check if Sentry is already loaded and Replay is enabled
+  // Check if Sentry is already loaded
   useEffect(() => {
     if (isSentryLoaded()) {
-      // Import getSentryClient from our lazy module
-      import('@/lib/sentry-lazy').then(({ getSentryClient }) => {
-        const client = getSentryClient();
-        if (client?.getIntegrationByName?.('Replay')) {
-          setIsEnabled(true);
-        }
-      });
+      // If Sentry is loaded, we can check if replay was already configured
+      // Note: We can't reliably check for specific integrations in the new SDK
+      // so we'll rely on our loading state
+      setIsEnabled(false);
     }
   }, []);
 

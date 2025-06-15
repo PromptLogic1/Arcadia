@@ -5,7 +5,7 @@ import {
   RouteErrorBoundary,
   AsyncBoundary,
 } from '@/components/error-boundaries';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 

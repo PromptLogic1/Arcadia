@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { createServerComponentClient } from '@/lib/supabase';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { RouteErrorBoundary } from '@/components/error-boundaries';
+import { sessionService } from '@/services/session.service';
 
 // Types
 interface SessionPageProps {
@@ -16,27 +16,16 @@ export async function generateMetadata({
   params,
 }: SessionPageProps): Promise<Metadata> {
   try {
-    const supabase = await createServerComponentClient();
+    const response = await sessionService.getSessionStats(params.id);
 
-    const { data: session } = await supabase
-      .from('session_stats')
-      .select(
-        `
-        id,
-        board_title,
-        host_username,
-        status
-      `
-      )
-      .eq('id', params.id)
-      .single();
-
-    if (!session) {
+    if (!response.success || !response.data) {
       return {
         title: 'Session Not Found | Arcadia',
         description: 'The requested gaming session could not be found.',
       };
     }
+
+    const session = response.data;
 
     return {
       title: `${session.board_title || 'Gaming Session'} | Arcadia Play Area`,
@@ -51,22 +40,10 @@ export async function generateMetadata({
 }
 
 async function SessionData({ sessionId }: { sessionId: string }) {
-  const supabase = await createServerComponentClient();
+  // Get session details with board and players using service layer
+  const response = await sessionService.getSessionWithDetails(sessionId);
 
-  // Get session details with board and players
-  const { data: session, error } = await supabase
-    .from('bingo_sessions')
-    .select(
-      `
-      *,
-      board:bingo_boards(*),
-      players:bingo_session_players(*)
-    `
-    )
-    .eq('id', sessionId)
-    .single();
-
-  if (error || !session) {
+  if (!response.success || !response.data) {
     notFound();
   }
 

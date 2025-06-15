@@ -1,5 +1,6 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools } from 'zustand/middleware';
+import { useShallow } from 'zustand/react/shallow';
 import type { BoardSettings } from '@/types';
 
 // Default settings aligned with database structure
@@ -55,7 +56,7 @@ const initialState: GameSettingsUIState = {
   lastSavedAt: null,
 };
 
-export const useGameSettingsStore = create<GameSettingsStore>()(
+export const useGameSettingsStore = createWithEqualityFn<GameSettingsStore>()(
   devtools(
     set => ({
       ...initialState,
@@ -107,22 +108,28 @@ export const useGameSettingsStore = create<GameSettingsStore>()(
 
 // Selectors
 export const useGameSettingsModal = () =>
-  useGameSettingsStore(state => ({
-    isOpen: state.isSettingsModalOpen,
-    open: state.openSettingsModal,
-    close: state.closeSettingsModal,
-  }));
+  useGameSettingsStore(
+    useShallow(state => ({
+      isOpen: state.isSettingsModalOpen,
+      open: state.openSettingsModal,
+      close: state.closeSettingsModal,
+    }))
+  );
 
 export const useGameSettingsPendingChanges = () =>
-  useGameSettingsStore(state => ({
-    pendingChanges: state.pendingChanges,
-    setPendingChanges: state.setPendingChanges,
-    updatePendingChange: state.updatePendingChange,
-    clearPendingChanges: state.clearPendingChanges,
-  }));
+  useGameSettingsStore(
+    useShallow(state => ({
+      pendingChanges: state.pendingChanges,
+      setPendingChanges: state.setPendingChanges,
+      updatePendingChange: state.updatePendingChange,
+      clearPendingChanges: state.clearPendingChanges,
+    }))
+  );
 
 export const useGameSettingsValidation = () =>
-  useGameSettingsStore(state => ({
-    error: state.validationError,
-    setError: state.setValidationError,
-  }));
+  useGameSettingsStore(
+    useShallow(state => ({
+      error: state.validationError,
+      setError: state.setValidationError,
+    }))
+  );

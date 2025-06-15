@@ -6,9 +6,9 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import { GAMES, CHALLENGE_TYPES } from '../constants';
-import { GamepadIcon, Trophy } from 'lucide-react';
+import { GamepadIcon, Trophy } from '@/components/ui/Icons';
 
 interface CommunityGameFiltersProps {
   selectedGame: string;

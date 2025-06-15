@@ -6,7 +6,9 @@
 import { useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/stores/auth-store';
-import useBoardEditStore, { useBoardEditActions } from '@/lib/stores/board-edit-store';
+import useBoardEditStore, {
+  useBoardEditActions,
+} from '@/lib/stores/board-edit-store';
 import {
   useSaveCardsMutation,
   useUpdateBoardMutation,
@@ -15,6 +17,8 @@ import { queryKeys } from '@/hooks/queries';
 import { notifications } from '@/lib/notifications';
 import type { BingoCard, GameCategory, Difficulty } from '@/types';
 import type { BoardEditData } from '@/services/bingo-board-edit.service';
+import type { BingoBoardDomain } from '@/types/domains/bingo';
+import type { ServiceResponse } from '@/lib/service-types';
 
 // Type-safe default values
 const DEFAULT_GAME_CATEGORY: GameCategory = 'All Games';
@@ -36,22 +40,36 @@ export function useBoardSaveActions(boardId: string) {
 
     // Get current state directly from store
     const currentState = useBoardEditStore.getState();
-    const boardData = await queryClient.ensureQueryData({
+    const boardDataQuery = await queryClient.ensureQueryData({
       queryKey: queryKeys.boardEdit.data(boardId),
     });
 
-    if (!boardData || typeof boardData !== 'object' || !('data' in boardData)) {
+    // Type guard for service response
+    const isBoardEditResponse = (
+      data: unknown
+    ): data is ServiceResponse<{
+      board: BingoBoardDomain;
+      cards: BingoCard[];
+    }> => {
+      return (
+        typeof data === 'object' &&
+        data !== null &&
+        'success' in data &&
+        typeof data.success === 'boolean'
+      );
+    };
+
+    if (!isBoardEditResponse(boardDataQuery)) {
       notifications.error('Board data not loaded');
       return;
     }
 
-    const typedBoardData = boardData as any;
-    if (!typedBoardData?.success || !typedBoardData.data?.board) {
+    if (!boardDataQuery.success || !boardDataQuery.data?.board) {
       notifications.error('Board data not loaded');
       return;
     }
 
-    const currentBoard = typedBoardData.data.board;
+    const currentBoard = boardDataQuery.data.board;
 
     try {
       uiActions.setIsSaving(true);
@@ -60,9 +78,7 @@ export function useBoardSaveActions(boardId: string) {
       const tempCards = [
         ...currentState.localGridCards,
         ...currentState.localPrivateCards,
-      ].filter(
-        (card: BingoCard) => card.id.startsWith('temp-') && card.title
-      );
+      ].filter((card: BingoCard) => card.id.startsWith('temp-') && card.title);
 
       if (tempCards.length > 0) {
         const cardInsertData = tempCards.map(card => ({
@@ -161,22 +177,36 @@ export function useBoardSaveActions(boardId: string) {
 
   // Memoized publish action
   const publishBoard = useCallback(async () => {
-    const boardData = await queryClient.ensureQueryData({
+    const boardDataQuery = await queryClient.ensureQueryData({
       queryKey: queryKeys.boardEdit.data(boardId),
     });
 
-    if (!boardData || typeof boardData !== 'object' || !('data' in boardData)) {
+    // Type guard for service response
+    const isBoardEditResponse = (
+      data: unknown
+    ): data is ServiceResponse<{
+      board: BingoBoardDomain;
+      cards: BingoCard[];
+    }> => {
+      return (
+        typeof data === 'object' &&
+        data !== null &&
+        'success' in data &&
+        typeof data.success === 'boolean'
+      );
+    };
+
+    if (!isBoardEditResponse(boardDataQuery)) {
       notifications.error('Board data not loaded');
       return;
     }
 
-    const typedBoardData = boardData as any;
-    if (!typedBoardData?.success || !typedBoardData.data?.board) {
+    if (!boardDataQuery.success || !boardDataQuery.data?.board) {
       notifications.error('Board data not loaded');
       return;
     }
 
-    const currentBoard = typedBoardData.data.board;
+    const currentBoard = boardDataQuery.data.board;
 
     try {
       const updateResult = await updateBoardMutation.mutateAsync({

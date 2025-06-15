@@ -1,23 +1,25 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Grid } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Button } from '@/components/ui/Button';
+import { PlusCircle, Grid } from '@/components/ui/Icons';
+import { Input } from '@/components/ui/Input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import { DIFFICULTY_OPTIONS } from '@/types';
-import { default as BoardCard } from './board-card';
+import { default as BoardCard } from './BoardCard';
 import { CreateBoardForm } from './CreateBoardForm';
 import { NeonText } from '@/components/ui/NeonText';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
 import { useBingoBoardsVirtualization } from '../hooks/useBingoBoardsVirtualization';
+import { useDebouncedCallback } from '@/hooks/useDebounce';
 import type { VirtualItem } from '@tanstack/react-virtual';
 import {
   Constants as _Constants,
@@ -28,7 +30,7 @@ import {
 // Use the database type directly to avoid conflicts
 type _BingoBoard = Tables<'bingo_boards'>;
 
-export default function BingoBoardsHub() {
+const BingoBoardsHub = React.memo(function BingoBoardsHub() {
   const {
     boards,
     isCreateFormOpen,
@@ -42,10 +44,56 @@ export default function BingoBoardsHub() {
     goToNextPage,
   } = useBingoBoardsHub();
 
+  // Local state for search input to provide immediate feedback
+  const [searchValue, setSearchValue] = useState(filterSelections.search);
+
+  // Debounced search handler - only updates filters after user stops typing
+  const debouncedSearch = useDebouncedCallback(
+    (value: string) => {
+      handleFilterChange('search', value);
+    },
+    300 // 300ms delay
+  );
+
+  // Update local search value when filters change externally
+  useEffect(() => {
+    setSearchValue(filterSelections.search);
+  }, [filterSelections.search]);
+
+  // Handle search input changes
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearchValue(value); // Update local state immediately for UI responsiveness
+      debouncedSearch(value); // Debounce the actual filter update
+    },
+    [debouncedSearch]
+  );
+
   // Setup virtualization
   const { containerRef, virtualizer } = useBingoBoardsVirtualization({
     boards,
   });
+
+  // Memoize virtual container styles
+  const virtualContainerStyle = useMemo(
+    () => ({
+      height: `${virtualizer.getTotalSize()}px`,
+      width: '100%',
+      position: 'relative' as const,
+    }),
+    [virtualizer]
+  );
+
+  const loadMoreStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    }),
+    []
+  );
 
   // Sort options for the select
   const sortOptions = [
@@ -62,8 +110,8 @@ export default function BingoBoardsHub() {
         <div className="min-w-[200px] flex-1">
           <Input
             placeholder="Search boards..."
-            value={filterSelections.search}
-            onChange={e => handleFilterChange('search', e.target.value)}
+            value={searchValue}
+            onChange={handleSearchChange}
           />
         </div>
 
@@ -126,13 +174,7 @@ export default function BingoBoardsHub() {
       {/* Boards List - Virtualized */}
       {!isLoading && boards.length > 0 && (
         <div ref={containerRef} className="h-[calc(100vh-300px)] overflow-auto">
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
+          <div style={virtualContainerStyle}>
             {virtualizer.getVirtualItems().map((virtualItem: VirtualItem) => {
               const board = boards[virtualItem.index];
               if (!board) return null;
@@ -156,17 +198,9 @@ export default function BingoBoardsHub() {
 
             {/* Load More - positioned after virtual items */}
             {hasMore && (
-              <div
-                className="p-4 text-center"
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                }}
-              >
+              <div className="p-4 text-center" style={loadMoreStyle}>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={goToNextPage}
                   disabled={isFetching}
                 >
@@ -218,4 +252,6 @@ export default function BingoBoardsHub() {
       />
     </div>
   );
-}
+});
+
+export default BingoBoardsHub;

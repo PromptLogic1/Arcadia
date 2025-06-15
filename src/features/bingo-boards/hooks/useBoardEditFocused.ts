@@ -1,6 +1,6 @@
 /**
  * Focused Board Edit Hooks - Performance Optimized
- * 
+ *
  * Following CLAUDE.md guidelines for optimal state management:
  * - Split server/UI state separation
  * - Focused hooks with minimal return objects
@@ -29,28 +29,37 @@ import type { BingoCard } from '@/types';
 import type { BingoBoardDomain } from '@/types/domains/bingo';
 
 // Memoized selector functions for query optimization
-const selectBoardData = (response: any) => response?.success ? response.data?.board : null;
+const selectBoardData = (response: any) =>
+  response?.success ? response.data?.board : null;
 const selectBoardError = (response: any) => response?.error || null;
 
 /**
  * Server state only - board data from queries
  */
 export const useBoardData = (boardId: string) => {
-  const { data: boardResponse, isLoading: loadingBoard, error: boardError } = useBoardEditDataQuery(boardId, {
+  const {
+    data: boardResponse,
+    isLoading: loadingBoard,
+    error: boardError,
+  } = useBoardEditDataQuery(boardId, {
     select: selectBoardData,
   });
-  
-  const { data: initData, isLoading: loadingInit, isError: initError } = useBoardInitializationQuery(
-    boardId, 
-    !!boardId
-  );
 
-  return useMemo(() => ({
-    board: boardResponse,
-    isLoading: loadingBoard || loadingInit,
-    error: boardError || initError ? 'Failed to load board data' : null,
-    initData,
-  }), [boardResponse, loadingBoard, loadingInit, boardError, initError, initData]);
+  const {
+    data: initData,
+    isLoading: loadingInit,
+    isError: initError,
+  } = useBoardInitializationQuery(boardId, !!boardId);
+
+  return useMemo(
+    () => ({
+      board: boardResponse,
+      isLoading: loadingBoard || loadingInit,
+      error: boardError || initError ? 'Failed to load board data' : null,
+      initData,
+    }),
+    [boardResponse, loadingBoard, loadingInit, boardError, initError, initData]
+  );
 };
 
 /**
@@ -58,20 +67,23 @@ export const useBoardData = (boardId: string) => {
  */
 export const useBoardUIState = () => {
   const uiState = useBoardEditState();
-  
+
   // Return only UI state, no server data
-  return useMemo(() => ({
-    selectedCard: uiState.selectedCard,
-    draggedCard: uiState.draggedCard,
-    isEditMode: uiState.isEditMode,
-    isSaving: uiState.isSaving,
-    showAdvancedSettings: uiState.showAdvancedSettings,
-    autoSave: uiState.autoSave,
-    editingCard: uiState.editingCard,
-    showSaveSuccess: uiState.showSaveSuccess,
-    formData: uiState.formData,
-    fieldErrors: uiState.fieldErrors,
-  }), [uiState]);
+  return useMemo(
+    () => ({
+      selectedCard: uiState.selectedCard,
+      draggedCard: uiState.draggedCard,
+      isEditMode: uiState.isEditMode,
+      isSaving: uiState.isSaving,
+      showAdvancedSettings: uiState.showAdvancedSettings,
+      autoSave: uiState.autoSave,
+      editingCard: uiState.editingCard,
+      showSaveSuccess: uiState.showSaveSuccess,
+      formData: uiState.formData,
+      fieldErrors: uiState.fieldErrors,
+    }),
+    [uiState]
+  );
 };
 
 /**
@@ -79,13 +91,16 @@ export const useBoardUIState = () => {
  */
 export const useBoardCards = () => {
   const uiState = useBoardEditState();
-  
-  return useMemo(() => ({
-    gridCards: uiState.localGridCards,
-    privateCards: uiState.localPrivateCards,
-    localGridCards: uiState.localGridCards,
-    localPrivateCards: uiState.localPrivateCards,
-  }), [uiState.localGridCards, uiState.localPrivateCards]);
+
+  return useMemo(
+    () => ({
+      gridCards: uiState.localGridCards,
+      privateCards: uiState.localPrivateCards,
+      localGridCards: uiState.localGridCards,
+      localPrivateCards: uiState.localPrivateCards,
+    }),
+    [uiState.localGridCards, uiState.localPrivateCards]
+  );
 };
 
 /**
@@ -94,7 +109,7 @@ export const useBoardCards = () => {
 export const useBoardComputedState = (boardId: string) => {
   const { board } = useBoardData(boardId);
   const { localGridCards } = useBoardCards();
-  
+
   const hasChanges = useMemo(() => {
     if (!board || !localGridCards) return false;
 
@@ -107,14 +122,18 @@ export const useBoardComputedState = (boardId: string) => {
       const current = currentCells[index];
       return (
         original.text !== current?.title ||
-        original.cell_id !== (current?.id?.startsWith('temp-') ? null : current?.id)
+        original.cell_id !==
+          (current?.id?.startsWith('temp-') ? null : current?.id)
       );
     });
   }, [board, localGridCards]);
 
-  return useMemo(() => ({
-    hasChanges,
-  }), [hasChanges]);
+  return useMemo(
+    () => ({
+      hasChanges,
+    }),
+    [hasChanges]
+  );
 };
 
 /**
@@ -127,55 +146,70 @@ export const useBoardCardActions = (boardId: string) => {
   const createCardMutation = useCreateCardMutation();
   const updateCardMutation = useUpdateCardMutation();
 
-  const selectCard = useCallback((card: BingoCard | null) => {
-    uiActions.setSelectedCard(card);
-  }, [uiActions]);
+  const selectCard = useCallback(
+    (card: BingoCard | null) => {
+      uiActions.setSelectedCard(card);
+    },
+    [uiActions]
+  );
 
-  const setDraggedCard = useCallback((card: BingoCard | null) => {
-    uiActions.setDraggedCard(card);
-  }, [uiActions]);
+  const setDraggedCard = useCallback(
+    (card: BingoCard | null) => {
+      uiActions.setDraggedCard(card);
+    },
+    [uiActions]
+  );
 
-  const moveCardToGrid = useCallback((card: BingoCard, position: number) => {
-    const updatedGrid = [...localGridCards];
-    const existingCard = updatedGrid[position];
-    
-    if (existingCard?.title) {
-      if (!existingCard.id.startsWith('temp-')) {
-        uiActions.setLocalPrivateCards([...localPrivateCards, existingCard]);
+  const moveCardToGrid = useCallback(
+    (card: BingoCard, position: number) => {
+      const updatedGrid = [...localGridCards];
+      const existingCard = updatedGrid[position];
+
+      if (existingCard?.title) {
+        if (!existingCard.id.startsWith('temp-')) {
+          uiActions.setLocalPrivateCards([...localPrivateCards, existingCard]);
+        }
       }
-    }
 
-    updatedGrid[position] = card;
-    uiActions.setLocalGridCards(updatedGrid);
+      updatedGrid[position] = card;
+      uiActions.setLocalGridCards(updatedGrid);
 
-    if (localPrivateCards.some((pc: BingoCard) => pc.id === card.id)) {
-      uiActions.setLocalPrivateCards(
-        localPrivateCards.filter((pc: BingoCard) => pc.id !== card.id)
-      );
-    }
-  }, [localGridCards, localPrivateCards, uiActions]);
+      if (localPrivateCards.some((pc: BingoCard) => pc.id === card.id)) {
+        uiActions.setLocalPrivateCards(
+          localPrivateCards.filter((pc: BingoCard) => pc.id !== card.id)
+        );
+      }
+    },
+    [localGridCards, localPrivateCards, uiActions]
+  );
 
-  const createCard = useCallback(async (cardData: {
-    title: string;
-    description?: string;
-    tags?: string[];
-  }) => {
-    if (!authUser) return null;
+  const createCard = useCallback(
+    async (cardData: {
+      title: string;
+      description?: string;
+      tags?: string[];
+    }) => {
+      if (!authUser) return null;
 
-    // Implementation details...
-    // This would contain the full createCard logic from the original hook
-    // but as a focused, memoized callback
-    
-    return null; // Placeholder
-  }, [authUser, createCardMutation, uiActions, localPrivateCards]);
+      // Implementation details...
+      // This would contain the full createCard logic from the original hook
+      // but as a focused, memoized callback
 
-  return useMemo(() => ({
-    selectCard,
-    setDraggedCard,
-    moveCardToGrid,
-    createCard,
-    // Add other card actions here...
-  }), [selectCard, setDraggedCard, moveCardToGrid, createCard]);
+      return null; // Placeholder
+    },
+    [authUser, createCardMutation, uiActions, localPrivateCards]
+  );
+
+  return useMemo(
+    () => ({
+      selectCard,
+      setDraggedCard,
+      moveCardToGrid,
+      createCard,
+      // Add other card actions here...
+    }),
+    [selectCard, setDraggedCard, moveCardToGrid, createCard]
+  );
 };
 
 /**
@@ -195,15 +229,14 @@ export const useBoardSaveActions = (boardId: string) => {
 
     try {
       uiActions.setIsSaving(true);
-      
+
       // Full save logic would go here...
       // This is just the structure for now
-      
+
       queryClient.invalidateQueries({
         queryKey: queryKeys.boardEdit.data(boardId),
       });
       notifications.success('Board saved successfully!');
-      
     } catch (error) {
       notifications.error(
         error instanceof Error ? error.message : 'Failed to save board'
@@ -211,7 +244,15 @@ export const useBoardSaveActions = (boardId: string) => {
     } finally {
       uiActions.setIsSaving(false);
     }
-  }, [board, authUser, boardId, queryClient, uiActions, saveCardsMutation, updateBoardMutation]);
+  }, [
+    board,
+    authUser,
+    boardId,
+    queryClient,
+    uiActions,
+    saveCardsMutation,
+    updateBoardMutation,
+  ]);
 
   const publishBoard = useCallback(async () => {
     if (!board) return;
@@ -234,10 +275,13 @@ export const useBoardSaveActions = (boardId: string) => {
     }
   }, [board, boardId, queryClient, updateBoardMutation]);
 
-  return useMemo(() => ({
-    saveBoard,
-    publishBoard,
-  }), [saveBoard, publishBoard]);
+  return useMemo(
+    () => ({
+      saveBoard,
+      publishBoard,
+    }),
+    [saveBoard, publishBoard]
+  );
 };
 
 /**
@@ -255,33 +299,39 @@ export const useBoardUIActions = () => {
     uiActions.setShowAdvancedSettings(!showAdvancedSettings);
   }, [uiActions, showAdvancedSettings]);
 
-  const setAutoSave = useCallback((enabled: boolean) => {
-    uiActions.setAutoSave(enabled);
-  }, [uiActions]);
+  const setAutoSave = useCallback(
+    (enabled: boolean) => {
+      uiActions.setAutoSave(enabled);
+    },
+    [uiActions]
+  );
 
-  return useMemo(() => ({
-    toggleEditMode,
-    toggleAdvancedSettings,
-    setAutoSave,
-    // Direct UI actions
-    openCardEditor: uiActions.openCardEditor,
-    closeCardEditor: uiActions.closeCardEditor,
-    clearSelectedCard: uiActions.clearSelectedCard,
-    setFormData: uiActions.setFormData,
-    updateFormField: uiActions.updateFormField,
-  }), [toggleEditMode, toggleAdvancedSettings, setAutoSave, uiActions]);
+  return useMemo(
+    () => ({
+      toggleEditMode,
+      toggleAdvancedSettings,
+      setAutoSave,
+      // Direct UI actions
+      openCardEditor: uiActions.openCardEditor,
+      closeCardEditor: uiActions.closeCardEditor,
+      clearSelectedCard: uiActions.clearSelectedCard,
+      setFormData: uiActions.setFormData,
+      updateFormField: uiActions.updateFormField,
+    }),
+    [toggleEditMode, toggleAdvancedSettings, setAutoSave, uiActions]
+  );
 };
 
 /**
  * Example of how components should now consume these focused hooks:
- * 
+ *
  * Instead of:
  * const { board, isLoading, selectedCard, saveBoard, ... } = useBingoBoardEdit(boardId);
- * 
+ *
  * Use:
  * const { board, isLoading } = useBoardData(boardId);
  * const { selectedCard } = useBoardUIState();
  * const { saveBoard } = useBoardSaveActions(boardId);
- * 
+ *
  * This ensures components only re-render when their specific data changes!
  */

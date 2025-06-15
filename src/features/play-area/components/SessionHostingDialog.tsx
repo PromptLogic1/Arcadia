@@ -8,17 +8,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Gamepad2, Grid3X3, Search, Plus, Key } from 'lucide-react';
+} from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { Switch } from '@/components/ui/Switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { ScrollArea } from '@/components/ui/ScrollArea';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Gamepad2, Grid3X3, Search, Plus, Key } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { log } from '@/lib/logger';
 import { useAuth } from '@/lib/stores/auth-store';
@@ -428,7 +428,7 @@ export function SessionHostingDialog({
                   </h4>
                   <div className="flex gap-2">
                     <Badge
-                      variant="outline"
+                      variant="cyber"
                       className={getDifficultyColor(
                         effectiveSelectedBoard.difficulty
                       )}
@@ -436,7 +436,7 @@ export function SessionHostingDialog({
                       {effectiveSelectedBoard.difficulty}
                     </Badge>
                     <Badge
-                      variant="outline"
+                      variant="cyber"
                       className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
                     >
                       <Grid3X3 className="mr-1 h-3 w-3" />
@@ -457,7 +457,7 @@ export function SessionHostingDialog({
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="primary"
             onClick={handleClose}
             className="border-cyan-500/30 text-cyan-300 backdrop-blur-sm hover:border-cyan-400 hover:bg-cyan-500/10"
           >
@@ -524,13 +524,13 @@ function BoardCard({ board, isSelected, onSelect }: BoardCardProps) {
           </h4>
           <div className="flex gap-1">
             <Badge
-              variant="outline"
+              variant="cyber"
               className={cn('text-xs', getDifficultyColor(board.difficulty))}
             >
               {board.difficulty}
             </Badge>
             <Badge
-              variant="outline"
+              variant="cyber"
               className="border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-300"
             >
               <Grid3X3 className="mr-1 h-3 w-3" />

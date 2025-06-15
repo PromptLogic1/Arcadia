@@ -3,8 +3,8 @@
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { BaseErrorBoundary } from './BaseErrorBoundary';
-import { AlertTriangle, WifiOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, WifiOff } from '@/components/ui/Icons';
+import { Button } from '@/components/ui/Button';
 import { logger } from '@/lib/logger';
 
 interface Props {
@@ -90,7 +90,7 @@ export class RealtimeErrorBoundary extends Component<Props, State> {
           <div className="flex gap-3">
             <Button
               onClick={this.handleReset}
-              variant="default"
+              variant="primary"
               className="bg-cyan-600 hover:bg-cyan-700"
             >
               Try Again
@@ -99,7 +99,7 @@ export class RealtimeErrorBoundary extends Component<Props, State> {
             {isNetworkError && (
               <Button
                 onClick={() => window.location.reload()}
-                variant="outline"
+                variant="secondary"
               >
                 Reload Page
               </Button>

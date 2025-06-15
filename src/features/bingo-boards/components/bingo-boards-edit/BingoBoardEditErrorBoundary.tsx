@@ -2,9 +2,9 @@
 
 import React, { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { AlertTriangle, RefreshCw, Home } from '@/components/ui/Icons';
 import { log } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
 
@@ -141,7 +141,7 @@ export class BingoBoardEditErrorBoundary extends Component<Props, State> {
                 </Button>
 
                 <Button
-                  variant="outline"
+                  variant="primary"
                   onClick={this.handleRefresh}
                   className="flex-1 border-gray-600 hover:bg-gray-700"
                 >
@@ -150,7 +150,7 @@ export class BingoBoardEditErrorBoundary extends Component<Props, State> {
                 </Button>
 
                 <Button
-                  variant="ghost"
+                  variant="primary"
                   onClick={this.handleGoHome}
                   className="flex-1 hover:bg-gray-700"
                 >

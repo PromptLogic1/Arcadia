@@ -254,15 +254,13 @@ export const GET = withRateLimit(
       boardIdForLog = boardId;
       statusForLog = status || 'active';
 
-      // Use the sessions service to get sessions by board ID
-      const sessionsResult = await sessionsService.getSessionsByBoardId(
-        boardId,
-        status
-      );
+      // Use the sessions service to get sessions with players in single query (fixes N+1)
+      const sessionsResult =
+        await sessionsService.getSessionsByBoardIdWithPlayers(boardId, status);
 
       if (!sessionsResult.success) {
         log.error(
-          'Error fetching bingo sessions',
+          'Error fetching bingo sessions with players',
           new Error(sessionsResult.error || 'Unknown error'),
           {
             metadata: {
@@ -279,38 +277,7 @@ export const GET = withRateLimit(
         );
       }
 
-      const sessions = sessionsResult.data || [];
-
-      // Get players for each session
-      const sessionsWithPlayers = await Promise.all(
-        sessions.map(async (session: { id: string }) => {
-          const playersResult = await sessionsService.getSessionPlayers(
-            session.id
-          );
-
-          const players =
-            playersResult.success && playersResult.data
-              ? playersResult.data
-              : [];
-
-          return {
-            ...session,
-            players: players.map(
-              (p: {
-                user_id: string;
-                display_name: string;
-                color: string;
-                team: number | null;
-              }) => ({
-                user_id: p.user_id,
-                display_name: p.display_name,
-                color: p.color,
-                team: p.team,
-              })
-            ),
-          };
-        })
-      );
+      const sessionsWithPlayers = sessionsResult.data || [];
 
       return NextResponse.json(sessionsWithPlayers);
     } catch (error) {

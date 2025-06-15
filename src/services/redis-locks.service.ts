@@ -25,7 +25,7 @@ const lockConfigSchema = z.object({
   retryDelay: z.number().min(100).max(5000).default(500), // 500ms default
 });
 
-const lockResultSchema = z.object({
+const _lockResultSchema = z.object({
   acquired: z.boolean(),
   lockId: z.string(),
   expiresAt: z.number().optional(),
@@ -33,7 +33,7 @@ const lockResultSchema = z.object({
 });
 
 export type LockConfig = z.infer<typeof lockConfigSchema>;
-export type LockResult = z.infer<typeof lockResultSchema>;
+export type LockResult = z.infer<typeof _lockResultSchema>;
 
 // Constants
 export const LOCK_CONSTANTS = {

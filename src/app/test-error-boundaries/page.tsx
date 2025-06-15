@@ -6,7 +6,7 @@ import {
   RealtimeErrorBoundary,
   AsyncBoundary,
 } from '@/components/error-boundaries';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 
 function ThrowError({ type }: { type: string }) {
   if (type === 'render') {
@@ -33,7 +33,7 @@ function AsyncComponent() {
   return (
     <div className="rounded border border-gray-700 p-4">
       <h3 className="mb-2 text-lg font-semibold">Async Component</h3>
-      <Button onClick={() => setShouldError(true)} variant="destructive">
+      <Button onClick={() => setShouldError(true)} variant="danger">
         Trigger Async Error
       </Button>
     </div>
@@ -50,7 +50,7 @@ function RealtimeComponent() {
   return (
     <div className="rounded border border-gray-700 p-4">
       <h3 className="mb-2 text-lg font-semibold">Realtime Component</h3>
-      <Button onClick={() => setShouldError(true)} variant="destructive">
+      <Button onClick={() => setShouldError(true)} variant="danger">
         Trigger Network Error
       </Button>
     </div>
@@ -74,13 +74,10 @@ export default function TestErrorBoundariesPage() {
             </p>
 
             <div className="flex gap-4">
-              <Button
-                onClick={() => setErrorType('render')}
-                variant="destructive"
-              >
+              <Button onClick={() => setErrorType('render')} variant="danger">
                 Throw Render Error
               </Button>
-              <Button onClick={() => setErrorType(null)} variant="outline">
+              <Button onClick={() => setErrorType(null)} variant="secondary">
                 Reset
               </Button>
             </div>

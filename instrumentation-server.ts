@@ -12,51 +12,53 @@ try {
   process.exit(1);
 }
 
-// Lazy initialization to prevent module loading issues
-const initSentry = async () => {
+// Lazy load Sentry to reduce initial bundle size
+async function initializeSentry() {
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    return;
+  }
+
   try {
     const Sentry = await import('@sentry/nextjs');
 
-    // Only initialize if we have a DSN
-    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      // Initialize Sentry for server-side
-      Sentry.init({
-        dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    Sentry.init({
+      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-        // Performance Monitoring
-        tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      // Performance Monitoring
+      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-        // Release tracking
-        release: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
+      // Release tracking
+      release: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
 
-        // Environment
-        environment:
-          process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+      // Environment
+      environment:
+        process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV,
 
-        // Filter out certain errors
-        ignoreErrors: ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'],
+      // Filter out certain errors
+      ignoreErrors: ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'],
 
-        // Before sending error to Sentry
-        beforeSend(event) {
-          // Don't send events in development unless explicitly enabled
-          if (
-            process.env.NODE_ENV === 'development' &&
-            !process.env.NEXT_PUBLIC_SENTRY_DEV_ENABLED
-          ) {
-            return null;
-          }
+      // Before sending error to Sentry
+      beforeSend(event) {
+        // Don't send events in development unless explicitly enabled
+        if (
+          process.env.NODE_ENV === 'development' &&
+          !process.env.NEXT_PUBLIC_SENTRY_DEV_ENABLED
+        ) {
+          return null;
+        }
 
-          return event;
-        },
-      });
-    }
+        return event;
+      },
+    });
+
+    console.log('[Sentry] Server-side initialization complete');
   } catch (error) {
-    console.error('Failed to initialize Sentry on server:', error);
+    console.error('[Sentry] Failed to initialize on server:', error);
   }
-};
+}
 
-// Initialize on module load
-initSentry();
+// Initialize Sentry asynchronously
+initializeSentry();
 
 // Export to make it a module
 export {};

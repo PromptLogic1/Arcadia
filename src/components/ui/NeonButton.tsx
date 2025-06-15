@@ -1,10 +1,10 @@
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Button, type ButtonProps } from '@/components/ui/button';
+import { Button, type ButtonProps } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
 const neonEffectVariants = cva(
-  'group relative overflow-hidden transition-all duration-300',
+  'group relative overflow-hidden transition-all duration-300 will-change-transform',
   {
     variants: {
       intensity: {
@@ -57,19 +57,9 @@ export interface NeonButtonProps
 
 const NeonButton = React.forwardRef<HTMLButtonElement, NeonButtonProps>(
   ({ children, className, intensity, glow, overlay, ...buttonProps }, ref) => {
-    // Map neon glow variants to button glow prop
-    const buttonGlow =
-      glow === 'cyan' ||
-      glow === 'fuchsia' ||
-      glow === 'rainbow' ||
-      glow === 'primary'
-        ? 'intense'
-        : 'normal';
-
     return (
       <Button
         ref={ref}
-        glow={buttonGlow}
         className={cn(
           neonEffectVariants({ intensity, glow, overlay }),
           className

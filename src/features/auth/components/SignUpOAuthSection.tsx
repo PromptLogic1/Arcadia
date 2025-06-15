@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Button } from '@/components/ui/button';
-import { Mail } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Mail } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { OAuthProvider } from '../types/signup-form.types';
 import { SIGNUP_MESSAGES, SIGNUP_STYLES, COMPONENT_NAMES } from './constants';
@@ -173,7 +173,7 @@ export const SignUpOAuthSection = React.forwardRef<
             return (
               <Button
                 key={provider}
-                variant="outline"
+                variant="secondary"
                 onClick={config.handler}
                 disabled={buttonsDisabled}
                 className={SIGNUP_STYLES.OAUTH.BUTTON}

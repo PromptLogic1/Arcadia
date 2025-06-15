@@ -127,7 +127,11 @@ export function useSessionGame(
     boardState: boardState || [],
     version: session?.version || 0,
     isLoading,
-    error,
+    error: error
+      ? typeof error === 'string'
+        ? new Error(error)
+        : error
+      : null,
   };
 
   // Session actions
@@ -304,7 +308,11 @@ export function useSessionModern(sessionId: string) {
     boardState: boardState || [],
     version: session?.version || 0,
     isLoading,
-    error,
+    error: error
+      ? typeof error === 'string'
+        ? new Error(error)
+        : error
+      : null,
     // Properties needed by the PlayArea component
     board_id: session?.board_id || '',
     host_id: session?.host_id || '',

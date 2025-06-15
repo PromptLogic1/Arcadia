@@ -1,30 +1,47 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { logger } from '@/lib/logger';
+import { generateNonce, getCSPHeader } from '@/lib/csp';
+import { isSessionBlacklisted } from '@/lib/session-blacklist';
 
 // Define paths that require authentication
 const protectedPaths = [
   '/user',
   '/settings',
   '/admin',
-  '/challenge-hub',
   '/play-area',
+  '/join', // Session joining requires authentication
+  '/challenge-hub', // Challenge hub requires authentication for interaction
 ];
 
 // Define paths that are auth-related (should redirect if already authenticated)
 const authPaths = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
 
+// Define API paths that require authentication
+const protectedApiPaths = [
+  '/api/bingo/sessions', // Game session management
+  '/api/submissions', // User submissions
+  '/api/discussions', // Community discussions
+];
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // Generate CSP nonce for this request
+  const nonce = generateNonce();
 
   // Redirect old paths
   if (pathname.startsWith('/challengehub')) {
     const newPath = pathname.replace('/challengehub', '/challenge-hub');
-    return NextResponse.redirect(new URL(newPath, request.url));
+    const response = NextResponse.redirect(new URL(newPath, request.url));
+    response.headers.set('Content-Security-Policy', getCSPHeader(nonce));
+    return response;
   }
   if (pathname.startsWith('/playarea')) {
     const newPath = pathname.replace('/playarea', '/play-area');
-    return NextResponse.redirect(new URL(newPath, request.url));
+    const response = NextResponse.redirect(new URL(newPath, request.url));
+    response.headers.set('Content-Security-Policy', getCSPHeader(nonce));
+    return response;
   }
 
   try {
@@ -51,8 +68,18 @@ export async function middleware(request: NextRequest) {
 
     // Create response and Supabase client with proper cookie handling
     let supabaseResponse = NextResponse.next({
-      request,
+      request: {
+        ...request,
+        headers: new Headers(request.headers),
+      },
     });
+
+    // Add CSP nonce to request headers so it can be accessed in components
+    supabaseResponse.headers.set('x-nonce', nonce);
+
+    // Add Content Security Policy header
+    const cspHeader = getCSPHeader(nonce);
+    supabaseResponse.headers.set('Content-Security-Policy', cspHeader);
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -82,8 +109,43 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Get session separately for blacklist checking
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    // Check if session is blacklisted (security feature)
+    if (session?.access_token) {
+      const blacklistCheck = await isSessionBlacklisted(session.access_token);
+      if (blacklistCheck.isBlacklisted) {
+        logger.warn('Blacklisted session detected', {
+          metadata: {
+            component: 'middleware',
+            pathname,
+            reason: blacklistCheck.reason,
+            userId: user?.id,
+          },
+        });
+
+        // Clear the session and redirect to login
+        const response = NextResponse.redirect(
+          new URL('/auth/login?reason=session_revoked', request.url)
+        );
+        response.headers.set('Content-Security-Policy', cspHeader);
+
+        // Clear all auth cookies
+        response.cookies.delete('sb-access-token');
+        response.cookies.delete('sb-refresh-token');
+
+        return response;
+      }
+    }
+
     // Check if the path is protected
     const isProtectedPath = protectedPaths.some(path =>
+      pathname.startsWith(path)
+    );
+    const isProtectedApiPath = protectedApiPaths.some(path =>
       pathname.startsWith(path)
     );
     const isAuthPath = authPaths.some(path => pathname.startsWith(path));
@@ -93,7 +155,19 @@ export async function middleware(request: NextRequest) {
       // User is not authenticated and tries to access protected route
       const redirectUrl = new URL('/auth/login', request.nextUrl.origin);
       redirectUrl.searchParams.set('redirectedFrom', pathname);
-      return NextResponse.redirect(redirectUrl);
+      const response = NextResponse.redirect(redirectUrl);
+      response.headers.set('Content-Security-Policy', cspHeader);
+      return response;
+    }
+
+    if (!user && isProtectedApiPath) {
+      // User is not authenticated and tries to access protected API route
+      const response = NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+      response.headers.set('Content-Security-Policy', cspHeader);
+      return response;
     }
 
     if (user && isAuthPath) {
@@ -103,12 +177,18 @@ export async function middleware(request: NextRequest) {
         redirectedFrom &&
         !authPaths.some(path => redirectedFrom.startsWith(path))
       ) {
-        return NextResponse.redirect(
+        const response = NextResponse.redirect(
           new URL(redirectedFrom, request.nextUrl.origin)
         );
+        response.headers.set('Content-Security-Policy', cspHeader);
+        return response;
       }
       // Otherwise redirect to home
-      return NextResponse.redirect(new URL('/', request.nextUrl.origin));
+      const response = NextResponse.redirect(
+        new URL('/', request.nextUrl.origin)
+      );
+      response.headers.set('Content-Security-Policy', cspHeader);
+      return response;
     }
 
     // IMPORTANT: You *must* return the supabaseResponse object as it is.
@@ -143,10 +223,13 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - api routes (handled separately)
      * - public files (svg, png, jpg, etc.)
-     * Feel free to modify this pattern to include more paths.
+     * Now includes protected API routes for authentication
      */
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    // Include protected API routes
+    '/api/bingo/sessions/:path*',
+    '/api/submissions/:path*',
+    '/api/discussions/:path*',
   ],
 };

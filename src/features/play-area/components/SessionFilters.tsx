@@ -1,17 +1,17 @@
 'use client';
 
-import React from 'react';
-import { Input } from '@/components/ui/input';
+import React, { useDeferredValue, useTransition } from 'react';
+import { Input } from '@/components/ui/Input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Search, X } from 'lucide-react';
+} from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Search, X } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 
 // Types
@@ -141,23 +141,42 @@ export function SessionFilters({
   onFiltersChange,
   className,
 }: SessionFiltersProps) {
+  // React 19 optimizations
+  const [isPending, startTransition] = useTransition();
+  const deferredSearchTerm = useDeferredValue(filters.search);
+
   const updateFilter = <K extends keyof SessionFilters>(
     key: K,
     value: SessionFilters[K]
   ) => {
-    onFiltersChange({
-      ...filters,
-      [key]: value,
-    });
+    // Use transition for non-urgent filter updates to prevent blocking UI
+    if (key === 'search') {
+      // Search is urgent, update immediately
+      onFiltersChange({
+        ...filters,
+        [key]: value,
+      });
+    } else {
+      // Other filters are not urgent, use transition
+      startTransition(() => {
+        onFiltersChange({
+          ...filters,
+          [key]: value,
+        });
+      });
+    }
   };
 
   const clearFilters = () => {
-    onFiltersChange({
-      search: '',
-      gameCategory: undefined,
-      difficulty: undefined,
-      status: undefined,
-      showPrivate: false,
+    // Clearing filters is not urgent, use transition
+    startTransition(() => {
+      onFiltersChange({
+        search: '',
+        gameCategory: undefined,
+        difficulty: undefined,
+        status: undefined,
+        showPrivate: false,
+      });
     });
   };
 
@@ -194,10 +213,14 @@ export function SessionFilters({
 
         {hasActiveFilters && (
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={clearFilters}
-            className="shrink-0 border-gray-600 text-gray-300 hover:bg-gray-700/50"
+            disabled={isPending}
+            className={cn(
+              'shrink-0 border-gray-600 text-gray-300 hover:bg-gray-700/50',
+              isPending && 'cursor-not-allowed opacity-50'
+            )}
           >
             <X className="mr-1 h-4 w-4" />
             Clear ({getActiveFilterCount()})

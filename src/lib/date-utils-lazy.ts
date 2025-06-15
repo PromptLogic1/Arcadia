@@ -1,34 +1,43 @@
 /**
  * Lazy-loaded date utilities
- * 
+ *
  * These functions lazy-load date-fns to reduce initial bundle size.
  * date-fns is only loaded when date formatting is actually needed.
  */
 
-// Cache for loaded functions
-const loadedFunctions = new Map<string, (...args: unknown[]) => unknown>();
+/* eslint-disable @typescript-eslint/consistent-type-imports */
+
+import { log } from '@/lib/logger';
+
+// Cache for loaded functions - use any to avoid complex typing
+const loadedFunctions = new Map<string, (...args: never[]) => unknown>();
 
 /**
  * Lazy-loads a specific date-fns function
  */
-async function loadDateFunction<T extends (...args: unknown[]) => unknown>(
+async function loadDateFunction<T extends (...args: never[]) => unknown>(
   functionName: string
 ): Promise<T> {
-  if (loadedFunctions.has(functionName)) {
-    return loadedFunctions.get(functionName) as T;
+  const cached = loadedFunctions.get(functionName);
+  if (cached) {
+    return cached as T;
   }
 
   try {
     // Import the entire date-fns module
     const dateFns = await import('date-fns');
-    const fn = (dateFns as Record<string, unknown>)[functionName];
+    const fn = dateFns[functionName as keyof typeof dateFns];
     if (!fn || typeof fn !== 'function') {
       throw new Error(`Function ${functionName} not found in date-fns`);
     }
-    loadedFunctions.set(functionName, fn as (...args: unknown[]) => unknown);
-    return fn as T;
+    // Store and return the function with proper typing
+    const typedFn = fn as unknown as T;
+    loadedFunctions.set(functionName, typedFn);
+    return typedFn;
   } catch (error) {
-    console.error(`Failed to load date-fns/${functionName}:`, error);
+    log.error(`Failed to load date-fns/${functionName}`, error, {
+      metadata: { service: 'date-utils-lazy', functionName },
+    });
     throw error;
   }
 }
@@ -43,9 +52,10 @@ async function loadDateFunction<T extends (...args: unknown[]) => unknown>(
 export async function formatLazy(
   date: Date | number | string,
   formatString: string,
-  options?: { locale?: unknown; weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6; firstWeekContainsDate?: 1 | 2 | 3 | 4 | 5 | 6 | 7 }
+  options?: Parameters<typeof import('date-fns').format>[2]
 ): Promise<string> {
-  const format = await loadDateFunction<typeof import('date-fns').format>('format');
+  const format =
+    await loadDateFunction<typeof import('date-fns').format>('format');
   return format(date, formatString, options);
 }
 
@@ -57,7 +67,7 @@ export async function formatLazy(
  */
 export async function formatDistanceToNowLazy(
   date: Date | number | string,
-  options?: { includeSeconds?: boolean; addSuffix?: boolean; locale?: unknown }
+  options?: Parameters<typeof import('date-fns').formatDistanceToNow>[1]
 ): Promise<string> {
   const formatDistanceToNow = await loadDateFunction<
     typeof import('date-fns').formatDistanceToNow
@@ -75,11 +85,12 @@ export async function formatDistanceToNowLazy(
 export async function formatRelativeLazy(
   date: Date | number | string,
   baseDate: Date | number | string,
-  options?: { locale?: unknown; weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6 }
+  options?: Parameters<typeof import('date-fns').formatRelative>[2]
 ): Promise<string> {
-  const formatRelative = await loadDateFunction<
-    typeof import('date-fns').formatRelative
-  >('formatRelative');
+  const formatRelative =
+    await loadDateFunction<typeof import('date-fns').formatRelative>(
+      'formatRelative'
+    );
   return formatRelative(date, baseDate, options);
 }
 
@@ -91,9 +102,10 @@ export async function formatRelativeLazy(
  */
 export async function parseISOLazy(
   dateString: string,
-  options?: { additionalDigits?: 0 | 1 | 2 }
+  options?: Parameters<typeof import('date-fns').parseISO>[1]
 ): Promise<Date> {
-  const parseISO = await loadDateFunction<typeof import('date-fns').parseISO>('parseISO');
+  const parseISO =
+    await loadDateFunction<typeof import('date-fns').parseISO>('parseISO');
   return parseISO(dateString, options);
 }
 
@@ -107,7 +119,8 @@ export async function isAfterLazy(
   date: Date | number,
   dateToCompare: Date | number
 ): Promise<boolean> {
-  const isAfter = await loadDateFunction<typeof import('date-fns').isAfter>('isAfter');
+  const isAfter =
+    await loadDateFunction<typeof import('date-fns').isAfter>('isAfter');
   return isAfter(date, dateToCompare);
 }
 
@@ -121,7 +134,8 @@ export async function isBeforeLazy(
   date: Date | number,
   dateToCompare: Date | number
 ): Promise<boolean> {
-  const isBefore = await loadDateFunction<typeof import('date-fns').isBefore>('isBefore');
+  const isBefore =
+    await loadDateFunction<typeof import('date-fns').isBefore>('isBefore');
   return isBefore(date, dateToCompare);
 }
 
@@ -135,7 +149,8 @@ export async function addDaysLazy(
   date: Date | number,
   amount: number
 ): Promise<Date> {
-  const addDays = await loadDateFunction<typeof import('date-fns').addDays>('addDays');
+  const addDays =
+    await loadDateFunction<typeof import('date-fns').addDays>('addDays');
   return addDays(date, amount);
 }
 
@@ -149,9 +164,10 @@ export async function differenceInDaysLazy(
   dateLeft: Date | number,
   dateRight: Date | number
 ): Promise<number> {
-  const differenceInDays = await loadDateFunction<
-    typeof import('date-fns').differenceInDays
-  >('differenceInDays');
+  const differenceInDays =
+    await loadDateFunction<typeof import('date-fns').differenceInDays>(
+      'differenceInDays'
+    );
   return differenceInDays(dateLeft, dateRight);
 }
 
@@ -167,7 +183,7 @@ export function formatDateFallback(
   if (isNaN(d.getTime())) {
     return 'Invalid date';
   }
-  
+
   // Simple fallback formatting
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -184,20 +200,20 @@ export function formatRelativeFallback(date: Date | number | string): string {
   if (isNaN(d.getTime())) {
     return 'Invalid date';
   }
-  
+
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  
+
   if (diffMins < 1) return 'just now';
   if (diffMins < 60) return `${diffMins}m ago`;
-  
+
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
-  
+
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 30) return `${diffDays}d ago`;
-  
+
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',

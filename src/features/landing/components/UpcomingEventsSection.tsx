@@ -1,17 +1,16 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { OptimizedImage } from '@/components/ui/Image';
 import { NeonText } from '@/components/ui/NeonText';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
-import FloatingElements from '@/components/ui/FloatingElements';
-import {
-  GiCalendarHalfYear,
-  GiClockwork,
-  GiCrossedSwords,
-} from 'react-icons/gi';
+import dynamic from 'next/dynamic';
+
+const FloatingElements = dynamic(
+  () => import('@/components/ui/FloatingElements'),
+  { ssr: false }
+);
 
 interface Event {
   id: string;
@@ -60,31 +59,28 @@ const UpcomingEventsSection: React.FC = () => {
   const renderEvents = useMemo(
     () =>
       upcomingEvents.map((event, index) => (
-        <motion.div
+        <div
           key={event.id}
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: index * 0.1 }}
-          className="flex h-full justify-center"
+          className="animate-in fade-in slide-in-from-bottom-10 fill-mode-both flex h-full justify-center duration-700"
+          style={{ animationDelay: `${index * 100}ms` }}
         >
           <Card
-            variant="cyber"
-            glow="subtle"
-            className="group cyber-card-hover h-[520px] w-full max-w-md cursor-pointer transition-all duration-300 hover:scale-105"
+            variant="primary"
+            className="group cyber-card-hover h-[520px] w-full max-w-md transform-gpu cursor-pointer transition-all duration-300 hover:scale-105"
             role="article"
             aria-labelledby={`event-title-${event.id}`}
             aria-describedby={`event-desc-${event.id}`}
           >
             <CardHeader className="p-0">
               <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
-                <Image
+                <OptimizedImage
                   src={event.imageUrl}
                   alt={`${event.title} event banner`}
                   fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-110"
-                  placeholder="blur"
-                  blurDataURL="/images/placeholder-blur.jpg"
+                  className="object-cover transition-transform duration-300 will-change-transform group-hover:scale-110"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  priority={index === 0}
+                  loading={index === 0 ? 'eager' : 'lazy'}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
               </div>
@@ -99,24 +95,36 @@ const UpcomingEventsSection: React.FC = () => {
 
               <div className="flex flex-col space-y-3 text-sm">
                 <div className="flex items-center text-cyan-200/90">
-                  <GiCalendarHalfYear
+                  <svg
                     className="mr-2 h-4 w-4 flex-shrink-0 text-cyan-400"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
                     aria-hidden="true"
-                  />
+                  >
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
+                  </svg>
                   <span>{event.date}</span>
                 </div>
                 <div className="flex items-center text-cyan-200/90">
-                  <GiClockwork
+                  <svg
                     className="mr-2 h-4 w-4 flex-shrink-0 text-cyan-400"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
                     aria-hidden="true"
-                  />
+                  >
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-.5-13v6l5.25 3.15.75-1.23-4.5-2.67V7h-1.5z" />
+                  </svg>
                   <span>{event.time}</span>
                 </div>
                 <div className="flex items-center text-cyan-200/90">
-                  <GiCrossedSwords
+                  <svg
                     className="mr-2 h-4 w-4 flex-shrink-0 text-cyan-400"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
                     aria-hidden="true"
-                  />
+                  >
+                    <path d="M16 17v2a2 2 0 01-2 2H8a2 2 0 01-2-2v-2H2v-2l1-5h18l1 5v2h-4zM7 22h10a3 3 0 003-3v-3H4v3a3 3 0 003 3zM18.56 8L17 4.92 11.5 8.22 6 4.92 4.44 8A2 2 0 002 10v1h20v-1a2 2 0 00-2.44-2z" />
+                  </svg>
                   <span>{event.attendees} attending</span>
                 </div>
               </div>
@@ -135,7 +143,7 @@ const UpcomingEventsSection: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )),
     []
   );
@@ -147,11 +155,10 @@ const UpcomingEventsSection: React.FC = () => {
       className="bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-900/95 py-24"
     >
       <FloatingElements
-        variant="orbs"
+        variant="hexagons"
         count={15}
         speed="fast"
         color="emerald"
-        repositioning={true}
       />
       <section
         className="relative z-20"
@@ -160,7 +167,7 @@ const UpcomingEventsSection: React.FC = () => {
         <div className="container mx-auto flex flex-col items-center px-4">
           <h2 id="upcoming-events-heading" className="mb-16 text-center">
             <NeonText
-              variant="gradient"
+              variant="solid"
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl"
             >
               Upcoming Events

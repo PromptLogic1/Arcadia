@@ -21,12 +21,12 @@ export const RATE_LIMIT_CONFIGS = {
   read: 'api' as const,
   // Very strict limits for expensive operations
   expensive: 'upload' as const,
-  // Game actions (mark cell, etc)
-  gameAction: 'api' as const,
+  // Game actions (mark cell, etc) - more restrictive than general API
+  gameAction: 'gameAction' as const,
 } as const;
 
 // Redis-based rate limiting - no in-memory storage needed
-type RateLimitType = 'api' | 'auth' | 'upload' | 'gameSession';
+type RateLimitType = 'api' | 'auth' | 'upload' | 'gameSession' | 'gameAction';
 
 /**
  * Rate limiting middleware function - now using Redis

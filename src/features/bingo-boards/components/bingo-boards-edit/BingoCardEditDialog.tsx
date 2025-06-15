@@ -4,19 +4,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { Textarea } from '@/components/ui/Textarea';
+import { Label } from '@/components/ui/Label';
+import { Input } from '@/components/ui/Input';
+import { Checkbox } from '@/components/ui/Checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 import { useState, useCallback } from 'react';
 import type { BingoCard, Difficulty } from '@/types';
 import { DIFFICULTIES } from '@/types';
@@ -53,8 +53,8 @@ export function BingoCardEditDialog({
     is_public: card.is_public || false,
   });
   const [fieldErrors, setFieldErrors] = useState<{
-    content?: string;
-    explanation?: string;
+    title?: string;
+    description?: string;
     tags?: string;
   }>({});
   const [isSaving] = useState(false);
@@ -95,12 +95,13 @@ export function BingoCardEditDialog({
 
       setFieldErrors(prev => {
         const newErrors = { ...prev };
-        const key = field as keyof typeof fieldErrors;
 
-        if (error) {
-          newErrors[key] = error;
-        } else {
-          delete newErrors[key];
+        if (field === 'title' || field === 'description' || field === 'tags') {
+          if (error) {
+            newErrors[field] = error;
+          } else {
+            delete newErrors[field];
+          }
         }
         return newErrors;
       });
@@ -153,11 +154,11 @@ export function BingoCardEditDialog({
               className={cn(
                 'min-h-[100px] bg-gray-800/50',
                 'break-words',
-                fieldErrors.content ? 'border-red-500/20' : 'border-cyan-500/20'
+                fieldErrors.title ? 'border-red-500/20' : 'border-cyan-500/20'
               )}
             />
-            {fieldErrors.content && (
-              <p className="text-xs text-red-400">{fieldErrors.content}</p>
+            {fieldErrors.title && (
+              <p className="text-xs text-red-400">{fieldErrors.title}</p>
             )}
           </div>
 
@@ -177,13 +178,13 @@ export function BingoCardEditDialog({
               className={cn(
                 'min-h-[100px] bg-gray-800/50',
                 'break-words',
-                fieldErrors.explanation
+                fieldErrors.description
                   ? 'border-red-500/20'
                   : 'border-cyan-500/20'
               )}
             />
-            {fieldErrors.explanation && (
-              <p className="text-xs text-red-400">{fieldErrors.explanation}</p>
+            {fieldErrors.description && (
+              <p className="text-xs text-red-400">{fieldErrors.description}</p>
             )}
           </div>
 
@@ -257,7 +258,7 @@ export function BingoCardEditDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+          <Button variant="primary" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
           <Button

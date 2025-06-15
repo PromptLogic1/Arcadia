@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 import {
   RouteErrorBoundary,
@@ -6,13 +8,14 @@ import {
 
 // Dynamically import the UserPageEdit component
 const UserPageEdit = dynamic(
-  () => import('@/src/features/user/components/user-page-edit'),
+  () => import('@/features/user/components/UserPageEdit'),
   {
     loading: () => (
       <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
         Loading...
       </div>
     ),
+    ssr: false,
   }
 );
 

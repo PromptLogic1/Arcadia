@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Mail } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Mail } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import {
   LOGIN_STYLES,
@@ -128,7 +128,7 @@ export const LoginOAuthSection = React.forwardRef<
               <Button
                 key={provider}
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={config.handler}
                 disabled={buttonsDisabled}
                 className={LOGIN_STYLES.OAUTH.BUTTON}

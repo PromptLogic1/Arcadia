@@ -1,16 +1,22 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, ChevronDown, Heart } from 'lucide-react';
+import { CardContent, CardFooter, CardHeader } from '@/components/ui/Card';
+import {
+  OptimizedAvatar as Avatar,
+  OptimizedAvatarFallback as AvatarFallback,
+  OptimizedAvatarImage as AvatarImage,
+} from '@/components/ui/OptimizedAvatar';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Textarea } from '@/components/ui/Textarea';
+import { MessageCircle, ChevronDown, Heart } from '@/components/ui/Icons';
 import { CardWrapper } from './shared/CardWrapper';
 import type { Discussion, Comment } from '@/lib/stores/community-store';
-import { format } from 'date-fns';
+import { formatDateFallback } from '@/lib/date-utils-lazy';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
+import { sanitizeRichContent, sanitizeDisplayName } from '@/lib/sanitization';
+import type { CSSCustomProperties } from '@/types/css-properties';
 import './animations.css';
 
 interface DiscussionCardProps {
@@ -38,8 +44,19 @@ const DiscussionCard = React.memo(
     const [newComment, setNewComment] = useState('');
     const [localUpvotes, setLocalUpvotes] = useState(discussion.upvotes || 0);
 
-    const discussionComments = comments.filter(
-      c => c.discussion_id === discussion.id
+    // Memoize filtering of comments to prevent recalculation on every render
+    const discussionComments = React.useMemo(
+      () => comments.filter(c => c.discussion_id === discussion.id),
+      [comments, discussion.id]
+    );
+
+    // Memoize date formatting to prevent recalculation
+    const formattedCreatedDate = React.useMemo(
+      () =>
+        discussion.created_at
+          ? formatDateFallback(new Date(discussion.created_at), 'MMM d, yyyy')
+          : 'Unknown date',
+      [discussion.created_at]
     );
 
     const handleUpvote = useCallback(
@@ -83,39 +100,37 @@ const DiscussionCard = React.memo(
             <CardHeader className="bg-gradient-to-r from-gray-800/50 to-gray-900/50 p-5">
               <div className="flex items-start space-x-4">
                 <div className="relative flex-shrink-0">
-                  <Avatar className="h-12 w-12 ring-2 ring-cyan-500/50">
-                    <AvatarImage src="/avatars/default.jpg" alt="User" />
+                  <Avatar size="lg" className="ring-2 ring-cyan-500/50">
+                    <AvatarImage src="/avatars/default.jpg" alt="User avatar" />
                     <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                   <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full border-2 border-gray-800 bg-green-500" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="mb-1 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-xl leading-tight font-bold text-transparent">
-                    {discussion.title}
+                    {sanitizeDisplayName(discussion.title)}
                   </h2>
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <span className="font-medium text-gray-300">User</span>
                     <span className="text-gray-600">•</span>
                     <time className="text-gray-500">
-                      {discussion.created_at
-                        ? format(new Date(discussion.created_at), 'MMM d, yyyy')
-                        : 'Unknown date'}
+                      {formattedCreatedDate}
                     </time>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Badge
-                    variant="outline"
+                    variant="cyber"
                     className="border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 to-fuchsia-500/10 px-3 py-1 text-cyan-400"
                   >
-                    {discussion.game}
+                    {sanitizeDisplayName(discussion.game)}
                   </Badge>
                   {discussion.challenge_type && (
                     <Badge
-                      variant="outline"
+                      variant="cyber-fuchsia"
                       className="border-fuchsia-500/20 bg-gradient-to-r from-fuchsia-500/10 to-purple-500/10 px-3 py-1 text-fuchsia-400"
                     >
-                      {discussion.challenge_type}
+                      {sanitizeDisplayName(discussion.challenge_type)}
                     </Badge>
                   )}
                   <div
@@ -129,9 +144,12 @@ const DiscussionCard = React.memo(
             </CardHeader>
 
             <CardContent className="bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-5 py-4">
-              <p className="mb-4 line-clamp-2 text-base leading-relaxed text-gray-300">
-                {discussion.content}
-              </p>
+              <div
+                className="mb-4 line-clamp-2 text-base leading-relaxed text-gray-300"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeRichContent(discussion.content),
+                }}
+              />
               {discussion.tags && discussion.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {discussion.tags.map(tag => (
@@ -140,7 +158,7 @@ const DiscussionCard = React.memo(
                       className="rounded-full border border-cyan-500/20 bg-gray-800/50 px-3 py-1.5 text-sm font-medium text-cyan-400 transition-colors hover:bg-gray-700/50"
                       onClick={e => e.stopPropagation()}
                     >
-                      #{tag}
+                      #{sanitizeDisplayName(tag)}
                     </button>
                   ))}
                 </div>
@@ -150,11 +168,9 @@ const DiscussionCard = React.memo(
             <div
               className="expandable-content"
               data-state={isExpanded ? 'open' : 'closed'}
-              style={
-                {
-                  '--content-height': isExpanded ? 'auto' : '0px',
-                } as React.CSSProperties
-              }
+              style={{
+                '--content-height': isExpanded ? 'auto' : '0px',
+              }}
             >
               {isExpanded && (
                 <div className="space-y-6 bg-gradient-to-b from-gray-800/30 to-gray-900/30 px-6 py-5">
@@ -177,39 +193,47 @@ const DiscussionCard = React.memo(
                     </div>
 
                     <div className="space-y-4">
-                      {discussionComments.map(comment => (
-                        <div
-                          key={comment.id}
-                          className="rounded-lg border border-gray-700/30 bg-gray-800/30 p-4 transition-colors hover:border-cyan-500/20"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <div className="mb-2 flex items-center space-x-3">
-                            <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20">
-                              <AvatarImage
-                                src="/avatars/default.jpg"
-                                alt="User"
-                              />
-                              <AvatarFallback>U</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <span className="font-medium text-gray-200">
-                                User
-                              </span>
-                              <p className="text-xs text-gray-400">
-                                {comment.created_at
-                                  ? format(
-                                      new Date(comment.created_at),
-                                      'MMM d, yyyy'
-                                    )
-                                  : 'Unknown date'}
-                              </p>
+                      {discussionComments.map(comment => {
+                        // Format date once per comment
+                        const commentDate = comment.created_at
+                          ? formatDateFallback(comment.created_at)
+                          : 'Unknown date';
+
+                        return (
+                          <div
+                            key={comment.id}
+                            className="rounded-lg border border-gray-700/30 bg-gray-800/30 p-4 transition-colors hover:border-cyan-500/20"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <div className="mb-2 flex items-center space-x-3">
+                              <Avatar
+                                size="sm"
+                                className="ring-2 ring-cyan-500/20"
+                              >
+                                <AvatarImage
+                                  src="/avatars/default.jpg"
+                                  alt="Comment author avatar"
+                                />
+                                <AvatarFallback>U</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <span className="font-medium text-gray-200">
+                                  User
+                                </span>
+                                <p className="text-xs text-gray-400">
+                                  {commentDate}
+                                </p>
+                              </div>
                             </div>
+                            <div
+                              className="pl-11 leading-relaxed text-gray-300"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeRichContent(comment.content),
+                              }}
+                            />
                           </div>
-                          <p className="pl-11 leading-relaxed text-gray-300">
-                            {comment.content}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       <div
                         className="space-y-3"

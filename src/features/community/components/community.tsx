@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useCallback, memo, useMemo } from 'react';
+import { Skeleton } from '@/components/ui/Skeleton';
 import './animations.css';
 import dynamic from 'next/dynamic';
 import type { VirtualItem, useVirtualizer } from '@tanstack/react-virtual';
@@ -80,6 +80,16 @@ const DiscussionsList = memo(function DiscussionsList({
   parentRef: React.RefObject<HTMLDivElement | null>;
   isLoading: boolean;
 }) {
+  // Memoize virtual container styles - must be before early returns
+  const virtualContainerStyle = useMemo(
+    () => ({
+      height: `${virtualizer.getTotalSize()}px`,
+      width: '100%',
+      position: 'relative' as const,
+    }),
+    [virtualizer]
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -103,29 +113,24 @@ const DiscussionsList = memo(function DiscussionsList({
 
   return (
     <div ref={parentRef} className="h-[calc(100vh-300px)] overflow-auto">
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
+      <div style={virtualContainerStyle}>
         {virtualizer.getVirtualItems().map((virtualRow: VirtualItem) => {
           const discussion = discussions[virtualRow.index];
           if (!discussion) return null;
 
+          // Calculate transform once
+          const itemStyle = {
+            position: 'absolute' as const,
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: `${virtualRow.size}px`,
+            transform: `translateY(${virtualRow.start + virtualRow.index * 24}px)`,
+            paddingBottom: '24px',
+          };
+
           return (
-            <div
-              key={virtualRow.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
+            <div key={virtualRow.key} style={itemStyle}>
               <DiscussionCard
                 discussion={discussion}
                 comments={comments}
@@ -136,7 +141,7 @@ const DiscussionsList = memo(function DiscussionsList({
                   )
                 }
                 onUpvote={onUpvote}
-                onComment={(id, data) => onComment(id, data)}
+                onComment={onComment}
               />
             </div>
           );
@@ -207,7 +212,8 @@ const EventsList = memo(function EventsList({
                 left: 0,
                 width: '100%',
                 height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
+                transform: `translateY(${virtualRow.start + virtualRow.index * 24}px)`,
+                paddingBottom: '24px',
               }}
             >
               <EventCard
@@ -334,7 +340,7 @@ export function Community({ className }: CommunityProps) {
               selectedDiscussion={selectedDiscussion}
               onDiscussionToggle={setSelectedDiscussion}
               onUpvote={handleUpvote}
-              onComment={(id, data) => handleComment(id, data)}
+              onComment={handleComment}
               virtualizer={discussionsVirtualizer}
               parentRef={discussionsContainerRef}
               isLoading={isDiscussionsLoading || loading}

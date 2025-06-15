@@ -1,10 +1,11 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { enhancedCache } from '@/lib/cache-enhanced';
 import { log } from '@/lib/logger';
 
 /**
  * Cleanup Cron Job
- * 
+ *
  * Scheduled endpoint for maintenance tasks
  * Configured in vercel.json to run daily at 2 AM
  */
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
         'expired:*',
         'session'
       );
-      
+
       if (sessionCleanup.success) {
         taskResults.expiredSessions = sessionCleanup.data || 0;
         tasks.push('✅ Session cleanup completed');
@@ -43,7 +44,10 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       taskResults.errors++;
       tasks.push('❌ Session cleanup error');
-      log.error('Session cleanup failed', error instanceof Error ? error : new Error(String(error)));
+      log.error(
+        'Session cleanup failed',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // Task 2: Clean up temporary data
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
         'temp:*',
         'general'
       );
-      
+
       if (tempCleanup.success) {
         taskResults.tempData = tempCleanup.data || 0;
         tasks.push('✅ Temporary data cleanup completed');
@@ -63,7 +67,10 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       taskResults.errors++;
       tasks.push('❌ Temporary data cleanup error');
-      log.error('Temp data cleanup failed', error instanceof Error ? error : new Error(String(error)));
+      log.error(
+        'Temp data cleanup failed',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // Task 3: Clean up stale cache entries
@@ -72,7 +79,7 @@ export async function GET(request: NextRequest) {
         'stale:*',
         'cache'
       );
-      
+
       if (staleCleanup.success) {
         taskResults.staleCache = staleCleanup.data || 0;
         tasks.push('✅ Stale cache cleanup completed');
@@ -83,7 +90,10 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       taskResults.errors++;
       tasks.push('❌ Stale cache cleanup error');
-      log.error('Stale cache cleanup failed', error instanceof Error ? error : new Error(String(error)));
+      log.error(
+        'Stale cache cleanup failed',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // Task 4: Reset cache metrics (daily reset)
@@ -93,12 +103,18 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       taskResults.errors++;
       tasks.push('❌ Cache metrics reset failed');
-      log.error('Cache metrics reset failed', error instanceof Error ? error : new Error(String(error)));
+      log.error(
+        'Cache metrics reset failed',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // Task 5: Log cleanup summary
-    const totalCleaned = taskResults.expiredSessions + taskResults.tempData + taskResults.staleCache;
-    
+    const totalCleaned =
+      taskResults.expiredSessions +
+      taskResults.tempData +
+      taskResults.staleCache;
+
     log.info('Cleanup job completed', {
       metadata: {
         totalItemsCleaned: totalCleaned,
@@ -114,7 +130,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success,
-        message: success ? 'Cleanup completed successfully' : 'Cleanup completed with errors',
+        message: success
+          ? 'Cleanup completed successfully'
+          : 'Cleanup completed with errors',
         tasks,
         results: taskResults,
         totalCleaned,

@@ -27,6 +27,10 @@ import type { AuthUser, UserData } from './types';
 import type { Tables } from '../../../types/database.types';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
+import {
+  trackUserSession,
+  blacklistAllUserSessions,
+} from '@/lib/session-blacklist';
 
 /**
  * Type guard for validating user role values
@@ -243,6 +247,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             // Transform database user to UserData using type-safe transformation
             get().setUserData({
               ...transformDbUserToUserData(userData),
+              // Ensure we use the correct database user ID, not the auth ID
+              id: userData.id,
               // Override auth_id with fallback to user.id if null
               auth_id: userData.auth_id ?? user.id,
             });
@@ -309,6 +315,14 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             } = await supabase.auth.getUser();
             if (!user) {
               return { error: new Error('No user data received') };
+            }
+
+            // Get the session separately for security tracking
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              await trackUserSession(session.access_token, user.id);
             }
 
             await get().initializeApp();
@@ -587,6 +601,14 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               return { error: new Error(errorMessage) };
             }
 
+            // Blacklist all existing sessions for security
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            if (user) {
+              await blacklistAllUserSessions(user.id, 'Password changed');
+            }
+
             notifications.success('Password updated successfully!');
             logger.info('User password updated successfully', {
               metadata: { store: 'AuthStore' },
@@ -719,10 +741,36 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       {
         name: 'auth-storage',
         partialize: state => ({
-          authUser: state.authUser,
-          userData: state.userData,
+          // Only persist minimal, non-sensitive state
+          // Remove authUser and userData to prevent XSS token theft
           isAuthenticated: state.isAuthenticated,
+          // Note: authUser and userData will be re-fetched on app initialization
         }),
+        storage: {
+          getItem: (key: string) => {
+            try {
+              // Use sessionStorage instead of localStorage for better security
+              const item = sessionStorage.getItem(key);
+              return item ? JSON.parse(item) : null;
+            } catch {
+              return null;
+            }
+          },
+          setItem: (key: string, value: unknown) => {
+            try {
+              sessionStorage.setItem(key, JSON.stringify(value));
+            } catch {
+              // Silently fail if storage is not available
+            }
+          },
+          removeItem: (key: string) => {
+            try {
+              sessionStorage.removeItem(key);
+            } catch {
+              // Silently fail if storage is not available
+            }
+          },
+        },
       }
     ),
     {
@@ -769,3 +817,28 @@ export const useAuthActions = () =>
   );
 
 export const useAuthLoading = () => useAuthStore(state => state.loading);
+
+// Granular selectors for specific auth state to minimize re-renders
+export const useAuthUser = () => useAuthStore(state => state.authUser);
+export const useIsAuthenticated = () =>
+  useAuthStore(state => state.isAuthenticated);
+export const useAuthError = () => useAuthStore(state => state.error);
+export const useUserData = () => useAuthStore(state => state.userData);
+
+// Selector for just authentication status (commonly needed)
+export const useAuthStatus = () =>
+  useAuthStore(
+    useShallow(state => ({
+      isAuthenticated: state.isAuthenticated,
+      loading: state.loading,
+    }))
+  );
+
+// Selector for user info only (for display purposes)
+export const useAuthUserInfo = () =>
+  useAuthStore(
+    useShallow(state => ({
+      authUser: state.authUser,
+      userData: state.userData,
+    }))
+  );

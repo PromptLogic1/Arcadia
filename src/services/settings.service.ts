@@ -51,17 +51,37 @@ export const settingsService = {
     try {
       const supabase = createClient();
 
-      const { data, error } = await supabase
+      // First try to get by public user ID
+      let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
+
+      // If no data found, it might be an auth_id, so try that
+      if (!data && !error) {
+        const authResult = await supabase
+          .from('users')
+          .select('*')
+          .eq('auth_id', userId)
+          .maybeSingle();
+
+        data = authResult.data;
+        error = authResult.error;
+      }
 
       if (error) {
         logger.error('Failed to fetch user profile', error, {
           metadata: { userId },
         });
         return createServiceError(error.message);
+      }
+
+      if (!data) {
+        logger.error('User profile not found', new Error('User not found'), {
+          metadata: { userId },
+        });
+        return createServiceError('User profile not found');
       }
 
       return createServiceSuccess(data);

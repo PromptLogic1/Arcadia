@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { NeonText } from '@/components/ui/NeonText';
 import { cn } from '@/lib/utils';
 import { STYLES, UI_MESSAGES } from './constants';
@@ -20,14 +20,14 @@ interface BoardHeaderProps {
  * Header component for the board edit page
  * Displays title, game type badge, and action buttons
  */
-export function BoardHeader({
+const BoardHeaderComponent = ({
   board,
   title,
   isSaving,
   hasErrors,
   onClose,
   onSave,
-}: BoardHeaderProps) {
+}: BoardHeaderProps) => {
   return (
     <div className="mb-8 flex flex-col space-y-4">
       <div className="flex flex-col">
@@ -45,7 +45,7 @@ export function BoardHeader({
       <div className="flex w-full flex-wrap items-center justify-between">
         <div className="mb-4 flex items-center gap-4">
           <Badge
-            variant="outline"
+            variant="secondary"
             className="border-cyan-500/50 bg-gray-800/50 text-cyan-400"
           >
             {board.game_type}
@@ -53,7 +53,7 @@ export function BoardHeader({
         </div>
 
         <div className="flex justify-center gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Back to Boards
           </Button>
 
@@ -78,4 +78,21 @@ export function BoardHeader({
       </div>
     </div>
   );
-}
+};
+
+// Memoized BoardHeader for performance optimization
+export const BoardHeader = React.memo(
+  BoardHeaderComponent,
+  (prevProps, nextProps) => {
+    // Custom comparison for performance
+    return (
+      prevProps.board.id === nextProps.board.id &&
+      prevProps.title === nextProps.title &&
+      prevProps.isSaving === nextProps.isSaving &&
+      prevProps.hasErrors === nextProps.hasErrors &&
+      prevProps.board.updated_at === nextProps.board.updated_at
+    );
+  }
+);
+
+BoardHeader.displayName = 'BoardHeader';

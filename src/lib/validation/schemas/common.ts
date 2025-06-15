@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { sanitizeDisplayName } from '@/lib/sanitization';
 
 // UUID validation
 export const uuidSchema = z.string().uuid('Invalid UUID format');
@@ -44,11 +45,25 @@ export const hexColorSchema = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format');
 
-// Display name validation
+// Display name validation with XSS protection
 export const displayNameSchema = z
   .string()
   .min(1, 'Display name is required')
-  .max(50, 'Display name too long');
+  .max(50, 'Display name too long')
+  .transform(value => {
+    // Sanitize the display name to prevent XSS attacks
+    const sanitized = sanitizeDisplayName(value);
+    if (!sanitized || sanitized.trim().length === 0) {
+      throw new Error('Display name contains invalid characters');
+    }
+    return sanitized;
+  })
+  .refine(value => value.length >= 1, {
+    message: 'Display name is required after sanitization',
+  })
+  .refine(value => value.length <= 50, {
+    message: 'Display name too long after sanitization',
+  });
 
 // Team validation
 export const teamSchema = z.number().int().min(0).max(10).nullable();

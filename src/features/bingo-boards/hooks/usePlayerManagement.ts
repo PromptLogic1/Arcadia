@@ -147,14 +147,11 @@ export const usePlayerManagement = ({
   // Helper Functions
   const getTeamSizes = useCallback(
     (currentPlayers: GamePlayer[]): Record<number, number> => {
-      return currentPlayers.reduce(
-        (acc, p) => {
-          const teamNumber = p.team || 0;
-          acc[teamNumber] = (acc[teamNumber] || 0) + 1;
-          return acc;
-        },
-        {} as Record<number, number>
-      );
+      return currentPlayers.reduce<Record<number, number>>((acc, p) => {
+        const teamNumber = p.team || 0;
+        acc[teamNumber] = (acc[teamNumber] || 0) + 1;
+        return acc;
+      }, {});
     },
     []
   );

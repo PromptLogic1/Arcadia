@@ -79,7 +79,7 @@ export function getRedisClient(): Redis {
       });
 
       log.info('Redis client initialized successfully');
-    } catch (error) {
+    } catch {
       // Don't log at error level - this is expected in some environments
       const configError = new Error(
         'Redis configuration failed. Check environment variables.'

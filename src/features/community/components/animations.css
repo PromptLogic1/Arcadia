@@ -19,6 +19,7 @@
 /* Chevron rotation animation */
 .chevron-icon {
   transition: transform 0.2s ease-out;
+  will-change: transform;
 }
 
 .chevron-icon[data-state="open"] {
@@ -28,6 +29,7 @@
 /* Clear button animations */
 .clear-button {
   transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  will-change: opacity, transform;
 }
 
 .clear-button[data-state="hidden"] {
@@ -45,6 +47,7 @@
 .focus-indicator {
   transform-origin: center;
   transition: transform 0.2s ease-out;
+  will-change: transform;
 }
 
 .focus-indicator[data-state="unfocused"] {
@@ -70,6 +73,7 @@
 .skeleton-item {
   animation: skeleton-fade-in 0.3s ease-out forwards;
   opacity: 0;
+  will-change: opacity, transform;
 }
 
 .skeleton-item:nth-child(1) { animation-delay: 0s; }
@@ -113,6 +117,7 @@
 
 .transition-transform {
   transition: transform 0.2s ease-out;
+  will-change: transform;
 }
 
 .transition-all {

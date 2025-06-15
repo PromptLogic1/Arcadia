@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { USER_PAGE_CONSTANTS } from './constants';
 import type { TabId } from './constants';
 

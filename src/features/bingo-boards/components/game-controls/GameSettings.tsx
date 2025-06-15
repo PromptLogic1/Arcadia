@@ -1,17 +1,24 @@
 'use client';
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/Label';
+import { Switch } from '@/components/ui/Switch';
+import { Button } from '@/components/ui/Button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Lock, Play, Pause, RotateCcw, Grid3x3, Volume2 } from 'lucide-react';
+} from '@/components/ui/Select';
+import {
+  Lock,
+  Play,
+  Pause,
+  RotateCcw,
+  Grid3X3,
+  Volume2,
+} from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { BoardSettings } from '@/types';
 
@@ -52,7 +59,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
             disabled={!isOwner || isRunning}
           >
             <SelectTrigger className="h-9 flex-1 bg-gray-900/50">
-              <Grid3x3 className="mr-2 h-4 w-4 text-cyan-400" />
+              <Grid3X3 className="mr-2 h-4 w-4 text-cyan-400" />
               <SelectValue placeholder="Board Size" />
             </SelectTrigger>
             <SelectContent className="border border-cyan-500/20 bg-gray-800">
@@ -253,7 +260,7 @@ export const GameSettings: React.FC<GameSettingsProps> = ({
         <Button
           onClick={onResetGameAction}
           disabled={!isOwner || isRunning}
-          variant="outline"
+          variant="secondary"
           className={cn(
             'h-9',
             'bg-gray-900/50 hover:bg-gray-800',

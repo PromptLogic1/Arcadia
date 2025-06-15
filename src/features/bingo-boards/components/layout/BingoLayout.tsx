@@ -1,12 +1,11 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ui/card';
+} from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 
 interface BingoLayoutProps {
@@ -34,68 +33,69 @@ export const BingoLayout: React.FC<BingoLayoutProps> = ({
   fullHeight = false,
   variant = 'default',
 }) => {
-  const content = (
-    <Card
+  return (
+    <div
       className={cn(
-        'bg-gray-800/95 backdrop-blur-sm',
-        'border-2 border-cyan-500/30 transition-colors hover:border-cyan-500/50',
-        'flex flex-col shadow-lg shadow-cyan-500/10',
+        'w-full',
         fullHeight && 'h-full',
-        className
+        animate &&
+          cn(
+            'animate-fade-in-slide',
+            direction === 'left'
+              ? '[--slide-from:-50px]'
+              : '[--slide-from:50px]',
+            // Use CSS custom property for animation delay
+            `[--animation-delay:${delay}s]`
+          )
       )}
     >
-      {(title || description) && (
-        <CardHeader
-          className={cn(
-            'flex-shrink-0',
-            variant === 'compact' ? 'p-2 sm:p-3' : 'p-3 sm:p-4',
-            'border-b border-cyan-500/20'
-          )}
-        >
-          {title && (
-            <CardTitle
-              className={cn(
-                'bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text font-bold text-transparent',
-                variant === 'compact'
-                  ? 'text-base sm:text-lg'
-                  : 'text-lg sm:text-2xl'
-              )}
-            >
-              {title}
-            </CardTitle>
-          )}
-          {description && (
-            <CardDescription className="text-xs text-cyan-300/80 sm:text-sm">
-              {description}
-            </CardDescription>
-          )}
-        </CardHeader>
-      )}
-      <CardContent
+      <Card
         className={cn(
-          'min-h-0 flex-1',
-          variant === 'compact' ? 'p-2 sm:p-3' : 'p-3 sm:p-4',
-          contentClassName
+          'bg-gray-800/95 backdrop-blur-sm',
+          'border-2 border-cyan-500/30 transition-colors hover:border-cyan-500/50',
+          'flex flex-col shadow-lg shadow-cyan-500/10',
+          fullHeight && 'h-full',
+          className
         )}
       >
-        {children}
-      </CardContent>
-    </Card>
-  );
-
-  if (!animate) {
-    return content;
-  }
-
-  return (
-    <motion.div
-      className={cn('w-full', fullHeight && 'h-full')}
-      initial={{ opacity: 0, x: direction === 'left' ? -50 : 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay }}
-    >
-      {content}
-    </motion.div>
+        {(title || description) && (
+          <CardHeader
+            className={cn(
+              'flex-shrink-0',
+              variant === 'compact' ? 'p-2 sm:p-3' : 'p-3 sm:p-4',
+              'border-b border-cyan-500/20'
+            )}
+          >
+            {title && (
+              <CardTitle
+                className={cn(
+                  'bg-gradient-to-r from-cyan-400 to-fuchsia-500 bg-clip-text font-bold text-transparent',
+                  variant === 'compact'
+                    ? 'text-base sm:text-lg'
+                    : 'text-lg sm:text-2xl'
+                )}
+              >
+                {title}
+              </CardTitle>
+            )}
+            {description && (
+              <CardDescription className="text-xs text-cyan-300/80 sm:text-sm">
+                {description}
+              </CardDescription>
+            )}
+          </CardHeader>
+        )}
+        <CardContent
+          className={cn(
+            'min-h-0 flex-1',
+            variant === 'compact' ? 'p-2 sm:p-3' : 'p-3 sm:p-4',
+            contentClassName
+          )}
+        >
+          {children}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
@@ -178,12 +178,12 @@ export const BingoGrid: React.FC<{
       'p-1 sm:p-2 md:p-3',
       'aspect-square w-full',
       'overflow-hidden',
+      // Use CSS custom properties for grid configuration
+      `[--grid-size:${size}]`,
+      '[grid-template-columns:repeat(var(--grid-size),minmax(0,1fr))]',
+      '[gap:clamp(0.25rem,1vw,0.5rem)]',
       className
     )}
-    style={{
-      gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-      gap: 'clamp(0.25rem, 1vw, 0.5rem)',
-    }}
   >
     {children}
   </div>

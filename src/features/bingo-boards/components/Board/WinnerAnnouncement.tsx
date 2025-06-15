@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Trophy, Crown, Star, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Trophy, Crown, Star, Sparkles } from '@/components/ui/Icons';
+import { Button } from '@/components/ui/Button';
 import type { WinDetectionResult } from '../../types';
 
 interface WinnerAnnouncementProps {

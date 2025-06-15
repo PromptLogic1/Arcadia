@@ -1,21 +1,15 @@
-import { motion } from 'framer-motion';
 import { useMemo } from 'react';
-import {
-  Trophy,
-  UserCircle,
-  Calendar,
-  Clock,
-  type LucideIcon,
-} from 'lucide-react';
+import { Trophy, Calendar, Clock, UserCircle } from '@/components/ui/Icons';
 import type { Tables } from '@/types/database.types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { USER_PAGE_CONSTANTS, STAT_COLORS } from './constants';
+import type { ComponentType } from 'react';
 
 /**
  * Interface for individual stat configuration
  */
 export interface StatConfig {
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   value: string;
   color: string;
@@ -40,7 +34,7 @@ export interface StatsGridProps {
  *
  * Features:
  * - Responsive grid layout (1 col mobile, 2 col tablet, 4 col desktop)
- * - Framer Motion staggered animations
+ * - CSS animations with staggered delays
  * - Memoized stat calculations for performance
  * - Configurable colors and icons via constants
  * - Type-safe interfaces for all props
@@ -87,11 +81,9 @@ export function StatsGrid({
   return (
     <div className={`mb-8 grid gap-6 ${USER_PAGE_CONSTANTS.UI.GRID_LAYOUT}`}>
       {stats.map((stat, index) => (
-        <motion.div
+        <div
           key={stat.label}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: animationDelayBase + index * 0.1 }}
+          className={`animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-500 [--animation-delay:${animationDelayBase + index * 0.1}s]`}
         >
           <Card className="border-cyan-500/20 bg-gray-800/50 transition-colors hover:border-cyan-500/40">
             <CardContent className="p-6">
@@ -108,7 +100,7 @@ export function StatsGrid({
               <p className="text-2xl font-bold text-white">{stat.value}</p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       ))}
     </div>
   );

@@ -2,11 +2,10 @@
 
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
-import { logger } from '@/lib/logger';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { AlertTriangle, RefreshCw, Home } from '@/components/ui/Icons';
 import Link from 'next/link';
-import * as Sentry from '@sentry/nextjs';
+import { reportError, reportMessage } from '@/lib/error-reporting';
 
 export interface ErrorBoundaryState {
   hasError: boolean;
@@ -73,80 +72,42 @@ export class BaseErrorBoundary extends Component<
     };
 
     // Log error locally
-    logger.error('Error boundary caught error', error, {
+    console.error('Error boundary caught error:', error, errorContext);
+
+    // Send to Sentry with additional context
+    const sentryEventId = reportError(error, {
+      errorId,
+      level,
+      componentStack: errorInfo.componentStack,
+      errorCount: this.errorCounter,
       metadata: errorContext,
     });
 
-    // Send to Sentry with additional context
-    Sentry.withScope(scope => {
-      // Set error boundary context
-      scope.setContext('errorBoundary', {
-        level,
-        errorId,
-        errorCount: this.errorCounter,
-      });
-
-      // Set tags for filtering
-      scope.setTag('errorBoundary', true);
-      scope.setTag('errorBoundary.level', level);
-
-      // Set fingerprint for grouping
-      scope.setFingerprint([
-        'error-boundary',
-        level,
-        error.name,
-        error.message,
-      ]);
-
-      // Add breadcrumb
-      scope.addBreadcrumb({
-        category: 'error-boundary',
-        message: `Error caught by ${level} boundary`,
-        level: 'error',
-        data: {
-          errorId,
-          componentStack: errorInfo.componentStack,
-        },
-      });
-
-      // Capture the error
-      const sentryId = Sentry.captureException(error, {
-        contexts: {
-          react: {
-            componentStack: errorInfo.componentStack,
-          },
-        },
-      });
-
-      // Store Sentry event ID for user reference
+    // Store error info and Sentry event ID
+    if (sentryEventId) {
       this.setState({
         errorInfo,
-        sentryEventId: sentryId,
+        sentryEventId,
       });
-    });
+    } else {
+      this.setState({
+        errorInfo,
+      });
+    }
 
     // Call custom error handler if provided
     onError?.(error, errorInfo, errorId);
 
     // If we're getting too many errors, reload the page after a delay
     if (this.errorCounter > 3) {
-      logger.error(
-        'Too many errors detected, scheduling page reload',
-        new Error('Excessive errors'),
-        {
-          metadata: {
-            errorCount: this.errorCounter,
-          },
-        }
-      );
+      console.error('Too many errors detected, scheduling page reload', {
+        errorCount: this.errorCounter,
+      });
 
       // Report excessive errors to Sentry
-      Sentry.captureMessage('Excessive errors detected, scheduling reload', {
-        level: 'warning',
-        tags: {
-          errorCount: this.errorCounter,
-          errorBoundaryLevel: level,
-        },
+      reportMessage('Excessive errors detected, scheduling reload', 'warning', {
+        errorCount: this.errorCounter,
+        errorBoundaryLevel: level,
       });
 
       this.resetTimeoutId = setTimeout(() => {
@@ -251,7 +212,7 @@ export class BaseErrorBoundary extends Component<
             <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <Button
                 onClick={this.resetErrorBoundary}
-                variant="default"
+                variant="primary"
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -260,7 +221,10 @@ export class BaseErrorBoundary extends Component<
 
               {level !== 'layout' && (
                 <Link href="/">
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    className="flex items-center gap-2"
+                  >
                     <Home className="h-4 w-4" />
                     Go Home
                   </Button>

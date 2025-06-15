@@ -11,7 +11,7 @@ import {
 import { gameStateService } from '../../services/game-state.service';
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 // Removed unused type imports
 
 /**
@@ -24,7 +24,7 @@ export function useSessionStateQuery(sessionId: string) {
     enabled: !!sessionId,
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Background refetch every 30 seconds
-    select: response => ({ session: response.data, error: response.error }),
+    select: response => response, // Keep full ServiceResponse structure
   });
 }
 
@@ -38,7 +38,7 @@ export function useSessionPlayersQuery(sessionId: string) {
     enabled: !!sessionId,
     staleTime: 15 * 1000, // 15 seconds
     refetchInterval: 15 * 1000, // Background refetch every 15 seconds
-    select: data => data.data || [],
+    select: response => response, // Keep full ServiceResponse structure
   });
 }
 
@@ -46,13 +46,33 @@ export function useSessionPlayersQuery(sessionId: string) {
  * Combined session state and players with real-time sync
  */
 export function useSessionWithPlayersQuery(sessionId: string) {
-  const sessionQuery = useSessionStateQuery(sessionId);
-  const playersQuery = useSessionPlayersQuery(sessionId);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+
+  // Disable polling when real-time is active
+  const sessionQuery = useQuery({
+    queryKey: queryKeys.sessions.state(sessionId),
+    queryFn: () => gameStateService.getSessionState(sessionId),
+    enabled: !!sessionId,
+    staleTime: isRealtimeConnected ? Infinity : 30 * 1000, // Longer stale time with real-time
+    refetchInterval: isRealtimeConnected ? false : 30 * 1000, // Only poll if real-time disconnected
+    select: response => response,
+  });
+
+  const playersQuery = useQuery({
+    queryKey: queryKeys.sessions.players(sessionId),
+    queryFn: () => sessionStateService.getSessionPlayers(sessionId),
+    enabled: !!sessionId,
+    staleTime: isRealtimeConnected ? Infinity : 15 * 1000,
+    refetchInterval: isRealtimeConnected ? false : 15 * 1000,
+    select: response => response,
+  });
+
   const boardStateQuery = useQuery({
     queryKey: queryKeys.sessions.boardState(sessionId),
     queryFn: () => gameStateService.getBoardState(sessionId),
     enabled: !!sessionId,
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: isRealtimeConnected ? Infinity : 10 * 1000,
+    refetchInterval: isRealtimeConnected ? false : 10 * 1000,
     select: response => ({
       boardState: response.data?.boardState || [],
       version: response.data?.version || 0,
@@ -71,21 +91,29 @@ export function useSessionWithPlayersQuery(sessionId: string) {
     const unsubscribe = sessionStateService.subscribeToSession(
       sessionId,
       ({ session, players }) => {
-        // Update session cache
+        // Mark real-time as connected when we receive data
+        setIsRealtimeConnected(true);
+
+        // Update session cache with proper ServiceResponse structure
         queryClient.setQueryData(queryKeys.sessions.state(sessionId), {
-          session,
-          error: undefined,
+          success: true,
+          data: session,
+          error: null,
         });
 
-        // Update players cache
+        // Update players cache with proper ServiceResponse structure
         queryClient.setQueryData(queryKeys.sessions.players(sessionId), {
-          players,
-          error: undefined,
+          success: true,
+          data: players,
+          error: null,
         });
       }
     );
 
-    unsubscribeRef.current = unsubscribe;
+    unsubscribeRef.current = () => {
+      setIsRealtimeConnected(false);
+      unsubscribe();
+    };
 
     return () => {
       if (unsubscribeRef.current) {
@@ -96,14 +124,20 @@ export function useSessionWithPlayersQuery(sessionId: string) {
   }, [sessionId, queryClient]);
 
   return {
-    session: sessionQuery.data?.session || null,
-    players: playersQuery.data || [],
+    session: sessionQuery.data?.success ? sessionQuery.data.data : null,
+    players: playersQuery.data?.success ? playersQuery.data.data : [],
     boardState: boardStateQuery.data?.boardState || [],
     isLoading:
       sessionQuery.isLoading ||
       playersQuery.isLoading ||
       boardStateQuery.isLoading,
-    error: sessionQuery.error || playersQuery.error || boardStateQuery.error,
+    error:
+      sessionQuery.error ||
+      playersQuery.error ||
+      boardStateQuery.error ||
+      sessionQuery.data?.error ||
+      playersQuery.data?.error ||
+      boardStateQuery.data?.error,
     refetch: () => {
       sessionQuery.refetch();
       playersQuery.refetch();
@@ -133,12 +167,13 @@ export function useInitializeSessionMutation() {
           : 'Joined session successfully!';
         notifications.success(message);
 
-        // Update cache
+        // Update cache with proper ServiceResponse structure
         queryClient.setQueryData(
           queryKeys.sessions.state(data.data.session.id),
           {
-            session: data.data.session,
-            error: undefined,
+            success: true,
+            data: data.data.session,
+            error: null,
           }
         );
 

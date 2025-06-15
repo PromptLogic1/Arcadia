@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info } from 'lucide-react';
+import { Info } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { MessageType } from '../constants';
 

@@ -50,6 +50,8 @@ export interface ActivityLogRequest {
   points_earned?: number;
 }
 
+export type UserServiceResponse<T = UserProfile> = ServiceResponse<T>;
+
 // Remove custom response type - use standard ServiceResponse
 
 /**
@@ -59,9 +61,7 @@ export const userService = {
   /**
    * Get user profile by ID
    */
-  async getUserProfile(
-    userId: string
-  ): Promise<ServiceResponse<UserProfile>> {
+  async getUserProfile(userId: string): Promise<ServiceResponse<UserProfile>> {
     try {
       const supabase = createClient();
 
@@ -73,7 +73,11 @@ export const userService = {
 
       if (error) {
         log.error('Failed to get user profile', error, {
-          metadata: { service: 'user.service', method: 'getUserProfile', userId },
+          metadata: {
+            service: 'user.service',
+            method: 'getUserProfile',
+            userId,
+          },
         });
         return createServiceError(error.message);
       }
@@ -109,7 +113,11 @@ export const userService = {
 
       if (error) {
         log.error('Failed to update user profile', error, {
-          metadata: { service: 'user.service', method: 'updateUserProfile', userId },
+          metadata: {
+            service: 'user.service',
+            method: 'updateUserProfile',
+            userId,
+          },
         });
         return createServiceError(error.message);
       }
@@ -117,7 +125,11 @@ export const userService = {
       return createServiceSuccess(data);
     } catch (error) {
       log.error('Unexpected error updating user profile', error, {
-        metadata: { service: 'user.service', method: 'updateUserProfile', userId },
+        metadata: {
+          service: 'user.service',
+          method: 'updateUserProfile',
+          userId,
+        },
       });
       return createServiceError(getErrorMessage(error));
     }
@@ -258,7 +270,11 @@ export const userService = {
 
       if (error) {
         log.error('Failed to get user activities', error, {
-          metadata: { service: 'user.service', method: 'getUserActivities', userId },
+          metadata: {
+            service: 'user.service',
+            method: 'getUserActivities',
+            userId,
+          },
         });
         return createServiceError(error.message);
       }
@@ -266,7 +282,11 @@ export const userService = {
       return createServiceSuccess(data || []);
     } catch (error) {
       log.error('Unexpected error getting user activities', error, {
-        metadata: { service: 'user.service', method: 'getUserActivities', userId },
+        metadata: {
+          service: 'user.service',
+          method: 'getUserActivities',
+          userId,
+        },
       });
       return createServiceError(getErrorMessage(error));
     }
@@ -298,7 +318,11 @@ export const userService = {
 
       if (error) {
         log.error('Failed to log user activity', error, {
-          metadata: { service: 'user.service', method: 'logUserActivity', userId },
+          metadata: {
+            service: 'user.service',
+            method: 'logUserActivity',
+            userId,
+          },
         });
         return createServiceError(error.message);
       }
@@ -306,7 +330,11 @@ export const userService = {
       return createServiceSuccess(data?.id || '');
     } catch (error) {
       log.error('Unexpected error logging user activity', error, {
-        metadata: { service: 'user.service', method: 'logUserActivity', userId },
+        metadata: {
+          service: 'user.service',
+          method: 'logUserActivity',
+          userId,
+        },
       });
       return createServiceError(getErrorMessage(error));
     }
@@ -375,7 +403,11 @@ export const userService = {
       });
     } catch (error) {
       log.error('Failed to get activity summary', error, {
-        metadata: { service: 'user.service', method: 'getActivitySummary', userId },
+        metadata: {
+          service: 'user.service',
+          method: 'getActivitySummary',
+          userId,
+        },
       });
       return createServiceError(getErrorMessage(error));
     }
