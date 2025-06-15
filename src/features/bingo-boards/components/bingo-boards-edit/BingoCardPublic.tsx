@@ -1,19 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import type { BingoCard as BingoCardType } from '@/types';
 import { DIFFICULTY_STYLES } from '@/types';
-import { ThumbsUp, ChevronDown, User } from 'lucide-react';
+import { ThumbsUp, ChevronDown, User } from '@/components/ui/Icons';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from '@/components/ui/Collapsible';
+import { Avatar, AvatarFallback } from '@/components/ui/Avatar';
 
 interface BingoCardPublicProps {
   card: BingoCardType;
@@ -21,11 +21,11 @@ interface BingoCardPublicProps {
   onVote?: (card: BingoCardType) => void;
 }
 
-export function BingoCardPublic({
+export const BingoCardPublic = React.memo(({
   card,
   onSelect,
   onVote,
-}: BingoCardPublicProps) {
+}: BingoCardPublicProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -53,18 +53,16 @@ export function BingoCardPublic({
               </span>
               <div className="flex shrink-0 items-center gap-2">
                 <Badge
-                  variant="outline"
+                  variant="cyber"
                   className={cn(
                     'rounded-full px-2 py-0.5 text-xs',
-                    DIFFICULTY_STYLES[
-                      card.difficulty as keyof typeof DIFFICULTY_STYLES
-                    ]
+                    DIFFICULTY_STYLES[card.difficulty]
                   )}
                 >
                   {card.difficulty}
                 </Badge>
                 <Badge
-                  variant="outline"
+                  variant="cyber"
                   className="border-cyan-500/30 bg-cyan-500/10 text-cyan-400"
                 >
                   {card.votes || 0} votes
@@ -161,7 +159,7 @@ export function BingoCardPublic({
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="primary"
                 onClick={() => onVote?.(card)}
                 className="gap-1"
               >
@@ -174,4 +172,14 @@ export function BingoCardPublic({
       </Collapsible>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison for performance
+  return (
+    prevProps.card.id === nextProps.card.id &&
+    prevProps.card.title === nextProps.card.title &&
+    prevProps.card.votes === nextProps.card.votes &&
+    prevProps.card.updated_at === nextProps.card.updated_at
+  );
+});
+
+BingoCardPublic.displayName = 'BingoCardPublic';

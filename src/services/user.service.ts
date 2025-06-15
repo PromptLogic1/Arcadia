@@ -8,6 +8,10 @@
 
 import { createClient } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
+import type { ServiceResponse } from '@/lib/service-types';
+import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { getErrorMessage } from '@/lib/error-guards';
+import { log } from '@/lib/logger';
 import type {
   ActivityData,
   ActivityType,
@@ -46,10 +50,7 @@ export interface ActivityLogRequest {
   points_earned?: number;
 }
 
-export interface UserServiceResponse<T> {
-  data: T | null;
-  error?: string;
-}
+// Remove custom response type - use standard ServiceResponse
 
 /**
  * User profile service with pure API functions
@@ -60,19 +61,30 @@ export const userService = {
    */
   async getUserProfile(
     userId: string
-  ): Promise<UserServiceResponse<UserProfile>> {
-    const supabase = createClient();
+  ): Promise<ServiceResponse<UserProfile>> {
+    try {
+      const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    return {
-      data,
-      error: error?.message || undefined,
-    };
+      if (error) {
+        log.error('Failed to get user profile', error, {
+          metadata: { service: 'user.service', method: 'getUserProfile', userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      return createServiceSuccess(data);
+    } catch (error) {
+      log.error('Unexpected error getting user profile', error, {
+        metadata: { service: 'user.service', method: 'getUserProfile', userId },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
   },
 
   /**
@@ -81,29 +93,40 @@ export const userService = {
   async updateUserProfile(
     userId: string,
     updates: UserProfileUpdate
-  ): Promise<UserServiceResponse<UserProfile>> {
-    const supabase = createClient();
+  ): Promise<ServiceResponse<UserProfile>> {
+    try {
+      const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select()
+        .single();
 
-    return {
-      data,
-      error: error?.message,
-    };
+      if (error) {
+        log.error('Failed to update user profile', error, {
+          metadata: { service: 'user.service', method: 'updateUserProfile', userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      return createServiceSuccess(data);
+    } catch (error) {
+      log.error('Unexpected error updating user profile', error, {
+        metadata: { service: 'user.service', method: 'updateUserProfile', userId },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
   },
 
   /**
    * Get user statistics and achievements
    */
-  async getUserStats(userId: string): Promise<UserServiceResponse<UserStats>> {
+  async getUserStats(userId: string): Promise<ServiceResponse<UserStats>> {
     const supabase = createClient();
 
     try {
@@ -192,15 +215,12 @@ export const userService = {
         favoriteGameMode: 'Bingo', // Could be calculated from game history
       };
 
-      return {
-        data: stats,
-      };
+      return createServiceSuccess(stats);
     } catch (error) {
-      return {
-        data: null,
-        error:
-          error instanceof Error ? error.message : 'Failed to fetch user stats',
-      };
+      log.error('Failed to get user stats', error, {
+        metadata: { service: 'user.service', method: 'getUserStats', userId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 
@@ -210,35 +230,46 @@ export const userService = {
   async getUserActivities(
     userId: string,
     options: ActivityOptions = {}
-  ): Promise<UserServiceResponse<Activity[]>> {
-    const supabase = createClient();
-    const { limit = 20, offset = 0, type, fromDate, toDate } = options;
+  ): Promise<ServiceResponse<Activity[]>> {
+    try {
+      const supabase = createClient();
+      const { limit = 20, offset = 0, type, fromDate, toDate } = options;
 
-    let query = supabase
-      .from('user_activity')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      let query = supabase
+        .from('user_activity')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
-    if (type) {
-      query = query.eq('activity_type', type);
+      if (type) {
+        query = query.eq('activity_type', type);
+      }
+
+      if (fromDate) {
+        query = query.gte('created_at', fromDate);
+      }
+
+      if (toDate) {
+        query = query.lte('created_at', toDate);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        log.error('Failed to get user activities', error, {
+          metadata: { service: 'user.service', method: 'getUserActivities', userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      return createServiceSuccess(data || []);
+    } catch (error) {
+      log.error('Unexpected error getting user activities', error, {
+        metadata: { service: 'user.service', method: 'getUserActivities', userId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
-
-    if (fromDate) {
-      query = query.gte('created_at', fromDate);
-    }
-
-    if (toDate) {
-      query = query.lte('created_at', toDate);
-    }
-
-    const { data, error } = await query;
-
-    return {
-      data: data || [],
-      error: error?.message,
-    };
   },
 
   /**
@@ -247,34 +278,45 @@ export const userService = {
   async logUserActivity(
     userId: string,
     activity: ActivityLogRequest
-  ): Promise<UserServiceResponse<string>> {
-    const supabase = createClient();
+  ): Promise<ServiceResponse<string>> {
+    try {
+      const supabase = createClient();
 
-    // Convert metadata to JSON-compatible format
-    const jsonData = JSON.parse(JSON.stringify(activity.metadata));
+      // Convert metadata to JSON-compatible format
+      const jsonData = JSON.parse(JSON.stringify(activity.metadata));
 
-    const { data, error } = await supabase
-      .from('user_activity')
-      .insert({
-        user_id: userId,
-        activity_type: activity.type,
-        data: jsonData,
-        created_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
+      const { data, error } = await supabase
+        .from('user_activity')
+        .insert({
+          user_id: userId,
+          activity_type: activity.type,
+          data: jsonData,
+          created_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
 
-    return {
-      data: data?.id || null,
-      error: error?.message,
-    };
+      if (error) {
+        log.error('Failed to log user activity', error, {
+          metadata: { service: 'user.service', method: 'logUserActivity', userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      return createServiceSuccess(data?.id || '');
+    } catch (error) {
+      log.error('Unexpected error logging user activity', error, {
+        metadata: { service: 'user.service', method: 'logUserActivity', userId },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
   },
 
   /**
    * Get user's recent activity summary
    */
   async getActivitySummary(userId: string): Promise<
-    UserServiceResponse<{
+    ServiceResponse<{
       todayCount: number;
       weekCount: number;
       monthCount: number;
@@ -325,22 +367,17 @@ export const userService = {
           .limit(5),
       ]);
 
-      return {
-        data: {
-          todayCount: todayRes.count || 0,
-          weekCount: weekRes.count || 0,
-          monthCount: monthRes.count || 0,
-          recentActivities: recentRes.data || [],
-        },
-      };
+      return createServiceSuccess({
+        todayCount: todayRes.count || 0,
+        weekCount: weekRes.count || 0,
+        monthCount: monthRes.count || 0,
+        recentActivities: recentRes.data || [],
+      });
     } catch (error) {
-      return {
-        data: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch activity summary',
-      };
+      log.error('Failed to get activity summary', error, {
+        metadata: { service: 'user.service', method: 'getActivitySummary', userId },
+      });
+      return createServiceError(getErrorMessage(error));
     }
   },
 };
