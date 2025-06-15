@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -16,7 +16,7 @@ import type {
   DragEndEvent,
   UniqueIdentifier,
 } from '@dnd-kit/core';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ROUTES } from '@/src/config/routes';
 import { notifications } from '@/lib/notifications';
 import { log } from '@/lib/logger';
@@ -33,9 +33,19 @@ import { BoardHeader } from './BoardHeader';
 import { CardManagementTabs } from './CardManagementTabs';
 import { BoardSettingsPanel } from './BoardSettingsPanel';
 import { BingoGrid } from './BingoGrid';
-import { BingoCardEditDialog } from './BingoCardEditDialog';
-import { GridPositionSelectDialog } from './GridPositionSelectDialog';
 import { TrashDropZone } from './TrashDropZone';
+
+// Lazy load heavy dialog components
+const BingoCardEditDialog = lazy(() =>
+  import('./BingoCardEditDialog').then(module => ({
+    default: module.BingoCardEditDialog,
+  }))
+);
+const GridPositionSelectDialog = lazy(() =>
+  import('./GridPositionSelectDialog').then(module => ({
+    default: module.GridPositionSelectDialog,
+  }))
+);
 
 // Hooks
 import { useBingoBoardEdit } from '../../hooks/useBingoBoardEdit';
@@ -666,25 +676,29 @@ export function BingoBoardEdit({
 
           {/* Dialogs */}
           {boardEdit.editingCard && (
-            <BingoCardEditDialog
-              card={boardEdit.editingCard.card}
-              index={boardEdit.editingCard.index}
-              isOpen={true}
-              onClose={boardEdit.closeCardEditor}
-              onSave={handleCardDialogSave}
-            />
+            <Suspense fallback={null}>
+              <BingoCardEditDialog
+                card={boardEdit.editingCard.card}
+                index={boardEdit.editingCard.index ?? 0}
+                isOpen={true}
+                onClose={boardEdit.closeCardEditor}
+                onSave={handleCardDialogSave}
+              />
+            </Suspense>
           )}
 
           {boardEdit.selectedCard && (
-            <GridPositionSelectDialog
-              isOpen={true}
-              onClose={boardEdit.clearSelectedCard}
-              onSelect={handlePositionSelect}
-              gridSize={boardEdit.board?.size || 5}
-              takenPositions={boardEdit.localGridCards
-                .map((card, index) => (card.id ? index : -1))
-                .filter(index => index !== -1)}
-            />
+            <Suspense fallback={null}>
+              <GridPositionSelectDialog
+                isOpen={true}
+                onClose={boardEdit.clearSelectedCard}
+                onSelect={handlePositionSelect}
+                gridSize={boardEdit.board?.size || 5}
+                takenPositions={boardEdit.localGridCards
+                  .map((card, index) => (card.id ? index : -1))
+                  .filter(index => index !== -1)}
+              />
+            </Suspense>
           )}
 
           {/* Success Message */}
