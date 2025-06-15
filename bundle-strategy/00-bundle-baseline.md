@@ -185,3 +185,40 @@ Route Analysis:
 ---
 
 **Current Status**: Ready for Phase 1 implementation targeting 40% bundle reduction.
+
+## Fresh Baseline - 2025-06-15 (Latest Build)
+
+### Build Metrics
+- **Build Time**: 67s (with analysis)
+- **Experimental Features**: ✅ typedRoutes, webpackBuildWorker, webpackMemoryOptimizations
+- **ESLint Warnings**: 72 warnings (mostly unused variables and dependencies)
+
+### Current Bundle State
+```
+Route (app)                          Size     First Load JS
+┌ ƒ /                                21.1 kB    799 kB
+├ ƒ /play-area/bingo                18.3 kB    795 kB
+├ ƒ /play-area/session/[id]          9.62 kB   790 kB
+├ ƒ /auth/signup                     8.8 kB    787 kB
+├ ƒ /community                       11.3 kB   784 kB
+
++ First Load JS shared by all        681 kB (23 vendor chunks)
+  ├ chunks/vendor-ff30e0d3            53.4 kB (largest chunk)
+  ├ chunks/vendor-2a402aaf            100 kB  (second largest)
+  ├ chunks/vendor-f1cb205b            33 kB
+  ├ chunks/vendor-c801b63e            36.8 kB
+  ├ chunks/vendor-f257cf74            36.8 kB
+  └ 18 other vendor chunks            421 kB total
+```
+
+### Key Observations
+1. **Vendor chunks successfully split**: 23 smaller chunks instead of monolithic 749KB
+2. **Largest vendor chunk**: 100KB (vendor-2a402aaf)
+3. **First Load JS**: 799KB (still 60% over 500KB target)
+4. **Webpack optimizations**: Memory optimizations and build worker enabled ✅
+
+### Next Priority Actions
+1. **Analyze 100KB vendor chunk** (vendor-2a402aaf) for further splitting opportunities
+2. **UI library consolidation** - Target 1MB reduction from Radix UI packages
+3. **Service layer dynamic imports** - Move heavy services to lazy loading
+4. **Bundle size monitoring** - Add CI checks and size limits
