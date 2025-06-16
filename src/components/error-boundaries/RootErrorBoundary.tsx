@@ -102,7 +102,8 @@ export class RootErrorBoundary extends Component<Props, State> {
             },
           });
         });
-      } catch (sentryError) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_sentryError) {
         // Fallback if Sentry fails to load
         console.error(
           'RootErrorBoundary: Failed to load Sentry, logging error:',
@@ -132,7 +133,8 @@ export class RootErrorBoundary extends Component<Props, State> {
             `Root boundary caught ${this.state.errorCount + 1} errors - app unstable`,
             'error'
           );
-        } catch (sentryError) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (_sentryError) {
           console.warn('Failed to capture message to Sentry');
         }
       };

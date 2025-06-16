@@ -13,9 +13,7 @@ export default function GlobalError({
   useEffect(() => {
     // Check if error should be sent to Sentry (deduplication)
     if (!shouldSendToSentry(error)) {
-      console.debug(
-        'GlobalError: Error already reported to Sentry, skipping duplicate'
-      );
+      // Error already reported to Sentry, skipping duplicate
       return;
     }
 

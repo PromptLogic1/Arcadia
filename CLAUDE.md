@@ -121,7 +121,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 
 ## Tech Stack
 
-- React 19.0.0 + Next.js 15.3.3 (App Router)
+- React 19.0.0 + Next.js 15.4.0-canary.83 (App Router) **⚠️ CRITICAL: Use Next.js canary for React 19 compatibility**
 - TypeScript 5.7.2 (strict mode) ✅
 - TanStack Query v5.80.5 + Zustand v5.0.5
 - Tailwind CSS v4.1.8 + shadcn/ui

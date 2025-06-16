@@ -4,10 +4,7 @@
  */
 
 import { useShallow } from 'zustand/react/shallow';
-import useBoardEditStore, {
-  useBoardEditState,
-} from '@/lib/stores/board-edit-store';
-import type { BingoCard } from '@/types';
+import useBoardEditStore from '@/lib/stores/board-edit-store';
 
 // Memoized selectors for specific UI state slices
 export function useBoardUIState() {

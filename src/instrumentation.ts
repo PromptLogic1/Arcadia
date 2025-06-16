@@ -25,10 +25,23 @@ export const onRequestError = async (
   ) {
     const Sentry = await import('@sentry/nextjs');
     // Create RequestInfo object with required properties
+    let path = context.routePath || '/unknown';
+    
+    // Safely parse URL if available
+    if (request.url) {
+      try {
+        const url = new URL(request.url);
+        path = url.pathname;
+      } catch {
+        // Fall back to context.routePath if URL parsing fails
+        path = context.routePath || '/unknown';
+      }
+    }
+    
     const requestInfo: SentryRequestInfo = {
-      path: new URL(request.url).pathname,
-      method: request.method,
-      headers: Object.fromEntries(request.headers.entries()),
+      path,
+      method: request.method || 'GET',
+      headers: Object.fromEntries(request.headers?.entries() || []),
     };
     return Sentry.captureRequestError(error, requestInfo, context);
   }

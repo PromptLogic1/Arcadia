@@ -9,17 +9,22 @@
 
 import { log } from '@/lib/logger';
 
-// Cache for loaded functions - use any to avoid complex typing
-const loadedFunctions = new Map<string, (...args: never[]) => unknown>();
+// Base type for date-fns functions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DateFnsFunction = (...args: any[]) => any;
+
+// Cache for loaded functions
+const loadedFunctions = new Map<string, DateFnsFunction>();
 
 /**
  * Lazy-loads a specific date-fns function
  */
-async function loadDateFunction<T extends (...args: never[]) => unknown>(
+async function loadDateFunction<T extends DateFnsFunction>(
   functionName: string
 ): Promise<T> {
   const cached = loadedFunctions.get(functionName);
   if (cached) {
+    // Type guard to ensure the cached function matches expected type
     return cached as T;
   }
 
@@ -30,10 +35,9 @@ async function loadDateFunction<T extends (...args: never[]) => unknown>(
     if (!fn || typeof fn !== 'function') {
       throw new Error(`Function ${functionName} not found in date-fns`);
     }
-    // Store and return the function with proper typing
-    const typedFn = fn as unknown as T;
-    loadedFunctions.set(functionName, typedFn);
-    return typedFn;
+    // Store and return the function
+    loadedFunctions.set(functionName, fn as DateFnsFunction);
+    return fn as T;
   } catch (error) {
     log.error(`Failed to load date-fns/${functionName}`, error, {
       metadata: { service: 'date-utils-lazy', functionName },

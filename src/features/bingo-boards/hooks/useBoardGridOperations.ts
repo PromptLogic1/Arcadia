@@ -11,6 +11,7 @@ import useBoardEditStore, {
 import { useAuth } from '@/lib/stores/auth-store';
 import { useBoardData } from './useBoardData';
 import type { BingoCard, GameCategory, Difficulty } from '@/types';
+import type { BoardCell } from '@/types/domains/bingo';
 
 // Type-safe default values
 const DEFAULT_GAME_CATEGORY: GameCategory = 'All Games';
@@ -131,7 +132,7 @@ export function useBoardGridOperations(boardId: string) {
 
     if (originalCells.length !== currentCells.length) return true;
 
-    return originalCells.some((original, index) => {
+    return originalCells.some((original: BoardCell, index: number) => {
       const current = currentCells[index];
       return (
         original.text !== current?.title ||

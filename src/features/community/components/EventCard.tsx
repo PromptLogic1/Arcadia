@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/Button';
 import { formatDateFallback } from '@/lib/date-utils-lazy';
 import { log } from '@/lib/logger';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
-import type { CSSCustomProperties } from '@/types/css-properties';
 import './animations.css';
 
 interface EventCardProps {

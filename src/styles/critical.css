@@ -55,19 +55,12 @@ html {
 :root {
   color-scheme: dark;
   --radius: 0.5rem;
-  /* Critical color variables for immediate rendering */
-  --background: 2 6 23;
-  --foreground: 236 254 255;
-  --primary: 34 211 238;
-  --primary-foreground: 2 6 23;
-  --card: 20 21 28;
-  --card-foreground: 236 254 255;
-  --border: 34 34 42;
 }
 
 body {
-  background-color: rgb(2 6 23);
-  color: rgb(236 254 255);
+  /* Use Tailwind's color variables - these will be defined by Tailwind CSS */
+  background-color: var(--color-background, oklch(0.12 0.03 195));
+  color: var(--color-foreground, oklch(0.92 0.03 195));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -152,16 +145,16 @@ a {
 /* Skeleton loader for dynamic imports */
 .skeleton {
   animation: skeleton-loading 1s linear infinite alternate;
-  background-color: rgb(34 34 42);
+  background-color: var(--color-muted, oklch(0.25 0.03 195));
   border-radius: 0.25rem;
 }
 
 @keyframes skeleton-loading {
   0% {
-    background-color: rgb(34 34 42);
+    background-color: var(--color-muted, oklch(0.25 0.03 195));
   }
   100% {
-    background-color: rgb(52 52 62);
+    background-color: var(--color-card, oklch(0.15 0.03 195));
   }
 }
 

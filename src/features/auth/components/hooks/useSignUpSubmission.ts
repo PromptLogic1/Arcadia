@@ -7,8 +7,6 @@ import { notifications } from '@/lib/notifications';
 import type {
   FormData,
   OAuthProvider,
-  SignUpStatus,
-  SignUpMessage,
 } from '../../types/signup-form.types';
 import type { UseSignUpFormReturn } from './useSignUpForm';
 import { SIGNUP_MESSAGES, ERROR_MESSAGES, LOG_MESSAGES } from '../constants';

@@ -92,7 +92,6 @@ const BingoBoardEditRefactoredComponent = ({
     selectedCard,
     editingCard,
     showSaveSuccess,
-    isEditMode,
     isSaving,
     formData,
     fieldErrors,
@@ -102,10 +101,8 @@ const BingoBoardEditRefactoredComponent = ({
   const {
     gridCards,
     privateCards,
-    hasChanges,
     moveCardToGrid,
     removeCardFromGrid,
-    handlePositionSelect,
   } = useBoardGridOperations(boardId);
   const cardOperations = useCardOperations(boardId);
 
@@ -212,7 +209,7 @@ const BingoBoardEditRefactoredComponent = ({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const { active, over } = event;
+      const { over } = event;
 
       setActiveId(null);
       setDraggedCard(null);
@@ -324,7 +321,7 @@ const BingoBoardEditRefactoredComponent = ({
                 gridCards={gridCards}
                 gridSize={5}
                 isLoading={isLoadingBoard}
-                onCardClick={(card, index) => handleCardSelect(card)}
+                onCardClick={(card, _index) => handleCardSelect(card)}
                 onRemoveCard={removeCardFromGrid}
               />
             </div>
@@ -392,7 +389,7 @@ const BingoBoardEditRefactoredComponent = ({
               index={editingCard.index || 0}
               isOpen={true}
               onClose={() => uiActions.closeCardEditor()}
-              onSave={async (updates, index) => {
+              onSave={async (updates, _index) => {
                 if (editingCard.isNew) {
                   const cardData = {
                     title: updates.title || editingCard.card.title,

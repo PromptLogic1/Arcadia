@@ -231,8 +231,9 @@ class EnhancedRedisService {
 
   /**
    * Enhanced get operation with metrics and circuit breaker
+   * Returns parsed JSON data or null
    */
-  public async get<T>(key: string, fallback?: () => T): Promise<T | null> {
+  public async get<T = unknown>(key: string, fallback?: () => T): Promise<T | null> {
     if (!isRedisConfigured()) {
       if (fallback) {
         return fallback();
@@ -250,9 +251,28 @@ class EnhancedRedisService {
 
       const latency = Date.now() - startTime;
 
-      if (result !== null) {
+      if (result !== null && result !== undefined) {
         this.recordHit(latency);
-        return result as T;
+        try {
+          // Parse JSON if the result is a string
+          if (typeof result === 'string') {
+            // Type assertion needed here because JSON.parse returns 'any'
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return JSON.parse(result);
+          }
+          // If result is not a string, it's likely from the fallback
+          // Type assertion needed for generic return type
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return result as any;
+        } catch {
+          // If parsing fails, try to return as-is if it matches expected type
+          if (fallback) {
+            // If we have a fallback, use it for non-JSON data
+            return fallback();
+          }
+          // Return null for unparseable data
+          return null;
+        }
       } else {
         this.recordMiss(latency);
         return null;

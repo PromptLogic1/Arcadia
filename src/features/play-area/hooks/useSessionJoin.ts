@@ -79,7 +79,7 @@ export function useSessionJoin({ sessionId }: UseSessionJoinProps) {
     try {
       await joinSessionMutation.mutateAsync(joinData);
       // Navigation will be handled by the mutation's onSuccess callback
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation's onError callback
       // Just prevent unhandled promise rejection
     }

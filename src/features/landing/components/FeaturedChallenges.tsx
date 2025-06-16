@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { ChevronRight, X } from '@/components/ui/Icons';
+import { 
+  ChevronRight, 
+  X, 
+  GaugeIcon, 
+  PuzzleIcon, 
+  UsersIcon 
+} from '@/components/ui/Icons';
 import {
   Card,
   CardContent,
@@ -15,9 +21,18 @@ import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
 import FloatingElements from '@/components/ui/FloatingElements';
 import { cn } from '@/lib/utils';
 
+// Icon mapping to resolve icon names to components
+const iconMap = {
+  Gauge: GaugeIcon,
+  Puzzle: PuzzleIcon,
+  Users: UsersIcon,
+} as const;
+
+type IconName = keyof typeof iconMap;
+
 interface Challenge {
   name: string;
-  icon: React.ComponentType<{ className?: string }>;
+  iconName: IconName;
   description: string;
   details: string;
   keyFeatures: string[];
@@ -91,10 +106,10 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
                           : ''
                       }`}
                     >
-                      <challenge.icon
-                        className="h-12 w-12 text-cyan-400 group-hover:text-cyan-300"
-                        aria-hidden="true"
-                      />
+                      {React.createElement(iconMap[challenge.iconName], {
+                        className: "h-12 w-12 text-cyan-400 group-hover:text-cyan-300",
+                        'aria-hidden': true
+                      })}
                     </div>
                     <CardTitle className="neon-glow-cyan flex h-20 items-center justify-center text-center text-3xl font-bold">
                       {challenge.name}
@@ -189,9 +204,9 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
                 <div className="flex flex-col items-center justify-center">
                   <div className="cyber-card mb-8 border-cyan-500/50 p-8 text-center">
                     <div className="cyber-card mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border-cyan-500/50">
-                      {challenges[selectedChallenge]?.icon &&
+                      {challenges[selectedChallenge]?.iconName &&
                         React.createElement(
-                          challenges[selectedChallenge].icon,
+                          iconMap[challenges[selectedChallenge].iconName],
                           {
                             className: 'h-10 w-10 text-cyan-400',
                           }

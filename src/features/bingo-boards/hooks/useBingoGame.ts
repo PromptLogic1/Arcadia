@@ -83,7 +83,7 @@ export function useBingoGame(sessionId: string) {
           action: 'mark',
           version,
         });
-      } catch (error) {
+      } catch {
         // Error is handled by mutation's onError callback
         // Just prevent unhandled promise rejection
       }
@@ -100,7 +100,7 @@ export function useBingoGame(sessionId: string) {
           action: 'unmark',
           version,
         });
-      } catch (error) {
+      } catch {
         // Error is handled by mutation's onError callback
         // Just prevent unhandled promise rejection
       }
@@ -117,7 +117,7 @@ export function useBingoGame(sessionId: string) {
         sessionId,
         hostId: sessionData.host_id,
       });
-    } catch (error) {
+    } catch {
       // Error is handled by mutation's onError callback
       // Just prevent unhandled promise rejection
     }

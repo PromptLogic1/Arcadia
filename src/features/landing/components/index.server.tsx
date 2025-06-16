@@ -2,7 +2,6 @@ import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
 import { ClientSectionWrapper } from './ClientSectionWrapper';
-import { GaugeIcon, PuzzleIcon, UsersIcon } from '@/components/ui/Icons';
 
 // Import server components directly
 import FAQSectionServer from './FAQSection.server';
@@ -22,19 +21,12 @@ const FeaturedChallenges = dynamic(() => import('./FeaturedChallenges'), {
   loading: () => <SectionLoading />,
 });
 
-// Type-safe icon mapping
-const iconMap = {
-  Gauge: GaugeIcon,
-  Puzzle: PuzzleIcon,
-  Users: UsersIcon,
-} as const;
-
-// Challenge data for featured challenges with proper typing
+// Challenge data for featured challenges with icon names
 const challengeData = [
   {
     id: 'challenge-1',
     name: 'Speedrun Showdown',
-    iconKey: 'Gauge' as const,
+    iconName: 'Gauge' as const,
     description: 'Complete the level as fast as possible!',
     details:
       'Race against the clock and other players to finish the level in record time.',
@@ -45,7 +37,7 @@ const challengeData = [
   {
     id: 'challenge-2',
     name: 'Puzzle Master',
-    iconKey: 'Puzzle' as const,
+    iconName: 'Puzzle' as const,
     description: 'Solve challenging puzzles to progress.',
     details: 'Test your wits and logic in a series of mind-bending puzzles.',
     keyFeatures: ['Hints', 'Progressive Difficulty', 'Achievements'],
@@ -55,7 +47,7 @@ const challengeData = [
   {
     id: 'challenge-3',
     name: 'Co-op Quest',
-    iconKey: 'Users' as const,
+    iconName: 'Users' as const,
     description: 'Team up with friends to complete objectives.',
     details: 'Work together to overcome obstacles and achieve victory.',
     keyFeatures: ['Multiplayer', 'Teamwork', 'Shared Rewards'],
@@ -112,7 +104,7 @@ export default function LandingPageServer() {
               <FeaturedChallenges
                 challenges={challengeData.map(challenge => ({
                   name: challenge.name,
-                  icon: iconMap[challenge.iconKey],
+                  iconName: challenge.iconName,
                   description: challenge.description,
                   details: challenge.details,
                   keyFeatures: challenge.keyFeatures,

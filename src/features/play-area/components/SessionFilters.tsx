@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useDeferredValue, useTransition } from 'react';
+import React, { useTransition } from 'react';
 import { Input } from '@/components/ui/Input';
 import {
   Select,
@@ -143,7 +143,6 @@ export function SessionFilters({
 }: SessionFiltersProps) {
   // React 19 optimizations
   const [isPending, startTransition] = useTransition();
-  const deferredSearchTerm = useDeferredValue(filters.search);
 
   const updateFilter = <K extends keyof SessionFilters>(
     key: K,

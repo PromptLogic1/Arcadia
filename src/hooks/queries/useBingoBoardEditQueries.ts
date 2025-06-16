@@ -3,7 +3,6 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import {
   bingoBoardEditService,
   type BoardEditData,
@@ -12,9 +11,17 @@ import {
 import { notifications } from '@/lib/notifications';
 import { queryKeys } from './index';
 import type { BingoCard, BingoBoard } from '@/types';
+import type { ServiceResponse } from '@/lib/service-types';
+import type { BingoBoardDomain } from '@/types/domains/bingo';
+
+// Type for the board edit response
+type BoardEditResponse = ServiceResponse<{
+  board: BingoBoardDomain;
+  cards: BingoCard[];
+}>;
 
 // Memoized selectors for query optimization
-const selectBoardData = (response: any) => {
+const selectBoardData = (response: BoardEditResponse) => {
   if (response.success && response.data) {
     return {
       success: true,
@@ -32,19 +39,19 @@ const selectBoardData = (response: any) => {
   };
 };
 
-const selectBoardOnly = (response: any) => {
+const selectBoardOnly = (response: BoardEditResponse) => {
   return response?.success ? response.data?.board : null;
 };
 
-const selectCardsOnly = (response: any) => {
+const selectCardsOnly = (response: BoardEditResponse) => {
   return response?.success ? response.data?.cards : [];
 };
 
-const selectBoardTitle = (response: any) => {
+const selectBoardTitle = (response: BoardEditResponse) => {
   return response?.success ? response.data?.board?.title : '';
 };
 
-const selectBoardState = (response: any) => {
+const selectBoardState = (response: BoardEditResponse) => {
   return response?.success ? response.data?.board?.board_state : [];
 };
 
@@ -55,17 +62,18 @@ export function useBoardEditDataQuery(
   boardId: string,
   options?: {
     enabled?: boolean;
-    select?: (response: any) => any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    select?: (response: BoardEditResponse) => any;
   }
 ) {
-  const { enabled = true, select = selectBoardData } = options || {};
+  const { enabled = true, select } = options || {};
 
   return useQuery({
     queryKey: queryKeys.boardEdit.data(boardId),
     queryFn: () => bingoBoardEditService.getBoardForEdit(boardId),
     enabled: enabled && !!boardId,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    select,
+    select: select || selectBoardData,
   });
 }
 

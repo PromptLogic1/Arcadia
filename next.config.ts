@@ -27,9 +27,6 @@ const nextConfig: NextConfig = {
     'lucide-react': {
       transform: 'lucide-react/dist/esm/icons/{{member}}',
     },
-    '@radix-ui/react-icons': {
-      transform: '@radix-ui/react-icons/dist/{{member}}',
-    },
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -120,42 +117,16 @@ const nextConfig: NextConfig = {
     // Production optimizations
     serverMinification: true,
     serverSourceMaps: false,
-    // Enable webpack build worker for memory optimization (Phase 1.1)
-    webpackBuildWorker: true,
-    // instrumentationHook: true, // For monitoring - removed as not available in current Next.js version
-    // React 19 Compiler for automatic optimizations
-    // reactCompiler: process.env.NODE_ENV === 'production', // Disabled due to missing babel plugin
+    // Disable webpack build worker temporarily to fix module resolution
+    webpackBuildWorker: false,
     // Enable optimizePackageImports for better tree shaking
     optimizePackageImports: [
-      '@radix-ui/react-icons',
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-collapsible',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-label',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-scroll-area',
-      '@radix-ui/react-select',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-slider',
-      '@radix-ui/react-slot',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toggle',
-      '@radix-ui/react-toggle-group',
-      '@radix-ui/react-tooltip',
       'lucide-react',
       'date-fns',
       '@supabase/supabase-js',
       '@tanstack/react-query',
       'zod',
       'zustand',
-      'framer-motion',
-      'react-hook-form',
-      '@hookform/resolvers',
       'clsx',
       'tailwind-merge',
     ],
@@ -165,8 +136,8 @@ const nextConfig: NextConfig = {
     cssChunking: true,
     // Enable Web Vitals attribution for debugging
     webVitalsAttribution: ['CLS', 'LCP', 'FCP', 'TTFB', 'INP'],
-    // Enable memory optimizations for builds
-    webpackMemoryOptimizations: true,
+    // Disable memory optimizations temporarily
+    webpackMemoryOptimizations: false,
   },
   env: {
     EDGE_CONFIG_ID: process.env.EDGE_CONFIG_ID,
@@ -287,78 +258,25 @@ const nextConfig: NextConfig = {
         child_process: false,
       };
 
-      // Production optimizations
-      if (!dev) {
-        // Enable filesystem cache for production builds
-        if (!config.cache) {
-          config.cache = {
-            type: 'filesystem',
-            buildDependencies: {
-              config: [__filename]
-            }
-          };
-        }
-        
-        // Simplified code splitting - let Next.js handle most optimizations
-        config.optimization = {
-          ...config.optimization,
-          splitChunks: {
-            chunks: 'all',
-            cacheGroups: {
-              default: {
-                minChunks: 2,
-                priority: -20,
-                reuseExistingChunk: true,
-              },
-              // Framework essentials
-              framework: {
-                name: 'framework',
-                test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
-                priority: 40,
-                enforce: true,
-              },
-              // Larger libraries that benefit from separate chunks
-              supabase: {
-                test: /[\\/]node_modules[\\/]@supabase[\\/]/,
-                name: 'supabase',
-                priority: 30,
-                reuseExistingChunk: true,
-              },
-              // NEW: Async-load monitoring (Phase 1.1)
-              sentry: {
-                test: /[\\/]node_modules[\\/]@sentry[\\/]/,
-                name: 'sentry',
-                chunks: 'async', // ← CRITICAL CHANGE: Load Sentry asynchronously
-                priority: 35,
-                reuseExistingChunk: true,
-              },
-              // NEW: UI library consolidation (Phase 1.1)
-              ui: {
-                test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
-                name: 'ui-library',
-                priority: 30,
-                minSize: 20000,
-                maxSize: 200000, // Prevent mega-chunks
-                reuseExistingChunk: true,
-              },
-              // NEW: Database operations (route-specific)
-              database: {
-                test: /[\\/]node_modules[\\/]@supabase[\\/]/,
-                name: 'database',
-                chunks: 'async', // Route-specific loading
-                priority: 25,
-                reuseExistingChunk: true,
-              },
-              // MODIFIED: Size-limited vendor (Phase 1.1)
-              vendor: {
-                test: /[\\/]node_modules[\\/]/,
-                name: 'vendor',
-                priority: 10,
-                maxSize: 200000, // ← Break large vendor chunk into smaller chunks
-                reuseExistingChunk: true,
-              },
-            },
-          },
+      // Add optimization for module resolution
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+        // Ensure proper module concatenation
+        concatenateModules: true,
+        // Add runtime chunk optimization
+        runtimeChunk: false,
+      };
+
+      // Add specific resolve configuration for development
+      if (dev) {
+        config.resolve = {
+          ...config.resolve,
+          // Ensure proper extension resolution order
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+          // Add specific module directories
+          modules: ['node_modules', ...config.resolve.modules || []],
         };
       }
     }

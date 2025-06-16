@@ -2,19 +2,12 @@
 
 import * as React from 'react';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import type { ThemeProviderProps as NextThemesProviderProps } from 'next-themes';
 
-type ThemeProviderProps = Parameters<typeof NextThemesProvider>[0] & {
-  suppressHydrationWarning?: boolean;
-};
+interface ThemeProviderProps extends NextThemesProviderProps {
+  children: React.ReactNode;
+}
 
-export function ThemeProvider({
-  children,
-  suppressHydrationWarning,
-  ...props
-}: ThemeProviderProps) {
-  return (
-    <div suppressHydrationWarning={suppressHydrationWarning}>
-      <NextThemesProvider {...props}>{children}</NextThemesProvider>
-    </div>
-  );
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }

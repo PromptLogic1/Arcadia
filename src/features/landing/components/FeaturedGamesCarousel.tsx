@@ -219,11 +219,6 @@ const FeaturedGamesCarousel: React.FC = () => {
         </div>
       </div>
 
-      <style jsx>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </CyberpunkBackground>
   );
 };

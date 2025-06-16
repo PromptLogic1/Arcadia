@@ -16,7 +16,6 @@ import type { Discussion, Comment } from '@/lib/stores/community-store';
 import { formatDateFallback } from '@/lib/date-utils-lazy';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
 import { sanitizeRichContent, sanitizeDisplayName } from '@/lib/sanitization';
-import type { CSSCustomProperties } from '@/types/css-properties';
 import './animations.css';
 
 interface DiscussionCardProps {

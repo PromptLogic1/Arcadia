@@ -9,13 +9,14 @@
 
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+// LoadingSpinner import removed - using Skeleton for lazy loading
 
 // Dialog component (~18KB) - Used heavily in play-area, community, and bingo boards
 export const LazyDialog = dynamic(
-  () => import('./Dialog').then(mod => ({ 
-    default: mod.Dialog 
-  })),
+  async () => {
+    const mod = await import('./Dialog');
+    return { default: mod.Dialog };
+  },
   {
     loading: () => <Skeleton className="h-96 w-full" />,
     ssr: false,
@@ -23,9 +24,10 @@ export const LazyDialog = dynamic(
 );
 
 export const LazyDialogContent = dynamic(
-  () => import('./Dialog').then(mod => ({ 
-    default: mod.DialogContent 
-  })),
+  async () => {
+    const mod = await import('./Dialog');
+    return { default: mod.DialogContent };
+  },
   {
     loading: () => <div className="fixed inset-0 z-50 bg-black/50" />,
     ssr: false,
@@ -33,30 +35,34 @@ export const LazyDialogContent = dynamic(
 );
 
 export const LazyDialogHeader = dynamic(
-  () => import('./Dialog').then(mod => ({ 
-    default: mod.DialogHeader 
-  })),
+  async () => {
+    const mod = await import('./Dialog');
+    return { default: mod.DialogHeader };
+  },
   { ssr: false }
 );
 
 export const LazyDialogTitle = dynamic(
-  () => import('./Dialog').then(mod => ({ 
-    default: mod.DialogTitle 
-  })),
+  async () => {
+    const mod = await import('./Dialog');
+    return { default: mod.DialogTitle };
+  },
   { ssr: false }
 );
 
 export const LazyDialogDescription = dynamic(
-  () => import('./Dialog').then(mod => ({ 
-    default: mod.DialogDescription 
-  })),
+  async () => {
+    const mod = await import('./Dialog');
+    return { default: mod.DialogDescription };
+  },
   { ssr: false }
 );
 
 export const LazyDialogFooter = dynamic(
-  () => import('./Dialog').then(mod => ({ 
-    default: mod.DialogFooter 
-  })),
+  async () => {
+    const mod = await import('./Dialog');
+    return { default: mod.DialogFooter };
+  },
   { ssr: false }
 );
 

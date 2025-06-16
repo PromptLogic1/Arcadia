@@ -26,12 +26,19 @@ import {
 import { queryKeys } from '@/hooks/queries';
 import { useAuth } from '@/lib/stores/auth-store';
 import type { BingoCard } from '@/types';
-import type { BingoBoardDomain } from '@/types/domains/bingo';
+import type { ServiceResponse } from '@/lib/service-types';
+import type { BingoBoardDomain, BoardCell } from '@/types/domains/bingo';
+
+// Type for the board edit response
+type BoardEditResponse = ServiceResponse<{
+  board: BingoBoardDomain;
+  cards: BingoCard[];
+}>;
 
 // Memoized selector functions for query optimization
-const selectBoardData = (response: any) =>
+const selectBoardData = (response: BoardEditResponse) =>
   response?.success ? response.data?.board : null;
-const selectBoardError = (response: any) => response?.error || null;
+const _selectBoardError = (response: BoardEditResponse) => response?.error || null;
 
 /**
  * Server state only - board data from queries
@@ -118,7 +125,7 @@ export const useBoardComputedState = (boardId: string) => {
 
     if (originalCells.length !== currentCells.length) return true;
 
-    return originalCells.some((original: any, index: number) => {
+    return originalCells.some((original: BoardCell, index: number) => {
       const current = currentCells[index];
       return (
         original.text !== current?.title ||
@@ -139,12 +146,12 @@ export const useBoardComputedState = (boardId: string) => {
 /**
  * Card management actions - memoized
  */
-export const useBoardCardActions = (boardId: string) => {
+export const useBoardCardActions = (_boardId: string) => {
   const uiActions = useBoardEditActions();
   const { authUser } = useAuth();
   const { localGridCards, localPrivateCards } = useBoardCards();
-  const createCardMutation = useCreateCardMutation();
-  const updateCardMutation = useUpdateCardMutation();
+  const _createCardMutation = useCreateCardMutation();
+  const _updateCardMutation = useUpdateCardMutation();
 
   const selectCard = useCallback(
     (card: BingoCard | null) => {
@@ -184,7 +191,7 @@ export const useBoardCardActions = (boardId: string) => {
   );
 
   const createCard = useCallback(
-    async (cardData: {
+    async (_cardData: {
       title: string;
       description?: string;
       tags?: string[];
@@ -197,7 +204,7 @@ export const useBoardCardActions = (boardId: string) => {
 
       return null; // Placeholder
     },
-    [authUser, createCardMutation, uiActions, localPrivateCards]
+    [authUser]
   );
 
   return useMemo(
@@ -219,9 +226,9 @@ export const useBoardSaveActions = (boardId: string) => {
   const queryClient = useQueryClient();
   const { authUser } = useAuth();
   const { board } = useBoardData(boardId);
-  const { localGridCards, localPrivateCards } = useBoardCards();
+  const { } = useBoardCards();
   const uiActions = useBoardEditActions();
-  const saveCardsMutation = useSaveCardsMutation();
+  const _saveCardsMutation = useSaveCardsMutation();
   const updateBoardMutation = useUpdateBoardMutation();
 
   const saveBoard = useCallback(async () => {
@@ -250,8 +257,6 @@ export const useBoardSaveActions = (boardId: string) => {
     boardId,
     queryClient,
     uiActions,
-    saveCardsMutation,
-    updateBoardMutation,
   ]);
 
   const publishBoard = useCallback(async () => {
@@ -270,7 +275,7 @@ export const useBoardSaveActions = (boardId: string) => {
         });
         notifications.success('Board published successfully!');
       }
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   }, [board, boardId, queryClient, updateBoardMutation]);

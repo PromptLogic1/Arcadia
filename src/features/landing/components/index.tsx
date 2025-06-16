@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense, useRef, lazy } from 'react';
 import HeroSection from './heroSection';
-import { Gauge, Puzzle, Users } from '@/components/ui/Icons';
+// Icon imports removed - using iconName strings instead
 
 // Dynamic imports for landing page sections to improve initial load time
 const TryDemoGame = lazy(() => import('./TryDemoGame'));
@@ -24,7 +24,7 @@ const challenges = [
   {
     id: 'challenge-1',
     name: 'Speedrun Showdown',
-    icon: Gauge,
+    iconName: 'Gauge' as const,
     description: 'Complete the level as fast as possible!',
     details:
       'Race against the clock and other players to finish the level in record time.',
@@ -35,7 +35,7 @@ const challenges = [
   {
     id: 'challenge-2',
     name: 'Puzzle Master',
-    icon: Puzzle,
+    iconName: 'Puzzle' as const,
     description: 'Solve challenging puzzles to progress.',
     details: 'Test your wits and logic in a series of mind-bending puzzles.',
     keyFeatures: ['Hints', 'Progressive Difficulty', 'Achievements'],
@@ -45,7 +45,7 @@ const challenges = [
   {
     id: 'challenge-3',
     name: 'Co-op Quest',
-    icon: Users,
+    iconName: 'Users' as const,
     description: 'Team up with friends to complete objectives.',
     details: 'Work together to overcome obstacles and achieve victory.',
     keyFeatures: ['Multiplayer', 'Teamwork', 'Shared Rewards'],

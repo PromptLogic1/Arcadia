@@ -3,7 +3,7 @@
  * Part of the refactored useBingoBoardEdit split
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/stores/auth-store';
 import useBoardEditStore, {
@@ -15,14 +15,11 @@ import {
 } from '@/hooks/queries/useBingoBoardEditQueries';
 import { queryKeys } from '@/hooks/queries';
 import { notifications } from '@/lib/notifications';
-import type { BingoCard, GameCategory, Difficulty } from '@/types';
+import type { BingoCard } from '@/types';
 import type { BoardEditData } from '@/services/bingo-board-edit.service';
 import type { BingoBoardDomain } from '@/types/domains/bingo';
 import type { ServiceResponse } from '@/lib/service-types';
 
-// Type-safe default values
-const DEFAULT_GAME_CATEGORY: GameCategory = 'All Games';
-const DEFAULT_DIFFICULTY: Difficulty = 'medium';
 
 export function useBoardSaveActions(boardId: string) {
   const queryClient = useQueryClient();
@@ -221,7 +218,7 @@ export function useBoardSaveActions(boardId: string) {
         });
         notifications.success('Board published successfully!');
       }
-    } catch (error) {
+    } catch {
       notifications.error('Failed to publish board');
     }
   }, [boardId, queryClient, updateBoardMutation]);

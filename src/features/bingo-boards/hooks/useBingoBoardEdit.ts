@@ -25,7 +25,7 @@ import { queryKeys } from '@/hooks/queries';
 import type { BoardEditData } from '@/services/bingo-board-edit.service';
 import { useAuth } from '@/lib/stores/auth-store';
 import type { BingoCard, GameCategory, Difficulty } from '@/types';
-import type { BingoBoardDomain } from '@/types/domains/bingo';
+import type { BingoBoardDomain, BoardCell } from '@/types/domains/bingo';
 
 // Type-safe default values
 const DEFAULT_GAME_CATEGORY: GameCategory = 'All Games';
@@ -101,7 +101,7 @@ export function useBingoBoardEdit(boardId: string) {
   } = useBoardEditDataQuery(boardId);
 
   // Board data from query - no local state duplication
-  const currentBoard = boardData?.success ? boardData.data.board : null;
+  const currentBoard = boardData?.success && boardData.data ? boardData.data.board : null;
 
   const {
     data: initData,
@@ -167,7 +167,7 @@ export function useBingoBoardEdit(boardId: string) {
 
     if (originalCells.length !== currentCells.length) return true;
 
-    return originalCells.some((original: any, index: number) => {
+    return originalCells.some((original: BoardCell, index: number) => {
       const current = currentCells[index];
       return (
         original.text !== current?.title ||
@@ -442,7 +442,7 @@ export function useBingoBoardEdit(boardId: string) {
             return savedCard;
           }
           return null;
-        } catch (error) {
+        } catch {
           // Remove temporary card on error
           if (mountedRef.current) {
             uiActions.setLocalPrivateCards(
@@ -477,7 +477,7 @@ export function useBingoBoardEdit(boardId: string) {
               )
             );
           }
-        } catch (error) {
+        } catch {
           // Error is handled by mutation
         }
       },
@@ -549,7 +549,7 @@ export function useBingoBoardEdit(boardId: string) {
             });
             notifications.success('Board published successfully!');
           }
-        } catch (error) {
+        } catch {
           // Error handled by mutation
         }
       },

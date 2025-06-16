@@ -4,7 +4,6 @@
  */
 
 import { useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import useBoardEditStore, {
   useBoardEditActions,
 } from '@/lib/stores/board-edit-store';
@@ -13,15 +12,10 @@ import {
   useCreateCardMutation,
   useUpdateCardMutation,
 } from '@/hooks/queries/useBingoBoardEditQueries';
-import { queryKeys } from '@/hooks/queries';
 import type { BingoCard } from '@/types';
 
-export function useBoardActions(boardId: string) {
-  const queryClient = useQueryClient();
+export function useBoardActions(_boardId: string) {
   const uiActions = useBoardEditActions();
-  const { authUser } = useAuth();
-  const createCardMutation = useCreateCardMutation();
-  const updateCardMutation = useUpdateCardMutation();
 
   // Memoized card selection action
   const selectCard = useCallback(
@@ -93,7 +87,7 @@ export function useBoardActions(boardId: string) {
 }
 
 // Separate hook for card CRUD operations
-export function useCardOperations(boardId: string) {
+export function useCardOperations(_boardId: string) {
   const { authUser } = useAuth();
   const uiActions = useBoardEditActions();
   const createCardMutation = useCreateCardMutation();
@@ -122,7 +116,7 @@ export function useCardOperations(boardId: string) {
           return result.data;
         }
         return null;
-      } catch (error) {
+      } catch {
         return null;
       }
     },
@@ -138,7 +132,7 @@ export function useCardOperations(boardId: string) {
         });
 
         return result.success;
-      } catch (error) {
+      } catch {
         return false;
       }
     },

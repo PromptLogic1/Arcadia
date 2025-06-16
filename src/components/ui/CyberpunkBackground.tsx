@@ -131,7 +131,7 @@ export const CyberpunkBackground: React.FC<CyberpunkBackgroundProps> = memo(
         default:
           return null;
       }
-    }, [variant, opacity, shouldAnimate]);
+    }, [variant, shouldAnimate, gridStyle, circuitStyle]);
 
     return (
       <div id={id} className={cn('relative', className)}>

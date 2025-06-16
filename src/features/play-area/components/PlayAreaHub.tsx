@@ -119,8 +119,11 @@ export const PlayAreaHub = React.memo(function PlayAreaHub({
   const createSessionMutation = useCreateSessionMutation();
   const joinSessionMutation = useJoinSessionMutation();
 
-  // Extract sessions from response
-  const sessions = sessionsResponse?.sessions || [];
+  // Extract sessions from response using useMemo to prevent dependency issues
+  const sessions = React.useMemo(
+    () => sessionsResponse?.sessions || [],
+    [sessionsResponse]
+  );
 
   // Memoize the total player count calculation
   const totalPlayerCount = React.useMemo(() => {
@@ -133,7 +136,7 @@ export const PlayAreaHub = React.memo(function PlayAreaHub({
           : 0;
       return total + count;
     }, 0);
-  }, [sessions]);
+  }, [sessions])
 
   // Derive hosting intent from URL parameters
   const boardIdFromUrl = searchParams?.get('boardId');
@@ -298,7 +301,7 @@ export const PlayAreaHub = React.memo(function PlayAreaHub({
 
   // Function to create virtual item style
   const createVirtualItemStyle = useCallback(
-    (virtualItem: any) => ({
+    (virtualItem: ReturnType<typeof virtualizer.getVirtualItems>[number]) => ({
       position: 'absolute' as const,
       top: 0,
       left: 0,
@@ -306,8 +309,8 @@ export const PlayAreaHub = React.memo(function PlayAreaHub({
       height: `${virtualItem.size}px`,
       transform: `translateY(${virtualItem.start}px)`,
     }),
-    []
-  );
+    [virtualizer]
+  )
 
   // Loading state
   if (authLoading || isLoading) {

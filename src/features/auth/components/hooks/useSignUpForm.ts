@@ -20,7 +20,6 @@ import {
 import { createFormPersistence } from '../../utils/persistence.utils';
 import {
   SIGNUP_FORM_CONFIG,
-  SIGNUP_MESSAGES,
   LOG_MESSAGES,
 } from '../constants';
 

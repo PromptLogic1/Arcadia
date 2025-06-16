@@ -6,9 +6,17 @@
 import { useMemo } from 'react';
 import { useBoardEditDataQuery } from '@/hooks/queries/useBingoBoardEditQueries';
 import type { BingoBoardDomain } from '@/types/domains/bingo';
+import type { BingoCard } from '@/types';
+import type { ServiceResponse } from '@/lib/service-types';
+
+// Type for the board edit response
+type BoardEditResponse = ServiceResponse<{
+  board: BingoBoardDomain;
+  cards: BingoCard[];
+}>;
 
 // Memoized selector to prevent object recreation
-const selectBoardOnly = (response: any) =>
+const selectBoardOnly = (response: BoardEditResponse) =>
   response?.success ? response.data?.board : null;
 
 export function useBoardData(boardId: string) {
@@ -28,14 +36,14 @@ export function useBoardData(boardId: string) {
   }, [queryError, boardData, isLoading]);
 
   return {
-    board: boardData as BingoBoardDomain | null,
+    board: boardData,
     isLoading,
     error,
   };
 }
 
 // Separate hook for board cards data
-const selectCardsOnly = (response: any) =>
+const selectCardsOnly = (response: BoardEditResponse) =>
   response?.success ? response.data?.cards : [];
 
 export function useBoardCards(boardId: string) {

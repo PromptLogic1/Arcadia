@@ -9,10 +9,8 @@ import { AccessibilityEnhancements } from './accessibility/AccessibilityEnhancem
 import { Suspense, lazy } from 'react';
 
 // Lazy load analytics to prevent blocking
-const AnalyticsWrapper = lazy(() =>
-  import('./analytics-wrapper').then(mod => ({
-    default: mod.AnalyticsWrapper,
-  }))
+const AnalyticsWrapper = lazy(
+  () => import('./analytics-wrapper').then(mod => ({ default: mod.AnalyticsWrapper }))
 );
 
 export function TemplateContent({ children }: { children: React.ReactNode }) {
