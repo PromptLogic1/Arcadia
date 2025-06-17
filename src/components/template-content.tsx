@@ -1,17 +1,13 @@
 'use client';
 
+import React, { Suspense } from 'react';
 import Header from './layout/Header';
 import Footer from './layout/Footer';
-import ScrollToTop from './ui/ScrollToTop';
+import { ScrollToTop } from './ui/ScrollToTop';
 import { ThemeWrapper } from './theme-wrapper';
 import { ServiceWorkerRegistration } from './ServiceWorkerRegistration';
 import { AccessibilityEnhancements } from './accessibility/AccessibilityEnhancements';
-import { Suspense, lazy } from 'react';
-
-// Lazy load analytics to prevent blocking
-const AnalyticsWrapper = lazy(
-  () => import('./analytics-wrapper').then(mod => ({ default: mod.AnalyticsWrapper }))
-);
+import { AnalyticsWrapper } from './analytics-wrapper';
 
 export function TemplateContent({ children }: { children: React.ReactNode }) {
   return (
@@ -41,10 +37,8 @@ export function TemplateContent({ children }: { children: React.ReactNode }) {
       </main>
       <Footer />
       <ScrollToTop />
-      {/* Analytics in Suspense boundary to prevent blocking */}
-      <Suspense fallback={null}>
-        <AnalyticsWrapper />
-      </Suspense>
+      {/* Analytics without Suspense since it's already using dynamic imports */}
+      <AnalyticsWrapper />
       {/* Service Worker Registration */}
       <ServiceWorkerRegistration />
       {/* Accessibility Enhancements */}

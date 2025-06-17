@@ -27,6 +27,7 @@ import { throttle } from '@/lib/throttle';
 import { useAuthStore, useAuthActions } from '@/lib/stores';
 import { useShallow } from 'zustand/shallow';
 import { NeonText } from '../ui/NeonText';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 // Navigation Item Interface
 interface NavItem {
@@ -49,7 +50,7 @@ const Header: React.FC = () => {
     }))
   );
 
-  const { clearUser } = useAuthActions();
+  const { signOut } = useAuthActions();
 
   // Memoize mobile menu style to prevent re-renders
   const mobileMenuStyle = useMemo(
@@ -114,7 +115,7 @@ const Header: React.FC = () => {
   );
 
   const handleSignOut = async () => {
-    clearUser();
+    await signOut();
   };
 
   // UI handlers
@@ -222,6 +223,9 @@ const Header: React.FC = () => {
           >
             <Search className="h-5 w-5" />
           </Button>
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Notifications */}
           <Popover>

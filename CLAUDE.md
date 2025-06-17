@@ -121,12 +121,12 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 
 ## Tech Stack
 
-- React 19.0.0 + Next.js 15.4.0-canary.83 (App Router) **⚠️ CRITICAL: Use Next.js canary for React 19 compatibility**
+- React 19.0.0 + Next.js 15.3.3 (App Router) ✅ STABLE VERSIONS
 - TypeScript 5.7.2 (strict mode) ✅
-- TanStack Query v5.80.5 + Zustand v5.0.5
-- Tailwind CSS v4.1.8 + shadcn/ui
-- Zod v3.25.42 ✅ + ESLint 8.57.1 ✅
-- Supabase 2.49.8 + Sentry 9.26.0 ✅
+- TanStack Query v5.80.7 + Zustand v5.0.5
+- Tailwind CSS v4.1.10 + shadcn/ui
+- Zod v3.25.64 ✅ + ESLint 9.29.0 ✅ (Flat Config)
+- Supabase 2.50.0 + Sentry 9.29.0 ✅
 - Upstash Redis 1.35.0 + Ratelimit 2.0.5 ✅
 
 ## Deployment & Local Development Rule (CRITICAL)
@@ -149,7 +149,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 
 ### ✅ **Critical Fixes (High Priority)**
 
-- ✅ ESLint TypeScript plugins updated (v7.18.0 → v8.34.0) - compatibility resolved
+- ✅ ESLint updated to v9.29.0 with flat config - TypeScript plugins v8.34.1 fully compatible
 - ✅ Virtualization threshold optimized (20 → 100 items) - better performance for large lists
 - ✅ React.memo added to heavy components (SessionCard, CreateBoardForm, GeneratorPanel)
 - ✅ Production CORS configured with dynamic NEXT_PUBLIC_APP_URL

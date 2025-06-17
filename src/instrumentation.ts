@@ -26,7 +26,7 @@ export const onRequestError = async (
     const Sentry = await import('@sentry/nextjs');
     // Create RequestInfo object with required properties
     let path = context.routePath || '/unknown';
-    
+
     // Safely parse URL if available
     if (request.url) {
       try {
@@ -37,7 +37,7 @@ export const onRequestError = async (
         path = context.routePath || '/unknown';
       }
     }
-    
+
     const requestInfo: SentryRequestInfo = {
       path,
       method: request.method || 'GET',

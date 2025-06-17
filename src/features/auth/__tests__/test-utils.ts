@@ -348,13 +348,14 @@ export const setupIntegrationTest = {
     mockClient.auth.signInWithPassword.mockResolvedValue(
       mockSupabaseResponse.success({ user: createMockUser(), session: null })
     );
-    mockClient
-      .from()
-      .select()
-      .eq()
-      .single.mockResolvedValue(
-        mockSupabaseResponse.success(createMockUserData())
-      );
+    const fromMock = mockClient.from();
+    // This is a mock chain, not DOM access - disable the false positive
+    // eslint-disable-next-line testing-library/no-node-access
+    const selectMock = fromMock.select();
+    const eqMock = selectMock.eq();
+    eqMock.single.mockResolvedValue(
+      mockSupabaseResponse.success(createMockUserData())
+    );
   },
 
   // Setup mock Supabase client for failed authentication

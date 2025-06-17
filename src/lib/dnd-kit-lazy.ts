@@ -2,8 +2,11 @@
  * Lazy loading wrapper for @dnd-kit to reduce bundle size
  */
 
-type DndKitCoreModule = typeof import('@dnd-kit/core');
-type DndKitUtilitiesModule = typeof import('@dnd-kit/utilities');
+import type * as DndKitCore from '@dnd-kit/core';
+import type * as DndKitUtilities from '@dnd-kit/utilities';
+
+type DndKitCoreModule = typeof DndKitCore;
+type DndKitUtilitiesModule = typeof DndKitUtilities;
 
 let dndKitCoreModule: DndKitCoreModule | null = null;
 let dndKitUtilitiesModule: DndKitUtilitiesModule | null = null;

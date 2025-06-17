@@ -178,7 +178,7 @@ export function trackTransaction<T>(
         // Fallback to just running the callback if Sentry is not available
         return callback();
       });
-  } catch (error) {
+  } catch {
     // Fallback to just running the callback if dynamic import is not supported
     return callback();
   }

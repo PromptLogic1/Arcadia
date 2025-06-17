@@ -2,7 +2,9 @@
  * Lazy loading wrapper for react-hook-form to reduce bundle size
  */
 
-type ReactHookFormModule = typeof import('react-hook-form');
+import type * as ReactHookForm from 'react-hook-form';
+
+type ReactHookFormModule = typeof ReactHookForm;
 
 let reactHookFormModule: ReactHookFormModule | null = null;
 let loadPromise: Promise<ReactHookFormModule> | null = null;

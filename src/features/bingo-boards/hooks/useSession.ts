@@ -56,7 +56,7 @@ export const useSession = ({
   } = useSessionState(sessionId, boardId);
 
   // Game state mutations
-  const markCellMutation = useMarkCellMutation(sessionId);
+  const markCellMutation = useMarkCellMutation();
   const completeGameMutation = useCompleteGameMutation();
 
   // Initialize or create session
@@ -108,6 +108,7 @@ export const useSession = ({
 
       try {
         await markCellMutation.mutateAsync({
+          sessionId,
           cell_position: position,
           user_id: authUser.id,
           action: 'mark',

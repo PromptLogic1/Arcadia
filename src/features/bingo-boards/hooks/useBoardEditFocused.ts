@@ -38,7 +38,8 @@ type BoardEditResponse = ServiceResponse<{
 // Memoized selector functions for query optimization
 const selectBoardData = (response: BoardEditResponse) =>
   response?.success ? response.data?.board : null;
-const _selectBoardError = (response: BoardEditResponse) => response?.error || null;
+const _selectBoardError = (response: BoardEditResponse) =>
+  response?.error || null;
 
 /**
  * Server state only - board data from queries
@@ -226,7 +227,7 @@ export const useBoardSaveActions = (boardId: string) => {
   const queryClient = useQueryClient();
   const { authUser } = useAuth();
   const { board } = useBoardData(boardId);
-  const { } = useBoardCards();
+  const {} = useBoardCards();
   const uiActions = useBoardEditActions();
   const _saveCardsMutation = useSaveCardsMutation();
   const updateBoardMutation = useUpdateBoardMutation();
@@ -251,13 +252,7 @@ export const useBoardSaveActions = (boardId: string) => {
     } finally {
       uiActions.setIsSaving(false);
     }
-  }, [
-    board,
-    authUser,
-    boardId,
-    queryClient,
-    uiActions,
-  ]);
+  }, [board, authUser, boardId, queryClient, uiActions]);
 
   const publishBoard = useCallback(async () => {
     if (!board) return;

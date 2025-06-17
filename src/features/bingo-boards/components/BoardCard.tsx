@@ -202,9 +202,15 @@ const BoardCard: React.FC<BoardCardProps> = ({ board }) => {
               size="sm"
               onClick={handlePlayBoard}
               disabled={isHosting}
-              className="h-9 w-9 border-0 bg-gradient-to-r from-cyan-500 to-purple-500 p-0 text-white shadow-lg shadow-cyan-500/30 transition-all hover:from-cyan-400 hover:to-purple-400 disabled:opacity-50"
+              className="relative h-9 w-9 border-0 bg-gradient-to-r from-cyan-500 to-purple-500 p-0 text-white shadow-lg shadow-cyan-500/30 transition-all hover:from-cyan-400 hover:to-purple-400 disabled:opacity-50"
             >
-              <Play className="h-5 w-5" />
+              {isHosting ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                </div>
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
               <span className="sr-only">
                 {isHosting ? 'Starting...' : 'Play Board'}
               </span>

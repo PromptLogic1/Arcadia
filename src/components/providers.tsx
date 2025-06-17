@@ -1,12 +1,11 @@
 'use client';
 
+import React, { Suspense, useState } from 'react';
 import { ThemeProvider } from './ui/ThemeProvider';
 import { AuthProvider } from './auth/auth-provider';
-import { Suspense } from 'react';
 import AuthLoader from './auth/auth-loader';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState } from 'react';
 import { BaseErrorBoundary } from './error-boundaries';
 import { AriaAnnouncerProvider } from './accessibility/AriaLiveRegion';
 
@@ -63,8 +62,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          forcedTheme="dark"
-          enableSystem={false}
+          enableSystem={true}
           disableTransitionOnChange
           storageKey="arcadia-theme"
         >

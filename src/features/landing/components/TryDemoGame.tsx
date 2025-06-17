@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -22,6 +22,7 @@ import {
   useJoinSessionByCodeMutation,
   useWaitingSessionsForBoards,
 } from '@/hooks/queries/useSessionsQueries';
+import { RouteErrorBoundary } from '@/components/error-boundaries';
 
 interface DemoBoard {
   id: string;
@@ -78,23 +79,13 @@ const gameTypeIcons = {
   'Apex Legends': '🎯',
 };
 
-function TryDemoGame() {
+function TryDemoGameContent() {
   const [selectedBoard, setSelectedBoard] = useState<DemoBoard | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [quickPlayInitiated, setQuickPlayInitiated] = useState(false);
   const { authUser } = useAuth();
   const router = useRouter();
-
-  // Add mountedRef to track component lifecycle
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   // Use TanStack Query mutations
   const createSessionMutation = useCreateSessionMutation();
@@ -116,7 +107,15 @@ function TryDemoGame() {
   };
 
   const createDemoSession = async () => {
-    if (!selectedBoard || !authUser?.id) return;
+    if (!selectedBoard) {
+      setError('Please select a board first');
+      return;
+    }
+
+    if (!authUser?.id) {
+      setError('Please sign in to create a session');
+      return;
+    }
 
     setError(null);
 
@@ -164,9 +163,6 @@ function TryDemoGame() {
           },
         }
       );
-
-      // Check if component is still mounted before updating state
-      if (!isMountedRef.current) return;
 
       setError(
         err instanceof Error ? err.message : 'Failed to create demo session'
@@ -219,9 +215,6 @@ function TryDemoGame() {
       const randomBoard =
         DEMO_BOARDS[Math.floor(Math.random() * DEMO_BOARDS.length)];
       if (randomBoard) {
-        // Check if component is still mounted before updating state
-        if (!isMountedRef.current) return;
-
         setSelectedBoard(randomBoard);
 
         const result = await createSessionMutation.mutateAsync({
@@ -268,15 +261,9 @@ function TryDemoGame() {
         }
       );
 
-      // Check if component is still mounted before updating state
-      if (!isMountedRef.current) return;
-
       setError(err instanceof Error ? err.message : 'Failed to join session');
     } finally {
-      // Check if component is still mounted before updating state
-      if (isMountedRef.current) {
-        setQuickPlayInitiated(false);
-      }
+      setQuickPlayInitiated(false);
     }
   };
 
@@ -340,8 +327,11 @@ function TryDemoGame() {
 
           <div className="flex justify-center gap-4">
             <Button
-              onClick={() => setSelectedBoard(null)}
-              variant="primary"
+              onClick={() => {
+                setSelectedBoard(null);
+                setError(null);
+              }}
+              variant="secondary"
               size="lg"
               disabled={
                 createSessionMutation.isPending ||
@@ -525,7 +515,10 @@ function TryDemoGame() {
                     variant="primary"
                     className="group-hover:variant-cyber w-full transition-all"
                     size="lg"
-                    onClick={() => handleQuickPlay(board)}
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleQuickPlay(board);
+                    }}
                     aria-label={`Play ${board.title} bingo board`}
                   >
                     <svg
@@ -614,6 +607,14 @@ function TryDemoGame() {
         </div>
       </div>
     </CyberpunkBackground>
+  );
+}
+
+function TryDemoGame() {
+  return (
+    <RouteErrorBoundary routeName="TryDemoGame">
+      <TryDemoGameContent />
+    </RouteErrorBoundary>
   );
 }
 

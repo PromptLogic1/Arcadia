@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home } from '@/components/ui/Icons';
 import Link from 'next/link';
 import { reportError, reportMessage } from '@/lib/error-reporting';
+import { log } from '@/lib/logger';
 
 export interface ErrorBoundaryState {
   hasError: boolean;
@@ -72,7 +73,10 @@ export class BaseErrorBoundary extends Component<
     };
 
     // Log error locally
-    console.error('Error boundary caught error:', error, errorContext);
+    log.error('Error boundary caught error', error, {
+      component: 'BaseErrorBoundary',
+      metadata: errorContext,
+    });
 
     // Send to Sentry with additional context
     const sentryEventId = reportError(error, {
@@ -84,24 +88,18 @@ export class BaseErrorBoundary extends Component<
     });
 
     // Store error info and Sentry event ID
-    if (sentryEventId) {
-      this.setState({
-        errorInfo,
-        sentryEventId,
-      });
-    } else {
-      this.setState({
-        errorInfo,
-      });
-    }
+    this.setState({
+      errorInfo,
+      sentryEventId,
+    });
 
     // Call custom error handler if provided
     onError?.(error, errorInfo, errorId);
 
     // If we're getting too many errors, reload the page after a delay
     if (this.errorCounter > 3) {
-      console.error('Too many errors detected, scheduling page reload', {
-        errorCount: this.errorCounter,
+      log.error('Too many errors detected, scheduling page reload', undefined, {
+        metadata: { errorCount: this.errorCounter },
       });
 
       // Report excessive errors to Sentry

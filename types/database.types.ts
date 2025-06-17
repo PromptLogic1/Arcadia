@@ -1706,6 +1706,63 @@ export type Database = {
           },
         ];
       };
+      user_notification_settings: {
+        Row: {
+          achievement_notifications: boolean | null;
+          challenge_notifications: boolean | null;
+          community_updates: boolean | null;
+          created_at: string | null;
+          email_notifications: boolean | null;
+          friend_activity: boolean | null;
+          friend_requests: boolean | null;
+          game_invites: boolean | null;
+          game_updates: boolean | null;
+          id: string;
+          maintenance_alerts: boolean | null;
+          marketing_emails: boolean | null;
+          push_notifications: boolean | null;
+          updated_at: string | null;
+          user_id: string;
+          weekly_digest: boolean | null;
+        };
+        Insert: {
+          achievement_notifications?: boolean | null;
+          challenge_notifications?: boolean | null;
+          community_updates?: boolean | null;
+          created_at?: string | null;
+          email_notifications?: boolean | null;
+          friend_activity?: boolean | null;
+          friend_requests?: boolean | null;
+          game_invites?: boolean | null;
+          game_updates?: boolean | null;
+          id?: string;
+          maintenance_alerts?: boolean | null;
+          marketing_emails?: boolean | null;
+          push_notifications?: boolean | null;
+          updated_at?: string | null;
+          user_id: string;
+          weekly_digest?: boolean | null;
+        };
+        Update: {
+          achievement_notifications?: boolean | null;
+          challenge_notifications?: boolean | null;
+          community_updates?: boolean | null;
+          created_at?: string | null;
+          email_notifications?: boolean | null;
+          friend_activity?: boolean | null;
+          friend_requests?: boolean | null;
+          game_invites?: boolean | null;
+          game_updates?: boolean | null;
+          id?: string;
+          maintenance_alerts?: boolean | null;
+          marketing_emails?: boolean | null;
+          push_notifications?: boolean | null;
+          updated_at?: string | null;
+          user_id?: string;
+          weekly_digest?: boolean | null;
+        };
+        Relationships: [];
+      };
       user_sessions: {
         Row: {
           created_at: string | null;

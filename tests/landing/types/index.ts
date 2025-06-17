@@ -1,0 +1,390 @@
+/**
+ * Type definitions for landing page tests
+ * Ensures type safety across all test scenarios
+ */
+
+/**
+ * Core Web Vitals and performance metrics (2024 Standards)
+ */
+export interface PerformanceMetrics {
+  // Navigation Timing metrics
+  domContentLoaded: number;
+  load: number;
+  firstPaint: number;
+  firstContentfulPaint: number;
+  
+  // Core Web Vitals (2024 Standards)
+  largestContentfulPaint: number;
+  cumulativeLayoutShift: number;
+  interactionToNextPaint: number; // Replaces FID in 2024
+  firstInputDelay: number; // Legacy support
+  
+  // Additional metrics
+  timeToInteractive: number;
+  totalBlockingTime: number;
+  speedIndex: number;
+  
+  // Resource metrics
+  totalRequests: number;
+  totalSize: number;
+  cachedRequests: number;
+  
+  // Memory metrics
+  jsHeapUsed: number;
+  jsHeapTotal: number;
+  
+  // Performance grading
+  performanceGrade: 'Good' | 'Needs Improvement' | 'Poor';
+}
+
+/**
+ * Viewport configuration for responsive testing
+ */
+export interface ViewportConfig {
+  width: number;
+  height: number;
+  name: string;
+  deviceScaleFactor?: number;
+  isMobile?: boolean;
+  hasTouch?: boolean;
+  userAgent?: string;
+}
+
+/**
+ * Meta tag validation rules
+ */
+export interface MetaTagValidation {
+  property: string;
+  content: string | RegExp;
+  required: boolean;
+  maxLength?: number;
+  minLength?: number;
+}
+
+/**
+ * SEO validation configuration
+ */
+export interface SEOValidation {
+  title: {
+    minLength: number;
+    maxLength: number;
+    required: string[];
+  };
+  description: {
+    minLength: number;
+    maxLength: number;
+    required: string[];
+  };
+  openGraph: MetaTagValidation[];
+  twitter: MetaTagValidation[];
+  structuredData: {
+    types: string[];
+    required: boolean;
+  };
+  jsonLD: {
+    schemas: StructuredDataSchema[];
+    required: boolean;
+  };
+  socialMedia: {
+    platforms: SocialMediaPlatform[];
+    validationRules: SocialMediaValidation[];
+  };
+}
+
+/**
+ * Structured data schema validation
+ */
+export interface StructuredDataSchema {
+  type: string;
+  required: string[];
+  optional?: string[];
+  validation?: Record<string, (value: any) => boolean>;
+}
+
+/**
+ * Social media platform configuration
+ */
+export interface SocialMediaPlatform {
+  name: string;
+  metaPrefix: string;
+  requiredTags: string[];
+  validationRules: Record<string, RegExp | ((value: string) => boolean)>;
+}
+
+/**
+ * Social media validation rules
+ */
+export interface SocialMediaValidation {
+  platform: string;
+  rules: {
+    imageSize?: { width: number; height: number };
+    titleLength?: { min: number; max: number };
+    descriptionLength?: { min: number; max: number };
+  };
+}
+
+/**
+ * Analytics event structure
+ */
+export interface AnalyticsEvent {
+  eventName: string;
+  category: string;
+  action: string;
+  label?: string;
+  value?: number;
+  timestamp?: number;
+  sessionId?: string;
+  userId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Marketing conversion funnel stages
+ */
+export interface ConversionFunnel {
+  name: string;
+  stages: ConversionStage[];
+  expectedDuration: number;
+}
+
+export interface ConversionStage {
+  name: string;
+  url: string;
+  events: AnalyticsEvent[];
+  expectedMetrics: {
+    dropoffRate?: number;
+    averageTime?: number;
+  };
+}
+
+/**
+ * A/B test configuration
+ */
+export interface ABTestConfig {
+  name: string;
+  variants: ABTestVariant[];
+  metrics: string[];
+  duration: number;
+}
+
+export interface ABTestVariant {
+  id: string;
+  name: string;
+  weight: number;
+  changes: Array<{
+    selector: string;
+    property: string;
+    value: string;
+  }>;
+}
+
+/**
+ * Bundle analysis results
+ */
+export interface BundleMetrics {
+  mainBundle: number;
+  vendorBundle: number;
+  cssBundle: number;
+  totalSize: number;
+  gzipSize: number;
+  brotliSize: number;
+  chunks: Array<{
+    name: string;
+    size: number;
+    gzipSize: number;
+  }>;
+  assets: Array<{
+    name: string;
+    size: number;
+    type: string;
+  }>;
+}
+
+/**
+ * Lighthouse audit results
+ */
+export interface LighthouseResults {
+  performance: number;
+  accessibility: number;
+  bestPractices: number;
+  seo: number;
+  pwa: number;
+  metrics: {
+    firstContentfulPaint: number;
+    speedIndex: number;
+    largestContentfulPaint: number;
+    timeToInteractive: number;
+    totalBlockingTime: number;
+    cumulativeLayoutShift: number;
+  };
+  audits: Record<string, {
+    score: number;
+    displayValue?: string;
+    description: string;
+  }>;
+}
+
+/**
+ * Visual regression test result
+ */
+export interface VisualRegressionResult {
+  testName: string;
+  viewport: ViewportConfig;
+  baselineImage: string;
+  currentImage: string;
+  diffImage?: string;
+  diffPercentage: number;
+  passed: boolean;
+  threshold: number;
+}
+
+/**
+ * Network conditions for performance testing
+ */
+export interface NetworkCondition {
+  name: string;
+  downloadThroughput: number;
+  uploadThroughput: number;
+  latency: number;
+  offline?: boolean;
+}
+
+/**
+ * Test configuration
+ */
+export interface LandingTestConfig {
+  baseUrl: string;
+  viewports: ViewportConfig[];
+  networkConditions: NetworkCondition[];
+  performanceBudgets: PerformanceBudget[];
+  seoValidation: SEOValidation;
+  analyticsConfig: {
+    enabled: boolean;
+    debugMode: boolean;
+    expectedEvents: AnalyticsEvent[];
+  };
+}
+
+/**
+ * Performance budget configuration
+ */
+export interface PerformanceBudget {
+  metric: keyof PerformanceMetrics;
+  budget: number;
+  unit: 'ms' | 'bytes' | 'number' | 'score';
+  severity: 'error' | 'warning';
+}
+
+/**
+ * Test result summary
+ */
+export interface TestResultSummary {
+  testName: string;
+  timestamp: Date;
+  duration: number;
+  passed: boolean;
+  performance: PerformanceMetrics;
+  lighthouse?: LighthouseResults;
+  bundleAnalysis?: BundleMetrics;
+  visualRegression?: VisualRegressionResult[];
+  analytics?: AnalyticsEvent[];
+  errors: Array<{
+    type: string;
+    message: string;
+    stack?: string;
+  }>;
+}
+
+/**
+ * Landing page sections for testing
+ */
+export type LandingPageSection = 
+  | 'hero'
+  | 'features'
+  | 'demo'
+  | 'testimonials'
+  | 'pricing'
+  | 'faq'
+  | 'cta'
+  | 'footer';
+
+/**
+ * Marketing tag types
+ */
+export type MarketingTagType = 
+  | 'google-analytics'
+  | 'google-tag-manager'
+  | 'facebook-pixel'
+  | 'linkedin-insight'
+  | 'twitter-pixel'
+  | 'hotjar'
+  | 'segment';
+
+/**
+ * Accessibility test result
+ */
+export interface AccessibilityResult {
+  violations: Array<{
+    id: string;
+    impact: 'minor' | 'moderate' | 'serious' | 'critical';
+    description: string;
+    help: string;
+    helpUrl: string;
+    tags: string[];
+    nodes: Array<{
+      html: string;
+      target: string[];
+      failureSummary?: string;
+      element?: string;
+    }>;
+  }>;
+  passes: Array<{
+    id: string;
+    description: string;
+    nodes: Array<{
+      html: string;
+      target: string[];
+    }>;
+  }>;
+  incomplete: Array<{
+    id: string;
+    description: string;
+    nodes: Array<{
+      html: string;
+      target: string[];
+    }>;
+  }>;
+  wcagLevel: 'A' | 'AA' | 'AAA';
+  testEngine: {
+    name: string;
+    version: string;
+  };
+  testRunner: {
+    name: string;
+    version: string;
+  };
+  url: string;
+  timestamp: string;
+  summary: {
+    totalViolations: number;
+    criticalViolations: number;
+    seriousViolations: number;
+    moderateViolations: number;
+    minorViolations: number;
+    passedRules: number;
+    incompleteRules: number;
+  };
+}
+
+/**
+ * Accessibility testing configuration
+ */
+export interface AccessibilityConfig {
+  wcagLevel: 'A' | 'AA' | 'AAA';
+  tags: string[];
+  rules: Record<string, { enabled: boolean }>;
+  includeTags?: string[];
+  excludeTags?: string[];
+  disableRules?: string[];
+  resultTypes?: Array<'violations' | 'incomplete' | 'passes'>;
+}

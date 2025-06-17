@@ -117,7 +117,7 @@ const nextConfig: NextConfig = {
     // Production optimizations
     serverMinification: true,
     serverSourceMaps: false,
-    // Disable webpack build worker temporarily to fix module resolution
+    // Disable webpack build worker to fix module resolution issues
     webpackBuildWorker: false,
     // Enable optimizePackageImports for better tree shaking
     optimizePackageImports: [
@@ -133,11 +133,20 @@ const nextConfig: NextConfig = {
     // Enable typed routes for better type safety
     typedRoutes: true,
     // Enable CSS chunking for better performance (default but explicit)
-    cssChunking: true,
+    cssChunking: 'strict',
     // Enable Web Vitals attribution for debugging
     webVitalsAttribution: ['CLS', 'LCP', 'FCP', 'TTFB', 'INP'],
-    // Disable memory optimizations temporarily
+    // Disable memory optimizations to fix module loading
     webpackMemoryOptimizations: false,
+    // Add turbo configuration to improve development performance
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   env: {
     EDGE_CONFIG_ID: process.env.EDGE_CONFIG_ID,
@@ -258,27 +267,30 @@ const nextConfig: NextConfig = {
         child_process: false,
       };
 
-      // Add optimization for module resolution
+      // Fix module resolution to prevent "Cannot read properties of undefined" errors
+      config.resolve = {
+        ...config.resolve,
+        // Ensure proper extension resolution order
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        // Add specific module directories
+        modules: ['node_modules', ...(config.resolve.modules || [])],
+        // Add alias for proper module resolution
+        alias: {
+          ...config.resolve.alias,
+          '@': require('path').resolve(__dirname, 'src'),
+        },
+      };
+
+      // Simplified optimization for module resolution
       config.optimization = {
         ...config.optimization,
         moduleIds: 'deterministic',
         chunkIds: 'deterministic',
-        // Ensure proper module concatenation
+        // Keep module concatenation for tree shaking
         concatenateModules: true,
-        // Add runtime chunk optimization
+        // Use default runtime chunk behavior to avoid issues
         runtimeChunk: false,
       };
-
-      // Add specific resolve configuration for development
-      if (dev) {
-        config.resolve = {
-          ...config.resolve,
-          // Ensure proper extension resolution order
-          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
-          // Add specific module directories
-          modules: ['node_modules', ...config.resolve.modules || []],
-        };
-      }
     }
 
     // Handle worker files if you actually need them

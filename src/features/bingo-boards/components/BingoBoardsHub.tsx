@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { PlusCircle, Grid } from '@/components/ui/Icons';
 import { Input } from '@/components/ui/Input';
 import {
@@ -16,16 +17,21 @@ import { default as BoardCard } from './BoardCard';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for CreateBoardForm (only load when needed)
-const CreateBoardForm = dynamic(() => import('./CreateBoardForm').then(mod => ({ default: mod.CreateBoardForm })), {
-  loading: () => <LoadingSpinner size="sm" />,
-  ssr: false, // Form is interactive, no need for SSR
-});
+const CreateBoardForm = dynamic(
+  () =>
+    import('./CreateBoardForm').then(mod => ({ default: mod.CreateBoardForm })),
+  {
+    loading: () => <LoadingSpinner size="sm" />,
+    ssr: false, // Form is interactive, no need for SSR
+  }
+);
 import { NeonText } from '@/components/ui/NeonText';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useBingoBoardsHub } from '../hooks/useBingoBoardsHub';
 import { useBingoBoardsVirtualization } from '../hooks/useBingoBoardsVirtualization';
 import { useDebouncedCallback } from '@/hooks/useDebounce';
+import { BaseErrorBoundary } from '@/components/error-boundaries';
 import type { VirtualItem } from '@tanstack/react-virtual';
 import {
   Constants as _Constants,
@@ -112,7 +118,13 @@ const BingoBoardsHub = React.memo(function BingoBoardsHub() {
   return (
     <div className="space-y-6">
       {/* Simple Filter Bar */}
-      <div className="bg-card flex flex-wrap gap-4 rounded-lg border p-4">
+      <div className="bg-card relative flex flex-wrap gap-4 rounded-lg border p-4">
+        {/* Loading overlay for filter changes */}
+        {isFetching && !isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-gray-900/50">
+            <LoadingSpinner size="sm" />
+          </div>
+        )}
         <div className="min-w-[200px] flex-1">
           <Input
             placeholder="Search boards..."
@@ -153,7 +165,83 @@ const BingoBoardsHub = React.memo(function BingoBoardsHub() {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Clear Filters Button */}
+        {(filterSelections.search !== '' ||
+          filterSelections.difficulty !== 'all' ||
+          filterSelections.sort !== 'newest') && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearchValue('');
+              handleFilterChange('search', '');
+              handleFilterChange('difficulty', 'all');
+              handleFilterChange('sort', 'newest');
+            }}
+            className="text-cyan-400 hover:text-cyan-300"
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
+
+      {/* Active Filters Display */}
+      {(filterSelections.search !== '' ||
+        filterSelections.difficulty !== 'all' ||
+        filterSelections.sort !== 'newest') && (
+        <div className="flex flex-wrap gap-2">
+          {filterSelections.search && (
+            <Badge
+              variant="secondary"
+              className="flex items-center gap-1 bg-cyan-500/10 text-cyan-300"
+            >
+              Search: {filterSelections.search}
+              <button
+                onClick={() => {
+                  setSearchValue('');
+                  handleFilterChange('search', '');
+                }}
+                className="ml-1 hover:text-cyan-100"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+          {filterSelections.difficulty !== 'all' && (
+            <Badge
+              variant="secondary"
+              className="flex items-center gap-1 bg-cyan-500/10 text-cyan-300"
+            >
+              Difficulty: {filterSelections.difficulty}
+              <button
+                onClick={() => handleFilterChange('difficulty', 'all')}
+                className="ml-1 hover:text-cyan-100"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+          {filterSelections.sort !== 'newest' && (
+            <Badge
+              variant="secondary"
+              className="flex items-center gap-1 bg-cyan-500/10 text-cyan-300"
+            >
+              Sort:{' '}
+              {
+                sortOptions.find(opt => opt.value === filterSelections.sort)
+                  ?.label
+              }
+              <button
+                onClick={() => handleFilterChange('sort', 'newest')}
+                className="ml-1 hover:text-cyan-100"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold">
@@ -251,11 +339,13 @@ const BingoBoardsHub = React.memo(function BingoBoardsHub() {
         </div>
       )}
 
-      <CreateBoardForm
-        isOpen={isCreateFormOpen}
-        onOpenChange={setIsCreateFormOpen}
-        createBoardAction={handleCreateBoard}
-      />
+      <BaseErrorBoundary level="component">
+        <CreateBoardForm
+          isOpen={isCreateFormOpen}
+          onOpenChange={setIsCreateFormOpen}
+          createBoardAction={handleCreateBoard}
+        />
+      </BaseErrorBoundary>
     </div>
   );
 });

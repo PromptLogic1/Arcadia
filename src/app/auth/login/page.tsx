@@ -4,9 +4,15 @@ import dynamic from 'next/dynamic';
 import type { Metadata } from 'next';
 
 // Dynamic import for LoginForm (heavy form with validation)
-const LoginForm = dynamic(() => import('@/features/auth/components/LoginForm').then(mod => ({ default: mod.LoginForm })), {
-  loading: () => <LoadingSpinner />,
-});
+const LoginForm = dynamic(
+  () =>
+    import('@/features/auth/components/LoginForm').then(mod => ({
+      default: mod.LoginForm,
+    })),
+  {
+    loading: () => <LoadingSpinner />,
+  }
+);
 
 export const metadata: Metadata = {
   title: 'Sign In | Arcadia',

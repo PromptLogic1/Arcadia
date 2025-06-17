@@ -95,6 +95,15 @@ import {
   Package2,
   TrendingUp,
   Shuffle,
+  MessageSquare,
+  Sun,
+  Moon,
+  Monitor,
+  Target,
+  Square,
+  Upload,
+  Camera,
+  UserCheck,
 } from 'lucide-react';
 
 // Re-export with consistent naming for the app
@@ -205,6 +214,15 @@ export {
   Package2 as Package2Icon,
   TrendingUp as TrendingUpIcon,
   Shuffle as ShuffleIcon,
+  MessageSquare as MessageSquareIcon,
+  Sun as SunIcon,
+  Moon as MoonIcon,
+  Monitor as MonitorIcon,
+  Target as TargetIcon,
+  Square as SquareIcon,
+  Upload as UploadIcon,
+  Camera as CameraIcon,
+  UserCheck as UserCheckIcon,
 };
 
 // Also export without "Icon" suffix for convenience
@@ -289,4 +307,13 @@ export {
   TrendingUp,
   Shuffle,
   CheckCircle,
+  MessageSquare,
+  Sun,
+  Moon,
+  Monitor,
+  Target,
+  Square,
+  Upload,
+  Camera,
+  UserCheck,
 };

@@ -74,8 +74,8 @@ const DiscussionsList = memo(function DiscussionsList({
   comments: Comment[];
   selectedDiscussion: Discussion | null;
   onDiscussionToggle: (discussion: Discussion | null) => void;
-  onUpvote: (id: number) => void;
-  onComment: (id: number, data: CommentFormData) => void;
+  onUpvote: (id: number) => Promise<void>;
+  onComment: (id: number, data: CommentFormData) => Promise<void>;
   virtualizer: VirtualizerType;
   parentRef: React.RefObject<HTMLDivElement | null>;
   isLoading: boolean;
@@ -304,8 +304,8 @@ export function Community({ className }: CommunityProps) {
   }, []);
 
   const handleCreateDiscussionSubmit = useCallback(
-    (formData: CreateDiscussionFormData) => {
-      handleCreateDiscussion(formData);
+    async (formData: CreateDiscussionFormData) => {
+      await handleCreateDiscussion(formData);
       setIsCreateDiscussionOpen(false);
     },
     [handleCreateDiscussion]
@@ -376,6 +376,7 @@ export function Community({ className }: CommunityProps) {
         <CreateDiscussionForm
           onClose={handleCreateDiscussionClose}
           onSubmit={handleCreateDiscussionSubmit}
+          isSubmitting={loading}
         />
       )}
     </div>

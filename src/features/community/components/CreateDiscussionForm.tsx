@@ -24,12 +24,14 @@ interface CreateDiscussionFormProps {
     game: string;
     challenge_type?: string | null;
     tags?: string[] | null;
-  }) => void;
+  }) => Promise<void>;
+  isSubmitting?: boolean;
 }
 
 const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
   onClose,
   onSubmit,
+  isSubmitting = false,
 }) => {
   const [selectedGame, setSelectedGame] = useState('All Games');
   const [selectedChallenge, setSelectedChallenge] = useState('All Challenges');
@@ -66,10 +68,12 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm() || isProcessing || isSubmitting) return;
 
     const formData = {
       title: title.trim(),
@@ -80,8 +84,14 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
       tags: tags.length > 0 ? tags : null,
     };
 
-    onSubmit?.(formData);
-    onClose();
+    setIsProcessing(true);
+    try {
+      await onSubmit?.(formData);
+      onClose();
+    } catch {
+      // Error is handled by the mutation hook
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -105,6 +115,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
               value={title}
               onChange={e => setTitle(e.target.value)}
               className={`border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500 ${errors.title ? 'border-red-500' : ''}`}
+              disabled={isProcessing || isSubmitting}
             />
             {errors.title && (
               <p className="text-sm text-red-500">{errors.title}</p>
@@ -115,12 +126,14 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
             <label className="text-sm font-medium text-gray-200">
               Game & Challenge Type
             </label>
-            <CommunityGameFilters
-              selectedGame={selectedGame}
-              selectedChallenge={selectedChallenge}
-              onGameChange={setSelectedGame}
-              onChallengeChange={setSelectedChallenge}
-            />
+            <fieldset disabled={isProcessing || isSubmitting}>
+              <CommunityGameFilters
+                selectedGame={selectedGame}
+                selectedChallenge={selectedChallenge}
+                onGameChange={setSelectedGame}
+                onChallengeChange={setSelectedChallenge}
+              />
+            </fieldset>
             {errors.game && (
               <p className="text-sm text-red-500">{errors.game}</p>
             )}
@@ -133,6 +146,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
               value={content}
               onChange={e => setContent(e.target.value)}
               className={`min-h-[200px] border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500 ${errors.content ? 'border-red-500' : ''}`}
+              disabled={isProcessing || isSubmitting}
             />
             {errors.content && (
               <p className="text-sm text-red-500">{errors.content}</p>
@@ -148,7 +162,7 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               onKeyDown={handleAddTag}
-              disabled={tags.length >= 5}
+              disabled={tags.length >= 5 || isProcessing || isSubmitting}
               className="border-gray-600 bg-gray-700/50 transition-colors focus:border-cyan-500"
             />
             <div className="mt-2 flex flex-wrap gap-2">
@@ -174,14 +188,18 @@ const CreateDiscussionForm: React.FC<CreateDiscussionFormProps> = ({
               variant="secondary"
               onClick={onClose}
               className="border-gray-600 bg-gray-700/50 transition-colors hover:bg-gray-600"
+              disabled={isProcessing || isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white transition-all hover:from-cyan-600 hover:to-fuchsia-600"
+              disabled={isProcessing || isSubmitting}
             >
-              Create Discussion
+              {isProcessing || isSubmitting
+                ? 'Creating...'
+                : 'Create Discussion'}
             </Button>
           </DialogFooter>
         </form>

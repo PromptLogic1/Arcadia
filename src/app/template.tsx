@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Providers } from '../components/providers';
 import { SafeRootWrapper } from '../components/error-boundaries/SafeRootWrapper';
 import { TemplateContent } from '../components/template-content';

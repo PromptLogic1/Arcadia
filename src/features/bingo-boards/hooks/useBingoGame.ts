@@ -30,10 +30,10 @@ export function useBingoGame(sessionId: string) {
     useGamePlayersQuery(sessionId);
 
   const board = useMemo(
-    () => boardData?.data?.boardState || [],
-    [boardData?.data?.boardState]
+    () => boardData?.boardState || [],
+    [boardData?.boardState]
   );
-  const version = boardData?.data?.version || 0;
+  const version = boardData?.version || 0;
 
   const { mutate: completeGame, isPending: isCompleting } =
     useCompleteGameMutation();
@@ -66,7 +66,7 @@ export function useBingoGame(sessionId: string) {
 
   // Mutations
   const startGameMutation = useStartGameSessionMutation();
-  const markCellMutation = useMarkCellMutation(sessionId);
+  const markCellMutation = useMarkCellMutation();
 
   // Derived state
   const loading =
@@ -78,6 +78,7 @@ export function useBingoGame(sessionId: string) {
     async (cellPosition: number, userId: string) => {
       try {
         await markCellMutation.mutateAsync({
+          sessionId,
           cell_position: cellPosition,
           user_id: userId,
           action: 'mark',
@@ -88,13 +89,14 @@ export function useBingoGame(sessionId: string) {
         // Just prevent unhandled promise rejection
       }
     },
-    [markCellMutation, version]
+    [markCellMutation, sessionId, version]
   );
 
   const unmarkCell = useCallback(
     async (cellPosition: number, userId: string) => {
       try {
         await markCellMutation.mutateAsync({
+          sessionId,
           cell_position: cellPosition,
           user_id: userId,
           action: 'unmark',
@@ -105,7 +107,7 @@ export function useBingoGame(sessionId: string) {
         // Just prevent unhandled promise rejection
       }
     },
-    [markCellMutation, version]
+    [markCellMutation, sessionId, version]
   );
 
   const startGame = useCallback(async () => {

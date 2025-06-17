@@ -8,11 +8,6 @@ interface UseIdleCallbackOptions {
 // Standard IdleRequestCallback type is available globally
 // No need to redeclare these types
 
-interface IdleDeadline {
-  didTimeout: boolean;
-  timeRemaining(): number;
-}
-
 // Polyfill for browsers that don't support requestIdleCallback
 function requestIdleCallbackPolyfill(
   callback: IdleRequestCallback,
@@ -81,7 +76,7 @@ export function useIdleCallback(
         idleIdRef.current = null;
       }
     };
-  }, [...deps, enabled, timeout]);
+  }, [callback, enabled, timeout]);
 
   const cancelIdleCallback = useCallback(() => {
     if (idleIdRef.current !== null) {
@@ -153,8 +148,11 @@ export function useIdleBatch<T>(
     const endIndex = Math.min(startIndex + batchSize, items.length);
 
     for (let i = startIndex; i < endIndex; i++) {
-      processor(items[i]!);
-      processedCountRef.current++;
+      const item = items[i];
+      if (item !== undefined) {
+        processor(item);
+        processedCountRef.current++;
+      }
     }
 
     currentIndexRef.current = endIndex;

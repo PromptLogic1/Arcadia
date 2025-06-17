@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { log } from '@/lib/logger';
 
 export function ServiceWorkerRegistration(): null {
   useEffect(() => {
@@ -40,17 +41,17 @@ export function ServiceWorkerRegistration(): null {
 
           // SW activated
           if (registration.active) {
-            console.log('Service Worker active');
+            log.info('Service Worker active');
           }
 
           // Listen for messages from SW
           navigator.serviceWorker.addEventListener('message', event => {
             if (event.data && event.data.type === 'CACHE_UPDATED') {
-              console.log('Cache updated:', event.data.url);
+              log.info('Cache updated', { metadata: { url: event.data.url } });
             }
           });
         } catch (error) {
-          console.error('Service Worker registration failed:', error);
+          log.error('Service Worker registration failed', error as Error);
         }
       };
 
@@ -75,11 +76,11 @@ export function usePWAInstall() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       // Show custom install button/banner
-      console.log('PWA install prompt available');
+      log.info('PWA install prompt available');
     };
 
     const handleAppInstalled = () => {
-      console.log('PWA was installed');
+      log.info('PWA was installed');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

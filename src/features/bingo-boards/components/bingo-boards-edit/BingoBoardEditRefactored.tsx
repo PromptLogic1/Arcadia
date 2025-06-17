@@ -98,12 +98,8 @@ const BingoBoardEditRefactoredComponent = ({
   } = useBoardUIState();
   const uiActions = useBoardActions(boardId);
   const saveActions = useBoardSaveActions(boardId);
-  const {
-    gridCards,
-    privateCards,
-    moveCardToGrid,
-    removeCardFromGrid,
-  } = useBoardGridOperations(boardId);
+  const { gridCards, privateCards, moveCardToGrid, removeCardFromGrid } =
+    useBoardGridOperations(boardId);
   const cardOperations = useCardOperations(boardId);
 
   // Drag and drop state

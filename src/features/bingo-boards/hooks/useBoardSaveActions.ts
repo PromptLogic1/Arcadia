@@ -20,7 +20,6 @@ import type { BoardEditData } from '@/services/bingo-board-edit.service';
 import type { BingoBoardDomain } from '@/types/domains/bingo';
 import type { ServiceResponse } from '@/lib/service-types';
 
-
 export function useBoardSaveActions(boardId: string) {
   const queryClient = useQueryClient();
   const { authUser } = useAuth();

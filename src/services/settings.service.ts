@@ -38,9 +38,16 @@ export interface ProfileUpdateData {
 export interface NotificationSettingsData {
   email_notifications?: boolean;
   push_notifications?: boolean;
-  game_invites?: boolean;
   friend_requests?: boolean;
-  tournament_updates?: boolean;
+  friend_activity?: boolean;
+  game_invites?: boolean;
+  game_updates?: boolean;
+  challenge_notifications?: boolean;
+  achievement_notifications?: boolean;
+  community_updates?: boolean;
+  marketing_emails?: boolean;
+  weekly_digest?: boolean;
+  maintenance_alerts?: boolean;
 }
 
 export const settingsService = {
@@ -238,24 +245,118 @@ export const settingsService = {
   },
 
   /**
+   * Get notification settings
+   */
+  async getNotificationSettings(
+    userId: string
+  ): Promise<ServiceResponse<NotificationSettingsData>> {
+    try {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from('user_notification_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        // If settings don't exist, return defaults
+        if (error.code === 'PGRST116') {
+          return createServiceSuccess({
+            email_notifications: true,
+            push_notifications: false,
+            friend_requests: true,
+            friend_activity: true,
+            game_invites: true,
+            game_updates: true,
+            challenge_notifications: true,
+            achievement_notifications: true,
+            community_updates: true,
+            marketing_emails: false,
+            weekly_digest: true,
+            maintenance_alerts: true,
+          });
+        }
+
+        logger.error('Failed to fetch notification settings', error, {
+          metadata: { userId },
+        });
+        return createServiceError(error.message);
+      }
+
+      const settings: NotificationSettingsData = {
+        email_notifications: data.email_notifications ?? true,
+        push_notifications: data.push_notifications ?? false,
+        friend_requests: data.friend_requests ?? true,
+        friend_activity: data.friend_activity ?? true,
+        game_invites: data.game_invites ?? true,
+        game_updates: data.game_updates ?? true,
+        challenge_notifications: data.challenge_notifications ?? true,
+        achievement_notifications: data.achievement_notifications ?? true,
+        community_updates: data.community_updates ?? true,
+        marketing_emails: data.marketing_emails ?? false,
+        weekly_digest: data.weekly_digest ?? true,
+        maintenance_alerts: data.maintenance_alerts ?? true,
+      };
+      return createServiceSuccess(settings);
+    } catch (error) {
+      const errorToLog =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Unexpected error in getNotificationSettings', errorToLog, {
+        metadata: { userId },
+      });
+      return createServiceError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch notification settings'
+      );
+    }
+  },
+
+  /**
    * Update notification settings
-   * Note: For now, this is a placeholder since notification settings
-   * would be stored in a separate table or as JSON in the future
    */
   async updateNotificationSettings(
     userId: string,
     settings: NotificationSettingsData
-  ): Promise<ServiceResponse<{ message: string }>> {
+  ): Promise<ServiceResponse<NotificationSettingsData>> {
     try {
-      // For now, just return success as notification settings
-      // would need a dedicated table or JSON column
-      logger.info('Notification settings update requested', {
-        userId,
-        metadata: { settings },
-      });
-      return createServiceSuccess({ message: 'Settings updated successfully' });
+      const supabase = createClient();
+
+      // Upsert settings
+      const { data, error } = await supabase
+        .from('user_notification_settings')
+        .upsert({
+          user_id: userId,
+          ...settings,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('Failed to update notification settings', error, {
+          metadata: { userId, settings },
+        });
+        return createServiceError(error.message);
+      }
+
+      const updatedSettings: NotificationSettingsData = {
+        email_notifications: data.email_notifications ?? true,
+        push_notifications: data.push_notifications ?? false,
+        friend_requests: data.friend_requests ?? true,
+        friend_activity: data.friend_activity ?? true,
+        game_invites: data.game_invites ?? true,
+        game_updates: data.game_updates ?? true,
+        challenge_notifications: data.challenge_notifications ?? true,
+        achievement_notifications: data.achievement_notifications ?? true,
+        community_updates: data.community_updates ?? true,
+        marketing_emails: data.marketing_emails ?? false,
+        weekly_digest: data.weekly_digest ?? true,
+        maintenance_alerts: data.maintenance_alerts ?? true,
+      };
+      return createServiceSuccess(updatedSettings);
     } catch (error) {
-      // Ensure error is properly typed before logging
       const errorToLog =
         error instanceof Error ? error : new Error(String(error));
       logger.error(

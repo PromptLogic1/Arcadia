@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { 
-  ChevronRight, 
-  X, 
-  GaugeIcon, 
-  PuzzleIcon, 
-  UsersIcon 
+import { useRouter } from 'next/navigation';
+import {
+  ChevronRight,
+  X,
+  GaugeIcon,
+  PuzzleIcon,
+  UsersIcon,
+  Loader2,
 } from '@/components/ui/Icons';
 import {
   Card,
@@ -50,10 +52,17 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
   const [selectedChallenge, setSelectedChallenge] = useState<number | null>(
     null
   );
+  const [isNavigating, setIsNavigating] = useState(false);
+  const router = useRouter();
 
   const toggleSelectedChallenge = useCallback((index: number) => {
     setSelectedChallenge(prevIndex => (prevIndex === index ? null : index));
   }, []);
+
+  const handleNavigateToChallengeHub = useCallback(() => {
+    setIsNavigating(true);
+    router.push('/challenge-hub');
+  }, [router]);
 
   return (
     <CyberpunkBackground
@@ -107,8 +116,9 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
                       }`}
                     >
                       {React.createElement(iconMap[challenge.iconName], {
-                        className: "h-12 w-12 text-cyan-400 group-hover:text-cyan-300",
-                        'aria-hidden': true
+                        className:
+                          'h-12 w-12 text-cyan-400 group-hover:text-cyan-300',
+                        'aria-hidden': true,
                       })}
                     </div>
                     <CardTitle className="neon-glow-cyan flex h-20 items-center justify-center text-center text-3xl font-bold">
@@ -225,12 +235,22 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
                       className="w-full max-w-sm"
                       onClick={e => {
                         e.stopPropagation();
-                        window.location.href = '/challenge-hub';
+                        handleNavigateToChallengeHub();
                       }}
+                      disabled={isNavigating}
                       aria-label={`Start ${challenges[selectedChallenge]?.name} challenge`}
                     >
-                      <ChevronRight className="mr-2 h-5 w-5" />
-                      Start Challenge
+                      {isNavigating ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <ChevronRight className="mr-2 h-5 w-5" />
+                          Start Challenge
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -244,17 +264,24 @@ const FeaturedChallenges: React.FC<FeaturedChallengesProps> = ({
             variant="primary"
             size="lg"
             className="rounded-full px-8 py-4 text-lg"
-            onClick={e => {
-              e.stopPropagation();
-              window.location.href = '/challenge-hub';
-            }}
+            onClick={handleNavigateToChallengeHub}
+            disabled={isNavigating}
             aria-label="Explore all available challenges"
           >
-            Explore All Challenges
-            <ChevronRight
-              className="ml-2 inline-block h-5 w-5"
-              aria-hidden="true"
-            />
+            {isNavigating ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                Explore All Challenges
+                <ChevronRight
+                  className="ml-2 inline-block h-5 w-5"
+                  aria-hidden="true"
+                />
+              </>
+            )}
           </Button>
         </div>
       </div>

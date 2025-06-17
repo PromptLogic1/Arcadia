@@ -114,7 +114,7 @@ export async function enableReplay(
 
     // The Sentry SDK will handle adding the integration internally
     // when we create it with the proper options
-    const replayIntegration = sentryModule.replayIntegration(options);
+    sentryModule.replayIntegration(options);
 
     // Note: In newer versions of Sentry, integrations are automatically
     // registered when created. We don't need to manually add them.

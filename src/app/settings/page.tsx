@@ -5,9 +5,12 @@ import {
 import dynamic from 'next/dynamic';
 
 // Dynamic import for SettingsComponent (heavy form with validation)
-const SettingsComponent = dynamic(() => import('@/features/settings/components/settings'), {
-  loading: () => null, // AsyncBoundary already provides loading state
-});
+const SettingsComponent = dynamic(
+  () => import('@/features/settings/components/settings'),
+  {
+    loading: () => null, // AsyncBoundary already provides loading state
+  }
+);
 
 export default function SettingsPage() {
   return (

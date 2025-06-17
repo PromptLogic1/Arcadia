@@ -11,13 +11,25 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useSettings } from '../hooks/useSettings';
 
 // Dynamic imports for form sections (heavy forms with validation)
-const EmailUpdateSection = dynamic(() => import('./sections/EmailUpdateSection').then(mod => ({ default: mod.EmailUpdateSection })), {
-  loading: () => <LoadingSpinner size="sm" />,
-});
+const EmailUpdateSection = dynamic(
+  () =>
+    import('./sections/EmailUpdateSection').then(mod => ({
+      default: mod.EmailUpdateSection,
+    })),
+  {
+    loading: () => <LoadingSpinner size="sm" />,
+  }
+);
 
-const PasswordUpdateSection = dynamic(() => import('./sections/PasswordUpdateSection').then(mod => ({ default: mod.PasswordUpdateSection })), {
-  loading: () => <LoadingSpinner size="sm" />,
-});
+const PasswordUpdateSection = dynamic(
+  () =>
+    import('./sections/PasswordUpdateSection').then(mod => ({
+      default: mod.PasswordUpdateSection,
+    })),
+  {
+    loading: () => <LoadingSpinner size="sm" />,
+  }
+);
 
 /**
  * GeneralSettings Component

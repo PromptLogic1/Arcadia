@@ -1,5 +1,10 @@
 import Link from 'next/link';
-import { Pencil } from '@/components/ui/Icons';
+import {
+  Pencil,
+  UserPlus,
+  Share2,
+  UserCheckIcon as UserCheck,
+} from '@/components/ui/Icons';
 import type { Tables } from '@/types/database.types';
 import NeonBorder from '@/components/ui/NeonBorder';
 import { NeonText } from '@/components/ui/NeonText';
@@ -15,6 +20,10 @@ import { USER_PAGE_CONSTANTS } from './constants';
 export interface ProfileHeaderProps {
   userData: Tables<'users'>;
   animationDelay?: number;
+  isOwnProfile?: boolean;
+  isFollowing?: boolean;
+  onFollow?: () => Promise<void>;
+  onShare?: () => void;
 }
 
 /**
@@ -36,6 +45,10 @@ export interface ProfileHeaderProps {
 export function ProfileHeader({
   userData,
   animationDelay = USER_PAGE_CONSTANTS.ANIMATIONS.HEADER_DELAY,
+  isOwnProfile = true,
+  isFollowing = false,
+  onFollow,
+  onShare,
 }: ProfileHeaderProps) {
   const avatarUrl =
     userData.avatar_url ||
@@ -88,15 +101,52 @@ export function ProfileHeader({
             )}
           </div>
 
-          <Link href="/user/edit" className="mt-4 md:mt-0">
-            <Button
-              variant="primary"
-              className="flex w-full items-center gap-2 md:w-auto"
-            >
-              <Pencil className={USER_PAGE_CONSTANTS.UI.ICON_SIZE} />
-              {USER_PAGE_CONSTANTS.MESSAGES.EDIT_PROFILE}
-            </Button>
-          </Link>
+          <div className="mt-4 flex gap-2 md:mt-0">
+            {isOwnProfile ? (
+              <Link href="/user/edit">
+                <Button variant="primary" className="flex items-center gap-2">
+                  <Pencil className={USER_PAGE_CONSTANTS.UI.ICON_SIZE} />
+                  {USER_PAGE_CONSTANTS.MESSAGES.EDIT_PROFILE}
+                </Button>
+              </Link>
+            ) : (
+              <>
+                {onFollow && (
+                  <Button
+                    variant="primary"
+                    onClick={onFollow}
+                    className="flex items-center gap-2"
+                  >
+                    {isFollowing ? (
+                      <>
+                        <UserCheck
+                          className={USER_PAGE_CONSTANTS.UI.ICON_SIZE}
+                        />
+                        Following
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus
+                          className={USER_PAGE_CONSTANTS.UI.ICON_SIZE}
+                        />
+                        Follow
+                      </>
+                    )}
+                  </Button>
+                )}
+                {onShare && (
+                  <Button
+                    variant="secondary"
+                    onClick={onShare}
+                    className="flex items-center gap-2"
+                  >
+                    <Share2 className={USER_PAGE_CONSTANTS.UI.ICON_SIZE} />
+                    Share
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Location Display */}

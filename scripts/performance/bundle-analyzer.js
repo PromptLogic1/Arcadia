@@ -148,14 +148,16 @@ function analyzeBundle() {
   // CI mode: output JSON and exit with appropriate code
   if (CI_MODE) {
     console.log(JSON.stringify(result, null, 2));
-    
+
     // Write to file for artifact storage
     const reportPath = path.join(process.cwd(), 'bundle-analysis-report.json');
     fs.writeFileSync(reportPath, JSON.stringify(result, null, 2));
-    
+
     // Exit with error code if bundle exceeds target
     if (!result.withinTarget) {
-      console.error(`\n❌ Bundle size (${formatBytes(totalSize)}) exceeds target (${formatBytes(BUNDLE_SIZE_TARGET)})`);
+      console.error(
+        `\n❌ Bundle size (${formatBytes(totalSize)}) exceeds target (${formatBytes(BUNDLE_SIZE_TARGET)})`
+      );
       process.exit(1);
     }
   }
@@ -165,11 +167,16 @@ function analyzeBundle() {
 
 if (require.main === module) {
   const result = analyzeBundle();
-  
+
   // Exit with appropriate code in non-CI mode too
   if (!result.withinTarget) {
     process.exit(1);
   }
 }
 
-module.exports = { analyzeBundle, formatBytes, BUNDLE_SIZE_TARGET, CHUNK_SIZE_TARGET };
+module.exports = {
+  analyzeBundle,
+  formatBytes,
+  BUNDLE_SIZE_TARGET,
+  CHUNK_SIZE_TARGET,
+};

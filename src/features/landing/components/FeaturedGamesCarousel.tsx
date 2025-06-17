@@ -218,7 +218,6 @@ const FeaturedGamesCarousel: React.FC = () => {
           )}
         </div>
       </div>
-
     </CyberpunkBackground>
   );
 };

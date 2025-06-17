@@ -18,10 +18,7 @@ import {
   isFormValid,
 } from '../../utils/validation.utils';
 import { createFormPersistence } from '../../utils/persistence.utils';
-import {
-  SIGNUP_FORM_CONFIG,
-  LOG_MESSAGES,
-} from '../constants';
+import { SIGNUP_FORM_CONFIG, LOG_MESSAGES } from '../constants';
 
 // 🧱 Hook Props Interface
 export interface UseSignUpFormProps {

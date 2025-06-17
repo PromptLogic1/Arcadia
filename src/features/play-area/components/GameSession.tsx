@@ -33,9 +33,16 @@ import { notifications } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
 import { toError } from '@/lib/error-guards';
 import { useSessionModern } from '@/features/bingo-boards/hooks/useSessionGame';
-import { useStartGameSessionMutation } from '@/hooks/queries/useGameStateQueries';
+import {
+  useStartGameSessionMutation,
+  useMarkCellMutation,
+  useBoardStateQuery,
+} from '@/hooks/queries/useGameStateQueries';
 import { RealtimeErrorBoundary } from '@/components/error-boundaries';
 import type { Player } from '../../../services/session-state.service';
+import { GameControls } from './GameControls';
+import { GameBoard } from './GameBoard';
+import { useGameTimerStore } from '../stores/game-timer-store';
 
 // Constants moved outside component to prevent recreation
 const DIFFICULTY_COLORS = {
@@ -80,8 +87,18 @@ export function GameSession({ sessionId }: GameSessionProps) {
   // Use the modern hook for session management
   const { session, initializeSession } = useSessionModern(sessionId);
 
-  // Use TanStack Query mutation for starting game
+  // Use TanStack Query mutations
   const startGameMutation = useStartGameSessionMutation();
+  const markCellMutation = useMarkCellMutation();
+
+  // Get board state
+  const { data: boardStateData } = useBoardStateQuery(
+    sessionId,
+    session.status === 'active'
+  );
+
+  // Timer actions
+  const timerActions = useGameTimerStore(state => state.actions);
 
   // UI state
   const [copySuccess, setCopySuccess] = useState(false);
@@ -194,6 +211,38 @@ export function GameSession({ sessionId }: GameSessionProps) {
       notifications.error('Failed to start game');
     }
   }, [isHost, session, sessionId, authUser?.id, startGameMutation]);
+
+  // Mark cell
+  const handleCellClick = useCallback(
+    async (position: number) => {
+      if (!authUser?.id || !boardStateData) return;
+
+      const cell = boardStateData.boardState[position];
+      if (!cell) return;
+
+      try {
+        await markCellMutation.mutateAsync({
+          sessionId,
+          cell_position: position,
+          user_id: authUser.id,
+          action: cell.is_marked ? 'unmark' : 'mark',
+          version: boardStateData.version,
+        });
+      } catch (error) {
+        throw error; // Let GameBoard handle the error
+      }
+    },
+    [authUser?.id, boardStateData, markCellMutation, sessionId]
+  );
+
+  // End game
+  const endGame = useCallback(async () => {
+    if (!isHost) return;
+
+    // TODO: Implement end game functionality
+    timerActions.reset();
+    notifications.success('Game ended');
+  }, [isHost, timerActions]);
 
   // Join session (if not already in)
   const joinSessionAction = useCallback(async () => {
@@ -410,35 +459,6 @@ export function GameSession({ sessionId }: GameSessionProps) {
                     Join Game
                   </Button>
                 )}
-
-                {isHost &&
-                  session.status === 'waiting' &&
-                  players.length > 1 && (
-                    <Button
-                      onClick={startGame}
-                      disabled={startGameMutation.isPending}
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-                    >
-                      {startGameMutation.isPending ? (
-                        <>
-                          <LoadingSpinner className="mr-2 h-4 w-4" />
-                          Starting...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="mr-2 h-4 w-4" />
-                          Start Game
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                {session.status === 'active' && (
-                  <div className="flex items-center gap-2 text-green-400">
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-                    Game in progress
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -504,7 +524,21 @@ export function GameSession({ sessionId }: GameSessionProps) {
           </Card>
         </div>
 
-        {/* Game Board Placeholder */}
+        {/* Game Controls */}
+        <Card className="border-gray-700 bg-gray-800/50">
+          <CardContent className="pt-6">
+            <GameControls
+              isHost={isHost}
+              gameStatus={session.status || 'waiting'}
+              onStartGame={startGame}
+              onEndGame={endGame}
+              isStarting={startGameMutation.isPending}
+              disabled={players.length < 2}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Game Board */}
         <Card className="border-gray-700 bg-gray-800/50">
           <CardHeader>
             <CardTitle>Game Board</CardTitle>
@@ -512,22 +546,33 @@ export function GameSession({ sessionId }: GameSessionProps) {
               {session.status === 'waiting'
                 ? 'Game will start when the host begins the session'
                 : session.status === 'active'
-                  ? 'Game is currently in progress'
+                  ? 'Click cells to mark them. Get 5 in a row to win!'
                   : 'Game has ended'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mx-auto flex aspect-square max-w-lg items-center justify-center rounded-lg border-2 border-dashed border-gray-600 bg-gray-900/50">
-              <div className="space-y-2 text-center">
-                <Clock className="mx-auto h-12 w-12 text-gray-500" />
-                <p className="text-gray-400">Game board will appear here</p>
-                <p className="text-sm text-gray-500">
-                  {session.status === 'waiting'
-                    ? 'Waiting for game to start...'
-                    : 'Game board implementation coming soon'}
-                </p>
+            {session.status === 'active' && boardStateData ? (
+              <GameBoard
+                boardState={boardStateData.boardState}
+                onCellClick={handleCellClick}
+                isLoading={markCellMutation.isPending}
+                disabled={!playerInSession || session.status !== 'active'}
+                currentUserId={authUser?.id}
+                playerColor={playerInSession?.color}
+              />
+            ) : (
+              <div className="mx-auto flex aspect-square max-w-lg items-center justify-center rounded-lg border-2 border-dashed border-gray-600 bg-gray-900/50">
+                <div className="space-y-2 text-center">
+                  <Clock className="mx-auto h-12 w-12 text-gray-500" />
+                  <p className="text-gray-400">Game board will appear here</p>
+                  <p className="text-sm text-gray-500">
+                    {session.status === 'waiting'
+                      ? 'Waiting for game to start...'
+                      : 'Loading game board...'}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

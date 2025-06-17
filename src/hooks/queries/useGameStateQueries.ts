@@ -67,13 +67,14 @@ export const useSessionStateQuery = (sessionId: string) => {
 };
 
 // Get board state
-export const useBoardStateQuery = (sessionId: string) => {
+export const useBoardStateQuery = (sessionId: string, enabled = true) => {
   return useQuery({
     queryKey: gameStateKeys.boardState(sessionId),
     queryFn: () => gameStateService.getBoardState(sessionId),
-    enabled: !!sessionId,
+    enabled: !!sessionId && enabled,
     staleTime: 5 * 1000, // 5 seconds
     refetchInterval: 30 * 1000, // Background refetch every 30 seconds
+    select: response => (response.success ? response.data : null),
   });
 };
 
@@ -119,26 +120,29 @@ export const useStartGameSessionMutation = () => {
 };
 
 // Mark cell mutation with optimistic updates
-export const useMarkCellMutation = (sessionId: string) => {
+export const useMarkCellMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: MarkCellData) =>
+    mutationFn: ({
+      sessionId,
+      ...data
+    }: MarkCellData & { sessionId: string }) =>
       gameStateService.markCell(sessionId, data),
     onMutate: async data => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: gameStateKeys.boardState(sessionId),
+        queryKey: gameStateKeys.boardState(data.sessionId),
       });
 
       // Get current board state
       const previousBoardState = queryClient.getQueryData(
-        gameStateKeys.boardState(sessionId)
+        gameStateKeys.boardState(data.sessionId)
       );
 
       // Optimistically update board state
       queryClient.setQueryData(
-        gameStateKeys.boardState(sessionId),
+        gameStateKeys.boardState(data.sessionId),
         (
           old:
             | {
@@ -179,11 +183,11 @@ export const useMarkCellMutation = (sessionId: string) => {
 
       return { previousBoardState };
     },
-    onError: (error, _, context) => {
+    onError: (error, data, context) => {
       // Rollback on error
       if (context?.previousBoardState) {
         queryClient.setQueryData(
-          gameStateKeys.boardState(sessionId),
+          gameStateKeys.boardState(data.sessionId),
           context.previousBoardState
         );
       }
@@ -192,14 +196,14 @@ export const useMarkCellMutation = (sessionId: string) => {
       if (error.message === 'VERSION_CONFLICT') {
         // Refetch the latest state
         queryClient.invalidateQueries({
-          queryKey: gameStateKeys.boardState(sessionId),
+          queryKey: gameStateKeys.boardState(data.sessionId),
         });
       }
     },
-    onSettled: () => {
+    onSettled: (result, error, data) => {
       // Always refetch after mutation
       queryClient.invalidateQueries({
-        queryKey: gameStateKeys.boardState(sessionId),
+        queryKey: gameStateKeys.boardState(data.sessionId),
       });
     },
   });

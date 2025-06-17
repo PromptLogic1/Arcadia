@@ -101,7 +101,8 @@ export function useBingoBoardEdit(boardId: string) {
   } = useBoardEditDataQuery(boardId);
 
   // Board data from query - no local state duplication
-  const currentBoard = boardData?.success && boardData.data ? boardData.data.board : null;
+  const currentBoard =
+    boardData?.success && boardData.data ? boardData.data.board : null;
 
   const {
     data: initData,

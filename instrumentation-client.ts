@@ -1,9 +1,21 @@
 // Lazy load Sentry to reduce initial bundle size
 let sentryModule: typeof import('@sentry/nextjs') | null = null;
 
-// Export placeholder for navigation hook
-export const onRouterTransitionStart = () => {
-  // This will be replaced when Sentry loads
+// Import logger for instrumentation logging
+import { log } from '@/lib/logger';
+
+// Create a mutable reference for the navigation hook
+let navigationHook: ((href: string, navigationType: string) => void) | null =
+  null;
+
+// Export a function that calls the navigation hook if available
+export const onRouterTransitionStart = (
+  href: string,
+  navigationType: string
+) => {
+  if (navigationHook) {
+    navigationHook(href, navigationType);
+  }
 };
 
 // Async initialization function
@@ -16,9 +28,8 @@ async function initializeSentry() {
     // Dynamically import Sentry
     sentryModule = await import('@sentry/nextjs');
 
-    // Update the navigation hook
-    (onRouterTransitionStart as any) =
-      sentryModule.captureRouterTransitionStart;
+    // Update the navigation hook reference
+    navigationHook = sentryModule.captureRouterTransitionStart;
 
     // Initialize Sentry
     sentryModule.init({
@@ -94,9 +105,9 @@ async function initializeSentry() {
       },
     });
 
-    console.log('[Sentry] Client-side initialization complete');
+    log.info('[Sentry] Client-side initialization complete');
   } catch (error) {
-    console.error('[Sentry] Failed to initialize:', error);
+    log.error('[Sentry] Failed to initialize', error as Error);
   }
 }
 

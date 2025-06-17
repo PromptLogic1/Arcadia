@@ -35,7 +35,7 @@ export interface UseCommunityDataReturn {
   handleComment: (
     discussionId: number,
     commentData: CommentFormData
-  ) => Promise<Comment>;
+  ) => Promise<void>;
   setSelectedDiscussion: (discussion: StoreDiscussion | null) => void;
 }
 
@@ -119,7 +119,7 @@ export function useCommunityData(): UseCommunityDataReturn {
 
   const handleComment = useCallback(
     async (discussionId: number, commentData: CommentFormData) => {
-      return realAddComment(discussionId, {
+      await realAddComment(discussionId, {
         ...commentData,
         discussion_id: discussionId.toString(),
       });

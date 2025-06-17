@@ -4,10 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useAuth, useAuthActions } from '@/lib/stores';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
-import type {
-  FormData,
-  OAuthProvider,
-} from '../../types/signup-form.types';
+import type { FormData, OAuthProvider } from '../../types/signup-form.types';
 import type { UseSignUpFormReturn } from './useSignUpForm';
 import { SIGNUP_MESSAGES, ERROR_MESSAGES, LOG_MESSAGES } from '../constants';
 

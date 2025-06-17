@@ -8,7 +8,7 @@ import {
   type CardLibraryFilters,
 } from '../../services/card-library.service';
 import { notifications } from '@/lib/notifications';
-import { queryKeys } from './index';
+// Query keys imported via service
 import type {
   BingoCard,
   GameCategory,

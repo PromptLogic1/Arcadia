@@ -136,7 +136,7 @@ export const PlayAreaHub = React.memo(function PlayAreaHub({
           : 0;
       return total + count;
     }, 0);
-  }, [sessions])
+  }, [sessions]);
 
   // Derive hosting intent from URL parameters
   const boardIdFromUrl = searchParams?.get('boardId');
@@ -310,7 +310,7 @@ export const PlayAreaHub = React.memo(function PlayAreaHub({
       transform: `translateY(${virtualItem.start}px)`,
     }),
     [virtualizer]
-  )
+  );
 
   // Loading state
   if (authLoading || isLoading) {

@@ -412,4 +412,301 @@ export const userService = {
       return createServiceError(getErrorMessage(error));
     }
   },
+
+  /**
+   * Upload user avatar
+   */
+  async uploadAvatar(
+    userId: string,
+    file: File
+  ): Promise<ServiceResponse<string>> {
+    try {
+      const supabase = createClient();
+
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        log.error('Failed to upload avatar', uploadError, {
+          metadata: {
+            service: 'user.service',
+            method: 'uploadAvatar',
+            userId,
+          },
+        });
+        return createServiceError(uploadError.message);
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      // Update user profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        // Try to delete uploaded file
+        await supabase.storage.from('avatars').remove([filePath]);
+
+        log.error('Failed to update avatar URL', updateError, {
+          metadata: {
+            service: 'user.service',
+            method: 'uploadAvatar',
+            userId,
+          },
+        });
+        return createServiceError(updateError.message);
+      }
+
+      log.info('Avatar uploaded successfully', {
+        metadata: { userId, filePath },
+      });
+
+      return createServiceSuccess(publicUrl);
+    } catch (error) {
+      log.error('Unexpected error uploading avatar', error, {
+        metadata: {
+          service: 'user.service',
+          method: 'uploadAvatar',
+          userId,
+        },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Remove user avatar
+   */
+  async removeAvatar(userId: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const supabase = createClient();
+
+      // Get current avatar URL to delete from storage
+      const { data: user, error: fetchError } = await supabase
+        .from('users')
+        .select('avatar_url')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        log.error('Failed to fetch user for avatar removal', fetchError, {
+          metadata: {
+            service: 'user.service',
+            method: 'removeAvatar',
+            userId,
+          },
+        });
+        return createServiceError(fetchError.message);
+      }
+
+      // Extract file path from URL if it's a storage URL
+      if (user?.avatar_url?.includes('avatars/')) {
+        const urlParts = user.avatar_url.split('avatars/');
+        if (urlParts.length > 1) {
+          const filePath = `avatars/${urlParts[1]}`;
+          await supabase.storage.from('avatars').remove([filePath]);
+        }
+      }
+
+      // Update user profile to remove avatar
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          avatar_url: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        log.error('Failed to remove avatar URL', updateError, {
+          metadata: {
+            service: 'user.service',
+            method: 'removeAvatar',
+            userId,
+          },
+        });
+        return createServiceError(updateError.message);
+      }
+
+      return createServiceSuccess(true);
+    } catch (error) {
+      log.error('Unexpected error removing avatar', error, {
+        metadata: {
+          service: 'user.service',
+          method: 'removeAvatar',
+          userId,
+        },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Follow a user
+   */
+  async followUser(
+    followerId: string,
+    followingId: string
+  ): Promise<ServiceResponse<boolean>> {
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase.from('user_friends').insert({
+        user_id: followerId,
+        friend_id: followingId,
+        status: 'following',
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) {
+        // Check if already following
+        if (error.code === '23505') {
+          return createServiceSuccess(true);
+        }
+
+        log.error('Failed to follow user', error, {
+          metadata: {
+            service: 'user.service',
+            method: 'followUser',
+            followerId,
+            followingId,
+          },
+        });
+        return createServiceError(error.message);
+      }
+
+      // Log activity
+      await userService.logUserActivity(followerId, {
+        type: 'board_join',
+        description: 'Started following a user',
+        metadata: {
+          board_id: followingId,
+          board_title: 'Following user',
+          game_type:
+            'All Games' as Database['public']['Enums']['game_category'],
+          difficulty: 'easy' as Database['public']['Enums']['difficulty_level'],
+        },
+      });
+
+      return createServiceSuccess(true);
+    } catch (error) {
+      log.error('Unexpected error following user', error, {
+        metadata: {
+          service: 'user.service',
+          method: 'followUser',
+          followerId,
+          followingId,
+        },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Unfollow a user
+   */
+  async unfollowUser(
+    followerId: string,
+    followingId: string
+  ): Promise<ServiceResponse<boolean>> {
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from('user_friends')
+        .delete()
+        .eq('user_id', followerId)
+        .eq('friend_id', followingId);
+
+      if (error) {
+        log.error('Failed to unfollow user', error, {
+          metadata: {
+            service: 'user.service',
+            method: 'unfollowUser',
+            followerId,
+            followingId,
+          },
+        });
+        return createServiceError(error.message);
+      }
+
+      return createServiceSuccess(true);
+    } catch (error) {
+      log.error('Unexpected error unfollowing user', error, {
+        metadata: {
+          service: 'user.service',
+          method: 'unfollowUser',
+          followerId,
+          followingId,
+        },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Check if user is following another user
+   */
+  async isFollowing(
+    followerId: string,
+    followingId: string
+  ): Promise<ServiceResponse<boolean>> {
+    try {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from('user_friends')
+        .select('user_id')
+        .eq('user_id', followerId)
+        .eq('friend_id', followingId)
+        .single();
+
+      if (error) {
+        // Not found is not an error in this case
+        if (error.code === 'PGRST116') {
+          return createServiceSuccess(false);
+        }
+
+        log.error('Failed to check follow status', error, {
+          metadata: {
+            service: 'user.service',
+            method: 'isFollowing',
+            followerId,
+            followingId,
+          },
+        });
+        return createServiceError(error.message);
+      }
+
+      return createServiceSuccess(!!data);
+    } catch (error) {
+      log.error('Unexpected error checking follow status', error, {
+        metadata: {
+          service: 'user.service',
+          method: 'isFollowing',
+          followerId,
+          followingId,
+        },
+      });
+      return createServiceError(getErrorMessage(error));
+    }
+  },
 };

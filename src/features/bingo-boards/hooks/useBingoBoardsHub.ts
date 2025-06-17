@@ -156,6 +156,11 @@ export function useBingoBoardsHub() {
         // Check if component is still mounted before updating state
         if (isMountedRef.current && result.success && result.data) {
           setIsCreateFormOpen(false);
+
+          // Show success notification
+          const { notifications } = await import('@/lib/notifications');
+          notifications.success('Board created successfully!');
+
           // Navigate to the new board for editing
           router.push(`/challenge-hub/${result.data.id}`);
         }
@@ -165,6 +170,10 @@ export function useBingoBoardsHub() {
           log.error('Failed to create board', toError(error), {
             metadata: { hook: 'useBingoBoardsHub', formData },
           });
+
+          // Show error notification
+          const { notifications } = await import('@/lib/notifications');
+          notifications.error('Failed to create board. Please try again.');
         }
       }
     },

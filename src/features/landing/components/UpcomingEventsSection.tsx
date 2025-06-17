@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/Image';
 import { NeonText } from '@/components/ui/NeonText';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -56,6 +57,20 @@ const upcomingEvents: ReadonlyArray<Event> = [
 ] as const;
 
 const UpcomingEventsSection: React.FC = () => {
+  const router = useRouter();
+  const [navigatingToEvent, setNavigatingToEvent] = useState<string | null>(
+    null
+  );
+
+  const handleEventClick = useCallback(
+    (eventId: string) => {
+      setNavigatingToEvent(eventId);
+      // Navigate to community page (events will be shown there)
+      // In future, this could navigate to /events/${eventId} when that route exists
+      router.push('/community');
+    },
+    [router]
+  );
   const renderEvents = useMemo(
     () =>
       upcomingEvents.map((event, index) => (
@@ -70,6 +85,7 @@ const UpcomingEventsSection: React.FC = () => {
             role="article"
             aria-labelledby={`event-title-${event.id}`}
             aria-describedby={`event-desc-${event.id}`}
+            onClick={() => handleEventClick(event.id)}
           >
             <CardHeader className="p-0">
               <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
@@ -138,14 +154,16 @@ const UpcomingEventsSection: React.FC = () => {
 
               <div className="pt-2">
                 <div className="text-xs font-medium text-cyan-400/70">
-                  Click to learn more →
+                  {navigatingToEvent === event.id
+                    ? 'Loading...'
+                    : 'Click to learn more →'}
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
       )),
-    []
+    [navigatingToEvent, handleEventClick]
   );
 
   return (

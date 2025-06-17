@@ -233,7 +233,10 @@ class EnhancedRedisService {
    * Enhanced get operation with metrics and circuit breaker
    * Returns parsed JSON data or null
    */
-  public async get<T = unknown>(key: string, fallback?: () => T): Promise<T | null> {
+  public async get<T = unknown>(
+    key: string,
+    fallback?: () => T
+  ): Promise<T | null> {
     if (!isRedisConfigured()) {
       if (fallback) {
         return fallback();

@@ -23,11 +23,11 @@ interface DiscussionCardProps {
   comments?: Comment[];
   isExpanded: boolean;
   onToggle: () => void;
-  onUpvote: (id: number) => void;
+  onUpvote: (id: number) => Promise<void>;
   onComment: (
     discussionId: number,
     comment: Omit<Comment, 'id' | 'created_at' | 'updated_at'>
-  ) => void;
+  ) => Promise<void>;
 }
 
 const DiscussionCard = React.memo(
@@ -59,30 +59,53 @@ const DiscussionCard = React.memo(
     );
 
     const handleUpvote = useCallback(
-      (e: React.MouseEvent) => {
+      async (e: React.MouseEvent) => {
         e.stopPropagation();
+
+        // Optimistic update
+        const wasUpvoted = isUpvoted;
+        const previousUpvotes = localUpvotes;
+
         setIsUpvoted(prev => !prev);
-        setLocalUpvotes(prev => (isUpvoted ? prev - 1 : prev + 1));
-        onUpvote(discussion.id);
+        setLocalUpvotes(prev => (wasUpvoted ? prev - 1 : prev + 1));
+
+        try {
+          await onUpvote(discussion.id);
+        } catch {
+          // Revert on error
+          setIsUpvoted(wasUpvoted);
+          setLocalUpvotes(previousUpvotes);
+          // Error notification is handled by the mutation hook
+        }
       },
-      [isUpvoted, onUpvote, discussion.id]
+      [isUpvoted, localUpvotes, onUpvote, discussion.id]
     );
 
+    const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
     const handleComment = useCallback(
-      (e: React.MouseEvent) => {
+      async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!newComment.trim()) return;
+        if (!newComment.trim() || isSubmittingComment) return;
 
-        onComment(discussion.id, {
-          content: newComment.trim(),
-          author_id: 'current_user', // In real app, get from auth
-          discussion_id: discussion.id,
-          upvotes: 0,
-        });
+        setIsSubmittingComment(true);
+        const commentContent = newComment.trim();
 
-        setNewComment('');
+        try {
+          await onComment(discussion.id, {
+            content: commentContent,
+            author_id: 'current_user', // In real app, get from auth
+            discussion_id: discussion.id,
+            upvotes: 0,
+          });
+          setNewComment('');
+        } catch {
+          // Error notification is handled by the mutation hook
+        } finally {
+          setIsSubmittingComment(false);
+        }
       },
-      [newComment, onComment, discussion.id]
+      [newComment, isSubmittingComment, onComment, discussion.id]
     );
 
     const handleCommentChange = useCallback(
@@ -248,9 +271,11 @@ const DiscussionCard = React.memo(
                           <Button
                             onClick={handleComment}
                             className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 px-6 py-2 text-base font-medium hover:from-cyan-600 hover:to-fuchsia-600"
-                            disabled={!newComment.trim()}
+                            disabled={!newComment.trim() || isSubmittingComment}
                           >
-                            Post Comment
+                            {isSubmittingComment
+                              ? 'Posting...'
+                              : 'Post Comment'}
                           </Button>
                         </div>
                       </div>

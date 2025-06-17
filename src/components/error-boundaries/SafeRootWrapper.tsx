@@ -1,7 +1,7 @@
 'use client';
 
+import React, { Suspense } from 'react';
 import { RootErrorBoundary } from './RootErrorBoundary';
-import { Suspense } from 'react';
 
 export function SafeRootWrapper({ children }: { children: React.ReactNode }) {
   // Wrap in Suspense to handle async loading issues
