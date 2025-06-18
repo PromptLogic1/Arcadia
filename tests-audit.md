@@ -8,7 +8,7 @@
 
 ## Auth Tests
 - ✅ auth-service.test.ts
-- [ ] oauth.test.ts
+- ✅ oauth.test.ts
 - [ ] rate-limiting.test.ts
 - [ ] session-token.test.ts
 - [ ] useAuth.test.tsx
