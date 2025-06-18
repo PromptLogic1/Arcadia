@@ -333,10 +333,22 @@ describe('Analytics Event Tracking', () => {
 
       tracker.startFunnel(funnel, 'user-123');
 
-      // Simulate user journey
-      tracker.track('page_view', { category: 'navigation', action: 'view' });
-      tracker.track('cta_click', { category: 'engagement', action: 'click' });
-      tracker.track('signup_page_view', { category: 'navigation', action: 'view' });
+      // Simulate user journey with userId
+      tracker.track('page_view', { 
+        category: 'navigation', 
+        action: 'view',
+        userId: 'user-123',
+      });
+      tracker.track('cta_click', { 
+        category: 'engagement', 
+        action: 'click',
+        userId: 'user-123',
+      });
+      tracker.track('signup_page_view', { 
+        category: 'navigation', 
+        action: 'view',
+        userId: 'user-123',
+      });
       
       const progress = tracker.getFunnelProgress('signup-funnel', 'user-123');
       expect(progress?.completedSteps).toBe(3);

@@ -98,10 +98,10 @@ export function evaluateFlag<T extends FlagValue>(
 
   // Check if flag is enabled
   if (!flag.enabled) {
-    return (typeof defaultValue === typeof flag.defaultValue ? defaultValue : flag.defaultValue) as T;
+    return defaultValue;
   }
 
-  // Check rollout percentage
+  // Check rollout percentage first
   if (flag.rolloutPercentage !== undefined && context.userId) {
     const hash = generateUserHash(flagKey, context.userId);
     const bucket = hash % 100;
@@ -127,6 +127,8 @@ export function evaluateFlag<T extends FlagValue>(
     }
   }
 
+  // If flag is enabled but has no rollout percentage, rules, or experiments,
+  // return the default value (which should be the "enabled" state)
   return flag.defaultValue as T;
 }
 

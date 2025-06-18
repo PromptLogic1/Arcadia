@@ -324,8 +324,8 @@ describe('A/B Testing Logic', () => {
             { id: 'control', name: 'Control', weight: 50 },
             { id: 'new-hero', name: 'New Hero', weight: 50 },
           ],
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-12-31'),
+          startDate: new Date('2023-01-01'),
+          endDate: new Date('2025-12-31'),
         },
         {
           id: 'cta-test',
@@ -335,8 +335,8 @@ describe('A/B Testing Logic', () => {
             { id: 'control', name: 'Control', weight: 50 },
             { id: 'new-cta', name: 'New CTA', weight: 50 },
           ],
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-12-31'),
+          startDate: new Date('2023-01-01'),
+          endDate: new Date('2025-12-31'),
         },
       ];
 
