@@ -1,23 +1,23 @@
-import { vi } from 'vitest';
+import { jest } from '@jest/globals';
 import type { GameEvent } from '../../types';
 
 // Mock Supabase realtime client
 export const createMockRealtimeClient = () => {
   const mockChannel = {
-    on: vi.fn(),
-    off: vi.fn(),
-    send: vi.fn(),
-    subscribe: vi.fn().mockResolvedValue({ error: null }),
-    unsubscribe: vi.fn().mockResolvedValue({ error: null }),
-    track: vi.fn(),
-    untrack: vi.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+    send: jest.fn(),
+    subscribe: jest.fn().mockResolvedValue({ error: null }),
+    unsubscribe: jest.fn().mockResolvedValue({ error: null }),
+    track: jest.fn(),
+    untrack: jest.fn(),
   };
 
   const mockClient = {
-    channel: vi.fn().mockReturnValue(mockChannel),
-    removeChannel: vi.fn(),
-    removeAllChannels: vi.fn(),
-    getChannels: vi.fn().mockReturnValue([]),
+    channel: jest.fn().mockReturnValue(mockChannel),
+    removeChannel: jest.fn(),
+    removeAllChannels: jest.fn(),
+    getChannels: jest.fn().mockReturnValue([]),
   };
 
   return {

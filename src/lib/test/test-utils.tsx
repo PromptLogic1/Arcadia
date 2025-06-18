@@ -174,7 +174,7 @@ export const cleanupTestData = async (
 };
 
 // Assertion helpers
-export const expectServiceSuccess = <T>(response: { success: boolean; data: T | null; error: string | null }) => {
+export const expectServiceSuccess = <T extends unknown>(response: { success: boolean; data: T | null; error: string | null }) => {
   expect(response.success).toBe(true);
   expect(response.data).not.toBeNull();
   expect(response.error).toBeNull();

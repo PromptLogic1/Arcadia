@@ -1,67 +1,67 @@
-import { vi, beforeEach, afterEach } from 'vitest';
+import { vi, beforeEach, afterEach } from '@jest/globals';
 
 // Mock globals
-global.WebSocket = vi.fn();
+global.WebSocket = jest.fn();
 global.performance = {
-  now: vi.fn(() => Date.now()),
-  mark: vi.fn(),
-  measure: vi.fn(),
-  clearMarks: vi.fn(),
-  clearMeasures: vi.fn(),
-  getEntriesByName: vi.fn(),
-  getEntriesByType: vi.fn(),
-  toJSON: vi.fn(),
+  now: jest.fn(() => Date.now()),
+  mark: jest.fn(),
+  measure: jest.fn(),
+  clearMarks: jest.fn(),
+  clearMeasures: jest.fn(),
+  getEntriesByName: jest.fn(),
+  getEntriesByType: jest.fn(),
+  toJSON: jest.fn(),
 } as any;
 
 // Mock React Query
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(),
-  useMutation: vi.fn(),
-  useQueryClient: vi.fn(),
-  QueryClient: vi.fn(),
-  QueryClientProvider: vi.fn(),
+jest.mock('@tanstack/react-query', () => ({
+  useQuery: jest.fn(),
+  useMutation: jest.fn(),
+  useQueryClient: jest.fn(),
+  QueryClient: jest.fn(),
+  QueryClientProvider: jest.fn(),
 }));
 
 // Mock Next.js
-vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(() => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    back: vi.fn(),
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
   })),
-  useSearchParams: vi.fn(() => new URLSearchParams()),
-  usePathname: vi.fn(() => '/'),
+  useSearchParams: jest.fn(() => new URLSearchParams()),
+  usePathname: jest.fn(() => '/'),
 }));
 
 // Mock Supabase client
-vi.mock('@/lib/supabase/client', () => ({
+jest.mock('@/lib/supabase/client', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
     })),
-    channel: vi.fn(() => ({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn().mockResolvedValue({ error: null }),
-      unsubscribe: vi.fn().mockResolvedValue({ error: null }),
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockResolvedValue({ error: null }),
+      unsubscribe: jest.fn().mockResolvedValue({ error: null }),
     })),
     auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
     },
   },
 }));
 
 // Mock logger
-vi.mock('@/lib/logger', () => ({
+jest.mock('@/lib/logger', () => ({
   log: {
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
@@ -84,7 +84,7 @@ export const testHelpers = {
   // Create a mock implementation that tracks calls
   createMockTracker: <T extends (...args: any[]) => any>(implementation?: T) => {
     const calls: Parameters<T>[] = [];
-    const mock = vi.fn((...args: Parameters<T>) => {
+    const mock = jest.fn((...args: Parameters<T>) => {
       calls.push(args);
       return implementation?.(...args);
     });
@@ -104,11 +104,11 @@ export const testHelpers = {
   
   // Mock timer helpers
   mockTimers: {
-    enable: () => vi.useFakeTimers(),
-    disable: () => vi.useRealTimers(),
-    advance: (ms: number) => vi.advanceTimersByTime(ms),
-    advanceToNext: () => vi.advanceTimersToNextTimer(),
-    clear: () => vi.clearAllTimers(),
+    enable: () => jest.useFakeTimers(),
+    disable: () => jest.useRealTimers(),
+    advance: (ms: number) => jest.advanceTimersByTime(ms),
+    advanceToNext: () => jest.advanceTimersToNextTimer(),
+    clear: () => jest.clearAllTimers(),
   },
 };
 
@@ -164,12 +164,12 @@ export const testDataGenerators = {
 
 // Clean up after each test
 beforeEach(() => {
-  vi.clearAllMocks();
+  jest.clearAllMocks();
   testHelpers.mockTimers.disable();
 });
 
 afterEach(() => {
-  vi.clearAllTimers();
+  jest.clearAllTimers();
   testHelpers.mockTimers.disable();
 });
 

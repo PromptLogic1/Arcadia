@@ -204,8 +204,21 @@ export const isSupabaseError = (error: unknown): error is SupabaseError => {
 };
 
 export const isAuthError = (error: unknown): boolean => {
-  return isSupabaseError(error) && error.code?.startsWith('auth') === true;
+  if (isSupabaseError(error) && error.code?.startsWith('auth') === true) {
+    return true;
+  }
+  
+  // Check for auth error markers
+  return (
+    error &&
+    typeof error === 'object' &&
+    '__isAuthError' in error &&
+    error.__isAuthError === true
+  );
 };
+
+// Export SupabaseError type for tests and type guards
+export type { SupabaseError };
 
 // Feature flags
 export const features = {

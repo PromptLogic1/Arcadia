@@ -4,7 +4,7 @@ import {
   generateDiscussion, 
   generateComment,
 } from '../fixtures/community-fixtures';
-import type { DiscussionWithAuthor, CommentWithAuthor, RealTimeEvent, Comment } from '../types';
+import type { DiscussionWithAuthor, CommentWithAuthor, RealTimeEvent } from '../types';
 import type { Tables } from '../../../../types/database.types';
 import { waitForNetworkIdle } from '../../../helpers/test-utils';
 import type { TestWindow } from '../../../types/test-types';
@@ -266,7 +266,7 @@ export async function testRateLimit(
 export async function setupRealtimeListener(
   page: Page,
   channel: string
-): Promise<(eventType: string) => Promise<RealTimeEvent<Comment>[]>> {
+): Promise<(eventType: string) => Promise<RealTimeEvent<Tables<'comments'>>[]>> {
   // Inject realtime listener into page context
   await page.evaluate((ch) => {
     const win = window as TestWindow;
@@ -299,7 +299,7 @@ export async function setupRealtimeListener(
   return async (eventType: string) => {
     return page.evaluate((type) => {
       return ((window as TestWindow).__realtimeEvents || []).filter((e: unknown) => (e as { type?: string }).type === type);
-    }, eventType) as Promise<RealTimeEvent<Comment>[]>;
+    }, eventType) as Promise<RealTimeEvent<Tables<'comments'>>[]>;
   };
 }
 

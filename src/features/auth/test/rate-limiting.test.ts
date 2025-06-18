@@ -9,17 +9,17 @@
  * - Block duration handling
  */
 
-import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, jest, afterEach } from '@jest/globals';
 import { Redis } from '@upstash/redis';
 import { Ratelimit } from '@upstash/ratelimit';
 
 // Mock Upstash Redis and Ratelimit
-vi.mock('@upstash/redis', () => ({
-  Redis: vi.fn(),
+jest.mock('@upstash/redis', () => ({
+  Redis: jest.fn(),
 }));
 
-vi.mock('@upstash/ratelimit', () => ({
-  Ratelimit: vi.fn(),
+jest.mock('@upstash/ratelimit', () => ({
+  Ratelimit: jest.fn(),
 }));
 
 // Rate limit configurations from test data
@@ -46,31 +46,31 @@ describe('Rate Limiting', () => {
   let mockRatelimit: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     
     // Mock Redis client
     mockRedis = {
-      get: vi.fn(),
-      set: vi.fn(),
-      incr: vi.fn(),
-      expire: vi.fn(),
-      del: vi.fn(),
-      ttl: vi.fn(),
+      get: jest.fn(),
+      set: jest.fn(),
+      incr: jest.fn(),
+      expire: jest.fn(),
+      del: jest.fn(),
+      ttl: jest.fn(),
     };
 
     // Mock Ratelimit instance
     mockRatelimit = {
-      limit: vi.fn(),
-      blockUntil: vi.fn(),
-      reset: vi.fn(),
+      limit: jest.fn(),
+      blockUntil: jest.fn(),
+      reset: jest.fn(),
     };
 
-    vi.mocked(Redis).mockImplementation(() => mockRedis);
-    vi.mocked(Ratelimit).mockImplementation(() => mockRatelimit);
+    jest.mocked(Redis).mockImplementation(() => mockRedis);
+    jest.mocked(Ratelimit).mockImplementation(() => mockRatelimit);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Login Rate Limiting', () => {

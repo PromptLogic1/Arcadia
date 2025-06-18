@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, jest, afterEach } from '@jest/globals';
 
 // Timer precision types
 interface TimerState {
@@ -298,11 +298,11 @@ describe('Speedrun Timer', () => {
 
   beforeEach(() => {
     timer = new SpeedrunTimer();
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   describe('Basic Timer Operations', () => {
@@ -325,7 +325,7 @@ describe('Speedrun Timer', () => {
 
     test('should pause timer', () => {
       timer.start();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       
       const paused = timer.pause();
       expect(paused).toBe(true);
@@ -337,9 +337,9 @@ describe('Speedrun Timer', () => {
 
     test('should resume timer', () => {
       timer.start();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       timer.pause();
-      vi.advanceTimersByTime(500);
+      jest.advanceTimersByTime(500);
       
       const resumed = timer.resume();
       expect(resumed).toBe(true);
@@ -351,7 +351,7 @@ describe('Speedrun Timer', () => {
 
     test('should stop timer and return final time', () => {
       timer.start();
-      vi.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5000);
       
       const finalTime = timer.stop();
       expect(finalTime).toBeCloseTo(5000, -1);
@@ -363,7 +363,7 @@ describe('Speedrun Timer', () => {
 
     test('should reset timer completely', () => {
       timer.start();
-      vi.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5000);
       timer.stop();
       timer.reset();
       
@@ -377,7 +377,7 @@ describe('Speedrun Timer', () => {
   describe('Time Precision', () => {
     test('should maintain millisecond precision', () => {
       timer.start();
-      vi.advanceTimersByTime(1234);
+      jest.advanceTimersByTime(1234);
       
       const elapsed = timer.getElapsedTime();
       expect(elapsed).toBeCloseTo(1234, 0);
@@ -385,13 +385,13 @@ describe('Speedrun Timer', () => {
 
     test('should exclude paused time from elapsed calculation', () => {
       timer.start();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       
       timer.pause();
-      vi.advanceTimersByTime(500); // Paused for 500ms
+      jest.advanceTimersByTime(500); // Paused for 500ms
       
       timer.resume();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       
       const elapsed = timer.getElapsedTime();
       expect(elapsed).toBeCloseTo(2000, -1); // Should be 2000ms, not 2500ms
@@ -401,19 +401,19 @@ describe('Speedrun Timer', () => {
       timer.start();
       
       // First cycle
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       timer.pause();
-      vi.advanceTimersByTime(200);
+      jest.advanceTimersByTime(200);
       timer.resume();
       
       // Second cycle
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       timer.pause();
-      vi.advanceTimersByTime(300);
+      jest.advanceTimersByTime(300);
       timer.resume();
       
       // Final run
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       
       const elapsed = timer.getElapsedTime();
       expect(elapsed).toBeCloseTo(3000, -1); // 3 seconds running, 500ms paused
@@ -423,7 +423,7 @@ describe('Speedrun Timer', () => {
   describe('Time Formatting', () => {
     test('should format time with milliseconds', () => {
       timer.start();
-      vi.advanceTimersByTime(65432); // 1:05.432
+      jest.advanceTimersByTime(65432); // 1:05.432
       
       const formatted = timer.formatTime(true);
       expect(formatted).toBe('01:05.432');
@@ -431,7 +431,7 @@ describe('Speedrun Timer', () => {
 
     test('should format time without milliseconds', () => {
       timer.start();
-      vi.advanceTimersByTime(65432);
+      jest.advanceTimersByTime(65432);
       
       const formatted = timer.formatTime(false);
       expect(formatted).toBe('01:05');
@@ -439,7 +439,7 @@ describe('Speedrun Timer', () => {
 
     test('should handle times over 10 minutes', () => {
       timer.start();
-      vi.advanceTimersByTime(725000); // 12:05.000
+      jest.advanceTimersByTime(725000); // 12:05.000
       
       const formatted = timer.formatTime(true);
       expect(formatted).toBe('12:05.000');
@@ -449,7 +449,7 @@ describe('Speedrun Timer', () => {
   describe('Timer Validation', () => {
     test('should validate normal timer usage', () => {
       timer.start();
-      vi.advanceTimersByTime(30000);
+      jest.advanceTimersByTime(30000);
       timer.stop();
       
       const validation = timer.validateIntegrity();
@@ -458,7 +458,7 @@ describe('Speedrun Timer', () => {
 
     test('should detect suspiciously fast times', () => {
       timer.start();
-      vi.advanceTimersByTime(5000); // 5 seconds
+      jest.advanceTimersByTime(5000); // 5 seconds
       timer.stop();
       
       const validation = timer.validateIntegrity();
@@ -471,9 +471,9 @@ describe('Speedrun Timer', () => {
       
       // Pause/resume 15 times
       for (let i = 0; i < 15; i++) {
-        vi.advanceTimersByTime(100);
+        jest.advanceTimersByTime(100);
         timer.pause();
-        vi.advanceTimersByTime(100);
+        jest.advanceTimersByTime(100);
         timer.resume();
       }
       
@@ -488,7 +488,7 @@ describe('Speedrun Timer', () => {
   describe('Timer Accuracy', () => {
     test('should calculate accuracy correctly', () => {
       timer.start();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       
       const accuracy = timer.calculateAccuracy();
       expect(accuracy).toBeLessThan(10); // Should be accurate within 10ms
@@ -496,9 +496,9 @@ describe('Speedrun Timer', () => {
 
     test('should maintain accuracy during pause', () => {
       timer.start();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       timer.pause();
-      vi.advanceTimersByTime(500);
+      jest.advanceTimersByTime(500);
       
       const accuracy = timer.calculateAccuracy();
       expect(accuracy).toBeLessThan(10);
@@ -511,8 +511,8 @@ describe('Speedrun Timer', () => {
       const unsubscribe = timer.onTimeUpdate(time => updates.push(time));
       
       timer.start();
-      vi.advanceTimersByTime(100);
-      vi.runAllTimers();
+      jest.advanceTimersByTime(100);
+      jest.runAllTimers();
       
       expect(updates.length).toBeGreaterThan(0);
       expect(updates[updates.length - 1]).toBeGreaterThan(0);
@@ -525,14 +525,14 @@ describe('Speedrun Timer', () => {
       timer.onTimeUpdate(time => updates.push(time));
       
       timer.start();
-      vi.advanceTimersByTime(100);
-      vi.runAllTimers();
+      jest.advanceTimersByTime(100);
+      jest.runAllTimers();
       
       const countBeforePause = updates.length;
       
       timer.pause();
-      vi.advanceTimersByTime(100);
-      vi.runAllTimers();
+      jest.advanceTimersByTime(100);
+      jest.runAllTimers();
       
       expect(updates.length).toBe(countBeforePause);
     });
@@ -541,11 +541,11 @@ describe('Speedrun Timer', () => {
   describe('Snapshot History', () => {
     test('should record state changes', () => {
       timer.start();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       timer.pause();
-      vi.advanceTimersByTime(500);
+      jest.advanceTimersByTime(500);
       timer.resume();
-      vi.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(1000);
       timer.stop();
       
       const snapshots = timer.getSnapshots();
@@ -565,7 +565,7 @@ describe('Speedrun Timer', () => {
       for (let i = 0; i < 100; i++) {
         timer.reset();
         timer.start();
-        vi.advanceTimersByTime(100);
+        jest.advanceTimersByTime(100);
         const time = timer.stop();
         times.push(time);
       }
@@ -577,12 +577,12 @@ describe('Speedrun Timer', () => {
     });
 
     test('should maintain precision with many callbacks', () => {
-      const callbacks = Array.from({ length: 50 }, () => vi.fn());
+      const callbacks = Array.from({ length: 50 }, () => jest.fn());
       const unsubscribes = callbacks.map(cb => timer.onTimeUpdate(cb));
       
       timer.start();
-      vi.advanceTimersByTime(1000);
-      vi.runAllTimers();
+      jest.advanceTimersByTime(1000);
+      jest.runAllTimers();
       
       const elapsed = timer.getElapsedTime();
       expect(elapsed).toBeCloseTo(1000, -1);

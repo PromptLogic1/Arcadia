@@ -9,7 +9,7 @@
  * - User data mapping
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { mockOAuthProviders } from './__mocks__/supabase';
 
 // OAuth configuration
@@ -36,7 +36,7 @@ const OAUTH_CONFIG = {
 
 describe('OAuth Authentication', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('OAuth Provider Configuration', () => {

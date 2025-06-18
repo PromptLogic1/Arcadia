@@ -120,101 +120,91 @@ export const createMockBingoSession = (overrides?: Partial<Tables<'bingo_session
 });
 
 // Session Player factory
-export const createMockSessionPlayer = (overrides?: Partial<Tables<'session_players'>>): Tables<'session_players'> => ({
+export const createMockSessionPlayer = (overrides?: Partial<Tables<'bingo_session_players'>>): Tables<'bingo_session_players'> => ({
   id: generateUuid(),
   session_id: generateUuid(),
   user_id: generateUuid(),
-  player_name: `Player ${Date.now()}`,
-  board_state: null,
+  display_name: `Player ${Date.now()}`,
+  color: '#FF0000',
+  is_host: false,
+  is_ready: false,
+  score: 0,
+  position: 1,
+  team: null,
+  avatar_url: null,
   joined_at: new Date().toISOString(),
-  last_seen: new Date().toISOString(),
-  is_active: true,
-  is_spectator: false,
-  completed_items: 0,
-  board_size: 25,
-  winning_pattern: null,
-  won_at: null,
+  left_at: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
   ...overrides,
 });
 
 // Submission factory
 export const createMockSubmission = (overrides?: Partial<Tables<'submissions'>>): Tables<'submissions'> => ({
   id: generateUuid(),
-  session_id: generateUuid(),
-  player_id: generateUuid(),
-  card_id: generateUuid(),
-  evidence_url: null,
-  evidence_type: null,
+  challenge_id: generateUuid(),
+  user_id: generateUuid(),
+  code: 'console.log("Hello World");',
+  language: 'javascript',
   status: 'pending',
-  submitted_at: new Date().toISOString(),
-  reviewed_at: null,
-  reviewed_by: null,
-  reviewer_notes: null,
+  results: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
   ...overrides,
 });
 
-// Board Collection factory
-export const createMockBoardCollection = (overrides?: Partial<Tables<'board_collections'>>): Tables<'board_collections'> => ({
-  id: generateUuid(),
+// User Statistics factory
+export const createMockUserStatistics = (overrides?: Partial<Tables<'user_statistics'>>): Tables<'user_statistics'> => ({
   user_id: generateUuid(),
-  name: `Collection ${Date.now()}`,
-  description: null,
-  is_public: false,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  board_count: 0,
-  ...overrides,
-});
-
-// User Settings factory
-export const createMockUserSettings = (overrides?: Partial<Tables<'user_settings'>>): Tables<'user_settings'> => ({
-  id: generateUuid(),
-  user_id: generateUuid(),
-  theme: 'dark',
-  email_notifications: true,
-  sound_enabled: true,
-  auto_ready: false,
-  show_timer: true,
-  board_animation: true,
-  compact_view: false,
-  created_at: new Date().toISOString(),
+  average_score: 0,
+  current_win_streak: 0,
+  fastest_win: null,
+  favorite_pattern: null,
+  games_completed: 0,
+  games_won: 0,
+  highest_score: 0,
+  last_game_at: null,
+  longest_win_streak: 0,
+  patterns_completed: null,
+  total_games: 0,
+  total_playtime: 0,
+  total_score: 0,
   updated_at: new Date().toISOString(),
   ...overrides,
 });
 
-// Game Settings factory
-export const createMockGameSettings = (overrides?: Partial<Tables<'game_settings'>>): Tables<'game_settings'> => ({
+// Challenge factory
+export const createMockChallenge = (overrides?: Partial<Tables<'challenges'>>): Tables<'challenges'> => ({
   id: generateUuid(),
-  session_id: generateUuid(),
-  win_condition: 'full_house',
-  allow_custom_patterns: false,
-  patterns: ['line', 'diagonal', 'four_corners'],
-  marking_mode: 'manual',
-  reveal_cards: true,
-  team_mode: false,
-  powerups_enabled: false,
+  title: `Challenge ${Date.now()}`,
+  description: 'A test challenge',
+  slug: `challenge-${Date.now()}`,
+  difficulty: 'medium',
+  status: 'published',
+  category_id: null,
+  created_by: generateUuid(),
+  initial_code: null,
+  solution_code: null,
+  test_cases: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,
 });
 
-// Board Cards Join factory
-export const createMockBoardCard = (overrides?: Partial<Tables<'board_cards'>>): Tables<'board_cards'> => ({
+// Community Event factory
+export const createMockCommunityEvent = (overrides?: Partial<Tables<'community_events'>>): Tables<'community_events'> => ({
   id: generateUuid(),
-  board_id: generateUuid(),
-  card_id: generateUuid(),
-  position: 0,
+  title: `Event ${Date.now()}`,
+  description: 'A test community event',
+  organizer_id: generateUuid(),
+  game_type: 'All Games',
+  status: 'upcoming',
+  start_date: new Date().toISOString(),
+  end_date: null,
+  max_participants: null,
+  prize_pool: null,
   created_at: new Date().toISOString(),
-  ...overrides,
-});
-
-// Collection Boards Join factory
-export const createMockCollectionBoard = (overrides?: Partial<Tables<'collection_boards'>>): Tables<'collection_boards'> => ({
-  id: generateUuid(),
-  collection_id: generateUuid(),
-  board_id: generateUuid(),
-  added_at: new Date().toISOString(),
-  added_by: generateUuid(),
+  updated_at: new Date().toISOString(),
   ...overrides,
 });
 
@@ -231,16 +221,8 @@ export const createMockBoardWithCards = (
       difficulty: board.difficulty,
     })
   );
-  
-  const boardCards = cards.map((card, index) => 
-    createMockBoardCard({
-      board_id: board.id,
-      card_id: card.id,
-      position: index,
-    })
-  );
 
-  return { board, cards, boardCards };
+  return { board, cards };
 };
 
 export const createMockSessionWithPlayers = (
@@ -251,7 +233,7 @@ export const createMockSessionWithPlayers = (
   const players = Array.from({ length: playerCount }, (_, index) => 
     createMockSessionPlayer({
       session_id: session.id,
-      player_name: `Player ${index + 1}`,
+      display_name: `Player ${index + 1}`,
     })
   );
 
@@ -271,11 +253,9 @@ export const factories = {
   bingoSession: createMockBingoSession,
   sessionPlayer: createMockSessionPlayer,
   submission: createMockSubmission,
-  boardCollection: createMockBoardCollection,
-  userSettings: createMockUserSettings,
-  gameSettings: createMockGameSettings,
-  boardCard: createMockBoardCard,
-  collectionBoard: createMockCollectionBoard,
+  userStatistics: createMockUserStatistics,
+  challenge: createMockChallenge,
+  communityEvent: createMockCommunityEvent,
   // Complex builders
   boardWithCards: createMockBoardWithCards,
   sessionWithPlayers: createMockSessionWithPlayers,

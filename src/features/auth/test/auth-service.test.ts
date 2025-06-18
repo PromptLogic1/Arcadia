@@ -33,29 +33,29 @@ describe('Auth Service', () => {
 
   beforeEach(() => {
     // Reset all mocks
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     // Create mock Supabase client
     mockSupabaseClient = {
       auth: {
-        getSession: vi.fn(),
-        getUser: vi.fn(),
-        signInWithPassword: vi.fn(),
-        signUp: vi.fn(),
-        signOut: vi.fn(),
-        resetPasswordForEmail: vi.fn(),
-        updateUser: vi.fn(),
-        onAuthStateChange: vi.fn(),
+        getSession: jest.fn(),
+        getUser: jest.fn(),
+        signInWithPassword: jest.fn(),
+        signUp: jest.fn(),
+        signOut: jest.fn(),
+        resetPasswordForEmail: jest.fn(),
+        updateUser: jest.fn(),
+        onAuthStateChange: jest.fn(),
       },
-      from: vi.fn(),
+      from: jest.fn(),
     };
 
     // Mock createClient to return our mock client
-    vi.mocked(createClient).mockReturnValue(mockSupabaseClient);
+    (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('getSession', () => {
@@ -327,9 +327,9 @@ describe('Auth Service', () => {
       };
 
       const mockFromChain = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
           data: mockUserData,
           error: null,
         }),
@@ -347,9 +347,9 @@ describe('Auth Service', () => {
 
     test('should handle user not found', async () => {
       const mockFromChain = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
           data: null,
           error: { message: 'User not found' },
         }),
@@ -416,8 +416,8 @@ describe('Auth Service', () => {
 
   describe('onAuthStateChange', () => {
     test('should subscribe to auth state changes', () => {
-      const mockCallback = vi.fn();
-      const mockUnsubscribe = vi.fn();
+      const mockCallback = jest.fn();
+      const mockUnsubscribe = jest.fn();
       
       mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
         data: { subscription: { unsubscribe: mockUnsubscribe } },

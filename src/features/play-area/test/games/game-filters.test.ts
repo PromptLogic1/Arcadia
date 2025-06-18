@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import type { Tables } from '@/types/database.types';
 
 // Types for game filtering

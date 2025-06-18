@@ -9,7 +9,7 @@
  * - Session persistence
  */
 
-import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, jest, afterEach } from '@jest/globals';
 import type { MockSupabaseSession } from './__mocks__/supabase';
 
 // Session timeout values (in milliseconds)
@@ -22,14 +22,14 @@ const SESSION_TIMEOUTS = {
 
 describe('Session and Token Handling', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Mock Date.now() for consistent time testing
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   describe('Session Creation', () => {
@@ -90,7 +90,7 @@ describe('Session and Token Handling', () => {
       expect(Date.now() < expiryTime).toBe(true);
 
       // Fast forward past expiry
-      vi.advanceTimersByTime(session.expires_in * 1000 + 1000);
+      jest.advanceTimersByTime(session.expires_in * 1000 + 1000);
 
       // Token should be expired
       expect(Date.now() > expiryTime).toBe(true);
@@ -119,7 +119,7 @@ describe('Session and Token Handling', () => {
 
   describe('Refresh Token Logic', () => {
     test('should use refresh token when access token expires', async () => {
-      const mockRefreshToken = vi.fn().mockResolvedValue({
+      const mockRefreshToken = jest.fn().mockResolvedValue({
         access_token: 'new-access-token',
         token_type: 'bearer',
         expires_in: 3600,
@@ -138,7 +138,7 @@ describe('Session and Token Handling', () => {
     });
 
     test('should handle refresh token expiration', async () => {
-      const mockRefreshToken = vi.fn().mockResolvedValue({
+      const mockRefreshToken = jest.fn().mockResolvedValue({
         error: 'Invalid refresh token',
       });
 
@@ -151,7 +151,7 @@ describe('Session and Token Handling', () => {
 
     test('should maintain user session during token refresh', async () => {
       const user = { id: 'user-123', email: 'test@example.com' };
-      const mockRefreshWithUser = vi.fn().mockResolvedValue({
+      const mockRefreshWithUser = jest.fn().mockResolvedValue({
         access_token: 'new-access-token',
         user, // User data should persist
       });
@@ -166,9 +166,9 @@ describe('Session and Token Handling', () => {
   describe('Session Persistence', () => {
     test('should persist session in secure storage', () => {
       const mockStorage = {
-        setItem: vi.fn(),
-        getItem: vi.fn(),
-        removeItem: vi.fn(),
+        setItem: jest.fn(),
+        getItem: jest.fn(),
+        removeItem: jest.fn(),
       };
 
       const session = {
@@ -191,7 +191,7 @@ describe('Session and Token Handling', () => {
 
     test('should clear session on logout', () => {
       const mockStorage = {
-        removeItem: vi.fn(),
+        removeItem: jest.fn(),
       };
 
       mockStorage.removeItem('auth-session');
@@ -203,7 +203,7 @@ describe('Session and Token Handling', () => {
 
     test('should handle corrupted session data', () => {
       const mockStorage = {
-        getItem: vi.fn().mockReturnValue('corrupted-json-{'),
+        getItem: jest.fn().mockReturnValue('corrupted-json-{'),
       };
 
       const parseSession = () => {
@@ -241,7 +241,7 @@ describe('Session and Token Handling', () => {
       expect(Date.now() - lastActivity < idleTimeout).toBe(true);
 
       // Fast forward past idle timeout
-      vi.advanceTimersByTime(idleTimeout + 1000);
+      jest.advanceTimersByTime(idleTimeout + 1000);
 
       // Session should be expired due to inactivity
       expect(Date.now() - lastActivity > idleTimeout).toBe(true);
@@ -251,13 +251,13 @@ describe('Session and Token Handling', () => {
       let lastActivity = Date.now();
       
       // Fast forward 20 minutes (still within 30 min timeout)
-      vi.advanceTimersByTime(20 * 60 * 1000);
+      jest.advanceTimersByTime(20 * 60 * 1000);
       
       // User activity resets timer
       lastActivity = Date.now();
       
       // Fast forward another 20 minutes
-      vi.advanceTimersByTime(20 * 60 * 1000);
+      jest.advanceTimersByTime(20 * 60 * 1000);
       
       // Should be 20 minutes since last activity, not 40 total
       const timeSinceActivity = Date.now() - lastActivity;
@@ -327,7 +327,7 @@ describe('Session and Token Handling', () => {
     });
 
     test('should validate token signature', () => {
-      const mockValidateToken = vi.fn().mockImplementation((token: string) => {
+      const mockValidateToken = jest.fn().mockImplementation((token: string) => {
         // Simple mock validation
         return token.split('.').length === 3;
       });

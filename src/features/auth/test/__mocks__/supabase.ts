@@ -4,7 +4,7 @@
  * Provides comprehensive mocks for Supabase auth functionality
  */
 
-import { vi } from 'vitest';
+import { jest } from '@jest/globals';
 
 export interface MockSupabaseUser {
   id: string;
@@ -251,14 +251,14 @@ export class MockSupabaseQueryBuilder {
 export const createMockSupabaseClient = () => new MockSupabaseClient();
 
 // Mock functions for rate limiting
-export const mockRateLimitCheck = vi.fn().mockResolvedValue({
+export const mockRateLimitCheck = jest.fn().mockResolvedValue({
   success: true,
   limit: 10,
   remaining: 9,
   reset: Date.now() + 3600000,
 });
 
-export const mockRateLimitExceeded = vi.fn().mockResolvedValue({
+export const mockRateLimitExceeded = jest.fn().mockResolvedValue({
   success: false,
   limit: 10,
   remaining: 0,
@@ -268,16 +268,16 @@ export const mockRateLimitExceeded = vi.fn().mockResolvedValue({
 // Mock OAuth providers
 export const mockOAuthProviders = {
   google: {
-    authorize: vi.fn(),
-    callback: vi.fn(),
+    authorize: jest.fn(),
+    callback: jest.fn(),
   },
   github: {
-    authorize: vi.fn(),
-    callback: vi.fn(),
+    authorize: jest.fn(),
+    callback: jest.fn(),
   },
   discord: {
-    authorize: vi.fn(),
-    callback: vi.fn(),
+    authorize: jest.fn(),
+    callback: jest.fn(),
   },
 };
 
@@ -293,7 +293,7 @@ export const mockSessionUtils = {
     return Date.now() + session.expires_in * 1000;
   },
   
-  refreshSession: vi.fn().mockResolvedValue({
+  refreshSession: jest.fn().mockResolvedValue({
     session: {
       access_token: `refreshed-token-${Date.now()}`,
       token_type: 'bearer',

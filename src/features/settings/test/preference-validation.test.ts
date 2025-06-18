@@ -4,7 +4,6 @@
  * Tests for validating user preferences and settings input
  */
 
-import { describe, it, expect } from 'vitest';
 import { settingsService } from '@/services/settings.service';
 import { SETTINGS_CONSTANTS } from '../components/constants';
 import type { EmailUpdateData, PasswordUpdateData, NotificationSettingsData } from '@/services/settings.service';
@@ -198,7 +197,7 @@ describe('Preference Validation', () => {
 
   describe('Notification Settings Validation', () => {
     it('should provide default notification settings', () => {
-      const defaultSettings: NotificationSettingsData = {
+      const defaultSettings: Required<NotificationSettingsData> = {
         email_notifications: true,
         push_notifications: false,
         friend_requests: true,
@@ -221,7 +220,7 @@ describe('Preference Validation', () => {
     });
 
     it('should validate notification settings combinations', () => {
-      const settings: NotificationSettingsData = {
+      const settings: Partial<NotificationSettingsData> = {
         email_notifications: false,
         push_notifications: true,
         game_invites: true,
@@ -230,8 +229,8 @@ describe('Preference Validation', () => {
       // Business rule: If email notifications are off, email-specific settings should be ignored
       const processedSettings = {
         ...settings,
-        weekly_digest: settings.email_notifications ? settings.weekly_digest : false,
-        marketing_emails: settings.email_notifications ? settings.marketing_emails : false,
+        weekly_digest: settings.email_notifications ? (settings.weekly_digest ?? true) : false,
+        marketing_emails: settings.email_notifications ? (settings.marketing_emails ?? false) : false,
       };
 
       expect(processedSettings.weekly_digest).toBe(false);
@@ -239,7 +238,7 @@ describe('Preference Validation', () => {
     });
 
     it('should handle partial notification settings updates', () => {
-      const currentSettings: NotificationSettingsData = {
+      const currentSettings: Required<NotificationSettingsData> = {
         email_notifications: true,
         push_notifications: false,
         friend_requests: true,
@@ -283,13 +282,13 @@ describe('Preference Validation', () => {
     });
 
     it('should enforce privacy settings constraints', () => {
-      interface PrivacySettings {
+      interface PrivacyTestSettings {
         profile_visibility: 'public' | 'friends' | 'private';
         show_online_status: boolean;
         allow_friend_requests: boolean;
       }
 
-      const settings: PrivacySettings = {
+      const settings: PrivacyTestSettings = {
         profile_visibility: 'private',
         show_online_status: true,
         allow_friend_requests: true,

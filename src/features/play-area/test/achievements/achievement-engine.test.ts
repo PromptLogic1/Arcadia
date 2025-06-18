@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import type { Tables } from '@/types/database.types';
 
 // Achievement types
@@ -452,7 +452,7 @@ describe('Achievement Engine', () => {
     });
 
     test('should throttle rapid unlocks', () => {
-      vi.useFakeTimers();
+      jest.useFakeTimers();
       
       const unlock1 = engine.unlockAchievement('first_win');
       expect(unlock1.success).toBe(true);
@@ -464,12 +464,12 @@ describe('Achievement Engine', () => {
       // Should be queued
       expect(engine['unlockQueue']).toHaveLength(1);
 
-      vi.runAllTimers();
-      vi.useRealTimers();
+      jest.runAllTimers();
+      jest.useRealTimers();
     });
 
     test('should process unlock queue', () => {
-      vi.useFakeTimers();
+      jest.useFakeTimers();
       
       engine.unlockAchievement('first_win');
       engine.unlockAchievement('speedrun_master'); // Will be queued
@@ -479,7 +479,7 @@ describe('Achievement Engine', () => {
       expect(processed[0]?.achievement_name).toBe('speedrun_master');
       expect(processed[0]?.unlocked_at).toBeTruthy();
 
-      vi.useRealTimers();
+      jest.useRealTimers();
     });
   });
 

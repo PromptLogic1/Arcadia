@@ -40,10 +40,10 @@ test.describe('Enhanced Content Moderation', () => {
       await page.getByRole('button', { name: /new discussion/i }).click();
 
       // Test obvious spam content
-      const spamContent = MODERATION_TEST_CONTENT.spam.obvious;
-      await page.getByLabel('Title').fill(spamContent.title);
-      await page.getByLabel('Content').fill(spamContent.content);
-      await page.getByLabel('Game').selectOption(spamContent.game);
+      const spamPattern = MODERATION_TEST_CONTENT.spam.patterns[0];
+      await page.getByLabel('Title').fill('Spam Test Discussion');
+      await page.getByLabel('Content').fill(spamPattern);
+      await page.getByLabel('Game').selectOption('Pokemon');
 
       // Submit and verify spam detection
       await page.getByRole('button', { name: /create discussion/i }).click();
@@ -61,10 +61,10 @@ test.describe('Enhanced Content Moderation', () => {
       await page.getByRole('button', { name: /new discussion/i }).click();
 
       // Test subtle spam content
-      const subtleSpam = MODERATION_TEST_CONTENT.spam.subtle;
-      await page.getByLabel('Title').fill(subtleSpam.title);
-      await page.getByLabel('Content').fill(subtleSpam.content);
-      await page.getByLabel('Game').selectOption(subtleSpam.game);
+      const subtleSpamPattern = MODERATION_TEST_CONTENT.suspicious.patterns[0];
+      await page.getByLabel('Title').fill('Subtle Spam Test');
+      await page.getByLabel('Content').fill(subtleSpamPattern);
+      await page.getByLabel('Game').selectOption('Pokemon');
 
       await page.getByRole('button', { name: /create discussion/i }).click();
 
@@ -85,10 +85,10 @@ test.describe('Enhanced Content Moderation', () => {
       await page.getByRole('button', { name: /new discussion/i }).click();
 
       // Test repetitive spam content
-      const repetitiveSpam = MODERATION_TEST_CONTENT.spam.repetitive;
-      await page.getByLabel('Title').fill(repetitiveSpam.title);
-      await page.getByLabel('Content').fill(repetitiveSpam.content);
-      await page.getByLabel('Game').selectOption(repetitiveSpam.game);
+      const repetitiveSpamPattern = MODERATION_TEST_CONTENT.spam.patterns[1];
+      await page.getByLabel('Title').fill('Repetitive Spam Test');
+      await page.getByLabel('Content').fill(repetitiveSpamPattern);
+      await page.getByLabel('Game').selectOption('Pokemon');
 
       await page.getByRole('button', { name: /create discussion/i }).click();
 
@@ -359,12 +359,12 @@ test.describe('Enhanced Content Moderation', () => {
   test.describe('Appeal and Review Processes', () => {
     test('allows users to appeal moderation decisions', async ({ authenticatedPage: page }) => {
       // Create content that gets flagged
-      const harassmentContent = MODERATION_TEST_CONTENT.inappropriate.harassment;
+      const inappropriatePattern = MODERATION_TEST_CONTENT.inappropriate.patterns[0];
       const discussionId = await createTypedDiscussion(page, {
-        title: harassmentContent.title,
-        content: harassmentContent.content,
-        game: harassmentContent.game,
-        tags: Array.isArray(harassmentContent.tags) ? harassmentContent.tags : ['test'],
+        title: 'Appeal Test Discussion',
+        content: inappropriatePattern,
+        game: 'Pokemon',
+        tags: ['test'],
       });
 
       // Report the content

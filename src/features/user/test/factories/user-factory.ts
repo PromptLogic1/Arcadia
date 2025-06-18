@@ -1,6 +1,7 @@
 import type { Database } from '@/types/database.types';
 
-type UserProfile = Database['public']['Tables']['users']['Row'];
+// Use correct database types
+type User = Database['public']['Tables']['users']['Row'];
 type UserStats = Database['public']['Tables']['user_statistics']['Row'];
 type GameResult = Database['public']['Tables']['game_results']['Row'];
 type UserActivity = Database['public']['Tables']['user_activity']['Row'];
@@ -18,7 +19,7 @@ let gameIdCounter = 1;
 let activityIdCounter = 1;
 let achievementIdCounter = 1;
 
-export function createUserProfile(overrides: Partial<UserProfile> = {}): UserProfile {
+export function createUserProfile(overrides: Partial<User> = {}): User {
   const id = `user_${userIdCounter++}`;
   const now = new Date().toISOString();
 
@@ -26,7 +27,6 @@ export function createUserProfile(overrides: Partial<UserProfile> = {}): UserPro
     id,
     username: `testuser${userIdCounter}`,
     full_name: `Test User ${userIdCounter}`,
-    email: `user${userIdCounter}@example.com`,
     bio: 'I love playing games and collecting achievements!',
     avatar_url: 'https://example.com/avatar.jpg',
     city: 'San Francisco',
@@ -37,10 +37,10 @@ export function createUserProfile(overrides: Partial<UserProfile> = {}): UserPro
     profile_visibility: 'public',
     achievements_visibility: 'public',
     submissions_visibility: 'public',
+    auth_id: null,
     created_at: now,
     updated_at: now,
     last_login_at: now,
-    email_verified: true,
     ...overrides,
   };
 }
@@ -50,20 +50,20 @@ export function createUserStats(overrides: Partial<UserStats> = {}): UserStats {
   const now = new Date().toISOString();
 
   return {
-    id: userId,
     user_id: userId,
     total_games: 50,
+    games_completed: 45,
     games_won: 25,
     total_score: 2500,
     average_score: 50,
     highest_score: 150,
-    fastest_win: 180, // 3 minutes
+    fastest_win: 180, // 3 minutes in seconds
     longest_win_streak: 5,
     current_win_streak: 2,
-    favorite_game_mode: 'classic',
+    favorite_pattern: 'line',
     total_playtime: 3600, // 1 hour in seconds
+    patterns_completed: { line: 15, diagonal: 8, corners: 2 },
     last_game_at: now,
-    created_at: now,
     updated_at: now,
     ...overrides,
   };
@@ -77,14 +77,13 @@ export function createGameResult(overrides: Partial<GameResult> = {}): GameResul
     id,
     user_id: overrides.user_id || `user_${userIdCounter}`,
     session_id: overrides.session_id || `session_${gameIdCounter}`,
-    board_id: overrides.board_id || `board_${gameIdCounter}`,
     placement: 1,
     final_score: 100,
-    time_elapsed: 300, // 5 minutes
-    moves_made: 25,
-    power_ups_used: 3,
+    time_to_win: 300, // 5 minutes in seconds
+    bonus_points: 10,
+    mistake_count: 2,
+    patterns_achieved: { line: true, diagonal: false },
     created_at: now,
-    completed_at: now,
     ...overrides,
   };
 }
@@ -102,6 +101,7 @@ export function createUserActivity(overrides: Partial<UserActivity> = {}): UserA
       difficulty: 'medium',
       score: 100,
     },
+    timestamp: now,
     created_at: now,
     ...overrides,
   };
@@ -122,6 +122,7 @@ export function createUserAchievement(overrides: Partial<UserAchievement> = {}):
       games_played: 10,
       unlocked_at: now,
     },
+    unlocked_at: now,
     created_at: now,
     ...overrides,
   };
@@ -129,7 +130,7 @@ export function createUserAchievement(overrides: Partial<UserAchievement> = {}):
 
 // Helper functions for creating specific user scenarios
 
-export function createNewUser(username: string): UserProfile {
+export function createNewUser(username: string): User {
   return createUserProfile({
     username,
     experience_points: 0,
@@ -144,7 +145,7 @@ export function createNewUser(username: string): UserProfile {
 }
 
 export function createPowerUser(username: string): {
-  profile: UserProfile;
+  profile: User;
   stats: UserStats;
   achievements: UserAchievement[];
 } {
@@ -218,7 +219,7 @@ export function createGameHistory(
         user_id: userId,
         placement: isWin ? 1 : Math.floor(Math.random() * 3) + 2,
         final_score: score,
-        time_elapsed: 180 + Math.floor(Math.random() * 420), // 3-10 minutes
+        time_to_win: isWin ? 180 + Math.floor(Math.random() * 420) : null, // 3-10 minutes for wins only
         created_at: new Date(now - timeAgo).toISOString(),
       })
     );

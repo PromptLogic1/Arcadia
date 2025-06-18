@@ -4,7 +4,7 @@
  * Tests for data export formatting and privacy compliance
  */
 
-import { describe, it, expect, vi } from 'vitest';
+// No Vitest imports needed for Jest
 
 interface UserData {
   profile: {

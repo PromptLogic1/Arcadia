@@ -2,14 +2,14 @@
  * Test Setup for Auth Feature Tests
  */
 
-import { vi } from 'vitest';
+import { jest } from '@jest/globals';
 import { cleanup } from '@testing-library/react';
-import { afterEach, beforeAll } from 'vitest';
+import { afterEach, beforeAll } from '@jest/globals';
 
 // Cleanup after each test
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
+  jest.clearAllMocks();
 });
 
 // Global test setup
@@ -29,10 +29,10 @@ beforeAll(() => {
   // Mock localStorage
   Object.defineProperty(window, 'localStorage', {
     value: {
-      getItem: vi.fn(),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-      clear: vi.fn(),
+      getItem: jest.fn(),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+      clear: jest.fn(),
     },
     writable: true,
   });
@@ -40,10 +40,10 @@ beforeAll(() => {
   // Mock sessionStorage
   Object.defineProperty(window, 'sessionStorage', {
     value: {
-      getItem: vi.fn(),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-      clear: vi.fn(),
+      getItem: jest.fn(),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+      clear: jest.fn(),
     },
     writable: true,
   });
@@ -56,14 +56,14 @@ beforeAll(() => {
       pathname: '/',
       search: '',
       hash: '',
-      assign: vi.fn(),
-      reload: vi.fn(),
-      replace: vi.fn(),
+      assign: jest.fn(),
+      reload: jest.fn(),
+      replace: jest.fn(),
     },
     writable: true,
   });
 
   // Suppress console errors in tests
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
 });

@@ -4,7 +4,19 @@
  * Tests for migrating settings from old formats to new formats
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+// Using default Jest globals
+
+// Use global testUtils from jest.setup.ts
+declare global {
+  var testUtils: {
+    localStorage: {
+      getItem: jest.Mock;
+      setItem: jest.Mock;
+      removeItem: jest.Mock;
+      clear: jest.Mock;
+    };
+  };
+}
 
 interface LegacySettings {
   theme?: string;

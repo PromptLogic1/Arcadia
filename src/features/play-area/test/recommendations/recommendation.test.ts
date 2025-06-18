@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 
 // Types for recommendation system
 interface Game {

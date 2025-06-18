@@ -1,7 +1,28 @@
 /**
  * Type definitions for landing page tests
- * Ensures type safety across all test scenarios
+ * Aligned with actual project implementation types
  */
+
+import type { 
+  MetaTagConfig, 
+  GeneratedMetaTags, 
+  ValidationResult 
+} from '../../../src/features/landing/utils/seo-meta';
+
+import type { 
+  AnalyticsEvent as ProjectAnalyticsEvent,
+  EventContext,
+  ConversionFunnel as ProjectConversionFunnel,
+  EventValidation
+} from '../../../src/features/landing/utils/analytics-events';
+
+import type { 
+  FeatureFlag,
+  FlagContext,
+  FlagValue 
+} from '../../../src/features/landing/utils/feature-flags';
+
+import type { TestWindow } from '../../types/test-types';
 
 /**
  * Extended Performance API types for 2024 Core Web Vitals
@@ -94,8 +115,12 @@ export interface MetaTagValidation {
 }
 
 /**
- * SEO validation configuration
+ * SEO validation configuration (re-exported from project utilities)
  */
+export type SEOMetaTagConfig = MetaTagConfig;
+export type SEOGeneratedMetaTags = GeneratedMetaTags;
+export type SEOValidationResult = ValidationResult;
+
 export interface SEOValidation {
   title: {
     minLength: number;
@@ -156,28 +181,14 @@ export interface SocialMediaValidation {
 }
 
 /**
- * Analytics event structure
+ * Analytics event structure (re-exported from project utilities)
  */
-export interface AnalyticsEvent {
-  eventName: string;
-  category: string;
-  action: string;
-  label?: string;
-  value?: number;
-  timestamp?: number;
-  sessionId?: string;
-  userId?: string;
-  metadata?: Record<string, unknown>;
-}
+export type AnalyticsEvent = ProjectAnalyticsEvent;
 
 /**
- * Marketing conversion funnel stages
+ * Marketing conversion funnel stages (re-exported from project utilities)
  */
-export interface ConversionFunnel {
-  name: string;
-  stages: ConversionStage[];
-  expectedDuration: number;
-}
+export type ConversionFunnel = ProjectConversionFunnel;
 
 export interface ConversionStage {
   name: string;

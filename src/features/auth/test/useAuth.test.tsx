@@ -9,38 +9,53 @@
  * - Rate limiting
  */
 
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useAuth } from '@/lib/stores/auth-store';
-import { authService } from '@/services/auth.service';
-import type { ServiceResponse } from '@/lib/service-types';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import type { User } from '@/types';
 
-// Mock auth service
-vi.mock('@/services/auth.service', () => ({
-  authService: {
-    signIn: vi.fn(),
-    signUp: vi.fn(),
-    signOut: vi.fn(),
-    getCurrentUser: vi.fn(),
-    getUserData: vi.fn(),
-    resetPassword: vi.fn(),
-    updatePassword: vi.fn(),
-    onAuthStateChange: vi.fn(),
-  },
+// Mock Supabase client
+jest.mock('@/lib/supabase', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getSession: jest.fn(),
+      getUser: jest.fn(),
+      signInWithPassword: jest.fn(),
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      onAuthStateChange: jest.fn(),
+    },
+    from: jest.fn(),
+  })),
 }));
 
 // Mock logger
-vi.mock('@/lib/logger', () => ({
-  log: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
-describe('useAuth Hook', () => {
+// Mock notifications
+jest.mock('@/lib/notifications', () => ({
+  notifications: {
+    success: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+// Mock session blacklist
+jest.mock('@/lib/session-blacklist', () => ({
+  trackUserSession: jest.fn(),
+  blacklistAllUserSessions: jest.fn(),
+}));
+
+describe('Auth Store', () => {
   let queryClient: QueryClient;
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -49,7 +64,7 @@ describe('useAuth Hook', () => {
 
   beforeEach(() => {
     // Clear all mocks
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     // Create fresh query client for each test
     queryClient = new QueryClient({
@@ -59,41 +74,57 @@ describe('useAuth Hook', () => {
       },
     });
 
-    // Reset auth store
-    useAuth.setState({
-      user: null,
+    // Reset auth store to initial state
+    useAuthStore.setState({
+      authUser: null,
+      userData: null,
       isAuthenticated: false,
-      isInitialized: false,
+      loading: false,
       error: null,
     });
   });
 
   describe('Initialization', () => {
     test('should initialize with default state', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
-      expect(result.current.user).toBeNull();
+      expect(result.current.authUser).toBeNull();
+      expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
-      expect(result.current.isInitialized).toBe(false);
+      expect(result.current.loading).toBe(false);
       expect(result.current.error).toBeNull();
     });
 
     test('should check for existing session on mount', async () => {
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
-        email: 'test@example.com',
         username: 'testuser',
+        auth_id: 'auth-123',
+        avatar_url: null,
+        bio: null,
+        city: null,
+        created_at: new Date().toISOString(),
+        experience_points: 0,
+        full_name: 'Test User',
+        land: null,
+        last_login_at: null,
+        profile_visibility: 'public',
+        achievements_visibility: 'public',
+        submissions_visibility: 'public',
+        region: null,
+        role: 'user',
+        updated_at: new Date().toISOString(),
       };
 
-      vi.mocked(authService.getCurrentUser).mockResolvedValue({
+      (authService.getCurrentUser as jest.Mock).mockResolvedValue({
         success: true,
         data: mockUser,
-      } as ServiceResponse<any>);
+      } as ServiceResponse<User>);
 
-      vi.mocked(authService.getUserData).mockResolvedValue({
+      (authService.getUserData as jest.Mock).mockResolvedValue({
         success: true,
-        data: { ...mockUser, role: 'user' },
-      } as ServiceResponse<any>);
+        data: mockUser,
+      } as ServiceResponse<User>);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -109,21 +140,35 @@ describe('useAuth Hook', () => {
   describe('Sign In', () => {
     test('should sign in user successfully', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
-        email: 'test@example.com',
         username: 'testuser',
+        auth_id: 'auth-123',
+        avatar_url: null,
+        bio: null,
+        city: null,
+        created_at: new Date().toISOString(),
+        experience_points: 0,
+        full_name: 'Test User',
+        land: null,
+        last_login_at: null,
+        profile_visibility: 'public',
+        achievements_visibility: 'public',
+        submissions_visibility: 'public',
+        region: null,
+        role: 'user',
+        updated_at: new Date().toISOString(),
       };
 
-      vi.mocked(authService.signIn).mockResolvedValue({
+      (authService.signIn as jest.Mock).mockResolvedValue({
         success: true,
         data: { user: mockUser },
-      } as ServiceResponse<any>);
+      } as ServiceResponse<{ user: User }>);
 
-      vi.mocked(authService.getUserData).mockResolvedValue({
+      (authService.getUserData as jest.Mock).mockResolvedValue({
         success: true,
-        data: { ...mockUser, role: 'user' },
-      } as ServiceResponse<any>);
+        data: mockUser,
+      } as ServiceResponse<User>);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -139,10 +184,10 @@ describe('useAuth Hook', () => {
     test('should handle sign in errors', async () => {
       const credentials = { email: 'test@example.com', password: 'wrong' };
 
-      vi.mocked(authService.signIn).mockResolvedValue({
+      (authService.signIn as jest.Mock).mockResolvedValue({
         success: false,
         error: 'Invalid login credentials',
-      } as ServiceResponse<any>);
+      } as ServiceResponse<{ user: User }>);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -158,7 +203,7 @@ describe('useAuth Hook', () => {
     test('should handle rate limiting', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
 
-      vi.mocked(authService.signIn).mockResolvedValue({
+      (authService.signIn as jest.Mock).mockResolvedValue({
         success: false,
         error: 'Too many login attempts. Please try again later.',
       } as ServiceResponse<any>);
@@ -181,7 +226,7 @@ describe('useAuth Hook', () => {
         username: 'newuser',
       };
 
-      vi.mocked(authService.signUp).mockResolvedValue({
+      (authService.signUp as jest.Mock).mockResolvedValue({
         success: true,
         data: { needsVerification: true },
       } as ServiceResponse<any>);
@@ -210,12 +255,12 @@ describe('useAuth Hook', () => {
         username: 'confirmeduser',
       };
 
-      vi.mocked(authService.signUp).mockResolvedValue({
+      (authService.signUp as jest.Mock).mockResolvedValue({
         success: true,
         data: { user: mockUser },
       } as ServiceResponse<any>);
 
-      vi.mocked(authService.getUserData).mockResolvedValue({
+      (authService.getUserData as jest.Mock).mockResolvedValue({
         success: true,
         data: { ...mockUser, role: 'user' },
       } as ServiceResponse<any>);
@@ -237,7 +282,7 @@ describe('useAuth Hook', () => {
         username: 'existinguser',
       };
 
-      vi.mocked(authService.signUp).mockResolvedValue({
+      (authService.signUp as jest.Mock).mockResolvedValue({
         success: false,
         error: 'User already registered',
       } as ServiceResponse<any>);
@@ -261,7 +306,7 @@ describe('useAuth Hook', () => {
         isInitialized: true,
       });
 
-      vi.mocked(authService.signOut).mockResolvedValue({
+      (authService.signOut as jest.Mock).mockResolvedValue({
         success: true,
       } as ServiceResponse<void>);
 
@@ -283,7 +328,7 @@ describe('useAuth Hook', () => {
         isInitialized: true,
       });
 
-      vi.mocked(authService.signOut).mockResolvedValue({
+      (authService.signOut as jest.Mock).mockResolvedValue({
         success: false,
         error: 'Failed to sign out',
       } as ServiceResponse<void>);
@@ -302,7 +347,7 @@ describe('useAuth Hook', () => {
 
   describe('Password Reset', () => {
     test('should send password reset email', async () => {
-      vi.mocked(authService.resetPassword).mockResolvedValue({
+      (authService.resetPassword as jest.Mock).mockResolvedValue({
         success: true,
       } as ServiceResponse<void>);
 
@@ -317,7 +362,7 @@ describe('useAuth Hook', () => {
     });
 
     test('should handle rate limiting for password reset', async () => {
-      vi.mocked(authService.resetPassword).mockResolvedValue({
+      (authService.resetPassword as jest.Mock).mockResolvedValue({
         success: false,
         error: 'Too many password reset attempts',
       } as ServiceResponse<void>);
@@ -335,7 +380,7 @@ describe('useAuth Hook', () => {
 
   describe('Update Password', () => {
     test('should update password successfully', async () => {
-      vi.mocked(authService.updatePassword).mockResolvedValue({
+      (authService.updatePassword as jest.Mock).mockResolvedValue({
         success: true,
       } as ServiceResponse<void>);
 
@@ -350,7 +395,7 @@ describe('useAuth Hook', () => {
     });
 
     test('should handle weak password error', async () => {
-      vi.mocked(authService.updatePassword).mockResolvedValue({
+      (authService.updatePassword as jest.Mock).mockResolvedValue({
         success: false,
         error: 'Password is too weak',
       } as ServiceResponse<void>);
@@ -373,7 +418,7 @@ describe('useAuth Hook', () => {
         resolveSignIn = resolve;
       });
 
-      vi.mocked(authService.signIn).mockReturnValue(signInPromise as any);
+      (authService.signIn as jest.Mock).mockReturnValue(signInPromise as any);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -415,7 +460,7 @@ describe('useAuth Hook', () => {
     test('should clear error on successful operation', async () => {
       useAuth.setState({ error: 'Previous error' });
 
-      vi.mocked(authService.signIn).mockResolvedValue({
+      (authService.signIn as jest.Mock).mockResolvedValue({
         success: true,
         data: { user: { id: 'user-123' } },
       } as ServiceResponse<any>);

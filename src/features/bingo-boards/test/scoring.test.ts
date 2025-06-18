@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { ScoringService } from '../services/scoring.service';
 import type { WinPattern } from '../types';
 

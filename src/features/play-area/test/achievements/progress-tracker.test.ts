@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 
 // Progress tracking types
 interface ProgressEvent {
@@ -209,7 +209,9 @@ export class ProgressTracker {
     }
 
     // Update weekly activity
-    progress.statistics.weeklyActivity[dayOfWeek]++;
+    if (progress.statistics.weeklyActivity[dayOfWeek] !== undefined) {
+      progress.statistics.weeklyActivity[dayOfWeek]++;
+    }
   }
 
   // Record progress updates for history
@@ -315,7 +317,7 @@ export class ProgressTracker {
       .map(u => u.newValue as number);
     
     const streakTrend = streakUpdates.length > 0
-      ? streakUpdates[streakUpdates.length - 1] - streakUpdates[0]
+      ? (streakUpdates[streakUpdates.length - 1] ?? 0) - (streakUpdates[0] ?? 0)
       : 0;
 
     return {
@@ -515,12 +517,12 @@ describe('Progress Tracker', () => {
   describe('Progress Analytics', () => {
     test('should calculate progress velocity', () => {
       // Simulate games over time
-      vi.useFakeTimers();
+      jest.useFakeTimers();
       const baseTime = new Date('2024-01-01').getTime();
-      vi.setSystemTime(baseTime);
+      jest.setSystemTime(baseTime);
 
       for (let day = 0; day < 7; day++) {
-        vi.setSystemTime(baseTime + day * 24 * 60 * 60 * 1000);
+        jest.setSystemTime(baseTime + day * 24 * 60 * 60 * 1000);
         tracker.trackGameCompletion('user-1', {
           duration: 600,
           won: day % 2 === 0,
@@ -533,7 +535,7 @@ describe('Progress Tracker', () => {
       expect(velocity.gamesPerDay).toBeCloseTo(1, 1);
       expect(velocity.streakTrend).toBeDefined();
 
-      vi.useRealTimers();
+      jest.useRealTimers();
     });
 
     test('should calculate average game duration', () => {

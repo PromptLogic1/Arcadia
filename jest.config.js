@@ -32,7 +32,9 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { 
+      presets: [['next/babel', { 'preset-react': { runtime: 'automatic' } }]]
+    }],
   },
   // Fix ESM module support for Supabase and other ES modules
   transformIgnorePatterns: [

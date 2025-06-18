@@ -3,7 +3,11 @@
  */
 
 import type { Page } from '@playwright/test';
-import type { AnalyticsEvent, ConversionFunnel, MarketingTagType } from '../types';
+import type { 
+  AnalyticsEvent, 
+  ConversionFunnel, 
+  MarketingTagType 
+} from '../types';
 import type { TestWindow } from '../../types/test-types';
 
 /**
@@ -91,12 +95,13 @@ export class AnalyticsTracker {
       if (command === 'event') {
         const params = parameters && typeof parameters === 'object' ? parameters as Record<string, unknown> : {};
         return {
-          eventName: eventName as string,
+          id: crypto.randomUUID(),
+          name: eventName as string,
           category: (params.event_category as string) || 'engagement',
           action: (params.event_action as string) || (eventName as string),
           label: params.event_label as string | undefined,
           value: params.value as number | undefined,
-          timestamp,
+          timestamp: new Date(timestamp),
           metadata: params,
         };
       }
@@ -105,22 +110,24 @@ export class AnalyticsTracker {
     if (provider === 'gtm' && data && typeof data === 'object') {
       const gtmData = data as Record<string, unknown>;
       return {
-        eventName: (gtmData.event as string) || 'unknown',
+        id: crypto.randomUUID(),
+        name: (gtmData.event as string) || 'unknown',
         category: (gtmData.eventCategory as string) || 'general',
         action: (gtmData.eventAction as string) || (gtmData.event as string) || 'unknown',
         label: gtmData.eventLabel as string | undefined,
         value: gtmData.eventValue as number | undefined,
-        timestamp,
+        timestamp: new Date(timestamp),
         metadata: gtmData as Record<string, unknown>,
       };
     }
 
     // Generic fallback
     return {
-      eventName: 'unknown',
+      id: crypto.randomUUID(),
+      name: 'unknown',
       category: provider,
       action: 'track',
-      timestamp,
+      timestamp: new Date(timestamp),
       metadata: { provider, data: data || args },
     };
   }
@@ -136,7 +143,7 @@ export class AnalyticsTracker {
 
     while (Date.now() - startTime < timeout) {
       await this.getEvents();
-      const event = this.events.find(e => e.eventName === eventName);
+      const event = this.events.find(e => e.name === eventName);
       if (event) return event;
       await this.page.waitForTimeout(100);
     }
@@ -221,7 +228,7 @@ export async function testConversionFunnel(
 
       // Check for expected events
       for (const expectedEvent of stage.events) {
-        const event = await analytics.waitForEvent(expectedEvent.eventName, 5000);
+        const event = await analytics.waitForEvent(expectedEvent.name, 5000);
         if (!event) {
           return {
             completed: false,
@@ -402,45 +409,50 @@ export function createMockAnalyticsResponse(
  */
 export const CONVERSION_EVENTS = {
   pageView: (path: string): AnalyticsEvent => ({
-    eventName: 'page_view',
+    id: crypto.randomUUID(),
+    name: 'page_view',
     category: 'engagement',
     action: 'view',
     label: path,
-    timestamp: Date.now(),
+    timestamp: new Date(),
   }),
   
   ctaClick: (location: string, destination: string): AnalyticsEvent => ({
-    eventName: 'cta_click',
+    id: crypto.randomUUID(),
+    name: 'cta_click',
     category: 'engagement',
     action: 'click',
     label: `${location}_to_${destination}`,
-    timestamp: Date.now(),
+    timestamp: new Date(),
     metadata: { location, destination },
   }),
   
   formSubmit: (formName: string): AnalyticsEvent => ({
-    eventName: 'form_submit',
+    id: crypto.randomUUID(),
+    name: 'form_submit',
     category: 'conversion',
     action: 'submit',
     label: formName,
-    timestamp: Date.now(),
+    timestamp: new Date(),
   }),
   
   signupComplete: (method: string): AnalyticsEvent => ({
-    eventName: 'sign_up',
+    id: crypto.randomUUID(),
+    name: 'sign_up',
     category: 'conversion',
     action: 'complete',
     label: method,
     value: 1,
-    timestamp: Date.now(),
+    timestamp: new Date(),
   }),
   
   purchaseComplete: (value: number, currency = 'USD'): AnalyticsEvent => ({
-    eventName: 'purchase',
+    id: crypto.randomUUID(),
+    name: 'purchase',
     category: 'conversion',
     action: 'complete',
     value,
-    timestamp: Date.now(),
+    timestamp: new Date(),
     metadata: { currency },
   }),
 } as const;

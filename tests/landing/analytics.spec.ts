@@ -20,7 +20,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.pageView('/'),
-        { eventName: 'landing_page_engaged', category: 'engagement', action: 'scroll', label: 'hero_section', timestamp: 0 }
+        { id: 'test-1', name: 'landing_page_engaged', category: 'engagement', action: 'scroll', label: 'hero_section', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.1, averageTime: 10000 },
     },
@@ -29,7 +29,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.ctaClick('hero', 'signup'),
-        { eventName: 'cta_hover', category: 'engagement', action: 'hover', label: 'start_playing', timestamp: 0 }
+        { id: 'test-2', name: 'cta_hover', category: 'engagement', action: 'hover', label: 'start_playing', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.3, averageTime: 5000 },
     },
@@ -38,7 +38,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/auth/signup',
       events: [
         CONVERSION_EVENTS.pageView('/auth/signup'),
-        { eventName: 'form_start', category: 'form', action: 'focus', label: 'signup_form', timestamp: 0 }
+        { id: 'test-3', name: 'form_start', category: 'form', action: 'focus', label: 'signup_form', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.4, averageTime: 30000 },
     },
@@ -47,7 +47,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/auth/signup',
       events: [
         CONVERSION_EVENTS.formSubmit('signup'),
-        { eventName: 'form_validation', category: 'form', action: 'validate', label: 'signup_form', timestamp: 0 }
+        { id: 'test-4', name: 'form_validation', category: 'form', action: 'validate', label: 'signup_form', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.2, averageTime: 60000 },
     },
@@ -57,7 +57,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       events: [
         CONVERSION_EVENTS.signupComplete('email'),
         CONVERSION_EVENTS.pageView('/dashboard'),
-        { eventName: 'welcome_tour_start', category: 'onboarding', action: 'start', label: 'new_user', timestamp: 0 }
+        { id: 'test-5', name: 'welcome_tour_start', category: 'onboarding', action: 'start', label: 'new_user', timestamp: new Date() }
       ],
       expectedMetrics: { averageTime: 10000 },
     },
@@ -73,7 +73,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.pageView('/'),
-        { eventName: 'demo_section_view', category: 'engagement', action: 'scroll_to', label: 'demo_section', timestamp: 0 }
+        { id: 'test-6', name: 'demo_section_view', category: 'engagement', action: 'scroll_to', label: 'demo_section', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.2 },
     },
@@ -81,8 +81,8 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Demo Interaction',
       url: '/',
       events: [
-        { eventName: 'demo_button_click', category: 'engagement', action: 'click', label: 'try_demo', timestamp: 0 },
-        { eventName: 'demo_loading', category: 'engagement', action: 'load', label: 'demo_game', timestamp: 0 }
+        { id: 'test-7', name: 'demo_button_click', category: 'engagement', action: 'click', label: 'try_demo', timestamp: new Date() },
+        { id: 'test-8', name: 'demo_loading', category: 'engagement', action: 'load', label: 'demo_game', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.1 },
     },
@@ -90,8 +90,8 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Demo Completion',
       url: '/',
       events: [
-        { eventName: 'demo_complete', category: 'engagement', action: 'complete', label: 'demo_game', value: 1, timestamp: 0 },
-        { eventName: 'demo_feedback', category: 'engagement', action: 'rate', label: 'demo_experience', timestamp: 0 }
+        { id: 'test-9', name: 'demo_complete', category: 'engagement', action: 'complete', label: 'demo_game', value: 1, timestamp: new Date() },
+        { id: 'test-10', name: 'demo_feedback', category: 'engagement', action: 'rate', label: 'demo_experience', timestamp: new Date() }
       ],
       expectedMetrics: { averageTime: 120000 },
     },
@@ -107,7 +107,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.pageView('/'),
-        { eventName: 'scroll_depth_25', category: 'engagement', action: 'scroll', label: '25_percent', timestamp: 0 }
+        { id: 'test-11', name: 'scroll_depth_25', category: 'engagement', action: 'scroll', label: '25_percent', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.1 },
     },
@@ -115,8 +115,8 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Deep Engagement',
       url: '/',
       events: [
-        { eventName: 'scroll_depth_50', category: 'engagement', action: 'scroll', label: '50_percent', timestamp: 0 },
-        { eventName: 'content_interaction', category: 'engagement', action: 'click', label: 'feature_card', timestamp: 0 }
+        { id: 'test-12', name: 'scroll_depth_50', category: 'engagement', action: 'scroll', label: '50_percent', timestamp: new Date() },
+        { id: 'test-13', name: 'content_interaction', category: 'engagement', action: 'click', label: 'feature_card', timestamp: new Date() }
       ],
       expectedMetrics: { dropoffRate: 0.2 },
     },
@@ -124,8 +124,8 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Content Completion',
       url: '/',
       events: [
-        { eventName: 'scroll_depth_100', category: 'engagement', action: 'scroll', label: '100_percent', timestamp: 0 },
-        { eventName: 'page_complete', category: 'engagement', action: 'complete', label: 'landing_page', timestamp: 0 }
+        { id: 'test-14', name: 'scroll_depth_100', category: 'engagement', action: 'scroll', label: '100_percent', timestamp: new Date() },
+        { id: 'test-15', name: 'page_complete', category: 'engagement', action: 'complete', label: 'landing_page', timestamp: new Date() }
       ],
       expectedMetrics: { averageTime: 120000 },
     },
@@ -218,12 +218,12 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
         // Check for demo section view event
         const events = await analytics.getEvents();
         const demoViews = events.filter(e => 
-          e.eventName.includes('demo') || 
+          e.name.includes('demo') || 
           e.label?.includes('demo') ||
-          e.eventName.includes('scroll')
+          e.name.includes('scroll')
         );
         
-        console.log('Demo-related events:', demoViews.map(e => e.eventName));
+        console.log('Demo-related events:', demoViews.map(e => e.name));
       }
       
       // Interact with demo
@@ -237,7 +237,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
           // Look for any demo-related events
           const events = await analytics.getEvents();
           const demoEvents = events.filter(e => 
-            e.eventName.includes('demo') ||
+            e.name.includes('demo') ||
             e.label?.includes('demo') ||
             e.category === 'demo'
           );
@@ -347,7 +347,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       // Check for scroll events
       const events = await analytics.getEvents();
       const scrollEvents = events.filter(e => 
-        e.eventName.includes('scroll') ||
+        e.name.includes('scroll') ||
         e.category === 'engagement' && e.action === 'scroll' ||
         e.label?.includes(`${depth}`)
       );
@@ -460,9 +460,9 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       // Look for e-commerce events
       const events = await analytics.getEvents();
       const ecommerceEvents = events.filter(e => 
-        e.eventName === 'select_item' ||
-        e.eventName === 'view_item' ||
-        e.eventName === 'add_to_cart' ||
+        e.name === 'select_item' ||
+        e.name === 'view_item' ||
+        e.name === 'add_to_cart' ||
         e.category === 'ecommerce' ||
         e.metadata?.item_name ||
         e.metadata?.item_id
@@ -629,15 +629,15 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
 
     // Data quality checks
     const validationResults = {
-      hasPageViews: allEvents.some(e => e.eventName === 'page_view'),
+      hasPageViews: allEvents.some(e => e.name === 'page_view'),
       hasEngagementEvents: allEvents.some(e => e.category === 'engagement'),
-      allEventsHaveTimestamp: allEvents.every(e => e.timestamp && e.timestamp > 0),
+      allEventsHaveTimestamp: allEvents.every(e => e.timestamp && e.timestamp instanceof Date),
       allEventsHaveCategory: allEvents.every(e => e.category && e.category.length > 0),
       allEventsHaveAction: allEvents.every(e => e.action && e.action.length > 0),
       eventTimestampsInOrder: allEvents.every((e, i) => {
         if (i === 0) return true;
         const prevEvent = allEvents[i - 1];
-        return e.timestamp !== undefined && prevEvent?.timestamp !== undefined && e.timestamp >= prevEvent.timestamp;
+        return e.timestamp && prevEvent?.timestamp && e.timestamp >= prevEvent.timestamp;
       }),
     };
 

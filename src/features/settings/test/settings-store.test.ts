@@ -4,7 +4,7 @@
  * Tests for Zustand store updates and persistence logic
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react';
 import { useSettingsState, useSettingsActions, useSettingsModals, useSettingsForms } from '@/lib/stores/settings-store';
 
@@ -334,11 +334,14 @@ describe('Settings Store', () => {
         actionsResult.current.reset();
       });
 
+      // Get preferences after reset to verify
+      const { result: preferencesAfterReset } = renderHook(() => useSettingsPreferences());
+      
       // Verify all state is back to initial
       expect(stateResult.current.activeSection).toBe('general');
       expect(stateResult.current.isChangingEmail).toBe(false);
       expect(stateResult.current.showEmailSuccess).toBe(false);
-      expect(stateResult.current.notificationSettings.push_notifications).toBe(true);
+      expect(preferencesAfterReset.current.notificationSettings.push_notifications).toBe(true);
     });
   });
 

@@ -4,18 +4,18 @@
  * Tests for privacy settings logic and data protection workflows
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import type { NotificationSettingsData } from '@/services/settings.service';
+import type { Enums } from '@/types/database.types';
 
+// Use database types for privacy settings to align with implementation
 interface PrivacySettings {
-  profile_visibility: 'public' | 'friends' | 'private';
+  profile_visibility: Enums<'visibility_type'>;
+  achievements_visibility: Enums<'visibility_type'>;
+  submissions_visibility: Enums<'visibility_type'>;
   show_online_status: boolean;
   allow_friend_requests: boolean;
-  show_game_activity: boolean;
-  show_achievements: boolean;
-  allow_game_invites: boolean;
-  data_collection: boolean;
-  analytics_tracking: boolean;
+  show_activity: boolean;
+  search_visibility: boolean;
 }
 
 describe('Privacy Settings', () => {
@@ -61,17 +61,15 @@ describe('Privacy Settings', () => {
             ...settings,
             show_online_status: false,
             allow_friend_requests: false,
-            show_game_activity: false,
-            show_achievements: false,
-            allow_game_invites: false,
+            show_activity: false,
+            search_visibility: false,
           };
         }
 
         if (settings.profile_visibility === 'friends') {
           return {
             ...settings,
-            show_game_activity: settings.show_game_activity && true,
-            show_achievements: settings.show_achievements && true,
+            show_activity: settings.show_activity && true,
           };
         }
 
@@ -80,29 +78,27 @@ describe('Privacy Settings', () => {
 
       const privateProfile: PrivacySettings = {
         profile_visibility: 'private',
+        achievements_visibility: 'private',
+        submissions_visibility: 'private',
         show_online_status: true,
         allow_friend_requests: true,
-        show_game_activity: true,
-        show_achievements: true,
-        allow_game_invites: true,
-        data_collection: true,
-        analytics_tracking: true,
+        show_activity: true,
+        search_visibility: false,
       };
 
       const cascaded = applyPrivacyCascade(privateProfile);
       expect(cascaded.show_online_status).toBe(false);
       expect(cascaded.allow_friend_requests).toBe(false);
-      expect(cascaded.show_game_activity).toBe(false);
-      expect(cascaded.show_achievements).toBe(false);
-      expect(cascaded.allow_game_invites).toBe(false);
+      expect(cascaded.show_activity).toBe(false);
+      expect(cascaded.search_visibility).toBe(false);
     });
   });
 
   describe('Data Collection Preferences', () => {
-    it('should validate data collection consent', () => {
-      const validateConsent = (settings: PrivacySettings): boolean => {
-        // If analytics is enabled, data collection must also be enabled
-        if (settings.analytics_tracking && !settings.data_collection) {
+    it('should validate privacy setting constraints', () => {
+      const validatePrivacyConstraints = (settings: PrivacySettings): boolean => {
+        // Private profiles should not show online status
+        if (settings.profile_visibility === 'private' && settings.show_online_status) {
           return false;
         }
         return true;
@@ -110,23 +106,24 @@ describe('Privacy Settings', () => {
 
       const validSettings: PrivacySettings = {
         profile_visibility: 'public',
+        achievements_visibility: 'public',
+        submissions_visibility: 'public',
         show_online_status: true,
         allow_friend_requests: true,
-        show_game_activity: true,
-        show_achievements: true,
-        allow_game_invites: true,
-        data_collection: true,
-        analytics_tracking: true,
+        show_activity: true,
+        search_visibility: true,
       };
 
+      // This test case needs adjustment since we removed data_collection/analytics_tracking
+      // Let's test a different privacy constraint
       const invalidSettings: PrivacySettings = {
         ...validSettings,
-        data_collection: false,
-        analytics_tracking: true,
+        profile_visibility: 'private',
+        show_online_status: true, // This should be invalid for private profiles
       };
 
-      expect(validateConsent(validSettings)).toBe(true);
-      expect(validateConsent(invalidSettings)).toBe(false);
+      expect(validatePrivacyConstraints(validSettings)).toBe(true);
+      expect(validatePrivacyConstraints(invalidSettings)).toBe(false);
     });
 
     it('should handle GDPR compliance requirements', () => {
@@ -175,13 +172,12 @@ describe('Privacy Settings', () => {
 
       const settings: PrivacySettings = {
         profile_visibility: 'friends',
+        achievements_visibility: 'friends',
+        submissions_visibility: 'friends',
         show_online_status: true,
         allow_friend_requests: true,
-        show_game_activity: true,
-        show_achievements: true,
-        allow_game_invites: true,
-        data_collection: true,
-        analytics_tracking: true,
+        show_activity: true,
+        search_visibility: true,
       };
 
       expect(getOnlineStatusVisibility(settings, 'friend')).toBe(true);
@@ -228,13 +224,12 @@ describe('Privacy Settings', () => {
 
       const openSettings: PrivacySettings = {
         profile_visibility: 'public',
+        achievements_visibility: 'public',
+        submissions_visibility: 'public',
         show_online_status: true,
         allow_friend_requests: true,
-        show_game_activity: true,
-        show_achievements: true,
-        allow_game_invites: true,
-        data_collection: true,
-        analytics_tracking: true,
+        show_activity: true,
+        search_visibility: true,
       };
 
       const restrictedSettings: PrivacySettings = {
@@ -262,13 +257,12 @@ describe('Privacy Settings', () => {
 
       const privacy: PrivacySettings = {
         profile_visibility: 'public',
+        achievements_visibility: 'public',
+        submissions_visibility: 'public',
         show_online_status: true,
         allow_friend_requests: true,
-        show_game_activity: true,
-        show_achievements: true,
-        allow_game_invites: true,
-        data_collection: true,
-        analytics_tracking: true,
+        show_activity: true,
+        search_visibility: true,
       };
 
       const notifications: Partial<NotificationSettingsData> = {
@@ -302,7 +296,7 @@ describe('Privacy Settings', () => {
           return null;
         }
 
-        if (!settings.show_game_activity && viewerRelation !== 'owner') {
+        if (!settings.show_activity && viewerRelation !== 'owner') {
           return null;
         }
 
@@ -317,7 +311,7 @@ describe('Privacy Settings', () => {
           ended_at: activity.ended_at,
         };
 
-        if (settings.show_achievements || viewerRelation === 'owner') {
+        if (settings.achievements_visibility !== 'private' || viewerRelation === 'owner') {
           filtered.score = activity.score;
           filtered.achievements = activity.achievements;
         }
@@ -335,13 +329,12 @@ describe('Privacy Settings', () => {
 
       const settings: PrivacySettings = {
         profile_visibility: 'friends',
+        achievements_visibility: 'private',
+        submissions_visibility: 'friends',
         show_online_status: true,
         allow_friend_requests: true,
-        show_game_activity: true,
-        show_achievements: false,
-        allow_game_invites: true,
-        data_collection: true,
-        analytics_tracking: true,
+        show_activity: true,
+        search_visibility: true,
       };
 
       const friendView = filterGameActivity(activity, settings, 'friend');

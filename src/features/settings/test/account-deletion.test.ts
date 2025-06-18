@@ -4,7 +4,7 @@
  * Tests for account deletion workflows and data cleanup
  */
 
-import { describe, it, expect, vi } from 'vitest';
+// No Vitest imports needed for Jest
 
 interface DeletionRequest {
   user_id: string;

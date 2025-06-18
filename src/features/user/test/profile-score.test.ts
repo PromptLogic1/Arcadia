@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import type { Database } from '@/types/database.types';
 
-type UserProfile = Database['public']['Tables']['users']['Row'];
+type User = Database['public']['Tables']['users']['Row'];
 
 /**
  * Profile Score Tests
@@ -11,7 +11,7 @@ type UserProfile = Database['public']['Tables']['users']['Row'];
  */
 
 interface ProfileField {
-  name: keyof UserProfile;
+  name: keyof User;
   weight: number;
   required?: boolean;
   validator?: (value: any) => boolean;
@@ -34,7 +34,6 @@ const PROFILE_FIELDS: ProfileField[] = [
   { name: 'city', weight: 5 },
   { name: 'region', weight: 5 },
   { name: 'land', weight: 5 },
-  { name: 'email', weight: 10, required: true },
   { name: 'experience_points', weight: 5 },
   { name: 'profile_visibility', weight: 3 },
   { name: 'achievements_visibility', weight: 3 },
@@ -52,7 +51,7 @@ const QUALITY_FACTORS = {
   hasHighExperience: 10, // XP > 1000
 };
 
-function calculateProfileScore(profile: Partial<UserProfile>): ProfileScore {
+function calculateProfileScore(profile: Partial<User>): ProfileScore {
   const missingFields: string[] = [];
   const suggestions: string[] = [];
   
@@ -71,16 +70,16 @@ function calculateProfileScore(profile: Partial<UserProfile>): ProfileScore {
         if (field.validator(value)) {
           completenessScore += field.weight;
         } else {
-          missingFields.push(field.name);
-          suggestions.push(getFieldSuggestion(field.name, value));
+          missingFields.push(String(field.name));
+          suggestions.push(getFieldSuggestion(String(field.name), value));
         }
       } else {
         completenessScore += field.weight;
       }
     } else {
-      missingFields.push(field.name);
+      missingFields.push(String(field.name));
       if (field.required) {
-        suggestions.push(`${field.name} is required`);
+        suggestions.push(`${String(field.name)} is required`);
       }
     }
   });
@@ -162,8 +161,6 @@ function getFieldSuggestion(fieldName: string, currentValue: any): string {
       return currentValue ? 'Your bio is too short (minimum 20 characters)' : 'Add a bio to your profile';
     case 'avatar_url':
       return 'Invalid avatar URL format';
-    case 'email':
-      return 'Invalid email format';
     default:
       return `Update your ${fieldName}`;
   }
@@ -172,7 +169,7 @@ function getFieldSuggestion(fieldName: string, currentValue: any): string {
 describe('Profile Score Calculator', () => {
   describe('Completeness Scoring', () => {
     it('should score 100% for a fully complete profile', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'johndoe',
         full_name: 'John Doe',
         bio: 'I am a passionate gamer who loves challenges and achievements!',
@@ -180,7 +177,6 @@ describe('Profile Score Calculator', () => {
         city: 'San Francisco',
         region: 'California',
         land: 'USA',
-        email: 'john@example.com',
         experience_points: 500,
         profile_visibility: 'public',
         achievements_visibility: 'public',
@@ -194,7 +190,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should score 0% for an empty profile', () => {
-      const profile: Partial<UserProfile> = {};
+      const profile: Partial<User> = {};
 
       const score = calculateProfileScore(profile);
 
@@ -203,9 +199,8 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should calculate partial scores correctly', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'johndoe',
-        email: 'john@example.com',
         bio: 'Short bio',
         // Missing other fields
       };
@@ -219,7 +214,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should validate bio length', () => {
-      const shortBioProfile: Partial<UserProfile> = {
+      const shortBioProfile: Partial<User> = {
         username: 'user1',
         bio: 'Too short', // Less than 20 chars
       };
@@ -231,7 +226,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should validate avatar URL format', () => {
-      const invalidAvatarProfile: Partial<UserProfile> = {
+      const invalidAvatarProfile: Partial<User> = {
         username: 'user1',
         avatar_url: 'not-a-url',
       };
@@ -245,12 +240,12 @@ describe('Profile Score Calculator', () => {
 
   describe('Quality Scoring', () => {
     it('should reward custom avatars', () => {
-      const profileWithDefault: Partial<UserProfile> = {
+      const profileWithDefault: Partial<User> = {
         username: 'user1',
         avatar_url: 'https://example.com/default-avatar.jpg',
       };
 
-      const profileWithCustom: Partial<UserProfile> = {
+      const profileWithCustom: Partial<User> = {
         username: 'user1',
         avatar_url: 'https://example.com/custom-avatar.jpg',
       };
@@ -262,12 +257,12 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should reward detailed bios', () => {
-      const shortBio: Partial<UserProfile> = {
+      const shortBio: Partial<User> = {
         username: 'user1',
         bio: 'I like games and stuff.',
       };
 
-      const detailedBio: Partial<UserProfile> = {
+      const detailedBio: Partial<User> = {
         username: 'user1',
         bio: 'I am an avid gamer with over 10 years of experience. I specialize in speedrunning platformers and love participating in community events. Always looking for new challenges!',
       };
@@ -280,12 +275,12 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should reward complete location information', () => {
-      const partialLocation: Partial<UserProfile> = {
+      const partialLocation: Partial<User> = {
         username: 'user1',
         city: 'San Francisco',
       };
 
-      const completeLocation: Partial<UserProfile> = {
+      const completeLocation: Partial<User> = {
         username: 'user1',
         city: 'San Francisco',
         region: 'California',
@@ -300,14 +295,14 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should reward custom privacy settings', () => {
-      const defaultPrivacy: Partial<UserProfile> = {
+      const defaultPrivacy: Partial<User> = {
         username: 'user1',
         profile_visibility: 'public',
         achievements_visibility: 'public',
         submissions_visibility: 'public',
       };
 
-      const customPrivacy: Partial<UserProfile> = {
+      const customPrivacy: Partial<User> = {
         username: 'user1',
         profile_visibility: 'friends',
         achievements_visibility: 'private',
@@ -321,12 +316,12 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should reward recent activity', () => {
-      const inactiveProfile: Partial<UserProfile> = {
+      const inactiveProfile: Partial<User> = {
         username: 'user1',
         last_login_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
       };
 
-      const activeProfile: Partial<UserProfile> = {
+      const activeProfile: Partial<User> = {
         username: 'user1',
         last_login_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
       };
@@ -338,12 +333,12 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should reward high experience', () => {
-      const lowXP: Partial<UserProfile> = {
+      const lowXP: Partial<User> = {
         username: 'user1',
         experience_points: 100,
       };
 
-      const highXP: Partial<UserProfile> = {
+      const highXP: Partial<User> = {
         username: 'user1',
         experience_points: 2000,
       };
@@ -357,9 +352,8 @@ describe('Profile Score Calculator', () => {
 
   describe('Overall Score Calculation', () => {
     it('should weight completeness at 60% and quality at 40%', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'user1',
-        email: 'user@example.com',
         full_name: 'User One',
         // Partial profile
       };
@@ -372,7 +366,7 @@ describe('Profile Score Calculator', () => {
 
     it('should handle edge case scores', () => {
       // Perfect profile
-      const perfectProfile: Partial<UserProfile> = {
+      const perfectProfile: Partial<User> = {
         username: 'perfectuser',
         full_name: 'Perfect User',
         bio: 'This is a detailed bio that describes my gaming interests, achievements, and what I love about the community. I enjoy helping others and participating in events.',
@@ -380,7 +374,6 @@ describe('Profile Score Calculator', () => {
         city: 'San Francisco',
         region: 'California',
         land: 'USA',
-        email: 'perfect@example.com',
         experience_points: 5000,
         profile_visibility: 'friends',
         achievements_visibility: 'friends',
@@ -398,7 +391,7 @@ describe('Profile Score Calculator', () => {
 
   describe('Suggestions Generation', () => {
     it('should provide helpful suggestions for improvement', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'user1',
         bio: 'Hi',
         avatar_url: 'https://example.com/default.jpg',
@@ -412,7 +405,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should not duplicate suggestions', () => {
-      const profile: Partial<UserProfile> = {};
+      const profile: Partial<User> = {};
 
       const score = calculateProfileScore(profile);
       const uniqueSuggestions = new Set(score.suggestions);
@@ -421,7 +414,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should prioritize required fields in suggestions', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         bio: 'Some bio text here',
       };
 
@@ -433,7 +426,7 @@ describe('Profile Score Calculator', () => {
 
   describe('Edge Cases', () => {
     it('should handle null and undefined values', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'user1',
         full_name: null,
         bio: undefined,
@@ -452,7 +445,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should handle very long field values', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'user1',
         bio: 'A'.repeat(1000), // Very long bio
         full_name: 'B'.repeat(200), // Very long name
@@ -465,7 +458,7 @@ describe('Profile Score Calculator', () => {
     });
 
     it('should handle special characters in fields', () => {
-      const profile: Partial<UserProfile> = {
+      const profile: Partial<User> = {
         username: 'user_123',
         full_name: 'John "The Gamer" Doe',
         bio: 'I love gaming! 🎮 #Gamer4Life',

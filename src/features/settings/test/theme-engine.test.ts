@@ -4,7 +4,7 @@
  * Tests for theme calculation and preference logic
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from '@jest/globals';
 
 describe('Theme Engine', () => {
   describe('Theme Preference Storage', () => {
@@ -54,11 +54,11 @@ describe('Theme Engine', () => {
         matches: query === '(prefers-color-scheme: dark)',
         media: query,
         onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
       });
 
       global.matchMedia = mockMatchMedia as any;
@@ -72,11 +72,11 @@ describe('Theme Engine', () => {
         matches: false,
         media: query,
         onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
       });
 
       global.matchMedia = mockMatchMedia as any;
@@ -123,7 +123,7 @@ describe('Theme Engine', () => {
         setTimeout(callback, THEME_TRANSITION_DURATION);
       };
 
-      const mockCallback = vi.fn();
+      const mockCallback = jest.fn();
       transitionTheme(mockCallback);
 
       expect(mockCallback).not.toHaveBeenCalled();
@@ -137,9 +137,9 @@ describe('Theme Engine', () => {
       const mockDocument = {
         documentElement: {
           classList: {
-            add: vi.fn(),
-            remove: vi.fn(),
-            contains: vi.fn(),
+            add: jest.fn(),
+            remove: jest.fn(),
+            contains: jest.fn(),
           },
         },
       };

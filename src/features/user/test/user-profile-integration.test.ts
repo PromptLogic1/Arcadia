@@ -251,13 +251,14 @@ describe('User Profile Integration', () => {
       const gameHistory = createGameHistory(userId, 100, { winRate: 0.6, avgScore: 85 });
       
       // Calculate stats from game history
+      const wins = gameHistory.filter(g => g.placement === 1);
       const calculatedStats = {
         total_games: gameHistory.length,
-        games_won: gameHistory.filter(g => g.placement === 1).length,
+        games_won: wins.length,
         total_score: gameHistory.reduce((sum, g) => sum + g.final_score, 0),
         average_score: gameHistory.reduce((sum, g) => sum + g.final_score, 0) / gameHistory.length,
         highest_score: Math.max(...gameHistory.map(g => g.final_score)),
-        fastest_win: Math.min(...gameHistory.filter(g => g.placement === 1).map(g => g.time_elapsed)),
+        fastest_win: wins.length > 0 ? Math.min(...wins.map(g => g.time_to_win!).filter(t => t !== null)) : null,
       };
 
       // Create user stats that should match
@@ -333,7 +334,7 @@ describe('User Profile Integration', () => {
         return acc;
       }, {} as Record<string, { activities: number; types: Set<string>; score: number }>);
 
-      const engagementScores = Object.values(dailyEngagement).map(d => d.score);
+      const engagementScores = Object.values(dailyEngagement).map((d: { activities: number; types: Set<string>; score: number }) => d.score);
       const avgEngagement = engagementScores.reduce((sum, score) => sum + score, 0) / engagementScores.length;
 
       expect(engagementScores.length).toBeGreaterThan(30); // Should have data for most days
