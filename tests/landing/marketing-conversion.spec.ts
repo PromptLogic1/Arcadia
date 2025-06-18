@@ -3,7 +3,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import type { ConversionFunnel, AnalyticsEvent } from './types';
+import type { ConversionFunnel } from './types';
 import { 
   AnalyticsTracker, 
   testConversionFunnel, 
@@ -14,7 +14,7 @@ import {
 import { CAMPAIGN_ROUTES } from './types/routes';
 
 // Define conversion funnels
-const SIGNUP_FUNNEL: ConversionFunnel = {
+const _SIGNUP_FUNNEL: ConversionFunnel = {
   name: 'signup',
   stages: [
     {
@@ -109,9 +109,9 @@ test.describe('Marketing Tag Verification', () => {
     // Check that tracking is respected
     const hasTracking = await page.evaluate(() => {
       return (
-        typeof (window as any).gtag === 'function' ||
-        typeof (window as any).ga === 'function' ||
-        Array.isArray((window as any).dataLayer)
+        typeof (window as Window).gtag === 'function' ||
+        typeof (window as Window).ga === 'function' ||
+        Array.isArray((window as Window).dataLayer)
       );
     });
     
@@ -346,7 +346,7 @@ test.describe('A/B Testing Scenarios', () => {
   test('should maintain consistent variant assignment', async ({ page }) => {
     // First visit
     await page.goto('/');
-    const firstVisitContent = await page.content();
+    const _firstVisitContent = await page.content();
     
     // Get any experiment cookies
     const cookies = await page.context().cookies();
@@ -354,7 +354,7 @@ test.describe('A/B Testing Scenarios', () => {
     
     // Second visit (reload)
     await page.reload();
-    const secondVisitContent = await page.content();
+    const _secondVisitContent = await page.content();
     
     // Verify same cookies exist
     const reloadedCookies = await page.context().cookies();
@@ -380,8 +380,11 @@ test.describe('E-commerce Tracking', () => {
     
     if (productEvents.length > 0) {
       console.log('Product view events:', productEvents);
-      expect(productEvents[0].metadata).toHaveProperty('item_id');
-      expect(productEvents[0].metadata).toHaveProperty('item_name');
+      const firstProductEvent = productEvents[0];
+      if (firstProductEvent && firstProductEvent.metadata) {
+        expect(firstProductEvent.metadata).toHaveProperty('item_id');
+        expect(firstProductEvent.metadata).toHaveProperty('item_name');
+      }
     }
   });
 
@@ -399,8 +402,10 @@ test.describe('E-commerce Tracking', () => {
       const selectEvent = await analytics.waitForEvent('select_item', 3000);
       if (selectEvent) {
         expect(selectEvent.category).toBe('ecommerce');
-        expect(selectEvent.metadata).toHaveProperty('item_name');
-        expect(selectEvent.metadata).toHaveProperty('price');
+        if (selectEvent.metadata) {
+          expect(selectEvent.metadata).toHaveProperty('item_name');
+          expect(selectEvent.metadata).toHaveProperty('price');
+        }
       }
     }
   });

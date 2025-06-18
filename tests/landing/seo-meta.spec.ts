@@ -219,32 +219,40 @@ test.describe('SEO & Meta Tags - Homepage', () => {
         expect(scriptContent).toBeTruthy();
         
         // Should be valid JSON
-        let parsedData;
+        let parsedData: unknown;
         expect(() => {
           parsedData = JSON.parse(scriptContent!);
         }).not.toThrow();
         
+        // Ensure parsedData is defined after JSON.parse
+        if (!parsedData || typeof parsedData !== 'object') {
+          throw new Error('Failed to parse JSON-LD content');
+        }
+        
+        // Type guard for schema.org data
+        const schemaData = parsedData as Record<string, unknown>;
+        
         // Should have required schema.org properties
-        expect(parsedData['@context']).toBe('https://schema.org');
-        expect(parsedData['@type']).toBeTruthy();
+        expect(schemaData['@context']).toBe('https://schema.org');
+        expect(schemaData['@type']).toBeTruthy();
         
         // For organization schema
-        if (parsedData['@type'] === 'Organization') {
-          expect(parsedData.name).toBeTruthy();
-          expect(parsedData.url).toBeTruthy();
+        if (schemaData['@type'] === 'Organization') {
+          expect(schemaData.name).toBeTruthy();
+          expect(schemaData.url).toBeTruthy();
           
-          if (parsedData.logo) {
-            expect(parsedData.logo).toMatch(/\.(png|jpg|jpeg|svg)(\?|$)/i);
+          if (schemaData.logo) {
+            expect(schemaData.logo).toMatch(/\.(png|jpg|jpeg|svg)(\?|$)/i);
           }
         }
         
         // For website schema
-        if (parsedData['@type'] === 'WebSite') {
-          expect(parsedData.name).toBeTruthy();
-          expect(parsedData.url).toBeTruthy();
+        if (schemaData['@type'] === 'WebSite') {
+          expect(schemaData.name).toBeTruthy();
+          expect(schemaData.url).toBeTruthy();
           
-          if (parsedData.potentialAction) {
-            expect(parsedData.potentialAction['@type']).toBe('SearchAction');
+          if (schemaData.potentialAction) {
+            expect((schemaData.potentialAction as Record<string, unknown>)['@type']).toBe('SearchAction');
           }
         }
       }
@@ -463,7 +471,7 @@ test.describe('SEO - Technical Requirements', () => {
         
         if (robotsContent.includes('Sitemap:')) {
           const sitemapMatch = robotsContent.match(/Sitemap:\s*(https?:\/\/[^\s]+)/);
-          if (sitemapMatch) {
+          if (sitemapMatch && sitemapMatch[1]) {
             const sitemapUrl = sitemapMatch[1];
             
             // Check if sitemap is accessible
@@ -472,7 +480,7 @@ test.describe('SEO - Technical Requirements', () => {
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // robots.txt might not exist, which is acceptable
       console.log('robots.txt not found or accessible');
     }

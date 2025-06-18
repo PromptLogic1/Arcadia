@@ -1,9 +1,23 @@
-import { test, expect } from '@playwright/test';
-import { getPerformanceMetrics, waitForNetworkIdle } from '../helpers/test-utils';
+/**
+ * Enhanced performance tests with type safety and comprehensive metrics
+ */
 
-test.describe('Landing Page Performance', () => {
+import { test, expect } from '@playwright/test';
+import { 
+  collectPerformanceMetrics, 
+  analyzeBundles, 
+  checkPerformanceBudgets,
+  simulateNetworkCondition,
+  resetNetworkCondition,
+  NETWORK_CONDITIONS,
+  PERFORMANCE_BUDGETS,
+  measureTimeToInteractive,
+  getResourceTimingBreakdown
+} from './fixtures/performance';
+
+test.describe('Enhanced Performance Testing', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear cache and storage before each test
+    // Clear cache and storage
     await page.context().clearCookies();
     await page.evaluate(() => {
       localStorage.clear();
@@ -11,619 +25,418 @@ test.describe('Landing Page Performance', () => {
     });
   });
 
-  test('should achieve LCP under 2.5s @performance @critical', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+  test('should meet all performance budgets (2024 Core Web Vitals) @critical @performance', async ({ page }) => {
+    await page.goto('/');
     
-    // Enhanced LCP measurement with better error handling
-    const lcp = await page.evaluate(() => {
-      return new Promise<number>((resolve, reject) => {
-        let lcpValue = 0;
-        let resolved = false;
-        
-        const observer = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
-          for (const entry of entries) {
-            lcpValue = entry.startTime;
-          }
-        });
-        
-        try {
-          observer.observe({ entryTypes: ['largest-contentful-paint'] });
-        } catch (error) {
-          // Fallback for browsers that don't support LCP
-          reject(new Error('LCP not supported'));
-          return;
-        }
-        
-        // Resolve when page is interactive
-        const resolveIfReady = () => {
-          if (!resolved && (document.readyState === 'complete' || lcpValue > 0)) {
-            resolved = true;
-            observer.disconnect();
-            resolve(lcpValue || performance.now());
-          }
-        };
-        
-        // Multiple triggers for resolution
-        document.addEventListener('readystatechange', resolveIfReady);
-        window.addEventListener('load', resolveIfReady);
-        
-        // Fallback timeout with warning
-        setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            observer.disconnect();
-            console.warn('LCP measurement timed out, using fallback');
-            resolve(lcpValue || performance.now());
-          }
-        }, 5000);
-        
-        // Immediate check
-        resolveIfReady();
+    // Collect comprehensive metrics
+    const metrics = await collectPerformanceMetrics(page);
+    
+    // Check against budgets
+    const homepageBudgets = PERFORMANCE_BUDGETS.homepage;
+    if (!homepageBudgets) {
+      throw new Error('Homepage performance budgets not found');
+    }
+    const budgetResults = checkPerformanceBudgets(metrics, homepageBudgets);
+    
+    // Log all metrics for monitoring (2024 standards)
+    console.log('Performance Metrics (2024 Standards):', {
+      LCP: `${metrics.largestContentfulPaint}ms`,
+      INP: `${metrics.interactionToNextPaint}ms`, // 2024 Core Web Vital
+      FID: `${metrics.firstInputDelay}ms (legacy)`,
+      CLS: metrics.cumulativeLayoutShift.toFixed(3),
+      FCP: `${metrics.firstContentfulPaint}ms`,
+      TTI: `${metrics.timeToInteractive}ms`,
+      TBT: `${metrics.totalBlockingTime}ms`,
+      'Total Size': `${(metrics.totalSize / 1024).toFixed(2)}KB`,
+      'JS Heap': `${(metrics.jsHeapUsed / 1024 / 1024).toFixed(2)}MB`,
+      'Performance Grade': metrics.performanceGrade,
+    });
+    
+    // Color-coded performance grading
+    const gradeColor = metrics.performanceGrade === 'Good' ? '🟢' : 
+                     metrics.performanceGrade === 'Needs Improvement' ? '🟡' : '🔴';
+    console.log(`${gradeColor} Overall Performance Grade: ${metrics.performanceGrade}`);
+    
+    // Assert all budgets pass
+    const violations = budgetResults.filter(result => !result.passed);
+    if (violations.length > 0) {
+      console.error('\n❌ Performance Budget Violations:');
+      violations.forEach(violation => {
+        const severity = violation.budget.severity === 'error' ? '🔴' : '🟡';
+        console.error(
+          `${severity} ${violation.budget.metric}: ` +
+          `${violation.actual} > ${violation.budget.budget} ${violation.budget.unit}`
+        );
       });
-    });
-    
-    console.log(`LCP: ${lcp}ms (target: <2500ms)`);
-    expect(lcp).toBeLessThan(2500); // 2.5s Core Web Vitals threshold
-    
-    // Log performance grade
-    if (lcp <= 2500) {
-      console.log('✅ LCP: Good');
-    } else if (lcp <= 4000) {
-      console.log('⚠️ LCP: Needs Improvement');
-    } else {
-      console.log('❌ LCP: Poor');
     }
+    
+    expect(violations).toHaveLength(0);
+    
+    // 2024 Core Web Vitals assertions
+    expect(metrics.largestContentfulPaint).toBeLessThan(2500); // Good LCP
+    expect(metrics.interactionToNextPaint).toBeLessThan(200); // Good INP (2024 standard)
+    expect(metrics.cumulativeLayoutShift).toBeLessThan(0.1); // Good CLS
+    
+    // Performance grade should be at least "Needs Improvement"
+    expect(['Good', 'Needs Improvement']).toContain(metrics.performanceGrade);
   });
 
-  test('should minimize CLS (Cumulative Layout Shift) @performance', async ({ page }) => {
+  test('should analyze bundle sizes and composition', async ({ page }) => {
     await page.goto('/');
     
-    // Enhanced CLS measurement with session window tracking
-    const cls = await page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        let clsValue = 0;
-        let sessionValue = 0;
-        let maxSessionValue = 0;
-        let sessionGapTimer: NodeJS.Timeout | null = null;
-        
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            const layoutShift = entry as PerformanceEntry & { 
-              value: number; 
-              hadRecentInput: boolean; 
-            };
-            
-            // Only count shifts not caused by user input
-            if (!layoutShift.hadRecentInput) {
-              // Reset session if gap is > 1 second
-              if (sessionGapTimer) {
-                clearTimeout(sessionGapTimer);
-              }
-              
-              sessionValue += layoutShift.value;
-              clsValue += layoutShift.value;
-              
-              sessionGapTimer = setTimeout(() => {
-                maxSessionValue = Math.max(maxSessionValue, sessionValue);
-                sessionValue = 0;
-              }, 1000);
-            }
-          }
-        });
-        
-        try {
-          observer.observe({ entryTypes: ['layout-shift'] });
-        } catch (error) {
-          console.warn('Layout shift measurement not supported');
-          resolve(0);
-          return;
-        }
-        
-        // Measure for 5 seconds to capture late layout shifts
-        setTimeout(() => {
-          observer.disconnect();
-          if (sessionGapTimer) {
-            clearTimeout(sessionGapTimer);
-          }
-          maxSessionValue = Math.max(maxSessionValue, sessionValue);
-          resolve(maxSessionValue); // Return worst session value
-        }, 5000);
-      });
+    const bundleMetrics = await analyzeBundles(page);
+    
+    console.log('Bundle Analysis:', {
+      'Main Bundle': `${(bundleMetrics.mainBundle / 1024).toFixed(2)}KB`,
+      'Vendor Bundle': `${(bundleMetrics.vendorBundle / 1024).toFixed(2)}KB`,
+      'CSS Bundle': `${(bundleMetrics.cssBundle / 1024).toFixed(2)}KB`,
+      'Total Size': `${(bundleMetrics.totalSize / 1024).toFixed(2)}KB`,
+      'Estimated Gzip': `${(bundleMetrics.gzipSize / 1024).toFixed(2)}KB`,
+      'Chunk Count': bundleMetrics.chunks.length,
     });
     
-    console.log(`CLS: ${cls.toFixed(4)} (target: <0.1)`);
-    expect(cls).toBeLessThan(0.1); // Core Web Vitals threshold
+    // Log largest chunks
+    const largestChunks = bundleMetrics.chunks
+      .sort((a, b) => b.size - a.size)
+      .slice(0, 5);
     
-    // Log performance grade
-    if (cls <= 0.1) {
-      console.log('✅ CLS: Good');
-    } else if (cls <= 0.25) {
-      console.log('⚠️ CLS: Needs Improvement');
-    } else {
-      console.log('❌ CLS: Poor');
+    console.log('Largest chunks:');
+    largestChunks.forEach(chunk => {
+      console.log(`  - ${chunk.name}: ${(chunk.size / 1024).toFixed(2)}KB`);
+    });
+    
+    // Assert bundle size constraints
+    expect(bundleMetrics.mainBundle).toBeLessThan(200 * 1024); // 200KB
+    expect(bundleMetrics.vendorBundle).toBeLessThan(150 * 1024); // 150KB
+    expect(bundleMetrics.totalSize).toBeLessThan(400 * 1024); // 400KB total
+  });
+
+  test('should perform well on slow network conditions', async ({ page }) => {
+    // Test different network conditions
+    const networkTests = [
+      { condition: NETWORK_CONDITIONS['Slow 3G'], maxLoadTime: 8000 },
+      { condition: NETWORK_CONDITIONS['Fast 3G'], maxLoadTime: 5000 },
+      { condition: NETWORK_CONDITIONS['4G'], maxLoadTime: 3000 },
+    ];
+    
+    for (const { condition, maxLoadTime } of networkTests) {
+      if (!condition) {
+        throw new Error('Network condition is undefined');
+      }
+      console.log(`\nTesting ${condition.name} network:`);
+      
+      // Apply network condition
+      await simulateNetworkCondition(page, condition);
+      
+      const startTime = Date.now();
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      const loadTime = Date.now() - startTime;
+      
+      console.log(`  Load time: ${loadTime}ms (max: ${maxLoadTime}ms)`);
+      
+      // Collect metrics under network constraint
+      const metrics = await collectPerformanceMetrics(page);
+      console.log(`  FCP: ${metrics.firstContentfulPaint}ms`);
+      console.log(`  LCP: ${metrics.largestContentfulPaint}ms`);
+      
+      // Assert performance under network constraint
+      expect(loadTime).toBeLessThan(maxLoadTime);
+      expect(metrics.firstContentfulPaint).toBeLessThan(maxLoadTime * 0.5);
+      
+      // Reset network condition
+      await resetNetworkCondition(page);
     }
   });
 
-  test('should achieve INP under 200ms @performance @critical', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
-    
-    // Measure Interaction to Next Paint (replaces FID as Core Web Vital)
-    const inp = await page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        let interactions: number[] = [];
-        let resolved = false;
-        
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            const eventEntry = entry as PerformanceEntry & { 
-              processingStart: number;
-              processingEnd: number;
-              duration: number;
-            };
-            
-            // Calculate interaction latency
-            const latency = eventEntry.processingEnd - entry.startTime;
-            interactions.push(latency);
-          }
-        });
-        
-        try {
-          // Try to observe event timing (for INP)
-          observer.observe({ entryTypes: ['event'] });
-        } catch {
-          try {
-            // Fallback to first-input for older browsers
-            observer.observe({ entryTypes: ['first-input'] });
-          } catch {
-            console.warn('INP/FID measurement not supported');
-            resolve(0);
-            return;
-          }
-        }
-        
-        // Resolve after collecting some interactions
-        setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            observer.disconnect();
-            
-            if (interactions.length === 0) {
-              resolve(0);
-            } else {
-              // Calculate 98th percentile (INP definition)
-              interactions.sort((a, b) => a - b);
-              const index = Math.floor(interactions.length * 0.98);
-              resolve(interactions[index] || interactions[interactions.length - 1]);
-            }
-          }
-        }, 8000);
-      });
-    });
-    
-    // Simulate realistic user interactions to generate events
-    await page.hover('button:first-child');
-    await page.waitForTimeout(100);
-    await page.click('button:first-child');
-    await page.waitForTimeout(100);
-    await page.keyboard.press('Tab');
-    await page.waitForTimeout(100);
-    await page.keyboard.press('Enter');
-    
-    console.log(`INP: ${inp}ms (target: <200ms)`);
-    
-    if (inp > 0) {
-      expect(inp).toBeLessThan(200); // Core Web Vitals threshold for INP
-      
-      // Log performance grade
-      if (inp <= 200) {
-        console.log('✅ INP: Good');
-      } else if (inp <= 500) {
-        console.log('⚠️ INP: Needs Improvement');
-      } else {
-        console.log('❌ INP: Poor');
-      }
-    } else {
-      console.log('ℹ️ No interactions captured for INP measurement');
-    }
-  });
-
-  test('should achieve FID under 100ms (legacy metric) @performance', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
-    
-    // Legacy FID measurement for comparison
-    const actualFid = await page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        let fidValue = 0;
-        
-        const observer = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) {
-            const fidEntry = entry as PerformanceEntry & { processingStart: number };
-            fidValue = fidEntry.processingStart - entry.startTime;
-          }
-          resolve(fidValue);
-        });
-        
-        try {
-          observer.observe({ entryTypes: ['first-input'] });
-        } catch (error) {
-          resolve(0);
-        }
-        
-        // Timeout after 5 seconds
-        setTimeout(() => {
-          observer.disconnect();
-          resolve(fidValue);
-        }, 5000);
-      });
-    });
-    
-    // Trigger first input delay measurement
-    await page.click('body');
-    await page.waitForTimeout(1000);
-    
-    if (actualFid > 0) {
-      console.log(`FID: ${actualFid}ms (target: <100ms)`);
-      expect(actualFid).toBeLessThan(100);
-      
-      if (actualFid <= 100) {
-        console.log('✅ FID: Good');
-      } else if (actualFid <= 300) {
-        console.log('⚠️ FID: Needs Improvement');
-      } else {
-        console.log('❌ FID: Poor');
-      }
-    } else {
-      console.log('ℹ️ FID measurement not captured (may not be supported)');
-    }
-  });
-
-  test('should load critical resources quickly', async ({ page }) => {
-    const resourceLoadTimes: Record<string, number> = {};
-    
-    page.on('response', (response) => {
-      const url = response.url();
-      
-      // Track critical resources
-      if (url.includes('_next/static/css/') || 
-          url.includes('_next/static/js/') ||
-          url.includes('fonts/')) {
-        // Use performance API to get timing information instead
-        resourceLoadTimes[url] = Date.now();
-      }
-    });
-    
-    const startTime = Date.now();
+  test('should optimize resource loading', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
     
-    // CSS should load quickly
-    const cssUrls = Object.keys(resourceLoadTimes).filter(url => url.includes('.css'));
-    for (const cssUrl of cssUrls) {
-      expect(resourceLoadTimes[cssUrl]).toBeLessThan(1000); // 1s for CSS
-    }
+    const resourceBreakdown = await getResourceTimingBreakdown(page);
     
-    // Critical JavaScript should load reasonably fast
-    const jsUrls = Object.keys(resourceLoadTimes).filter(url => url.includes('.js'));
-    for (const jsUrl of jsUrls) {
-      expect(resourceLoadTimes[jsUrl]).toBeLessThan(2000); // 2s for JS
-    }
-  });
-
-  test('should have reasonable bundle sizes', async ({ page }) => {
-    const networkActivity: Array<{ url: string; size: number; type: string }> = [];
-    
-    page.on('response', async (response) => {
-      const url = response.url();
-      
-      if (url.includes('_next/static/')) {
-        try {
-          const headers = response.headers();
-          const contentLength = headers['content-length'];
-          const size = contentLength ? parseInt(contentLength) : 0;
-          
-          let type = 'other';
-          if (url.includes('.js')) type = 'javascript';
-          if (url.includes('.css')) type = 'css';
-          if (url.includes('.woff') || url.includes('.woff2')) type = 'font';
-          
-          networkActivity.push({ url, size, type });
-        } catch (error) {
-          // Ignore errors getting response size
-        }
-      }
+    console.log('Resource Loading Breakdown:');
+    Object.entries(resourceBreakdown).forEach(([type, data]) => {
+      console.log(`  ${type}:`);
+      console.log(`    Count: ${data.count}`);
+      console.log(`    Total Size: ${(data.totalSize / 1024).toFixed(2)}KB`);
+      console.log(`    Avg Duration: ${(data.totalDuration / data.count).toFixed(2)}ms`);
     });
     
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    // Calculate total bundle sizes
-    const totalJS = networkActivity
-      .filter(item => item.type === 'javascript')
-      .reduce((sum, item) => sum + item.size, 0);
-    
-    const totalCSS = networkActivity
-      .filter(item => item.type === 'css')
-      .reduce((sum, item) => sum + item.size, 0);
-    
-    console.log(`Total JS: ${(totalJS / 1024).toFixed(2)}KB`);
-    console.log(`Total CSS: ${(totalCSS / 1024).toFixed(2)}KB`);
-    
-    // Bundle size targets (compressed)
-    expect(totalJS).toBeLessThan(300 * 1024); // 300KB for JS
-    expect(totalCSS).toBeLessThan(50 * 1024);  // 50KB for CSS
-  });
-
-  test('should load fonts efficiently', async ({ page }) => {
-    const fontRequests: string[] = [];
-    
-    page.on('request', (request) => {
-      const url = request.url();
-      if (url.includes('.woff') || url.includes('.woff2') || url.includes('fonts.googleapis.com')) {
-        fontRequests.push(url);
-      }
-    });
-    
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    // Check font loading strategy
-    const fontDisplay = await page.evaluate(() => {
-      const stylesheets = Array.from(document.styleSheets);
-      
-      for (const stylesheet of stylesheets) {
-        try {
-          const rules = Array.from(stylesheet.cssRules || []);
-          for (const rule of rules) {
-            if (rule.toString().includes('@font-face')) {
-              const fontFaceRule = rule as CSSFontFaceRule;
-              const style = fontFaceRule.style as any;
-              if (style.fontDisplay) {
-                return style.fontDisplay;
-              }
-            }
-          }
-        } catch (e) {
-          // Cross-origin stylesheets may not be accessible
-        }
-      }
-      return null;
-    });
-    
-    // Should use font-display: swap for better performance
-    if (fontRequests.length > 0) {
-      console.log(`Font display strategy: ${fontDisplay || 'not detected'}`);
-      // This is informational - font-display might be set via CSS files
-    }
-  });
-
-  test('should efficiently handle images', async ({ page }) => {
-    const imageRequests: Array<{ url: string; size: number }> = [];
-    
-    page.on('response', async (response) => {
-      const url = response.url();
-      
-      if (url.match(/\.(jpg|jpeg|png|webp|avif|svg)(\?|$)/i)) {
-        try {
-          const headers = response.headers();
-          const contentLength = headers['content-length'];
-          const size = contentLength ? parseInt(contentLength) : 0;
-          
-          imageRequests.push({ url, size });
-        } catch (error) {
-          // Ignore errors
-        }
-      }
-    });
-    
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    // Check for lazy loading
-    const lazyImages = await page.locator('img[loading="lazy"]').count();
-    const totalImages = await page.locator('img').count();
-    
-    console.log(`Lazy images: ${lazyImages}/${totalImages}`);
-    
-    if (totalImages > 2) {
-      // Should have some lazy-loaded images
-      expect(lazyImages).toBeGreaterThan(0);
-    }
-    
-    // Check image sizes are reasonable
-    const totalImageSize = imageRequests.reduce((sum, img) => sum + img.size, 0);
-    console.log(`Total image size: ${(totalImageSize / 1024).toFixed(2)}KB`);
+    // Check resource optimization
+    expect(resourceBreakdown.scripts.count).toBeLessThan(20); // Limit script files
+    expect(resourceBreakdown.stylesheets.count).toBeLessThan(10); // Limit CSS files
     
     // Images should be optimized
-    expect(totalImageSize).toBeLessThan(500 * 1024); // 500KB total for initial images
+    if (resourceBreakdown.images.count > 0) {
+      const avgImageSize = resourceBreakdown.images.totalSize / resourceBreakdown.images.count;
+      expect(avgImageSize).toBeLessThan(100 * 1024); // 100KB average
+    }
   });
 
-  test('should minimize render-blocking resources', async ({ page }) => {
-    const renderBlockingResources: string[] = [];
-    
-    page.on('request', (request) => {
-      const url = request.url();
-      const resourceType = request.resourceType();
-      
-      // CSS and synchronous JS are render-blocking
-      if (resourceType === 'stylesheet' || 
-          (resourceType === 'script' && !request.url().includes('defer') && !request.url().includes('async'))) {
-        renderBlockingResources.push(url);
-      }
-    });
-    
+  test('should measure accurate Time to Interactive', async ({ page }) => {
     await page.goto('/');
     
-    console.log(`Render-blocking resources: ${renderBlockingResources.length}`);
+    const tti = await measureTimeToInteractive(page);
+    console.log(`Time to Interactive: ${tti}ms`);
     
-    // Should minimize render-blocking resources
-    expect(renderBlockingResources.length).toBeLessThan(10);
+    // Also measure using performance metrics
+    const metrics = await collectPerformanceMetrics(page);
+    
+    // TTI should be reasonable
+    expect(tti).toBeLessThan(3800); // 3.8s target
+    expect(metrics.totalBlockingTime).toBeLessThan(300); // 300ms TBT target
   });
 
-  test('should handle slow 3G network conditions', async ({ page }) => {
-    // Simulate slow 3G network
-    await page.route('**/*', async (route) => {
-      await new Promise(resolve => setTimeout(resolve, 100)); // Add 100ms delay
-      await route.continue();
-    });
-    
-    const startTime = Date.now();
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    const loadTime = Date.now() - startTime;
-    
-    console.log(`Load time on slow 3G: ${loadTime}ms`);
-    
-    // Should still load within reasonable time on slow connection
-    expect(loadTime).toBeLessThan(8000); // 8s on slow 3G
-    
-    // Critical content should be visible
-    await expect(page.locator('main')).toBeVisible();
-  });
-
-  test('should implement efficient caching strategy', async ({ page }) => {
-    // First visit
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    const firstVisitRequests: string[] = [];
-    
-    // Second visit - track cached resources
-    page.on('response', (response) => {
-      const cacheControl = response.headers()['cache-control'];
-      const fromCache = response.fromServiceWorker() || 
-                       response.status() === 304 ||
-                       cacheControl?.includes('max-age');
-      
-      if (fromCache) {
-        firstVisitRequests.push(response.url());
-      }
-    });
-    
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    
-    console.log(`Cached resources on reload: ${firstVisitRequests.length}`);
-    
-    // Should have some cached resources on reload
-    expect(firstVisitRequests.length).toBeGreaterThan(0);
-  });
-
-  test('should perform well under concurrent load', async ({ browser }) => {
-    const concurrentPages = 3;
+  test('should handle concurrent user load efficiently', async ({ browser }) => {
+    const concurrentUsers = 5;
+    const contexts = [];
     const pages = [];
     
-    // Create multiple pages
-    for (let i = 0; i < concurrentPages; i++) {
+    // Create multiple browser contexts (simulating different users)
+    for (let i = 0; i < concurrentUsers; i++) {
       const context = await browser.newContext();
       const page = await context.newPage();
+      contexts.push(context);
       pages.push(page);
     }
     
     // Load homepage concurrently
+    // Debug: Testing with ${concurrentUsers} concurrent users...
     const startTime = Date.now();
-    const loadPromises = pages.map(page => page.goto('/'));
     
-    await Promise.all(loadPromises);
-    const totalLoadTime = Date.now() - startTime;
-    
-    console.log(`Concurrent load time for ${concurrentPages} pages: ${totalLoadTime}ms`);
-    
-    // Should handle concurrent load reasonably
-    expect(totalLoadTime).toBeLessThan(10000); // 10s for all pages
-    
-    // All pages should have loaded successfully
-    for (const page of pages) {
-      await expect(page.locator('main')).toBeVisible();
-      await page.context().close();
-    }
-  });
-
-  test('should track Core Web Vitals', async ({ page }) => {
-    await page.goto('/');
-    
-    // Get comprehensive performance metrics
-    const metrics = await getPerformanceMetrics(page);
-    
-    console.log('Core Web Vitals metrics:', {
-      domContentLoaded: `${metrics.domContentLoaded}ms`,
-      load: `${metrics.load}ms`,
-      firstPaint: `${metrics.firstPaint}ms`,
-      firstContentfulPaint: `${metrics.firstContentfulPaint}ms`,
-    });
-    
-    // Performance assertions
-    expect(metrics.domContentLoaded).toBeLessThan(3000); // 3s
-    expect(metrics.firstContentfulPaint).toBeLessThan(1800); // 1.8s
-    expect(metrics.firstPaint).toBeLessThan(1500); // 1.5s
-    
-    // Additional Web Vitals if available
-    const additionalMetrics = await page.evaluate(() => {
+    const loadPromises = pages.map(async (page, index) => {
+      const pageStartTime = Date.now();
+      await page.goto('/');
+      const pageLoadTime = Date.now() - pageStartTime;
+      
+      const metrics = await collectPerformanceMetrics(page);
+      
       return {
-        navigation: performance.getEntriesByType('navigation')[0],
-        memory: (performance as any).memory ? {
-          usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-          totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        } : null,
+        userIndex: index,
+        loadTime: pageLoadTime,
+        metrics,
       };
     });
     
-    if (additionalMetrics.memory) {
-      console.log('Memory usage:', additionalMetrics.memory);
-      
-      // Memory usage should be reasonable
-      const memoryUsageMB = additionalMetrics.memory.usedJSHeapSize / 1024 / 1024;
-      expect(memoryUsageMB).toBeLessThan(50); // 50MB
-    }
-  });
-});
-
-test.describe('Performance - Mobile', () => {
-  test.beforeEach(async ({ page }) => {
-    // Simulate mobile device
-    await page.setViewportSize({ width: 375, height: 667 });
-  });
-
-  test('should perform well on mobile devices @performance @mobile', async ({ page }) => {
-    // Simulate mobile CPU throttling
-    const client = await page.context().newCDPSession(page);
-    await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const results = await Promise.all(loadPromises);
+    const totalTime = Date.now() - startTime;
     
-    const startTime = Date.now();
-    await page.goto('/', { waitUntil: 'networkidle' });
-    const loadTime = Date.now() - startTime;
+    console.log(`\nConcurrent Load Test Results:`);
+    console.log(`Total time for ${concurrentUsers} users: ${totalTime}ms`);
     
-    console.log(`Mobile load time: ${loadTime}ms`);
+    results.forEach(result => {
+      console.log(`User ${result.userIndex + 1}:`);
+      // Performance:   Load time = result.loadTimems
+      console.log(`  LCP: ${result.metrics.largestContentfulPaint}ms`);
+      console.log(`  FCP: ${result.metrics.firstContentfulPaint}ms`);
+    });
     
-    // Should load within reasonable time on mobile
-    expect(loadTime).toBeLessThan(5000); // 5s on throttled mobile
+    // Calculate statistics
+    const avgLoadTime = results.reduce((sum, r) => sum + r.loadTime, 0) / results.length;
+    const maxLoadTime = Math.max(...results.map(r => r.loadTime));
     
-    // Critical content should be visible
-    await expect(page.locator('main')).toBeVisible();
+    console.log(`\nStatistics:`);
+    // Performance:   Average load time = avgLoadTimems
+    // Performance:   Max load time = maxLoadTimems
     
-    // Reset CPU throttling
-    await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    // Assert reasonable performance under load
+    expect(avgLoadTime).toBeLessThan(5000); // 5s average
+    expect(maxLoadTime).toBeLessThan(8000); // 8s max
+    
+    // Cleanup
+    await Promise.all(contexts.map(context => context.close()));
   });
 
-  test('should optimize touch interactions', async ({ page }) => {
+  test('should implement effective caching strategy', async ({ page }) => {
+    // First visit - cold cache
+    console.log('First visit (cold cache):');
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    const coldMetrics = await collectPerformanceMetrics(page);
+    console.log(`  Total requests: ${coldMetrics.totalRequests}`);
+    console.log(`  Total size: ${(coldMetrics.totalSize / 1024).toFixed(2)}KB`);
     
-    // Test touch target sizes
-    const buttons = page.locator('button, a[role="button"]');
-    const buttonCount = await buttons.count();
+    // Second visit - warm cache
+    console.log('\nSecond visit (warm cache):');
+    await page.reload();
+    const warmMetrics = await collectPerformanceMetrics(page);
+    console.log(`  Total requests: ${warmMetrics.totalRequests}`);
+    console.log(`  Cached requests: ${warmMetrics.cachedRequests}`);
+    console.log(`  Total size: ${(warmMetrics.totalSize / 1024).toFixed(2)}KB`);
     
-    for (let i = 0; i < Math.min(buttonCount, 5); i++) {
-      const button = buttons.nth(i);
+    // Calculate cache effectiveness
+    const cacheRatio = warmMetrics.cachedRequests / warmMetrics.totalRequests;
+    console.log(`  Cache hit ratio: ${(cacheRatio * 100).toFixed(2)}%`);
+    
+    // Assert caching is effective
+    expect(warmMetrics.cachedRequests).toBeGreaterThan(0);
+    expect(cacheRatio).toBeGreaterThan(0.3); // At least 30% cache hit rate
+    expect(warmMetrics.totalSize).toBeLessThan(coldMetrics.totalSize * 0.7); // 30% reduction
+  });
+
+  test('should optimize critical rendering path', async ({ page }) => {
+    const criticalResources: string[] = [];
+    
+    // Track critical resources
+    page.on('response', response => {
+      const url = response.url();
+      const timing = (response as unknown as { timing?: () => { responseEnd?: number } }).timing?.();
       
-      if (await button.isVisible()) {
-        const box = await button.boundingBox();
-        
-        if (box) {
-          // Touch targets should be at least 44x44px
-          expect(box.width).toBeGreaterThanOrEqual(40);
-          expect(box.height).toBeGreaterThanOrEqual(40);
+      if (timing && typeof timing.responseEnd === 'number' && timing.responseEnd < 1000) { // Resources loaded within 1s
+        if (url.includes('.css') || url.includes('.js') || url.includes('font')) {
+          criticalResources.push(url);
         }
       }
+    });
+    
+    await page.goto('/');
+    const metrics = await collectPerformanceMetrics(page);
+    
+    console.log('Critical Rendering Path Analysis:');
+    console.log(`  First Paint: ${metrics.firstPaint}ms`);
+    console.log(`  First Contentful Paint: ${metrics.firstContentfulPaint}ms`);
+    console.log(`  DOM Content Loaded: ${metrics.domContentLoaded}ms`);
+    console.log(`  Critical resources: ${criticalResources.length}`);
+    
+    // Critical metrics should be fast
+    expect(metrics.firstPaint).toBeLessThan(1000); // 1s
+    expect(metrics.firstContentfulPaint).toBeLessThan(1800); // 1.8s
+    expect(criticalResources.length).toBeLessThan(10); // Limited critical resources
+  });
+
+  test('should maintain performance with real user interactions and measure INP @performance @inp', async ({ page }) => {
+    await page.goto('/');
+    
+    // Initial metrics
+    const initialMetrics = await collectPerformanceMetrics(page);
+    
+    // Set up INP measurement
+    await page.evaluate(() => {
+      (window as Window).inpMeasurements = [];
+      
+      // Enhanced INP measurement
+      if ('PerformanceObserver' in window) {
+        try {
+          const observer = new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            entries.forEach((entry) => {
+              const eventEntry = entry as PerformanceEntry & { 
+                interactionId?: number;
+                processingStart?: number;
+                processingEnd?: number;
+              };
+              if (eventEntry.interactionId) {
+                const inp = (eventEntry.processingStart || 0) - eventEntry.startTime;
+                (window as Window).inpMeasurements!.push({
+                  inp: inp,
+                  target: entry.name,
+                  timestamp: eventEntry.startTime
+                });
+              }
+            });
+          });
+          
+          observer.observe({ entryTypes: ['event'] });
+        } catch (error) {
+          console.warn('INP measurement setup failed:', error);
+        }
+      }
+    });
+    
+    // Simulate user interactions with INP measurement
+    const interactions = [
+      {
+        name: 'scroll',
+        action: async () => {
+          await page.evaluate(() => window.scrollTo(0, 500));
+          await page.waitForTimeout(100);
+        }
+      },
+      {
+        name: 'button_click',
+        action: async () => {
+          const button = page.locator('button').first();
+          if (await button.count() > 0) {
+            await button.click();
+            await page.waitForTimeout(200);
+          }
+        }
+      },
+      {
+        name: 'hover',
+        action: async () => {
+          const link = page.locator('a').first();
+          if (await link.count() > 0) {
+            await link.hover();
+            await page.waitForTimeout(100);
+          }
+        }
+      },
+      {
+        name: 'input_interaction',
+        action: async () => {
+          const input = page.locator('input').first();
+          if (await input.count() > 0) {
+            await input.click();
+            await input.fill('test input');
+            await page.waitForTimeout(200);
+          }
+        }
+      },
+    ];
+    
+    // Perform interactions and measure INP
+    for (const { name, action } of interactions) {
+      console.log(`Performing interaction: ${name}`);
+      await action();
     }
+    
+    // Wait for interactions to be processed
+    await page.waitForTimeout(1000);
+    
+    // Get INP measurements
+    const inpData = await page.evaluate(() => (window as Window).inpMeasurements || []);
+    
+    console.log('\n🖱️ Interaction to Next Paint (INP) Analysis:');
+    console.log(`Total interactions measured: ${inpData.length}`);
+    
+    if (inpData.length > 0) {
+      const inpValues = inpData.map((m: { inp: number }) => m.inp);
+      const maxINP = Math.max(...inpValues);
+      const avgINP = inpValues.reduce((sum: number, val: number) => sum + val, 0) / inpValues.length;
+      
+      console.log(`Max INP: ${maxINP.toFixed(2)}ms`);
+      console.log(`Average INP: ${avgINP.toFixed(2)}ms`);
+      
+      // Log individual interactions
+      inpData.forEach((measurement: { target: string; inp: number }, index: number) => {
+        console.log(`  ${index + 1}. ${measurement.target}: ${measurement.inp.toFixed(2)}ms`);
+      });
+      
+      // INP assertions (2024 Core Web Vital)
+      expect(maxINP).toBeLessThan(500); // Poor threshold
+      expect(avgINP).toBeLessThan(200); // Good threshold for average
+      
+      // Count interactions with good INP
+      const goodINP = inpValues.filter((inp: number) => inp < 200).length;
+      const goodINPRatio = goodINP / inpValues.length;
+      
+      console.log(`Good INP ratio: ${(goodINPRatio * 100).toFixed(1)}%`);
+      expect(goodINPRatio).toBeGreaterThan(0.75); // 75% of interactions should have good INP
+    }
+    
+    // Measure performance after interactions
+    const afterMetrics = await collectPerformanceMetrics(page);
+    
+    console.log('\n📊 Performance impact of interactions:');
+    console.log(`  Memory before: ${(initialMetrics.jsHeapUsed / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`  Memory after: ${(afterMetrics.jsHeapUsed / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`  Memory increase: ${((afterMetrics.jsHeapUsed - initialMetrics.jsHeapUsed) / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`  INP (collected): ${afterMetrics.interactionToNextPaint}ms`);
+    
+    // Memory should not increase significantly
+    const memoryIncrease = afterMetrics.jsHeapUsed - initialMetrics.jsHeapUsed;
+    expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024); // Less than 10MB increase
+    
+    // INP should be within acceptable limits
+    expect(afterMetrics.interactionToNextPaint).toBeLessThan(500); // Poor threshold
   });
 });

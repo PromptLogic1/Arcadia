@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 
 /**
  * Performance metrics types
@@ -83,17 +83,26 @@ export class PerformanceTestHelper {
         totalBlockingTime: 0, // Would need Long Task API
         requestCount: performance.getEntriesByType('resource').length,
         totalTransferSize: performance.getEntriesByType('resource')
-          .reduce((total, entry: any) => total + (entry.transferSize || 0), 0)
+          .reduce((total, entry) => total + ((entry as PerformanceResourceTiming).transferSize || 0), 0)
       };
     });
 
-    // Add memory metrics
-    const jsMetrics = await this.page.metrics();
+    // Add memory metrics (if available in browser context)
+    const memoryInfo = await this.page.evaluate(() => {
+      if ('memory' in performance) {
+        const mem = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+        return {
+          JSHeapUsedSize: mem.usedJSHeapSize || 0,
+          JSHeapTotalSize: mem.totalJSHeapSize || 0
+        };
+      }
+      return { JSHeapUsedSize: 0, JSHeapTotalSize: 0 };
+    });
     
     return {
       ...metrics,
-      jsHeapUsedSize: jsMetrics.JSHeapUsedSize,
-      jsHeapTotalSize: jsMetrics.JSHeapTotalSize
+      jsHeapUsedSize: memoryInfo.JSHeapUsedSize,
+      jsHeapTotalSize: memoryInfo.JSHeapTotalSize
     };
   }
 
@@ -243,7 +252,7 @@ export class TimerAccuracyHelper {
   /**
    * Check if timer meets accuracy requirements
    */
-  meetsAccuracyRequirements(maxDriftMs: number = 100): boolean {
+  meetsAccuracyRequirements(maxDriftMs = 100): boolean {
     return this.getMaxDrift() <= maxDriftMs;
   }
 
@@ -280,7 +289,7 @@ export class TimerAccuracyHelper {
  * CPU load simulator for stress testing
  */
 export class CPULoadSimulator {
-  private worker?: Worker;
+  private workerId?: string;
 
   /**
    * Start CPU load
@@ -292,7 +301,15 @@ export class CPULoadSimulator {
       high: 100000
     }[intensity];
 
-    this.worker = await page.evaluateHandle((iterations) => {
+    this.workerId = await page.evaluate((iterations) => {
+      const workerId = Math.random().toString(36).substring(2);
+      
+      // Store the worker ID for later cleanup
+      const windowWithWorkers = window as Window & { __cpuWorkers?: Record<string, Worker> };
+      if (!windowWithWorkers.__cpuWorkers) {
+        windowWithWorkers.__cpuWorkers = {};
+      }
+      
       const workerCode = `
         let running = true;
         self.onmessage = (e) => { 
@@ -309,24 +326,32 @@ export class CPULoadSimulator {
         }
       `;
       
-      return new Worker(
+      const worker = new Worker(
         URL.createObjectURL(
           new Blob([workerCode], { type: 'application/javascript' })
         )
       );
+      
+      windowWithWorkers.__cpuWorkers[workerId] = worker;
+      return workerId;
     }, iterations);
   }
 
   /**
    * Stop CPU load
    */
-  async stopLoad() {
-    if (this.worker) {
-      await this.worker.evaluate(worker => {
-        worker.postMessage('stop');
-        worker.terminate();
-      });
-      this.worker = undefined;
+  async stopLoad(page: Page) {
+    if (this.workerId) {
+      await page.evaluate((workerId) => {
+        const windowWithWorkers = window as Window & { __cpuWorkers?: Record<string, Worker> };
+        const workers = windowWithWorkers.__cpuWorkers;
+        if (workers && workers[workerId]) {
+          workers[workerId].postMessage('stop');
+          workers[workerId].terminate();
+          delete workers[workerId];
+        }
+      }, this.workerId);
+      this.workerId = undefined;
     }
   }
 }
@@ -341,7 +366,7 @@ export class NetworkConditionSimulator {
    * Simulate slow network
    */
   async simulateSlow3G() {
-    await this.page.context().route('**/*', async route => {
+    await this.page.context().route('**/*', async (route: Route) => {
       // Add 400ms latency to simulate slow 3G
       await new Promise(resolve => setTimeout(resolve, 400));
       await route.continue();
@@ -381,7 +406,7 @@ export async function createPerformanceContext(page: Page) {
     cpu: cpuSimulator,
     network: networkSimulator,
     cleanup: async () => {
-      await cpuSimulator.stopLoad();
+      await cpuSimulator.stopLoad(page);
       await networkSimulator.restore();
     }
   };

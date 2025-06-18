@@ -4,6 +4,38 @@
  */
 
 /**
+ * Extended Performance API types for 2024 Core Web Vitals
+ */
+interface _PerformanceEventTiming extends PerformanceEntry {
+  interactionId?: number;
+  processingStart: number;
+  processingEnd: number;
+  startTime: number;
+  duration: number;
+}
+
+// Extend the Window interface to include INP measurements
+declare global {
+  interface Window {
+    inpMeasurements?: Array<{ inp: number; target: string; timestamp: number }>;
+  }
+}
+
+/**
+ * Extended Response interface for Playwright timing
+ */
+interface _PlaywrightResponse {
+  timing(): {
+    responseEnd: number;
+    [key: string]: number;
+  } | null;
+  headers(): Record<string, string>;
+  status(): number;
+  ok(): boolean;
+  url(): string;
+}
+
+/**
  * Core Web Vitals and performance metrics (2024 Standards)
  */
 export interface PerformanceMetrics {
@@ -98,7 +130,7 @@ export interface StructuredDataSchema {
   type: string;
   required: string[];
   optional?: string[];
-  validation?: Record<string, (value: any) => boolean>;
+  validation?: Record<string, (value: unknown) => boolean>;
 }
 
 /**
@@ -238,16 +270,6 @@ export interface VisualRegressionResult {
   threshold: number;
 }
 
-/**
- * Network conditions for performance testing
- */
-export interface NetworkCondition {
-  name: string;
-  downloadThroughput: number;
-  uploadThroughput: number;
-  latency: number;
-  offline?: boolean;
-}
 
 /**
  * Test configuration
@@ -273,6 +295,17 @@ export interface PerformanceBudget {
   budget: number;
   unit: 'ms' | 'bytes' | 'number' | 'score';
   severity: 'error' | 'warning';
+}
+
+/**
+ * Network condition for performance testing with proper typing
+ */
+export interface NetworkCondition {
+  name: string;
+  downloadThroughput: number;
+  uploadThroughput: number;
+  latency: number;
+  offline?: boolean;
 }
 
 /**

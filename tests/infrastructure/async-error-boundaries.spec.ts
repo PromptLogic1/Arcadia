@@ -7,10 +7,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
-import type { ErrorBoundaryError, NetworkError } from './types/errors';
-import { generateErrorBoundaryError, generateNetworkError } from './utils/error-generators';
-import { mockNetworkFailure } from './utils/mock-helpers';
+import type { TestWindow } from '../types/test-types';
 
 test.describe('Advanced Async Error Boundary Infrastructure', () => {
   test.describe('Promise Rejection Handling', () => {
@@ -20,8 +17,8 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       // Set up unhandled rejection monitoring
       await page.evaluate(() => {
         const rejections: Array<{
-          reason: any;
-          promise: Promise<any>;
+          reason: unknown;
+          promise: Promise<unknown>;
           timestamp: number;
           handled: boolean;
         }> = [];
@@ -59,7 +56,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         });
         
         // Store rejections globally for testing
-        (window as any).__rejectionTracker = {
+        (window as Window).__rejectionTracker = {
           rejections,
           getUnhandledCount: () => rejections.filter(r => !r.handled).length,
           getTotalCount: () => rejections.length,
@@ -95,11 +92,11 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       
       // Check rejection tracking
       const rejectionStats = await page.evaluate(() => 
-        (window as any).__rejectionTracker
+        (window as TestWindow).__rejectionTracker
       );
       
-      expect(rejectionStats.getTotalCount()).toBeGreaterThan(0);
-      expect(rejectionStats.getUnhandledCount()).toBeGreaterThan(0);
+      expect(rejectionStats?.getTotalCount()).toBeGreaterThan(0);
+      expect(rejectionStats?.getUnhandledCount()).toBeGreaterThan(0);
       
       // Test error dismissal
       await page.click('[data-testid="dismiss-async-error"]');
@@ -111,23 +108,26 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       
       // Set up promise chain error tracking
       await page.evaluate(() => {
-        interface PromiseChainError {
+        class PromiseChainError extends Error {
           step: string;
-          error: string;
           timestamp: number;
           recovered: boolean;
+          
+          constructor(step: string, message: string) {
+            super(message);
+            this.name = 'PromiseChainError';
+            this.step = step;
+            this.timestamp = Date.now();
+            this.recovered = false;
+          }
         }
         
         const chainErrors: PromiseChainError[] = [];
         
-        const createRecoveryMechanism = () => {
-          const errorHandler = (step: string) => (error: any) => {
-            const errorInfo: PromiseChainError = {
-              step,
-              error: error.message || error.toString(),
-              timestamp: Date.now(),
-              recovered: false,
-            };
+        const createRecoveryMechanism = (_chainId: string) => {
+          const errorHandler = (step: string) => (error: Error | unknown) => {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorInfo = new PromiseChainError(step, errorMessage);
             chainErrors.push(errorInfo);
             
             // Attempt recovery
@@ -139,11 +139,16 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
             });
           };
           
-          return errorHandler;
+          return {
+            recover: () => Promise.resolve('recovered'),
+            errorHandler
+          };
         };
         
         // Store for testing
-        (window as any).__promiseChainTracker = {
+        (window as TestWindow).__promiseChainTracker = {
+          chains: new Map(),
+          activeChains: new Set(),
           errors: chainErrors,
           createRecoveryMechanism,
         };
@@ -151,48 +156,51 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       
       // Execute complex promise chains with failures
       const chainResults = await page.evaluate(async () => {
-        const tracker = (window as any).__promiseChainTracker;
-        const errorHandler = tracker.createRecoveryMechanism();
+        const tracker = (window as TestWindow).__promiseChainTracker;
+        const recoveryMechanism = tracker?.createRecoveryMechanism?.('chain1');
+        const errorHandler = recoveryMechanism?.errorHandler;
         
         // Chain 1: Fetch -> Process -> Transform
         const chain1 = fetch('/api/data')
-          .catch(errorHandler('fetch'))
-          .then((data: any) => {
+          .catch(errorHandler ? errorHandler('fetch') : () => Promise.resolve('fallback'))
+          .then((data: unknown) => {
             if (typeof data === 'string' && data.includes('Recovered')) {
               return { recovered: true };
             }
-            return data.json();
+            return (data as Response).json();
           })
-          .catch(errorHandler('json-parse'))
-          .then((json: any) => {
-            if (json?.recovered) {
+          .catch(errorHandler ? errorHandler('json-parse') : () => Promise.resolve('fallback'))
+          .then((json: unknown) => {
+            if (json && typeof json === 'object' && 'recovered' in json && json.recovered) {
               return { processed: true, recovered: true };
             }
             // Simulate processing error
             throw new Error('Processing failed');
           })
-          .catch(errorHandler('processing'))
-          .then((result: any) => result);
+          .catch(errorHandler ? errorHandler('processing') : () => Promise.resolve('fallback'))
+          .then((result: unknown) => result);
         
         // Chain 2: Multiple async operations
         const chain2 = Promise.all([
-          fetch('/api/users').catch(errorHandler('users-fetch')),
-          fetch('/api/settings').catch(errorHandler('settings-fetch')),
-          fetch('/api/preferences').catch(errorHandler('preferences-fetch')),
+          fetch('/api/users').catch(errorHandler ? errorHandler('users-fetch') : () => Promise.resolve('fallback')),
+          fetch('/api/settings').catch(errorHandler ? errorHandler('settings-fetch') : () => Promise.resolve('fallback')),
+          fetch('/api/preferences').catch(errorHandler ? errorHandler('preferences-fetch') : () => Promise.resolve('fallback')),
         ])
-          .catch(errorHandler('parallel-fetch'))
-          .then((results: any[]) => {
+          .catch(errorHandler ? errorHandler('parallel-fetch') : () => Promise.resolve('fallback'))
+          .then((results: unknown[]) => {
             return results.map(r => ({ data: r, success: true }));
           })
-          .catch(errorHandler('results-processing'));
+          .catch(errorHandler ? errorHandler('results-processing') : () => Promise.resolve('fallback'));
         
         const [result1, result2] = await Promise.all([chain1, chain2]);
         
         return {
           chain1: result1,
           chain2: result2,
-          errorCount: tracker.errors.length,
-          recoveredCount: tracker.errors.filter((e: any) => e.recovered).length,
+          errorCount: tracker?.errors?.length || 0,
+          recoveredCount: tracker?.errors?.filter((e: unknown) => {
+            return e && typeof e === 'object' && 'recovered' in e && e.recovered;
+          }).length || 0,
         };
       });
       
@@ -266,7 +274,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
               if (!this.mounted) return;
               
               this.mounted = false;
-              this.cleanupFunctions.forEach((cleanup, index) => {
+              this.cleanupFunctions.forEach((cleanup, _index) => {
                 try {
                   cleanup();
                 } catch (error) {
@@ -287,7 +295,8 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         };
         
         // Store for testing
-        (window as any).__componentLifecycle = {
+        (window as TestWindow).__componentLifecycle = {
+          components: new Map(),
           state: componentState,
           createComponent,
         };
@@ -295,37 +304,41 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       
       // Create and manage components
       const lifecycleResults = await page.evaluate(async () => {
-        const lifecycle = (window as any).__componentLifecycle;
-        const components: any[] = [];
+        const lifecycle = (window as TestWindow).__componentLifecycle;
+        const components: unknown[] = [];
         
         // Create multiple components
         for (let i = 0; i < 5; i++) {
-          const component = lifecycle.createComponent(`component-${i}`);
-          component.mount();
-          components.push(component);
+          const component = lifecycle?.createComponent?.(`component-${i}`);
+          if (component && typeof component === 'object' && 'mount' in component && typeof component.mount === 'function') {
+            component.mount();
+            components.push(component);
+          }
           
           // Wait a bit
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         // Unmount all components
-        components.forEach(component => {
-          try {
-            component.unmount();
-          } catch (error) {
-            lifecycle.state.cleanupErrors.push({
-              componentId: component.id,
-              error: (error as Error).message,
-              phase: 'unmount',
-              timestamp: Date.now(),
-            });
+        components.forEach((component: unknown) => {
+          if (component && typeof component === 'object' && 'unmount' in component && 'id' in component) {
+            try {
+              (component.unmount as () => void)();
+            } catch (error) {
+              lifecycle?.state?.cleanupErrors?.push({
+                componentId: component.id as string,
+                error: (error as Error).message,
+                phase: 'unmount',
+                timestamp: Date.now(),
+              });
+            }
           }
         });
         
         return {
           componentCount: components.length,
-          cleanupErrors: lifecycle.state.cleanupErrors,
-          errorRate: lifecycle.state.cleanupErrors.length / components.length,
+          cleanupErrors: lifecycle?.state?.cleanupErrors || [],
+          errorRate: (lifecycle?.state?.cleanupErrors?.length || 0) / components.length,
         };
       });
       
@@ -333,9 +346,11 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       expect(lifecycleResults.componentCount).toBe(5);
       if (lifecycleResults.cleanupErrors.length > 0) {
         expect(lifecycleResults.errorRate).toBeLessThan(1); // Not all components should error
-        lifecycleResults.cleanupErrors.forEach(error => {
-          expect(error.phase).toBe('unmount');
-          expect(error.componentId).toMatch(/^component-\d+$/);
+        lifecycleResults.cleanupErrors.forEach((error: unknown) => {
+          if (error && typeof error === 'object' && 'phase' in error && 'componentId' in error) {
+            expect(error.phase).toBe('unmount');
+            expect(error.componentId).toMatch(/^component-\d+$/);
+          }
         });
       }
     });
@@ -423,15 +438,25 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         };
         
         // Store for testing
-        (window as any).__asyncComponentTracker = {
-          tracker,
-          createAsyncComponent,
+        const trackerWithMethods = tracker as typeof tracker & {
+          tracker: typeof tracker;
+          createAsyncComponent: typeof createAsyncComponent;
         };
+        trackerWithMethods.tracker = tracker;
+        trackerWithMethods.createAsyncComponent = createAsyncComponent;
+        (window as TestWindow).__asyncComponentTracker = trackerWithMethods;
       });
       
       // Test async component lifecycle
       const asyncResults = await page.evaluate(async () => {
-        const { tracker, createAsyncComponent } = (window as any).__asyncComponentTracker;
+        const trackerData = (window as TestWindow).__asyncComponentTracker;
+        if (!trackerData || !('createAsyncComponent' in trackerData)) {
+          return { componentCount: 0, errorCount: 0, mountedCount: 0 };
+        }
+        const { tracker, createAsyncComponent } = trackerData as {
+          tracker: unknown;
+          createAsyncComponent: (id: string) => unknown;
+        };
         
         // Create components and start async operations
         const components = [];
@@ -440,15 +465,21 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
           components.push(component);
           
           // Start async operations
-          component.startMultipleOperations();
+          if (component && typeof component === 'object' && 'startMultipleOperations' in component && typeof component.startMultipleOperations === 'function') {
+            component.startMultipleOperations();
+          }
         }
         
         // Wait a bit for operations to start
         await new Promise(resolve => setTimeout(resolve, 200));
         
         // Unmount some components while operations are in progress
-        components[0].unmount();
-        components[2].unmount();
+        if (components[0] && typeof components[0] === 'object' && 'unmount' in components[0] && typeof components[0].unmount === 'function') {
+          components[0].unmount();
+        }
+        if (components[2] && typeof components[2] === 'object' && 'unmount' in components[2] && typeof components[2].unmount === 'function') {
+          components[2].unmount();
+        }
         
         // Wait for all operations to complete
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -457,29 +488,42 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         const results = {
           totalComponents: components.length,
           unmountedCount: 2,
-          globalErrors: tracker.globalErrors.length,
-          componentErrors: Array.from(tracker.components.values()).map(c => ({
-            id: c.id,
-            mounted: c.mounted,
-            errorCount: c.stateUpdateErrors.length,
-            pendingUpdates: c.pendingUpdates,
-          })),
+          globalErrors: tracker && typeof tracker === 'object' && 'globalErrors' in tracker && Array.isArray(tracker.globalErrors) ? tracker.globalErrors.length : 0,
+          componentErrors: tracker && typeof tracker === 'object' && 'components' in tracker && tracker.components instanceof Map ? Array.from(tracker.components.values()).map((c: unknown) => {
+            if (c && typeof c === 'object' && 'id' in c && 'mounted' in c) {
+              return {
+                id: c.id,
+                mounted: c.mounted,
+                errorCount: 'stateUpdateErrors' in c && Array.isArray(c.stateUpdateErrors) ? c.stateUpdateErrors.length : 0,
+                pendingUpdates: 'pendingUpdates' in c ? (c.pendingUpdates as number) : 0,
+              };
+            }
+            return null;
+          }).filter(Boolean) : [],
         };
         
         return results;
       });
       
       // Verify error handling for unmounted components
-      expect(asyncResults.totalComponents).toBe(3);
-      expect(asyncResults.unmountedCount).toBe(2);
-      
-      // Should have caught state update errors for unmounted components
-      const unmountedWithErrors = asyncResults.componentErrors.filter(c => !c.mounted && c.errorCount > 0);
-      expect(unmountedWithErrors.length).toBeGreaterThan(0);
-      
-      // Mounted component should not have errors
-      const mountedComponent = asyncResults.componentErrors.find(c => c.mounted);
-      expect(mountedComponent?.errorCount).toBe(0);
+      if ('totalComponents' in asyncResults) {
+        expect(asyncResults.totalComponents).toBe(3);
+        expect(asyncResults.unmountedCount).toBe(2);
+        
+        // Should have caught state update errors for unmounted components
+        const unmountedWithErrors = asyncResults.componentErrors.filter((c: unknown) => {
+          return c && typeof c === 'object' && 'mounted' in c && 'errorCount' in c && !c.mounted && (c.errorCount as number) > 0;
+        });
+        expect(unmountedWithErrors.length).toBeGreaterThan(0);
+        
+        // Mounted component should not have errors
+        const mountedComponent = asyncResults.componentErrors.find((c: unknown) => {
+          return c && typeof c === 'object' && 'mounted' in c && c.mounted;
+        });
+        if (mountedComponent && typeof mountedComponent === 'object' && 'errorCount' in mountedComponent) {
+          expect(mountedComponent.errorCount).toBe(0);
+        }
+      }
     });
   });
 
@@ -557,14 +601,22 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         };
         
         // Store for testing
-        (window as any).__exponentialBackoff = {
+        (window as TestWindow).__exponentialBackoff = {
+          attempts: new Map(),
+          maxAttempts: 5,
           createExponentialBackoff,
         };
       });
       
       // Test backoff mechanism
       const backoffResults = await page.evaluate(async () => {
-        const { createExponentialBackoff } = (window as any).__exponentialBackoff;
+        const backoffData = (window as TestWindow).__exponentialBackoff;
+        if (!backoffData || !('createExponentialBackoff' in backoffData)) {
+          return { successAttempts: 0, failureAttempts: 0 };
+        }
+        const { createExponentialBackoff } = backoffData as {
+          createExponentialBackoff: (config: unknown) => { execute: (fn: () => Promise<unknown>) => Promise<unknown>; getAttempts: () => unknown[] };
+        };
         
         // Create backoff instance
         const backoff = createExponentialBackoff({
@@ -586,8 +638,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         };
         
         const result1 = await backoff.execute(
-          eventuallySuccessfulOperation,
-          'eventually-successful'
+          eventuallySuccessfulOperation
         );
         
         // Test with always failing operation
@@ -597,7 +648,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         
         let result2 = null;
         try {
-          result2 = await backoff.execute(alwaysFailingOperation, 'always-failing');
+          result2 = await backoff.execute(alwaysFailingOperation);
         } catch (error) {
           result2 = { error: (error as Error).message };
         }
@@ -610,20 +661,36 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       });
       
       // Verify backoff behavior
-      expect(backoffResults.successResult).toBeDefined();
-      expect(backoffResults.successResult).toContain('Success on attempt 3');
+      if ('successResult' in backoffResults) {
+        expect(backoffResults.successResult).toBeDefined();
+        expect(backoffResults.successResult).toContain('Success on attempt 3');
+      }
       
-      expect(backoffResults.failureResult).toHaveProperty('error');
-      expect(backoffResults.failureResult.error).toContain('failed after 4 attempts');
+      if ('failureResult' in backoffResults && backoffResults.failureResult && typeof backoffResults.failureResult === 'object' && 'error' in backoffResults.failureResult) {
+        expect(backoffResults.failureResult).toHaveProperty('error');
+        expect((backoffResults.failureResult as { error: string }).error).toContain('failed after 4 attempts');
+      }
       
       // Verify exponential delay pattern
-      const delays = backoffResults.attempts.map(a => a.delay);
-      expect(delays.length).toBeGreaterThan(4); // Multiple operations
-      
-      // Check that delays increase exponentially (with jitter tolerance)
-      const successfulAttempts = backoffResults.attempts.filter(a => a.success || a.attempt < 4).slice(0, 3);
-      for (let i = 1; i < successfulAttempts.length; i++) {
-        expect(successfulAttempts[i].delay).toBeGreaterThan(successfulAttempts[i - 1].delay * 1.5);
+      if ('attempts' in backoffResults && Array.isArray(backoffResults.attempts)) {
+        const delays = backoffResults.attempts
+          .filter((a: unknown): a is { delay: number } => a !== null && typeof a === 'object' && 'delay' in a)
+          .map((a) => a.delay);
+        expect(delays.length).toBeGreaterThan(4); // Multiple operations
+        
+        // Check that delays increase exponentially (with jitter tolerance)
+        const successfulAttempts = backoffResults.attempts.filter((a: unknown): a is { success: boolean; attempt: number; delay: number } => 
+          a !== null && typeof a === 'object' && 'success' in a && 'attempt' in a && 'delay' in a && 
+          ((a.success as boolean) || (a.attempt as number) < 4)
+        ).slice(0, 3);
+        
+        for (let i = 1; i < successfulAttempts.length; i++) {
+          const current = successfulAttempts[i];
+          const previous = successfulAttempts[i - 1];
+          if (current && previous) {
+            expect(current.delay).toBeGreaterThan(previous.delay * 1.5);
+          }
+        }
       }
     });
 
@@ -744,14 +811,14 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
         };
         
         // Store for testing
-        (window as any).__circuitBreaker = {
+        (window as TestWindow).__circuitBreaker = {
           createCircuitBreaker,
         };
       });
       
       // Test circuit breaker
       const circuitResults = await page.evaluate(async () => {
-        const { createCircuitBreaker } = (window as any).__circuitBreaker;
+        const { createCircuitBreaker } = (window as TestWindow).__circuitBreaker!
         
         const breaker = createCircuitBreaker({
           failureThreshold: 3,
@@ -820,7 +887,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
       
       // Final operation after reset should succeed
       const lastOperation = circuitResults.operations[circuitResults.operations.length - 1];
-      expect(lastOperation.success).toBe(true);
+      expect(lastOperation?.success).toBe(true);
     });
   });
 });

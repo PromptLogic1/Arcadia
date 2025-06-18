@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import { mockApiResponse, waitForNetworkIdle } from '../helpers/test-utils';
 
 test.describe('Network Failure Handling', () => {
@@ -7,7 +7,7 @@ test.describe('Network Failure Handling', () => {
       await page.goto('/');
       
       // Mock slow API responses that timeout
-      await context.route('**/api/**', async route => {
+      await context.route('**/api/**', async (route: Route) => {
         // Simulate network timeout
         await new Promise(resolve => setTimeout(resolve, 10000));
         await route.abort('timedout');
@@ -291,7 +291,7 @@ test.describe('Network Failure Handling', () => {
   test.describe('Slow Network Conditions', () => {
     test('should show loading states for slow requests', async ({ page, context }) => {
       // Simulate slow network
-      await context.route('**/api/**', async route => {
+      await context.route('**/api/**', async (route: Route) => {
         await new Promise(resolve => setTimeout(resolve, 2000));
         await route.fulfill({
           status: 200,

@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { waitForNetworkIdle } from '../helpers/test-utils';
-import { TEST_ROUTES } from '../helpers/test-data';
 
 test.describe('Navigation - Header & Footer', () => {
   test.beforeEach(async ({ page }) => {

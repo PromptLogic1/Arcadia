@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { testResponsive, waitForNetworkIdle } from '../helpers/test-utils';
-import { TEST_VIEWPORTS } from '../helpers/test-data';
+import { waitForNetworkIdle } from '../helpers/test-utils';
 
 test.describe('Responsive Design - Mobile & Tablet', () => {
   const viewports = [
@@ -319,7 +318,7 @@ test.describe('Responsive Design - Mobile & Tablet', () => {
 });
 
 test.describe('Responsive Design - Cross-browser', () => {
-  test('should maintain layout consistency across browsers', async ({ page, browserName }) => {
+  test('should maintain layout consistency across browsers', async ({ page, browserName: _browserName }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');
     await waitForNetworkIdle(page);

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
   checkAccessibility, 
@@ -145,7 +145,7 @@ test.describe('Basic UI Smoke Tests', () => {
 
   test('loading states work correctly', async ({ page }) => {
     // Intercept API calls to simulate loading
-    await page.route('**/api/**', async route => {
+    await page.route('**/api/**', async (route: Route) => {
       await page.waitForTimeout(1000); // Simulate delay
       await route.continue();
     });

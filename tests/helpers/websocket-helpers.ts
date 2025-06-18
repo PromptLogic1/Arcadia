@@ -1,5 +1,5 @@
 import type { Page, WebSocketRoute } from '@playwright/test';
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../types/database.types';
 
 /**
  * Type-safe WebSocket event definitions
@@ -26,7 +26,7 @@ export type GameWebSocketEvent =
  */
 class MockWebSocketConnection {
   public readonly id: string;
-  private eventHandlers = new Map<string, Array<(data: any) => void>>();
+  private eventHandlers = new Map<string, Array<(data: GameWebSocketEvent) => void>>();
   private messageQueue: GameWebSocketEvent[] = [];
   private isConnected = true;
 
@@ -38,7 +38,8 @@ class MockWebSocketConnection {
   private setupHandlers() {
     this.ws.onMessage(message => {
       try {
-        const data = JSON.parse(message);
+        const messageStr = typeof message === 'string' ? message : message.toString();
+        const data = JSON.parse(messageStr);
         this.handleMessage(data);
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);
@@ -51,19 +52,19 @@ class MockWebSocketConnection {
     });
   }
 
-  private handleMessage(data: any) {
+  private handleMessage(data: GameWebSocketEvent) {
     const handlers = this.eventHandlers.get(data.type) || [];
     handlers.forEach(handler => handler(data));
   }
 
-  on(eventType: string, handler: (data: any) => void) {
+  on(eventType: string, handler: (data: GameWebSocketEvent) => void) {
     if (!this.eventHandlers.has(eventType)) {
       this.eventHandlers.set(eventType, []);
     }
-    this.eventHandlers.get(eventType)!.push(handler);
+    this.eventHandlers.get(eventType)?.push(handler);
   }
 
-  off(eventType: string, handler: (data: any) => void) {
+  off(eventType: string, handler: (data: GameWebSocketEvent) => void) {
     const handlers = this.eventHandlers.get(eventType) || [];
     const index = handlers.indexOf(handler);
     if (index > -1) {
@@ -80,14 +81,14 @@ class MockWebSocketConnection {
     this.ws.send(JSON.stringify(event));
   }
 
-  async waitForEvent(eventType: string, timeout = 5000): Promise<any> {
+  async waitForEvent(eventType: string, timeout = 5000): Promise<GameWebSocketEvent> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.off(eventType, handler);
         reject(new Error(`Timeout waiting for event: ${eventType}`));
       }, timeout);
 
-      const handler = (data: any) => {
+      const handler = (data: GameWebSocketEvent) => {
         clearTimeout(timer);
         this.off(eventType, handler);
         resolve(data);
@@ -108,8 +109,10 @@ class MockWebSocketConnection {
     
     // Send queued messages
     while (this.messageQueue.length > 0) {
-      const event = this.messageQueue.shift()!;
-      this.broadcast(event);
+      const event = this.messageQueue.shift();
+      if (event) {
+        this.broadcast(event);
+      }
     }
   }
 }
@@ -119,7 +122,7 @@ class MockWebSocketConnection {
  */
 export class WebSocketTestHelper {
   private connections = new Map<string, MockWebSocketConnection>();
-  private globalHandlers = new Map<string, Array<(data: any) => void>>();
+  private globalHandlers = new Map<string, Array<(data: GameWebSocketEvent) => void>>();
 
   /**
    * Set up WebSocket routes for testing
@@ -131,11 +134,12 @@ export class WebSocketTestHelper {
       // Extract session ID from connection or first message
       ws.onMessage(message => {
         try {
-          const data = JSON.parse(message);
+          const messageStr = typeof message === 'string' ? message : message.toString();
+          const data = JSON.parse(messageStr);
           if (data.type === 'subscribe' && data.sessionId) {
             this.connections.set(data.sessionId, connection);
           }
-        } catch (error) {
+        } catch {
           // Ignore parse errors
         }
       });
@@ -288,17 +292,17 @@ export class WebSocketTestHelper {
   /**
    * Register global event handler
    */
-  onGlobalEvent(eventType: string, handler: (data: any) => void) {
+  onGlobalEvent(eventType: string, handler: (data: GameWebSocketEvent) => void) {
     if (!this.globalHandlers.has(eventType)) {
       this.globalHandlers.set(eventType, []);
     }
-    this.globalHandlers.get(eventType)!.push(handler);
+    this.globalHandlers.get(eventType)?.push(handler);
   }
 
   /**
    * Wait for a specific event
    */
-  async waitForEvent(sessionId: string, eventType: string, timeout = 5000): Promise<any> {
+  async waitForEvent(sessionId: string, eventType: string, timeout = 5000): Promise<GameWebSocketEvent> {
     const conn = this.connections.get(sessionId);
     if (!conn) {
       throw new Error(`No connection found for session: ${sessionId}`);
@@ -310,7 +314,7 @@ export class WebSocketTestHelper {
   /**
    * Simulate network issues
    */
-  async simulateNetworkIssues(sessionId: string, duration: number = 2000) {
+  async simulateNetworkIssues(sessionId: string, duration = 2000) {
     const conn = this.connections.get(sessionId);
     if (!conn) return;
 

@@ -1,5 +1,5 @@
-import { Page, expect } from '@playwright/test';
-import type { Tables } from '@/types/database.types';
+import { type Page, expect } from '@playwright/test';
+import type { Tables } from '../../types/database.types';
 import { waitForNetworkIdle, waitForAnimations } from './test-utils';
 
 // ============================================================================
@@ -356,7 +356,7 @@ export async function testRealTimeUpdates(
   page2: Page,
   discussionId: string,
   action: 'comment' | 'upvote',
-  actionData?: any
+  actionData?: { content?: string }
 ): Promise<void> {
   // Both pages should be on the same discussion
   await page1.goto(`/community/discussions/${discussionId}`);
@@ -397,7 +397,7 @@ export async function testRealTimeUpdates(
 export async function testRateLimit(
   page: Page,
   action: 'create_discussion' | 'create_comment',
-  limit: number = 3
+  limit = 3
 ): Promise<void> {
   const actions = [];
   
@@ -489,7 +489,7 @@ export async function testCommunityAccessibility(page: Page): Promise<void> {
 export async function testCommentPagination(
   page: Page,
   discussionId: string,
-  commentCount: number = 50
+  commentCount = 50
 ): Promise<void> {
   // Create multiple comments
   for (let i = 0; i < commentCount; i++) {
@@ -502,7 +502,8 @@ export async function testCommentPagination(
   
   // Verify initial load (should show first batch)
   const comments = page.locator('[data-testid="comment"]');
-  await expect(comments).toHaveCountGreaterThan(0);
+  const initialCount = await comments.count();
+  expect(initialCount).toBeGreaterThan(0);
   
   // Test infinite scroll or pagination
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -511,7 +512,8 @@ export async function testCommentPagination(
   await waitForNetworkIdle(page);
   
   // Verify more comments loaded
-  await expect(comments).toHaveCountGreaterThan(20);
+  const finalCount = await comments.count();
+  expect(finalCount).toBeGreaterThan(20);
   
   // Test search performance within comments
   await page.getByPlaceholder('Search comments...').fill('test comment 25');

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForNetworkIdle, waitForImagesLoaded } from '../helpers/test-utils';
+import { waitForNetworkIdle } from '../helpers/test-utils';
 import { TIMEOUTS } from '../helpers/test-data';
 
 test.describe('Critical Features Smoke Tests', () => {
@@ -37,7 +37,7 @@ test.describe('Critical Features Smoke Tests', () => {
       
       if (await carousel.isVisible()) {
         // Check for navigation buttons
-        const prevButton = carousel.locator('button[aria-label*="previous"], button[aria-label*="prev"]').first();
+        // const prevButton = carousel.locator('button[aria-label*="previous"], button[aria-label*="prev"]').first();
         const nextButton = carousel.locator('button[aria-label*="next"]').first();
         
         // If navigation exists, test it
@@ -271,6 +271,7 @@ test.describe('Critical Features Smoke Tests', () => {
       
       // Try to navigate
       await page.getByRole('link', { name: /about/i }).first().click();
+      await page.waitForLoadState('networkidle').catch(() => {});
       
       // Should show offline message or cached content
       await page.waitForTimeout(1000);

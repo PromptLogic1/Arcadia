@@ -4,18 +4,15 @@
  */
 
 import { test, expect } from '@playwright/test';
-import type { ConversionFunnel, AnalyticsEvent } from './types';
+import type { ConversionFunnel } from './types';
 import { 
   AnalyticsTracker, 
-  testConversionFunnel, 
-  verifyMarketingTags,
-  testUTMTracking,
   CONVERSION_EVENTS
 } from './fixtures/analytics';
-import { CAMPAIGN_ROUTES, extractUTMParams, buildUrlWithParams } from './types/routes';
+import { buildUrlWithParams } from './types/routes';
 
 // Enhanced conversion funnels with realistic user journeys
-const ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
+const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
   name: 'enhanced_signup',
   stages: [
     {
@@ -68,7 +65,7 @@ const ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
   expectedDuration: 180000, // 3 minutes
 };
 
-const DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
+const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
   name: 'demo_engagement',
   stages: [
     {
@@ -102,7 +99,7 @@ const DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
   expectedDuration: 300000, // 5 minutes
 };
 
-const CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
+const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
   name: 'content_engagement',
   stages: [
     {
@@ -193,7 +190,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
     }
     
     const totalTime = Date.now() - startTime;
-    console.log(`Total funnel interaction time: ${totalTime}ms`);
+    // Performance: Total funnel interaction time = totalTimems
     
     // Verify overall funnel metrics
     const allEvents = await analytics.getEvents();
@@ -255,7 +252,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
   });
 
   test('should validate comprehensive UTM parameter tracking @analytics @utm @marketing', async ({ page }) => {
-    const utmParams = {
+    const utmParams: Record<string, string> = {
       utm_source: 'google',
       utm_medium: 'cpc',
       utm_campaign: 'brand_awareness_2024',
@@ -273,16 +270,16 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
     expect(pageViewEvent).toBeTruthy();
     
     // Check if UTM parameters are included in the event metadata
-    const metadata = pageViewEvent?.metadata as any;
+    const metadata = pageViewEvent?.metadata as Record<string, unknown>;
     if (metadata) {
       // UTM parameters might be in metadata or in the page_location
       const hasUTMInMetadata = Object.keys(utmParams).some(key => 
         metadata[key] === utmParams[key as keyof typeof utmParams]
       );
       
-      const hasUTMInLocation = metadata.page_location && 
+      const hasUTMInLocation = typeof metadata.page_location === 'string' && 
         Object.entries(utmParams).every(([key, value]) => 
-          metadata.page_location.includes(`${key}=${value}`)
+          (metadata.page_location as string).includes(`${key}=${value}`)
         );
 
       expect(hasUTMInMetadata || hasUTMInLocation, 
@@ -332,11 +329,11 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
 
   test('should track scroll depth and engagement metrics @analytics @engagement', async ({ page }) => {
     const scrollDepths = [25, 50, 75, 100];
-    let trackedDepths = [];
+    const trackedDepths: number[] = [];
 
     for (const depth of scrollDepths) {
       // Scroll to specific depth
-      await page.evaluate((d) => {
+      await page.evaluate((d: number) => {
         const maxScroll = Math.max(
           document.body.scrollHeight - window.innerHeight,
           document.documentElement.scrollHeight - window.innerHeight
@@ -403,7 +400,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       { path: '/', expectedTitle: 'home' },
     ];
 
-    const journeyEvents = [];
+    const journeyEvents: Array<{ page: string; timestamp: number; sessionId: string }> = [];
 
     for (const step of userJourney) {
       await page.goto(step.path);
@@ -413,7 +410,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       if (pageView) {
         journeyEvents.push({
           page: step.path,
-          timestamp: pageView.timestamp,
+          timestamp: pageView.timestamp || Date.now(),
           sessionId: pageView.sessionId || sessionId
         });
       }
@@ -441,7 +438,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
     try {
       await page.goto(ecommercePage);
       await page.waitForLoadState('networkidle');
-    } catch (error) {
+    } catch (_error) {
       console.log('Pricing page not available, testing on current page');
       await page.goto('/');
       await page.waitForLoadState('networkidle');
@@ -455,8 +452,10 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
     if (pricingElements.length > 0) {
       // Click on a pricing plan
       const firstPlan = pricingElements[0];
-      await firstPlan.scrollIntoViewIfNeeded();
-      await firstPlan.click();
+      if (firstPlan) {
+        await firstPlan.scrollIntoViewIfNeeded();
+        await firstPlan.click();
+      }
       
       // Look for e-commerce events
       const events = await analytics.getEvents();
@@ -499,12 +498,15 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       // Test general conversion events
       const ctaButtons = await page.locator('button, a[role="button"]').all();
       if (ctaButtons.length > 0) {
-        await ctaButtons[0].click();
-        await page.waitForTimeout(1000);
-        
-        const conversionEvent = await analytics.waitForEvent('cta_click', 3000);
-        if (conversionEvent) {
-          expect(conversionEvent.category).toBe('engagement');
+        const firstButton = ctaButtons[0];
+        if (firstButton) {
+          await firstButton.click();
+          await page.waitForTimeout(1000);
+          
+          const conversionEvent = await analytics.waitForEvent('cta_click', 3000);
+          if (conversionEvent) {
+            expect(conversionEvent.category).toBe('engagement');
+          }
         }
       }
     }
@@ -546,7 +548,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       
       // Navigate with UTM parameters
       const url = Object.keys(channel.utm).length > 0 
-        ? buildUrlWithParams('/', channel.utm)
+        ? buildUrlWithParams('/', channel.utm as Record<string, string>)
         : '/';
         
       await page.goto(url);
@@ -557,7 +559,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       expect(pageView, `Page view should be tracked for ${channel.name}`).toBeTruthy();
       
       if (pageView?.metadata) {
-        const metadata = pageView.metadata as any;
+        const metadata = pageView.metadata as Record<string, unknown>;
         
         // Log attribution data
         console.log(`${channel.name} attribution:`, {
@@ -571,7 +573,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
         if (Object.keys(channel.utm).length > 0) {
           const hasUTMTracking = Object.entries(channel.utm).some(([key, value]) =>
             metadata[key] === value || 
-            (metadata.page_location && metadata.page_location.includes(`${key}=${value}`))
+            (typeof metadata.page_location === 'string' && metadata.page_location.includes(`${key}=${value}`))
           );
           
           expect(hasUTMTracking, 
@@ -632,9 +634,11 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
       allEventsHaveTimestamp: allEvents.every(e => e.timestamp && e.timestamp > 0),
       allEventsHaveCategory: allEvents.every(e => e.category && e.category.length > 0),
       allEventsHaveAction: allEvents.every(e => e.action && e.action.length > 0),
-      eventTimestampsInOrder: allEvents.every((e, i) => 
-        i === 0 || e.timestamp >= allEvents[i - 1].timestamp
-      ),
+      eventTimestampsInOrder: allEvents.every((e, i) => {
+        if (i === 0) return true;
+        const prevEvent = allEvents[i - 1];
+        return e.timestamp !== undefined && prevEvent?.timestamp !== undefined && e.timestamp >= prevEvent.timestamp;
+      }),
     };
 
     console.log('Validation Results:', validationResults);

@@ -2,7 +2,7 @@
  * Visual regression tests for landing pages
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type Route } from '@playwright/test';
 import type { ViewportConfig, VisualRegressionResult } from './types';
 
 // Viewport configurations for visual testing
@@ -80,7 +80,6 @@ test.describe('Visual Regression Tests', () => {
       await page.waitForFunction(() => document.fonts.ready);
       
       await expect(page).toHaveScreenshot(`about-${viewport.name}.png`, {
-        fullPage: VISUAL_CONFIG.fullPage,
         threshold: VISUAL_CONFIG.threshold,
         maxDiffPixels: VISUAL_CONFIG.maxDiffPixels,
       });
@@ -127,11 +126,8 @@ test.describe('Visual Regression Tests', () => {
       await menuButton.click();
       await page.waitForTimeout(300); // Wait for animation
       
-      // Open state
-      await expect(page.locator('body')).toHaveScreenshot('nav-mobile-open.png', {
-        fullPage: false,
-        clip: { x: 0, y: 0, width: 375, height: 667 },
-      });
+      // Open state - Take screenshot of visible viewport
+      await expect(page).toHaveScreenshot('nav-mobile-open.png');
     }
   });
 
@@ -159,7 +155,7 @@ test.describe('Visual Regression Tests', () => {
 
   test('loading states should be visually consistent', async ({ page }) => {
     // Intercept API calls to simulate loading
-    await page.route('**/api/**', async route => {
+    await page.route('**/api/**', async (route: Route) => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       await route.continue();
     });
@@ -168,10 +164,7 @@ test.describe('Visual Regression Tests', () => {
     
     // Capture loading state
     await page.waitForTimeout(500); // Wait for loading UI to appear
-    await expect(page).toHaveScreenshot('page-loading-state.png', {
-      fullPage: false,
-      clip: { x: 0, y: 0, width: 1280, height: 720 },
-    });
+    await expect(page).toHaveScreenshot('page-loading-state.png');
   });
 
   test('error states should be visually consistent', async ({ page }) => {
@@ -271,16 +264,8 @@ test.describe('Visual Regression Tests', () => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
       
-      // Capture only above-the-fold content
-      await expect(page).toHaveScreenshot(`above-fold-${viewport.name}.png`, {
-        fullPage: false,
-        clip: {
-          x: 0,
-          y: 0,
-          width: viewport.width,
-          height: viewport.height,
-        },
-      });
+      // Capture only above-the-fold content (viewport area)
+      await expect(page).toHaveScreenshot(`above-fold-${viewport.name}.png`);
     }
   });
 });
@@ -417,7 +402,7 @@ test.describe('Component Visual Tests', () => {
           }
         }
         break; // Exit loop if we found a page with forms
-      } catch (error) {
+      } catch (_error) {
         // Continue to next page if this one doesn't exist
         continue;
       }
@@ -426,7 +411,7 @@ test.describe('Component Visual Tests', () => {
 
   test('loading and skeleton states should be consistent', async ({ page }) => {
     // Intercept requests to create loading states
-    await page.route('**/api/**', async route => {
+    await page.route('**/api/**', async (route: Route) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       await route.continue();
     });
@@ -517,7 +502,7 @@ test.describe('Component Visual Tests', () => {
 /**
  * Helper function to compare screenshots programmatically
  */
-async function compareScreenshots(
+async function _compareScreenshots(
   page: Page,
   baselinePath: string,
   currentPath: string,

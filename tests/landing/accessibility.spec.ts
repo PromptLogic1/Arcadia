@@ -3,7 +3,7 @@
  * and comprehensive WCAG 2.1 AA compliance testing
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type Locator } from '@playwright/test';
 import type { AccessibilityResult, AccessibilityConfig } from './types';
 
 // Enhanced accessibility configuration
@@ -26,7 +26,7 @@ const ACCESSIBILITY_CONFIG: AccessibilityConfig = {
 };
 
 // Install axe-core for accessibility testing
-async function injectAxe(page: any) {
+async function injectAxe(page: Page) {
   await page.addScriptTag({
     url: 'https://unpkg.com/axe-core@4.8.2/axe.min.js'
   });
@@ -34,73 +34,107 @@ async function injectAxe(page: any) {
 
 // Run axe accessibility scan
 async function runAxeAccessibilityScan(
-  page: any,
+  page: Page,
   config: AccessibilityConfig = ACCESSIBILITY_CONFIG
 ): Promise<AccessibilityResult> {
   await injectAxe(page);
   
-  const results = await page.evaluate((config) => {
+  const results = await page.evaluate((config: AccessibilityConfig) => {
     return new Promise((resolve) => {
-      // @ts-ignore - axe is injected globally
+      // @ts-expect-error - axe is injected globally
       window.axe.run(document, {
         tags: config.tags,
         rules: Object.fromEntries(
           Object.entries(config.rules).map(([rule, settings]) => [rule, settings])
         ),
-      }, (err: any, results: any) => {
+      }, (err: Error | null, results: unknown) => {
         if (err) throw err;
         resolve(results);
       });
     });
   }, config);
 
-  const axeResults = results as any;
+  const axeResults = results as {
+    violations: Array<{
+      id: string;
+      impact: string;
+      description: string;
+      help: string;
+      helpUrl: string;
+      tags: string[];
+      nodes: Array<{
+        html: string;
+        target: string[];
+        failureSummary: string;
+        element?: unknown;
+      }>;
+    }>;
+    passes: Array<{
+      id: string;
+      impact: string;
+      description: string;
+      help: string;
+      helpUrl: string;
+      tags: string[];
+      nodes: Array<{
+        html: string;
+        target: string[];
+      }>;
+    }>;
+    incomplete?: unknown[];
+    testEnvironment?: unknown;
+    toolOptions?: unknown;
+    testEngine?: unknown;
+    testRunner?: unknown;
+    url?: string;
+    timestamp?: string;
+  };
   
   // Transform axe results to our format
   const accessibilityResult: AccessibilityResult = {
-    violations: axeResults.violations.map((violation: any) => ({
+    violations: axeResults.violations.map((violation) => ({
       id: violation.id,
-      impact: violation.impact,
+      impact: violation.impact as 'critical' | 'serious' | 'moderate' | 'minor',
       description: violation.description,
       help: violation.help,
       helpUrl: violation.helpUrl,
       tags: violation.tags,
-      nodes: violation.nodes.map((node: any) => ({
+      nodes: violation.nodes.map((node) => ({
         html: node.html,
         target: node.target,
         failureSummary: node.failureSummary,
-        element: node.element,
+        element: String(node.element || ''),
       })),
     })),
-    passes: axeResults.passes.map((pass: any) => ({
+    passes: axeResults.passes.map((pass) => ({
       id: pass.id,
       description: pass.description,
-      nodes: pass.nodes.map((node: any) => ({
+      nodes: pass.nodes.map((node) => ({
         html: node.html,
         target: node.target,
       })),
     })),
-    incomplete: axeResults.incomplete.map((incomplete: any) => ({
+    incomplete: ((axeResults.incomplete || []) as Array<{ id: string; description: string; nodes: Array<{ html: string; target: string[] }> }>).map((incomplete) => ({
       id: incomplete.id,
       description: incomplete.description,
-      nodes: incomplete.nodes.map((node: any) => ({
+      nodes: incomplete.nodes.map((node) => ({
         html: node.html,
         target: node.target,
       })),
     })),
     wcagLevel: config.wcagLevel,
-    testEngine: axeResults.testEngine,
-    testRunner: axeResults.testRunner,
-    url: axeResults.url,
-    timestamp: axeResults.timestamp,
+    testEngine: axeResults.testEngine as { name: string; version: string },
+    testRunner: axeResults.testRunner as { name: string; version: string },
+    url: axeResults.url || '',
+    timestamp: axeResults.timestamp || new Date().toISOString(),
     summary: {
       totalViolations: axeResults.violations.length,
-      criticalViolations: axeResults.violations.filter((v: any) => v.impact === 'critical').length,
-      seriousViolations: axeResults.violations.filter((v: any) => v.impact === 'serious').length,
-      moderateViolations: axeResults.violations.filter((v: any) => v.impact === 'moderate').length,
-      minorViolations: axeResults.violations.filter((v: any) => v.impact === 'minor').length,
+      criticalViolations: axeResults.violations.filter((v) => v.impact === 'critical').length,
+      seriousViolations: axeResults.violations.filter((v) => v.impact === 'serious').length,
+      moderateViolations: axeResults.violations.filter((v) => v.impact === 'moderate').length,
+      minorViolations: axeResults.violations.filter((v) => v.impact === 'minor').length,
       passedRules: axeResults.passes.length,
-      incompleteRules: axeResults.incomplete.length,
+      incompleteRules: (axeResults as { incomplete?: unknown[] }).incomplete?.length || 0,
     },
   };
 
@@ -166,7 +200,7 @@ test.describe('Enhanced Accessibility Testing', () => {
       '[role="link"]',
     ];
 
-    let focusableElements = [];
+    const focusableElements: Locator[] = [];
     for (const selector of interactiveSelectors) {
       const elements = await page.locator(selector).all();
       for (const element of elements) {
@@ -206,6 +240,7 @@ test.describe('Enhanced Accessibility Testing', () => {
     
     for (let i = 0; i < Math.min(focusableElements.length, 5); i++) {
       const element = focusableElements[i];
+      if (!element) continue;
       
       if (await element.isVisible()) {
         // Focus the element
@@ -266,8 +301,10 @@ test.describe('Enhanced Accessibility Testing', () => {
       const currentLevel = headingLevels[i];
       const previousLevel = headingLevels[i - 1];
       
-      // Current level should not be more than 1 level deeper than previous
-      expect(currentLevel - previousLevel).toBeLessThanOrEqual(1);
+      if (currentLevel !== undefined && previousLevel !== undefined) {
+        // Current level should not be more than 1 level deeper than previous
+        expect(currentLevel - previousLevel).toBeLessThanOrEqual(1);
+      }
     }
   });
 
@@ -353,14 +390,14 @@ test.describe('Enhanced Accessibility Testing', () => {
           hasForm = true;
           break;
         }
-      } catch (error) {
+      } catch (_error) {
         // Page might not exist, continue to next
         continue;
       }
     }
 
     if (!hasForm) {
-      test.skip('No forms found to test');
+      console.log('No forms found to test');
       return;
     }
 

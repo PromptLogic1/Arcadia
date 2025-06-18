@@ -4,6 +4,7 @@
 
 import type { Page } from '@playwright/test';
 import type { AnalyticsEvent, ConversionFunnel, MarketingTagType } from '../types';
+import type { TestWindow } from '../../types/test-types';
 
 /**
  * Analytics event tracker for testing
@@ -24,7 +25,7 @@ export class AnalyticsTracker {
     // Intercept analytics calls
     await this.page.addInitScript(() => {
       // Create a global array to store events
-      (window as any).__analyticsEvents = [];
+      (window as TestWindow).__analyticsEvents = [];
 
       // Override common analytics methods
       const analyticsProviders = ['gtag', 'ga', 'analytics', '_fbq', 'dataLayer'];
@@ -32,10 +33,10 @@ export class AnalyticsTracker {
       analyticsProviders.forEach(provider => {
         if (provider === 'dataLayer') {
           // Google Tag Manager
-          (window as any).dataLayer = new Proxy([], {
+          (window as TestWindow).dataLayer = new Proxy([], {
             set(target, property, value) {
               if (property === 'length') return true;
-              (window as any).__analyticsEvents.push({
+              (window as TestWindow).__analyticsEvents?.push({
                 provider: 'gtm',
                 data: value,
                 timestamp: Date.now(),
@@ -45,13 +46,16 @@ export class AnalyticsTracker {
           });
         } else {
           // Other providers
-          (window as any)[provider] = (...args: any[]) => {
-            (window as any).__analyticsEvents.push({
+          const win = window as TestWindow;
+          const func = (...args: unknown[]) => {
+            win.__analyticsEvents?.push({
               provider,
+              data: args[0],
               args,
               timestamp: Date.now(),
             });
           };
+          (win as unknown as Record<string, unknown>)[provider] = func;
         }
       });
     });
@@ -62,45 +66,52 @@ export class AnalyticsTracker {
    */
   async getEvents(): Promise<AnalyticsEvent[]> {
     const rawEvents = await this.page.evaluate(() => {
-      return (window as any).__analyticsEvents || [];
+      return (window as TestWindow).__analyticsEvents || [];
     });
 
     // Parse and normalize events
-    this.events = rawEvents.map((event: any) => this.parseEvent(event));
+    this.events = rawEvents.map((event: unknown) => this.parseEvent(event));
     return this.events;
   }
 
   /**
    * Parse raw event data into structured format
    */
-  private parseEvent(rawEvent: any): AnalyticsEvent {
-    const { provider, data, args, timestamp } = rawEvent;
+  private parseEvent(rawEvent: unknown): AnalyticsEvent {
+    if (!rawEvent || typeof rawEvent !== 'object') {
+      throw new Error('Invalid event data');
+    }
+    
+    const event = rawEvent as { provider?: string; data?: unknown; args?: unknown[]; timestamp?: number };
+    const { provider = '', data, args, timestamp = Date.now() } = event;
 
     // Handle different provider formats
     if (provider === 'gtag' && args) {
       const [command, eventName, parameters] = args;
       if (command === 'event') {
+        const params = parameters && typeof parameters === 'object' ? parameters as Record<string, unknown> : {};
         return {
-          eventName,
-          category: parameters?.event_category || 'engagement',
-          action: parameters?.event_action || eventName,
-          label: parameters?.event_label,
-          value: parameters?.value,
+          eventName: eventName as string,
+          category: (params.event_category as string) || 'engagement',
+          action: (params.event_action as string) || (eventName as string),
+          label: params.event_label as string | undefined,
+          value: params.value as number | undefined,
           timestamp,
-          metadata: parameters,
+          metadata: params,
         };
       }
     }
 
-    if (provider === 'gtm' && data) {
+    if (provider === 'gtm' && data && typeof data === 'object') {
+      const gtmData = data as Record<string, unknown>;
       return {
-        eventName: data.event || 'unknown',
-        category: data.eventCategory || 'general',
-        action: data.eventAction || data.event,
-        label: data.eventLabel,
-        value: data.eventValue,
+        eventName: (gtmData.event as string) || 'unknown',
+        category: (gtmData.eventCategory as string) || 'general',
+        action: (gtmData.eventAction as string) || (gtmData.event as string) || 'unknown',
+        label: gtmData.eventLabel as string | undefined,
+        value: gtmData.eventValue as number | undefined,
         timestamp,
-        metadata: data,
+        metadata: gtmData as Record<string, unknown>,
       };
     }
 
@@ -148,7 +159,7 @@ export class AnalyticsTracker {
 
     if (expectedProperties) {
       Object.entries(expectedProperties).forEach(([key, value]) => {
-        const actualValue = (event as any)[key];
+        const actualValue = (event as unknown as Record<string, unknown>)[key];
         if (actualValue !== value) {
           throw new Error(
             `Event "${eventName}" property "${key}" mismatch. Expected: ${value}, Actual: ${actualValue}`
@@ -164,7 +175,7 @@ export class AnalyticsTracker {
   async clearEvents(): Promise<void> {
     this.events = [];
     await this.page.evaluate(() => {
-      (window as any).__analyticsEvents = [];
+      (window as TestWindow).__analyticsEvents = [];
     });
   }
 
@@ -274,51 +285,52 @@ async function verifyMarketingTag(
     switch (tag) {
       case 'google-analytics': {
         const hasGA = await page.evaluate(() => {
-          return typeof (window as any).gtag === 'function' ||
-                 typeof (window as any).ga === 'function';
+          return typeof (window as TestWindow).gtag === 'function' ||
+                 typeof (window as TestWindow).ga === 'function';
         });
         return { tag, loaded: hasGA };
       }
 
       case 'google-tag-manager': {
         const hasGTM = await page.evaluate(() => {
-          return Array.isArray((window as any).dataLayer);
+          return Array.isArray((window as TestWindow).dataLayer);
         });
         return { tag, loaded: hasGTM };
       }
 
       case 'facebook-pixel': {
         const hasFBPixel = await page.evaluate(() => {
-          return typeof (window as any).fbq === 'function';
+          return typeof (window as TestWindow).fbq === 'function';
         });
         return { tag, loaded: hasFBPixel };
       }
 
       case 'linkedin-insight': {
         const hasLinkedIn = await page.evaluate(() => {
-          return typeof (window as any)._linkedin_data_partner_ids !== 'undefined';
+          return typeof (window as TestWindow)._linkedin_data_partner_ids !== 'undefined';
         });
         return { tag, loaded: hasLinkedIn };
       }
 
       case 'twitter-pixel': {
         const hasTwitter = await page.evaluate(() => {
-          return typeof (window as any).twq === 'function';
+          return typeof (window as TestWindow).twq === 'function';
         });
         return { tag, loaded: hasTwitter };
       }
 
       case 'hotjar': {
         const hasHotjar = await page.evaluate(() => {
-          return typeof (window as any).hj === 'function';
+          return typeof (window as TestWindow).hj === 'function';
         });
         return { tag, loaded: hasHotjar };
       }
 
       case 'segment': {
         const hasSegment = await page.evaluate(() => {
-          return typeof (window as any).analytics === 'object' &&
-                 typeof (window as any).analytics.track === 'function';
+          return typeof (window as TestWindow).analytics === 'object' &&
+                 (window as TestWindow).analytics !== null &&
+                 typeof (window as TestWindow).analytics?.track === 'function';
         });
         return { tag, loaded: hasSegment };
       }
@@ -355,10 +367,13 @@ export async function testUTMTracking(
   if (!pageViewEvent) return false;
 
   // Verify UTM parameters are tracked
-  const metadata = pageViewEvent.metadata as any;
+  const metadata = pageViewEvent.metadata;
+  if (!metadata || typeof metadata !== 'object') return false;
+  
+  const metadataObj = metadata as Record<string, unknown>;
   return Object.entries(utmParams).every(([key, value]) => 
-    metadata[key] === value || 
-    metadata.page_location?.includes(`${key}=${value}`)
+    metadataObj[key] === value || 
+    (typeof metadataObj.page_location === 'string' && metadataObj.page_location.includes(`${key}=${value}`))
   );
 }
 

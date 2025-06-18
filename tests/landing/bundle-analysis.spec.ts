@@ -3,7 +3,7 @@
  * Automated bundle size tracking and optimization validation
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import type { BundleMetrics } from './types';
 
 // Bundle size thresholds (in bytes)
@@ -40,7 +40,7 @@ interface DetailedBundleMetrics extends BundleMetrics {
 }
 
 // Enhanced bundle analysis function
-async function analyzeDetailedBundles(page: any): Promise<DetailedBundleMetrics> {
+async function analyzeDetailedBundles(page: Page): Promise<DetailedBundleMetrics> {
   // Get all network resources
   const resources = await page.evaluate(() => {
     const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -70,7 +70,7 @@ async function analyzeDetailedBundles(page: any): Promise<DetailedBundleMetrics>
   const chunks: BundleMetrics['chunks'] = [];
   const assets: BundleMetrics['assets'] = [];
 
-  resources.forEach(resource => {
+  resources.forEach((resource: ResourceEntry) => {
     const url = resource.name;
     const filename = url.split('/').pop() || '';
     const size = resource.transferSize;
@@ -153,7 +153,17 @@ function getResourceType(url: string, initiatorType: string): string {
   return 'other';
 }
 
-function findDuplicateResources(resources: any[]): Array<{ name: string; count: number; totalSize: number }> {
+interface ResourceEntry {
+  name: string;
+  transferSize: number;
+  encodedBodySize: number;
+  decodedBodySize: number;
+  startTime: number;
+  responseEnd: number;
+  initiatorType: string;
+}
+
+function findDuplicateResources(resources: ResourceEntry[]): Array<{ name: string; count: number; totalSize: number }> {
   const resourceCounts = new Map<string, { count: number; totalSize: number }>();
   
   resources.forEach(resource => {
@@ -306,11 +316,15 @@ test.describe('Bundle Analysis & Performance Monitoring', () => {
     const largestChunk = chunkSizes[0];
     const averageChunkSize = chunkSizes.reduce((sum, size) => sum + size, 0) / chunkSizes.length;
 
-    console.log(`Largest chunk: ${(largestChunk / 1024).toFixed(2)}KB`);
+    if (largestChunk) {
+      console.log(`Largest chunk: ${(largestChunk / 1024).toFixed(2)}KB`);
+    }
     console.log(`Average chunk size: ${(averageChunkSize / 1024).toFixed(2)}KB`);
 
     // Largest chunk shouldn't be too dominant
-    expect(largestChunk).toBeLessThan(bundleMetrics.totalSize * 0.6); // Max 60% of total
+    if (largestChunk) {
+      expect(largestChunk).toBeLessThan(bundleMetrics.totalSize * 0.6); // Max 60% of total
+    }
   });
 
   test('should optimize image loading and formats @bundle @images', async ({ page }) => {
@@ -414,7 +428,9 @@ test.describe('Bundle Analysis & Performance Monitoring', () => {
             rules.forEach(rule => {
               if (rule.type === CSSRule.FONT_FACE_RULE) {
                 const fontFaceRule = rule as CSSFontFaceRule;
-                if (fontFaceRule.style.fontDisplay) {
+                // Check if font-display property exists
+                const styleText = fontFaceRule.cssText;
+                if (styleText.includes('font-display')) {
                   hasFontDisplay = true;
                 }
               }

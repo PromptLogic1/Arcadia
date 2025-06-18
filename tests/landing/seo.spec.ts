@@ -3,10 +3,9 @@
  * and advanced meta tag checking following 2024 best practices
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import type { 
   StructuredDataSchema, 
-  SocialMediaPlatform,
   SEOValidation 
 } from './types';
 
@@ -54,9 +53,9 @@ const SEO_CONFIG: SEOValidation = {
         required: ['@context', '@type', 'name', 'url'],
         optional: ['logo', 'description', 'contactPoint', 'sameAs', 'foundingDate'],
         validation: {
-          '@context': (value: any) => value === 'https://schema.org',
-          name: (value: any) => typeof value === 'string' && value.includes('Arcadia'),
-          url: (value: any) => typeof value === 'string' && /^https?:\/\//.test(value),
+          '@context': (value: unknown) => value === 'https://schema.org',
+          name: (value: unknown) => typeof value === 'string' && (value as string).includes('Arcadia'),
+          url: (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value as string),
         },
       },
       {
@@ -64,9 +63,9 @@ const SEO_CONFIG: SEOValidation = {
         required: ['@context', '@type', 'name', 'url'],
         optional: ['potentialAction', 'description', 'inLanguage'],
         validation: {
-          '@context': (value: any) => value === 'https://schema.org',
-          name: (value: any) => typeof value === 'string' && value.includes('Arcadia'),
-          url: (value: any) => typeof value === 'string' && /^https?:\/\//.test(value),
+          '@context': (value: unknown) => value === 'https://schema.org',
+          name: (value: unknown) => typeof value === 'string' && (value as string).includes('Arcadia'),
+          url: (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value as string),
         },
       },
     ],
@@ -85,12 +84,12 @@ const STRUCTURED_DATA_SCHEMAS: Record<string, StructuredDataSchema> = {
     required: ['@context', '@type', 'name', 'url'],
     optional: ['logo', 'description', 'contactPoint', 'sameAs', 'foundingDate', 'address'],
     validation: {
-      '@context': (value: any) => value === 'https://schema.org',
-      '@type': (value: any) => value === 'Organization',
-      name: (value: any) => typeof value === 'string' && value.length > 0,
-      url: (value: any) => typeof value === 'string' && /^https?:\/\//.test(value),
-      logo: (value: any) => !value || (typeof value === 'string' && /\.(jpg|jpeg|png|svg|webp)(\?|$)/i.test(value)),
-      sameAs: (value: any) => !value || (Array.isArray(value) && value.every(url => /^https?:\/\//.test(url))),
+      '@context': (value: unknown) => value === 'https://schema.org',
+      '@type': (value: unknown) => value === 'Organization',
+      name: (value: unknown) => typeof value === 'string' && (value as string).length > 0,
+      url: (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value as string),
+      logo: (value: unknown) => !value || (typeof value === 'string' && /\.(jpg|jpeg|png|svg|webp)(\?|$)/i.test(value as string)),
+      sameAs: (value: unknown) => !value || (Array.isArray(value) && value.every((url: unknown) => typeof url === 'string' && /^https?:\/\//.test(url))),
     },
   },
   WebSite: {
@@ -98,11 +97,15 @@ const STRUCTURED_DATA_SCHEMAS: Record<string, StructuredDataSchema> = {
     required: ['@context', '@type', 'name', 'url'],
     optional: ['potentialAction', 'description', 'inLanguage', 'publisher'],
     validation: {
-      '@context': (value: any) => value === 'https://schema.org',
-      '@type': (value: any) => value === 'WebSite',
-      name: (value: any) => typeof value === 'string' && value.length > 0,
-      url: (value: any) => typeof value === 'string' && /^https?:\/\//.test(value),
-      potentialAction: (value: any) => !value || (value['@type'] === 'SearchAction' && value.target && value['query-input']),
+      '@context': (value: unknown) => value === 'https://schema.org',
+      '@type': (value: unknown) => value === 'WebSite',
+      name: (value: unknown) => typeof value === 'string' && (value as string).length > 0,
+      url: (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value as string),
+      potentialAction: (value: unknown): boolean => {
+        if (!value || typeof value !== 'object') return true;
+        const action = value as Record<string, unknown>;
+        return action['@type'] === 'SearchAction' && action.target !== undefined && action['query-input'] !== undefined;
+      },
     },
   },
   BreadcrumbList: {
@@ -110,9 +113,9 @@ const STRUCTURED_DATA_SCHEMAS: Record<string, StructuredDataSchema> = {
     required: ['@context', '@type', 'itemListElement'],
     optional: ['numberOfItems'],
     validation: {
-      '@context': (value: any) => value === 'https://schema.org',
-      '@type': (value: any) => value === 'BreadcrumbList',
-      itemListElement: (value: any) => Array.isArray(value) && value.length > 0,
+      '@context': (value: unknown) => value === 'https://schema.org',
+      '@type': (value: unknown) => value === 'BreadcrumbList',
+      itemListElement: (value: unknown) => Array.isArray(value) && value.length > 0,
     },
   },
   WebPage: {
@@ -120,10 +123,10 @@ const STRUCTURED_DATA_SCHEMAS: Record<string, StructuredDataSchema> = {
     required: ['@context', '@type', 'name', 'url'],
     optional: ['description', 'inLanguage', 'isPartOf', 'primaryImageOfPage', 'breadcrumb'],
     validation: {
-      '@context': (value: any) => value === 'https://schema.org',
-      '@type': (value: any) => value === 'WebPage',
-      name: (value: any) => typeof value === 'string' && value.length > 0,
-      url: (value: any) => typeof value === 'string' && /^https?:\/\//.test(value),
+      '@context': (value: unknown) => value === 'https://schema.org',
+      '@type': (value: unknown) => value === 'WebPage',
+      name: (value: unknown) => typeof value === 'string' && (value as string).length > 0,
+      url: (value: unknown) => typeof value === 'string' && /^https?:\/\//.test(value as string),
     },
   },
 };
@@ -246,13 +249,13 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
     expect(jsonLDScripts.length).toBeGreaterThan(0);
 
     const foundSchemas = new Set<string>();
-    const allStructuredData: any[] = [];
+    const allStructuredData: unknown[] = [];
 
     for (const script of jsonLDScripts) {
       const content = await script.textContent();
       expect(content).toBeTruthy();
 
-      let parsedData: any;
+      let parsedData: unknown;
       expect(() => {
         parsedData = JSON.parse(content!);
       }, 'JSON-LD should be valid JSON').not.toThrow();
@@ -286,7 +289,7 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
   });
 
   test('should have valid Organization schema @seo @structured-data', async ({ page }) => {
-    const organizationData = await getStructuredDataByType(page, 'Organization');
+    const organizationData = await getStructuredDataByType(page, 'Organization') as Record<string, unknown> | null;
     expect(organizationData, 'Organization schema should be present').toBeTruthy();
 
     if (organizationData) {
@@ -301,20 +304,21 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
       
       if (organizationData.sameAs) {
         expect(Array.isArray(organizationData.sameAs)).toBe(true);
-        organizationData.sameAs.forEach((url: string) => {
+        (organizationData.sameAs as string[]).forEach((url: string) => {
           expect(url).toMatch(/^https?:\/\//);
         });
       }
       
       if (organizationData.contactPoint) {
-        expect(organizationData.contactPoint['@type']).toBe('ContactPoint');
-        expect(organizationData.contactPoint.contactType).toBeTruthy();
+        const contactPoint = organizationData.contactPoint as Record<string, unknown>;
+        expect(contactPoint['@type']).toBe('ContactPoint');
+        expect(contactPoint.contactType).toBeTruthy();
       }
     }
   });
 
   test('should have valid WebSite schema with search action @seo @structured-data', async ({ page }) => {
-    const websiteData = await getStructuredDataByType(page, 'WebSite');
+    const websiteData = await getStructuredDataByType(page, 'WebSite') as Record<string, unknown> | null;
     expect(websiteData, 'WebSite schema should be present').toBeTruthy();
 
     if (websiteData) {
@@ -324,8 +328,8 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
       // Check for search functionality
       if (websiteData.potentialAction) {
         const searchAction = Array.isArray(websiteData.potentialAction) 
-          ? websiteData.potentialAction.find((action: any) => action['@type'] === 'SearchAction')
-          : websiteData.potentialAction;
+          ? (websiteData.potentialAction as Array<Record<string, unknown>>).find((action) => action['@type'] === 'SearchAction')
+          : websiteData.potentialAction as Record<string, unknown>;
           
         if (searchAction) {
           expect(searchAction['@type']).toBe('SearchAction');
@@ -399,7 +403,7 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
       }
       
       // Should have x-default for international sites
-      const hasXDefault = hreflangTags.some(async tag => 
+      const _hasXDefault = hreflangTags.some(async tag => 
         await tag.getAttribute('hreflang') === 'x-default'
       );
       // Note: This is optional for single-language sites
@@ -417,15 +421,16 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
     await page.goto('/about');
     await page.waitForLoadState('networkidle');
 
-    const breadcrumbData = await getStructuredDataByType(page, 'BreadcrumbList');
+    const breadcrumbData = await getStructuredDataByType(page, 'BreadcrumbList') as Record<string, unknown> | null;
     
-    if (breadcrumbData) {
+    if (breadcrumbData && breadcrumbData.itemListElement) {
       expect(breadcrumbData.itemListElement).toBeTruthy();
       expect(Array.isArray(breadcrumbData.itemListElement)).toBe(true);
-      expect(breadcrumbData.itemListElement.length).toBeGreaterThan(0);
+      const items = breadcrumbData.itemListElement as Array<Record<string, unknown>>;
+      expect(items.length).toBeGreaterThan(0);
 
-      breadcrumbData.itemListElement.forEach((item: any, index: number) => {
-        expect(item['@type']).toBe('ListItem');
+      items.forEach((item, index) => {
+        expect((item as Record<string, unknown>)['@type']).toBe('ListItem');
         expect(item.position).toBe(index + 1);
         expect(item.name).toBeTruthy();
         expect(item.item).toBeTruthy();
@@ -458,24 +463,30 @@ test.describe('Enhanced SEO & Structured Data Validation', () => {
 });
 
 // Helper functions
-async function validateStructuredDataSchema(data: any, schema: StructuredDataSchema): Promise<void> {
+async function validateStructuredDataSchema(data: unknown, schema: StructuredDataSchema): Promise<void> {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid data provided for validation');
+  }
+  
+  const dataObj = data as Record<string, unknown>;
+  
   // Check required fields
   for (const field of schema.required) {
-    expect(data[field], `Missing required field: ${field}`).toBeTruthy();
+    expect(dataObj[field], `Missing required field: ${field}`).toBeTruthy();
   }
 
   // Run custom validations
   if (schema.validation) {
     for (const [field, validator] of Object.entries(schema.validation)) {
-      if (data[field] !== undefined) {
-        const isValid = validator(data[field]);
-        expect(isValid, `Validation failed for field: ${field} with value: ${data[field]}`).toBe(true);
+      if (dataObj[field] !== undefined) {
+        const isValid = validator(dataObj[field]);
+        expect(isValid, `Validation failed for field: ${field} with value: ${dataObj[field]}`).toBe(true);
       }
     }
   }
 }
 
-async function getStructuredDataByType(page: any, type: string): Promise<any> {
+async function getStructuredDataByType(page: Page, type: string): Promise<unknown> {
   const jsonLDScripts = await page.locator('script[type="application/ld+json"]').all();
   
   for (const script of jsonLDScripts) {
@@ -485,9 +496,9 @@ async function getStructuredDataByType(page: any, type: string): Promise<any> {
         const parsedData = JSON.parse(content);
         const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
         
-        const found = dataArray.find((item: any) => item['@type'] === type);
+        const found = dataArray.find((item: unknown) => (item as Record<string, unknown>)['@type'] === type);
         if (found) return found;
-      } catch (error) {
+      } catch (_error) {
         // Skip invalid JSON
       }
     }

@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
+import type { Route } from '@playwright/test';
 import { 
   waitForImagesLoaded, 
-  waitForAnimations, 
   checkAccessibility,
   getPerformanceMetrics,
   mockApiResponse 
 } from '../helpers/test-utils';
-import { TEST_VIEWPORTS, TIMEOUTS } from '../helpers/test-data';
+import type { TestWindow } from '../types/test-types';
 
 test.describe('Homepage - Hero Section & First Impression', () => {
   test.beforeEach(async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('Homepage - Hero Section & First Impression', () => {
 
   test('should handle loading states gracefully', async ({ page }) => {
     // Intercept network requests to simulate slow loading
-    await page.route('**/*', async (route) => {
+    await page.route('**/*', async (route: Route) => {
       if (route.request().url().includes('/_next/static/')) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -298,7 +298,7 @@ test.describe('Homepage - Performance', () => {
       return events.reduce((count, event) => {
         const div = document.createElement('div');
         document.body.appendChild(div);
-        const originalCount = (window as any).getEventListeners?.(window)?.[event]?.length || 0;
+        const originalCount = (window as TestWindow).getEventListeners?.(window)?.[event]?.length || 0;
         document.body.removeChild(div);
         return count + originalCount;
       }, 0);

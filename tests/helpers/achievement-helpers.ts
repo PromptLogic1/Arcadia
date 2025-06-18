@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../types/database.types';
 
 /**
  * Achievement notification type
@@ -55,7 +55,7 @@ export class AchievementTestHelper {
           if (data.success && data.achievement) {
             this.unlockedAchievements.add(data.achievement.id);
           }
-        } catch (error) {
+        } catch {
           // Ignore parse errors
         }
       }
@@ -94,7 +94,7 @@ export class AchievementTestHelper {
     return {
       success: data.success,
       achievement: data.achievement,
-      notification,
+      notification: notification || undefined,
       error: data.error
     };
   }
@@ -102,7 +102,7 @@ export class AchievementTestHelper {
   /**
    * Get displayed achievement notification
    */
-  async getNotification(timeout: number = 5000): Promise<AchievementNotification | null> {
+  async getNotification(timeout = 5000): Promise<AchievementNotification | null> {
     try {
       const notificationSelector = '[data-testid="achievement-notification"], [data-testid="achievement-unlocked"]';
       await this.page.waitForSelector(notificationSelector, { timeout });
@@ -125,7 +125,7 @@ export class AchievementTestHelper {
         icon: icon || undefined,
         rarity: rarity || undefined
       };
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -133,7 +133,7 @@ export class AchievementTestHelper {
   /**
    * Wait for achievement unlock
    */
-  async waitForUnlock(achievementId: string, timeout: number = 10000): Promise<boolean> {
+  async waitForUnlock(achievementId: string, timeout = 10000): Promise<boolean> {
     const startTime = Date.now();
     
     while (Date.now() - startTime < timeout) {
@@ -191,10 +191,10 @@ export class AchievementTestHelper {
       const fractionMatch = text?.match(/(\d+)\s*\/\s*(\d+)/);
       const percentMatch = text?.match(/(\d+)%/);
       
-      if (fractionMatch) {
+      if (fractionMatch && fractionMatch[1] && fractionMatch[2]) {
         currentProgress = parseInt(fractionMatch[1]);
         maxProgress = parseInt(fractionMatch[2]);
-      } else if (percentMatch) {
+      } else if (percentMatch && percentMatch[1]) {
         const percentage = parseInt(percentMatch[1]);
         currentProgress = percentage;
         maxProgress = 100;
@@ -220,7 +220,7 @@ export class AchievementTestHelper {
   async waitForProgressUpdate(
     achievementId: string,
     expectedProgress: number,
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<boolean> {
     const startTime = Date.now();
     
@@ -276,7 +276,7 @@ export class AchievementTestHelper {
   /**
    * Extract number from element text
    */
-  private async extractNumber(parent: any, selector: string): Promise<number> {
+  private async extractNumber(parent: ReturnType<Page['locator']>, selector: string): Promise<number> {
     try {
       const element = parent.locator(selector);
       const text = await element.textContent();
@@ -355,7 +355,10 @@ export class AchievementTestHelper {
 
     const progressHistory: AchievementProgress[] = [];
 
-    for (const [index, step] of steps.entries()) {
+    for (let index = 0; index < steps.length; index++) {
+      const step = steps[index];
+      if (!step) continue;
+      
       // Execute action
       await step.action();
 

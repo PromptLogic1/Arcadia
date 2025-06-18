@@ -7,7 +7,6 @@ import type {
   PerformanceMetrics, 
   BundleMetrics, 
   NetworkCondition,
-  LighthouseResults,
   PerformanceBudget
 } from '../types';
 
@@ -90,37 +89,48 @@ export async function collectPerformanceMetrics(page: Page): Promise<Performance
     
     // Layout shift
     let cumulativeLayoutShift = 0;
-    const layoutShiftEntries = performance.getEntriesByType('layout-shift') as any[];
+    const layoutShiftEntries = performance.getEntriesByType('layout-shift') as PerformanceEntry[];
     layoutShiftEntries.forEach(entry => {
-      if (!entry.hadRecentInput) {
-        cumulativeLayoutShift += entry.value;
+      const shiftEntry = entry as unknown as { hadRecentInput?: boolean; value: number };
+      if (!shiftEntry.hadRecentInput) {
+        cumulativeLayoutShift += shiftEntry.value;
       }
     });
     
     // LCP
     let largestContentfulPaint = 0;
-    const lcpEntries = performance.getEntriesByType('largest-contentful-paint') as any[];
+    const lcpEntries = performance.getEntriesByType('largest-contentful-paint') as PerformanceEntry[];
     if (lcpEntries.length > 0) {
-      largestContentfulPaint = lcpEntries[lcpEntries.length - 1].startTime;
+      const lastEntry = lcpEntries[lcpEntries.length - 1];
+      if (lastEntry) {
+        largestContentfulPaint = lastEntry.startTime;
+      }
     }
     
     // FID (legacy support)
     let firstInputDelay = 0;
-    const fidEntries = performance.getEntriesByType('first-input') as any[];
+    const fidEntries = performance.getEntriesByType('first-input') as PerformanceEntry[];
     if (fidEntries.length > 0) {
-      firstInputDelay = fidEntries[0].processingStart - fidEntries[0].startTime;
+      const fidEntry = fidEntries[0] as unknown as { processingStart: number; startTime: number };
+      firstInputDelay = fidEntry.processingStart - fidEntry.startTime;
     }
 
     // INP (Interaction to Next Paint) - 2024 Core Web Vital
     let interactionToNextPaint = 0;
     try {
       // Use PerformanceObserver to collect INP
-      const inpEntries = performance.getEntriesByType('event') as any[];
+      const inpEntries = performance.getEntriesByType('event') as PerformanceEntry[];
       if (inpEntries.length > 0) {
         // Calculate INP as the longest interaction delay
         const interactionDelays = inpEntries
-          .filter((entry: any) => entry.interactionId && entry.processingStart)
-          .map((entry: any) => entry.processingStart - entry.startTime);
+          .filter((entry) => {
+            const eventEntry = entry as unknown as { interactionId?: number; processingStart?: number; startTime: number };
+            return eventEntry.interactionId && eventEntry.processingStart;
+          })
+          .map((entry) => {
+            const eventEntry = entry as unknown as { processingStart: number; startTime: number };
+            return eventEntry.processingStart - eventEntry.startTime;
+          });
         
         if (interactionDelays.length > 0) {
           interactionToNextPaint = Math.max(...interactionDelays);
@@ -135,21 +145,21 @@ export async function collectPerformanceMetrics(page: Page): Promise<Performance
     const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
     const totalRequests = resources.length;
     const totalSize = resources.reduce((sum, resource) => {
-      return sum + (resource.transferSize || 0);
+      return sum + ((resource as unknown as { transferSize?: number }).transferSize || 0);
     }, 0);
     
-    const cachedRequests = resources.filter(resource => resource.transferSize === 0).length;
+    const cachedRequests = resources.filter(resource => (resource as unknown as { transferSize?: number }).transferSize === 0).length;
     
     // Memory metrics (if available)
-    const memory = (performance as any).memory;
+    const memory = (performance as unknown as { memory?: { usedJSHeapSize?: number; totalJSHeapSize?: number } }).memory;
     const jsHeapUsed = memory?.usedJSHeapSize || 0;
     const jsHeapTotal = memory?.totalJSHeapSize || 0;
     
     // Time to Interactive (simplified calculation)
-    const timeToInteractive = navTiming.loadEventEnd - navTiming.fetchStart;
+    const timeToInteractive = navTiming ? (navTiming.loadEventEnd - navTiming.fetchStart) : 0;
     
     // Total Blocking Time (simplified)
-    const longTasks = performance.getEntriesByType('longtask') as any[];
+    const longTasks = performance.getEntriesByType('longtask') as PerformanceEntry[];
     const totalBlockingTime = longTasks.reduce((sum, task) => {
       return sum + Math.max(0, task.duration - 50);
     }, 0);
@@ -171,8 +181,8 @@ export async function collectPerformanceMetrics(page: Page): Promise<Performance
     }
     
     return {
-      domContentLoaded: navTiming.domContentLoadedEventEnd - navTiming.fetchStart,
-      load: navTiming.loadEventEnd - navTiming.fetchStart,
+      domContentLoaded: navTiming ? (navTiming.domContentLoadedEventEnd - navTiming.fetchStart) : 0,
+      load: navTiming ? (navTiming.loadEventEnd - navTiming.fetchStart) : 0,
       firstPaint,
       firstContentfulPaint,
       largestContentfulPaint,
@@ -249,7 +259,7 @@ export async function analyzeBundles(page: Page): Promise<BundleMetrics> {
         size,
         type: file.type,
       });
-    } catch (error) {
+    } catch {
       // Ignore errors for external resources
     }
   }
@@ -340,7 +350,7 @@ export async function measureTimeToInteractive(page: Page): Promise<number> {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         // Look for long tasks that might delay interactivity
-        const longTasks = entries.filter((entry: any) => entry.duration > 50);
+        const longTasks = entries.filter((entry) => entry.duration > 50);
         
         if (longTasks.length === 0) {
           // No long tasks, page is likely interactive
