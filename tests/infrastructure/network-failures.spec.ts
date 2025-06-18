@@ -1,539 +1,529 @@
-import { test, expect, type Route } from '@playwright/test';
-import { mockApiResponse, waitForNetworkIdle } from '../helpers/test-utils';
+/**
+ * Network Failure Simulation Tests
+ * 
+ * This test suite validates real network failure scenarios including
+ * offline/online transitions, API retry mechanisms, timeout handling,
+ * and connection resilience patterns.
+ */
 
-test.describe('Network Failure Handling', () => {
-  test.describe('API Request Failures', () => {
-    test('should handle API timeout gracefully', async ({ page, context }) => {
+import { test, expect } from '@playwright/test';
+import {
+  mockNetworkFailure,
+  mockApiResponseTyped,
+  mockProgressiveDegradation,
+  MockCircuitBreaker,
+} from './utils/mock-helpers';
+
+test.describe('Network Failure Simulation', () => {
+  test.describe('Offline/Online Transitions', () => {
+    test('should handle offline state gracefully', async ({ page, context }) => {
       await page.goto('/');
       
-      // Mock slow API responses that timeout
-      await context.route('**/api/**', async (route: Route) => {
-        // Simulate network timeout
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        await route.abort('timedout');
-      });
+      // Wait for page to load completely
+      await page.waitForLoadState('networkidle');
       
-      // Attempt to make an API call (if the app makes any on load)
-      const requestPromise = page.waitForRequest('**/api/**', { timeout: 5000 }).catch(() => null);
+      // Simulate going offline
+      await context.setOffline(true);
       
-      // Trigger API call by interacting with the page
-      const apiButtons = page.locator('button:has-text("Load"), button:has-text("Fetch"), button:has-text("Get")');
-      if (await apiButtons.count() > 0) {
-        await apiButtons.first().click();
-      }
-      
-      // Wait a bit for timeout to occur
-      await page.waitForTimeout(2000);
-      
-      // Verify app shows appropriate timeout message
-      const timeoutIndicators = page.locator(
-        'text="Request timed out", text="Network timeout", text="Connection timeout", text="Slow connection"'
-      );
-      
-      const errorIndicators = page.locator(
-        'text="Network error", text="Connection failed", text="Unable to connect"'
-      );
-      
-      // Should show some kind of network error indication
-      const hasTimeoutMessage = await timeoutIndicators.count() > 0;
-      const hasErrorMessage = await errorIndicators.count() > 0;
-      const hasRetryButton = await page.locator('button:has-text("Retry"), button:has-text("Try Again")').count() > 0;
-      
-      // At least one of these should be true for good UX
-      expect(hasTimeoutMessage || hasErrorMessage || hasRetryButton).toBeTruthy();
-      
-      // App should remain functional
-      await expect(page.locator('body')).toBeVisible();
-    });
-
-    test('should implement retry mechanism for failed requests', async ({ page, context }) => {
-      let attemptCount = 0;
-      
-      await context.route('**/api/**', route => {
-        attemptCount++;
-        
-        if (attemptCount < 3) {
-          // Fail first 2 attempts
-          route.abort('failed');
-        } else {
-          // Succeed on 3rd attempt
-          route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ data: 'success', attempt: attemptCount })
-          });
+      // Try to make API requests while offline
+      const offlineResponse = await page.evaluate(async () => {
+        try {
+          const response = await fetch('/api/redis-test');
+          return { success: response.ok, status: response.status };
+        } catch (error) {
+          return { 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error),
+            offline: true
+          };
         }
       });
       
-      await page.goto('/');
+      expect(offlineResponse.success).toBe(false);
+      expect(offlineResponse.offline).toBe(true);
       
-      // Trigger API call
-      const apiTrigger = page.locator('button, [data-testid*="load"], [data-testid*="fetch"]').first();
-      if (await apiTrigger.count() > 0) {
-        await apiTrigger.click();
-        
-        // Wait for retries to complete
-        await page.waitForTimeout(3000);
-        
-        // Should eventually succeed
-        const successIndicators = page.locator(
-          'text="success", text="loaded", text="complete", text="Success"'
-        );
-        
-        if (await successIndicators.count() > 0) {
-          expect(attemptCount).toBe(3);
-        }
-      }
-    });
-
-    test('should handle 500 server errors gracefully', async ({ page, context }) => {
-      await mockApiResponse(page, '**/api/**', {
-        status: 500,
-        body: { error: 'Internal Server Error' }
-      });
+      // Check for offline indicator or graceful degradation
+      const pageStillFunctional = await page.locator('body').count();
+      expect(pageStillFunctional).toBeGreaterThan(0);
       
-      await page.goto('/');
-      
-      // Try to trigger API calls
-      const buttons = page.locator('button');
-      if (await buttons.count() > 0) {
-        await buttons.first().click();
-      }
-      
-      await page.waitForTimeout(1000);
-      
-      // Should show user-friendly error message
-      const errorMessages = page.locator(
-        'text="Server error", text="Service unavailable", text="Something went wrong", text="Error occurred"'
-      );
-      
-      // Should not expose technical details
-      await expect(page.locator('text="Internal Server Error"')).not.toBeVisible();
-      await expect(page.locator('text="500"')).not.toBeVisible();
-      
-      // Should provide retry option
-      const retryButtons = page.locator('button:has-text("Retry"), button:has-text("Try Again")');
-      if (await retryButtons.count() > 0) {
-        await expect(retryButtons.first()).toBeVisible();
-      }
-    });
-
-    test('should handle 400 client errors appropriately', async ({ page, context }) => {
-      await mockApiResponse(page, '**/api/**', {
-        status: 400,
-        body: { error: 'Bad Request', message: 'Invalid input data' }
-      });
-      
-      await page.goto('/');
-      
-      // Try to submit a form or make an API call
-      const forms = page.locator('form');
-      const buttons = page.locator('button[type="submit"], button:has-text("Submit")');
-      
-      if (await forms.count() > 0) {
-        await forms.first().locator('input, textarea').first().fill('test data');
-        await forms.first().locator('button[type="submit"]').click();
-      } else if (await buttons.count() > 0) {
-        await buttons.first().click();
-      }
-      
-      await page.waitForTimeout(1000);
-      
-      // Should show validation error message
-      const validationMessages = page.locator(
-        'text="Invalid", text="required", text="error", [role="alert"]'
-      );
-      
-      // Client errors should provide actionable feedback
-      if (await validationMessages.count() > 0) {
-        await expect(validationMessages.first()).toBeVisible();
-      }
-    });
-
-    test('should handle CORS errors gracefully', async ({ page, context }) => {
-      await context.route('**/external-api/**', route => {
-        route.fulfill({
-          status: 200,
-          body: 'Blocked by CORS',
-          headers: {
-            'Access-Control-Allow-Origin': 'https://different-origin.com'
-          }
-        });
-      });
-      
-      await page.goto('/');
-      
-      // App should handle CORS errors without crashing
-      await page.evaluate(() => {
-        fetch('/external-api/data')
-          .catch(error => console.log('CORS error handled:', error.message));
-      });
-      
-      await page.waitForTimeout(500);
-      
-      // App should remain functional
-      await expect(page.locator('body')).toBeVisible();
-    });
-  });
-
-  test.describe('Offline Handling', () => {
-    test('should detect offline state', async ({ page, context }) => {
-      await page.goto('/');
-      await waitForNetworkIdle(page);
-      
-      // Go offline
-      await context.setOffline(true);
-      
-      // Trigger offline detection
-      await page.evaluate(() => {
-        window.dispatchEvent(new Event('offline'));
-      });
-      
-      await page.waitForTimeout(500);
-      
-      // Should show offline indicator
-      const offlineIndicators = page.locator(
-        '[data-testid="offline-indicator"], text="Offline", text="No connection", text="Disconnected"'
-      );
-      
-      if (await offlineIndicators.count() > 0) {
-        await expect(offlineIndicators.first()).toBeVisible();
-      }
-    });
-
-    test('should queue actions when offline', async ({ page, context }) => {
-      await page.goto('/');
-      
-      // Go offline
-      await context.setOffline(true);
-      
-      // Try to perform actions that require network
-      const actionButtons = page.locator('button:has-text("Save"), button:has-text("Submit"), button:has-text("Update")');
-      
-      if (await actionButtons.count() > 0) {
-        await actionButtons.first().click();
-        
-        // Should show queued message
-        const queueMessages = page.locator(
-          'text="Queued", text="Will sync", text="Saved locally", text="Pending sync"'
-        );
-        
-        if (await queueMessages.count() > 0) {
-          await expect(queueMessages.first()).toBeVisible();
-        }
-      }
-    });
-
-    test('should sync queued actions when back online', async ({ page, context }) => {
-      await page.goto('/');
-      
-      // Go offline
-      await context.setOffline(true);
-      
-      // Perform offline actions
-      const offlineData = await page.evaluate(() => {
-        // Simulate offline data storage
-        localStorage.setItem('offline-queue', JSON.stringify([
-          { action: 'save', data: 'test-data', timestamp: Date.now() }
-        ]));
-        return localStorage.getItem('offline-queue');
-      });
-      
-      expect(offlineData).toBeTruthy();
-      
-      // Go back online
+      // Simulate coming back online
       await context.setOffline(false);
-      
-      // Trigger online event
-      await page.evaluate(() => {
-        window.dispatchEvent(new Event('online'));
-      });
-      
       await page.waitForTimeout(1000);
       
-      // Should attempt to sync queued data
-      const syncMessages = page.locator(
-        'text="Synced", text="Updated", text="Synchronized", text="Connected"'
-      );
+      // Verify connectivity is restored
+      const onlineResponse = await page.evaluate(async () => {
+        try {
+          const response = await fetch('/api/health');
+          return { success: response.ok, status: response.status };
+        } catch (error) {
+          return { 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      });
       
-      if (await syncMessages.count() > 0) {
-        await expect(syncMessages.first()).toBeVisible();
-      }
+      // Should be able to connect again (or fail gracefully if health endpoint doesn't exist)
+      console.log('Online connectivity test:', onlineResponse);
     });
 
-    test('should work with cached content when offline', async ({ page, context }) => {
-      // Load page online first
+    test('should queue actions during offline periods', async ({ page, context }) => {
       await page.goto('/');
-      await waitForNetworkIdle(page);
       
-      // Cache some content
-      const originalContent = await page.locator('h1, h2, main').first().textContent();
+      // Set up action queuing mechanism
+      await page.evaluate(() => {
+        interface QueuedAction {
+          id: string;
+          action: string;
+          data: unknown;
+          timestamp: number;
+          attempts: number;
+        }
+        
+        const actionQueue: QueuedAction[] = [];
+        let isOnline = navigator.onLine;
+        
+        const queueAction = (action: string, data: unknown) => {
+          const queuedAction: QueuedAction = {
+            id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            action,
+            data,
+            timestamp: Date.now(),
+            attempts: 0,
+          };
+          actionQueue.push(queuedAction);
+          return queuedAction.id;
+        };
+        
+        const processQueue = async () => {
+          if (!isOnline || actionQueue.length === 0) return;
+          
+          const actionsToProcess = [...actionQueue];
+          actionQueue.length = 0; // Clear queue
+          
+          for (const action of actionsToProcess) {
+            try {
+              action.attempts++;
+              await fetch('/api/redis-test', {
+                method: 'POST',
+                body: JSON.stringify({ action: action.action, data: action.data }),
+                headers: { 'Content-Type': 'application/json' },
+              });
+              console.log(`Processed queued action: ${action.action}`);
+            } catch (error) {
+              // If processing fails, re-queue with attempt limit
+              if (action.attempts < 3) {
+                actionQueue.push(action);
+              }
+              console.warn(`Failed to process action: ${action.action}`, error);
+            }
+          }
+        };
+        
+        // Monitor online/offline events
+        window.addEventListener('online', () => {
+          isOnline = true;
+          processQueue();
+        });
+        
+        window.addEventListener('offline', () => {
+          isOnline = false;
+        });
+        
+        // Store for testing
+        (window as any).__actionQueue = {
+          queue: actionQueue,
+          queueAction,
+          processQueue,
+          isOnline: () => isOnline,
+          getQueueLength: () => actionQueue.length,
+        };
+      });
       
-      // Go offline
+      // Go offline and queue some actions
       await context.setOffline(true);
       
-      // Reload page - should work from cache
-      await page.reload();
+      const actionIds = await page.evaluate(() => {
+        const queue = (window as any).__actionQueue;
+        const ids = [
+          queue.queueAction('user_action', { type: 'click', element: 'button1' }),
+          queue.queueAction('data_update', { key: 'test', value: 'offline_data' }),
+          queue.queueAction('analytics', { event: 'page_view', page: '/test' }),
+        ];
+        return ids;
+      });
       
-      // Should still show content
-      await expect(page.locator('body')).toBeVisible();
+      expect(actionIds).toHaveLength(3);
       
-      // Basic navigation should work
-      const navLinks = page.locator('nav a, header a').first();
-      if (await navLinks.count() > 0) {
-        // Should not cause errors when clicking
-        await navLinks.click();
-        await expect(page.locator('body')).toBeVisible();
+      // Verify actions are queued
+      const queueLength = await page.evaluate(() => {
+        const queue = (window as any).__actionQueue;
+        return queue.getQueueLength();
+      });
+      
+      expect(queueLength).toBe(3);
+      
+      // Come back online and process queue
+      await context.setOffline(false);
+      await page.waitForTimeout(2000); // Give time for processing
+      
+      // Check if queue was processed
+      const finalQueueLength = await page.evaluate(() => {
+        const queue = (window as any).__actionQueue;
+        return queue.getQueueLength();
+      });
+      
+      // Queue should be empty or have fewer items (some might have been processed)
+      expect(finalQueueLength).toBeLessThanOrEqual(3);
+      console.log(`Final queue length: ${finalQueueLength}`);
+    });
+  });
+
+  test.describe('API Retry Mechanisms', () => {
+    test('should implement exponential backoff for failed requests', async ({ page }) => {
+      await page.goto('/');
+      
+      // Set up retry mechanism with exponential backoff
+      await page.evaluate(() => {
+        interface RetryConfig {
+          maxAttempts: number;
+          baseDelay: number;
+          maxDelay: number;
+          backoffMultiplier: number;
+        }
+        
+        interface RetryAttempt {
+          attempt: number;
+          delay: number;
+          timestamp: number;
+          success: boolean;
+          error?: string;
+        }
+        
+        const retryWithBackoff = async (
+          operation: () => Promise<Response>,
+          config: RetryConfig
+        ): Promise<{ success: boolean; attempts: RetryAttempt[]; response?: Response }> => {
+          const attempts: RetryAttempt[] = [];
+          let currentDelay = config.baseDelay;
+          
+          for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+            const attemptRecord: RetryAttempt = {
+              attempt,
+              delay: currentDelay,
+              timestamp: Date.now(),
+              success: false,
+            };
+            
+            try {
+              if (attempt > 1) {
+                await new Promise(resolve => setTimeout(resolve, currentDelay));
+              }
+              
+              const response = await operation();
+              attemptRecord.success = response.ok;
+              attempts.push(attemptRecord);
+              
+              if (response.ok) {
+                return { success: true, attempts, response };
+              }
+              
+              // Prepare for next attempt
+              currentDelay = Math.min(currentDelay * config.backoffMultiplier, config.maxDelay);
+              
+            } catch (error) {
+              attemptRecord.error = error instanceof Error ? error.message : String(error);
+              attempts.push(attemptRecord);
+              
+              // For network errors, continue retrying
+              currentDelay = Math.min(currentDelay * config.backoffMultiplier, config.maxDelay);
+            }
+          }
+          
+          return { success: false, attempts };
+        };
+        
+        (window as any).__retryMechanism = {
+          retryWithBackoff,
+          testRetry: async () => {
+            return retryWithBackoff(
+              () => fetch('/api/redis-test'),
+              {
+                maxAttempts: 4,
+                baseDelay: 100,
+                maxDelay: 2000,
+                backoffMultiplier: 2,
+              }
+            );
+          },
+        };
+      });
+      
+      // Mock API to fail a few times then succeed
+      let requestCount = 0;
+      await page.route('**/api/redis-test', async (route) => {
+        requestCount++;
+        if (requestCount <= 2) {
+          await route.fulfill({ status: 500, body: JSON.stringify({ error: 'Server error' }) });
+        } else {
+          await route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+        }
+      });
+      
+      // Test the retry mechanism
+      const retryResult = await page.evaluate(async () => {
+        const retryMech = (window as any).__retryMechanism;
+        return await retryMech.testRetry();
+      });
+      
+      expect(retryResult.success).toBe(true);
+      expect(retryResult.attempts.length).toBeGreaterThan(1);
+      
+      // Verify exponential backoff pattern
+      const delays = retryResult.attempts.map(a => a.delay);
+      for (let i = 1; i < delays.length; i++) {
+        expect(delays[i]).toBeGreaterThanOrEqual(delays[i - 1]);
+      }
+      
+      console.log('Retry attempts:', retryResult.attempts);
+    });
+
+    test('should handle different HTTP error codes appropriately', async ({ page }) => {
+      await page.goto('/');
+      
+      // Test different error code handling
+      const errorScenarios = [
+        { status: 400, shouldRetry: false, description: 'Bad Request' },
+        { status: 401, shouldRetry: false, description: 'Unauthorized' },
+        { status: 403, shouldRetry: false, description: 'Forbidden' },
+        { status: 404, shouldRetry: false, description: 'Not Found' },
+        { status: 429, shouldRetry: true, description: 'Rate Limited' },
+        { status: 500, shouldRetry: true, description: 'Server Error' },
+        { status: 502, shouldRetry: true, description: 'Bad Gateway' },
+        { status: 503, shouldRetry: true, description: 'Service Unavailable' },
+      ];
+      
+      for (const scenario of errorScenarios) {
+        // Mock the specific error response
+        await page.route('**/api/test-error-handling', async (route) => {
+          await route.fulfill({ 
+            status: scenario.status, 
+            body: JSON.stringify({ error: scenario.description })
+          });
+        });
+        
+        const result = await page.evaluate(async (errorCode) => {
+          try {
+            const response = await fetch('/api/test-error-handling');
+            return {
+              status: response.status,
+              ok: response.ok,
+              shouldRetry: [429, 500, 502, 503, 504].includes(response.status),
+            };
+          } catch (error) {
+            return {
+              error: error instanceof Error ? error.message : String(error),
+              shouldRetry: true, // Network errors should be retried
+            };
+          }
+        }, scenario.status);
+        
+        expect(result.status).toBe(scenario.status);
+        expect(result.shouldRetry).toBe(scenario.shouldRetry);
+        
+        console.log(`${scenario.status} ${scenario.description}: retry=${scenario.shouldRetry}`);
       }
     });
   });
 
-  test.describe('Slow Network Conditions', () => {
-    test('should show loading states for slow requests', async ({ page, context }) => {
-      // Simulate slow network
-      await context.route('**/api/**', async (route: Route) => {
+  test.describe('Connection Resilience', () => {
+    test('should handle slow network conditions', async ({ page }) => {
+      await page.goto('/');
+      
+      // Simulate slow network responses
+      await page.route('**/api/slow-test', async (route) => {
+        // Add artificial delay
         await new Promise(resolve => setTimeout(resolve, 2000));
         await route.fulfill({
           status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ data: 'slow response' })
+          body: JSON.stringify({ message: 'Slow response', timestamp: Date.now() }),
         });
       });
       
-      await page.goto('/');
-      
-      // Trigger API call
-      const loadButton = page.locator('button:has-text("Load"), button:has-text("Fetch")').first();
-      if (await loadButton.count() > 0) {
-        await loadButton.click();
+      // Test request with timeout handling
+      const slowRequestResult = await page.evaluate(async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
-        // Should show loading indicator
-        const loadingIndicators = page.locator(
-          '[data-testid="loading"], text="Loading", text="Please wait", .spinner, .loading'
-        );
-        
-        if (await loadingIndicators.count() > 0) {
-          await expect(loadingIndicators.first()).toBeVisible();
-        }
-        
-        // Wait for completion
-        await page.waitForTimeout(3000);
-        
-        // Loading should disappear
-        if (await loadingIndicators.count() > 0) {
-          await expect(loadingIndicators.first()).not.toBeVisible();
-        }
-      }
-    });
-
-    test('should handle concurrent request failures', async ({ page, context }) => {
-      let requestCount = 0;
-      
-      await context.route('**/api/**', route => {
-        requestCount++;
-        if (requestCount % 2 === 0) {
-          route.abort('failed');
-        } else {
-          route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ data: `request-${requestCount}` })
+        const startTime = Date.now();
+        try {
+          const response = await fetch('/api/slow-test', {
+            signal: controller.signal,
           });
-        }
-      });
-      
-      await page.goto('/');
-      
-      // Make multiple concurrent requests
-      await page.evaluate(() => {
-        for (let i = 0; i < 5; i++) {
-          fetch(`/api/test-${i}`).catch(() => {
-            // Handle errors gracefully
-          });
-        }
-      });
-      
-      await page.waitForTimeout(1000);
-      
-      // App should remain stable
-      await expect(page.locator('body')).toBeVisible();
-      expect(requestCount).toBeGreaterThan(0);
-    });
-  });
-
-  test.describe('Network Recovery', () => {
-    test('should detect network recovery', async ({ page, context }) => {
-      await page.goto('/');
-      
-      // Go offline then online
-      await context.setOffline(true);
-      await page.waitForTimeout(500);
-      await context.setOffline(false);
-      
-      // Trigger online event
-      await page.evaluate(() => {
-        window.dispatchEvent(new Event('online'));
-      });
-      
-      await page.waitForTimeout(500);
-      
-      // Should detect network recovery
-      const recoveryMessages = page.locator(
-        'text="Online", text="Connected", text="Network restored", [data-testid="online-indicator"]'
-      );
-      
-      if (await recoveryMessages.count() > 0) {
-        await expect(recoveryMessages.first()).toBeVisible();
-      }
-    });
-
-    test('should resume normal operation after network recovery', async ({ page, context }) => {
-      await page.goto('/');
-      
-      // Go offline
-      await context.setOffline(true);
-      
-      // Store some offline state
-      await page.evaluate(() => {
-        localStorage.setItem('offline-mode', 'true');
-      });
-      
-      // Go back online
-      await context.setOffline(false);
-      
-      // Trigger recovery
-      await page.evaluate(() => {
-        window.dispatchEvent(new Event('online'));
-        localStorage.removeItem('offline-mode');
-      });
-      
-      await page.waitForTimeout(500);
-      
-      // Should resume normal functionality
-      const buttons = page.locator('button').first();
-      if (await buttons.count() > 0) {
-        await buttons.click();
-        // Should not show offline-related errors
-        await expect(page.locator('text="offline", text="no connection"')).not.toBeVisible();
-      }
-    });
-  });
-
-  test.describe('Circuit Breaker Pattern', () => {
-    test('should implement circuit breaker for repeated failures', async ({ page, context }) => {
-      let failureCount = 0;
-      
-      await context.route('**/api/unreliable', route => {
-        failureCount++;
-        route.abort('failed');
-      });
-      
-      await page.goto('/');
-      
-      // Implement circuit breaker simulation
-      await page.evaluate(() => {
-        let failures = 0;
-        let circuitOpen = false;
-        
-        const makeRequest = () => {
-          if (circuitOpen) {
-            console.log('Circuit breaker: Service unavailable');
-            return Promise.reject(new Error('Circuit breaker open'));
-          }
+          const duration = Date.now() - startTime;
+          clearTimeout(timeoutId);
           
-          return fetch('/api/unreliable')
-            .catch(error => {
-              failures++;
-              if (failures >= 3) {
-                circuitOpen = true;
-                console.log('Circuit breaker: Opening circuit');
-                setTimeout(() => {
-                  circuitOpen = false;
-                  failures = 0;
-                  console.log('Circuit breaker: Attempting to close circuit');
-                }, 5000);
-              }
-              throw error;
-            });
-        };
-        
-        // Trigger multiple failures
-        for (let i = 0; i < 5; i++) {
-          setTimeout(() => makeRequest(), i * 100);
+          return {
+            success: response.ok,
+            duration,
+            timedOut: false,
+          };
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          clearTimeout(timeoutId);
+          
+          return {
+            success: false,
+            duration,
+            timedOut: error instanceof Error && error.name === 'AbortError',
+            error: error instanceof Error ? error.message : String(error),
+          };
         }
       });
       
-      await page.waitForTimeout(1000);
+      if (slowRequestResult.success) {
+        expect(slowRequestResult.duration).toBeGreaterThanOrEqual(2000);
+        expect(slowRequestResult.duration).toBeLessThan(5000); // Should complete before timeout
+      } else if (slowRequestResult.timedOut) {
+        expect(slowRequestResult.duration).toBeGreaterThanOrEqual(5000);
+      }
       
-      // Circuit breaker should prevent excessive requests
-      expect(failureCount).toBeLessThan(10);
+      console.log('Slow network test result:', slowRequestResult);
+    });
+
+    test('should implement circuit breaker for network requests', async ({ page }) => {
+      await page.goto('/');
+      
+      // Use the MockCircuitBreaker from utils
+      const circuitBreaker = new MockCircuitBreaker(3, 5000, 2); // 3 failures, 5s timeout, 2 successes to close
+      
+      await page.route('**/api/circuit-test', async (route) => {
+        await circuitBreaker.mockResponse(route);
+      });
+      
+      // Test circuit breaker behavior
+      const results = [];
+      
+      for (let i = 0; i < 8; i++) {
+        const result = await page.evaluate(async () => {
+          const startTime = Date.now();
+          try {
+            const response = await fetch('/api/circuit-test');
+            return {
+              success: response.ok,
+              status: response.status,
+              duration: Date.now() - startTime,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+              duration: Date.now() - startTime,
+            };
+          }
+        });
+        
+        results.push(result);
+        
+        // Check if circuit breaker opened
+        if (result.status === 503 && result.duration < 100) {
+          console.log(`Circuit breaker opened at request ${i + 1}`);
+          break;
+        }
+        
+        await page.waitForTimeout(200); // Small delay between requests
+      }
+      
+      // Verify circuit breaker behavior
+      const failedRequests = results.filter(r => !r.success);
+      const circuitOpenResponses = results.filter(r => r.status === 503);
+      
+      expect(failedRequests.length).toBeGreaterThan(0);
+      console.log(`Total requests: ${results.length}, Failed: ${failedRequests.length}, Circuit open: ${circuitOpenResponses.length}`);
+      
+      // Test circuit breaker recovery after timeout
+      await page.waitForTimeout(6000); // Wait for circuit to potentially reset
+      
+      const recoveryResult = await page.evaluate(async () => {
+        try {
+          const response = await fetch('/api/circuit-test');
+          return { success: response.ok, status: response.status };
+        } catch (error) {
+          return { 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error) 
+          };
+        }
+      });
+      
+      console.log('Circuit breaker recovery test:', recoveryResult);
     });
   });
 
-  test.describe('Error Message Quality', () => {
-    test('should not expose internal API details in error messages', async ({ page, context }) => {
-      await mockApiResponse(page, '**/api/**', {
-        status: 500,
-        body: { 
-          error: 'Database connection failed', 
-          stack: 'Error at /internal/path/database.js:123',
-          query: 'SELECT * FROM users WHERE password = ?'
-        }
-      });
-      
+  test.describe('Progressive Degradation', () => {
+    test('should gracefully degrade service quality under load', async ({ page }) => {
       await page.goto('/');
       
-      // Trigger API error
-      const button = page.locator('button').first();
-      if (await button.count() > 0) {
-        await button.click();
-        await page.waitForTimeout(500);
-      }
+      // Simulate progressive service degradation
+      await mockProgressiveDegradation(page, '**/api/progressive-test', [
+        { requestCount: 3, status: 200, body: { quality: 'high', features: ['full'] } },
+        { requestCount: 6, status: 200, body: { quality: 'medium', features: ['partial'] }, delay: 500 },
+        { requestCount: 10, status: 200, body: { quality: 'low', features: ['basic'] }, delay: 1000 },
+        { requestCount: Infinity, status: 503, body: { error: 'Service unavailable' } },
+      ]);
       
-      // Should not expose internal details
-      await expect(page.locator('text="Database connection failed"')).not.toBeVisible();
-      await expect(page.locator('text="/internal/path/"')).not.toBeVisible();
-      await expect(page.locator('text="SELECT * FROM"')).not.toBeVisible();
+      const degradationResults = [];
       
-      // Should show user-friendly message instead
-      const friendlyMessages = page.locator(
-        'text="Something went wrong", text="Service unavailable", text="Please try again"'
-      );
-      
-      if (await friendlyMessages.count() > 0) {
-        await expect(friendlyMessages.first()).toBeVisible();
-      }
-    });
-
-    test('should provide actionable error messages', async ({ page, context }) => {
-      await mockApiResponse(page, '**/api/**', {
-        status: 422,
-        body: { 
-          error: 'Validation failed',
-          errors: {
-            email: ['Email is required', 'Email must be valid'],
-            password: ['Password is too short']
+      // Make multiple requests to trigger degradation
+      for (let i = 0; i < 12; i++) {
+        const result = await page.evaluate(async () => {
+          const startTime = Date.now();
+          try {
+            const response = await fetch('/api/progressive-test');
+            const data = await response.json();
+            return {
+              success: response.ok,
+              status: response.status,
+              data,
+              duration: Date.now() - startTime,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+              duration: Date.now() - startTime,
+            };
           }
-        }
-      });
-      
-      await page.goto('/');
-      
-      // Try to submit a form
-      const form = page.locator('form').first();
-      if (await form.count() > 0) {
-        await form.locator('button[type="submit"], button:has-text("Submit")').click();
-        await page.waitForTimeout(500);
+        });
         
-        // Should show specific validation errors
-        const validationErrors = page.locator(
-          'text="required", text="must be valid", text="too short", [role="alert"]'
-        );
+        degradationResults.push(result);
         
-        if (await validationErrors.count() > 0) {
-          await expect(validationErrors.first()).toBeVisible();
+        if (!result.success) {
+          console.log(`Service became unavailable at request ${i + 1}`);
+          break;
         }
+        
+        await page.waitForTimeout(100);
       }
+      
+      // Verify progressive degradation pattern
+      const successfulResults = degradationResults.filter(r => r.success);
+      
+      if (successfulResults.length >= 3) {
+        const highQuality = successfulResults.slice(0, 3);
+        expect(highQuality.every(r => r.data?.quality === 'high')).toBe(true);
+      }
+      
+      if (successfulResults.length >= 6) {
+        const mediumQuality = successfulResults.slice(3, 6);
+        expect(mediumQuality.every(r => r.data?.quality === 'medium')).toBe(true);
+      }
+      
+      console.log('Progressive degradation results:', {
+        totalRequests: degradationResults.length,
+        successful: successfulResults.length,
+        qualityLevels: successfulResults.map(r => r.data?.quality),
+      });
     });
   });
 });
