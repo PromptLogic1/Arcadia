@@ -51,11 +51,15 @@ describe('Validation Helpers', () => {
         const result = validateUserData(data);
         expect(result.success).toBe(false);
         expect(result.data).toBeNull();
-        // Some error messages may vary, so just check it contains key terms
-        if (result.error?.includes('object') || result.error?.includes('required') || result.error?.includes('string')) {
-          expect(true).toBe(true); // Valid error case
-        } else {
-          expect(result.error).toBe(error); // Exact match for unexpected cases
+        
+        // Type guard: if success is false, then error exists
+        if (!result.success) {
+          // Some error messages may vary, so just check it contains key terms
+          if (result.error.includes('object') || result.error.includes('required') || result.error.includes('string')) {
+            expect(true).toBe(true); // Valid error case
+          } else {
+            expect(result.error).toBe(error); // Exact match for unexpected cases
+          }
         }
       });
     });
@@ -128,7 +132,9 @@ describe('Validation Helpers', () => {
       invalidCases.forEach(({ data, error }) => {
         const result = validateBingoBoard(data);
         expect(result.success).toBe(false);
-        expect(result.error).toBe(error);
+        if (!result.success) {
+          expect(result.error).toBe(error);
+        }
       });
     });
 
@@ -186,7 +192,9 @@ describe('Validation Helpers', () => {
       invalidInputs.forEach(input => {
         const result = validateBingoBoardArray(input);
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Expected array');
+        if (!result.success) {
+          expect(result.error).toContain('Expected array');
+        }
       });
     });
 
@@ -207,7 +215,9 @@ describe('Validation Helpers', () => {
       const result = validateBingoBoardArray(boards);
       
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Board 1:');
+      if (!result.success) {
+        expect(result.error).toContain('Board 1:');
+      }
     });
   });
 
@@ -303,7 +313,9 @@ describe('Validation Helpers', () => {
       invalidCases.forEach(({ data, error }) => {
         const result = validatePresenceData(data);
         expect(result.success).toBe(false);
-        expect(result.error).toBe(error);
+        if (!result.success) {
+          expect(result.error).toBe(error);
+        }
       });
     });
   });
@@ -404,7 +416,9 @@ describe('Validation Helpers', () => {
         }));
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Database error');
+        if (!result.success) {
+          expect(result.error).toContain('Database error');
+        }
       });
 
       it('should use custom validator for data', () => {
@@ -423,7 +437,9 @@ describe('Validation Helpers', () => {
 
         expect(customValidator).toHaveBeenCalledWith(response.data);
         expect(result.success).toBe(false);
-        expect(result.error).toBe('Custom validation failed');
+        if (!result.success) {
+          expect(result.error).toBe('Custom validation failed');
+        }
       });
     });
 
@@ -455,7 +471,9 @@ describe('Validation Helpers', () => {
         }));
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Expected array from database');
+        if (!result.success) {
+          expect(result.error).toContain('Expected array from database');
+        }
       });
 
       it('should handle empty arrays', () => {

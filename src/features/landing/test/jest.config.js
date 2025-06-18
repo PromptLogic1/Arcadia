@@ -2,18 +2,27 @@
  * Jest configuration for Landing feature tests
  */
 
-const path = require('path');
+/* eslint-disable @typescript-eslint/no-require-imports */
 
-module.exports = {
+const path = require('path');
+const nextJest = require('next/jest');
+
+const createJestConfig = nextJest({
+  // Provide the path to your Next.js app to load next.config.js and .env files
+  dir: path.resolve(__dirname, '../../../..'),
+});
+
+const customJestConfig = {
   displayName: 'Landing Feature Tests',
+  rootDir: path.resolve(__dirname, '../../../..'), // Set root to project root
   testMatch: [
     '<rootDir>/src/features/landing/test/**/*.test.{js,ts}',
   ],
   setupFilesAfterEnv: [
     '<rootDir>/src/features/landing/test/jest.setup.ts',
   ],
-  testEnvironment: 'jsdom',
-  moduleNameMapping: {
+  testEnvironment: 'jest-environment-jsdom',
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   collectCoverageFrom: [
@@ -32,13 +41,16 @@ module.exports = {
     },
   },
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
-      presets: [
-        ['@babel/preset-env', { targets: { node: 'current' } }],
-        '@babel/preset-typescript',
-      ],
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { 
+      presets: [['next/babel', { 'preset-react': { runtime: 'automatic' } }]]
     }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(@supabase|@testing-library|.*\\.mjs$))',
+  ],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
   testTimeout: 10000,
 };
+
+module.exports = createJestConfig(customJestConfig);

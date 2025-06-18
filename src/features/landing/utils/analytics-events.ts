@@ -384,12 +384,12 @@ export class AnalyticsEventTracker {
   private updateFunnelProgress(event: AnalyticsEvent): void {
     if (!event.userId) return;
 
-    for (const [key, progress] of this.funnelProgress.entries()) {
+    Array.from(this.funnelProgress.entries()).forEach(([_key, progress]) => {
       const funnel = this.funnels.get(progress.funnelId);
-      if (!funnel) continue;
+      if (!funnel) return;
 
       const nextStepIndex = progress.completedSteps;
-      if (nextStepIndex >= funnel.steps.length) continue;
+      if (nextStepIndex >= funnel.steps.length) return;
 
       const nextStep = funnel.steps[nextStepIndex];
       if (nextStep.event === event.name) {
@@ -403,7 +403,7 @@ export class AnalyticsEventTracker {
           delete progress.dropoffStep;
         }
       }
-    }
+    });
   }
 
   /**

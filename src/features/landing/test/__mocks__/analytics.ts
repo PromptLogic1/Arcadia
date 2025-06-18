@@ -24,23 +24,23 @@ export const mockHotjar = {
 // Global window mocks
 declare global {
   interface Window {
-    gtag: jest.MockedFunction<any>;
-    ga: jest.MockedFunction<any>;
-    dataLayer: any[];
+    gtag: jest.MockedFunction<(...args: unknown[]) => void>;
+    ga: jest.MockedFunction<(...args: unknown[]) => void>;
+    dataLayer: unknown[];
     analytics: {
-      track: jest.MockedFunction<any>;
-      page: jest.MockedFunction<any>;
-      identify: jest.MockedFunction<any>;
+      track: jest.MockedFunction<(...args: unknown[]) => void>;
+      page: jest.MockedFunction<(...args: unknown[]) => void>;
+      identify: jest.MockedFunction<(...args: unknown[]) => void>;
     };
-    fbq: jest.MockedFunction<any>;
-    hj: jest.MockedFunction<any>;
-    __analyticsEvents: any[];
+    fbq: jest.MockedFunction<(...args: unknown[]) => void>;
+    hj: jest.MockedFunction<(...args: unknown[]) => void>;
+    __analyticsEvents: unknown[];
   }
 }
 
 export function setupAnalyticsMocks() {
   // Mock Google Analytics
-  (global as any).window = {
+  (global as unknown as { window: Window }).window = {
     ...global.window,
     gtag: mockGoogleAnalytics.gtag,
     dataLayer: mockGoogleAnalytics.dataLayer,

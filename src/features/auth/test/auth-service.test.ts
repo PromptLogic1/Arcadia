@@ -329,7 +329,7 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        single: jest.fn<any[], any>().mockResolvedValue({
           data: mockUserData,
           error: null,
         }),
@@ -349,7 +349,7 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        single: jest.fn<any[], any>().mockResolvedValue({
           data: null,
           error: { message: 'User not found' },
         }),

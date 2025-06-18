@@ -22,10 +22,7 @@ export const createMockDiscussion = (overrides: Partial<Tables<'discussions'>> =
     created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString(),
     upvotes: Math.floor(Math.random() * 50),
-    downvotes: Math.floor(Math.random() * 10),
-    comment_count: Math.floor(Math.random() * 20),
-    is_pinned: false,
-    is_locked: false,
+    // Note: downvotes, comment_count, is_pinned, is_locked not in current schema
     ...overrides,
   };
 };
@@ -39,37 +36,43 @@ export const createMockComment = (overrides: Partial<Tables<'comments'>> = {}): 
     content: `This is test comment ${id}. It provides valuable insight into the discussion topic.`,
     author_id: `user-${id}`,
     discussion_id: 1,
-    parent_id: null,
     created_at: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString(),
     upvotes: Math.floor(Math.random() * 20),
-    downvotes: Math.floor(Math.random() * 5),
-    is_deleted: false,
+    // Note: parent_id, downvotes, is_deleted not in current schema
     ...overrides,
   };
 };
 
 // User Profile Factory
-export const createMockUser = (overrides: Partial<Tables<'profiles'>> = {}): Tables<'profiles'> => {
+export const createMockUser = (overrides: Partial<Tables<'users'>> = {}): Tables<'users'> => {
   const id = `user-${userCounter++}`;
   
   return {
     id,
     username: `testuser${userCounter}`,
-    email: `testuser${userCounter}@example.com`,
+    auth_id: null,
     created_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString(),
-    reputation: Math.floor(Math.random() * 1000),
-    violations: Math.floor(Math.random() * 3),
-    is_banned: false,
-    banned_until: null,
     role: 'user',
+    bio: null,
+    full_name: null,
+    avatar_url: null,
+    city: null,
+    land: null,
+    region: null,
+    experience_points: Math.floor(Math.random() * 1000),
+    last_login_at: null,
+    achievements_visibility: 'public',
+    profile_visibility: 'public',
+    submissions_visibility: 'public',
+    // Note: email, reputation, violations, is_banned, banned_until not in current schema
     ...overrides,
   };
 };
 
 // Content Report Factory
-export const createMockReport = (overrides: Partial<any> = {}): any => {
+export const createMockReport = (overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> => {
   const id = `report-${reportCounter++}`;
   
   return {
@@ -89,7 +92,7 @@ export const createMockReport = (overrides: Partial<any> = {}): any => {
 };
 
 // Notification Factory
-export const createMockNotification = (overrides: Partial<any> = {}): any => {
+export const createMockNotification = (overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> => {
   const id = `notification-${notificationCounter++}`;
   
   return {
@@ -120,7 +123,7 @@ export const createMockComments = (count: number, discussionId?: number, overrid
   }));
 };
 
-export const createMockUsers = (count: number, overrides?: Partial<Tables<'profiles'>>): Tables<'profiles'>[] => {
+export const createMockUsers = (count: number, overrides?: Partial<Tables<'users'>>): Tables<'users'>[] => {
   return Array.from({ length: count }, () => createMockUser(overrides));
 };
 
@@ -138,7 +141,7 @@ export const createMockCommentThread = (
     for (let i = 0; i < childrenPerLevel; i++) {
       const comment = createMockComment({
         discussion_id: discussionId,
-        parent_id: parentId,
+        // parent_id not available in current schema
         content: `Nested comment at depth ${depth - currentDepth + 1}, child ${i + 1}`,
       });
       
@@ -162,8 +165,7 @@ export const createTestScenario = {
     const discussion = createMockDiscussion({
       title: 'Popular Discussion',
       upvotes: 100,
-      comment_count: 50,
-      is_pinned: true,
+      // Note: comment_count and is_pinned not in current schema
     });
     
     const comments = createMockComments(50, discussion.id);
@@ -176,8 +178,7 @@ export const createTestScenario = {
     const discussion = createMockDiscussion({
       title: 'Controversial Topic',
       upvotes: 30,
-      downvotes: 25,
-      comment_count: 80,
+      // Note: downvotes, comment_count not in current schema
     });
     
     const comments = createMockComments(80, discussion.id);
@@ -219,32 +220,27 @@ export const createTestScenario = {
   userTrustLevels: () => {
     const newUser = createMockUser({
       created_at: new Date().toISOString(),
-      reputation: 0,
-      violations: 0,
+      // Note: reputation, violations not in current schema
     });
     
     const basicUser = createMockUser({
       created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      reputation: 25,
-      violations: 0,
+      // Note: reputation, violations not in current schema
     });
     
     const regularUser = createMockUser({
       created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-      reputation: 150,
-      violations: 0,
+      // Note: reputation, violations not in current schema
     });
     
     const trustedUser = createMockUser({
       created_at: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
-      reputation: 500,
-      violations: 0,
+      // Note: reputation, violations not in current schema
     });
     
     const moderator = createMockUser({
       role: 'moderator',
-      reputation: 1000,
-      violations: 0,
+      // Note: reputation, violations not in current schema
     });
     
     return {

@@ -260,7 +260,7 @@ describe('OAuth Authentication', () => {
           clientId: OAUTH_CONFIG.google.clientId,
           redirectUri: OAUTH_CONFIG.google.redirectUri,
         });
-        expect.fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (err: any) {
         expect(err.error).toBe('access_denied');
         expect(err.error_description).toBe('The user denied the request');
@@ -277,7 +277,7 @@ describe('OAuth Authentication', () => {
 
       try {
         await mockOAuthProviders.google.callback(invalidCode, 'state');
-        expect.fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (err: any) {
         expect(err.error).toBe('invalid_grant');
       }
@@ -290,7 +290,7 @@ describe('OAuth Authentication', () => {
 
       try {
         await mockOAuthProviders.github.callback('code', 'state');
-        expect.fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (err: any) {
         expect(err.message).toBe('Network error');
       }
@@ -305,7 +305,7 @@ describe('OAuth Authentication', () => {
 
       try {
         await mockOAuthProviders.github.callback('code', 'state');
-        expect.fail('Should have thrown an error');
+        throw new Error('Should have thrown an error');
       } catch (err: any) {
         expect(err.error).toBe('rate_limit_exceeded');
         expect(err.retry_after).toBe(3600);

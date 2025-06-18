@@ -1,16 +1,8 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import type { Tables } from '@/types/database.types';
 
-// Achievement types
-interface Achievement {
-  id: string;
-  user_id: string;
-  achievement_name: string;
-  achievement_type: string;
-  description: string;
-  points: number;
-  unlocked_at: string | null;
-  created_at: string;
+// Achievement types using database schema
+type Achievement = Tables<'user_achievements'> & {
   metadata: {
     category: string;
     rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
@@ -18,7 +10,7 @@ interface Achievement {
     max_progress: number;
     icon: string;
   };
-}
+};
 
 interface AchievementProgress {
   achievement_id: string;
@@ -222,7 +214,7 @@ export class AchievementEngine {
     const achievements = Array.from(this.achievements.values());
     const unlocked = achievements.filter(a => a.unlocked_at);
     const unlockedCount = unlocked.length;
-    const totalPoints = unlocked.reduce((sum, a) => sum + a.points, 0);
+    const totalPoints = unlocked.reduce((sum, a) => sum + (a.points ?? 0), 0);
 
     const byRarity: Record<string, number> = {};
     const byCategory: Record<string, number> = {};
@@ -267,7 +259,7 @@ export class AchievementEngine {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(a =>
         a.achievement_name.toLowerCase().includes(searchLower) ||
-        a.description.toLowerCase().includes(searchLower)
+        (a.description ?? '').toLowerCase().includes(searchLower)
       );
     }
 
@@ -280,7 +272,7 @@ export class AchievementEngine {
 
     switch (sortBy) {
       case 'points':
-        return sorted.sort((a, b) => b.points - a.points);
+        return sorted.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
       
       case 'rarity':
         const rarityOrder = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };

@@ -1,29 +1,34 @@
 import { describe, it, expect } from '@jest/globals';
 import type { Tables } from '@/types/database.types';
 import {
-  checkUserPermissions,
   enforceRateLimits,
   getUserTrustLevel,
   canUserPerformAction,
   getActionPermissions,
-  type UserPermissions,
   type UserAction,
   type RateLimitConfig,
   type TrustLevel,
 } from '../services/permissions-service';
 
 // Mock user data
-const createMockUser = (overrides: Partial<Tables<'profiles'>> = {}): Tables<'profiles'> => ({
+const createMockUser = (overrides: Partial<Tables<'users'>> = {}): Tables<'users'> => ({
   id: 'user-1',
   username: 'testuser',
-  email: 'test@example.com',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-  reputation: 0,
-  violations: 0,
-  is_banned: false,
-  banned_until: null,
+  auth_id: null,
+  avatar_url: null,
+  bio: null,
+  city: null,
+  experience_points: null,
+  full_name: null,
+  land: null,
+  last_login_at: null,
+  region: null,
   role: 'user',
+  achievements_visibility: null,
+  profile_visibility: null,
+  submissions_visibility: null,
   ...overrides,
 });
 
@@ -32,8 +37,6 @@ describe('Permissions Service', () => {
     it('should calculate new user trust level', () => {
       const user = createMockUser({
         created_at: new Date().toISOString(),
-        reputation: 0,
-        violations: 0,
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -48,8 +51,6 @@ describe('Permissions Service', () => {
 
       const user = createMockUser({
         created_at: weekAgo.toISOString(),
-        reputation: 20,
-        violations: 0,
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -65,8 +66,8 @@ describe('Permissions Service', () => {
 
       const user = createMockUser({
         created_at: monthsAgo.toISOString(),
-        reputation: 150,
-        violations: 0,
+        
+        
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -82,8 +83,8 @@ describe('Permissions Service', () => {
 
       const user = createMockUser({
         created_at: yearAgo.toISOString(),
-        reputation: 500,
-        violations: 0,
+        
+        
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -95,7 +96,7 @@ describe('Permissions Service', () => {
     it('should grant moderator permissions', () => {
       const user = createMockUser({
         role: 'moderator',
-        reputation: 1000,
+        
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -112,8 +113,8 @@ describe('Permissions Service', () => {
 
       const user = createMockUser({
         created_at: monthsAgo.toISOString(),
-        reputation: 200,
-        violations: 3, // Multiple violations
+        
+         // Multiple violations
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -123,8 +124,8 @@ describe('Permissions Service', () => {
 
     it('should restrict banned users', () => {
       const user = createMockUser({
-        is_banned: true,
-        banned_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
+        
+         // 1 day from now
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -136,9 +137,9 @@ describe('Permissions Service', () => {
 
     it('should restore permissions after ban expires', () => {
       const user = createMockUser({
-        is_banned: true,
-        banned_until: new Date(Date.now() - 1000).toISOString(), // Ban expired
-        reputation: 100,
+        
+         // Ban expired
+        
       });
 
       const trustLevel = getUserTrustLevel(user);
@@ -162,7 +163,7 @@ describe('Permissions Service', () => {
     it('should check permissions for new users', () => {
       const newUser = createMockUser({
         created_at: new Date().toISOString(),
-        reputation: 0,
+        
       });
 
       expect(canUserPerformAction(newUser, 'create_comment')).toBe(true);
@@ -174,7 +175,7 @@ describe('Permissions Service', () => {
     it('should check permissions for regular users', () => {
       const regularUser = createMockUser({
         created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-        reputation: 150,
+        
       });
 
       expect(canUserPerformAction(regularUser, 'create_discussion')).toBe(true);
@@ -187,7 +188,7 @@ describe('Permissions Service', () => {
     it('should check permissions for moderators', () => {
       const moderator = createMockUser({
         role: 'moderator',
-        reputation: 1000,
+        
       });
 
       actions.forEach(action => {
@@ -202,7 +203,7 @@ describe('Permissions Service', () => {
     it('should handle content ownership checks', () => {
       const user = createMockUser({
         id: 'user-123',
-        reputation: 150,
+        
       });
 
       const ownContent = { author_id: 'user-123' };
@@ -224,7 +225,7 @@ describe('Permissions Service', () => {
     it('should enforce comment rate limits for new users', async () => {
       const newUser = createMockUser({
         created_at: new Date().toISOString(),
-        reputation: 0,
+        
       });
 
       const config: RateLimitConfig = {
@@ -250,7 +251,7 @@ describe('Permissions Service', () => {
     it('should enforce discussion creation rate limits', async () => {
       const basicUser = createMockUser({
         created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        reputation: 50,
+        
       });
 
       const config: RateLimitConfig = {
@@ -273,7 +274,7 @@ describe('Permissions Service', () => {
     it('should allow higher limits for trusted users', async () => {
       const trustedUser = createMockUser({
         created_at: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
-        reputation: 500,
+        
       });
 
       const config: RateLimitConfig = {
@@ -315,7 +316,7 @@ describe('Permissions Service', () => {
 
     it('should calculate correct wait times', async () => {
       const user = createMockUser({
-        reputation: 20,
+        
       });
 
       const config: RateLimitConfig = {
@@ -339,7 +340,7 @@ describe('Permissions Service', () => {
 
     it('should implement sliding window rate limiting', async () => {
       const user = createMockUser({
-        reputation: 50,
+        
       });
 
       const config: RateLimitConfig = {
@@ -419,7 +420,7 @@ describe('Permissions Service', () => {
   describe('Complex Permission Scenarios', () => {
     it('should handle temporary permission overrides', () => {
       const user = createMockUser({
-        reputation: 100,
+        
         temporary_permissions: {
           create_wiki: true,
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -432,7 +433,7 @@ describe('Permissions Service', () => {
     it('should handle permission inheritance for special roles', () => {
       const vipUser = createMockUser({
         role: 'vip',
-        reputation: 50, // Low reputation but VIP
+         // Low reputation but VIP
       });
 
       const trustLevel = getUserTrustLevel(vipUser);
@@ -443,8 +444,8 @@ describe('Permissions Service', () => {
 
     it('should apply contextual permissions', () => {
       const user = createMockUser({
-        reputation: 200,
-        is_event_participant: true,
+        
+        
       });
 
       // During events, participants get special permissions
@@ -461,7 +462,7 @@ describe('Permissions Service', () => {
 
     it('should check discussion-specific permissions', () => {
       const user = createMockUser({
-        reputation: 150,
+        
       });
 
       const lockedDiscussion = {

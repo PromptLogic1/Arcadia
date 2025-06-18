@@ -57,7 +57,8 @@ describe('Analytics Event Tracking', () => {
         action: 'view',
         label: '/home',
       });
-      expect(event.timestamp).toBeInstanceOf(Date);
+      expect(event.timestamp).toBeDefined();
+      expect(event.timestamp.getTime()).toEqual(expect.any(Number));
       expect(event.id).toMatch(/^[a-f0-9-]+$/);
     });
 

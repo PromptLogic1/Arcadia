@@ -11,30 +11,45 @@ setupAnalyticsMocks();
 // Mock crypto.randomUUID
 Object.defineProperty(global, 'crypto', {
   value: {
-    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(2),
+    randomUUID: () => 'abcd-ef12-1234-5678-90ab',
   },
 });
 
-// Mock crypto.createHash for Node.js - make it deterministic
-const mockHash = {
-  update: jest.fn().mockReturnThis(),
-  digest: jest.fn().mockImplementation((encoding: string) => {
-    if (encoding === 'hex') {
-      return 'abcdef1234567890';
-    }
-    return 'abcdef1234567890';
-  }),
-};
+// Mock crypto.createHash for Node.js - make it deterministic but varied
 
 jest.mock('crypto', () => ({
   ...jest.requireActual('crypto'),
-  createHash: jest.fn().mockReturnValue(mockHash),
-  randomUUID: jest.fn(() => 'test-uuid-123'),
+  createHash: jest.fn().mockImplementation(() => ({
+    update: jest.fn().mockImplementation(function(data: string) {
+      // Create a simple hash based on the input
+      let hash = 0;
+      for (let i = 0; i < data.length; i++) {
+        const char = data.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      this._hash = Math.abs(hash).toString(16).padStart(8, '0').substring(0, 8);
+      return this;
+    }),
+    digest: jest.fn().mockImplementation(function(encoding: string) {
+      if (encoding === 'hex') {
+        return this._hash + '00000000'; // Make it 16 chars like MD5
+      }
+      return this._hash + '00000000';
+    }),
+  })),
+  randomUUID: jest.fn(() => 'abcd-ef12-1234-5678-90ab'),
 }));
 
 // Mock Date.now for consistent timestamps in tests
 const mockDate = new Date('2024-01-15T10:00:00Z');
-jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
+const OriginalDate = Date;
+jest.spyOn(global, 'Date').mockImplementation((date?: string | number | Date) => {
+  if (date !== undefined) {
+    return new OriginalDate(date);
+  }
+  return new OriginalDate(mockDate);
+});
 Date.now = jest.fn(() => mockDate.getTime());
 
 // Mock console methods to reduce noise in tests

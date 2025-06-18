@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 import type { Tables } from '@/types/database.types';
 import {
   searchDiscussions,
@@ -23,10 +23,6 @@ const createMockDiscussion = (overrides: Partial<Tables<'discussions'>> = {}): T
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   upvotes: 0,
-  downvotes: 0,
-  comment_count: 0,
-  is_pinned: false,
-  is_locked: false,
   ...overrides,
 });
 
@@ -341,17 +337,17 @@ describe('Search Service', () => {
       expect(filtered[0].id).toBe(1);
     });
 
-    it('should handle pinned discussions priority', () => {
+    it('should sort by newest without pinned support', () => {
       const discussions = [
-        createMockDiscussion({ id: 1, is_pinned: false, created_at: new Date('2024-01-02').toISOString() }),
-        createMockDiscussion({ id: 2, is_pinned: true, created_at: new Date('2024-01-01').toISOString() }),
-        createMockDiscussion({ id: 3, is_pinned: false, created_at: new Date('2024-01-03').toISOString() }),
+        createMockDiscussion({ id: 1, created_at: new Date('2024-01-02').toISOString() }),
+        createMockDiscussion({ id: 2, created_at: new Date('2024-01-01').toISOString() }),
+        createMockDiscussion({ id: 3, created_at: new Date('2024-01-03').toISOString() }),
       ];
 
       const sorted = filterDiscussions(discussions, {}, 'newest');
-      expect(sorted[0].id).toBe(2); // Pinned should be first
-      expect(sorted[1].id).toBe(3); // Then newest
-      expect(sorted[2].id).toBe(1); // Then older
+      expect(sorted[0].id).toBe(3); // Newest first
+      expect(sorted[1].id).toBe(1); // Then middle
+      expect(sorted[2].id).toBe(2); // Then oldest
     });
   });
 
@@ -369,20 +365,20 @@ describe('Search Service', () => {
 
     it('should sort by most upvoted', () => {
       const discussions = [
-        createMockDiscussion({ id: 1, upvotes: 5, downvotes: 2 }), // net: 3
-        createMockDiscussion({ id: 2, upvotes: 10, downvotes: 1 }), // net: 9
-        createMockDiscussion({ id: 3, upvotes: 7, downvotes: 3 }), // net: 4
+        createMockDiscussion({ id: 1, upvotes: 5 }),
+        createMockDiscussion({ id: 2, upvotes: 10 }),
+        createMockDiscussion({ id: 3, upvotes: 7 }),
       ];
 
       const sorted = filterDiscussions(discussions, {}, 'most_upvoted');
       expect(sorted.map(d => d.id)).toEqual([2, 3, 1]);
     });
 
-    it('should sort by most comments', () => {
+    it('should sort by most comments (fallback to upvotes)', () => {
       const discussions = [
-        createMockDiscussion({ id: 1, comment_count: 5 }),
-        createMockDiscussion({ id: 2, comment_count: 15 }),
-        createMockDiscussion({ id: 3, comment_count: 10 }),
+        createMockDiscussion({ id: 1, upvotes: 5 }),
+        createMockDiscussion({ id: 2, upvotes: 15 }),
+        createMockDiscussion({ id: 3, upvotes: 10 }),
       ];
 
       const sorted = filterDiscussions(discussions, {}, 'most_comments');

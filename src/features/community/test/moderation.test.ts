@@ -2,16 +2,8 @@ import { describe, it, expect } from '@jest/globals';
 import {
   calculateSpamScore,
   moderateContent,
-  SPAM_PATTERNS,
-  INAPPROPRIATE_PATTERNS,
-  PHISHING_PATTERNS,
-  ADVANCED_SPAM_PATTERNS,
-  MULTILINGUAL_SPAM_PATTERNS,
-  GAMING_CONTEXT_PATTERNS,
   PERMISSION_MATRIX,
   type UserTrustLevel,
-  type ModerationResult,
-  type ContentClassification,
 } from '../services/moderation-service';
 
 describe('Content Moderation Service', () => {

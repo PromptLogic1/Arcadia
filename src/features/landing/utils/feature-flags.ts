@@ -229,7 +229,7 @@ export function parseCondition(condition: FlagCondition, context: FlagContext): 
 function generateUserHash(flagKey: string, userId: string): number {
   const input = `${flagKey}:${userId}`;
   const hash = createHash('md5').update(input).digest('hex');
-  return parseInt(hash.substring(0, 8), 16) % 100;
+  return parseInt(hash.substring(0, 8), 16);
 }
 
 /**
@@ -453,9 +453,9 @@ export class FeatureFlagManager {
   getEvaluationContext(context: FlagContext): Record<string, FlagValue> {
     const result: Record<string, FlagValue> = {};
     
-    for (const [key, flag] of this.flags.entries()) {
+    Array.from(this.flags.entries()).forEach(([key, flag]) => {
       result[key] = evaluateFlag(key, flag.defaultValue, context, flag);
-    }
+    });
 
     return result;
   }

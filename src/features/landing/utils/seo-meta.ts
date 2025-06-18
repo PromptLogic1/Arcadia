@@ -262,7 +262,7 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
   // Twitter Card validation
   if (metaTags.twitter) {
     const cardType = metaTags.twitter['twitter:card'];
-    if (cardType && !VALID_TWITTER_CARDS.includes(cardType as any)) {
+    if (cardType && !VALID_TWITTER_CARDS.includes(cardType as typeof VALID_TWITTER_CARDS[number])) {
       errors.push({
         field: 'twitter:card',
         message: `Invalid Twitter card type. Must be one of: ${VALID_TWITTER_CARDS.join(', ')}`,

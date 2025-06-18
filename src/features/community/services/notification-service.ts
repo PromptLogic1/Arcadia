@@ -55,6 +55,7 @@ export interface NotificationContent {
   action_url?: string;
 }
 
+
 export type NotificationType = 
   | 'comment_reply'
   | 'mention'
@@ -82,6 +83,26 @@ export interface Notification {
   read_at?: string | null;
   created_at?: string;
   metadata?: Record<string, unknown>;
+  // Additional properties for batched notifications
+  actors?: string[];
+  count?: number;
+}
+
+// Extended notification interface for formatting with actor and resource data
+export interface NotificationForFormatting {
+  type: NotificationType;
+  actor: { username: string };
+  resource: {
+    type?: string;
+    id?: string;
+    content?: string;
+    title?: string;
+    discussion_title?: string;
+  };
+  metadata?: Record<string, unknown>;
+  // For batch notifications
+  actors?: Array<{ username: string }>;
+  count?: number;
 }
 
 // Create and trigger a notification
@@ -126,7 +147,7 @@ export async function triggerNotification(
     resource: {
       type: trigger.resource_type,
       id: trigger.resource_id,
-      content: trigger.metadata?.content || 'Content',
+      content: trigger.metadata?.content as string || 'Content',
     },
     metadata: trigger.metadata,
   });
@@ -315,6 +336,7 @@ export async function batchNotifications(
       const allNotifications = [notification, ...similar];
       const actors = allNotifications
         .map(n => n.actor_id)
+        .filter((id): id is string => id !== undefined)
         .filter((id, index, array) => array.indexOf(id) === index);
 
       batches.push({
@@ -322,26 +344,28 @@ export async function batchNotifications(
         count: allNotifications.length,
         actors,
         recipient_id: notification.recipient_id,
-        resource_type: notification.resource_type,
-        resource_id: notification.resource_id,
+        resource_type: notification.resource_type || '',
+        resource_id: notification.resource_id || '',
         created_at: new Date().toISOString(),
       });
 
       // Mark as processed
       processed.add(index);
-      similar.forEach((_, i) => {
-        const originalIndex = notifications.indexOf(notifications[i]);
-        processed.add(originalIndex);
+      similar.forEach((similarNotification) => {
+        const originalIndex = notifications.indexOf(similarNotification);
+        if (originalIndex !== -1) {
+          processed.add(originalIndex);
+        }
       });
     } else {
       // Single notification
       batches.push({
         type: notification.type,
         count: 1,
-        actors: [notification.actor_id],
+        actors: notification.actor_id ? [notification.actor_id] : [],
         recipient_id: notification.recipient_id,
-        resource_type: notification.resource_type,
-        resource_id: notification.resource_id,
+        resource_type: notification.resource_type || '',
+        resource_id: notification.resource_id || '',
         created_at: notification.created_at || new Date().toISOString(),
       });
       processed.add(index);
@@ -352,7 +376,7 @@ export async function batchNotifications(
 }
 
 // Format notification content for display
-export async function formatNotificationContent(notification: Notification): Promise<NotificationContent> {
+export async function formatNotificationContent(notification: NotificationForFormatting): Promise<NotificationContent> {
   const { type, actor, resource, metadata } = notification;
 
   switch (type) {
@@ -360,39 +384,39 @@ export async function formatNotificationContent(notification: Notification): Pro
       return {
         title: `New reply from ${actor.username}`,
         body: `${actor.username} replied to your comment in "${resource.discussion_title || 'a discussion'}"`,
-        preview: truncateText(resource.content, 200),
+        preview: truncateText(resource.content || '', 200),
       };
 
     case 'mention':
       return {
         title: `${actor.username} mentioned you`,
         body: `${actor.username} mentioned you in a ${resource.type}`,
-        preview: truncateText(resource.content, 200),
+        preview: truncateText(resource.content || '', 200),
       };
 
     case 'discussion_update':
       return {
         title: 'New activity in your discussion',
         body: `${actor.username} commented on your discussion`,
-        preview: truncateText(resource.content, 200),
+        preview: truncateText(resource.content || '', 200),
       };
 
     case 'upvote':
       return {
         title: 'Your content was upvoted',
         body: `${actor.username} upvoted your ${resource.type}`,
-        preview: truncateText(resource.content, 200),
+        preview: truncateText(resource.content || '', 200),
       };
 
     case 'upvote_batch': {
-      const actorNames = notification.actors?.slice(0, 3).map((a: { username: string }) => a.username).join(', ');
+      const actorNames = notification.actors?.slice(0, 3).map(a => a.username).join(', ');
       const othersCount = Math.max(0, (notification.count || 0) - 3);
       const othersText = othersCount > 0 ? ` and ${othersCount} others` : '';
       
       return {
         title: `${notification.count} new upvotes`,
         body: `${actorNames}${othersText} upvoted your ${resource.type}`,
-        preview: truncateText(resource.content, 200),
+        preview: truncateText(resource.content || '', 200),
       };
     }
 
@@ -442,13 +466,13 @@ export async function markNotificationsAsRead(
 }
 
 // Get unread notification count
-export async function getUnreadNotificationCount(userId: string): Promise<number> {
+export async function getUnreadNotificationCount(_userId: string): Promise<number> {
   // Mock implementation
   return Math.floor(Math.random() * 10);
 }
 
 // Clean up old notifications
-export async function cleanupOldNotifications(olderThanDays: number = 30): Promise<void> {
+export async function cleanupOldNotifications(olderThanDays = 30): Promise<void> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
   

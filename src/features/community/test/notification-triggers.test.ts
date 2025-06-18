@@ -9,21 +9,27 @@ import {
   type NotificationTrigger,
   type NotificationPreferences,
   type NotificationContext,
-  type NotificationBatch,
 } from '../services/notification-service';
 
 // Mock data
-const createMockUser = (id: string, prefs?: Partial<NotificationPreferences>): Tables<'profiles'> & { preferences: NotificationPreferences } => ({
+const createMockUser = (id: string, prefs?: Partial<NotificationPreferences>) => ({
   id,
   username: `user${id}`,
-  email: `user${id}@example.com`,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-  reputation: 100,
-  violations: 0,
-  is_banned: false,
-  banned_until: null,
-  role: 'user',
+  auth_id: null,
+  avatar_url: null,
+  bio: null,
+  city: null,
+  experience_points: null,
+  full_name: null,
+  land: null,
+  last_login_at: null,
+  region: null,
+  role: 'user' as const,
+  achievements_visibility: null,
+  profile_visibility: null,
+  submissions_visibility: null,
   preferences: {
     email_notifications: true,
     push_notifications: true,
@@ -55,10 +61,6 @@ const createMockDiscussion = (overrides: Partial<Tables<'discussions'>> = {}): T
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   upvotes: 0,
-  downvotes: 0,
-  comment_count: 0,
-  is_pinned: false,
-  is_locked: false,
   ...overrides,
 });
 
@@ -67,12 +69,9 @@ const createMockComment = (overrides: Partial<Tables<'comments'>> = {}): Tables<
   content: 'Test comment',
   author_id: 'user-2',
   discussion_id: 1,
-  parent_id: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   upvotes: 0,
-  downvotes: 0,
-  is_deleted: false,
   ...overrides,
 });
 
@@ -87,15 +86,14 @@ describe('Notification Service', () => {
 
       const replyComment = createMockComment({
         id: 2,
-        parent_id: 1,
         author_id: 'user-2',
         content: 'This is a reply',
       });
 
       const trigger: NotificationTrigger = {
         type: 'comment_reply',
-        actor_id: replyComment.author_id,
-        target_id: parentComment.author_id,
+        actor_id: replyComment.author_id || 'user-2',
+        target_id: parentComment.author_id || 'user-1',
         resource_type: 'comment',
         resource_id: replyComment.id.toString(),
         parent_id: parentComment.id.toString(),
@@ -104,10 +102,10 @@ describe('Notification Service', () => {
       const notification = await triggerNotification(trigger);
 
       expect(notification).toBeDefined();
-      expect(notification.type).toBe('comment_reply');
-      expect(notification.recipient_id).toBe('user-1');
-      expect(notification.actor_id).toBe('user-2');
-      expect(notification.resource_id).toBe('2');
+      expect(notification!.type).toBe('comment_reply');
+      expect(notification!.recipient_id).toBe('user-1');
+      expect(notification!.actor_id).toBe('user-2');
+      expect(notification!.resource_id).toBe('2');
     });
 
     it('should trigger notification for mentions', async () => {
@@ -122,7 +120,7 @@ describe('Notification Service', () => {
       for (const username of mentions) {
         const trigger: NotificationTrigger = {
           type: 'mention',
-          actor_id: comment.author_id,
+          actor_id: comment.author_id!,
           target_id: username, // Would be resolved to user ID
           resource_type: 'comment',
           resource_id: comment.id.toString(),
@@ -136,8 +134,8 @@ describe('Notification Service', () => {
       }
 
       expect(notifications).toHaveLength(2);
-      expect(notifications[0].type).toBe('mention');
-      expect(notifications[1].type).toBe('mention');
+      expect(notifications[0]!.type).toBe('mention');
+      expect(notifications[1]!.type).toBe('mention');
     });
 
     it('should trigger notification for discussion updates', async () => {
@@ -153,8 +151,8 @@ describe('Notification Service', () => {
 
       const trigger: NotificationTrigger = {
         type: 'discussion_update',
-        actor_id: comment.author_id,
-        target_id: discussion.author_id,
+        actor_id: comment.author_id || 'user-2',
+        target_id: discussion.author_id || 'user-1',
         resource_type: 'discussion',
         resource_id: discussion.id.toString(),
         metadata: {
@@ -165,9 +163,10 @@ describe('Notification Service', () => {
 
       const notification = await triggerNotification(trigger);
 
-      expect(notification.type).toBe('discussion_update');
-      expect(notification.recipient_id).toBe('user-1');
-      expect(notification.metadata?.update_type).toBe('new_comment');
+      expect(notification).not.toBeNull();
+      expect(notification!.type).toBe('discussion_update');
+      expect(notification!.recipient_id).toBe('user-1');
+      expect(notification!.metadata?.update_type).toBe('new_comment');
     });
 
     it('should trigger notification for upvotes when enabled', async () => {
@@ -178,15 +177,16 @@ describe('Notification Service', () => {
       const trigger: NotificationTrigger = {
         type: 'upvote',
         actor_id: 'user-2',
-        target_id: comment.author_id,
+        target_id: comment.author_id || 'user-1',
         resource_type: 'comment',
         resource_id: comment.id.toString(),
       };
 
       const notification = await triggerNotification(trigger);
 
-      expect(notification.type).toBe('upvote');
-      expect(notification.recipient_id).toBe('user-1');
+      expect(notification).not.toBeNull();
+      expect(notification!.type).toBe('upvote');
+      expect(notification!.recipient_id).toBe('user-1');
     });
 
     it('should trigger notification for new followers', async () => {
@@ -200,9 +200,9 @@ describe('Notification Service', () => {
 
       const notification = await triggerNotification(trigger);
 
-      expect(notification.type).toBe('new_follower');
-      expect(notification.recipient_id).toBe('user-1');
-      expect(notification.actor_id).toBe('user-2');
+      expect(notification!.type).toBe('new_follower');
+      expect(notification!.recipient_id).toBe('user-1');
+      expect(notification!.actor_id).toBe('user-2');
     });
 
     it('should trigger moderation notifications', async () => {
@@ -213,7 +213,7 @@ describe('Notification Service', () => {
       const trigger: NotificationTrigger = {
         type: 'content_removed',
         actor_id: 'moderator-1',
-        target_id: discussion.author_id,
+        target_id: discussion.author_id!,
         resource_type: 'discussion',
         resource_id: discussion.id.toString(),
         metadata: {
@@ -224,8 +224,8 @@ describe('Notification Service', () => {
 
       const notification = await triggerNotification(trigger);
 
-      expect(notification.type).toBe('content_removed');
-      expect(notification.metadata?.reason).toBe('spam');
+      expect(notification!.type).toBe('content_removed');
+      expect(notification!.metadata?.reason).toBe('spam');
     });
   });
 
@@ -376,21 +376,21 @@ describe('Notification Service', () => {
 
   describe('Notification Batching', () => {
     it('should batch similar notifications', async () => {
-      const notifications = [
+      const notifications: Notification[] = [
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           actor_id: 'user-2',
           resource_id: 'comment-1',
         },
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           actor_id: 'user-3',
           resource_id: 'comment-1',
         },
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           actor_id: 'user-4',
           resource_id: 'comment-1',
@@ -400,9 +400,9 @@ describe('Notification Service', () => {
       const batched = await batchNotifications(notifications);
 
       expect(batched).toHaveLength(1);
-      expect(batched[0].type).toBe('upvote_batch');
-      expect(batched[0].count).toBe(3);
-      expect(batched[0].actors).toEqual(['user-2', 'user-3', 'user-4']);
+      expect(batched[0]!.type).toBe('upvote_batch');
+      expect(batched[0]!.count).toBe(3);
+      expect(batched[0]!.actors).toEqual(['user-2', 'user-3', 'user-4']);
     });
 
     it('should not batch different notification types', async () => {

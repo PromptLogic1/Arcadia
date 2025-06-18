@@ -3,6 +3,15 @@
 
 import type { Tables } from '@/types/database.types';
 
+// Extended discussion type for search functionality
+// The actual database schema doesn't include all these fields
+export interface DiscussionForSearch extends Tables<'discussions'> {
+  downvotes?: number;
+  comment_count?: number; 
+  is_pinned?: boolean;
+  is_locked?: boolean;
+}
+
 export interface SearchFilters {
   searchTerm?: string;
   game?: string | null;
@@ -17,7 +26,7 @@ export interface SearchFilters {
 }
 
 export interface SearchResult {
-  discussion: Tables<'discussions'>;
+  discussion: DiscussionForSearch;
   score: number;
   highlights: {
     title?: string[];
@@ -28,7 +37,7 @@ export interface SearchResult {
 
 export interface SearchQuery {
   search: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   sort: string;
 }
 
@@ -107,7 +116,7 @@ export function buildSearchQuery(filters: SearchFilters): SearchQuery {
 
 // Search discussions with scoring
 export function searchDiscussions(
-  discussions: Tables<'discussions'>[],
+  discussions: DiscussionForSearch[],
   searchTerm: string
 ): SearchResult[] {
   if (!searchTerm.trim()) {
@@ -246,10 +255,10 @@ function escapeRegex(string: string): string {
 
 // Filter discussions by criteria
 export function filterDiscussions(
-  discussions: Tables<'discussions'>[],
+  discussions: DiscussionForSearch[],
   filters: Partial<SearchFilters>,
   sortBy?: SortOption
-): Tables<'discussions'>[] {
+): DiscussionForSearch[] {
   let filtered = [...discussions];
 
   // Apply filters
@@ -263,7 +272,7 @@ export function filterDiscussions(
 
   if (filters.tags && filters.tags.length > 0) {
     filtered = filtered.filter(d => 
-      d.tags && filters.tags!.every(tag => d.tags!.includes(tag))
+      d.tags && filters.tags && filters.tags.every(tag => d.tags?.includes(tag))
     );
   }
 
@@ -275,6 +284,7 @@ export function filterDiscussions(
     const start = new Date(filters.dateRange.start);
     const end = new Date(filters.dateRange.end);
     filtered = filtered.filter(d => {
+      if (!d.created_at) return false; // Skip items without creation date
       const created = new Date(d.created_at);
       return created >= start && created <= end;
     });
@@ -290,52 +300,44 @@ export function filterDiscussions(
 
 // Sort discussions by specified criteria
 function sortDiscussions(
-  discussions: Tables<'discussions'>[],
+  discussions: DiscussionForSearch[],
   sortBy: SortOption
-): Tables<'discussions'>[] {
+): DiscussionForSearch[] {
   const sorted = [...discussions];
 
-  // Always prioritize pinned discussions
-  sorted.sort((a, b) => {
-    if (a.is_pinned && !b.is_pinned) return -1;
-    if (!a.is_pinned && b.is_pinned) return 1;
-    return 0;
-  });
+  // No pinned discussions support in current schema
+  // sorted.sort() will be applied by secondary sort below
 
   // Apply secondary sort
   switch (sortBy) {
     case 'newest':
       return sorted.sort((a, b) => {
-        if (a.is_pinned === b.is_pinned) {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        }
-        return 0;
+        const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return bDate - aDate;
       });
 
     case 'oldest':
       return sorted.sort((a, b) => {
-        if (a.is_pinned === b.is_pinned) {
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        }
-        return 0;
+        const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return aDate - bDate;
       });
 
     case 'most_upvoted':
       return sorted.sort((a, b) => {
-        if (a.is_pinned === b.is_pinned) {
-          const aScore = a.upvotes - a.downvotes;
-          const bScore = b.upvotes - b.downvotes;
-          return bScore - aScore;
-        }
-        return 0;
+        const aScore = a.upvotes || 0;
+        const bScore = b.upvotes || 0;
+        return bScore - aScore;
       });
 
     case 'most_comments':
+      // Note: comment_count not available in current schema
+      // Fallback to upvotes for now
       return sorted.sort((a, b) => {
-        if (a.is_pinned === b.is_pinned) {
-          return b.comment_count - a.comment_count;
-        }
-        return 0;
+        const aScore = a.upvotes || 0;
+        const bScore = b.upvotes || 0;
+        return bScore - aScore;
       });
 
     default:
@@ -346,7 +348,7 @@ function sortDiscussions(
 // Rank search results by relevance and other factors
 export function rankSearchResults(
   results: SearchResult[],
-  searchTerm: string
+  _searchTerm: string
 ): SearchResult[] {
   return results.sort((a, b) => {
     // Primary sort by score
@@ -355,15 +357,15 @@ export function rankSearchResults(
     }
 
     // Secondary sort by recency for ties
-    const aTime = new Date(a.discussion.created_at).getTime();
-    const bTime = new Date(b.discussion.created_at).getTime();
+    const aTime = a.discussion.created_at ? new Date(a.discussion.created_at).getTime() : 0;
+    const bTime = b.discussion.created_at ? new Date(b.discussion.created_at).getTime() : 0;
     return bTime - aTime;
   });
 }
 
 // Advanced search with multiple criteria
 export function advancedSearch(
-  discussions: Tables<'discussions'>[],
+  discussions: DiscussionForSearch[],
   filters: SearchFilters
 ): SearchResult[] {
   // First apply basic filters
@@ -392,7 +394,7 @@ export function advancedSearch(
     );
     
     return sortedDiscussions.map(discussion => 
-      results.find(r => r.discussion.id === discussion.id)!
-    );
+      results.find(r => r.discussion.id === discussion.id)
+    ).filter((r): r is SearchResult => r !== undefined);
   }
 }

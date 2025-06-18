@@ -395,66 +395,92 @@ export function moderateContent(
   const reasons: string[] = [];
   let confidence = 0;
 
-  // Check spam
-  if (spamResult.score > 0.7) {
-    classification = 'spam';
-    reasons.push(...spamResult.reasons);
-    confidence = spamResult.score;
-  }
-
-  // Check inappropriate content
-  Object.values(INAPPROPRIATE_PATTERNS).forEach(config => {
-    for (const pattern of config.patterns) {
-      if (pattern.test(content)) {
-        classification = 'inappropriate';
-        reasons.push(config.reason);
-        confidence = Math.max(confidence, config.weight);
-        break;
-      }
-    }
-  });
-
-  // Check phishing
-  Object.values(PHISHING_PATTERNS).forEach(config => {
+  // Check phishing (highest priority)
+  checkPhishing: for (const config of Object.values(PHISHING_PATTERNS)) {
     for (const pattern of config.patterns) {
       if (pattern.test(content)) {
         classification = 'phishing';
         reasons.push(config.reason);
         confidence = Math.max(confidence, config.weight);
-        break;
+        break checkPhishing;
       }
     }
-  });
+  }
+
+  // Check inappropriate content (medium priority) - only if not phishing
+  if (classification === 'safe') {
+    checkInappropriate: for (const config of Object.values(INAPPROPRIATE_PATTERNS)) {
+      for (const pattern of config.patterns) {
+        if (pattern.test(content)) {
+          classification = 'inappropriate';
+          reasons.push(config.reason);
+          confidence = Math.max(confidence, config.weight);
+          break checkInappropriate;
+        }
+      }
+    }
+  }
+
+  // Check spam (lowest priority) - only if safe
+  if (classification === 'safe' && spamResult.score > 0.7) {
+    classification = 'spam';
+    reasons.push(...spamResult.reasons);
+    confidence = spamResult.score;
+  }
 
   // Determine action based on classification and user trust
-  if (classification === 'safe') {
-    action = 'approve';
-  } else {
-    switch (author.level) {
-      case 'new':
-        action = confidence > 0.5 ? 'auto_remove' : 'require_review';
-        break;
-      case 'basic':
-        action = confidence > 0.7 ? 'auto_flag' : 'require_review';
-        break;
-      case 'regular':
-        action = confidence > 0.8 ? 'require_review' : 'approve';
-        break;
-      case 'trusted':
-        action = confidence > 0.9 ? 'require_review' : 'approve';
-        break;
-      case 'moderator':
-        action = 'approve';
-        break;
-    }
-
-    // Override for severe violations
-    if (classification === 'inappropriate' && confidence > 0.9) {
-      action = 'auto_remove';
-    }
-    if (classification === 'phishing') {
+  switch (classification) {
+    case 'safe':
+      action = 'approve';
+      break;
+    
+    case 'spam':
+      switch (author.level) {
+        case 'new':
+          action = confidence > 0.5 ? 'auto_remove' : 'require_review';
+          break;
+        case 'basic':
+          action = confidence > 0.7 ? 'auto_flag' : 'require_review';
+          break;
+        case 'regular':
+          action = confidence > 0.8 ? 'require_review' : 'approve';
+          break;
+        case 'trusted':
+          action = confidence > 0.9 ? 'require_review' : 'approve';
+          break;
+        case 'moderator':
+          action = 'approve';
+          break;
+      }
+      break;
+    
+    case 'inappropriate':
+      switch (author.level) {
+        case 'new':
+          action = confidence > 0.5 ? 'auto_remove' : 'require_review';
+          break;
+        case 'basic':
+          action = confidence > 0.7 ? 'auto_flag' : 'require_review';
+          break;
+        case 'regular':
+          action = confidence > 0.8 ? 'require_review' : 'approve';
+          break;
+        case 'trusted':
+          action = confidence > 0.9 ? 'require_review' : 'approve';
+          break;
+        case 'moderator':
+          action = 'approve';
+          break;
+      }
+      // Override for severe inappropriate content
+      if (confidence > 0.9) {
+        action = 'auto_remove';
+      }
+      break;
+    
+    case 'phishing':
       action = author.level === 'moderator' ? 'require_review' : 'auto_remove';
-    }
+      break;
   }
 
   return {

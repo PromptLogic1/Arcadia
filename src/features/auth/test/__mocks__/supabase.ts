@@ -251,14 +251,14 @@ export class MockSupabaseQueryBuilder {
 export const createMockSupabaseClient = () => new MockSupabaseClient();
 
 // Mock functions for rate limiting
-export const mockRateLimitCheck = jest.fn().mockResolvedValue({
+export const mockRateLimitCheck = jest.fn<any[], any>().mockResolvedValue({
   success: true,
   limit: 10,
   remaining: 9,
   reset: Date.now() + 3600000,
 });
 
-export const mockRateLimitExceeded = jest.fn().mockResolvedValue({
+export const mockRateLimitExceeded = jest.fn<any[], any>().mockResolvedValue({
   success: false,
   limit: 10,
   remaining: 0,
@@ -268,16 +268,16 @@ export const mockRateLimitExceeded = jest.fn().mockResolvedValue({
 // Mock OAuth providers
 export const mockOAuthProviders = {
   google: {
-    authorize: jest.fn(),
-    callback: jest.fn(),
+    authorize: jest.fn<any[], any>(),
+    callback: jest.fn<any[], any>(),
   },
   github: {
-    authorize: jest.fn(),
-    callback: jest.fn(),
+    authorize: jest.fn<any[], any>(),
+    callback: jest.fn<any[], any>(),
   },
   discord: {
-    authorize: jest.fn(),
-    callback: jest.fn(),
+    authorize: jest.fn<any[], any>(),
+    callback: jest.fn<any[], any>(),
   },
 };
 
@@ -293,7 +293,7 @@ export const mockSessionUtils = {
     return Date.now() + session.expires_in * 1000;
   },
   
-  refreshSession: jest.fn().mockResolvedValue({
+  refreshSession: jest.fn<any[], any>().mockResolvedValue({
     session: {
       access_token: `refreshed-token-${Date.now()}`,
       token_type: 'bearer',
