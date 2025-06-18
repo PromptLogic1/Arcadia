@@ -169,5 +169,22 @@ Object.defineProperty(window, 'sessionStorage', {
   value: mockStorage,
 });
 
+// Mock Web APIs that might not be available in Jest environment
+global.Request = global.Request || class Request {};
+global.Response = global.Response || class Response {};
+global.Headers = global.Headers || class Headers {};
+global.fetch = global.fetch || jest.fn();
+
+// Mock crypto for UUID generation
+global.crypto = global.crypto || {
+  getRandomValues: jest.fn((arr: Uint8Array) => {
+    for (let i = 0; i < arr.length; i++) {
+      arr[i] = Math.floor(Math.random() * 256);
+    }
+    return arr;
+  }),
+  randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
+} as any;
+
 // Set up test timeout
 jest.setTimeout(10000);
