@@ -4,7 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import type { ConversionFunnel } from './types';
+import type { AnalyticsEvent } from './types';
 import { 
   AnalyticsTracker, 
   CONVERSION_EVENTS
@@ -12,7 +12,26 @@ import {
 import { buildUrlWithParams } from './types/routes';
 
 // Enhanced conversion funnels with realistic user journeys
-const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
+interface TestConversionFunnel {
+  name: string;
+  stages: Array<{
+    name: string;
+    url: string;
+    events: Array<{
+      id: string;
+      name: string;
+      category: string;
+      action: string;
+      label?: string;
+      value?: number;
+      timestamp: number;
+    }>;
+    expectedMetrics: { dropoffRate: number; averageTime: number };
+  }>;
+  expectedDuration?: number;
+}
+
+const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
   name: 'enhanced_signup',
   stages: [
     {
@@ -20,7 +39,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.pageView('/'),
-        { id: 'test-1', name: 'landing_page_engaged', category: 'engagement', action: 'scroll', label: 'hero_section', timestamp: new Date() }
+        { id: 'test-1', name: 'landing_page_engaged', category: 'engagement', action: 'scroll', label: 'hero_section', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.1, averageTime: 10000 },
     },
@@ -29,7 +48,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.ctaClick('hero', 'signup'),
-        { id: 'test-2', name: 'cta_hover', category: 'engagement', action: 'hover', label: 'start_playing', timestamp: new Date() }
+        { id: 'test-2', name: 'cta_hover', category: 'engagement', action: 'hover', label: 'start_playing', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.3, averageTime: 5000 },
     },
@@ -38,7 +57,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/auth/signup',
       events: [
         CONVERSION_EVENTS.pageView('/auth/signup'),
-        { id: 'test-3', name: 'form_start', category: 'form', action: 'focus', label: 'signup_form', timestamp: new Date() }
+        { id: 'test-3', name: 'form_start', category: 'form', action: 'focus', label: 'signup_form', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.4, averageTime: 30000 },
     },
@@ -47,7 +66,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       url: '/auth/signup',
       events: [
         CONVERSION_EVENTS.formSubmit('signup'),
-        { id: 'test-4', name: 'form_validation', category: 'form', action: 'validate', label: 'signup_form', timestamp: new Date() }
+        { id: 'test-4', name: 'form_validation', category: 'form', action: 'validate', label: 'signup_form', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.2, averageTime: 60000 },
     },
@@ -57,7 +76,7 @@ const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
       events: [
         CONVERSION_EVENTS.signupComplete('email'),
         CONVERSION_EVENTS.pageView('/dashboard'),
-        { id: 'test-5', name: 'welcome_tour_start', category: 'onboarding', action: 'start', label: 'new_user', timestamp: new Date() }
+        { id: 'test-5', name: 'welcome_tour_start', category: 'onboarding', action: 'start', label: 'new_user', timestamp: Date.now() }
       ],
       expectedMetrics: { averageTime: 10000 },
     },
@@ -73,7 +92,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.pageView('/'),
-        { id: 'test-6', name: 'demo_section_view', category: 'engagement', action: 'scroll_to', label: 'demo_section', timestamp: new Date() }
+        { id: 'test-6', name: 'demo_section_view', category: 'engagement', action: 'scroll_to', label: 'demo_section', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.2 },
     },
@@ -81,8 +100,8 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Demo Interaction',
       url: '/',
       events: [
-        { id: 'test-7', name: 'demo_button_click', category: 'engagement', action: 'click', label: 'try_demo', timestamp: new Date() },
-        { id: 'test-8', name: 'demo_loading', category: 'engagement', action: 'load', label: 'demo_game', timestamp: new Date() }
+        { id: 'test-7', name: 'demo_button_click', category: 'engagement', action: 'click', label: 'try_demo', timestamp: Date.now() },
+        { id: 'test-8', name: 'demo_loading', category: 'engagement', action: 'load', label: 'demo_game', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.1 },
     },
@@ -90,8 +109,8 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Demo Completion',
       url: '/',
       events: [
-        { id: 'test-9', name: 'demo_complete', category: 'engagement', action: 'complete', label: 'demo_game', value: 1, timestamp: new Date() },
-        { id: 'test-10', name: 'demo_feedback', category: 'engagement', action: 'rate', label: 'demo_experience', timestamp: new Date() }
+        { id: 'test-9', name: 'demo_complete', category: 'engagement', action: 'complete', label: 'demo_game', value: 1, timestamp: Date.now() },
+        { id: 'test-10', name: 'demo_feedback', category: 'engagement', action: 'rate', label: 'demo_experience', timestamp: Date.now() }
       ],
       expectedMetrics: { averageTime: 120000 },
     },
@@ -107,7 +126,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       url: '/',
       events: [
         CONVERSION_EVENTS.pageView('/'),
-        { id: 'test-11', name: 'scroll_depth_25', category: 'engagement', action: 'scroll', label: '25_percent', timestamp: new Date() }
+        { id: 'test-11', name: 'scroll_depth_25', category: 'engagement', action: 'scroll', label: '25_percent', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.1 },
     },
@@ -115,8 +134,8 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Deep Engagement',
       url: '/',
       events: [
-        { id: 'test-12', name: 'scroll_depth_50', category: 'engagement', action: 'scroll', label: '50_percent', timestamp: new Date() },
-        { id: 'test-13', name: 'content_interaction', category: 'engagement', action: 'click', label: 'feature_card', timestamp: new Date() }
+        { id: 'test-12', name: 'scroll_depth_50', category: 'engagement', action: 'scroll', label: '50_percent', timestamp: Date.now() },
+        { id: 'test-13', name: 'content_interaction', category: 'engagement', action: 'click', label: 'feature_card', timestamp: Date.now() }
       ],
       expectedMetrics: { dropoffRate: 0.2 },
     },
@@ -124,8 +143,8 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
       name: 'Content Completion',
       url: '/',
       events: [
-        { id: 'test-14', name: 'scroll_depth_100', category: 'engagement', action: 'scroll', label: '100_percent', timestamp: new Date() },
-        { id: 'test-15', name: 'page_complete', category: 'engagement', action: 'complete', label: 'landing_page', timestamp: new Date() }
+        { id: 'test-14', name: 'scroll_depth_100', category: 'engagement', action: 'scroll', label: '100_percent', timestamp: Date.now() },
+        { id: 'test-15', name: 'page_complete', category: 'engagement', action: 'complete', label: 'landing_page', timestamp: Date.now() }
       ],
       expectedMetrics: { averageTime: 120000 },
     },
@@ -197,7 +216,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
     expect(allEvents.length).toBeGreaterThan(2);
     
     // Should have page view and at least one interaction event
-    const pageViews = allEvents.filter(e => e.eventName === 'page_view');
+    const pageViews = allEvents.filter(e => e.name === 'page_view');
     const interactions = allEvents.filter(e => e.category === 'engagement');
     
     expect(pageViews.length).toBeGreaterThan(0);

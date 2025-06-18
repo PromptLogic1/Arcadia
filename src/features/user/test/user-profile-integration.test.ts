@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeEach } from '@jest/globals';
 import {
-  createUserProfile,
   createUserStats,
   createGameHistory,
   createActivityLog,
@@ -64,7 +63,7 @@ describe('User Profile Integration', () => {
       
       // Week 4: Improving
       const week4Games = createGameHistory(userId, 20, { winRate: 0.6 });
-      const week4Activities = createActivityLog(userId, 7, 15);
+      // Week 4 activities would be: createActivityLog(userId, 7, 15);
       
       // Month 3: Experienced
       const month3Games = createGameHistory(userId, 50, { winRate: 0.8 });
@@ -109,13 +108,13 @@ describe('User Profile Integration', () => {
 
       // Group games by month
       const monthlyStats = largeGameHistory.reduce((acc, game) => {
-        const month = game.created_at.substring(0, 7); // YYYY-MM
+        const month = game.created_at ? game.created_at.substring(0, 7) : ''; // YYYY-MM
         if (!acc[month]) {
           acc[month] = { games: 0, wins: 0, totalScore: 0 };
         }
         acc[month].games++;
         if (game.placement === 1) acc[month].wins++;
-        acc[month].totalScore += game.final_score;
+        acc[month].totalScore += game.final_score || 0;
         return acc;
       }, {} as Record<string, { games: number; wins: number; totalScore: number }>);
 
@@ -144,18 +143,19 @@ describe('User Profile Integration', () => {
         { placement: 1 }, // W - Current streak should be 5
       ];
 
-      const gameHistory = gameSequence.map((game, index) =>
+      const gameHistory = gameSequence.map((_game, _index) =>
         createGameHistory(userId, 1, {})[0] // Create base game
       ).map((game, index) => ({
         ...game,
-        placement: gameSequence[index].placement,
+        placement: gameSequence[index]?.placement || 1,
         created_at: new Date(Date.now() - (gameSequence.length - index) * 60000).toISOString(),
       }));
 
       // Calculate current streak from the end
       let currentStreak = 0;
       for (let i = gameHistory.length - 1; i >= 0; i--) {
-        if (gameHistory[i].placement === 1) {
+        const game = gameHistory[i];
+        if (game && game.placement === 1) {
           currentStreak++;
         } else {
           break;
@@ -188,14 +188,14 @@ describe('User Profile Integration', () => {
 
       // Group by day of week
       const dayPatterns = activities.reduce((acc, activity) => {
-        const dayOfWeek = new Date(activity.created_at).getDay();
+        const dayOfWeek = activity.created_at ? new Date(activity.created_at).getDay() : 0;
         acc[dayOfWeek] = (acc[dayOfWeek] || 0) + 1;
         return acc;
       }, {} as Record<number, number>);
 
       // Group by hour
       const hourPatterns = activities.reduce((acc, activity) => {
-        const hour = new Date(activity.created_at).getHours();
+        const hour = activity.created_at ? new Date(activity.created_at).getHours() : 0;
         acc[hour] = (acc[hour] || 0) + 1;
         return acc;
       }, {} as Record<number, number>);
@@ -222,7 +222,7 @@ describe('User Profile Integration', () => {
         const weekEnd = now - weekIndex * 7 * 24 * 60 * 60 * 1000;
         
         return activities.filter(activity => {
-          const activityTime = new Date(activity.created_at).getTime();
+          const activityTime = activity.created_at ? new Date(activity.created_at).getTime() : 0;
           return activityTime >= weekStart && activityTime < weekEnd;
         });
       });
@@ -232,10 +232,14 @@ describe('User Profile Integration', () => {
       // Calculate trend (increasing/decreasing activity)
       let trendScore = 0;
       for (let i = 1; i < weeklyActivityCounts.length; i++) {
-        if (weeklyActivityCounts[i] > weeklyActivityCounts[i - 1]) {
-          trendScore += 1;
-        } else if (weeklyActivityCounts[i] < weeklyActivityCounts[i - 1]) {
-          trendScore -= 1;
+        const current = weeklyActivityCounts[i];
+        const previous = weeklyActivityCounts[i - 1];
+        if (current !== undefined && previous !== undefined) {
+          if (current > previous) {
+            trendScore += 1;
+          } else if (current < previous) {
+            trendScore -= 1;
+          }
         }
       }
 
@@ -275,7 +279,7 @@ describe('User Profile Integration', () => {
       expect(userStats.total_games).toBe(calculatedStats.total_games);
       expect(userStats.games_won).toBe(calculatedStats.games_won);
       expect(userStats.total_score).toBe(calculatedStats.total_score);
-      expect(Math.abs(userStats.average_score - calculatedStats.average_score)).toBeLessThan(1);
+      expect(Math.abs((userStats.average_score || 0) - calculatedStats.average_score)).toBeLessThan(1);
     });
 
     it('should handle edge cases in data aggregation', () => {
@@ -309,7 +313,7 @@ describe('User Profile Integration', () => {
       // Edge case: Single game
       const singleGame = createGameHistory(userId, 1, { winRate: 1 });
       expect(singleGame).toHaveLength(1);
-      expect(singleGame[0].placement).toBe(1);
+      expect(singleGame[0]?.placement).toBe(1);
     });
   });
 
@@ -320,21 +324,23 @@ describe('User Profile Integration', () => {
 
       // Calculate daily engagement scores
       const dailyEngagement = activities.reduce((acc, activity) => {
-        const date = activity.created_at.split('T')[0];
-        if (!acc[date]) {
-          acc[date] = { activities: 0, types: new Set(), score: 0 };
+        const date = activity.created_at ? activity.created_at.split('T')[0] : '';
+        if (date && !acc[date]) {
+          acc[date] = { activities: 0, types: new Set<string>(), score: 0 };
         }
         
-        acc[date].activities++;
-        acc[date].types.add(activity.activity_type);
-        
-        // Scoring: base activity + variety bonus
-        acc[date].score = acc[date].activities + acc[date].types.size * 2;
+        if (date && acc[date]) {
+          acc[date].activities++;
+          acc[date].types.add(activity.activity_type);
+          
+          // Scoring: base activity + variety bonus
+          acc[date].score = acc[date].activities + acc[date].types.size * 2;
+        }
         
         return acc;
       }, {} as Record<string, { activities: number; types: Set<string>; score: number }>);
 
-      const engagementScores = Object.values(dailyEngagement).map((d: { activities: number; types: Set<string>; score: number }) => d.score);
+      const engagementScores = Object.values(dailyEngagement).map(d => d.score);
       const avgEngagement = engagementScores.reduce((sum, score) => sum + score, 0) / engagementScores.length;
 
       expect(engagementScores.length).toBeGreaterThan(30); // Should have data for most days

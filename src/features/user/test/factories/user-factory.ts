@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database.types';
+import type { Database, Json } from '@/types/database.types';
 
 // Use correct database types
 type User = Database['public']['Tables']['users']['Row'];
@@ -225,9 +225,11 @@ export function createGameHistory(
     );
   }
 
-  return results.sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  return results.sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return aTime - bTime;
+  });
 }
 
 export function createActivityLog(
@@ -255,23 +257,27 @@ export function createActivityLog(
       const timeOffset = Math.random() * 24 * 60 * 60 * 1000;
       const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
       
-      activities.push(
-        createUserActivity({
-          user_id: userId,
-          activity_type: activityType as any,
-          created_at: new Date(dayStart - timeOffset).toISOString(),
-          data: generateActivityData(activityType),
-        })
-      );
+      if (activityType) {
+        activities.push(
+          createUserActivity({
+            user_id: userId,
+            activity_type: activityType as Database['public']['Enums']['activity_type'],
+            created_at: new Date(dayStart - timeOffset).toISOString(),
+            data: generateActivityData(activityType),
+          })
+        );
+      }
     }
   }
 
-  return activities.sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  return activities.sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return bTime - aTime;
+  });
 }
 
-function generateActivityData(activityType: string): any {
+function generateActivityData(activityType: string): Json {
   switch (activityType) {
     case 'board_create':
     case 'board_join':

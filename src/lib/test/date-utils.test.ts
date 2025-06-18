@@ -18,6 +18,7 @@ describe('Date Utilities', () => {
         if (args.length === 0) {
           super(mockNow.toISOString());
         } else {
+          // @ts-expect-error - spreading arguments to Date constructor
           super(...args);
         }
       }
@@ -25,7 +26,7 @@ describe('Date Utilities', () => {
       static now() {
         return mockNow.getTime();
       }
-    } as any;
+    } as DateConstructor;
   });
 
   afterEach(() => {

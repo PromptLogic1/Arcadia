@@ -95,7 +95,7 @@ export const expectValidToken = (token: string) => {
   expect(typeof token).toBe('string');
 };
 
-export const expectRateLimitResponse = (response: any) => {
+export const expectRateLimitResponse = (response: Record<string, unknown>) => {
   expect(response).toHaveProperty('success');
   expect(response).toHaveProperty('limit');
   expect(response).toHaveProperty('remaining');

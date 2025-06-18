@@ -27,7 +27,7 @@ type TestBoard = {
  */
 export class GameFixtureFactory {
   // Random data generators
-  private static randomId(prefix: string = ''): string {
+  private static randomId(prefix = ''): string {
     return `${prefix}${prefix ? '-' : ''}${Math.random().toString(36).substring(2, 15)}`;
   }
 
@@ -242,7 +242,7 @@ export class GameFixtureFactory {
   /**
    * Generate game state with board cells
    */
-  static gameState(sessionId: string, boardSize: number = 25): TestGameState {
+  static gameState(sessionId: string, boardSize = 25): TestGameState {
     return {
       session_id: sessionId,
       board_state: this.boardCells(boardSize),
@@ -260,7 +260,7 @@ export class GameFixtureFactory {
   /**
    * Generate board cells for a given size
    */
-  static boardCells(size: number = 25): TestGameCell[] {
+  static boardCells(size = 25): TestGameCell[] {
     const cells: TestGameCell[] = [];
     const gridSize = Math.sqrt(size);
     
@@ -284,7 +284,7 @@ export class GameFixtureFactory {
   /**
    * Generate leaderboard entries
    */
-  static leaderboardEntries(count: number = 10): TestLeaderboardEntry[] {
+  static leaderboardEntries(count = 10): TestLeaderboardEntry[] {
     const entries: TestLeaderboardEntry[] = [];
     
     for (let i = 0; i < count; i++) {
@@ -312,7 +312,7 @@ export class GameFixtureFactory {
   /**
    * Generate a complete multiplayer session scenario
    */
-  static multiplayerScenario(playerCount: number = 3): {
+  static multiplayerScenario(playerCount = 3): {
     session: TestSession;
     players: TestSessionPlayer[];
     gameState: TestGameState;
@@ -479,7 +479,7 @@ export class GameFixtureFactory {
   /**
    * Generate stress test data for concurrent operations
    */
-  static stressTestData(sessionCount: number = 50, playersPerSession: number = 4): {
+  static stressTestData(sessionCount = 50, playersPerSession = 4): {
     sessions: TestSession[];
     allPlayers: TestSessionPlayer[];
   } {

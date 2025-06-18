@@ -354,6 +354,23 @@ describe('Achievement Engine', () => {
           max_progress: 1,
           icon: '⚡'
         }
+      },
+      {
+        id: 'ach-4',
+        user_id: 'user-1',
+        achievement_name: 'speedrun_expert',
+        achievement_type: 'speedrun',
+        description: 'Complete a speedrun under 60 seconds',
+        points: 200,
+        unlocked_at: null,
+        created_at: new Date().toISOString(),
+        metadata: {
+          category: 'speedrun',
+          rarity: 'uncommon',
+          progress: 0,
+          max_progress: 1,
+          icon: '🚀'
+        }
       }
     ];
 
@@ -518,13 +535,16 @@ describe('Achievement Engine', () => {
     test('should calculate achievement statistics', () => {
       engine.unlockAchievement('first_win');
       engine.unlockAchievement('speedrun_master');
+      
+      // Process any queued unlocks due to throttling
+      engine.processUnlockQueue();
 
       const stats = engine.getStatistics();
       expect(stats).toEqual({
-        total: 3,
+        total: 4,
         unlocked: 2,
         points: 350,
-        completion: expect.closeTo(66.67, 1),
+        completion: 50,
         byRarity: {
           common: 1,
           rare: 1
@@ -539,7 +559,7 @@ describe('Achievement Engine', () => {
     test('should handle empty statistics', () => {
       const stats = engine.getStatistics();
       expect(stats).toEqual({
-        total: 3,
+        total: 4,
         unlocked: 0,
         points: 0,
         completion: 0,
@@ -552,8 +572,9 @@ describe('Achievement Engine', () => {
   describe('Filtering and Sorting', () => {
     test('should filter by category', () => {
       const filtered = engine.filterAchievements({ category: 'speedrun' });
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0]?.achievement_name).toBe('speedrun_master');
+      expect(filtered).toHaveLength(2);
+      expect(filtered.some(a => a.achievement_name === 'speedrun_master')).toBe(true);
+      expect(filtered.some(a => a.achievement_name === 'speedrun_expert')).toBe(true);
     });
 
     test('should filter by unlock status', () => {
@@ -563,27 +584,30 @@ describe('Achievement Engine', () => {
       expect(unlocked).toHaveLength(1);
       
       const locked = engine.filterAchievements({ unlocked: false });
-      expect(locked).toHaveLength(2);
+      expect(locked).toHaveLength(3);
     });
 
     test('should filter by search term', () => {
       const filtered = engine.filterAchievements({ search: 'speedrun' });
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0]?.achievement_name).toBe('speedrun_master');
+      expect(filtered).toHaveLength(2);
+      expect(filtered.some(a => a.achievement_name === 'speedrun_master')).toBe(true);
+      expect(filtered.some(a => a.achievement_name === 'speedrun_expert')).toBe(true);
     });
 
     test('should sort by points', () => {
       const sorted = engine.sortAchievements(mockAchievements, 'points');
       expect(sorted[0]?.points).toBe(300);
-      expect(sorted[1]?.points).toBe(150);
-      expect(sorted[2]?.points).toBe(50);
+      expect(sorted[1]?.points).toBe(200);
+      expect(sorted[2]?.points).toBe(150);
+      expect(sorted[3]?.points).toBe(50);
     });
 
     test('should sort by rarity', () => {
       const sorted = engine.sortAchievements(mockAchievements, 'rarity');
       expect(sorted[0]?.metadata.rarity).toBe('rare');
       expect(sorted[1]?.metadata.rarity).toBe('uncommon');
-      expect(sorted[2]?.metadata.rarity).toBe('common');
+      expect(sorted[2]?.metadata.rarity).toBe('uncommon');
+      expect(sorted[3]?.metadata.rarity).toBe('common');
     });
   });
 

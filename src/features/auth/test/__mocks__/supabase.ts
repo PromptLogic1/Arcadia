@@ -14,8 +14,8 @@ export interface MockSupabaseUser {
   phone_confirmed_at?: string | null;
   created_at?: string;
   updated_at?: string;
-  user_metadata?: Record<string, any>;
-  app_metadata?: Record<string, any>;
+  user_metadata?: Record<string, unknown>;
+  app_metadata?: Record<string, unknown>;
 }
 
 export interface MockSupabaseSession {
@@ -89,7 +89,7 @@ export class MockSupabaseAuthClient {
     return { data: { user, session }, error: null };
   }
 
-  async signUp({ email, password, options }: { email: string; password: string; options?: { data?: Record<string, any> } }): Promise<{ data: MockAuthResponse | null; error: MockAuthError | null }> {
+  async signUp({ email, password: _password, options: _options }: { email: string; password: string; options?: { data?: Record<string, unknown> } }): Promise<{ data: MockAuthResponse | null; error: MockAuthError | null }> {
     // Simulate already registered
     if (email === 'existing@example.com') {
       return {
@@ -102,7 +102,7 @@ export class MockSupabaseAuthClient {
       id: `user-${Date.now()}`,
       email,
       email_confirmed_at: email.includes('confirmed') ? new Date().toISOString() : null,
-      user_metadata: options?.data || {},
+      user_metadata: _options?.data || {},
       app_metadata: { provider: 'email' },
     };
 
@@ -172,7 +172,7 @@ export class MockSupabaseClient {
 
 export class MockSupabaseQueryBuilder {
   private table: string;
-  private filters: Record<string, any> = {};
+  private filters: Record<string, unknown> = {};
   private selectFields = '*';
   
   constructor(table: string) {
@@ -184,7 +184,7 @@ export class MockSupabaseQueryBuilder {
     return this;
   }
 
-  eq(column: string, value: any) {
+  eq(column: string, value: unknown) {
     this.filters[column] = value;
     return this;
   }
@@ -193,9 +193,9 @@ export class MockSupabaseQueryBuilder {
     return this.executeSingle();
   }
 
-  update(data: Record<string, any>) {
+  update(data: Record<string, unknown>) {
     return {
-      eq: (column: string, value: any) => {
+      eq: (column: string, value: unknown) => {
         this.filters[column] = value;
         return {
           select: () => ({
@@ -236,7 +236,7 @@ export class MockSupabaseQueryBuilder {
     return { data: null, error: { message: 'Not found' } };
   }
 
-  private async executeUpdate(updates: Record<string, any>) {
+  private async executeUpdate(updates: Record<string, unknown>) {
     const updatedData = {
       id: `profile-${Date.now()}`,
       auth_id: this.filters.auth_id,
@@ -251,33 +251,33 @@ export class MockSupabaseQueryBuilder {
 export const createMockSupabaseClient = () => new MockSupabaseClient();
 
 // Mock functions for rate limiting
-export const mockRateLimitCheck = jest.fn<any[], any>().mockResolvedValue({
+export const mockRateLimitCheck = jest.fn(() => Promise.resolve({
   success: true,
   limit: 10,
   remaining: 9,
   reset: Date.now() + 3600000,
-});
+}));
 
-export const mockRateLimitExceeded = jest.fn<any[], any>().mockResolvedValue({
+export const mockRateLimitExceeded = jest.fn(() => Promise.resolve({
   success: false,
   limit: 10,
   remaining: 0,
   reset: Date.now() + 3600000,
-});
+}));
 
 // Mock OAuth providers
 export const mockOAuthProviders = {
   google: {
-    authorize: jest.fn<any[], any>(),
-    callback: jest.fn<any[], any>(),
+    authorize: jest.fn(),
+    callback: jest.fn(),
   },
   github: {
-    authorize: jest.fn<any[], any>(),
-    callback: jest.fn<any[], any>(),
+    authorize: jest.fn(),
+    callback: jest.fn(),
   },
   discord: {
-    authorize: jest.fn<any[], any>(),
-    callback: jest.fn<any[], any>(),
+    authorize: jest.fn(),
+    callback: jest.fn(),
   },
 };
 
@@ -293,7 +293,7 @@ export const mockSessionUtils = {
     return Date.now() + session.expires_in * 1000;
   },
   
-  refreshSession: jest.fn<any[], any>().mockResolvedValue({
+  refreshSession: jest.fn(() => Promise.resolve({
     session: {
       access_token: `refreshed-token-${Date.now()}`,
       token_type: 'bearer',
@@ -301,7 +301,7 @@ export const mockSessionUtils = {
       refresh_token: `refreshed-refresh-${Date.now()}`,
     },
     error: null,
-  }),
+  })),
 };
 
 // Export default mock

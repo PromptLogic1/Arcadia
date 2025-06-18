@@ -60,23 +60,23 @@ jest.mock('@/lib/logger', () => ({
 // Mock cache service
 jest.mock('@/services/redis.service', () => ({
   cacheService: {
-    set: jest.fn<any[], any>().mockResolvedValue({ success: true, data: undefined, error: null }),
-    get: jest.fn<any[], any>().mockResolvedValue({ success: true, data: null, error: null }),
-    getWithSchema: jest.fn<any[], any>().mockResolvedValue({ success: true, data: null, error: null }),
-    getOrSet: jest.fn<any[], any>().mockResolvedValue({ success: true, data: null, error: null }),
-    invalidate: jest.fn<any[], any>().mockResolvedValue({ success: true, data: undefined, error: null }),
-    invalidatePattern: jest.fn<any[], any>().mockResolvedValue({ success: true, data: undefined, error: null }),
+    set: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+    get: jest.fn().mockResolvedValue({ success: true, data: null, error: null }),
+    getWithSchema: jest.fn().mockResolvedValue({ success: true, data: null, error: null }),
+    getOrSet: jest.fn().mockResolvedValue({ success: true, data: null, error: null }),
+    invalidate: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+    invalidatePattern: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
     createKey: jest.fn((prefix: string, ...parts: string[]) => 
       `@arcadia/cache:${prefix}:${parts.join(':')}`
     ),
   },
   redisService: {
-    set: jest.fn<any[], any>().mockResolvedValue({ success: true, data: undefined, error: null }),
-    get: jest.fn<any[], any>().mockResolvedValue({ success: true, data: null, error: null }),
+    set: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+    get: jest.fn().mockResolvedValue({ success: true, data: null, error: null }),
   },
 }));
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import {
   ArcadiaError,
   ErrorCode,
@@ -458,7 +458,7 @@ describe('Infrastructure Reliability Patterns', () => {
     describe('Rate Limiting Middleware', () => {
       it('should allow requests when rate limit is not exceeded', async () => {
         const mockRequest = new Request('https://example.com');
-        const mockHandler = jest.fn<() => Promise<string>>().mockResolvedValue('success');
+        const mockHandler = jest.fn().mockResolvedValue('success');
         
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
         
@@ -469,7 +469,7 @@ describe('Infrastructure Reliability Patterns', () => {
 
       it('should handle different rate limit types', async () => {
         const mockRequest = new Request('https://example.com');
-        const mockHandler = jest.fn<() => Promise<string>>().mockResolvedValue('success');
+        const mockHandler = jest.fn().mockResolvedValue('success');
         
         const authResult = await withRateLimit(mockRequest, mockHandler, 'auth');
         const uploadResult = await withRateLimit(mockRequest, mockHandler, 'upload');
@@ -482,7 +482,7 @@ describe('Infrastructure Reliability Patterns', () => {
 
       it('should handle handler errors gracefully', async () => {
         const mockRequest = new Request('https://example.com');
-        const mockHandler = jest.fn<() => Promise<string>>().mockRejectedValue(new Error('Handler failed'));
+        const mockHandler = jest.fn().mockRejectedValue(new Error('Handler failed'));
         
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
         

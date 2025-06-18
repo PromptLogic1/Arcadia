@@ -3,7 +3,27 @@
  */
 
 import { test, expect } from '@playwright/test';
-import type { ConversionFunnel } from './types';
+import type { AnalyticsEvent } from './types';
+
+// Test-specific conversion funnel type
+interface TestConversionFunnel {
+  name: string;
+  stages: Array<{
+    name: string;
+    url: string;
+    events: Array<{
+      id: string;
+      name: string;
+      category: string;
+      action: string;
+      label?: string;
+      value?: number;
+      timestamp: number;
+    }>;
+    expectedMetrics?: { dropoffRate?: number; averageTime?: number };
+  }>;
+  expectedDuration?: number;
+}
 import { 
   AnalyticsTracker, 
   testConversionFunnel, 
@@ -14,7 +34,7 @@ import {
 import { CAMPAIGN_ROUTES } from './types/routes';
 
 // Define conversion funnels
-const _SIGNUP_FUNNEL: ConversionFunnel = {
+const _SIGNUP_FUNNEL: TestConversionFunnel = {
   name: 'signup',
   stages: [
     {
@@ -45,7 +65,7 @@ const _SIGNUP_FUNNEL: ConversionFunnel = {
   expectedDuration: 120000, // 2 minutes
 };
 
-const DEMO_FUNNEL: ConversionFunnel = {
+const DEMO_FUNNEL: TestConversionFunnel = {
   name: 'demo',
   stages: [
     {
@@ -179,8 +199,8 @@ test.describe('Analytics Event Tracking', () => {
     
     const events = await analytics.getEvents();
     const scrollEvents = events.filter(e => 
-      e.eventName === 'scroll' || 
-      e.eventName === 'scroll_depth' ||
+      e.name === 'scroll' || 
+      e.name === 'scroll_depth' ||
       e.category === 'engagement'
     );
     
@@ -199,12 +219,12 @@ test.describe('Analytics Event Tracking', () => {
       
       const events = await analytics.getEvents();
       const videoEvents = events.filter(e => 
-        e.eventName.includes('video') || 
+        e.name.includes('video') || 
         e.category === 'video'
       );
       
       expect(videoEvents.length).toBeGreaterThan(0);
-      console.log('Video events tracked:', videoEvents.map(e => e.eventName));
+      console.log('Video events tracked:', videoEvents.map(e => e.name));
     }
   });
 });

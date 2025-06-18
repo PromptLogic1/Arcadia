@@ -43,6 +43,11 @@ export interface TestWindowExtensions {
   __wsMessages?: unknown[];
   WebSocket?: typeof WebSocket;
   
+  // Realtime events and callbacks
+  __realtimeEvents?: unknown[];
+  __realtimeCallback?: (...args: unknown[]) => void;
+  __mockChannel?: SupabaseRealtimeChannel;
+  
   // Performance extensions
   __performanceMetrics?: {
     marks: PerformanceEntry[];
@@ -71,6 +76,9 @@ export interface TestWindowExtensions {
   // Download test properties
   __originalCreateObjectURL?: typeof URL.createObjectURL;
   __downloadClicked?: boolean;
+  
+  // Memory pressure tracking
+  __memoryPressure?: unknown[];
   
   // Analytics
   gtag?: (...args: unknown[]) => void;

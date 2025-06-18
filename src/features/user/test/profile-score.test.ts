@@ -14,7 +14,7 @@ interface ProfileField {
   name: keyof User;
   weight: number;
   required?: boolean;
-  validator?: (value: any) => boolean;
+  validator?: (value: unknown) => boolean;
 }
 
 interface ProfileScore {
@@ -29,8 +29,8 @@ interface ProfileScore {
 const PROFILE_FIELDS: ProfileField[] = [
   { name: 'username', weight: 10, required: true },
   { name: 'full_name', weight: 8 },
-  { name: 'bio', weight: 15, validator: (v) => v && v.length >= 20 },
-  { name: 'avatar_url', weight: 12, validator: (v) => v && v.startsWith('http') },
+  { name: 'bio', weight: 15, validator: (v) => typeof v === 'string' && v.length >= 20 },
+  { name: 'avatar_url', weight: 12, validator: (v) => typeof v === 'string' && v.startsWith('http') },
   { name: 'city', weight: 5 },
   { name: 'region', weight: 5 },
   { name: 'land', weight: 5 },
@@ -155,7 +155,7 @@ function calculateProfileScore(profile: Partial<User>): ProfileScore {
   };
 }
 
-function getFieldSuggestion(fieldName: string, currentValue: any): string {
+function getFieldSuggestion(fieldName: string, currentValue: unknown): string {
   switch (fieldName) {
     case 'bio':
       return currentValue ? 'Your bio is too short (minimum 20 characters)' : 'Add a bio to your profile';

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import type { ActivityType, ActivityData } from '@/features/user/types/activity';
 
 /**
@@ -144,37 +144,37 @@ describe('Activity Tracker', () => {
       const testCases = [
         {
           type: 'board_create' as ActivityType,
-          data: { board_title: 'Epic Adventure Board' },
+          data: { board_id: '1', board_title: 'Epic Adventure Board', game_type: 'World of Warcraft' as const, difficulty: 'medium' as const } as ActivityData,
           expected: 'Created a new board: Epic Adventure Board',
         },
         {
           type: 'board_join' as ActivityType,
-          data: { board_title: 'Mystery Challenge' },
+          data: { board_id: '2', board_title: 'Mystery Challenge', game_type: 'Minecraft' as const, difficulty: 'easy' as const } as ActivityData,
           expected: 'Joined a board: Mystery Challenge',
         },
         {
           type: 'board_complete' as ActivityType,
-          data: { board_title: 'Speed Run Master' },
+          data: { board_id: '3', board_title: 'Speed Run Master', game_type: 'Fortnite' as const, difficulty: 'hard' as const } as ActivityData,
           expected: 'Completed a board: Speed Run Master',
         },
         {
           type: 'submission_create' as ActivityType,
-          data: { challenge_title: 'Photo Hunt Challenge' },
+          data: { challenge_id: '4', challenge_title: 'Photo Hunt Challenge', language: 'python', status: 'accepted' as const } as ActivityData,
           expected: 'Created a submission: Photo Hunt Challenge',
         },
         {
           type: 'discussion_create' as ActivityType,
-          data: { title: 'Best strategies for speedruns?' },
+          data: { discussion_id: 5, title: 'Best strategies for speedruns?', game: 'Apex Legends' } as ActivityData,
           expected: 'Started a discussion: Best strategies for speedruns?',
         },
         {
           type: 'comment_create' as ActivityType,
-          data: { discussion_title: 'Game Tips Thread' },
+          data: { comment_id: 6, discussion_id: 5, discussion_title: 'Game Tips Thread', content_preview: 'Great tips!' } as ActivityData,
           expected: 'Commented on: Game Tips Thread',
         },
         {
           type: 'achievement_unlock' as ActivityType,
-          data: { achievement_name: 'Speedrun Expert' },
+          data: { achievement_id: '7', achievement_name: 'Speedrun Expert', achievement_type: 'speedrun', points: 150 } as ActivityData,
           expected: 'Unlocked achievement: Speedrun Expert',
         },
       ];
@@ -188,12 +188,12 @@ describe('Activity Tracker', () => {
       const testCases = [
         {
           type: 'board_create' as ActivityType,
-          data: { some_other_field: 'value' }, // Missing board_title
+          data: { board_id: '1', game_type: 'World of Warcraft' as const, difficulty: 'medium' as const } as ActivityData, // Missing board_title
           expected: 'Created a new board',
         },
         {
           type: 'discussion_create' as ActivityType,
-          data: { body: 'Some content' }, // Missing title
+          data: { discussion_id: 2, game: 'Minecraft' } as ActivityData, // Missing title
           expected: 'Started a new discussion',
         },
       ];
@@ -207,12 +207,12 @@ describe('Activity Tracker', () => {
       const testCases = [
         {
           type: 'board_create' as ActivityType,
-          data: { board_title: '' },
+          data: { board_id: '1', board_title: '', game_type: 'World of Warcraft' as const, difficulty: 'medium' as const } as ActivityData,
           expected: 'Created a new board',
         },
         {
           type: 'achievement_unlock' as ActivityType,
-          data: { achievement_name: '' },
+          data: { achievement_id: '2', achievement_name: '', achievement_type: 'milestone', points: 50 } as ActivityData,
           expected: 'Unlocked an achievement',
         },
       ];
@@ -248,32 +248,32 @@ describe('Activity Tracker', () => {
       const testCases = [
         {
           type: 'board_create' as ActivityType,
-          data: { difficulty: 'easy' },
+          data: { board_id: '1', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'easy' as const } as ActivityData,
           expected: 10, // No multiplier
         },
         {
           type: 'board_create' as ActivityType,
-          data: { difficulty: 'medium' },
+          data: { board_id: '2', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'medium' as const } as ActivityData,
           expected: 10, // No multiplier
         },
         {
           type: 'board_create' as ActivityType,
-          data: { difficulty: 'hard' },
+          data: { board_id: '3', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'hard' as const } as ActivityData,
           expected: 15, // 1.5x multiplier
         },
         {
           type: 'board_create' as ActivityType,
-          data: { difficulty: 'expert' },
+          data: { board_id: '4', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'expert' as const } as ActivityData,
           expected: 20, // 2x multiplier
         },
         {
           type: 'board_complete' as ActivityType,
-          data: { difficulty: 'hard' },
+          data: { board_id: '5', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'hard' as const } as ActivityData,
           expected: 30, // 20 * 1.5
         },
         {
           type: 'board_complete' as ActivityType,
-          data: { difficulty: 'expert' },
+          data: { board_id: '6', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'expert' as const } as ActivityData,
           expected: 40, // 20 * 2
         },
       ];
@@ -287,12 +287,12 @@ describe('Activity Tracker', () => {
       const testCases = [
         {
           type: 'submission_create' as ActivityType,
-          data: { difficulty: 'hard' },
+          data: { challenge_id: '1', challenge_title: 'Test', language: 'python', status: 'accepted' as const, difficulty: 'hard' } as unknown as ActivityData,
           expected: 15, // No multiplier applied
         },
         {
           type: 'achievement_unlock' as ActivityType,
-          data: { difficulty: 'expert' },
+          data: { achievement_id: '2', achievement_name: 'Test', achievement_type: 'milestone', points: 50, difficulty: 'expert' } as unknown as ActivityData,
           expected: 50, // No multiplier applied
         },
       ];
@@ -305,7 +305,7 @@ describe('Activity Tracker', () => {
     it('should round points to nearest integer', () => {
       // If we had fractional multipliers, this would test rounding
       const type = 'board_join' as ActivityType;
-      const data = { difficulty: 'hard' };
+      const data = { board_id: '1', board_title: 'Test', game_type: 'World of Warcraft' as const, difficulty: 'hard' as const } as ActivityData;
       const points = calculatePointsEarned(type, data);
       
       expect(points).toBe(8); // 5 * 1.5 = 7.5, rounded to 8
@@ -316,10 +316,10 @@ describe('Activity Tracker', () => {
   describe('Batch Processing', () => {
     it('should handle batch activity creation', () => {
       const activities = [
-        { type: 'login' as ActivityType, data: {} },
-        { type: 'board_join' as ActivityType, data: { board_title: 'Test Board' } },
-        { type: 'board_complete' as ActivityType, data: { board_title: 'Test Board', difficulty: 'hard' } },
-        { type: 'achievement_unlock' as ActivityType, data: { achievement_name: 'First Win' } },
+        { type: 'login' as ActivityType, data: {} as ActivityData },
+        { type: 'board_join' as ActivityType, data: { board_id: '1', board_title: 'Test Board', game_type: 'World of Warcraft' as const, difficulty: 'medium' as const } as ActivityData },
+        { type: 'board_complete' as ActivityType, data: { board_id: '1', board_title: 'Test Board', game_type: 'World of Warcraft' as const, difficulty: 'hard' as const } as ActivityData },
+        { type: 'achievement_unlock' as ActivityType, data: { achievement_id: '1', achievement_name: 'First Win', achievement_type: 'milestone', points: 50 } as ActivityData },
       ];
 
       const results = activities.map(activity => ({
@@ -350,14 +350,14 @@ describe('Activity Tracker', () => {
       }));
 
       // Process in batches
-      const batches: any[][] = [];
+      const batches: Array<Array<{ type: ActivityType; data: { index: number } }>> = [];
       for (let i = 0; i < activities.length; i += BATCH_SIZE) {
         batches.push(activities.slice(i, i + BATCH_SIZE));
       }
 
       expect(batches.length).toBe(10);
-      expect(batches[0].length).toBe(BATCH_SIZE);
-      expect(batches[batches.length - 1].length).toBe(BATCH_SIZE);
+      expect(batches[0]?.length).toBe(BATCH_SIZE);
+      expect(batches[batches.length - 1]?.length).toBe(BATCH_SIZE);
 
       // Verify all activities are included
       const processedCount = batches.reduce((sum, batch) => sum + batch.length, 0);
@@ -385,6 +385,7 @@ describe('Activity Tracker', () => {
       // Group by day
       const dailyActivities = activities.reduce((acc, activity) => {
         const day = activity.timestamp.toISOString().split('T')[0];
+        if (!day) return acc;
         if (!acc[day]) acc[day] = [];
         acc[day].push(activity);
         return acc;
@@ -408,16 +409,17 @@ describe('Activity Tracker', () => {
       const recentActivities: TimedActivity[] = Array.from({ length: 24 }, (_, hour) => ({
         type: 'comment_create' as ActivityType,
         timestamp: new Date(now.getTime() - hour * 60 * 60 * 1000),
-        data: { discussion_title: `Discussion ${hour}` },
+        data: { comment_id: hour, discussion_id: 1, discussion_title: `Discussion ${hour}`, content_preview: 'Comment' } as ActivityData,
       }));
 
       // Group by hour
       const hourlyGroups = recentActivities.reduce((acc, activity) => {
         const hour = Math.floor((now.getTime() - activity.timestamp.getTime()) / (60 * 60 * 1000));
-        if (!acc[hour]) acc[hour] = 0;
-        acc[hour]++;
+        const hourKey = hour.toString();
+        if (!acc[hourKey]) acc[hourKey] = 0;
+        acc[hourKey]++;
         return acc;
-      }, {} as Record<number, number>);
+      }, {} as Record<string, number>);
 
       expect(Object.keys(hourlyGroups).length).toBe(24);
       Object.values(hourlyGroups).forEach(count => {
@@ -436,7 +438,12 @@ describe('Activity Tracker', () => {
 
     it('should handle very long titles in descriptions', () => {
       const longTitle = 'A'.repeat(1000);
-      const description = generateActivityDescription('board_create', { board_title: longTitle });
+      const description = generateActivityDescription('board_create', { 
+        board_id: '1', 
+        board_title: longTitle, 
+        game_type: 'World of Warcraft' as const, 
+        difficulty: 'medium' as const 
+      } as ActivityData);
       
       expect(description).toBe(`Created a new board: ${longTitle}`);
       expect(description.length).toBeGreaterThan(1000);
@@ -452,7 +459,12 @@ describe('Activity Tracker', () => {
       ];
 
       specialTitles.forEach(title => {
-        const description = generateActivityDescription('board_create', { board_title: title });
+        const description = generateActivityDescription('board_create', { 
+          board_id: '1', 
+          board_title: title, 
+          game_type: 'World of Warcraft' as const, 
+          difficulty: 'medium' as const 
+        } as ActivityData);
         expect(description).toBe(`Created a new board: ${title}`);
       });
     });

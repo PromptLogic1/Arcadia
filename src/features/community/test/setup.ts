@@ -17,7 +17,7 @@ beforeEach(() => {
   }
   
   // Reset timers
-  if (jest.isFakeTimers()) {
+  if ((jest as any).isFakeTimers?.()) {
     jest.clearAllTimers();
   }
   
@@ -32,7 +32,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   
   // Clear any remaining timers
-  if (jest.isFakeTimers()) {
+  if ((jest as any).isFakeTimers?.()) {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
   }

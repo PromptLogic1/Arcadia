@@ -2,7 +2,7 @@
  * Jest configuration for Landing feature tests
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable */
 
 const path = require('path');
 const nextJest = require('next/jest');

@@ -4,13 +4,13 @@ import type { GameEvent } from '../../types';
 // Mock Supabase realtime client
 export const createMockRealtimeClient = () => {
   const mockChannel = {
-    on: jest.fn(),
-    off: jest.fn(),
-    send: jest.fn(),
-    subscribe: jest.fn().mockResolvedValue({ error: null }),
-    unsubscribe: jest.fn().mockResolvedValue({ error: null }),
-    track: jest.fn(),
-    untrack: jest.fn(),
+    on: jest.fn(() => mockChannel), // Return self for chaining
+    off: jest.fn(() => mockChannel),
+    send: jest.fn(() => ({ error: null })),
+    subscribe: jest.fn().mockImplementation(() => Promise.resolve({ error: null })),
+    unsubscribe: jest.fn().mockImplementation(() => Promise.resolve({ error: null })),
+    track: jest.fn(() => ({ error: null })),
+    untrack: jest.fn(() => ({ error: null })),
   };
 
   const mockClient = {
@@ -28,20 +28,20 @@ export const createMockRealtimeClient = () => {
 
 // Mock WebSocket connection
 export class MockWebSocket {
-  readyState = WebSocket.CONNECTING;
+  readyState = 0; // WebSocket.CONNECTING
   url: string;
   onopen: ((event: Event) => void) | null = null;
   onclose: ((event: CloseEvent) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
   onmessage: ((event: MessageEvent) => void) | null = null;
 
-  private eventHandlers: Map<string, Function[]> = new Map();
+  private eventHandlers: Map<string, EventListener[]> = new Map();
 
   constructor(url: string) {
     this.url = url;
     // Simulate connection after a brief delay
     setTimeout(() => {
-      this.readyState = WebSocket.OPEN;
+      this.readyState = 1; // WebSocket.OPEN
       if (this.onopen) {
         this.onopen(new Event('open'));
       }
@@ -49,7 +49,7 @@ export class MockWebSocket {
   }
 
   send(data: string): void {
-    if (this.readyState !== WebSocket.OPEN) {
+    if (this.readyState !== 1) { // WebSocket.OPEN
       throw new Error('WebSocket is not open');
     }
     
@@ -62,20 +62,23 @@ export class MockWebSocket {
   }
 
   close(code?: number, reason?: string): void {
-    this.readyState = WebSocket.CLOSED;
+    this.readyState = 3; // WebSocket.CLOSED
     if (this.onclose) {
       this.onclose(new CloseEvent('close', { code, reason }));
     }
   }
 
-  addEventListener(type: string, listener: Function): void {
+  addEventListener(type: string, listener: EventListener): void {
     if (!this.eventHandlers.has(type)) {
       this.eventHandlers.set(type, []);
     }
-    this.eventHandlers.get(type)!.push(listener);
+    const handlers = this.eventHandlers.get(type);
+    if (handlers) {
+      handlers.push(listener);
+    }
   }
 
-  removeEventListener(type: string, listener: Function): void {
+  removeEventListener(type: string, listener: EventListener): void {
     const handlers = this.eventHandlers.get(type);
     if (handlers) {
       const index = handlers.indexOf(listener);
@@ -94,7 +97,7 @@ export class MockWebSocket {
   }
 
   // Test utilities
-  simulateMessage(data: any): void {
+  simulateMessage(data: unknown): void {
     if (this.onmessage) {
       this.onmessage(new MessageEvent('message', { 
         data: typeof data === 'string' ? data : JSON.stringify(data) 
@@ -109,7 +112,7 @@ export class MockWebSocket {
   }
 
   simulateDisconnection(): void {
-    this.readyState = WebSocket.CLOSED;
+    this.readyState = 3; // WebSocket.CLOSED
     if (this.onclose) {
       this.onclose(new CloseEvent('close', { code: 1006, reason: 'Connection lost' }));
     }
@@ -118,14 +121,17 @@ export class MockWebSocket {
 
 // Mock game event bus
 export class MockGameEventBus {
-  private listeners: Map<string, Function[]> = new Map();
+  private listeners: Map<string, Array<(event: GameEvent) => void>> = new Map();
   private events: GameEvent[] = [];
 
-  on(eventType: string, callback: Function): () => void {
+  on(eventType: string, callback: (event: GameEvent) => void): () => void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, []);
     }
-    this.listeners.get(eventType)!.push(callback);
+    const listeners = this.listeners.get(eventType);
+    if (listeners) {
+      listeners.push(callback);
+    }
 
     // Return unsubscribe function
     return () => {
@@ -161,11 +167,17 @@ export class MockGameEventBus {
 }
 
 // Mock presence system
+interface PresenceData {
+  status: string;
+  lastActivity?: Date;
+  [key: string]: unknown;
+}
+
 export class MockPresenceTracker {
-  private presenceData: Map<string, any> = new Map();
+  private presenceData: Map<string, PresenceData> = new Map();
   private onlineUsers: Set<string> = new Set();
 
-  track(userId: string, data: any): void {
+  track(userId: string, data: PresenceData): void {
     this.presenceData.set(userId, data);
     this.onlineUsers.add(userId);
   }
@@ -175,7 +187,7 @@ export class MockPresenceTracker {
     this.onlineUsers.delete(userId);
   }
 
-  getPresence(userId: string): any {
+  getPresence(userId: string): PresenceData | undefined {
     return this.presenceData.get(userId);
   }
 
@@ -193,7 +205,7 @@ export class MockPresenceTracker {
   }
 
   // Simulate user coming back online
-  simulateOnline(userId: string, data: any): void {
+  simulateOnline(userId: string, data: PresenceData): void {
     this.presenceData.set(userId, data);
     this.onlineUsers.add(userId);
   }
@@ -315,7 +327,7 @@ export class MockDatabaseOperations {
     this.latency = ms;
   }
 
-  async mockQuery(queryType: string): Promise<any> {
+  async mockQuery(queryType: string): Promise<{ success: boolean; timestamp: number }> {
     const start = performance.now();
     
     // Simulate database latency
@@ -331,7 +343,7 @@ export class MockDatabaseOperations {
     return { success: true, timestamp: Date.now() };
   }
 
-  async mockTransaction(operations: string[]): Promise<any> {
+  async mockTransaction(operations: string[]): Promise<{ success: boolean; operations: number }> {
     const start = performance.now();
     
     // Simulate transaction overhead
@@ -357,7 +369,7 @@ export class MockDatabaseOperations {
     let totalDuration = 0;
 
     this.operations.forEach(op => {
-      operationsByType.set(op.type, (operationsByType.get(op.type) || 0) + 1);
+      operationsByType.set(op.type, (operationsByType.get(op.type) ?? 0) + 1);
       totalDuration += op.duration;
     });
 
@@ -380,7 +392,7 @@ export const mockUtils = {
   randomDelay: (min: number, max: number) => 
     new Promise(resolve => setTimeout(resolve, min + Math.random() * (max - min))),
   
-  simulateConcurrentOperations: async (operations: Array<() => Promise<any>>) => {
+  simulateConcurrentOperations: async (operations: Array<() => Promise<unknown>>) => {
     return Promise.allSettled(operations.map(op => op()));
   },
   

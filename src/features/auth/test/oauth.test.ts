@@ -32,7 +32,9 @@ const OAUTH_CONFIG = {
     scope: 'identify email',
     redirectUri: 'http://localhost:3000/auth/callback/discord',
   },
-};
+} as const;
+
+type OAuthProvider = keyof typeof OAUTH_CONFIG;
 
 describe('OAuth Authentication', () => {
   beforeEach(() => {
@@ -47,7 +49,7 @@ describe('OAuth Authentication', () => {
       expect(providers).toContain('discord');
 
       providers.forEach(provider => {
-        const config = OAUTH_CONFIG[provider as keyof typeof OAUTH_CONFIG];
+        const config = OAUTH_CONFIG[provider as OAuthProvider];
         expect(config.clientId).toBeDefined();
         expect(config.redirectUri).toBeDefined();
         expect(config.scope).toBeDefined();
@@ -143,7 +145,7 @@ describe('OAuth Authentication', () => {
       });
 
       expect(result.url).toContain('github.com');
-      expect(result.url).toContain('user:email');
+      expect(result.url).toContain('user%3Aemail');
     });
 
     test('should handle GitHub OAuth callback', async () => {
@@ -176,7 +178,7 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle private email from GitHub', async () => {
-      const mockUserData = {
+      const _mockUserData = {
         id: 12345,
         login: 'githubuser',
         email: null, // Email is private
@@ -211,7 +213,7 @@ describe('OAuth Authentication', () => {
       });
 
       expect(result.url).toContain('discord.com');
-      expect(result.url).toContain('identify email');
+      expect(result.url).toContain('identify%20email');
     });
 
     test('should handle Discord OAuth callback', async () => {
@@ -261,9 +263,10 @@ describe('OAuth Authentication', () => {
           redirectUri: OAUTH_CONFIG.google.redirectUri,
         });
         throw new Error('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.error).toBe('access_denied');
-        expect(err.error_description).toBe('The user denied the request');
+      } catch (err) {
+        const error = err as { error: string; error_description: string };
+        expect(error.error).toBe('access_denied');
+        expect(error.error_description).toBe('The user denied the request');
       }
     });
 
@@ -278,8 +281,9 @@ describe('OAuth Authentication', () => {
       try {
         await mockOAuthProviders.google.callback(invalidCode, 'state');
         throw new Error('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.error).toBe('invalid_grant');
+      } catch (err) {
+        const error = err as { error: string };
+        expect(error.error).toBe('invalid_grant');
       }
     });
 
@@ -291,8 +295,9 @@ describe('OAuth Authentication', () => {
       try {
         await mockOAuthProviders.github.callback('code', 'state');
         throw new Error('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.message).toBe('Network error');
+      } catch (err) {
+        const error = err as Error;
+        expect(error.message).toBe('Network error');
       }
     });
 
@@ -306,9 +311,10 @@ describe('OAuth Authentication', () => {
       try {
         await mockOAuthProviders.github.callback('code', 'state');
         throw new Error('Should have thrown an error');
-      } catch (err: any) {
-        expect(err.error).toBe('rate_limit_exceeded');
-        expect(err.retry_after).toBe(3600);
+      } catch (err) {
+        const error = err as { error: string; retry_after: number };
+        expect(error.error).toBe('rate_limit_exceeded');
+        expect(error.retry_after).toBe(3600);
       }
     });
   });

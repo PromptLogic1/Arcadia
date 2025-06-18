@@ -152,9 +152,9 @@ describe('A/B Testing Logic', () => {
       const sum = normalized.reduce((acc, v) => acc + v.weight, 0);
       
       expect(sum).toBe(100);
-      expect(normalized[0].weight).toBeCloseTo(50); // 30/60 * 100
-      expect(normalized[1].weight).toBeCloseTo(33.33); // 20/60 * 100
-      expect(normalized[2].weight).toBeCloseTo(16.67); // 10/60 * 100
+      expect(normalized[0]?.weight).toBeCloseTo(50); // 30/60 * 100
+      expect(normalized[1]?.weight).toBeCloseTo(33.33); // 20/60 * 100
+      expect(normalized[2]?.weight).toBeCloseTo(16.67); // 10/60 * 100
     });
 
     it('should handle zero weights', () => {
@@ -166,9 +166,9 @@ describe('A/B Testing Logic', () => {
 
       const normalized = calculateVariantWeights(variants);
       
-      expect(normalized[0].weight).toBe(50);
-      expect(normalized[1].weight).toBe(0);
-      expect(normalized[2].weight).toBe(50);
+      expect(normalized[0]?.weight).toBe(50);
+      expect(normalized[1]?.weight).toBe(0);
+      expect(normalized[2]?.weight).toBe(50);
     });
   });
 

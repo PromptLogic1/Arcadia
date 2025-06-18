@@ -1,8 +1,7 @@
-import { describe, expect, it, beforeEach } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import type { Database } from '@/types/database.types';
 
 type UserStats = Database['public']['Tables']['user_statistics']['Row'];
-type Achievement = Database['public']['Tables']['user_achievements']['Row'];
 
 /**
  * Badge Engine Tests
@@ -107,7 +106,7 @@ const SPECIAL_BADGES: BadgeDefinition[] = [
     type: 'special',
     points: 300,
     icon: '✨',
-    condition: (stats) => false, // Would need game-specific data
+    condition: (_stats) => false, // Would need game-specific data
   },
   {
     id: 'social_butterfly',
@@ -116,7 +115,7 @@ const SPECIAL_BADGES: BadgeDefinition[] = [
     type: 'social',
     points: 100,
     icon: '🦋',
-    condition: (stats) => false, // Would need social interaction data
+    condition: (_stats) => false, // Would need social interaction data
   },
   {
     id: 'night_owl',
@@ -125,7 +124,7 @@ const SPECIAL_BADGES: BadgeDefinition[] = [
     type: 'special',
     points: 75,
     icon: '🦉',
-    condition: (stats) => false, // Would need timestamp data
+    condition: (_stats) => false, // Would need timestamp data
   },
 ];
 
@@ -171,8 +170,9 @@ function categorizeBadges(
     const unlocked = unlockedBadges.has(badge.name);
     const progress = badge.progress ? badge.progress(stats) : null;
 
-    if (categories[badge.type]) {
-      categories[badge.type].badges.push({
+    const category = categories[badge.type];
+    if (category) {
+      category.badges.push({
         ...badge,
         unlocked,
         progress,
@@ -363,7 +363,7 @@ describe('Badge Engine', () => {
       const victoriesCategory = categories.find(c => c.name === 'Victories');
       expect(victoriesCategory).toBeDefined();
       expect(victoriesCategory?.badges).toHaveLength(1);
-      expect(victoriesCategory?.badges[0].unlocked).toBe(true);
+      expect(victoriesCategory?.badges[0]?.unlocked).toBe(true);
 
       const milestonesCategory = categories.find(c => c.name === 'Milestones');
       expect(milestonesCategory).toBeDefined();

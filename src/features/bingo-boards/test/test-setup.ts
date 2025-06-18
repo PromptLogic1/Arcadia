@@ -1,17 +1,73 @@
-import { vi, beforeEach, afterEach } from '@jest/globals';
+import { beforeEach, afterEach } from '@jest/globals';
+import type { BoardCell } from '../types';
 
-// Mock globals
-global.WebSocket = jest.fn();
-global.performance = {
+// Mock globals with proper types
+const MockWebSocket = jest.fn();
+MockWebSocket.prototype = {
+  close: jest.fn(),
+  send: jest.fn(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  dispatchEvent: jest.fn(),
+  readyState: 0,
+  CONNECTING: 0,
+  OPEN: 1,
+  CLOSING: 2,
+  CLOSED: 3,
+};
+Object.setPrototypeOf(MockWebSocket, WebSocket);
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+
+// Create a properly typed performance mock
+const performanceMock = {
   now: jest.fn(() => Date.now()),
   mark: jest.fn(),
   measure: jest.fn(),
   clearMarks: jest.fn(),
   clearMeasures: jest.fn(),
-  getEntriesByName: jest.fn(),
-  getEntriesByType: jest.fn(),
-  toJSON: jest.fn(),
-} as any;
+  getEntriesByName: jest.fn(() => []),
+  getEntriesByType: jest.fn(() => []),
+  toJSON: jest.fn(() => ({
+    timeOrigin: 0,
+    timing: {
+      navigationStart: 0,
+      unloadEventStart: 0,
+      unloadEventEnd: 0,
+      redirectStart: 0,
+      redirectEnd: 0,
+      fetchStart: 0,
+      domainLookupStart: 0,
+      domainLookupEnd: 0,
+      connectStart: 0,
+      connectEnd: 0,
+      secureConnectionStart: 0,
+      requestStart: 0,
+      responseStart: 0,
+      responseEnd: 0,
+      domLoading: 0,
+      domInteractive: 0,
+      domContentLoadedEventStart: 0,
+      domContentLoadedEventEnd: 0,
+      domComplete: 0,
+      loadEventStart: 0,
+      loadEventEnd: 0,
+      toJSON: jest.fn(),
+    },
+    navigation: {
+      type: 0,
+      redirectCount: 0,
+      toJSON: jest.fn(),
+    },
+  })),
+  timeOrigin: 0,
+  eventCounts: new Map(),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  dispatchEvent: jest.fn(() => true),
+} satisfies Partial<Performance>;
+
+// Assign only the properties that exist
+Object.assign(global.performance, performanceMock);
 
 // Mock React Query
 jest.mock('@tanstack/react-query', () => ({
@@ -82,19 +138,21 @@ export const testHelpers = {
   },
   
   // Create a mock implementation that tracks calls
-  createMockTracker: <T extends (...args: any[]) => any>(implementation?: T) => {
-    const calls: Parameters<T>[] = [];
-    const mock = jest.fn((...args: Parameters<T>) => {
+  createMockTracker: <Args extends readonly unknown[], Return>(
+    implementation?: (...args: Args) => Return
+  ) => {
+    const calls: Args[] = [];
+    const mock = jest.fn((...args: Args): Return => {
       calls.push(args);
-      return implementation?.(...args);
+      return implementation ? implementation(...args) : undefined as Return;
     });
-    
+
     return {
       mock,
       calls,
       getCalls: () => [...calls],
       getCallCount: () => calls.length,
-      getLastCall: () => calls[calls.length - 1],
+      getLastCall: () => calls[calls.length - 1] || undefined,
       reset: () => {
         calls.length = 0;
         mock.mockClear();
@@ -135,18 +193,19 @@ export const performanceConfig = {
   },
 };
 
-// Test data generators
+// Test data generators using type-safe factories
 export const testDataGenerators = {
-  randomString: (length = 10) => 
+  randomString: (length = 10): string => 
     Math.random().toString(36).substring(2, 2 + length),
     
-  randomId: () => 
+  randomId: (): string => 
     `test-${Date.now()}-${Math.random().toString(36).substring(2)}`,
     
-  randomColor: () => 
+  randomColor: (): string => 
     `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
     
-  randomBoardState: (size = 5) => {
+  // Use factory function for consistent board creation
+  randomBoardState: (size = 5): BoardCell[] => {
     const cellCount = size * size;
     return Array.from({ length: cellCount }, (_, i) => ({
       text: `Cell ${i}`,
@@ -180,5 +239,5 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Export commonly used mocks
-export { vi };
+// Export commonly used mocks and types
+export const vi = jest;

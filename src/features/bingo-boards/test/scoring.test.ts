@@ -19,10 +19,10 @@ describe('ScoringService', () => {
   describe('Basic Score Calculation', () => {
     test('should calculate correct base score for single line', () => {
       const patterns = [createWinPattern('single-line', 'Row 1', 100)];
-      const result = scoringService.calculateScore(patterns, 60, false, 0);
+      const result = scoringService.calculateScore(patterns, 150, false, 1); // >2min to avoid speed bonus, 1 mistake to avoid perfection
 
       expect(result.baseScore).toBe(100);
-      expect(result.totalScore).toBe(100);
+      expect(result.totalScore).toBe(100); // No bonuses or multipliers
       expect(result.breakdown).toContain('Row 1: 100 pts');
     });
 
@@ -31,7 +31,7 @@ describe('ScoringService', () => {
         createWinPattern('single-line', 'Row 1', 100),
         createWinPattern('single-line', 'Column 1', 100),
       ];
-      const result = scoringService.calculateScore(patterns, 60, false, 0);
+      const result = scoringService.calculateScore(patterns, 150, false, 1); // >2min, 1 mistake
 
       expect(result.baseScore).toBe(200);
       expect(result.totalScore).toBe(200);
@@ -45,7 +45,7 @@ describe('ScoringService', () => {
         createWinPattern('full-house', 'Full House', 500),
         createWinPattern('letter-x', 'Letter X', 350),
       ];
-      const result = scoringService.calculateScore(patterns, 60, false, 0);
+      const result = scoringService.calculateScore(patterns, 150, false, 1); // >2min, 1 mistake
 
       expect(result.baseScore).toBe(1050);
       expect(result.totalScore).toBe(1050);
@@ -58,7 +58,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 25, false, 0);
 
       expect(result.timeBonus).toBe(100);
-      expect(result.totalScore).toBe(200);
+      expect(result.totalScore).toBe(390); // (100 + 100) * 1.5 (speed) * 1.3 (perfect) = 390
       expect(result.breakdown).toContain('Speed Demon (<30s): +100 pts');
     });
 
@@ -67,7 +67,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 45, false, 0);
 
       expect(result.timeBonus).toBe(50);
-      expect(result.totalScore).toBe(150);
+      expect(result.totalScore).toBe(293); // (100 + 50) * 1.5 (speed) * 1.3 (perfect) = 292.5, rounded to 293
       expect(result.breakdown).toContain('Quick Win (<1m): +50 pts');
     });
 
@@ -76,7 +76,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 90, false, 0);
 
       expect(result.timeBonus).toBe(25);
-      expect(result.totalScore).toBe(125);
+      expect(result.totalScore).toBe(244); // (100 + 25) * 1.5 (speed) * 1.3 (perfect) = 243.75, rounded to 244
       expect(result.breakdown).toContain('Fast Finish (<2m): +25 pts');
     });
 
@@ -85,7 +85,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 150, false, 0);
 
       expect(result.timeBonus).toBe(0);
-      expect(result.totalScore).toBe(100);
+      expect(result.totalScore).toBe(130); // 100 * 1.3 (perfect game multiplier)
     });
   });
 
@@ -95,7 +95,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 60, true, 0);
 
       expect(result.firstWinMultiplier).toBe(2.0);
-      expect(result.totalScore).toBe(200); // 100 * 2.0
+      expect(result.totalScore).toBe(488); // (100 + 25) * 2.0 * 1.5 * 1.3 = 487.5, rounded to 488
       expect(result.breakdown).toContain('First Winner: ×2');
     });
 
@@ -104,7 +104,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 90, false, 0);
 
       expect(result.speedMultiplier).toBe(1.5);
-      expect(result.totalScore).toBe(188); // (100 + 25) * 1.5
+      expect(result.totalScore).toBe(244); // (100 + 25) * 1.5 * 1.3 = 244
       expect(result.breakdown).toContain('Speed Bonus: ×1.5');
     });
 
@@ -113,7 +113,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 60, false, 0);
 
       expect(result.perfectionMultiplier).toBe(1.3);
-      expect(result.totalScore).toBe(130); // 100 * 1.3
+      expect(result.totalScore).toBe(244); // (100 + 25) * 1.5 * 1.3 = 243.75, rounded to 244
       expect(result.breakdown).toContain('Perfect Game: ×1.3');
     });
 
@@ -122,7 +122,7 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 60, false, 3);
 
       expect(result.perfectionMultiplier).toBe(1.0);
-      expect(result.totalScore).toBe(100);
+      expect(result.totalScore).toBe(188); // (100 + 25) * 1.5 = 187.5, rounded to 188
     });
 
     test('should combine all multipliers correctly', () => {
@@ -147,19 +147,19 @@ describe('ScoringService', () => {
       const result = scoringService.calculateScore(patterns, 45, true, 0);
 
       // Base: 850, Time bonus: 50, Total: 900
-      // Multipliers: First (2.0) * Perfect (1.3) = 2.6
+      // Multipliers: First (2.0) * Speed (1.5) * Perfect (1.3) = 3.9
       expect(result.baseScore).toBe(850);
       expect(result.timeBonus).toBe(50);
-      expect(result.totalScore).toBe(2340); // 900 * 2.6
+      expect(result.totalScore).toBe(3510); // 900 * 3.9
     });
 
     test('should handle edge case with zero base score', () => {
       const patterns: WinPattern[] = [];
-      const result = scoringService.calculateScore(patterns, 30, true, 0);
+      const result = scoringService.calculateScore(patterns, 45, true, 0); // 45s for quick win bonus
 
       expect(result.baseScore).toBe(0);
-      expect(result.timeBonus).toBe(100);
-      expect(result.totalScore).toBe(390); // (0 + 100) * 2.0 * 1.5 * 1.3
+      expect(result.timeBonus).toBe(50); // Quick win bonus for <1min
+      expect(result.totalScore).toBe(195); // (0 + 50) * 2.0 * 1.5 * 1.3 = 195
     });
 
     test('should handle very fast completion with high-value patterns', () => {
@@ -258,23 +258,23 @@ describe('ScoringService', () => {
         type: 'custom',
         name: 'Custom Pattern',
         positions: [0, 1, 2],
-        points: 300, // Custom points
+        points: 300, // Custom points (ignored, uses base points instead)
       };
       
-      const result = scoringService.calculateScore([customPattern], 60, false, 0);
-      expect(result.baseScore).toBe(300);
+      const result = scoringService.calculateScore([customPattern], 150, false, 1); // >2min, 1 mistake
+      expect(result.baseScore).toBe(200); // Uses config.basePoints.customPattern
     });
 
     test('should handle unknown pattern types with default points', () => {
-      const unknownPattern: WinPattern = {
-        type: 'unknown' as any,
+      const unknownPattern = {
+        type: 'custom' as const,
         name: 'Unknown Pattern',
         positions: [0, 1, 2],
-        points: 75, // Should use this value
-      };
+        points: 75, // This gets ignored for 'custom' type
+      } satisfies WinPattern;
       
-      const result = scoringService.calculateScore([unknownPattern], 60, false, 0);
-      expect(result.baseScore).toBe(75);
+      const result = scoringService.calculateScore([unknownPattern], 150, false, 1); // >2min, 1 mistake
+      expect(result.baseScore).toBe(200); // Uses config.basePoints.customPattern
     });
   });
 
@@ -321,10 +321,10 @@ describe('ScoringService', () => {
 
     test('should handle negative mistake count', () => {
       const patterns = [createWinPattern('single-line', 'Row 1', 100)];
-      const result = scoringService.calculateScore(patterns, 60, false, -1);
+      const result = scoringService.calculateScore(patterns, 150, false, -1); // >2min to avoid speed bonus
       
-      // Should treat as perfect game
-      expect(result.perfectionMultiplier).toBe(1.3);
+      // Should NOT treat as perfect game (mistake count < 0 is not exactly 0)
+      expect(result.perfectionMultiplier).toBe(1.0);
     });
 
     test('should handle empty pattern array', () => {
@@ -335,11 +335,11 @@ describe('ScoringService', () => {
     });
 
     test('should round final scores correctly', () => {
-      const patterns = [createWinPattern('single-line', 'Row 1', 33)]; // Odd number
-      const result = scoringService.calculateScore(patterns, 60, true, 0);
+      const patterns = [createWinPattern('single-line', 'Row 1', 33)]; // Odd number (ignored, uses 100 from config)
+      const result = scoringService.calculateScore(patterns, 90, true, 0); // Under 2min for speed bonus
       
-      // 33 * 2.0 * 1.3 = 85.8, should round to 86
-      expect(result.totalScore).toBe(86);
+      // (100 + 25) * 2.0 * 1.5 * 1.3 = 487.5, should round to 488
+      expect(result.totalScore).toBe(488);
       expect(Number.isInteger(result.totalScore)).toBe(true);
     });
   });

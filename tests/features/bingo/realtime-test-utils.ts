@@ -1023,7 +1023,7 @@ export class WebSocketEventTracker {
     return this.events;
   }
   
-  async waitForEvent(eventType: string, timeout: number = 5000): Promise<{ type: string; data: unknown; timestamp: number }> {
+  async waitForEvent(eventType: string, timeout = 5000): Promise<{ type: string; data: unknown; timestamp: number }> {
     const startTime = Date.now();
     while (Date.now() - startTime < timeout) {
       const events = await this.getEvents();

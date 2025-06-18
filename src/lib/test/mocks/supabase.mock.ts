@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/../../types/database.types';
 
 // Mock response builders
 export const createSupabaseSuccessResponse = <T>(data: T) => ({
@@ -271,7 +271,19 @@ export const createMockSupabaseClient = (overrides?: Partial<SupabaseClient<Data
 };
 
 // Common mock data factories
-export const mockSupabaseUser = (overrides?: Partial<any>) => ({
+type MockUser = {
+  id: string;
+  email: string;
+  email_confirmed_at: string;
+  created_at: string;
+  updated_at: string;
+  app_metadata: Record<string, unknown>;
+  user_metadata: Record<string, unknown>;
+  aud: string;
+  role: string;
+};
+
+export const mockSupabaseUser = (overrides?: Partial<MockUser>): MockUser => ({
   id: 'mock-user-id',
   email: 'test@example.com',
   email_confirmed_at: '2024-01-01T00:00:00Z',
@@ -284,7 +296,16 @@ export const mockSupabaseUser = (overrides?: Partial<any>) => ({
   ...overrides,
 });
 
-export const mockSupabaseSession = (overrides?: Partial<any>) => ({
+type MockSession = {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  expires_at: number;
+  token_type: string;
+  user: MockUser;
+};
+
+export const mockSupabaseSession = (overrides?: Partial<MockSession>): MockSession => ({
   access_token: 'mock-access-token',
   refresh_token: 'mock-refresh-token',
   expires_in: 3600,

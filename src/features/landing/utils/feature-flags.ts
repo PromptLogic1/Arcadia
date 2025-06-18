@@ -247,7 +247,8 @@ function selectExperimentVariant(
   const totalWeight = experiment.variants.reduce((sum, v) => sum + v.weight, 0);
   
   if (totalWeight === 0) {
-    return experiment.variants[0].value;
+    const firstVariant = experiment.variants[0];
+    return firstVariant ? firstVariant.value : null;
   }
 
   const bucket = (hash % totalWeight);
@@ -260,7 +261,8 @@ function selectExperimentVariant(
     }
   }
 
-  return experiment.variants[experiment.variants.length - 1].value;
+  const lastVariant = experiment.variants[experiment.variants.length - 1];
+  return lastVariant ? lastVariant.value : null;
 }
 
 /**

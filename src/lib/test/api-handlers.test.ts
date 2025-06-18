@@ -10,7 +10,7 @@ import {
   type ServiceResponse,
   type PaginatedResponse 
 } from '@/lib/service-types';
-import { ErrorFactory, ArcadiaError, ErrorCode } from '@/lib/error-handler';
+import { ErrorFactory } from '@/lib/error-handler';
 
 describe('API Response Handlers', () => {
   describe('createServiceSuccess', () => {
@@ -136,7 +136,7 @@ describe('API Response Handlers', () => {
       if (response.success) {
         // TypeScript should know data is not null here
         expect(response.data).not.toBeNull();
-        expect(response.data?.id).toBe('123');
+        expect(response.data!.id).toBe('123');
       }
     });
 
@@ -241,7 +241,7 @@ describe('API Response Handlers', () => {
       
       // Transform the response
       const transformed = response.success 
-        ? createServiceSuccess({ ...response.data, value: response.data.value * 2 })
+        ? createServiceSuccess({ ...response.data!, value: response.data!.value * 2 })
         : response;
 
       expect(transformed.success).toBe(true);
@@ -253,12 +253,12 @@ describe('API Response Handlers', () => {
       
       // Filter even numbers
       const filtered = initialResponse.success
-        ? createServiceSuccess(initialResponse.data.filter(n => n % 2 === 0))
+        ? createServiceSuccess(initialResponse.data!.filter(n => n % 2 === 0))
         : initialResponse;
       
       // Double the values
       const doubled = filtered.success
-        ? createServiceSuccess(filtered.data.map(n => n * 2))
+        ? createServiceSuccess(filtered.data!.map(n => n * 2))
         : filtered;
 
       expect(doubled.success).toBe(true);
@@ -270,7 +270,7 @@ describe('API Response Handlers', () => {
       
       // Try to transform
       const transformed = errorResponse.success
-        ? createServiceSuccess(errorResponse.data.map(n => n * 2))
+        ? createServiceSuccess(errorResponse.data!.map(n => n * 2))
         : errorResponse;
 
       expect(transformed.success).toBe(false);
@@ -309,7 +309,10 @@ describe('API Response Handlers', () => {
     });
 
     it('should handle circular references in error objects', () => {
-      const error: any = new Error('Circular reference');
+      interface CircularError extends Error {
+        circular?: unknown;
+      }
+      const error = new Error('Circular reference') as CircularError;
       error.circular = error; // Create circular reference
 
       // Should not throw when creating error response

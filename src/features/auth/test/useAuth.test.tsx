@@ -14,7 +14,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import type { User } from '@/types';
+import { authService } from '@/services/auth.service';
 
 // Mock Supabase client
 jest.mock('@/lib/supabase', () => ({
@@ -33,7 +33,7 @@ jest.mock('@/lib/supabase', () => ({
 
 // Mock logger
 jest.mock('@/lib/logger', () => ({
-  logger: {
+  log: {
     error: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
@@ -96,7 +96,7 @@ describe('Auth Store', () => {
     });
 
     test('should check for existing session on mount', async () => {
-      const mockUser: User = {
+      const mockUser: UserData = {
         id: 'user-123',
         username: 'testuser',
         auth_id: 'auth-123',
@@ -116,23 +116,34 @@ describe('Auth Store', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (authService.getCurrentUser as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.getCurrentUser).mockResolvedValue({
         success: true,
-        data: mockUser,
-      } as ServiceResponse<User>);
-
-      (authService.getUserData as jest.Mock).mockResolvedValue({
-        success: true,
-        data: mockUser,
-      } as ServiceResponse<User>);
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.isInitialized).toBe(true);
+        data: {
+          id: 'auth-123',
+          email: 'test@example.com',
+          phone: null,
+          auth_username: 'testuser',
+          username: 'testuser',
+          avatar_url: null,
+          provider: 'email',
+          userRole: 'user',
+        },
+        error: null,
       });
 
-      expect(result.current.user).toMatchObject(mockUser);
+      jest.mocked(authService.getUserData).mockResolvedValue({
+        success: true,
+        data: mockUser,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.userData).toMatchObject(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
     });
   });
@@ -140,7 +151,7 @@ describe('Auth Store', () => {
   describe('Sign In', () => {
     test('should sign in user successfully', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
-      const mockUser: User = {
+      const mockUser: UserData = {
         id: 'user-123',
         username: 'testuser',
         auth_id: 'auth-123',
@@ -160,23 +171,25 @@ describe('Auth Store', () => {
         updated_at: new Date().toISOString(),
       };
 
-      (authService.signIn as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signIn).mockResolvedValue({
         success: true,
-        data: { user: mockUser },
-      } as ServiceResponse<{ user: User }>);
+        data: { user: mockUser as any, session: {} as any },
+        error: null,
+      });
 
-      (authService.getUserData as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.getUserData).mockResolvedValue({
         success: true,
         data: mockUser,
-      } as ServiceResponse<User>);
+        error: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signIn(credentials);
       });
 
-      expect(result.current.user).toMatchObject(mockUser);
+      expect(result.current.userData).toMatchObject(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.error).toBeNull();
     });
@@ -184,18 +197,19 @@ describe('Auth Store', () => {
     test('should handle sign in errors', async () => {
       const credentials = { email: 'test@example.com', password: 'wrong' };
 
-      (authService.signIn as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signIn).mockResolvedValue({
         success: false,
         error: 'Invalid login credentials',
-      } as ServiceResponse<{ user: User }>);
+        data: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signIn(credentials);
       });
 
-      expect(result.current.user).toBeNull();
+      expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.error).toBe('Invalid login credentials');
     });
@@ -203,12 +217,13 @@ describe('Auth Store', () => {
     test('should handle rate limiting', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
 
-      (authService.signIn as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signIn).mockResolvedValue({
         success: false,
         error: 'Too many login attempts. Please try again later.',
-      } as ServiceResponse<any>);
+        data: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signIn(credentials);
@@ -226,19 +241,19 @@ describe('Auth Store', () => {
         username: 'newuser',
       };
 
-      (authService.signUp as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signUp).mockResolvedValue({
         success: true,
         data: { needsVerification: true },
-      } as ServiceResponse<any>);
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       const response = await act(async () => {
         return await result.current.signUp(credentials);
       });
 
       expect(response.needsVerification).toBe(true);
-      expect(result.current.user).toBeNull();
+      expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
 
@@ -255,23 +270,23 @@ describe('Auth Store', () => {
         username: 'confirmeduser',
       };
 
-      (authService.signUp as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signUp).mockResolvedValue({
         success: true,
         data: { user: mockUser },
-      } as ServiceResponse<any>);
+      });
 
-      (authService.getUserData as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.getUserData).mockResolvedValue({
         success: true,
-        data: { ...mockUser, role: 'user' },
-      } as ServiceResponse<any>);
+        data: { ...mockUser, role: 'user' } as any,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signUp(credentials);
       });
 
-      expect(result.current.user).toMatchObject(mockUser);
+      expect(result.current.userData).toBeDefined();
       expect(result.current.isAuthenticated).toBe(true);
     });
 
@@ -282,12 +297,13 @@ describe('Auth Store', () => {
         username: 'existinguser',
       };
 
-      (authService.signUp as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signUp).mockResolvedValue({
         success: false,
         error: 'User already registered',
-      } as ServiceResponse<any>);
+        data: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signUp(credentials);
@@ -300,58 +316,63 @@ describe('Auth Store', () => {
   describe('Sign Out', () => {
     test('should sign out user successfully', async () => {
       // Set up authenticated state
-      useAuth.setState({
-        user: { id: 'user-123', email: 'test@example.com' },
+      useAuthStore.setState({
+        authUser: { id: 'user-123', email: 'test@example.com', phone: null, auth_username: null, username: 'test', avatar_url: null, provider: null, userRole: 'user' },
         isAuthenticated: true,
-        isInitialized: true,
+        loading: false,
       });
 
-      (authService.signOut as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signOut).mockResolvedValue({
         success: true,
-      } as ServiceResponse<void>);
+        data: null,
+        error: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signOut();
       });
 
-      expect(result.current.user).toBeNull();
+      expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(authService.signOut).toHaveBeenCalled();
     });
 
     test('should handle sign out errors', async () => {
-      useAuth.setState({
-        user: { id: 'user-123', email: 'test@example.com' },
+      useAuthStore.setState({
+        authUser: { id: 'user-123', email: 'test@example.com', phone: null, auth_username: null, username: 'test', avatar_url: null, provider: null, userRole: 'user' },
         isAuthenticated: true,
-        isInitialized: true,
+        loading: false,
       });
 
-      (authService.signOut as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signOut).mockResolvedValue({
         success: false,
         error: 'Failed to sign out',
-      } as ServiceResponse<void>);
+        data: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signOut();
       });
 
       // User should still be signed out locally even if server fails
-      expect(result.current.user).toBeNull();
+      expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
   });
 
   describe('Password Reset', () => {
     test('should send password reset email', async () => {
-      (authService.resetPassword as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.resetPassword).mockResolvedValue({
         success: true,
-      } as ServiceResponse<void>);
+        data: null,
+        error: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       const response = await act(async () => {
         return await result.current.resetPassword('test@example.com');
@@ -362,12 +383,13 @@ describe('Auth Store', () => {
     });
 
     test('should handle rate limiting for password reset', async () => {
-      (authService.resetPassword as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.resetPassword).mockResolvedValue({
         success: false,
         error: 'Too many password reset attempts',
-      } as ServiceResponse<void>);
+        data: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       const response = await act(async () => {
         return await result.current.resetPassword('test@example.com');
@@ -380,11 +402,13 @@ describe('Auth Store', () => {
 
   describe('Update Password', () => {
     test('should update password successfully', async () => {
-      (authService.updatePassword as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.updatePassword).mockResolvedValue({
         success: true,
-      } as ServiceResponse<void>);
+        data: null,
+        error: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       const response = await act(async () => {
         return await result.current.updatePassword('NewPassword123!');
@@ -395,12 +419,13 @@ describe('Auth Store', () => {
     });
 
     test('should handle weak password error', async () => {
-      (authService.updatePassword as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.updatePassword).mockResolvedValue({
         success: false,
         error: 'Password is too weak',
-      } as ServiceResponse<void>);
+        data: null,
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       const response = await act(async () => {
         return await result.current.updatePassword('weak');
@@ -418,17 +443,17 @@ describe('Auth Store', () => {
         resolveSignIn = resolve;
       });
 
-      (authService.signIn as jest.Mock).mockReturnValue(signInPromise as any);
+      jest.mocked(authService.signIn).mockReturnValue(signInPromise as any);
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.loading).toBe(false);
 
       act(() => {
         result.current.signIn({ email: 'test@example.com', password: 'Test123!' });
       });
 
-      expect(result.current.isLoading).toBe(true);
+      expect(result.current.loading).toBe(true);
 
       await act(async () => {
         resolveSignIn!({
@@ -438,34 +463,34 @@ describe('Auth Store', () => {
         await signInPromise;
       });
 
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.loading).toBe(false);
     });
   });
 
   describe('Error Clearing', () => {
     test('should clear errors', async () => {
-      useAuth.setState({ error: 'Previous error' });
+      useAuthStore.setState({ error: 'Previous error' });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       expect(result.current.error).toBe('Previous error');
 
       act(() => {
-        result.current.clearError();
+        result.current.setError(null);
       });
 
       expect(result.current.error).toBeNull();
     });
 
     test('should clear error on successful operation', async () => {
-      useAuth.setState({ error: 'Previous error' });
+      useAuthStore.setState({ error: 'Previous error' });
 
-      (authService.signIn as jest.Mock).mockResolvedValue({
+      jest.mocked(authService.signIn).mockResolvedValue({
         success: true,
-        data: { user: { id: 'user-123' } },
-      } as ServiceResponse<any>);
+        data: { user: { id: 'user-123' } as any, session: {} as any },
+      });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
         await result.current.signIn({ email: 'test@example.com', password: 'Test123!' });
@@ -477,19 +502,22 @@ describe('Auth Store', () => {
 
   describe('Session Management', () => {
     test('should handle session expiration', async () => {
-      useAuth.setState({
-        user: { id: 'user-123', email: 'test@example.com' },
+      useAuthStore.setState({
+        authUser: { id: 'user-123', email: 'test@example.com', phone: null, auth_username: null, username: 'test', avatar_url: null, provider: null, userRole: 'user' },
         isAuthenticated: true,
-        isInitialized: true,
+        loading: false,
       });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
+      const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       act(() => {
-        result.current.handleSessionExpired();
+        // Simulate session expiration
+        result.current.setAuthUser(null);
+        result.current.setUserData(null);
+        result.current.setError('Your session has expired. Please sign in again.');
       });
 
-      expect(result.current.user).toBeNull();
+      expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.error).toBe('Your session has expired. Please sign in again.');
     });

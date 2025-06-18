@@ -10,7 +10,7 @@ import { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database.types';
+import type { Database } from '@/../../types/database.types';
 
 // Create a custom render function that includes providers
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -89,7 +89,7 @@ export const mockWindowMethods = () => {
     replace: jest.fn(),
     reload: jest.fn(),
     href: 'http://localhost:3000',
-  } as any;
+  } as unknown as Location;
 
   // Mock storage
   const localStorageMock = (() => {
@@ -127,7 +127,7 @@ export const mockWindowMethods = () => {
 export const mockFetch = (responses: Array<{ url: string | RegExp; response: any; status?: number }>) => {
   const originalFetch = global.fetch;
 
-  global.fetch = jest.fn(async (url: string, options?: RequestInit) => {
+  global.fetch = jest.fn(async (url: string | URL, options?: RequestInit) => {
     const urlString = typeof url === 'string' ? url : url.toString();
     
     for (const mock of responses) {
@@ -169,7 +169,7 @@ export const cleanupTestData = async (
   tables: string[] = ['session_players', 'bingo_sessions', 'board_cards', 'bingo_cards', 'bingo_boards', 'users']
 ) => {
   for (const table of tables) {
-    await supabase.from(table as any).delete().gte('created_at', '1900-01-01');
+    await supabase.from(table as keyof Database['public']['Tables']).delete().gte('created_at', '1900-01-01');
   }
 };
 
@@ -280,6 +280,7 @@ export const mockDate = (date: string | Date) => {
         if (args.length === 0) {
           super(mockDate);
         } else {
+          // @ts-expect-error - spreading arguments to Date constructor
           super(...args);
         }
       }

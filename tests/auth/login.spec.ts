@@ -1,4 +1,5 @@
-import { test, expect, Route } from '@playwright/test';
+import type { Route } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { 
   TEST_FORM_DATA,
   AUTH_SELECTORS,
@@ -22,7 +23,7 @@ import {
   waitForAuthRedirect,
   measureAuthPerformance
 } from './utils/auth-test-helpers';
-import type { LoginResponse, AuthErrorResponse } from './types/test-types';
+import type { LoginResponse, AuthErrorResponse, AuthResponseUser } from './types/test-types';
 
 test.describe('Login Flow - Type Safe', () => {
   test.beforeEach(async ({ page }) => {
@@ -42,13 +43,30 @@ test.describe('Login Flow - Type Safe', () => {
           refresh_token: 'mock-refresh-token',
           user: {
             id: 'mock-user-id',
+            auth_id: 'mock-user-id',
             email: TEST_FORM_DATA.login.valid.email,
+            username: 'testuser',
+            user_role: 'user',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            avatar_url: null,
             user_metadata: {
               username: 'testuser',
               avatar_url: null,
             },
           },
-        } as LoginResponse,
+          session: {
+            id: 'mock-session-id',
+            auth_id: 'mock-user-id',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 3600000).toISOString(),
+            last_activity_at: new Date().toISOString(),
+            user_agent: 'playwright',
+            ip_address: '127.0.0.1',
+            is_active: true,
+          },
+        } satisfies LoginResponse,
       });
 
       // Mock user data fetch

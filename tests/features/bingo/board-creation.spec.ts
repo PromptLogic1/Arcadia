@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures/auth.fixture';
-import { Route } from '@playwright/test';
+import type { Route } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
   fillForm, 

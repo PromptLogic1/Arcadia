@@ -351,7 +351,9 @@ describe('Validation Helpers', () => {
         invalidIds.forEach(id => {
           const result = validateUserId(id);
           expect(result.success).toBe(false);
-          expect(result.error).toContain('Invalid user ID');
+          if (!result.success) {
+            expect(result.error).toContain('Invalid user ID');
+          }
         });
       });
     });

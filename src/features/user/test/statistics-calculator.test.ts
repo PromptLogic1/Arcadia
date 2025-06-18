@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import type { Database } from '@/types/database.types';
 
 type UserStats = Database['public']['Tables']['user_statistics']['Row'];
@@ -249,7 +249,7 @@ describe('Statistics Calculator', () => {
     it('should handle games with missing scores', () => {
       const gameResults: Partial<GameResult>[] = [
         { placement: 1, final_score: 100 },
-        { placement: 2, final_score: null },
+        { placement: 2, final_score: null as unknown as number },
         { placement: 1, final_score: undefined },
         { placement: 1, final_score: 120 },
       ];

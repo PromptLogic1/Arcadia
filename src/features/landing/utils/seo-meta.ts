@@ -142,10 +142,13 @@ export function generateMetaTags(config: MetaTagConfig): GeneratedMetaTags {
 
   // Alternate language links
   if (config.alternateLocales && config.alternateLocales.length > 0) {
-    metaTags.alternateLinks = config.alternateLocales.map(alt => ({
-      hreflang: alt.locale.split('_')[0], // Convert ja_JP to ja
-      href: alt.url,
-    }));
+    metaTags.alternateLinks = config.alternateLocales.map(alt => {
+      const localeParts = alt.locale.split('_');
+      return {
+        hreflang: localeParts[0] || 'en', // Convert ja_JP to ja, default to 'en'
+        href: alt.url,
+      };
+    });
   }
 
   return metaTags;
@@ -302,10 +305,13 @@ function extractSiteName(title: string, url: string): string {
   // Try to extract from title (e.g., "Page Title - Site Name")
   const titleParts = title.split(/\s*[-|]\s*/);
   if (titleParts.length > 1) {
-    const lastPart = titleParts[titleParts.length - 1].trim();
-    // If the last part is significantly shorter than the title, it's likely the site name
-    if (lastPart.length < title.length * 0.5) {
-      return lastPart;
+    const lastPart = titleParts[titleParts.length - 1];
+    if (lastPart) {
+      const trimmedPart = lastPart.trim();
+      // If the last part is significantly shorter than the title, it's likely the site name
+      if (trimmedPart.length < title.length * 0.5) {
+        return trimmedPart;
+      }
     }
   }
 
@@ -315,7 +321,10 @@ function extractSiteName(title: string, url: string): string {
     const hostname = urlObj.hostname.replace('www.', '');
     const domainParts = hostname.split('.');
     if (domainParts.length > 0) {
-      return domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+      const firstPart = domainParts[0];
+      if (firstPart && firstPart.length > 0) {
+        return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
+      }
     }
   } catch {
     // Invalid URL

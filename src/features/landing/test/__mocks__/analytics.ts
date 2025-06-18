@@ -40,15 +40,14 @@ declare global {
 
 export function setupAnalyticsMocks() {
   // Mock Google Analytics
-  (global as unknown as { window: Window }).window = {
-    ...global.window,
+  Object.assign(global.window, {
     gtag: mockGoogleAnalytics.gtag,
     dataLayer: mockGoogleAnalytics.dataLayer,
     analytics: mockSegment,
     fbq: mockFacebookPixel.fbq,
     hj: mockHotjar.hj,
     __analyticsEvents: [],
-  };
+  });
 }
 
 export function clearAnalyticsMocks() {

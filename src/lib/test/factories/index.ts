@@ -5,8 +5,7 @@
  * Ensures type safety and realistic data patterns.
  */
 
-import type { Tables } from '@/types/database.types';
-import type { Database } from '@/types/database.types';
+import type { Tables } from '@/../../types/database.types';
 
 // Counter for unique IDs
 let idCounter = 1;
@@ -24,8 +23,8 @@ export const generateUuid = (): string => {
   const randomBytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
   
   // Set version (4) and variant bits
-  randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40;
-  randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80;
+  randomBytes[6] = (randomBytes[6]! & 0x0f) | 0x40;
+  randomBytes[8] = (randomBytes[8]! & 0x3f) | 0x80;
   
   const uuid = [
     randomBytes.slice(0, 4),
@@ -34,7 +33,7 @@ export const generateUuid = (): string => {
     randomBytes.slice(8, 10),
     randomBytes.slice(10, 16),
   ]
-    .map(group => group.map(hex).join(''))
+    .map(group => group?.map(hex).join('') ?? '')
     .join('-');
   
   return uuid;
@@ -44,7 +43,6 @@ export const generateUuid = (): string => {
 export const createMockUser = (overrides?: Partial<Tables<'users'>>): Tables<'users'> => ({
   id: generateUuid(),
   auth_id: generateUuid(),
-  email: `user-${Date.now()}@example.com`,
   username: `user_${Date.now()}`,
   avatar_url: null,
   created_at: new Date().toISOString(),
@@ -53,6 +51,13 @@ export const createMockUser = (overrides?: Partial<Tables<'users'>>): Tables<'us
   land: null,
   region: null,
   city: null,
+  full_name: null,
+  experience_points: null,
+  last_login_at: null,
+  role: null,
+  achievements_visibility: null,
+  profile_visibility: null,
+  submissions_visibility: null,
   ...overrides,
 });
 
@@ -208,6 +213,22 @@ export const createMockCommunityEvent = (overrides?: Partial<Tables<'community_e
   ...overrides,
 });
 
+// Bingo Session Queue Entry factory
+export const createMockBingoSessionQueueEntry = (overrides?: Partial<Tables<'bingo_session_queue'>>): Tables<'bingo_session_queue'> => ({
+  id: generateUuid(),
+  session_id: generateUuid(),
+  user_id: generateUuid(),
+  player_name: `Player ${Date.now()}`,
+  color: '#06b6d4',
+  team: null,
+  status: 'waiting',
+  requested_at: new Date().toISOString(),
+  processed_at: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  ...overrides,
+});
+
 // Complex data builders
 export const createMockBoardWithCards = (
   boardOverrides?: Partial<Tables<'bingo_boards'>>,
@@ -252,6 +273,8 @@ export const factories = {
   bingoCard: createMockBingoCard,
   bingoSession: createMockBingoSession,
   sessionPlayer: createMockSessionPlayer,
+  bingoSessionPlayer: createMockSessionPlayer, // Alias for consistency
+  bingoSessionQueueEntry: createMockBingoSessionQueueEntry,
   submission: createMockSubmission,
   userStatistics: createMockUserStatistics,
   challenge: createMockChallenge,

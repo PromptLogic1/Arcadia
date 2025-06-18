@@ -1,5 +1,5 @@
-import { Page, expect } from '@playwright/test';
-import type { Route } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { Route , Page} from '@playwright/test';
 import type {
   RealTimeEvent,
   WebSocketMessage,
@@ -145,7 +145,7 @@ export class RealtimeTestManager {
   async waitForRealtimeEvent(
     page: Page,
     eventType: string,
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<RealTimeEvent[]> {
     const result = await page.waitForFunction(
       ({ eventType: type, timeoutMs }) => {

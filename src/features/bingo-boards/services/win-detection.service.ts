@@ -13,7 +13,7 @@ export class WinDetectionService {
 
   detectWin(boardState: BoardCell[]): WinDetectionResult {
     const markedPositions = boardState
-      .map((cell, index) => (cell.isMarked ? index : -1))
+      .map((cell, index) => (cell.is_marked ? index : -1))
       .filter(pos => pos !== -1);
 
     const detectedPatterns: WinPattern[] = [];

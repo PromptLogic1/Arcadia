@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import { WinDetectionService } from '../services/win-detection.service';
 import { ScoringService } from '../services/scoring.service';
 import type { BoardCell, GameState, WinPattern } from '../types';
@@ -31,16 +31,16 @@ class BingoEngine {
 
     if (action === 'mark') {
       cell.is_marked = true;
-      cell.completed_by = [...(cell.completed_by || []), playerId];
+      cell.completed_by = [...(cell.completed_by ?? []), playerId];
       cell.last_modified_by = playerId;
     } else {
       cell.is_marked = false;
-      cell.completed_by = (cell.completed_by || []).filter(id => id !== playerId);
+      cell.completed_by = (cell.completed_by ?? []).filter(id => id !== playerId);
       cell.last_modified_by = playerId;
     }
     
     cell.last_updated = Date.now();
-    cell.version = (cell.version || 0) + 1;
+    cell.version = (cell.version ?? 0) + 1;
 
     const newState: GameState = {
       currentState: newCells,
@@ -145,7 +145,7 @@ describe('BingoEngine', () => {
       version: 1,
       last_updated: Date.now(),
       last_modified_by: null,
-    }));
+    } satisfies BoardCell));
 
     return {
       currentState: cells,
@@ -159,9 +159,10 @@ describe('BingoEngine', () => {
       const gameState = createInitialGameState();
       const result = engine.processMove(gameState, 12, 'player1', 'mark');
 
-      expect(result.newState.currentState[12]?.is_marked).toBe(true);
-      expect(result.newState.currentState[12]?.completed_by).toContain('player1');
-      expect(result.newState.currentState[12]?.last_modified_by).toBe('player1');
+      const cell = result.newState.currentState[12];
+      expect(cell?.is_marked).toBe(true);
+      expect(cell?.completed_by).toContain('player1');
+      expect(cell?.last_modified_by).toBe('player1');
       expect(result.newState.version).toBe(2);
       expect(result.winDetected).toBe(false);
     });
@@ -173,8 +174,9 @@ describe('BingoEngine', () => {
       // Then unmark it
       const result = engine.processMove(marked.newState, 12, 'player1', 'unmark');
 
-      expect(result.newState.currentState[12]?.is_marked).toBe(false);
-      expect(result.newState.currentState[12]?.completed_by).not.toContain('player1');
+      const cell = result.newState.currentState[12];
+      expect(cell?.is_marked).toBe(false);
+      expect(cell?.completed_by).not.toContain('player1');
       expect(result.newState.version).toBe(3);
     });
 
@@ -192,9 +194,12 @@ describe('BingoEngine', () => {
       // Player 3 marks cell 2
       const result3 = engine.processMove(gameState, 2, 'player3', 'mark');
 
-      expect(result3.newState.currentState[0]?.completed_by).toContain('player1');
-      expect(result3.newState.currentState[1]?.completed_by).toContain('player2');
-      expect(result3.newState.currentState[2]?.completed_by).toContain('player3');
+      const cell0 = result3.newState.currentState[0];
+      const cell1 = result3.newState.currentState[1];
+      const cell2 = result3.newState.currentState[2];
+      expect(cell0?.completed_by).toContain('player1');
+      expect(cell1?.completed_by).toContain('player2');
+      expect(cell2?.completed_by).toContain('player3');
       expect(result3.newState.version).toBe(4);
     });
 
@@ -213,7 +218,8 @@ describe('BingoEngine', () => {
       
       expect(winResult.winDetected).toBe(true);
       expect(winResult.winPatterns).toHaveLength(1);
-      expect(winResult.winPatterns?.[0]?.name).toBe('Row 1');
+      const firstPattern = winResult.winPatterns?.[0];
+      expect(firstPattern?.name).toBe('Row 1');
       expect(winResult.score).toBeGreaterThan(0);
     });
 
@@ -245,7 +251,10 @@ describe('BingoEngine', () => {
 
     test('should detect duplicate cell IDs', () => {
       const gameState = createInitialGameState();
-      gameState.currentState[1]!.cell_id = 'cell-0'; // Duplicate ID
+      const cellToModify = gameState.currentState[1];
+      if (cellToModify) {
+        cellToModify.cell_id = 'cell-0'; // Duplicate ID
+      }
       
       const validation = engine.validateGameState(gameState);
       
@@ -275,7 +284,10 @@ describe('BingoEngine', () => {
 
     test('should prevent marking blocked cell', () => {
       const gameState = createInitialGameState();
-      gameState.currentState[12]!.blocked = true;
+      const cellToBlock = gameState.currentState[12];
+      if (cellToBlock) {
+        cellToBlock.blocked = true;
+      }
       
       const permission = engine.canPlayerMark(gameState, 12, 'player1');
       
@@ -285,8 +297,11 @@ describe('BingoEngine', () => {
 
     test('should prevent marking already marked cell by same player', () => {
       const gameState = createInitialGameState();
-      gameState.currentState[12]!.is_marked = true;
-      gameState.currentState[12]!.completed_by = ['player1'];
+      const cellToMark = gameState.currentState[12];
+      if (cellToMark) {
+        cellToMark.is_marked = true;
+        cellToMark.completed_by = ['player1'];
+      }
       
       const permission = engine.canPlayerMark(gameState, 12, 'player1');
       
@@ -369,10 +384,13 @@ describe('BingoEngine', () => {
       });
       
       // Check final state
-      expect(gameState.currentState[0]?.completed_by).toContain('player1');
-      expect(gameState.currentState[0]?.completed_by).toContain('player2');
-      expect(gameState.currentState[1]?.is_marked).toBe(false);
-      expect(gameState.currentState[2]?.completed_by).toContain('player1');
+      const finalCell0 = gameState.currentState[0];
+      const finalCell1 = gameState.currentState[1];
+      const finalCell2 = gameState.currentState[2];
+      expect(finalCell0?.completed_by).toContain('player1');
+      expect(finalCell0?.completed_by).toContain('player2');
+      expect(finalCell1?.is_marked).toBe(false);
+      expect(finalCell2?.completed_by).toContain('player1');
       expect(gameState.version).toBe(6);
     });
   });
@@ -387,9 +405,9 @@ describe('BingoEngine', () => {
       for (let i = 0; i < 100; i++) {
         const pos = i % 25;
         const player = `player${(i % 3) + 1}`;
-        const action = i % 4 === 0 ? 'unmark' : 'mark';
+        const action: 'mark' | 'unmark' = i % 4 === 0 ? 'unmark' : 'mark';
         
-        const result = engine.processMove(currentState, pos, player, action as 'mark' | 'unmark');
+        const result = engine.processMove(currentState, pos, player, action);
         currentState = result.newState;
       }
       

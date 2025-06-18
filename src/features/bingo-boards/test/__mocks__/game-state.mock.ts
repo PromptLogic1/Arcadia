@@ -1,4 +1,5 @@
 import type { BoardCell, GameState, BingoBoardSession, GamePlayer } from '../../types';
+import { createBoardCell, createBingoSession, createGamePlayer } from '../factories';
 
 export const createMockBoardCell = (overrides: Partial<BoardCell> = {}): BoardCell => ({
   text: 'Mock cell',
@@ -54,7 +55,7 @@ export const createMockPlayer = (overrides: Partial<GamePlayer> = {}): GamePlaye
   color: '#06b6d4',
   hoverColor: '#0891b2',
   team: 0,
-  avatarUrl: null,
+  avatarUrl: undefined,
   joinedAt: new Date(),
   isActive: true,
   ...overrides,
@@ -298,11 +299,10 @@ export const createBoardWithConflicts = (): BoardCell[] => {
       cell_id: `cell-${pos}`,
       is_marked: true,
       completed_by: ['player1', 'player2'], // Both players marked it
-      conflictResolution: {
-        timestamp: Date.now(),
-        resolvedBy: 'system',
-        originalValue: 'player1',
-      },
+      // Conflicts are tracked by having multiple players in completed_by
+      // with last_modified_by showing who won the conflict
+      last_modified_by: 'player2',
+      version: 2, // Higher version indicates conflict resolution
     });
   });
   

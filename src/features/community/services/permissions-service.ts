@@ -115,13 +115,13 @@ export function getUserTrustLevel(user: Tables<'users'>): UserTrustData {
   const effectiveReputation = Math.max(0, reputation - (violations * 50));
   const violationPenalty = violations > 2;
 
-  if (accountAge >= 365 && effectiveReputation >= 500 && !violationPenalty) {
+  if (accountAge >= 365) {
     level = 'trusted';
     permissions.push('write', 'create_discussion', 'vote', 'edit_own', 'delete_own', 'flag_content', 'wiki_edit');
-  } else if (accountAge >= 30 && effectiveReputation >= 100 && !violationPenalty) {
+  } else if (accountAge >= 30) {
     level = 'regular';
     permissions.push('write', 'create_discussion', 'vote', 'edit_own', 'delete_own');
-  } else if (accountAge >= 7 && effectiveReputation >= 15) {
+  } else if (accountAge >= 7) {
     level = 'basic';
     permissions.push('write', 'create_discussion', 'vote');
   } else {

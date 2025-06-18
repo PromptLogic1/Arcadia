@@ -315,8 +315,8 @@ describe('Analytics Event Tracking', () => {
 
       const events = tracker.getEvents();
       expect(events).toHaveLength(2);
-      expect(events[0].name).toBe('page_view');
-      expect(events[1].name).toBe('cta_click');
+      expect(events[0]?.name).toBe('page_view');
+      expect(events[1]?.name).toBe('cta_click');
     });
 
     it('should track conversion funnels', () => {
@@ -395,8 +395,8 @@ describe('Analytics Event Tracking', () => {
         .filter(e => e.name === 'scroll_depth');
 
       expect(scrollEvents).toHaveLength(4);
-      expect(scrollEvents[0].metadata?.depth).toBe(25);
-      expect(scrollEvents[3].metadata?.depth).toBe(100);
+      expect(scrollEvents[0]?.metadata?.depth).toBe(25);
+      expect(scrollEvents[3]?.metadata?.depth).toBe(100);
     });
 
     it('should track time on page', () => {
@@ -418,7 +418,7 @@ describe('Analytics Event Tracking', () => {
       
       const events = tracker.getEventsByName('time_on_page');
       expect(events).toHaveLength(1);
-      expect(events[0].value).toBe(100);
+      expect(events[0]?.value).toBe(100);
     });
 
     it('should deduplicate events', () => {
@@ -455,8 +455,8 @@ describe('Analytics Event Tracking', () => {
       expect(events).toHaveLength(5);
       
       // Should keep the most recent events
-      expect(events[0].name).toBe('event_5');
-      expect(events[4].name).toBe('event_9');
+      expect(events[0]?.name).toBe('event_5');
+      expect(events[4]?.name).toBe('event_9');
     });
 
     it('should export events in different formats', () => {
@@ -547,8 +547,8 @@ describe('Analytics Event Tracking', () => {
 
       const attribution = tracker.getAttribution('test-user-123');
       expect(attribution?.touchpoints).toHaveLength(4);
-      expect(attribution?.touchpoints[0]).toMatchObject(sources[0]);
-      expect(attribution?.touchpoints[3]).toMatchObject(sources[3]);
+      expect(attribution?.touchpoints?.[0]).toMatchObject(sources[0] || {});
+      expect(attribution?.touchpoints?.[3]).toMatchObject(sources[3] || {});
     });
   });
 });

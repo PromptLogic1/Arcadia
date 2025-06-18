@@ -28,6 +28,8 @@ export type LoginResponse = {
   session: AuthSession;
   access_token: string;
   refresh_token: string;
+  token_type?: string;
+  expires_in?: number;
   usedBackupCode?: boolean; // For MFA scenarios
   bypassUsed?: boolean; // For MFA bypass scenarios
 };
@@ -84,6 +86,22 @@ export type LoginFormData = {
   rememberMe?: boolean;
 };
 
+// Supabase Auth Response for mocking
+export type SupabaseAuthResponse = {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    user_metadata?: {
+      username?: string;
+      avatar_url?: string | null;
+    };
+  };
+};
+
 export type SignupFormData = {
   email: string;
   username: string;
@@ -104,8 +122,21 @@ export type ResetPasswordFormData = {
   token: string;
 };
 
+// Extended user type for auth responses
+export type AuthResponseUser = {
+  id: string;
+  auth_id?: string;
+  email: string;
+  username?: string;
+  avatar_url?: string | null;
+  user_metadata?: {
+    username?: string;
+    avatar_url?: string | null;
+  };
+};
+
 // Window extension for test utilities
-export interface TestWindow extends Window {
+export interface TestWindow {
   __zustand?: Record<string, {
     getState: () => unknown;
     setState: (state: unknown) => void;

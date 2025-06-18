@@ -18,7 +18,7 @@ import {
 } from '../../helpers/community-test-helpers';
 import {
   MODERATION_TEST_CONTENT,
-} from '../../fixtures/community-fixtures';
+} from './fixtures/community-fixtures';
 
 /**
  * Enhanced Content Moderation Tests

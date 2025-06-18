@@ -19,25 +19,36 @@ Object.defineProperty(global, 'crypto', {
 
 jest.mock('crypto', () => ({
   ...jest.requireActual('crypto'),
-  createHash: jest.fn().mockImplementation(() => ({
-    update: jest.fn().mockImplementation(function(data: string) {
-      // Create a simple hash based on the input
-      let hash = 0;
-      for (let i = 0; i < data.length; i++) {
-        const char = data.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      this._hash = Math.abs(hash).toString(16).padStart(8, '0').substring(0, 8);
-      return this;
-    }),
-    digest: jest.fn().mockImplementation(function(encoding: string) {
-      if (encoding === 'hex') {
-        return this._hash + '00000000'; // Make it 16 chars like MD5
-      }
-      return this._hash + '00000000';
-    }),
-  })),
+  createHash: jest.fn().mockImplementation(() => {
+    let hashValue = '';
+    return {
+      update: jest.fn().mockImplementation((data: string) => {
+        // Create a simple hash based on the input
+        let hash = 0;
+        for (let i = 0; i < data.length; i++) {
+          const char = data.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32bit integer
+        }
+        hashValue = Math.abs(hash).toString(16).padStart(8, '0').substring(0, 8);
+        return { 
+          update: jest.fn(), 
+          digest: jest.fn((encoding: string) => {
+            if (encoding === 'hex') {
+              return hashValue + '00000000'; // Make it 16 chars like MD5
+            }
+            return hashValue + '00000000';
+          })
+        };
+      }),
+      digest: jest.fn((encoding: string) => {
+        if (encoding === 'hex') {
+          return hashValue + '00000000'; // Make it 16 chars like MD5
+        }
+        return hashValue + '00000000';
+      }),
+    };
+  }),
   randomUUID: jest.fn(() => 'abcd-ef12-1234-5678-90ab'),
 }));
 

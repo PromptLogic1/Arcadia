@@ -1,4 +1,5 @@
-import { test, expect, Route } from '@playwright/test';
+import type { Route } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth.fixture';
 import {
   fillAuthForm,

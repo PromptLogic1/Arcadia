@@ -301,7 +301,11 @@ export class AnalyticsEventTracker {
 
     if (lastTime && now - lastTime < this.dedupeWindowMs) {
       // Duplicate event, return the last one
-      return this.events[this.events.length - 1];
+      const lastEvent = this.events[this.events.length - 1];
+      if (!lastEvent) {
+        throw new Error('No events tracked yet');
+      }
+      return lastEvent;
     }
 
     this.lastEventTime.set(eventKey, now);
@@ -392,13 +396,16 @@ export class AnalyticsEventTracker {
       if (nextStepIndex >= funnel.steps.length) return;
 
       const nextStep = funnel.steps[nextStepIndex];
-      if (nextStep.event === event.name) {
+      if (nextStep && nextStep.event === event.name) {
         progress.completedSteps++;
         progress.conversionRate = progress.completedSteps / progress.totalSteps;
         progress.lastStepTimestamp = event.timestamp;
 
         if (progress.completedSteps < progress.totalSteps) {
-          progress.dropoffStep = funnel.steps[progress.completedSteps].name;
+          const dropoffStep = funnel.steps[progress.completedSteps];
+          if (dropoffStep) {
+            progress.dropoffStep = dropoffStep.name;
+          }
         } else {
           delete progress.dropoffStep;
         }

@@ -70,8 +70,63 @@ export class RecommendationEngine {
       .filter((g): g is Game => g !== undefined);
   }
 
+  // Get recommendations including liked games even if played
+  getRecommendationsIncludingLiked(config: RecommendationConfig = {}): Game[] {
+    const {
+      maxRecommendations = 10,
+      includeNewGames = true,
+      diversityWeight = 0.3,
+      personalizedWeight = 0.7
+    } = config;
+
+    const scores = this.calculateRecommendationScoresIncludingLiked(
+      includeNewGames,
+      personalizedWeight,
+      diversityWeight
+    );
+
+    // Sort by score and return top recommendations
+    const sorted = scores.sort((a, b) => b.score - a.score);
+    const topScores = sorted.slice(0, maxRecommendations);
+
+    return topScores
+      .map(s => this.games.get(s.gameId))
+      .filter((g): g is Game => g !== undefined);
+  }
+
   // Calculate recommendation scores for all games
   private calculateRecommendationScores(
+    includeNewGames: boolean,
+    personalizedWeight: number,
+    diversityWeight: number
+  ): RecommendationScore[] {
+    const scores: RecommendationScore[] = [];
+
+    for (const [gameId, game] of this.games) {
+      // Skip already played games (including liked ones, unless it's a specific recommendation request)
+      if (this.userPreferences.playedGames.includes(gameId)) {
+        continue;
+      }
+
+      // Skip disliked games
+      if (this.userPreferences.dislikedGames.includes(gameId)) {
+        continue;
+      }
+
+      const score = this.calculateGameScore(
+        game,
+        personalizedWeight,
+        diversityWeight
+      );
+
+      scores.push(score);
+    }
+
+    return scores;
+  }
+
+  // Calculate recommendation scores for all games including liked games even if played
+  private calculateRecommendationScoresIncludingLiked(
     includeNewGames: boolean,
     personalizedWeight: number,
     diversityWeight: number
@@ -424,7 +479,7 @@ describe('Recommendation Engine', () => {
       userPreferences.likedGames = ['game-1'];
       
       const newEngine = new RecommendationEngine(games, userPreferences);
-      const recommendations = newEngine.getRecommendations();
+      const recommendations = newEngine.getRecommendationsIncludingLiked();
       
       expect(recommendations.some(g => g.id === 'game-1')).toBe(true);
       expect(recommendations.every(g => g.id !== 'game-2')).toBe(true);

@@ -41,9 +41,32 @@ const RATE_LIMITS = {
   },
 };
 
+// Define proper types for our mocks
+interface MockRedisClient {
+  get: jest.Mock;
+  set: jest.Mock;
+  incr: jest.Mock;
+  expire: jest.Mock;
+  del: jest.Mock;
+  ttl: jest.Mock;
+}
+
+interface _MockRateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+}
+
+interface MockRatelimitInstance {
+  limit: jest.Mock;
+  blockUntil: jest.Mock;
+  reset: jest.Mock;
+}
+
 describe('Rate Limiting', () => {
-  let mockRedis: any;
-  let mockRatelimit: any;
+  let mockRedis: MockRedisClient;
+  let mockRatelimit: MockRatelimitInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -65,8 +88,8 @@ describe('Rate Limiting', () => {
       reset: jest.fn(),
     };
 
-    jest.mocked(Redis).mockImplementation(() => mockRedis);
-    jest.mocked(Ratelimit).mockImplementation(() => mockRatelimit);
+    jest.mocked(Redis).mockImplementation(() => mockRedis as any);
+    jest.mocked(Ratelimit).mockImplementation(() => mockRatelimit as any);
   });
 
   afterEach(() => {
@@ -87,7 +110,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(limit, '15m'),
       });
 
@@ -111,7 +134,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(limit, '15m'),
       });
 
@@ -133,7 +156,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(limit, '15m'),
       });
 
@@ -159,7 +182,7 @@ describe('Rate Limiting', () => {
       mockRatelimit.reset.mockResolvedValue(true);
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(RATE_LIMITS.login.attempts, '15m'),
       });
 
@@ -182,7 +205,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(limit, '1h'),
       });
 
@@ -204,7 +227,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(3, '1h'),
       });
 
@@ -228,7 +251,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.slidingWindow(limit, '1h'),
       });
 
@@ -255,7 +278,7 @@ describe('Rate Limiting', () => {
         });
 
         const ratelimit = new Ratelimit({
-          redis: mockRedis,
+          redis: mockRedis as unknown as Redis,
           limiter: Ratelimit.slidingWindow(3, '1h'),
         });
 
@@ -346,8 +369,8 @@ describe('Rate Limiting', () => {
 
   describe('Rate Limit Algorithms', () => {
     test('should support sliding window algorithm', () => {
-      const window = '15m';
-      const limit = 5;
+      const _window = '15m';
+      const _limit = 5;
       
       // Sliding window maintains a rolling time window
       const windowMs = 15 * 60 * 1000;
@@ -366,7 +389,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.tokenBucket(tokens, interval, tokens),
       });
 
@@ -387,7 +410,7 @@ describe('Rate Limiting', () => {
       });
 
       const ratelimit = new Ratelimit({
-        redis: mockRedis,
+        redis: mockRedis as unknown as Redis,
         limiter: Ratelimit.fixedWindow(limit, window),
       });
 

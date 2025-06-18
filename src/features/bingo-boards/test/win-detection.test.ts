@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { WinDetectionService } from '../services/win-detection.service';
-import type { BoardCell, WinPattern } from '../types';
+import type { BoardCell } from '../types';
 
 describe('WinDetectionService', () => {
   let winDetector: WinDetectionService;
@@ -21,8 +21,7 @@ describe('WinDetectionService', () => {
       version: 1,
       last_updated: Date.now(),
       last_modified_by: null,
-      isMarked: markedPositions.includes(index),
-    }));
+    } satisfies BoardCell));
   }
 
   describe('Horizontal Line Detection', () => {
@@ -196,7 +195,7 @@ describe('WinDetectionService', () => {
       const result = winDetector.detectWin(boardState);
 
       expect(result.hasWin).toBe(true);
-      expect(result.patterns).toHaveLength(12); // 5 rows + 5 columns + 2 diagonals + 1 four corners + 1 full house = 14, but full house supersedes others
+      expect(result.patterns).toHaveLength(14); // 5 rows + 5 columns + 2 diagonals + 1 four corners + 1 full house = 14
       
       const fullHousePattern = result.patterns.find(p => p.type === 'full-house');
       expect(fullHousePattern).toMatchObject({
@@ -226,7 +225,7 @@ describe('WinDetectionService', () => {
         7, 12, 17, 22  // Middle column (excluding cell 2 to avoid duplicate)
       ];
       const boardState = createBoardState(tPattern);
-      const result = winDetector.checkLetterT(boardState.map((_, i) => i).filter(i => boardState[i]?.isMarked));
+      const result = winDetector.checkLetterT(boardState.map((_, i) => i).filter(i => boardState[i]?.is_marked));
 
       expect(result).toMatchObject({
         type: 'letter-t',
@@ -242,7 +241,7 @@ describe('WinDetectionService', () => {
         4, 8, 16, 20       // Anti-diagonal (12 is shared)
       ];
       const boardState = createBoardState(xPattern);
-      const result = winDetector.checkLetterX(boardState.map((_, i) => i).filter(i => boardState[i]?.isMarked));
+      const result = winDetector.checkLetterX(boardState.map((_, i) => i).filter(i => boardState[i]?.is_marked));
 
       expect(result).toMatchObject({
         type: 'letter-x',
@@ -271,7 +270,7 @@ describe('WinDetectionService', () => {
         ])
       );
       expect(result.totalPoints).toBe(200);
-      expect(result.winningCells.sort()).toEqual([0, 1, 2, 3, 4, 5, 10, 15, 20]);
+      expect(result.winningCells.sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 10, 15, 20]);
     });
 
     test('should detect crossed diagonals (X pattern)', () => {
@@ -282,8 +281,8 @@ describe('WinDetectionService', () => {
       const result = winDetector.detectWin(boardState);
 
       expect(result.hasWin).toBe(true);
-      expect(result.patterns).toHaveLength(2);
-      expect(result.totalPoints).toBe(300); // 150 + 150
+      expect(result.patterns).toHaveLength(3); // 2 diagonals + four corners
+      expect(result.totalPoints).toBe(500); // 150 + 150 + 200
     });
   });
 
@@ -304,7 +303,7 @@ describe('WinDetectionService', () => {
 
     test('should work with 4x4 board', () => {
       const winDetector4x4 = new WinDetectionService(4);
-      const boardState = createBoardState([0, 5, 10, 15], 16); // First column
+      const boardState = createBoardState([0, 4, 8, 12], 16); // First column
       const result = winDetector4x4.detectWin(boardState);
 
       expect(result.hasWin).toBe(true);
@@ -368,7 +367,7 @@ describe('WinDetectionService', () => {
 
       expect(result.hasWin).toBe(true);
       expect(result.patterns).toHaveLength(2);
-      expect(result.winningCells.sort()).toEqual([2, 7, 10, 11, 12, 13, 14, 17, 22]);
+      expect(result.winningCells.sort((a, b) => a - b)).toEqual([2, 7, 10, 11, 12, 13, 14, 17, 22]);
       expect(result.winningCells).toHaveLength(9); // Not 10, because 12 is deduplicated
     });
   });

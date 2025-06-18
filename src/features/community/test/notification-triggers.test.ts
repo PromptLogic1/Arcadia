@@ -9,6 +9,9 @@ import {
   type NotificationTrigger,
   type NotificationPreferences,
   type NotificationContext,
+  type Notification as ServiceNotification,
+  type NotificationBatch,
+  type NotificationForFormatting,
 } from '../services/notification-service';
 
 // Mock data
@@ -376,7 +379,7 @@ describe('Notification Service', () => {
 
   describe('Notification Batching', () => {
     it('should batch similar notifications', async () => {
-      const notifications: Notification[] = [
+      const notifications = [
         {
           type: 'upvote' as const,
           recipient_id: 'user-1',
@@ -397,7 +400,7 @@ describe('Notification Service', () => {
         },
       ];
 
-      const batched = await batchNotifications(notifications);
+      const batched = await batchNotifications(notifications as ServiceNotification[]);
 
       expect(batched).toHaveLength(1);
       expect(batched[0]!.type).toBe('upvote_batch');
@@ -408,24 +411,24 @@ describe('Notification Service', () => {
     it('should not batch different notification types', async () => {
       const notifications = [
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           actor_id: 'user-2',
           resource_id: 'comment-1',
         },
         {
-          type: 'comment_reply',
+          type: 'comment_reply' as const,
           recipient_id: 'user-1',
           actor_id: 'user-3',
           resource_id: 'comment-2',
         },
       ];
 
-      const batched = await batchNotifications(notifications);
+      const batched = await batchNotifications(notifications as ServiceNotification[]);
 
       expect(batched).toHaveLength(2);
-      expect(batched[0].type).toBe('upvote');
-      expect(batched[1].type).toBe('comment_reply');
+      expect(batched[0]!.type).toBe('upvote');
+      expect(batched[1]!.type).toBe('comment_reply');
     });
 
     it('should batch by time window', async () => {
@@ -435,17 +438,17 @@ describe('Notification Service', () => {
 
       const notifications = [
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           created_at: now.toISOString(),
         },
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           created_at: fiveMinutesAgo.toISOString(),
         },
         {
-          type: 'upvote',
+          type: 'upvote' as const,
           recipient_id: 'user-1',
           created_at: hourAgo.toISOString(),
         },
@@ -457,9 +460,9 @@ describe('Notification Service', () => {
 
       expect(batched).toHaveLength(2);
       // Recent notifications batched together
-      expect(batched[0].count).toBe(2);
+      expect(batched[0]!.count).toBe(2);
       // Older notification separate
-      expect(batched[1].count).toBe(1);
+      expect(batched[1]!.count).toBe(1);
     });
   });
 
@@ -474,7 +477,7 @@ describe('Notification Service', () => {
         },
       };
 
-      const content = await formatNotificationContent(notification);
+      const content = await formatNotificationContent(notification as any);
 
       expect(content.title).toBe('New reply from johndoe');
       expect(content.body).toContain('replied to your comment');
@@ -492,7 +495,7 @@ describe('Notification Service', () => {
         },
       };
 
-      const content = await formatNotificationContent(notification);
+      const content = await formatNotificationContent(notification as any);
 
       expect(content.title).toBe('janedoe mentioned you');
       expect(content.body).toContain('mentioned you in a comment');
@@ -514,7 +517,7 @@ describe('Notification Service', () => {
         },
       };
 
-      const content = await formatNotificationContent(notification);
+      const content = await formatNotificationContent(notification as any);
 
       expect(content.title).toBe('5 new upvotes');
       expect(content.body).toContain('user1, user2, user3 and 2 others');
@@ -535,7 +538,7 @@ describe('Notification Service', () => {
         },
       };
 
-      const content = await formatNotificationContent(notification);
+      const content = await formatNotificationContent(notification as any);
 
       expect(content.title).toBe('Content removed');
       expect(content.body).toContain('Your discussion "My Discussion" was removed');
@@ -554,9 +557,9 @@ describe('Notification Service', () => {
         },
       };
 
-      const content = await formatNotificationContent(notification);
+      const content = await formatNotificationContent(notification as any);
 
-      expect(content.preview.length).toBeLessThanOrEqual(200);
+      expect(content.preview?.length || 0).toBeLessThanOrEqual(200);
       expect(content.preview).toContain('...');
     });
   });
@@ -565,19 +568,15 @@ describe('Notification Service', () => {
     it('should queue email notifications', async () => {
       const emailQueue = jest.fn();
       
-      const notification = {
-        id: 'notif-1',
+      const trigger: NotificationTrigger = {
         type: 'comment_reply',
-        recipient: {
-          id: 'user-1',
-          email: 'user@example.com',
-          preferences: {
-            email_notifications: true,
-          },
-        },
+        actor_id: 'user-2',
+        target_id: 'user-1',
+        resource_type: 'comment',
+        resource_id: 'comment-1',
       };
 
-      await triggerNotification(notification, {
+      await triggerNotification(trigger, {
         channels: ['email'],
         emailQueue,
       });
@@ -593,19 +592,15 @@ describe('Notification Service', () => {
     it('should send push notifications', async () => {
       const pushService = jest.fn();
       
-      const notification = {
-        id: 'notif-1',
+      const trigger: NotificationTrigger = {
         type: 'mention',
-        recipient: {
-          id: 'user-1',
-          push_token: 'push-token-123',
-          preferences: {
-            push_notifications: true,
-          },
-        },
+        actor_id: 'user-2',
+        target_id: 'user-1',
+        resource_type: 'comment',
+        resource_id: 'comment-1',
       };
 
-      await triggerNotification(notification, {
+      await triggerNotification(trigger, {
         channels: ['push'],
         pushService,
       });
@@ -619,21 +614,22 @@ describe('Notification Service', () => {
     });
 
     it('should create in-app notifications', async () => {
-      const notification = {
+      const trigger: NotificationTrigger = {
         type: 'discussion_update',
-        recipient_id: 'user-1',
         actor_id: 'user-2',
+        target_id: 'user-1',
         resource_type: 'discussion',
         resource_id: '123',
       };
 
-      const created = await triggerNotification(notification, {
+      const created = await triggerNotification(trigger, {
         channels: ['in_app'],
       });
 
       expect(created).toBeDefined();
-      expect(created.read_at).toBeNull();
-      expect(created.created_at).toBeDefined();
+      expect(created).not.toBeNull();
+      expect(created!.read_at).toBeNull();
+      expect(created!.created_at).toBeDefined();
     });
   });
 
@@ -673,19 +669,17 @@ describe('Notification Service', () => {
     it('should handle notification failures gracefully', async () => {
       const emailQueue = jest.fn().mockRejectedValue(new Error('Email service down'));
       
-      const notification = {
+      const trigger: NotificationTrigger = {
         id: 'notif-1',
         type: 'comment_reply',
-        recipient: {
-          email: 'user@example.com',
-          preferences: {
-            email_notifications: true,
-          },
-        },
+        actor_id: 'user-1',
+        target_id: 'user-2',
+        resource_type: 'comment',
+        resource_id: 'comment-1',
       };
 
       // Should not throw, but log error
-      await expect(triggerNotification(notification, {
+      await expect(triggerNotification(trigger, {
         channels: ['email'],
         emailQueue,
       })).resolves.toBeDefined();

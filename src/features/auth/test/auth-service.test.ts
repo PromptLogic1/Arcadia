@@ -12,7 +12,8 @@
 import { describe, test, expect, beforeEach, jest, afterEach } from '@jest/globals';
 import { authService } from '@/services/auth.service';
 import { createClient } from '@/lib/supabase';
-import type { ServiceResponse } from '@/lib/service-types';
+import type { Tables } from '../../../../types/database.types';
+import type { AuthError, Session, User } from '@supabase/supabase-js';
 
 // Mock Supabase client
 jest.mock('@/lib/supabase', () => ({
@@ -28,8 +29,25 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+// Define proper mock types
+interface MockAuthClient {
+  getSession: jest.Mock;
+  getUser: jest.Mock;
+  signInWithPassword: jest.Mock;
+  signUp: jest.Mock;
+  signOut: jest.Mock;
+  resetPasswordForEmail: jest.Mock;
+  updateUser: jest.Mock;
+  onAuthStateChange: jest.Mock;
+}
+
+interface MockSupabaseClient {
+  auth: MockAuthClient;
+  from: jest.Mock;
+}
+
 describe('Auth Service', () => {
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(() => {
     // Reset all mocks
@@ -51,7 +69,7 @@ describe('Auth Service', () => {
     };
 
     // Mock createClient to return our mock client
-    (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
+    jest.mocked(createClient).mockReturnValue(mockSupabaseClient as any);
   });
 
   afterEach(() => {
@@ -60,15 +78,26 @@ describe('Auth Service', () => {
 
   describe('getSession', () => {
     test('should return session when available', async () => {
-      const mockSession = {
-        user: { id: 'user-123', email: 'test@example.com' },
+      const mockSession: Session = {
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: '2024-01-01T00:00:00Z',
+        },
         access_token: 'token-123',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'refresh-123',
       };
 
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
+      mockSupabaseClient.auth.getSession.mockImplementation(() => Promise.resolve({
         data: { session: mockSession },
         error: null,
-      });
+      }));
 
       const result = await authService.getSession();
 
@@ -78,10 +107,10 @@ describe('Auth Service', () => {
     });
 
     test('should return null when no session', async () => {
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
+      mockSupabaseClient.auth.getSession.mockImplementation(() => Promise.resolve({
         data: { session: null },
         error: null,
-      });
+      }));
 
       const result = await authService.getSession();
 
@@ -90,10 +119,16 @@ describe('Auth Service', () => {
     });
 
     test('should handle errors gracefully', async () => {
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: null,
-        error: { message: 'Network error' },
-      });
+      const mockError: AuthError = {
+        message: 'Network error',
+        status: 500,
+        name: 'AuthError',
+      } as AuthError;
+
+      mockSupabaseClient.auth.getSession.mockImplementation(() => Promise.resolve({
+        data: { session: null },
+        error: mockError,
+      }));
 
       const result = await authService.getSession();
 
@@ -104,18 +139,20 @@ describe('Auth Service', () => {
 
   describe('getCurrentUser', () => {
     test('should return authenticated user', async () => {
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
         email: 'test@example.com',
-        phone: null,
+        phone: null as string | null,
         user_metadata: { username: 'testuser', avatar_url: 'https://example.com/avatar.jpg' },
         app_metadata: { provider: 'email' },
+        aud: 'authenticated',
+        created_at: '2024-01-01T00:00:00Z',
       };
 
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
+      mockSupabaseClient.auth.getUser.mockImplementation(() => Promise.resolve({
         data: { user: mockUser },
         error: null,
-      });
+      }));
 
       const result = await authService.getCurrentUser();
 
@@ -148,15 +185,26 @@ describe('Auth Service', () => {
   describe('signIn', () => {
     test('should sign in user with valid credentials', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
         email: 'test@example.com',
         user_metadata: { username: 'testuser' },
         app_metadata: { provider: 'email' },
+        aud: 'authenticated',
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      const mockSession: Session = {
+        access_token: 'token-123',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'refresh-123',
+        user: mockUser,
       };
 
       mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
-        data: { user: mockUser, session: { access_token: 'token-123' } },
+        data: { user: mockUser, session: mockSession },
         error: null,
       });
 
@@ -173,10 +221,15 @@ describe('Auth Service', () => {
 
     test('should handle invalid credentials', async () => {
       const credentials = { email: 'test@example.com', password: 'wrong' };
+      const mockError: AuthError = {
+        message: 'Invalid login credentials',
+        status: 400,
+        name: 'AuthError',
+      } as AuthError;
 
       mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
         data: null,
-        error: { message: 'Invalid login credentials' },
+        error: mockError,
       });
 
       const result = await authService.signIn(credentials);
@@ -187,10 +240,17 @@ describe('Auth Service', () => {
 
     test('should handle rate limiting', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
+      const mockError = {
+        message: 'Too many login attempts. Please try again later.',
+        status: 429,
+        name: 'AuthError',
+        code: 'rate_limit_exceeded',
+        __isAuthError: true,
+      } as AuthError;
 
       mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
         data: null,
-        error: { message: 'Too many login attempts. Please try again later.' },
+        error: mockError,
       });
 
       const result = await authService.signIn(credentials);
@@ -208,16 +268,18 @@ describe('Auth Service', () => {
         username: 'newuser',
       };
 
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
         email: 'new@example.com',
         email_confirmed_at: null,
         user_metadata: { username: 'newuser' },
         app_metadata: { provider: 'email' },
+        aud: 'authenticated',
+        created_at: '2024-01-01T00:00:00Z',
       };
 
       mockSupabaseClient.auth.signUp.mockResolvedValue({
-        data: { user: mockUser },
+        data: { user: mockUser, session: null },
         error: null,
       });
 
@@ -241,9 +303,17 @@ describe('Auth Service', () => {
         username: 'existinguser',
       };
 
+      const mockError = {
+        message: 'User already registered',
+        status: 400,
+        name: 'AuthError',
+        code: 'user_already_exists',
+        __isAuthError: true,
+      } as AuthError;
+
       mockSupabaseClient.auth.signUp.mockResolvedValue({
         data: null,
-        error: { message: 'User already registered' },
+        error: mockError,
       });
 
       const result = await authService.signUp(credentials);
@@ -258,16 +328,27 @@ describe('Auth Service', () => {
         password: 'Test123!',
       };
 
-      const mockUser = {
+      const mockUser: User = {
         id: 'user-123',
         email: 'confirmed@example.com',
         email_confirmed_at: '2024-01-01T00:00:00Z',
         user_metadata: {},
         app_metadata: { provider: 'email' },
+        aud: 'authenticated',
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      const mockSession: Session = {
+        access_token: 'token-123',
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'refresh-123',
+        user: mockUser,
       };
 
       mockSupabaseClient.auth.signUp.mockResolvedValue({
-        data: { user: mockUser },
+        data: { user: mockUser, session: mockSession },
         error: null,
       });
 
@@ -292,8 +373,16 @@ describe('Auth Service', () => {
     });
 
     test('should handle sign out errors', async () => {
+      const mockError = {
+        message: 'Failed to sign out',
+        status: 500,
+        name: 'AuthError',
+        code: 'signout_error',
+        __isAuthError: true,
+      } as AuthError;
+
       mockSupabaseClient.auth.signOut.mockResolvedValue({
-        error: { message: 'Failed to sign out' },
+        error: mockError,
       });
 
       const result = await authService.signOut();
@@ -305,11 +394,10 @@ describe('Auth Service', () => {
 
   describe('getUserData', () => {
     test('should fetch user profile data', async () => {
-      const mockUserData = {
+      const mockUserData: Tables<'users'> = {
         id: 'profile-123',
         auth_id: 'user-123',
         username: 'testuser',
-        email: 'test@example.com',
         full_name: 'Test User',
         avatar_url: null,
         bio: 'Test bio',
@@ -329,7 +417,7 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn<any[], any>().mockResolvedValue({
+        single: jest.fn().mockResolvedValue({
           data: mockUserData,
           error: null,
         }),
@@ -349,9 +437,9 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn<any[], any>().mockResolvedValue({
+        single: jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'User not found' },
+          error: new Error('User not found'),
         }),
       };
 
@@ -377,8 +465,16 @@ describe('Auth Service', () => {
     });
 
     test('should handle rate limiting for password reset', async () => {
+      const mockError = {
+        message: 'Too many password reset attempts',
+        status: 429,
+        name: 'AuthError',
+        code: 'rate_limit_exceeded',
+        __isAuthError: true,
+      } as AuthError;
+
       mockSupabaseClient.auth.resetPasswordForEmail.mockResolvedValue({
-        error: { message: 'Too many password reset attempts' },
+        error: mockError,
       });
 
       const result = await authService.resetPassword('test@example.com');
@@ -403,8 +499,16 @@ describe('Auth Service', () => {
     });
 
     test('should handle weak password', async () => {
+      const mockError = {
+        message: 'Password is too weak',
+        status: 400,
+        name: 'AuthError',
+        code: 'weak_password',
+        __isAuthError: true,
+      } as AuthError;
+
       mockSupabaseClient.auth.updateUser.mockResolvedValue({
-        error: { message: 'Password is too weak' },
+        error: mockError,
       });
 
       const result = await authService.updatePassword('weak');
@@ -421,6 +525,7 @@ describe('Auth Service', () => {
       
       mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
         data: { subscription: { unsubscribe: mockUnsubscribe } },
+        error: null,
       });
 
       const result = authService.onAuthStateChange(mockCallback);

@@ -18,7 +18,7 @@ const SESSION_TIMEOUTS = {
   refreshToken: 7 * 24 * 60 * 60 * 1000, // 7 days
   rememberMe: 30 * 24 * 60 * 60 * 1000, // 30 days
   idle: 30 * 60 * 1000, // 30 minutes idle timeout
-};
+} as const;
 
 describe('Session and Token Handling', () => {
   beforeEach(() => {
@@ -185,7 +185,8 @@ describe('Session and Token Handling', () => {
 
       // Retrieve session
       mockStorage.getItem.mockReturnValue(JSON.stringify(session));
-      const retrieved = JSON.parse(mockStorage.getItem('auth-session'));
+      const retrievedJson = mockStorage.getItem('auth-session');
+      const retrieved = typeof retrievedJson === 'string' ? JSON.parse(retrievedJson) : null;
       expect(retrieved).toEqual(session);
     });
 
@@ -208,7 +209,8 @@ describe('Session and Token Handling', () => {
 
       const parseSession = () => {
         try {
-          return JSON.parse(mockStorage.getItem('auth-session'));
+          const sessionData = mockStorage.getItem('auth-session');
+          return typeof sessionData === 'string' ? JSON.parse(sessionData) : null;
         } catch {
           return null;
         }
@@ -297,7 +299,7 @@ describe('Session and Token Handling', () => {
       const revokedSession = sessions[maxSessions];
 
       expect(activeSessions).toHaveLength(maxSessions);
-      expect(revokedSession.id).toBe('session-5');
+      expect(revokedSession?.id).toBe('session-5');
     });
   });
 

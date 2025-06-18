@@ -384,9 +384,8 @@ test.describe('Enhanced Error Boundary Infrastructure', () => {
       
       // Force garbage collection if available
       await page.evaluate(() => {
-        const windowWithGc = window as Window & { gc?: () => void };
-        if (windowWithGc.gc) {
-          windowWithGc.gc();
+        if ('gc' in window && typeof window.gc === 'function') {
+          window.gc();
         }
       });
       

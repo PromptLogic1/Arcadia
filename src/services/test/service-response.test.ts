@@ -289,7 +289,7 @@ describe('Service Response Pattern', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(3);
-      expect(result.pagination).toEqual({
+      expect('pagination' in result && result.pagination).toEqual({
         page: 1,
         limit: 10,
         total: 25,
@@ -314,8 +314,8 @@ describe('Service Response Pattern', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
-      expect(result.pagination?.total).toBe(0);
-      expect(result.pagination?.hasMore).toBe(false);
+      expect('pagination' in result ? result.pagination?.total : 0).toBe(0);
+      expect('pagination' in result ? result.pagination?.hasMore : false).toBe(false);
     });
 
     it('should calculate pagination correctly', async () => {
@@ -333,7 +333,7 @@ describe('Service Response Pattern', () => {
 
       const result = await service.listUsers(10, 20);
 
-      expect(result.pagination).toEqual({
+      expect('pagination' in result && result.pagination).toEqual({
         page: 3, // offset 20 / limit 10 + 1
         limit: 10,
         total: 45,

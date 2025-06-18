@@ -53,7 +53,7 @@ export class GamingTestHelpers {
   static async simulateGameEvent(
     page: Page, 
     event: TestGameEvent, 
-    delay: number = 0
+    delay = 0
   ): Promise<void> {
     if (delay > 0) {
       await page.waitForTimeout(delay);
@@ -74,7 +74,7 @@ export class GamingTestHelpers {
   static async waitForGameEvent(
     page: Page, 
     eventType: string, 
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<TestGameEvent | null> {
     try {
       const eventData = await page.waitForFunction(
@@ -107,7 +107,7 @@ export class GamingTestHelpers {
    */
   static async startTimerAndVerify(
     page: Page, 
-    testDuration: number = 2000
+    testDuration = 2000
   ): Promise<TestTimerAssertions> {
     const startTime = Date.now();
     
@@ -237,8 +237,8 @@ export class GamingTestHelpers {
    */
   static async monitorMemoryUsage(
     page: Page, 
-    duration: number = 10000,
-    interval: number = 1000
+    duration = 10000,
+    interval = 1000
   ): Promise<number[]> {
     const measurements: number[] = [];
     const startTime = Date.now();
@@ -259,7 +259,7 @@ export class GamingTestHelpers {
    */
   static async testConcurrentLoad(
     page: Page, 
-    concurrentActions: number = 10
+    concurrentActions = 10
   ): Promise<{ duration: number; errors: number; metrics: TestPerformanceMetrics }> {
     const startTime = Date.now();
     let errors = 0;
@@ -367,7 +367,7 @@ export class GamingTestHelpers {
   static async waitForPlayerJoin(
     page: Page, 
     playerId: string, 
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<boolean> {
     try {
       await page.waitForSelector(`[data-testid="player-${playerId}"]`, { timeout });
@@ -383,7 +383,7 @@ export class GamingTestHelpers {
   static async waitForAchievementUnlock(
     page: Page, 
     achievementId: string, 
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<boolean> {
     try {
       await page.waitForSelector(`[data-testid="achievement-unlocked-${achievementId}"]`, { timeout });
@@ -455,7 +455,7 @@ export class GamingTestHelpers {
    */
   static async waitForNetworkIdle(
     page: Page, 
-    timeout: number = 2000
+    timeout = 2000
   ): Promise<void> {
     await page.waitForLoadState('networkidle', { timeout });
   }
@@ -477,7 +477,7 @@ export class GamingTestHelpers {
     page: Page, 
     storeName: string, 
     condition: (state: unknown) => boolean,
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<boolean> {
     const startTime = Date.now();
     
@@ -507,7 +507,7 @@ class WebSocketTestHelper {
   async waitForEvent(
     sessionId: string, 
     eventType: string, 
-    timeout: number = 5000
+    timeout = 5000
   ): Promise<TestGameEvent | null> {
     const connection = Array.from(this.connections.values())
       .find(conn => conn.sessionId === sessionId);
@@ -520,7 +520,7 @@ class WebSocketTestHelper {
 
 class MockWebSocketConnection {
   public id: string;
-  public sessionId: string = '';
+  public sessionId = '';
   private events: TestGameEvent[] = [];
   private eventHandlers: Map<string, (event: TestGameEvent) => void> = new Map();
   

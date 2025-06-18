@@ -50,12 +50,24 @@ export function selectVariant(
 ): ABTestVariant {
   // Check if experiment is active and within date range
   if (experiment.status !== 'active') {
-    return experiment.variants.find(v => v.id === 'control') || experiment.variants[0];
+    const controlVariant = experiment.variants.find(v => v.id === 'control');
+    if (controlVariant) return controlVariant;
+    const firstVariant = experiment.variants[0];
+    if (!firstVariant) {
+      throw new Error('Experiment must have at least one variant');
+    }
+    return firstVariant;
   }
 
   const now = new Date();
   if (now < experiment.startDate || now > experiment.endDate) {
-    return experiment.variants.find(v => v.id === 'control') || experiment.variants[0];
+    const controlVariant = experiment.variants.find(v => v.id === 'control');
+    if (controlVariant) return controlVariant;
+    const firstVariant = experiment.variants[0];
+    if (!firstVariant) {
+      throw new Error('Experiment must have at least one variant');
+    }
+    return firstVariant;
   }
 
   // Check for campaign overrides
@@ -81,7 +93,11 @@ export function selectVariant(
   }
 
   // Fallback to last variant
-  return experiment.variants[experiment.variants.length - 1];
+  const lastVariant = experiment.variants[experiment.variants.length - 1];
+  if (!lastVariant) {
+    throw new Error('Experiment must have at least one variant');
+  }
+  return lastVariant;
 }
 
 /**
