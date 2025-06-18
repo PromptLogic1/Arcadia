@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { WinDetectionService } from '../services/win-detection.service';
 import { ScoringService } from '../services/scoring.service';
 import type { BoardCell, GameState, WinPattern } from '../types';

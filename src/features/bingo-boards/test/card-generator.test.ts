@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach } from '@jest/globals';
 import type { BingoCard, GameCategory, Difficulty, GeneratorOptions } from '../types';
 
 // Mock card generator service
@@ -30,6 +30,7 @@ class CardGeneratorService {
             is_public: true,
             creator_id: null,
             created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             votes: Math.floor(Math.random() * 100),
           });
         }
@@ -83,6 +84,7 @@ class CardGeneratorService {
       is_public: false,
       creator_id: 'generator',
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       votes: 0,
     }));
 
@@ -348,6 +350,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -368,6 +371,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -388,6 +392,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -408,6 +413,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -428,6 +434,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -448,6 +455,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -469,6 +477,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
@@ -492,6 +501,7 @@ describe('CardGeneratorService', () => {
         is_public: true,
         creator_id: null,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         votes: 0,
       }));
 
