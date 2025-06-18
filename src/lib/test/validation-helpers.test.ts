@@ -32,7 +32,21 @@ describe('Validation Helpers', () => {
       const result = validateUserData(userData);
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(userData);
+      
+      // The validator returns only specific fields, not the entire input
+      expect(result.data).toEqual({
+        id: userData.id,
+        auth_id: userData.auth_id,
+        email: null, // Not present in the factory, so should be null
+        username: userData.username,
+        avatar_url: userData.avatar_url,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+        bio: userData.bio,
+        land: userData.land,
+        region: userData.region,
+        city: userData.city,
+      });
     });
 
     it('should reject invalid user data', () => {

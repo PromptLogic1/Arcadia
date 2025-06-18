@@ -106,6 +106,32 @@ const mockSupabaseClient: MockSupabaseClient = {
 
 jest.mock('@/lib/supabase', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
+  isSupabaseError: (error: unknown): boolean => {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    return (
+      'message' in error &&
+      typeof error.message === 'string' &&
+      ('code' in error || 'status' in error || '__isAuthError' in error)
+    );
+  },
+  isAuthError: (error: unknown): boolean => {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    return (
+      '__isAuthError' in error &&
+      error.__isAuthError === true
+    );
+  },
+  SupabaseError: class SupabaseError extends Error {
+    constructor(message: string, public code?: string, public details?: string) {
+      super(message);
+      this.name = 'SupabaseError';
+    }
+  },
+  handleSupabaseError: jest.fn(),
 }));
 
 // Extend global interface to include mockSupabaseClient
