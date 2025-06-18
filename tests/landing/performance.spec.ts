@@ -17,11 +17,16 @@ import {
 
 test.describe('Enhanced Performance Testing', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear cache and storage
+    // Clear cache and storage safely
     await page.context().clearCookies();
     await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (error) {
+        // Storage access may be restricted in some contexts
+        console.warn('Storage clear failed:', error);
+      }
     });
   });
 

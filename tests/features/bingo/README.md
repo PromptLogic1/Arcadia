@@ -6,12 +6,17 @@ This directory contains comprehensive end-to-end tests for the Bingo Boards feat
 
 ## Test Files Overview
 
-### Core Test Suites
-- **`board-creation.spec.ts`** - Board creation, validation, and constraints
-- **`board-editing.spec.ts`** - Board editor with drag-and-drop functionality  
-- **`game-session.spec.ts`** - Multiplayer sessions and real-time sync
-- **`win-detection.spec.ts`** - Win pattern recognition and victory conditions
-- **`board-sharing.spec.ts`** - Sharing, collaboration, and community features
+### Essential E2E Integration Test Suites
+**Note**: Logic testing has been moved to comprehensive Jest unit tests in `src/features/bingo-boards/test/` for improved performance and reliability.
+
+- **`multiplayer.spec.ts`** - Real-time multiplayer conflict resolution and team scenarios
+- **`game-session.spec.ts`** - Multi-page session joining and WebSocket synchronization
+- **`board-sharing.spec.ts`** - Cross-user board visibility and sharing functionality
+
+### Removed Tests (Now Covered by Jest Unit Tests)
+- ❌ `board-creation.spec.ts` → ✅ `src/features/bingo-boards/test/bingo-engine.test.ts`
+- ❌ `board-editing.spec.ts` → ✅ `src/features/bingo-boards/test/card-generator.test.ts`
+- ❌ `win-detection.spec.ts` → ✅ `src/features/bingo-boards/test/win-detection.test.ts`
 
 ### Quality Assessment: ⭐⭐⭐⭐ (83/100)
 

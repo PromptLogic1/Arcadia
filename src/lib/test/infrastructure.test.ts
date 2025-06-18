@@ -47,13 +47,35 @@ jest.mock('@/lib/cache-metrics', () => ({
   measureLatency: jest.fn(() => () => 100),
 }));
 
-// Mock logger
+// Mock logger - match actual export structure
 jest.mock('@/lib/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    storeAction: jest.fn(),
+    apiCall: jest.fn(),
+    apiError: jest.fn(),
+    componentMount: jest.fn(),
+    componentUnmount: jest.fn(),
+    gameEvent: jest.fn(),
+    performance: jest.fn(),
+    userAction: jest.fn(),
+  },
   log: {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
+    storeAction: jest.fn(),
+    apiCall: jest.fn(),
+    apiError: jest.fn(),
+    gameEvent: jest.fn(),
+    performance: jest.fn(),
+    userAction: jest.fn(),
+    componentMount: jest.fn(),
+    componentUnmount: jest.fn(),
   },
 }));
 
@@ -429,26 +451,41 @@ describe('Infrastructure Reliability Patterns', () => {
 
     describe('Identifier Generation', () => {
       it('should use user ID when available', () => {
-        const mockRequest = new Request('https://example.com');
+        const mockRequest = {
+          headers: {
+            get: jest.fn().mockReturnValue(null),
+          },
+        } as unknown as Request;
+        
         const identifier = rateLimitingService.getIdentifier(mockRequest, 'user-123');
         
         expect(identifier).toBe('user:user-123');
       });
 
       it('should extract IP from headers', () => {
-        const mockRequest = new Request('https://example.com', {
+        const mockRequest = {
           headers: {
-            'x-forwarded-for': '192.168.1.1, 10.0.0.1',
-            'x-real-ip': '192.168.1.2',
+            get: jest.fn((header: string) => {
+              const headers: Record<string, string> = {
+                'x-forwarded-for': '192.168.1.1, 10.0.0.1',
+                'x-real-ip': '192.168.1.2',
+              };
+              return headers[header] || null;
+            }),
           },
-        });
+        } as unknown as Request;
         
         const identifier = rateLimitingService.getIdentifier(mockRequest);
         expect(identifier).toBe('ip:192.168.1.1');
       });
 
       it('should handle missing headers gracefully', () => {
-        const mockRequest = new Request('https://example.com');
+        const mockRequest = {
+          headers: {
+            get: jest.fn().mockReturnValue(null),
+          },
+        } as unknown as Request;
+        
         const identifier = rateLimitingService.getIdentifier(mockRequest);
         
         expect(identifier).toBe('ip:unknown');
@@ -457,7 +494,11 @@ describe('Infrastructure Reliability Patterns', () => {
 
     describe('Rate Limiting Middleware', () => {
       it('should allow requests when rate limit is not exceeded', async () => {
-        const mockRequest = new Request('https://example.com');
+        const mockRequest = {
+          headers: {
+            get: jest.fn().mockReturnValue(null),
+          },
+        } as unknown as Request;
         const mockHandler = jest.fn().mockResolvedValue('success');
         
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
@@ -468,7 +509,11 @@ describe('Infrastructure Reliability Patterns', () => {
       });
 
       it('should handle different rate limit types', async () => {
-        const mockRequest = new Request('https://example.com');
+        const mockRequest = {
+          headers: {
+            get: jest.fn().mockReturnValue(null),
+          },
+        } as unknown as Request;
         const mockHandler = jest.fn().mockResolvedValue('success');
         
         const authResult = await withRateLimit(mockRequest, mockHandler, 'auth');
@@ -481,7 +526,11 @@ describe('Infrastructure Reliability Patterns', () => {
       });
 
       it('should handle handler errors gracefully', async () => {
-        const mockRequest = new Request('https://example.com');
+        const mockRequest = {
+          headers: {
+            get: jest.fn().mockReturnValue(null),
+          },
+        } as unknown as Request;
         const mockHandler = jest.fn().mockRejectedValue(new Error('Handler failed'));
         
         const result = await withRateLimit(mockRequest, mockHandler, 'api');

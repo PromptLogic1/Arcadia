@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { BaseErrorBoundary } from '@/components/error-boundaries';
 import { ClientSectionWrapper } from './ClientSectionWrapper';
 
@@ -72,7 +73,23 @@ export default function LandingPageServer() {
   return (
     <BaseErrorBoundary level="page">
       <div className="text-foreground min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        {/* Navigation for accessibility */}
+        <nav
+          id="main-navigation"
+          role="navigation"
+          aria-label="Main navigation"
+          className="sr-only"
+        >
+          <ul>
+            <li><Link href="/">Home</Link></li>
+            <li><Link href="/about">About</Link></li>
+            <li><Link href="/play-area">Play Area</Link></li>
+            <li><Link href="/community">Community</Link></li>
+          </ul>
+        </nav>
+        
         <main
+          id="main-content"
           role="main"
           aria-label="Arcadia Gaming Platform"
         >

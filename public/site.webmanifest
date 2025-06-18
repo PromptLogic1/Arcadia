@@ -1,0 +1,26 @@
+{
+  "name": "Arcadia Gaming Platform",
+  "short_name": "Arcadia",
+  "description": "The ultimate gaming platform where players connect, compete, and create unforgettable gaming experiences.",
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0891b2",
+  "background_color": "#020617",
+  "display": "standalone",
+  "start_url": "/"
+}

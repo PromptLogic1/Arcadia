@@ -22,7 +22,7 @@ import {
   Session as _Session,
   AuthError as _AuthError,
 } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase';
+import { authService } from '@/services/auth.service';
 import type { AuthUser, UserData } from './types';
 import type { Tables } from '../../../types/database.types';
 import { logger } from '@/lib/logger';
@@ -68,9 +68,11 @@ export interface SignInCredentials {
 }
 
 export interface AuthResponse {
-  error?: Error;
+  success?: boolean;
+  error?: string | null;
   needsVerification?: boolean;
   user?: AuthUser;
+  data?: any;
 }
 
 interface UpdateUserDataParams {
@@ -124,7 +126,7 @@ interface AuthState {
   ) => Promise<UserData>;
   updateEmail: (newEmail: string) => Promise<void>;
   updatePassword: (password: string) => Promise<AuthResponse>;
-  resetPassword: (newPassword: string) => Promise<AuthResponse>;
+  resetPassword: (email: string) => Promise<AuthResponse>;
   resetPasswordForEmail: (email: string) => Promise<AuthResponse>;
   checkPasswordRequirements: (password: string) => PasswordChecks;
 }
@@ -183,75 +185,32 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           try {
             get().setLoading(true);
 
-            let supabase;
-            try {
-              supabase = createClient();
-            } catch (clientError) {
-              logger.warn(
-                'Failed to create Supabase client during initialization',
-                {
-                  metadata: {
-                    store: 'AuthStore',
-                    phase: 'client-creation',
-                    error:
-                      clientError instanceof Error
-                        ? clientError.message
-                        : 'Unknown client error',
-                  },
-                }
-              );
-              // If we can't create the client, clear the user and return early
-              get().clearUser();
-              return;
-            }
-
-            const {
-              data: { user },
-              error: authError,
-            } = await supabase.auth.getUser();
+            const userResult = await authService.getCurrentUser();
 
             // If no user or error, just clear the store and return
-            if (!user || authError) {
-              if (authError) {
-                logger.info(
-                  'No authenticated user found during initialization',
-                  {
-                    metadata: { store: 'AuthStore', error: authError.message },
-                  }
-                );
-              }
+            if (!userResult.success || !userResult.data) {
               get().clearUser();
               return;
             }
-            // Only fetch user data if we have an authenticated user
-            const { data: userData, error: dbError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('auth_id', user.id)
-              .single();
 
-            if (dbError) throw dbError;
-
-            // Update store with user data
+            const authUserData = userResult.data;
+            
+            // Set auth user data
             get().setAuthUser({
-              id: user.id,
-              email: user.email ?? null,
-              phone: user.phone ?? null,
-              auth_username: user.user_metadata?.username ?? null,
-              provider: user.app_metadata?.provider ?? null,
-              userRole: isValidUserRole(userData?.role)
-                ? userData.role
-                : 'user',
+              id: authUserData.id,
+              email: authUserData.email,
+              phone: authUserData.phone,
+              auth_username: authUserData.auth_username,
+              provider: authUserData.provider,
+              userRole: authUserData.userRole,
             });
 
-            // Transform database user to UserData using type-safe transformation
-            get().setUserData({
-              ...transformDbUserToUserData(userData),
-              // Ensure we use the correct database user ID, not the auth ID
-              id: userData.id,
-              // Override auth_id with fallback to user.id if null
-              auth_id: userData.auth_id ?? user.id,
-            });
+            // Fetch full user data
+            const userDataResult = await authService.getUserData(authUserData.id);
+            
+            if (userDataResult.success && userDataResult.data) {
+              get().setUserData(userDataResult.data);
+            }
           } catch (error) {
             logger.error(
               'Auth initialization failed',
@@ -268,10 +227,11 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
         setupAuthListener: () => {
           try {
-            const supabase = createClient();
-            return supabase.auth.onAuthStateChange(async (event, session) => {
-              if (event === 'SIGNED_IN' && session?.user) {
-                await get().initializeApp();
+            return authService.onAuthStateChange(async ({ event, session }) => {
+              if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+                if (session?.user) {
+                  await get().initializeApp();
+                }
               }
 
               if (event === 'SIGNED_OUT') {
@@ -287,7 +247,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               }
             );
             // Return a no-op unsubscribe function
-            return { data: { subscription: { unsubscribe: () => {} } } };
+            return { unsubscribe: () => {} };
           }
         },
 
@@ -297,41 +257,46 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         }: SignInCredentials): Promise<AuthResponse> => {
           try {
             get().setLoading(true);
-            const supabase = createClient();
+            get().setError(null);
 
-            const { error } = await supabase.auth.signInWithPassword({
-              email: email,
-              password: password,
-            });
+            const result = await authService.signIn({ email, password });
 
-            if (error) {
+            if (!result.success) {
+              get().setError(result.error || 'Sign in failed');
               return {
-                error: new Error(error.message),
+                success: false,
+                error: result.error || 'Sign in failed',
               };
             }
 
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            if (!user) {
-              return { error: new Error('No user data received') };
+            // Fetch user data
+            if (result.data?.user) {
+              const userDataResult = await authService.getUserData(result.data.user.id);
+              
+              if (userDataResult.success && userDataResult.data) {
+                get().setAuthUser({
+                  id: result.data.user.id,
+                  email: result.data.user.email,
+                  phone: null,
+                  auth_username: userDataResult.data.username,
+                  provider: 'email',
+                  userRole: userDataResult.data.role || 'user',
+                });
+                
+                get().setUserData(userDataResult.data);
+              }
             }
 
-            // Get the session separately for security tracking
-            const {
-              data: { session },
-            } = await supabase.auth.getSession();
-            if (session?.access_token) {
-              await trackUserSession(session.access_token, user.id);
-            }
-
-            await get().initializeApp();
-
-            return {};
-          } catch (error) {
             return {
-              error:
-                error instanceof Error ? error : new Error('Unknown error'),
+              success: true,
+              data: result.data,
+            };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            get().setError(errorMessage);
+            return {
+              success: false,
+              error: errorMessage,
             };
           } finally {
             get().setLoading(false);
@@ -375,75 +340,83 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
           username: string;
         }): Promise<AuthResponse> => {
           try {
-            const supabase = createClient();
-            const { error } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  username,
-                },
-                emailRedirectTo: `${window.location.origin}/auth/oauth-success`,
-              },
-            });
+            get().setLoading(true);
+            get().setError(null);
 
-            if (error) {
-              return { error: new Error(error.message) };
-            }
+            const result = await authService.signUp({ email, password, username });
 
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-
-            if (user?.identities?.length === 0) {
+            if (!result.success) {
+              get().setError(result.error || 'Sign up failed');
               return {
-                error: new Error('Account with this email already exists'),
+                success: false,
+                error: result.error || 'Sign up failed',
               };
             }
 
-            if (!user?.confirmed_at) {
-              return { needsVerification: true };
+            // Check if verification is needed
+            if (result.data?.needsVerification) {
+              return {
+                success: true,
+                needsVerification: true,
+                data: result.data,
+              };
             }
 
-            return {};
-          } catch (error) {
+            // If user is already confirmed, set up the session
+            if (result.data?.user) {
+              const userDataResult = await authService.getUserData(result.data.user.id);
+              
+              if (userDataResult.success && userDataResult.data) {
+                get().setAuthUser({
+                  id: result.data.user.id,
+                  email: result.data.user.email,
+                  phone: null,
+                  auth_username: userDataResult.data.username,
+                  provider: 'email',
+                  userRole: userDataResult.data.role || 'user',
+                });
+                
+                get().setUserData(userDataResult.data);
+              }
+            }
+
             return {
-              error:
-                error instanceof Error ? error : new Error('Unknown error'),
+              success: true,
+              data: result.data,
             };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            get().setError(errorMessage);
+            return {
+              success: false,
+              error: errorMessage,
+            };
+          } finally {
+            get().setLoading(false);
           }
         },
 
         signOut: async (): Promise<AuthResponse> => {
           try {
             get().setLoading(true);
-            const supabase = createClient();
-            const { error } = await supabase.auth.signOut();
+            get().setError(null);
 
-            if (error) {
-              logger.error(
-                'Sign out failed',
-                error instanceof Error ? error : new Error('Unknown error'),
-                {
-                  metadata: { store: 'AuthStore' },
-                }
-              );
-              notifications.error('Sign out failed', {
-                description: 'Please try again or contact support.',
-              });
+            const result = await authService.signOut();
+
+            if (!result.success) {
+              get().setError(result.error || 'Sign out failed');
               return {
-                error:
-                  error instanceof Error ? error : new Error('Unknown error'),
+                success: false,
+                error: result.error || 'Sign out failed',
               };
             }
 
             // Clear the user data from store
             get().clearUser();
 
-            // Let the router handle navigation
-            window.location.href = '/';
-
-            return {};
+            return {
+              success: true,
+            };
           } catch (error) {
             logger.error(
               'Sign out failed',
@@ -568,114 +541,72 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
         updatePassword: async (password: string): Promise<AuthResponse> => {
           try {
+            get().setLoading(true);
+            get().setError(null);
+
             // First check if password meets requirements
             const checks = get().checkPasswordRequirements(password);
             if (!Object.values(checks).every(Boolean)) {
+              const errorMessage = 'Password is too weak';
+              get().setError(errorMessage);
               return {
-                error: new Error('Password does not meet all requirements'),
+                success: false,
+                error: errorMessage,
               };
             }
 
-            const supabase = createClient();
-            const { error } = await supabase.auth.updateUser({ password });
+            const result = await authService.updatePassword(password);
 
-            if (error) {
-              // Handle error cases
-              let errorMessage = error.message || 'Failed to update password';
-              switch (error.message) {
-                case 'New password should be different from the old password':
-                  errorMessage =
-                    'Your new password must be different from your current password';
-                  break;
-                case 'Auth session missing!':
-                  errorMessage =
-                    'Your session has expired. Please log in again';
-                  break;
-              }
-              logger.warn('Password update failed', {
-                metadata: { store: 'AuthStore', supabaseError: error.message },
-              });
-              notifications.error('Password update failed', {
-                description: errorMessage,
-              });
-              return { error: new Error(errorMessage) };
+            if (!result.success) {
+              get().setError(result.error || 'Failed to update password');
+              return {
+                success: false,
+                error: result.error || 'Failed to update password',
+              };
             }
 
-            // Blacklist all existing sessions for security
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            if (user) {
-              await blacklistAllUserSessions(user.id, 'Password changed');
-            }
-
-            notifications.success('Password updated successfully!');
-            logger.info('User password updated successfully', {
-              metadata: { store: 'AuthStore' },
-            });
-            return {};
-          } catch (error) {
-            logger.error(
-              'Failed to update password',
-              error instanceof Error ? error : new Error('Unknown error'),
-              {
-                metadata: { store: 'AuthStore' },
-              }
-            );
-            notifications.error('Failed to update password', {
-              description: 'Please try again or contact support.',
-            });
             return {
-              error:
-                error instanceof Error ? error : new Error('Unknown error'),
+              success: true,
             };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            get().setError(errorMessage);
+            return {
+              success: false,
+              error: errorMessage,
+            };
+          } finally {
+            get().setLoading(false);
           }
         },
 
-        resetPassword: async (newPassword: string): Promise<AuthResponse> => {
+        resetPassword: async (email: string): Promise<AuthResponse> => {
           try {
-            const supabase = createClient();
-            const { error } = await supabase.auth.updateUser({
-              password: newPassword,
-            });
+            get().setLoading(true);
+            get().setError(null);
 
-            if (error) {
-              logger.error(
-                'Password reset failed',
-                error instanceof Error ? error : new Error('Unknown error'),
-                {
-                  metadata: { store: 'AuthStore' },
-                }
-              );
-              notifications.error('Password reset failed', {
-                description: error.message,
-              });
+            const result = await authService.resetPassword(email);
+
+            if (!result.success) {
+              get().setError(result.error || 'Password reset failed');
               return {
-                error:
-                  error instanceof Error ? error : new Error('Unknown error'),
+                success: false,
+                error: result.error || 'Password reset failed',
               };
             }
 
-            notifications.success('Password reset successfully!');
-            logger.info('Password reset successfully', {
-              metadata: { store: 'AuthStore' },
-            });
-            return {};
-          } catch (error) {
-            logger.error(
-              'Password reset failed',
-              error instanceof Error ? error : new Error('Unknown error'),
-              {
-                metadata: { store: 'AuthStore' },
-              }
-            );
-            notifications.error('Password reset failed', {
-              description: 'Please try again or contact support.',
-            });
             return {
-              error:
-                error instanceof Error ? error : new Error('Unknown error'),
+              success: true,
             };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            get().setError(errorMessage);
+            return {
+              success: false,
+              error: errorMessage,
+            };
+          } finally {
+            get().setLoading(false);
           }
         },
 

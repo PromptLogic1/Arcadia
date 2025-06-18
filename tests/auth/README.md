@@ -1,78 +1,164 @@
-# Authentication Tests
+# Authentication Tests - Optimized E2E Suite
 
-This directory contains comprehensive end-to-end tests for the Arcadia authentication system using Playwright.
+This directory contains **focused end-to-end tests** for authentication and security features that require real browser behavior and can't be tested in Jest unit tests.
 
-## 📖 Complete Documentation
+## 🎯 Philosophy: Jest vs Playwright
 
-**For comprehensive documentation, see**: `/test-documentation/01-authentication-tests.md`
+**Jest Unit Tests** (in `/src/features/auth/test/`):
+- Business logic: Login/signup operations, form validation, session management
+- Service layer: Auth service methods, OAuth flows, password operations  
+- State management: Auth hooks, token validation, rate limiting logic
 
-The complete documentation includes:
-- Current test coverage and implementation status
-- Type-safety enhancements (100% complete)
-- Test patterns and utilities
-- Security testing guidelines
-- Accessibility requirements
-- Technical debt analysis
-- Enhancement timeline and metrics
+**Playwright E2E Tests** (this directory):
+- **Browser behavior**: Real navigation redirects, route protection
+- **Infrastructure integration**: Redis rate limiting, real security headers
+- **Security testing**: XSS execution, CSRF protection in browser context
 
-## 🚀 Quick Reference
+## 📁 Test Files (Essential Only)
 
-### Test Files
-- `login.spec.ts` - Login flow and authentication
-- `signup.spec.ts` - Registration and user creation  
-- `password-reset.spec.ts` - Password recovery flow
-- `session-management.spec.ts` - Session lifecycle and persistence
-- `auth-guards.spec.ts` - Route protection and access control
+### ✅ Kept - Unique E2E Value
 
-### Enhanced Type-Safe Components
-- `/types/test-types.ts` - Complete TypeScript type definitions
-- `/utils/test-user-generator.ts` - Typed user factory with role support
-- `/utils/auth-test-helpers.ts` - Type-safe testing utilities
-- `/fixtures/auth.fixture.enhanced.ts` - Role-based fixtures with cleanup
+#### `auth-guards.spec.ts`
+**What it tests**: Real browser route protection behavior
+- Actual navigation redirects to login page
+- Route protection middleware in browser environment  
+- API endpoint access control
+- Auth state management across page navigation
 
-## Key Test Areas Covered
+**Why E2E**: Can't test real browser navigation and middleware integration in Jest
 
-### Security & Authentication
-- XSS prevention, CSRF protection, input sanitization
-- Rate limiting, secure password requirements
-- Session hijacking protection, token validation
+#### `redis-rate-limiting.spec.ts` 
+**What it tests**: Real Redis-based rate limiting integration
+- Actual Redis persistence and TTL behavior
+- Distributed rate limiting across browser contexts
+- Redis failover and resilience testing
+- Cross-request rate limit state persistence
 
-### Accessibility & Mobile
-- WCAG 2.1 AA compliance, keyboard navigation
-- Screen reader support, responsive design
-- Touch interactions, virtual keyboard handling
+**Why E2E**: Requires real Redis connection and browser request patterns
 
-### Performance & Reliability
-- Load time benchmarks, auth response times
-- Error handling, network failure scenarios
-- Session persistence, concurrent testing
+#### `security-vulnerabilities.spec.ts`
+**What it tests**: Browser-based security features  
+- XSS execution prevention in real browser context
+- CSRF protection with real request headers
+- Session security and cookie validation
+- Input sanitization in browser environment
 
-## Quick Commands
+**Why E2E**: Security vulnerabilities can only be tested in real browser context
+
+### ❌ Removed - Redundant with Jest
+
+- `login-flow.spec.ts` → Covered by Jest `auth-service.test.ts`
+- `signup-flow.spec.ts` → Covered by Jest `auth-service.test.ts`  
+- `oauth-edge-cases.spec.ts` → Covered by Jest `oauth.test.ts`
+- `password-reset.spec.ts` → Covered by Jest `auth-service.test.ts`
+- `mfa-authentication.spec.ts` → Covered by Jest (MFA service tests)
+- `email-verification.spec.ts` → Covered by Jest `auth-service.test.ts`
+- `session-management.spec.ts` → Covered by Jest `session-token.test.ts`
+- `email-integration.spec.ts` → Email service logic covered by Jest
+
+## 🚀 Running Tests
 
 ```bash
-# Run all auth tests
+# Run all auth E2E tests
 npx playwright test tests/auth/
 
 # Run specific test file
-npx playwright test tests/auth/login.spec.ts
+npx playwright test tests/auth/auth-guards.spec.ts
+
+# Run with Redis integration (optional)
+USE_REDIS_TESTS=true npx playwright test tests/auth/redis-rate-limiting.spec.ts
 
 # Debug mode
 npx playwright test tests/auth/ --debug
 ```
 
-## Prerequisites
-- Supabase test project configured
-- Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-- Base URL defaults to `http://localhost:3000`
+## 📊 Results of Optimization
 
-## Contributing Guidelines
+### Before Optimization:
+- **13 test files** with significant overlap
+- **~1500+ lines** of redundant test code
+- **Business logic** tested in both Jest and Playwright
+- **Maintenance overhead** for duplicate coverage
 
-When adding new authentication features:
-1. **Use proper TypeScript types** - no `any` types allowed
-2. Follow type-safe patterns from enhanced utilities
-3. Include security, accessibility, and mobile testing
-4. Use `data-testid` attributes for selectors
-5. Add performance benchmarks where relevant
-6. Update `/test-documentation/01-authentication-tests.md`
+### After Optimization:
+- **3 focused test files** (77% reduction)
+- **~600 lines** of essential E2E behavior only
+- **Clear separation**: Jest = logic, Playwright = browser behavior  
+- **Faster execution** and easier maintenance
 
-⚠️ **Security test failures should block releases**
+## 🛡️ Security Test Coverage
+
+Our security tests cover:
+
+### XSS Prevention
+- Script injection in form fields
+- DOM-based XSS via URL parameters  
+- Stored XSS in user data
+- Real browser script execution testing
+
+### CSRF Protection  
+- Cross-origin request validation
+- CSRF token validation
+- Origin header verification
+- Referer header validation
+
+### Session Security
+- Tampered cookie detection
+- Secure cookie attributes
+- Session fixation prevention
+- Cross-browser session validation
+
+### Input Validation
+- SQL injection attempt blocking
+- Input length limit enforcement
+- Malicious payload sanitization
+- Browser-level validation testing
+
+## 🔧 Configuration
+
+### Environment Variables
+- `USE_REDIS_TESTS=true` - Enable Redis integration tests (optional)
+- `NODE_ENV=production` - Enforces stricter security validations
+
+### Prerequisites
+- App running on `http://localhost:3000` (auto-started by Playwright)
+- Redis instance (optional, for rate limiting tests)
+- Valid Supabase configuration for auth endpoints
+
+## 📋 Test Structure
+
+Each test file follows this pattern:
+
+```typescript
+test.describe('Feature Name', () => {
+  test.beforeEach(async ({ page }) => {
+    // Clear auth state for isolation
+    await page.context().clearCookies();
+  });
+
+  test('should demonstrate unique browser behavior', async ({ page }) => {
+    // Test real browser interactions that can't be unit tested
+  });
+});
+```
+
+## 🎯 Contributing Guidelines
+
+When adding new auth features:
+
+1. **Ask**: "Can this be tested in Jest?" If yes, add unit tests there
+2. **E2E only for**: Real browser behavior, infrastructure integration, security
+3. **Use proper selectors**: `getByRole`, `getByLabel` for accessibility
+4. **Mock external services**: Don't rely on real auth providers in tests  
+5. **Clear test state**: Always clean up between tests
+6. **Document rationale**: Explain why the test requires E2E
+
+## 🚨 Important Notes
+
+- **Security test failures should block releases**
+- **Redis tests are optional** (require `USE_REDIS_TESTS=true`)
+- **Focus on browser behavior**, not business logic
+- **Tests should be deterministic** and not flaky
+- **Mock auth responses** to avoid external dependencies
+
+This optimized test suite focuses on what truly requires end-to-end testing while delegating business logic validation to faster, more reliable Jest unit tests.

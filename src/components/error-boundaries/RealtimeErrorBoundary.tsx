@@ -69,7 +69,10 @@ export class RealtimeErrorBoundary extends Component<Props, State> {
       const { isNetworkError } = this.state;
 
       return (
-        <div className="flex min-h-[300px] flex-col items-center justify-center space-y-4 p-6">
+        <div 
+          className="error-boundary flex min-h-[300px] flex-col items-center justify-center space-y-4 p-6"
+          data-testid="error-boundary"
+        >
           <div className="flex items-center gap-3 text-red-500">
             {isNetworkError ? (
               <WifiOff className="h-8 w-8" />

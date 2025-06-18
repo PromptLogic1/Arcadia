@@ -6,13 +6,21 @@ This test suite provides comprehensive coverage for Arcadia's Play Area and Gami
 
 ## Test Files Structure
 
-This directory contains 5 main test files:
+### Essential E2E Integration Test Suites
+**Note**: Logic testing has been moved to comprehensive Jest unit tests in `src/features/play-area/test/` for improved performance and reliability.
 
-1. **`game-hub.spec.ts`** - Game discovery, session browsing, and hub interface
-2. **`game-session.spec.ts`** - Active session management and multiplayer interactions
-3. **`speedruns.spec.ts`** - High-precision timing, leaderboards, and anti-cheat validation
-4. **`achievements.spec.ts`** - Real-time achievement tracking and progression
-5. **`game-filters.spec.ts`** - Advanced filtering, search, and discovery
+1. **`game-hub.spec.ts`** - Complete game discovery user journey and UI integration
+2. **`speedrun-precision.spec.ts`** - Browser timer precision testing under various conditions
+3. **`game-discovery-performance.spec.ts`** - Real browser performance, memory usage, and virtualization
+
+### Removed Tests (Now Covered by Jest Unit Tests)
+**Logic Testing Migration**: Game logic and service testing moved to Jest for faster execution and better reliability.
+
+- ❌ `game-session.spec.ts` → ✅ Play area service layer unit tests
+- ❌ `speedruns.spec.ts` → ✅ `src/features/play-area/test/speedruns/speedrun-timer.test.ts`
+- ❌ `achievements.spec.ts` → ✅ `src/features/play-area/test/achievements/achievement-engine.test.ts`
+- ❌ `achievement-tracking.spec.ts` → ✅ `src/features/play-area/test/achievements/progress-tracker.test.ts`
+- ❌ `game-filters.spec.ts` → ✅ `src/features/play-area/test/games/game-filters.test.ts`
 
 ## Running Tests
 

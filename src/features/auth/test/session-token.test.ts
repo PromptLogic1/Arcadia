@@ -230,6 +230,9 @@ describe('Session and Token Handling', () => {
       };
 
       const initialTime = lastActivity;
+      
+      // Advance time slightly to simulate activity update
+      jest.advanceTimersByTime(100);
       updateActivity();
       
       expect(lastActivity).toBeGreaterThan(initialTime);
@@ -361,8 +364,8 @@ describe('Session and Token Handling', () => {
     test('should handle cookie size limits', () => {
       const maxCookieSize = 4096; // 4KB limit
       const session = {
-        access_token: 'a'.repeat(2000),
-        refresh_token: 'r'.repeat(2000),
+        access_token: 'a'.repeat(2100), // Increased to ensure we exceed 4KB
+        refresh_token: 'r'.repeat(2100),
       };
 
       const cookieValue = JSON.stringify(session);

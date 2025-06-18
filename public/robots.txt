@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Performance optimizations
+Allow: /api/health/*
+
+# Sitemaps
+Sitemap: https://arcadia.dev/sitemap.xml
+
+# Security
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /test-*
+
+# Gaming-specific optimizations
+Crawl-delay: 1
+
+# Allow access to public resources
+Allow: /images/
+Allow: /favicon.ico
+Allow: /site.webmanifest

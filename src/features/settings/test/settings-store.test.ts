@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react';
-import { useSettingsState, useSettingsActions, useSettingsModals, useSettingsForms } from '@/lib/stores/settings-store';
+import { useSettingsState, useSettingsActions, useSettingsModals, useSettingsForms, useSettingsPreferences } from '@/lib/stores/settings-store';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -242,7 +242,7 @@ describe('Settings Store', () => {
 
   describe('Notification Settings', () => {
     it('should update notification preferences', () => {
-      const { result: stateResult } = renderHook(() => useSettingsState());
+      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
       act(() => {
@@ -252,17 +252,17 @@ describe('Settings Store', () => {
         });
       });
 
-      expect(stateResult.current.notificationSettings.email_notifications).toBe(false);
-      expect(stateResult.current.notificationSettings.push_notifications).toBe(true);
+      expect(preferencesResult.current.notificationSettings.email_notifications).toBe(false);
+      expect(preferencesResult.current.notificationSettings.push_notifications).toBe(true);
       // Other settings should remain unchanged
-      expect(stateResult.current.notificationSettings.game_invites).toBe(true);
+      expect(preferencesResult.current.notificationSettings.game_invites).toBe(true);
     });
 
     it('should maintain existing settings when partially updating', () => {
-      const { result: stateResult } = renderHook(() => useSettingsState());
+      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
-      const initialSettings = { ...stateResult.current.notificationSettings };
+      const initialSettings = { ...preferencesResult.current.notificationSettings };
 
       act(() => {
         actionsResult.current.setNotificationSettings({
@@ -270,11 +270,11 @@ describe('Settings Store', () => {
         });
       });
 
-      expect(stateResult.current.notificationSettings.push_notifications).toBe(false);
-      expect(stateResult.current.notificationSettings.email_notifications).toBe(
+      expect(preferencesResult.current.notificationSettings.push_notifications).toBe(false);
+      expect(preferencesResult.current.notificationSettings.email_notifications).toBe(
         initialSettings.email_notifications
       );
-      expect(stateResult.current.notificationSettings.game_invites).toBe(
+      expect(preferencesResult.current.notificationSettings.game_invites).toBe(
         initialSettings.game_invites
       );
     });
@@ -282,7 +282,7 @@ describe('Settings Store', () => {
 
   describe('Privacy Settings', () => {
     it('should update privacy preferences', () => {
-      const { result: stateResult } = renderHook(() => useSettingsState());
+      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
       act(() => {
@@ -292,14 +292,14 @@ describe('Settings Store', () => {
         });
       });
 
-      expect(stateResult.current.privacySettings.profile_visibility).toBe('private');
-      expect(stateResult.current.privacySettings.show_online_status).toBe(false);
-      expect(stateResult.current.privacySettings.allow_friend_requests).toBe(true);
+      expect(preferencesResult.current.privacySettings.profile_visibility).toBe('private');
+      expect(preferencesResult.current.privacySettings.show_online_status).toBe(false);
+      expect(preferencesResult.current.privacySettings.allow_friend_requests).toBe(true);
     });
 
     it('should validate privacy visibility options', () => {
       const { result: actionsResult } = renderHook(() => useSettingsActions());
-      const { result: stateResult } = renderHook(() => useSettingsState());
+      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
 
       const validOptions: Array<'public' | 'friends' | 'private'> = ['public', 'friends', 'private'];
 
@@ -310,7 +310,7 @@ describe('Settings Store', () => {
           });
         });
 
-        expect(stateResult.current.privacySettings.profile_visibility).toBe(option);
+        expect(preferencesResult.current.privacySettings.profile_visibility).toBe(option);
       });
     });
   });

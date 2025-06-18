@@ -139,6 +139,11 @@ describe('Auth Store', () => {
 
       const { result } = renderHook(() => useAuthStore(), { wrapper });
 
+      // Trigger initialization like the AuthProvider does
+      await act(async () => {
+        await result.current.initializeApp();
+      });
+
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });

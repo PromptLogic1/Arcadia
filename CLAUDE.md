@@ -234,15 +234,36 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
   - Fix root causes of issues
   - Follow type safety rules
 
-## Tech Stack
+## Tech Stack (Updated 2025-06-19)
 
-- React 19.0.0 + Next.js 15.3.3 (App Router) ✅ STABLE VERSIONS
-- TypeScript 5.7.2 (strict mode) ✅
-- TanStack Query v5.80.7 + Zustand v5.0.5
-- Tailwind CSS v4.1.10 + shadcn/ui
-- Zod v3.25.64 ✅ + ESLint 9.29.0 ✅ (Flat Config)
-- Supabase 2.50.0 + Sentry 9.29.0 ✅
-- Upstash Redis 1.35.0 + Ratelimit 2.0.5 ✅
+| Layer | Library | Version |
+|-------|---------|---------|
+| **Framework** | React | 19.0.0 |
+| | Next.js (App Router) | 15.3.3 |
+| **Language & Tooling** | TypeScript | 5.7.2 (strict) |
+| | ESLint | 9.29.0 (flat) |
+| | @typescript-eslint | 8.34.1 |
+| | Prettier | 3.5.3 + tailwind-plugin 0.6.12 |
+| **State & Data** | TanStack Query | 5.80.7 |
+| | Zustand | 5.0.5 |
+| | Zod | 3.25.64 |
+| | Supabase JS | 2.50.0 |
+| | @supabase/ssr | 0.6.1 |
+| **Styling & UI** | Tailwind CSS | 4.1.10 |
+| | shadcn/ui (Radix v1) | *latest* |
+| | Radix UI components | 1.x (see dependencies) |
+| **Monitoring & Tracing** | @sentry/nextjs | 9.29.0 |
+| | OpenTelemetry API | 1.9.0 |
+| | OpenTelemetry SDK (trace) | 2.0.1 |
+| **Infrastructure Clients** | @upstash/redis | 1.35.0 |
+| | @upstash/ratelimit | 2.0.5 |
+| | @vercel/analytics | 1.4.1 |
+| | @vercel/edge-config | 1.4.0 |
+| | @vercel/speed-insights | 1.1.0 |
+| **Testing & Quality** | Jest | 29.7.0 |
+| | Playwright | 1.53.0 |
+| | Testing Library (react) | 16.3.0 |
+| | jest-dom | 6.6.3 |
 
 ## Deployment & Local Development Rule (CRITICAL)
 

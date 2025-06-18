@@ -212,5 +212,88 @@ global.crypto = global.crypto || {
   randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
 } as any;
 
+// Mock Upstash Redis
+jest.mock('@upstash/redis', () => ({
+  Redis: jest.fn().mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    incr: jest.fn().mockResolvedValue(1),
+    expire: jest.fn().mockResolvedValue(1),
+    ttl: jest.fn().mockResolvedValue(-1),
+    exists: jest.fn().mockResolvedValue(0),
+    hget: jest.fn().mockResolvedValue(null),
+    hset: jest.fn().mockResolvedValue(1),
+    hdel: jest.fn().mockResolvedValue(1),
+    hgetall: jest.fn().mockResolvedValue({}),
+    lpush: jest.fn().mockResolvedValue(1),
+    rpop: jest.fn().mockResolvedValue(null),
+    llen: jest.fn().mockResolvedValue(0),
+    eval: jest.fn().mockResolvedValue(1),
+    multi: jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      del: jest.fn().mockReturnThis(),
+      incr: jest.fn().mockReturnThis(),
+      expire: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue([]),
+    }),
+  })),
+}));
+
+// Mock Upstash Ratelimit
+const MockRatelimit = jest.fn().mockImplementation(() => ({
+  limit: jest.fn().mockResolvedValue({
+    success: true,
+    limit: 10,
+    remaining: 9,
+    reset: Date.now() + 60000,
+    pending: Promise.resolve(),
+  }),
+  blockUntilReady: jest.fn().mockResolvedValue(undefined),
+  getRemaining: jest.fn().mockResolvedValue(9),
+  reset: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Add static methods to the constructor
+MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter');
+MockRatelimit.fixedWindow = jest.fn().mockReturnValue('fixed-window-limiter');
+MockRatelimit.tokenBucket = jest.fn().mockReturnValue('token-bucket-limiter');
+
+jest.mock('@upstash/ratelimit', () => ({
+  Ratelimit: MockRatelimit,
+}));
+
+// Mock uncrypto
+jest.mock('uncrypto', () => ({
+  getRandomValues: jest.fn((arr: Uint8Array) => {
+    for (let i = 0; i < arr.length; i++) {
+      arr[i] = Math.floor(Math.random() * 256);
+    }
+    return arr;
+  }),
+  randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
+  subtle: {
+    importKey: jest.fn(),
+    sign: jest.fn(),
+    verify: jest.fn(),
+  },
+}));
+
+// Mock auth service
+jest.mock('@/services/auth.service', () => ({
+  authService: {
+    getSession: jest.fn().mockResolvedValue({ success: true, data: null }),
+    getCurrentUser: jest.fn().mockResolvedValue({ success: true, data: null }),
+    signIn: jest.fn().mockResolvedValue({ success: true, data: { user: null, session: null } }),
+    signUp: jest.fn().mockResolvedValue({ success: true, data: { needsVerification: false } }),
+    signOut: jest.fn().mockResolvedValue({ success: true, data: null }),
+    resetPassword: jest.fn().mockResolvedValue({ success: true, data: null }),
+    updateUser: jest.fn().mockResolvedValue({ success: true, data: null }),
+    updatePassword: jest.fn().mockResolvedValue({ success: true, data: null }),
+    getUserData: jest.fn().mockResolvedValue({ success: true, data: null }),
+  },
+}));
+
 // Set up test timeout
 jest.setTimeout(10000);

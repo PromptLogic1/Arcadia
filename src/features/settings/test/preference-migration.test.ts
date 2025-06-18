@@ -261,7 +261,21 @@ describe('Preference Migration', () => {
             allow_friend_requests: true,
           },
           preferences: {
-            language: legacy.language || 'en-US',
+            language: (() => {
+              if (!legacy.language) return 'en-US';
+              const languageMap: Record<string, string> = {
+                'en': 'en-US',
+                'english': 'en-US',
+                'en_US': 'en-US',
+                'fr': 'fr-FR',
+                'french': 'fr-FR',
+                'es': 'es-ES',
+                'spanish': 'es-ES',
+                'de': 'de-DE',
+                'german': 'de-DE',
+              };
+              return languageMap[legacy.language] || legacy.language;
+            })(),
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             date_format: 'MM/DD/YYYY',
             sound_enabled: legacy.soundEnabled ?? true,

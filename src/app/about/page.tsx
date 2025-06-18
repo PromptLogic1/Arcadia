@@ -12,16 +12,25 @@ import {
   Gamepad2,
   MessageSquare,
 } from '@/components/ui/Icons';
+import { aboutMetadata, generateBreadcrumbSchema } from '@/lib/metadata';
 
-export const metadata: Metadata = {
-  title: 'About Arcadia - Gaming Community Platform',
-  description:
-    'Learn about Arcadia, our mission, and the team behind the gaming community platform.',
-};
+export const metadata: Metadata = aboutMetadata;
 
 export default function AboutPage() {
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'About', url: '/about' }
+  ]);
+
   return (
     <RouteErrorBoundary routeName="About">
+      {/* About page structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbSchema),
+        }}
+      />
       <CyberpunkBackground
         variant="grid"
         intensity="subtle"

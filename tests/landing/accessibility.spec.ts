@@ -6,20 +6,11 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import type { AccessibilityResult, AccessibilityConfig } from './types';
 
-// Enhanced accessibility configuration
+// Enhanced accessibility configuration with valid axe-core rules
 const ACCESSIBILITY_CONFIG: AccessibilityConfig = {
   wcagLevel: 'AA',
   tags: ['wcag2a', 'wcag2aa', 'wcag21aa'],
-  rules: {
-    'color-contrast': { enabled: true },
-    'focus-order-semantics': { enabled: true },
-    'keyboard-navigation': { enabled: true },
-    'landmark-roles': { enabled: true },
-    'heading-order': { enabled: true },
-    'alt-text': { enabled: true },
-    'form-labels': { enabled: true },
-    'aria-usage': { enabled: true },
-  },
+  rules: {},
   includeTags: ['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice'],
   excludeTags: ['experimental'],
   resultTypes: ['violations', 'incomplete'],

@@ -57,7 +57,16 @@ export const authService = {
         return createServiceError(error.message);
       }
 
-      return createServiceSuccess(data.session);
+      if (!data.session) {
+        return createServiceSuccess(null);
+      }
+
+      return createServiceSuccess({
+        user: {
+          id: data.session.user.id,
+          email: data.session.user.email || null,
+        },
+      });
     } catch (error) {
       log.error(
         'Unexpected error getting session',
@@ -440,7 +449,16 @@ export const authService = {
   ) {
     const supabase = createClient();
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      callback(event, session);
+      if (!session) {
+        callback(event, null);
+      } else {
+        callback(event, {
+          user: {
+            id: session.user.id,
+            email: session.user.email || null,
+          },
+        });
+      }
     });
 
     return {

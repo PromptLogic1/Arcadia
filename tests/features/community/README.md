@@ -21,46 +21,30 @@ This test suite provides comprehensive coverage of the Arcadia application's com
 
 ## Test Files
 
-### 1. `discussions.spec.ts` - Discussion Management Tests
-- **Discussion Creation**: Form validation, tag management, game/challenge selection
-- **Discussion Editing**: Author permissions, content validation, edit history
-- **Discussion Deletion**: Confirmation flows, author restrictions, cascading deletions
-- **Form Accessibility**: Keyboard navigation, screen reader compatibility
-- **Error Handling**: Network failures, server errors, retry mechanisms
-- **Performance**: Creation timing, form responsiveness
+### Essential E2E Integration Test Suite
+**Note**: Logic testing has been moved to comprehensive Jest unit tests in `src/features/Community/test/` for improved performance and reliability.
 
-### 2. `comments.spec.ts` - Comment System and Threading Tests
-- **Basic Comments**: Add/edit/delete comments, validation, loading states
-- **Nested Threading**: Multi-level replies, collapse/expand, proper indentation
-- **Comment Interactions**: Upvoting, reporting, user interactions
-- **Content Formatting**: Markdown support, HTML sanitization, line breaks
-- **Real-time Updates**: Live comment feeds, count synchronization
-- **Performance**: Large thread handling, pagination implementation
+### 1. `social-features.spec.ts` - Multi-Tab Real-Time Social Features
+- **Real-Time Multi-Tab Testing**: Cross-tab synchronization validation
+- **Advanced Social Interactions**: Real-time user-to-user interactions requiring browser context
+- **Type-Safe Discussion Management**: Database schema validation in browser context
+- **Concurrent Operations Testing**: Race condition detection and resolution
+- **WebSocket Integration**: Real-time updates and network resilience testing
 
-### 3. `search-filter.spec.ts` - Search and Filtering Tests
-- **Text Search**: Title/content search, case-insensitive, partial matches
-- **Game Filtering**: Game-specific content, "All Games" option
-- **Challenge Filtering**: Challenge type selection, combined filters
-- **Tag Filtering**: Click-to-filter, multiple tags, tag removal
-- **Sorting**: Multiple criteria (newest, oldest, most upvoted, most comments)
-- **Filter Persistence**: URL state, navigation persistence, filter clearing
-- **Performance**: Large dataset handling, search debouncing
+### Removed Tests (Now Covered by Jest Unit Tests)
+**Logic Testing Migration**: UI and service logic testing moved to Jest for 10x faster execution and better reliability.
 
-### 4. `user-interactions.spec.ts` - Social Features Tests
-- **Following System**: Follow/unfollow users, mutual connections, follower counts
-- **Upvoting System**: Discussion/comment upvotes, optimistic updates, rate limiting
-- **Sharing Features**: Copy links, social media sharing, share tracking
-- **Profile Interactions**: View profiles, send messages, activity feeds
-- **Notifications**: Follow notifications, upvote alerts, preference management
-- **Privacy Controls**: Block users, private discussions, visibility settings
+- ❌ `discussions.spec.ts` → ✅ `src/features/Community/test/` (discussion service tests)
+- ❌ `comments.spec.ts` → ✅ `src/features/Community/test/` (comment service tests)
+- ❌ `search-filter.spec.ts` → ✅ `src/features/Community/test/search-service.test.ts`
+- ❌ `user-interactions.spec.ts` → ✅ Community service layer unit tests
+- ❌ `moderation.spec.ts` → ✅ `src/features/Community/test/moderation.test.ts`
 
-### 5. `moderation.spec.ts` - Content Moderation Tests
-- **Content Reporting**: Report discussions/comments, reason selection, duplicate prevention
-- **Spam Detection**: Automatic flagging, multiple criteria analysis, escalation
-- **Rate Limiting**: Post frequency limits, cooldown periods, limit resets
-- **Content Filtering**: Profanity filters, XSS prevention, URL validation
-- **Moderator Tools**: Report management, user actions, moderation history
-- **Appeal Process**: Decision appeals, status tracking, resolution workflows
+**Benefits of Migration**:
+- **Performance**: Tests run in ~100ms vs 10+ seconds for E2E
+- **Reliability**: No UI flakiness or timing issues  
+- **Coverage**: More edge cases tested efficiently
+- **Focus**: E2E tests now focus on real browser-specific behavior
 
 ## Implementation Status Summary
 

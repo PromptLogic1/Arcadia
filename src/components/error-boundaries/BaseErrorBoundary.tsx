@@ -173,7 +173,10 @@ export class BaseErrorBoundary extends Component<
 
       // Default error UI based on level
       return (
-        <div className="flex min-h-[400px] items-center justify-center p-8">
+        <div 
+          className="error-boundary flex min-h-[400px] items-center justify-center p-8"
+          data-testid="error-boundary"
+        >
           <div className="w-full max-w-md space-y-6 text-center">
             <div className="flex justify-center">
               <AlertTriangle className="h-16 w-16 text-red-500" />

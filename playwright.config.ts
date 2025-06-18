@@ -154,27 +154,30 @@ export default defineConfig({
   }),
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
-    stdout: 'pipe',
-    stderr: 'pipe',
-    env: {
-      // Pass through all environment variables to the web server
-      ...process.env,
-      // Override NODE_ENV to test
-      NODE_ENV: 'test',
+  // DISABLED: User already has dev server running
+  // webServer will be configured only if needed for CI or isolated testing
+  ...(process.env.CI && {
+    webServer: {
+      command: 'npm run dev',
+      url: 'http://localhost:3000',
+      timeout: 120 * 1000,
+      reuseExistingServer: false,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        // Load test environment for CI
+        ...(require('dotenv').config({ path: '.env.test' }).parsed || {}),
+        NODE_ENV: 'test',
+      },
     },
-  },
+  }),
   
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   outputDir: 'test-results/',
   
   /* Path to global setup file */
-  // globalSetup: path.resolve(__dirname, './tests/global-setup.ts'),
+  globalSetup: require.resolve('./tests/global-setup.ts'),
   
   /* Path to global teardown file */
-  // globalTeardown: path.resolve(__dirname, './tests/global-teardown.ts'),
+  globalTeardown: require.resolve('./tests/global-teardown.ts'),
 });

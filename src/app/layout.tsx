@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import '../styles/globals.css';
 import { WebVitals } from '@/components/web-vitals';
 import { sanitizeCriticalCSS } from '@/lib/sanitization';
+import { defaultMetadata, generateOrganizationSchema, generateWebsiteSchema, combineSchemas } from '@/lib/metadata';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,10 +16,7 @@ const inter = Inter({
   fallback: ['system-ui', '-apple-system', 'sans-serif'],
 });
 
-export const metadata: Metadata = {
-  title: 'Arcadia',
-  description: 'Gaming Platform',
-};
+export const metadata: Metadata = defaultMetadata;
 
 // Read critical CSS at build time
 let criticalCSS = '';
@@ -45,6 +43,16 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Essential meta tags */}
+        <meta charSet="utf-8" />
+        
+        {/* Favicon and app icons */}
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        
         {/* Inline critical CSS for faster initial render */}
         {criticalCSS && (
           <style
@@ -55,6 +63,18 @@ export default async function RootLayout({
             nonce={nonce}
           />
         )}
+        
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: combineSchemas(
+              generateOrganizationSchema(),
+              generateWebsiteSchema()
+            ),
+          }}
+        />
+        
         {/* Preconnect to critical domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
