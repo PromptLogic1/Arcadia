@@ -43,7 +43,7 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'speedrun',
     points: 75,
     icon: '⚡',
-    condition: (stats) => (stats.fastest_win || Infinity) < 300,
+    condition: (stats) => (stats.games_won || 0) > 0 && (stats.fastest_win || Infinity) < 300,
     progress: (stats) => stats.fastest_win && stats.fastest_win < 300 ? { current: 1, max: 1 } : null,
   },
   {
@@ -53,7 +53,7 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'speedrun',
     points: 150,
     icon: '🚀',
-    condition: (stats) => (stats.fastest_win || Infinity) < 120,
+    condition: (stats) => (stats.games_won || 0) > 0 && (stats.fastest_win || Infinity) < 120,
     progress: (stats) => stats.fastest_win && stats.fastest_win < 120 ? { current: 1, max: 1 } : null,
   },
   {
@@ -243,15 +243,18 @@ describe('Badge Engine', () => {
 
     it('should unlock speedrun badges based on time', () => {
       const testCases = [
-        { time: 600, expected: [] }, // 10 minutes - no badge
-        { time: 299, expected: ['Speedrun Novice'] }, // Just under 5 minutes
-        { time: 150, expected: ['Speedrun Novice'] }, // 2.5 minutes
-        { time: 119, expected: ['Speedrun Novice', 'Speedrun Expert'] }, // Just under 2 minutes
-        { time: 60, expected: ['Speedrun Novice', 'Speedrun Expert'] }, // 1 minute
+        { time: 600, expected: ['First Victory'] }, // 10 minutes - only first victory
+        { time: 299, expected: ['First Victory', 'Speedrun Novice'] }, // Just under 5 minutes
+        { time: 150, expected: ['First Victory', 'Speedrun Novice'] }, // 2.5 minutes
+        { time: 119, expected: ['First Victory', 'Speedrun Novice', 'Speedrun Expert'] }, // Just under 2 minutes
+        { time: 60, expected: ['First Victory', 'Speedrun Novice', 'Speedrun Expert'] }, // 1 minute
       ];
 
       testCases.forEach(({ time, expected }) => {
-        const stats: Partial<UserStats> = { fastest_win: time };
+        const stats: Partial<UserStats> = { 
+          fastest_win: time, 
+          games_won: 1 // Need at least one win for speedrun badges
+        };
         const unlocked = new Set<string>();
         
         const newUnlocks = checkBadgeUnlocks(stats, unlocked);
@@ -428,10 +431,9 @@ describe('Badge Engine', () => {
 
       const newUnlocks = checkBadgeUnlocks(stats, unlocked);
 
-      // Should unlock speedrun badges due to 0 being < threshold
-      expect(newUnlocks).toContain('Speedrun Novice');
-      expect(newUnlocks).toContain('Speedrun Expert');
-      expect(newUnlocks).toHaveLength(2);
+      // Should not unlock speedrun badges if no games won
+      // Even though 0 < threshold, speedrun requires actual wins
+      expect(newUnlocks).toHaveLength(0);
     });
 
     it('should prioritize longest_win_streak over current_win_streak', () => {
