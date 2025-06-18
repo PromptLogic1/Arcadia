@@ -260,8 +260,8 @@ async function loginUser(page: Page, user: TestUser): Promise<void> {
   // Submit form using data-testid to avoid strict mode violations
   await page.locator('[data-testid="auth-submit-button"]').click();
   
-  // Wait for redirect to dashboard/home
-  await page.waitForURL(/(dashboard|home|\/)/, { timeout: 10000 });
+  // Wait for redirect to dashboard/home/play-area
+  await page.waitForURL(/(dashboard|home|play-area|\/)/, { timeout: 10000 });
   
   // Verify authentication
   const userMenu = page.getByTestId('user-menu')

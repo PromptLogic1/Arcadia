@@ -7,13 +7,9 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
+  // Root configuration (shared by all projects)
+  roots: ['<rootDir>/src'],
   setupFilesAfterEnv: ['<rootDir>/lib/jest/jest.setup.ts'],
-  testEnvironment: 'jest-environment-jsdom',
-  testMatch: [
-    // Only look for Jest unit tests in src directory
-    '<rootDir>/src/**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
-    '<rootDir>/src/**/*.(test|spec).(js|jsx|ts|tsx)',
-  ],
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
@@ -44,12 +40,14 @@ const customJestConfig = {
   ],
   // Support for ES modules in tests
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-      useESM: true,
-    },
-  },
+  // Global test match for all tests
+  testMatch: [
+    '<rootDir>/src/features/*/test/**/*.{test,spec}.{ts,tsx}',
+    '<rootDir>/src/features/*/__tests__/**/*.{test,spec}.{ts,tsx}',
+    '<rootDir>/src/**/*.{test,spec}.{ts,tsx}',
+  ],
+  // Default test environment
+  testEnvironment: 'jest-environment-jsdom',
   reporters: ['default', ['<rootDir>/lib/jest/CustomReporter.js', {}]],
 };
 

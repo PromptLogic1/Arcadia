@@ -21,7 +21,7 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI 
     ? [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'test-results/results.json' }]]
-    : [['html', { open: 'on-failure' }]],
+    : [['html', { open: 'always' }]],
   
   /* Timeout for each test */
   timeout: 30 * 1000,
@@ -53,8 +53,8 @@ export default defineConfig({
     locale: 'en-US',
     timezoneId: 'America/New_York',
     
-    /* Permissions - using only cross-browser compatible permissions */
-    permissions: ['clipboard-write'],
+    /* Permissions - removed as clipboard-write is not supported in Firefox */
+    // permissions: ['clipboard-write'],
     
     /* User agent */
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -84,34 +84,50 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Chrome'],
         // Use bundled Chromium instead of system Chrome
+        permissions: ['clipboard-write'],
       },
     },
     
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { 
+        ...devices['Desktop Firefox'],
+        // Firefox doesn't support clipboard-write permission
+      },
     },
     
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: { 
+        ...devices['Desktop Safari'],
+        // Webkit doesn't support clipboard-write permission
+      },
     },
 
     /* Mobile viewports */
     {
       name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { 
+        ...devices['Pixel 5'],
+        permissions: ['clipboard-write'],
+      },
     },
     
     {
       name: 'mobile-safari',
-      use: { ...devices['iPhone 12'] },
+      use: { 
+        ...devices['iPhone 12'],
+        // Safari doesn't support clipboard-write permission
+      },
     },
     
     /* Tablet viewports */
     {
       name: 'tablet',
-      use: { ...devices['iPad (gen 7)'] },
+      use: { 
+        ...devices['iPad (gen 7)'],
+        // iPad/Safari doesn't support clipboard-write permission
+      },
     },
 
     /* Test against branded browsers */
@@ -120,6 +136,7 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Edge'], 
         // Use bundled Edge for compatibility
+        permissions: ['clipboard-write'],
       },
     },
   ],
@@ -131,6 +148,7 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Chrome'],
         // Use bundled Chromium for local development
+        permissions: ['clipboard-write'],
       },
     }],
   }),
@@ -144,9 +162,10 @@ export default defineConfig({
     stdout: 'pipe',
     stderr: 'pipe',
     env: {
-      NODE_ENV: 'test',
       // Pass through all environment variables to the web server
       ...process.env,
+      // Override NODE_ENV to test
+      NODE_ENV: 'test',
     },
   },
   

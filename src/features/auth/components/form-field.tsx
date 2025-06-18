@@ -184,6 +184,7 @@ interface EnhancedFormFieldProps
   inputClassName?: string;
   labelClassName?: string;
   errorClassName?: string;
+  'data-testid'?: string;
 }
 
 // 🎯 Forward Ref Implementation
@@ -211,6 +212,7 @@ export const FormField = React.forwardRef<
       inputClassName,
       labelClassName,
       errorClassName,
+      'data-testid': dataTestId,
       ...props
     },
     ref
@@ -281,7 +283,7 @@ export const FormField = React.forwardRef<
                 : undefined
           }
           className={cn(inputStyles, inputClassName)}
-          data-testid={props['data-testid']}
+          data-testid={dataTestId}
         />
 
         {/* Help Text */}

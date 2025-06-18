@@ -290,7 +290,7 @@ export class RecommendationEngine {
   }
 
   // Get games liked by similar users
-  getCollaborativeRecommendations(userId: string, limit: number = 5): Game[] {
+  getCollaborativeRecommendations(userId: string, limit = 5): Game[] {
     const userLikedGames = new Set(this.userPreferences.likedGames);
     const similarUsers = new Set<string>();
     

@@ -286,7 +286,7 @@ export class ProgressTracker {
   }
 
   // Calculate progress velocity (rate of improvement)
-  calculateProgressVelocity(userId: string, days: number = 7): {
+  calculateProgressVelocity(userId: string, days = 7): {
     gamesPerDay: number;
     winRateChange: number;
     streakTrend: number;
@@ -326,7 +326,7 @@ export class ProgressTracker {
   }
 
   // Get leaderboard data
-  getLeaderboard(metric: 'totalGamesPlayed' | 'winRate' | 'longestStreak', limit: number = 10): Array<{
+  getLeaderboard(metric: 'totalGamesPlayed' | 'winRate' | 'longestStreak', limit = 10): Array<{
     userId: string;
     value: number;
     rank: number;

@@ -36,7 +36,7 @@ export class SpeedrunTimer {
   private snapshots: TimerSnapshot[] = [];
   private frameCallbacks: Set<(time: number) => void> = new Set();
   private animationFrameId: number | null = null;
-  private performanceStart: number = 0;
+  private performanceStart = 0;
 
   // Use high-precision performance API
   private getHighPrecisionTime(): number {
