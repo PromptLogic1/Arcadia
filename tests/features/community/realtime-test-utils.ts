@@ -1,4 +1,5 @@
 import { Page, expect } from '@playwright/test';
+import type { Route } from '@playwright/test';
 import type {
   RealTimeEvent,
   WebSocketMessage,
@@ -7,13 +8,14 @@ import type {
   ConcurrentTestResult,
   UserScenario,
 } from './types';
+import type { TestWindow, SupabaseRealtimeChannel, SupabaseRealtimeClient, EventCallback } from '../../types/test-types';
 import { waitForNetworkIdle } from '../../helpers/test-utils';
 
 // WebSocket connection testing utilities
 export class RealtimeTestManager {
   private events: RealTimeEvent[] = [];
   private connections: Map<string, WebSocket> = new Map();
-  private messageHandlers: Map<string, Function[]> = new Map();
+  private messageHandlers: Map<string, Array<(event: RealTimeEvent) => void>> = new Map();
 
   async setupRealtimeConnection(
     page: Page,
@@ -28,57 +30,73 @@ export class RealtimeTestManager {
     // Inject WebSocket testing utilities into the page
     await page.evaluate((testConfig) => {
       // Store test configuration
-      (window as any).__realtimeTestConfig = testConfig;
-      (window as any).__realtimeEvents = [];
-      (window as any).__realtimeConnections = new Map();
+      interface RealtimeWindowExtensions {
+        __realtimeTestConfig?: WebSocketTestConfig;
+        __realtimeEvents?: RealTimeEvent[];
+        __realtimeConnections?: Map<string, {
+          handlers: Map<string, Array<(event: RealTimeEvent) => void>>;
+          subscribed: boolean;
+        }>;
+        __mockRealtime?: unknown;
+        supabase?: { realtime?: unknown };
+      }
+      (window as Window & RealtimeWindowExtensions).__realtimeTestConfig = testConfig;
+      (window as Window & RealtimeWindowExtensions).__realtimeEvents = [];
+      (window as Window & RealtimeWindowExtensions).__realtimeConnections = new Map();
       
       // Mock Supabase realtime client
-      const mockRealtimeClient = {
-        channel: (channelName: string) => {
-          const channelHandlers: Map<string, Function[]> = new Map();
+      const mockRealtimeClient: SupabaseRealtimeClient = {
+        channel: (channelName: string): SupabaseRealtimeChannel => {
+          const channelHandlers: Map<string, Array<(event: RealTimeEvent) => void>> = new Map();
           
-          return {
-            on: (event: string, handler: Function) => {
+          const channel: SupabaseRealtimeChannel = {
+            on: (event: string, handler: (event: RealTimeEvent) => void) => {
               if (!channelHandlers.has(event)) {
                 channelHandlers.set(event, []);
               }
               channelHandlers.get(event)!.push(handler);
-              return this;
+              return channel;
             },
-            subscribe: (callback?: Function) => {
+            subscribe: (callback?: (status: string, err?: Error) => void) => {
               // Store channel for testing
-              (window as any).__realtimeConnections.set(channelName, {
+              (window as Window & RealtimeWindowExtensions).__realtimeConnections?.set(channelName, {
                 handlers: channelHandlers,
                 subscribed: true,
               });
               
-              if (callback) callback('SUBSCRIBED', null);
-              return this;
+              if (callback) callback('SUBSCRIBED');
+              return channel;
             },
             unsubscribe: () => {
-              (window as any).__realtimeConnections.delete(channelName);
-              return this;
+              (window as Window & RealtimeWindowExtensions).__realtimeConnections?.delete(channelName);
+              return channel;
             },
-            send: (message: any) => {
+            send: (message: unknown) => {
               // Simulate message sending
-              (window as any).__realtimeEvents.push({
-                type: 'SENT',
+              (window as Window & RealtimeWindowExtensions).__realtimeEvents?.push({
+                eventType: 'INSERT',
+                schema: 'public',
+                table: 'discussions',
                 channel: channelName,
                 message,
                 timestamp: Date.now(),
-              });
+                commit_timestamp: new Date().toISOString(),
+              } as RealTimeEvent);
             },
           };
+          
+          return channel;
         },
       };
 
       // Replace Supabase realtime with mock
-      if ((window as any).supabase) {
-        (window as any).supabase.realtime = mockRealtimeClient;
+      const win = window as Window & RealtimeWindowExtensions;
+      if (win.supabase) {
+        win.supabase.realtime = mockRealtimeClient;
       }
 
       // Store mock for direct access
-      (window as any).__mockRealtime = mockRealtimeClient;
+      win.__mockRealtime = mockRealtimeClient;
     }, config);
   }
 
@@ -87,26 +105,38 @@ export class RealtimeTestManager {
     event: RealTimeEvent<T>
   ): Promise<void> {
     await page.evaluate((eventData) => {
-      const connections = (window as any).__realtimeConnections;
-      const events = (window as any).__realtimeEvents;
+      interface RealtimeWindowExtensions {
+        __realtimeEvents?: RealTimeEvent[];
+        __realtimeConnections?: Map<string, {
+          handlers: Map<string, Array<(event: RealTimeEvent) => void>>;
+          subscribed: boolean;
+        }>;
+      }
+      const win = window as Window & RealtimeWindowExtensions;
+      const connections = win.__realtimeConnections;
+      const events = win.__realtimeEvents;
       
       // Add event to history
-      events.push({
-        ...eventData,
-        timestamp: Date.now(),
-      });
+      if (events) {
+        events.push({
+          ...eventData,
+          timestamp: Date.now(),
+        });
+      }
 
       // Trigger handlers for all matching channels
-      for (const [channelName, connection] of connections.entries()) {
-        if (connection.subscribed && connection.handlers) {
-          const handlers = connection.handlers.get(eventData.eventType) || [];
-          handlers.forEach((handler: Function) => {
-            try {
-              handler(eventData);
-            } catch (error) {
-              console.error('Realtime handler error:', error);
-            }
-          });
+      if (connections) {
+        for (const [channelName, connection] of Array.from(connections.entries())) {
+          if (connection.subscribed && connection.handlers) {
+            const handlers = connection.handlers.get(eventData.eventType) || [];
+            handlers.forEach((handler) => {
+              try {
+                handler(eventData);
+              } catch (error) {
+                console.error('Realtime handler error:', error);
+              }
+            });
+          }
         }
       }
     }, event);
@@ -117,31 +147,47 @@ export class RealtimeTestManager {
     eventType: string,
     timeout: number = 5000
   ): Promise<RealTimeEvent[]> {
-    return page.waitForFunction(
-      ({ type, timeoutMs }) => {
-        const events = (window as any).__realtimeEvents || [];
-        const matchingEvents = events.filter((e: any) => e.eventType === type);
+    const result = await page.waitForFunction(
+      ({ eventType: type, timeoutMs }) => {
+        const events = (window as TestWindow).__realtimeEvents || [];
+        const matchingEvents = events.filter((e: unknown) => {
+          const event = e as RealTimeEvent;
+          return event.eventType === type;
+        });
         return matchingEvents.length > 0 ? matchingEvents : null;
       },
       { eventType, timeoutMs: timeout },
       { timeout }
     );
+    
+    const value = await result.jsonValue();
+    return value as RealTimeEvent[];
   }
 
   async getRealtimeEvents(page: Page, filterType?: string): Promise<RealTimeEvent[]> {
     return page.evaluate((type) => {
-      const events = (window as any).__realtimeEvents || [];
-      return type ? events.filter((e: any) => e.eventType === type) : events;
+      const events = (window as TestWindow).__realtimeEvents || [];
+      if (type) {
+        return events.filter((e: unknown) => {
+          const event = e as RealTimeEvent;
+          return event.eventType === type;
+        }) as RealTimeEvent[];
+      }
+      return events as RealTimeEvent[];
     }, filterType);
   }
 
   async cleanupRealtimeConnections(page: Page): Promise<void> {
     await page.evaluate(() => {
-      const connections = (window as any).__realtimeConnections;
+      interface RealtimeWindowExtensions {
+        __realtimeEvents?: RealTimeEvent[];
+        __realtimeConnections?: Map<string, unknown>;
+      }
+      const connections = (window as Window & RealtimeWindowExtensions).__realtimeConnections;
       if (connections) {
         connections.clear();
       }
-      (window as any).__realtimeEvents = [];
+      (window as Window & RealtimeWindowExtensions).__realtimeEvents = [];
     });
   }
 }
@@ -153,7 +199,7 @@ export async function testMultiTabRealtime(
   operation: {
     type: 'comment' | 'upvote' | 'discussion_edit';
     discussionId: string;
-    data: any;
+    data: Record<string, unknown>;
   }
 ): Promise<{
   page1Events: RealTimeEvent[];
@@ -184,7 +230,7 @@ export async function testMultiTabRealtime(
   // Perform operation on page1
   switch (operation.type) {
     case 'comment':
-      await page1.getByPlaceholder('What are your thoughts on this discussion?').fill(operation.data.content);
+      await page1.getByPlaceholder('What are your thoughts on this discussion?').fill(String(operation.data.content));
       await page1.getByRole('button', { name: /post comment/i }).click();
       break;
       
@@ -194,7 +240,7 @@ export async function testMultiTabRealtime(
       
     case 'discussion_edit':
       await page1.getByRole('button', { name: /edit/i }).click();
-      await page1.getByLabel('Content').fill(operation.data.content);
+      await page1.getByLabel('Content').fill(String(operation.data.content));
       await page1.getByRole('button', { name: /save changes/i }).click();
       break;
   }
@@ -207,9 +253,9 @@ export async function testMultiTabRealtime(
 
   // Verify content appears on page2
   if (operation.type === 'comment') {
-    await expect(page2.getByText(operation.data.content)).toBeVisible({ timeout: 5000 });
+    await expect(page2.getByText(String(operation.data.content))).toBeVisible({ timeout: 5000 });
   } else if (operation.type === 'discussion_edit') {
-    await expect(page2.getByText(operation.data.content)).toBeVisible({ timeout: 5000 });
+    await expect(page2.getByText(String(operation.data.content))).toBeVisible({ timeout: 5000 });
     await expect(page2.getByText('(edited)')).toBeVisible();
   }
 
@@ -239,21 +285,37 @@ export async function testRaceConditions(
   pages: Page[],
   operations: Array<{
     pageIndex: number;
-    operation: () => Promise<any>;
+    operation: () => Promise<unknown>;
     expectedOutcome: 'success' | 'conflict' | 'duplicate_prevention';
   }>
 ): Promise<{
-  results: any[];
+  results: Array<{
+    index: number;
+    pageIndex?: number;
+    success: boolean;
+    result?: unknown;
+    error?: string;
+    expectedOutcome: string;
+    timestamp?: number;
+  }>;
   raceConditionsDetected: boolean;
   conflictResolution: 'first_wins' | 'last_wins' | 'merge' | 'error';
 }> {
   const startTime = Date.now();
-  const results: any[] = [];
+  const results: Array<{
+    index: number;
+    pageIndex?: number;
+    success: boolean;
+    result?: unknown;
+    error?: string;
+    expectedOutcome: string;
+    timestamp: number;
+  }> = [];
 
   // Execute all operations simultaneously
   const promises = operations.map(async (op, index) => {
     const page = pages[op.pageIndex];
-    let result: any;
+    let result: unknown;
     let error: string | undefined;
     let success = true;
 
@@ -284,8 +346,9 @@ export async function testRaceConditions(
       results.push({
         index,
         success: false,
-        error: result.reason,
-        expectedOutcome: operations[index].expectedOutcome,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        expectedOutcome: operations[index]?.expectedOutcome || 'unknown',
+        timestamp: Date.now() - startTime,
       });
     }
   });
@@ -305,9 +368,9 @@ export async function testRaceConditions(
     const earliestTimestamp = Math.min(...results.map(r => r.timestamp));
     const latestTimestamp = Math.max(...results.map(r => r.timestamp));
     
-    if (winner.timestamp === earliestTimestamp) {
+    if (winner && winner.timestamp === earliestTimestamp) {
       conflictResolution = 'first_wins';
-    } else if (winner.timestamp === latestTimestamp) {
+    } else if (winner && winner.timestamp === latestTimestamp) {
       conflictResolution = 'last_wins';
     } else {
       conflictResolution = 'merge';
@@ -338,7 +401,7 @@ export async function testNetworkResilience(
   let reconnectionTime: number | undefined;
 
   switch (scenario) {
-    case 'offline':
+    case 'offline': {
       // Simulate offline mode
       await page.context().setOffline(true);
       
@@ -355,22 +418,23 @@ export async function testNetworkResilience(
       }
 
       // Go back online
-      const reconnectStart = Date.now();
+      const offlineReconnectStart = Date.now();
       await page.context().setOffline(false);
       
       // Wait for reconnection and operation completion
       try {
         await expect(page.getByText('Offline comment')).toBeVisible({ timeout: 10000 });
         operationsCompleted++;
-        reconnectionTime = Date.now() - reconnectStart;
+        reconnectionTime = Date.now() - offlineReconnectStart;
       } catch (error) {
         // Operation may have been lost
       }
       break;
+    }
 
-    case 'slow_connection':
+    case 'slow_connection': {
       // Simulate slow connection
-      await page.route('**/*', async route => {
+      await page.route('**/*', async (route: Route) => {
         await page.waitForTimeout(2000); // 2 second delay
         route.continue();
       });
@@ -391,8 +455,9 @@ export async function testNetworkResilience(
       // Restore normal connection
       await page.unroute('**/*');
       break;
+    }
 
-    case 'intermittent':
+    case 'intermittent': {
       // Simulate intermittent connection
       let connectionUp = true;
       const intervalId = setInterval(() => {
@@ -420,23 +485,25 @@ export async function testNetworkResilience(
       clearInterval(intervalId);
       await page.context().setOffline(false);
       break;
+    }
 
-    case 'reconnection':
+    case 'reconnection': {
       // Test automatic reconnection
       await page.context().setOffline(true);
       await page.waitForTimeout(5000); // Stay offline for 5 seconds
       
-      const reconnectStart = Date.now();
+      const networkReconnectStart = Date.now();
       await page.context().setOffline(false);
       
       // Wait for reconnection indicator
       try {
         await expect(page.getByText(/connected|online/i)).toBeVisible({ timeout: 10000 });
-        reconnectionTime = Date.now() - reconnectStart;
+        reconnectionTime = Date.now() - networkReconnectStart;
       } catch (error) {
         // No reconnection indicator found
       }
       break;
+    }
   }
 
   // Check data integrity by comparing with expected state
@@ -456,7 +523,7 @@ export async function validateWebSocketMessages(
   expectedMessages: Array<{
     eventType: string;
     table: string;
-    validation: (payload: any) => boolean;
+    validation: (payload: unknown) => boolean;
   }>
 ): Promise<{
   validMessages: number;
@@ -469,11 +536,11 @@ export async function validateWebSocketMessages(
 
   // Get all captured WebSocket messages
   const messages = await page.evaluate(() => {
-    return (window as any).__realtimeEvents || [];
-  });
+    return (window as TestWindow).__realtimeEvents || [];
+  }) as RealTimeEvent[];
 
   for (const expectedMsg of expectedMessages) {
-    const matchingMessages = messages.filter((msg: any) => 
+    const matchingMessages = messages.filter((msg) => 
       msg.eventType === expectedMsg.eventType && 
       msg.table === expectedMsg.table
     );
@@ -504,7 +571,7 @@ export async function validateWebSocketMessages(
 export async function testOptimisticUpdates(
   page: Page,
   operation: 'upvote' | 'comment' | 'edit',
-  data: any
+  data: Record<string, unknown>
 ): Promise<{
   optimisticUpdateTime: number;
   serverConfirmationTime: number;
@@ -517,7 +584,7 @@ export async function testOptimisticUpdates(
   const startTime = Date.now();
 
   switch (operation) {
-    case 'upvote':
+    case 'upvote': {
       const upvoteButton = page.getByRole('button', { name: /upvote/i }).first();
       const initialText = await upvoteButton.textContent();
       const initialCount = parseInt(initialText?.match(/\d+/)?.[0] || '0');
@@ -543,14 +610,16 @@ export async function testOptimisticUpdates(
         rollbackOccurred = true;
       }
       break;
+    }
 
-    case 'comment':
-      await page.getByPlaceholder('What are your thoughts on this discussion?').fill(data.content);
+    case 'comment': {
+      const content = String(data.content || '');
+      await page.getByPlaceholder('What are your thoughts on this discussion?').fill(content);
       await page.getByRole('button', { name: /post comment/i }).click();
 
       // Check for optimistic comment appearance
       try {
-        await expect(page.getByText(data.content)).toBeVisible({ timeout: 500 });
+        await expect(page.getByText(content)).toBeVisible({ timeout: 500 });
         optimisticUpdateTime = Date.now() - startTime;
       } catch (error) {
         // No optimistic update
@@ -558,21 +627,23 @@ export async function testOptimisticUpdates(
 
       // Wait for server confirmation
       await page.waitForTimeout(3000);
-      if (await page.getByText(data.content).isVisible()) {
+      if (await page.getByText(content).isVisible()) {
         serverConfirmationTime = Date.now() - startTime;
       } else {
         rollbackOccurred = true;
       }
       break;
+    }
 
-    case 'edit':
+    case 'edit': {
+      const content = String(data.content || '');
       await page.getByRole('button', { name: /edit/i }).click();
-      await page.getByLabel('Content').fill(data.content);
+      await page.getByLabel('Content').fill(content);
       await page.getByRole('button', { name: /save changes/i }).click();
 
       // Check for optimistic edit appearance
       try {
-        await expect(page.getByText(data.content)).toBeVisible({ timeout: 500 });
+        await expect(page.getByText(content)).toBeVisible({ timeout: 500 });
         optimisticUpdateTime = Date.now() - startTime;
       } catch (error) {
         // No optimistic update
@@ -580,12 +651,13 @@ export async function testOptimisticUpdates(
 
       // Wait for server confirmation
       await page.waitForTimeout(3000);
-      if (await page.getByText(data.content).isVisible()) {
+      if (await page.getByText(content).isVisible()) {
         serverConfirmationTime = Date.now() - startTime;
       } else {
         rollbackOccurred = true;
       }
       break;
+    }
   }
 
   return {

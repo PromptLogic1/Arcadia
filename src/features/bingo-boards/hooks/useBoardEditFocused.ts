@@ -227,7 +227,7 @@ export const useBoardSaveActions = (boardId: string) => {
   const queryClient = useQueryClient();
   const { authUser } = useAuth();
   const { board } = useBoardData(boardId);
-  const {} = useBoardCards();
+  useBoardCards();
   const uiActions = useBoardEditActions();
   const _saveCardsMutation = useSaveCardsMutation();
   const updateBoardMutation = useUpdateBoardMutation();

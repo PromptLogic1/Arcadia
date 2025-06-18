@@ -1,4 +1,4 @@
-import type { Tables, Enums } from '@/types/database.types';
+import type { Tables } from '../../../../types/database.types';
 import type { Page } from '@playwright/test';
 
 // ===== DATABASE TYPE EXTENSIONS =====
@@ -250,12 +250,12 @@ export interface TestApiResponse<T = unknown> {
   timestamp?: string;
 }
 
-export interface TestSessionResponse extends TestApiResponse<TestSession> {}
-export interface TestPlayersResponse extends TestApiResponse<TestSessionPlayer[]> {}
-export interface TestGameStateResponse extends TestApiResponse<TestGameState> {}
-export interface TestAchievementsResponse extends TestApiResponse<TestAchievement[]> {}
-export interface TestSpeedrunsResponse extends TestApiResponse<TestSpeedrun[]> {}
-export interface TestLeaderboardResponse extends TestApiResponse<TestLeaderboardEntry[]> {}
+export type TestSessionResponse = TestApiResponse<TestSession>;
+export type TestPlayersResponse = TestApiResponse<TestSessionPlayer[]>;
+export type TestGameStateResponse = TestApiResponse<TestGameState>;
+export type TestAchievementsResponse = TestApiResponse<TestAchievement[]>;
+export type TestSpeedrunsResponse = TestApiResponse<TestSpeedrun[]>;
+export type TestLeaderboardResponse = TestApiResponse<TestLeaderboardEntry[]>;
 
 export interface TestLeaderboardEntry {
   rank: number;

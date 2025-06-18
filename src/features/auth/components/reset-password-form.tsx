@@ -146,6 +146,7 @@ export function ResetPasswordForm() {
           <Button
             type="submit"
             disabled={isSubmitting || !isValid || !allMet}
+            data-testid="auth-submit-button"
             className={cn(
               'w-full bg-gradient-to-r from-cyan-500 to-fuchsia-500',
               'rounded-full py-2 font-medium text-white',

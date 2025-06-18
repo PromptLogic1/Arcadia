@@ -1,6 +1,5 @@
-import { Page, expect } from '@playwright/test';
-import type { Tables } from '../../../types/database.types';
-import type { BoardCell } from '../../../src/features/bingo-boards/types';
+import type { Page, Locator } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 /**
  * Visual regression testing utilities for bingo boards
@@ -24,7 +23,7 @@ export const BOARD_VISUAL_STATES: VisualState[] = [
   {
     name: 'empty-board',
     description: 'Empty bingo board with no marks',
-    setup: async (page) => {
+    setup: async (_page) => {
       // Board is already empty after creation
     }
   },
@@ -101,7 +100,7 @@ export interface VisualComparisonOptions {
   threshold?: number;
   maxDiffPixels?: number;
   animations?: 'disabled' | 'allow';
-  mask?: string[];
+  maskSelectors?: string[]; // Store selectors separately
   clip?: { x: number; y: number; width: number; height: number };
   fullPage?: boolean;
 }
@@ -110,7 +109,7 @@ export class VisualRegressionTester {
   private page: Page;
   private baselinePath: string;
   
-  constructor(page: Page, baselinePath: string = 'visual-baselines/bingo') {
+  constructor(page: Page, baselinePath = 'visual-baselines/bingo') {
     this.page = page;
     this.baselinePath = baselinePath;
   }
@@ -179,12 +178,11 @@ export class VisualRegressionTester {
       animations = 'disabled'
     } = options;
     
-    for (const [name, screenshot] of screenshots) {
+    for (const [name, screenshot] of Array.from(screenshots)) {
       try {
         await expect(screenshot).toMatchSnapshot(`${this.baselinePath}/${name}.png`, {
           threshold,
-          maxDiffPixels,
-          animations
+          maxDiffPixels
         });
         results.set(name, { pass: true });
       } catch (error) {
@@ -338,7 +336,7 @@ export class AnimationTester {
    * Helper to capture animation frames
    */
   private async captureFrames(
-    element: any,
+    element: Locator,
     duration: number,
     interval: number
   ): Promise<Buffer[]> {
@@ -493,7 +491,31 @@ export async function assertVisualMatch(
   options?: VisualComparisonOptions
 ): Promise<void> {
   const element = page.getByTestId('bingo-grid');
-  await expect(element).toHaveScreenshot(`${name}.png`, options);
+  
+  // Convert custom options to Playwright format
+  const playwrightOptions: {
+    threshold?: number;
+    maxDiffPixels?: number;
+    animations?: 'disabled' | 'allow';
+    clip?: { x: number; y: number; width: number; height: number };
+    fullPage?: boolean;
+    mask?: Locator[];
+  } = {
+    threshold: options?.threshold,
+    maxDiffPixels: options?.maxDiffPixels,
+    animations: options?.animations,
+    clip: options?.clip,
+    fullPage: options?.fullPage
+  };
+  
+  // Handle mask selectors
+  if (options?.maskSelectors) {
+    playwrightOptions.mask = options.maskSelectors.map(selector => 
+      page.locator(selector)
+    );
+  }
+  
+  await expect(element).toHaveScreenshot(`${name}.png`, playwrightOptions);
 }
 
 export async function assertNoVisualRegression(

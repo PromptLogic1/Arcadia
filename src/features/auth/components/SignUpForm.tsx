@@ -202,6 +202,7 @@ export const SignUpForm = React.forwardRef<HTMLDivElement, SignUpFormProps>(
             className={cn(SIGNUP_STYLES.FORM.SUBMIT_BUTTON_BASE, {
               [SIGNUP_STYLES.FORM.SUBMIT_BUTTON_DISABLED]: !canSubmit,
             })}
+            data-testid="auth-submit-button"
           >
             {submission.loading
               ? SIGNUP_MESSAGES.FORM.PROCESSING

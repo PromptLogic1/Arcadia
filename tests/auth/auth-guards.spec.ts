@@ -1,27 +1,31 @@
 import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth.fixture';
 import { 
-  TEST_USERS,
   TIMEOUTS,
-  SELECTORS 
+  AUTH_ROUTES
 } from '../helpers/test-data';
 import { 
-  waitForNetworkIdle,
-  getStoreState
-} from '../helpers/test-utils.enhanced';
-import type { Tables } from '@/types/database.types';
+  waitForNetworkIdle
+} from '../helpers/test-utils';
+// Removed unused import: Tables
 
-// Define test routes if not in test-data
-const TEST_ROUTES = {
-  authenticated: ['/dashboard', '/profile', '/settings', '/play', '/community'],
-  public: ['/', '/about', '/auth/login', '/auth/signup'],
+// Use auth routes from test-data
+const PROTECTED_ROUTES = {
+  authenticated: [
+    AUTH_ROUTES.protected.dashboard, 
+    AUTH_ROUTES.protected.profile, 
+    AUTH_ROUTES.protected.settings, 
+    '/play', 
+    '/community'
+  ],
+  public: ['/', '/about', AUTH_ROUTES.public.login, AUTH_ROUTES.public.signup],
 } as const;
 
 test.describe('Authentication Guards', () => {
   test.describe('Protected Route Access', () => {
     test('should redirect unauthenticated users to login', async ({ page }) => {
       // Test each protected route
-      for (const route of TEST_ROUTES.authenticated) {
+      for (const route of PROTECTED_ROUTES.authenticated) {
         await page.goto(route);
         
         // Should redirect to login page
@@ -54,7 +58,8 @@ test.describe('Authentication Guards', () => {
       // Login from this redirected page
       await page.getByLabel('Email').fill('test@example.com');
       await page.getByLabel('Password').fill('TestPass123!');
-      await page.getByRole('button', { name: /sign in/i }).click();
+      const signInBtn = page.getByRole('button', { name: /sign in/i });
+      await signInBtn.click();
       
       // Should redirect back to original intended destination
       await page.waitForURL(/settings/, { timeout: TIMEOUTS.navigation });
@@ -75,8 +80,9 @@ test.describe('Authentication Guards', () => {
         
         // Should redirect to login (unless route doesn't exist)
         const redirectedToLogin = await page.waitForURL(/login/, { timeout: 3000 }).catch(() => false);
+        const notFoundText = page.getByText(/not found|404/i);
         const is404 = page.url().includes('404') || 
-                     await page.getByText(/not found|404/i).isVisible().catch(() => false);
+                     await notFoundText.isVisible().catch(() => false);
         
         // Should either redirect to login or show 404 (if route doesn't exist)
         expect(redirectedToLogin || is404).toBeTruthy();
@@ -85,7 +91,7 @@ test.describe('Authentication Guards', () => {
       }
     });
 
-    test('should handle direct API route access', async ({ page, request }) => {
+    test('should handle direct API route access', async ({ request }) => {
       const protectedApiRoutes = [
         '/api/user/profile',
         '/api/user/settings',
@@ -109,7 +115,7 @@ test.describe('Authentication Guards', () => {
 
   test.describe('Public Route Access', () => {
     test('should allow access to public routes without authentication', async ({ page }) => {
-      for (const route of TEST_ROUTES.public) {
+      for (const route of PROTECTED_ROUTES.public) {
         await page.goto(route);
         await waitForNetworkIdle(page);
         
@@ -143,7 +149,7 @@ test.describe('Authentication Guards', () => {
       await page.waitForTimeout(2000);
       
       // Test public routes while potentially authenticated
-      for (const route of TEST_ROUTES.public) {
+      for (const route of PROTECTED_ROUTES.public) {
         await page.goto(route);
         await waitForNetworkIdle(page);
         
@@ -200,7 +206,8 @@ test.describe('Authentication Guards', () => {
       await page.goto('/auth/login');
       await page.getByLabel('Email').fill('test@example.com');
       await page.getByLabel('Password').fill('TestPass123!');
-      await page.getByRole('button', { name: /sign in/i }).click();
+      const loginButton = page.getByRole('button', { name: /sign in/i });
+      await loginButton.click();
       
       // Wait for login to complete
       await page.waitForTimeout(2000);
@@ -222,7 +229,7 @@ test.describe('Authentication Guards', () => {
       }
     });
 
-    test('should handle API permission checks', async ({ page, request }) => {
+    test('should handle API permission checks', async ({ request }) => {
       // Test API endpoints that should require specific permissions
       const adminApiRoutes = [
         '/api/admin/users',
@@ -254,7 +261,8 @@ test.describe('Authentication Guards', () => {
       // Login
       await page.getByLabel('Email').fill('test@example.com');
       await page.getByLabel('Password').fill('TestPass123!');
-      await page.getByRole('button', { name: /sign in/i }).click();
+      const signInButton = page.getByRole('button', { name: /sign in/i });
+      await signInButton.click();
       
       // Should redirect to intended destination
       const loginSuccess = await page.waitForURL(/settings/, { timeout: TIMEOUTS.navigation }).catch(() => false);
@@ -396,7 +404,7 @@ test.describe('Authentication Guards', () => {
       // Auth check and redirect should complete within 2 seconds
       expect(authCheckTime).toBeLessThan(2000);
       
-      console.log(`Auth check time: ${authCheckTime}ms`);
+      // Performance: Auth check time = authCheckTimems
     });
 
     test('should cache auth state appropriately', async ({ page }) => {
@@ -417,7 +425,7 @@ test.describe('Authentication Guards', () => {
       // Wait for all redirects
       await page.waitForURL(/login/);
       
-      console.log(`Auth API calls made: ${authCheckCount}`);
+      // API call tracking
       
       // Should not make excessive auth API calls (caching should work)
       expect(authCheckCount).toBeLessThan(10);
@@ -497,7 +505,7 @@ test.describe('Authentication Guards', () => {
 
     test('should handle page refresh during auth check', async ({ page }) => {
       // Start navigation to protected route
-      const navigationPromise = page.goto('/settings');
+      page.goto('/settings');
       
       // Refresh page during navigation
       await page.waitForTimeout(500);

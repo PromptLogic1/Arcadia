@@ -1,17 +1,15 @@
-import { Page, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 import type {
-  Discussion,
-  Comment,
   DiscussionWithAuthor,
-  CommentWithAuthor,
   DiscussionInsert,
   CommentInsert,
   UserScenario,
-  ModerationPattern,
   RateLimitConfig,
   SearchFilters,
   PerformanceMetrics,
   AccessibilityResult,
+  AccessibilityViolation,
   TestResult,
   ConcurrentTestOperation,
   ConcurrentTestResult,
@@ -22,8 +20,6 @@ import {
   MODERATION_PATTERNS,
   DiscussionCreateSchema,
   CommentCreateSchema,
-  isDiscussion,
-  isComment,
 } from './types';
 import { waitForNetworkIdle } from '../../helpers/test-utils';
 
@@ -186,8 +182,14 @@ export async function createTypedComment(
 // Mock data generation utilities (local implementation)
 const mockData = {
   helpers: {
-    arrayElement: <T>(array: readonly T[]): T => array[Math.floor(Math.random() * array.length)],
+    arrayElement: <T>(array: readonly T[]): T => {
+      if (array.length === 0) throw new Error('Array cannot be empty');
+      const result = array[Math.floor(Math.random() * array.length)];
+      if (result === undefined) throw new Error('Array element is undefined');
+      return result;
+    },
     arrayElements: <T>(array: readonly T[], options?: { min: number; max: number }): T[] => {
+      if (array.length === 0) return [];
       const min = options?.min ?? 1;
       const max = options?.max ?? array.length;
       const count = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -207,7 +209,7 @@ const mockData = {
       const count = options ? Math.floor(Math.random() * (options.max - options.min + 1)) + options.min : 2;
       return Array.from({ length: count }, () => sentences[Math.floor(Math.random() * sentences.length)]).join(' ');
     },
-    sentence: (options?: { min: number; max: number }) => {
+    sentence: (_options?: { min: number; max: number }) => {
       const sentences = [
         'This is a comprehensive strategy guide for beginners.',
         'I found this technique really helpful during my recent runs.',
@@ -224,6 +226,9 @@ const mockData = {
 export function generateDiscussionData(options: TestDataOptions = {}): DiscussionInsert {
   const { scenario = 'regularUser', contentType = 'safe' } = options;
   const userScenario = USER_TEST_SCENARIOS[scenario];
+  if (!userScenario) {
+    throw new Error(`Invalid user scenario: ${scenario}`);
+  }
   
   const games = ['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid', 'Kirby'];
   const challengeTypes = ['Bingo', 'Speedrun', 'Achievement Hunt', 'Puzzle', 'Co-op'];
@@ -234,9 +239,14 @@ export function generateDiscussionData(options: TestDataOptions = {}): Discussio
 
   if (contentType in MODERATION_PATTERNS) {
     const patterns = MODERATION_PATTERNS[contentType];
-    const pattern = mockData.helpers.arrayElement(patterns);
-    title = `Test Discussion - ${contentType}`;
-    content = pattern.content;
+    if (patterns && patterns.length > 0) {
+      const pattern = mockData.helpers.arrayElement(patterns);
+      title = `Test Discussion - ${contentType}`;
+      content = pattern.content;
+    } else {
+      title = 'Test Discussion';
+      content = 'Test content';
+    }
   } else {
     title = mockData.helpers.arrayElement([
       `Best strategies for ${mockData.helpers.arrayElement(games)} ${mockData.helpers.arrayElement(challengeTypes)}`,
@@ -263,13 +273,20 @@ export function generateCommentData(
 ): CommentInsert {
   const { scenario = 'regularUser', contentType = 'safe' } = options;
   const userScenario = USER_TEST_SCENARIOS[scenario];
+  if (!userScenario) {
+    throw new Error(`Invalid user scenario: ${scenario}`);
+  }
 
   let content: string;
 
   if (contentType in MODERATION_PATTERNS) {
     const patterns = MODERATION_PATTERNS[contentType];
-    const pattern = mockData.helpers.arrayElement(patterns);
-    content = pattern.content;
+    if (patterns && patterns.length > 0) {
+      const pattern = mockData.helpers.arrayElement(patterns);
+      content = pattern.content;
+    } else {
+      content = 'Test comment content';
+    }
   } else {
     const commentTypes = [
       'Great point! I\'ve been using this strategy and it works well.',
@@ -277,7 +294,7 @@ export function generateCommentData(
       'Thanks for sharing! This helped me complete the challenge.',
       mockData.lorem.sentence({ min: 10, max: 20 }),
     ];
-    content = mockData.helpers.arrayElement(commentTypes);
+    content = mockData.helpers.arrayElement(commentTypes) || 'Default comment content';
   }
 
   return {
@@ -293,7 +310,7 @@ export async function testRealTimeUpdates(
   page2: Page,
   discussionId: string,
   updateType: 'comment' | 'upvote' | 'discussion_update',
-  data: any
+  data: { content?: string; title?: string } = {}
 ): Promise<void> {
   // Navigate both pages to the discussion
   await page1.goto(`/community/discussions/${discussionId}`);
@@ -304,16 +321,18 @@ export async function testRealTimeUpdates(
   ]);
 
   switch (updateType) {
-    case 'comment':
+    case 'comment': {
       // Add comment on page1
-      await page1.getByPlaceholder('What are your thoughts on this discussion?').fill(data.content);
+      const content = data.content || 'Real-time test comment';
+      await page1.getByPlaceholder('What are your thoughts on this discussion?').fill(content);
       await page1.getByRole('button', { name: /post comment/i }).click();
 
       // Verify comment appears on page2 in real-time
-      await expect(page2.getByText(data.content)).toBeVisible({ timeout: 5000 });
+      await expect(page2.getByText(content)).toBeVisible({ timeout: 5000 });
       break;
+    }
 
-    case 'upvote':
+    case 'upvote': {
       // Get initial count on both pages
       const upvoteButton1 = page1.getByRole('button', { name: /upvote/i }).first();
       const upvoteButton2 = page2.getByRole('button', { name: /upvote/i }).first();
@@ -327,17 +346,19 @@ export async function testRealTimeUpdates(
       // Verify count updates on page2
       await expect(upvoteButton2).toContainText(String(initialCount + 1), { timeout: 5000 });
       break;
+    }
 
-    case 'discussion_update':
+    case 'discussion_update': {
       // Edit discussion on page1
       await page1.getByRole('button', { name: /edit/i }).click();
-      await page1.getByLabel('Content').fill(data.content);
+      await page1.getByLabel('Content').fill(data.content || '');
       await page1.getByRole('button', { name: /save changes/i }).click();
 
       // Verify update appears on page2
-      await expect(page2.getByText(data.content)).toBeVisible({ timeout: 5000 });
+      await expect(page2.getByText(data.content || '')).toBeVisible({ timeout: 5000 });
       await expect(page2.getByText('(edited)')).toBeVisible();
       break;
+    }
   }
 }
 
@@ -349,6 +370,9 @@ export async function testRateLimit(
 ): Promise<{ successful: number; blocked: number; errors: string[] }> {
   const results: { success: boolean; error?: string; timestamp: number }[] = [];
   const user = USER_TEST_SCENARIOS[config.userType];
+  if (!user) {
+    throw new Error(`Invalid user type: ${config.userType}`);
+  }
   
   // Login as the specified user
   await loginAsUser(page, user);
@@ -380,7 +404,7 @@ export async function testRateLimit(
 
   const successful = results.filter(r => r.success).length;
   const blocked = results.filter(r => !r.success).length;
-  const errors = results.filter(r => r.error).map(r => r.error!);
+  const errors = results.filter(r => r.error).map(r => r.error).filter((e): e is NonNullable<typeof e> => e !== undefined);
 
   return { successful, blocked, errors };
 }
@@ -396,20 +420,44 @@ export async function testAccessibility(
   });
 
   // Run accessibility audit
+  interface AxeViolation {
+    id: string;
+    impact: string;
+    description: string;
+    help: string;
+    helpUrl: string;
+    nodes: Array<{ target: string[] }>;
+  }
+  
+  interface AxeResults {
+    violations: AxeViolation[];
+  }
+  
   const result = await page.evaluate((sel) => {
-    return new Promise((resolve) => {
-      (window as any).axe.run(sel ? document.querySelector(sel) : document, (err: any, results: any) => {
-        if (err) throw err;
-        resolve(results);
-      });
+    return new Promise<AxeResults>((resolve) => {
+      const win = window as Window & { axe?: { run: (context: Element | Document, options: unknown, callback: (err: Error | null, results: AxeResults) => void) => void } };
+      if (win.axe) {
+        const context = sel ? document.querySelector(sel) : document;
+        if (!context) {
+          resolve({ violations: [] });
+          return;
+        }
+        win.axe.run(context, {}, (err: Error | null, results: AxeResults) => {
+          if (err) throw err;
+          resolve(results);
+        });
+      } else {
+        resolve({ violations: [] });
+      }
     });
   }, selector);
 
-  const axeResults = result as any;
+  const axeResults = result;
   
-  const violations = axeResults.violations.map((violation: any) => ({
+  const violations: AccessibilityViolation[] = axeResults.violations.map((violation) => ({
     rule: violation.id,
-    severity: violation.impact,
+    severity: (violation.impact === 'serious' || violation.impact === 'critical' ? 'error' : 
+              violation.impact === 'moderate' ? 'warning' : 'info') as 'error' | 'warning' | 'info',
     element: violation.nodes[0]?.target[0] || 'unknown',
     description: violation.description,
     help: violation.help,
@@ -440,7 +488,7 @@ export async function measurePerformance(
 
   const metrics = await page.evaluate(() => {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const memory = (performance as any).memory;
+    const memory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
     
     return {
       loadTime: navigation.loadEventEnd - navigation.loadEventStart,
@@ -462,16 +510,23 @@ export async function testConcurrentOperations(
   operations: ConcurrentTestOperation[]
 ): Promise<ConcurrentTestResult> {
   const startTime = Date.now();
-  const results: any[] = [];
+  const results: Array<{
+    id: string;
+    result: 'success' | 'failure' | 'timeout';
+    data?: unknown;
+    error?: string;
+    duration: number;
+    expectedResult?: 'success' | 'failure' | 'race_condition';
+  }> = [];
 
-  const promises = operations.map(async (op, index) => {
+  const promises = operations.map(async (op, _index) => {
     if (op.delay) {
       await page.waitForTimeout(op.delay);
     }
 
     const opStartTime = Date.now();
     let result: 'success' | 'failure' | 'timeout' = 'success';
-    let data: any;
+    let data: unknown;
     let error: string | undefined;
 
     try {
@@ -508,11 +563,13 @@ export async function testConcurrentOperations(
     if (result.status === 'fulfilled') {
       results.push(result.value);
     } else {
+      const operation = operations[index];
       results.push({
-        id: operations[index].id,
+        id: operation?.id || `operation-${index}`,
         result: 'failure',
         error: result.reason,
         duration: 0,
+        expectedResult: operation?.expectedResult,
       });
     }
   });
@@ -683,7 +740,7 @@ export async function cleanupTestData(page: Page, testIds: string[]): Promise<vo
 export const TEST_SCENARIOS = {
   createBasicDiscussion: (page: Page) => createTypedDiscussion(page, generateDiscussionData()),
   createSpamDiscussion: (page: Page) => createTypedDiscussion(page, generateDiscussionData({ contentType: 'spam' })),
-  createCommentThread: async (page: Page, discussionId: string, depth: number = 3) => {
+  createCommentThread: async (page: Page, discussionId: string, depth = 3) => {
     const comments = [];
     let parentId: string | undefined;
     

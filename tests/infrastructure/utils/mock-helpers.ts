@@ -8,17 +8,23 @@
 
 import type { Page, Route } from '@playwright/test';
 import type {
-  ApiError,
   NetworkError,
   InfrastructureError,
-  RateLimitError,
 } from '../types/errors';
 import {
-  generateApiError,
   generateNetworkError,
   generateInfrastructureError,
   generateRateLimitError,
 } from './error-generators';
+
+// Extend Window type for mock-specific properties
+interface MockWindow extends Window {
+  __infrastructureError?: InfrastructureError;
+  __redis?: {
+    [key: string]: (...args: unknown[]) => Promise<unknown>;
+  };
+  WebSocket: typeof WebSocket;
+}
 
 /**
  * Options for mocking API responses with network simulation
@@ -69,7 +75,7 @@ export async function mockApiResponseTyped<T>(
   pattern: string | RegExp,
   options: MockApiOptions<T>
 ): Promise<void> {
-  await page.route(pattern, async (route) => {
+  await page.route(pattern, async (route: Route) => {
     // Apply network condition if specified
     const networkConfig = options.networkCondition 
       ? NETWORK_CONDITIONS[options.networkCondition]
@@ -113,8 +119,8 @@ export async function mockNetworkFailure(
   errorType: NetworkError['type'] = 'timeout',
   options?: Partial<NetworkError>
 ): Promise<void> {
-  await page.route(pattern, async (route) => {
-    const error = generateNetworkError(errorType, options);
+  await page.route(pattern, async (route: Route) => {
+    generateNetworkError(errorType, options); // Generate error for consistency but not used in mock
     
     switch (errorType) {
       case 'timeout':
@@ -152,7 +158,7 @@ export async function mockInfrastructureFailure(
   
   // Inject error into page context
   await page.evaluate((errorData) => {
-    (window as any).__infrastructureError = errorData;
+    (window as MockWindow).__infrastructureError = errorData;
   }, error);
   
   // Mock service-specific endpoints
@@ -180,8 +186,10 @@ async function mockRedisFailure(
 ): Promise<void> {
   await page.evaluate((errorData) => {
     // Override Redis client methods
-    if ((window as any).__redis) {
-      const redis = (window as any).__redis;
+    if ((window as MockWindow).__redis) {
+      const redis = (window as MockWindow).__redis;
+      if (!redis) return;
+      
       const operations = ['get', 'set', 'del', 'keys', 'ping'];
       
       operations.forEach(op => {
@@ -203,7 +211,7 @@ async function mockSupabaseFailure(
   error: InfrastructureError
 ): Promise<void> {
   // Mock Supabase API endpoints
-  await page.route('**/rest/v1/**', async (route) => {
+  await page.route('**/rest/v1/**', async (route: Route) => {
     await route.fulfill({
       status: 503,
       contentType: 'application/json',
@@ -214,7 +222,7 @@ async function mockSupabaseFailure(
     });
   });
   
-  await page.route('**/realtime/v1/**', async (route) => {
+  await page.route('**/realtime/v1/**', async (route: Route) => {
     await route.abort('failed');
   });
 }
@@ -224,9 +232,9 @@ async function mockSupabaseFailure(
  */
 async function mockSentryFailure(
   page: Page,
-  error: InfrastructureError
+  _error: InfrastructureError
 ): Promise<void> {
-  await page.route('**/api/*/store/**', async (route) => {
+  await page.route('**/api/*/store/**', async (route: Route) => {
     await route.fulfill({
       status: 503,
       contentType: 'application/json',
@@ -250,7 +258,7 @@ export async function mockRateLimit(
   const reset = resetTime || Date.now() + 60000;
   const error = generateRateLimitError(limit, remaining, { resetTime: reset });
   
-  await page.route(pattern, async (route) => {
+  await page.route(pattern, async (route: Route) => {
     await route.fulfill({
       status: 429,
       headers: {
@@ -282,11 +290,20 @@ export async function mockProgressiveDegradation(
 ): Promise<void> {
   let requestCount = 0;
   
-  await page.route(pattern, async (route) => {
+  await page.route(pattern, async (route: Route) => {
     requestCount++;
     
     // Find appropriate stage based on request count
     const stage = stages.find(s => requestCount <= s.requestCount) || stages[stages.length - 1];
+    
+    if (!stage) {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'No stage configured' }),
+      });
+      return;
+    }
     
     // Apply delay if specified
     if (stage.delay) {
@@ -395,7 +412,7 @@ export async function mockWebSocketFailure(
     const originalWebSocket = window.WebSocket;
     
     // Override WebSocket constructor
-    (window as any).WebSocket = class extends originalWebSocket {
+    (window as MockWindow).WebSocket = class extends originalWebSocket {
       constructor(url: string | URL, protocols?: string | string[]) {
         super(url, protocols);
         
@@ -417,7 +434,7 @@ export async function mockWebSocketFailure(
             }, 2000);
             break;
           
-          case 'message-loss':
+          case 'message-loss': {
             // Drop 30% of messages
             const originalSend = this.send.bind(this);
             this.send = (data: string | ArrayBufferLike | Blob | ArrayBufferView) => {
@@ -426,6 +443,7 @@ export async function mockWebSocketFailure(
               }
             };
             break;
+          }
         }
       }
     };

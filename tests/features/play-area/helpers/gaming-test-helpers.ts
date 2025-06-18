@@ -1,4 +1,5 @@
-import type { Page, Locator } from '@playwright/test';
+/// <reference types="../../../types/test-types.d.ts" />
+import type { Page, Locator, Route } from '@playwright/test';
 import type { 
   TestGameEvent, 
   TestPerformanceMetrics, 
@@ -31,7 +32,7 @@ export class GamingTestHelpers {
       
       ws.onMessage(message => {
         try {
-          const data = JSON.parse(message);
+          const data = typeof message === 'string' ? JSON.parse(message) : JSON.parse(message.toString());
           connection.handleMessage(data);
         } catch (error) {
           console.warn('Failed to parse WebSocket message:', error);
@@ -79,13 +80,13 @@ export class GamingTestHelpers {
       const eventData = await page.waitForFunction(
         (type) => {
           return new Promise((resolve) => {
-            const handler = (event: CustomEvent) => {
-              if (event.detail?.type === type) {
-                window.removeEventListener('websocket-message', handler as any);
-                resolve(event.detail);
+            const handler = (event: Event) => {
+              if ('detail' in event && (event as CustomEvent).detail?.type === type) {
+                window.removeEventListener('websocket-message', handler);
+                resolve((event as CustomEvent).detail);
               }
             };
-            window.addEventListener('websocket-message', handler as any);
+            window.addEventListener('websocket-message', handler);
           });
         },
         eventType,
@@ -124,7 +125,12 @@ export class GamingTestHelpers {
     const actualDuration = endTime - startTime;
     
     // Parse timer display (MM:SS.mmm format)
-    const [minutes, seconds, milliseconds] = timerText.split(/[:.]/).map(Number);
+    const parts = timerText.split(/[:.]/).map(Number);
+    if (parts.length !== 3) throw new Error(`Invalid timer format: ${timerText}`);
+    const [minutes, seconds, milliseconds] = parts;
+    if (minutes === undefined || seconds === undefined || milliseconds === undefined) {
+      throw new Error(`Failed to parse timer parts: ${timerText}`);
+    }
     const displayedTime = minutes * 60000 + seconds * 1000 + milliseconds;
     
     return {
@@ -216,10 +222,10 @@ export class GamingTestHelpers {
         largestContentfulPaint: 0, // Would need PerformanceObserver  
         firstInputDelay: 0, // Would need PerformanceObserver
         cumulativeLayoutShift: 0, // Would need PerformanceObserver
-        jsHeapSize: (performance as any).memory?.usedJSHeapSize || 0,
+        jsHeapSize: performance.memory?.usedJSHeapSize || 0,
         loadTime: timing.loadEventEnd - timing.navigationStart,
         networkRequests: performance.getEntriesByType('resource').length,
-        memoryUsage: (performance as any).memory?.usedJSHeapSize || 0
+        memoryUsage: performance.memory?.usedJSHeapSize || 0
       };
     });
     
@@ -239,7 +245,7 @@ export class GamingTestHelpers {
     
     while (Date.now() - startTime < duration) {
       const memory = await page.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        return performance.memory?.usedJSHeapSize || 0;
       });
       measurements.push(memory);
       await page.waitForTimeout(interval);
@@ -283,7 +289,7 @@ export class GamingTestHelpers {
    * Simulate network latency
    */
   static async simulateNetworkLatency(page: Page, latencyMs: number): Promise<void> {
-    await page.route('**/*', async route => {
+    await page.route('**/*', async (route: Route) => {
       await new Promise(resolve => setTimeout(resolve, latencyMs));
       await route.continue();
     });
@@ -301,7 +307,7 @@ export class GamingTestHelpers {
       return;
     }
     
-    await page.route('**/*', async route => {
+    await page.route('**/*', async (route: Route) => {
       // Simulate packet loss
       if (Math.random() < conditions.packetLoss) {
         await route.abort();
@@ -348,8 +354,8 @@ export class GamingTestHelpers {
     
     return {
       cellCount: 25, // Assuming 5x5 grid
-      markedCells: markedCells,
-      winner: gameStatus?.includes('won') ? markedBy : undefined,
+      markedCells: [cellIndex], // Array of marked cell indices
+      winner: gameStatus?.includes('won') ? (markedBy || undefined) : undefined,
       gameState: this.parseGameState(gameStatus || ''),
       playerCount
     };
@@ -470,7 +476,7 @@ export class GamingTestHelpers {
   static async waitForStore(
     page: Page, 
     storeName: string, 
-    condition: (state: any) => boolean,
+    condition: (state: unknown) => boolean,
     timeout: number = 5000
   ): Promise<boolean> {
     const startTime = Date.now();
@@ -518,19 +524,19 @@ class MockWebSocketConnection {
   private events: TestGameEvent[] = [];
   private eventHandlers: Map<string, (event: TestGameEvent) => void> = new Map();
   
-  constructor(private ws: any, private helper: WebSocketTestHelper) {
+  constructor(private ws: unknown, private helper: WebSocketTestHelper) {
     this.id = Math.random().toString(36).substr(2, 9);
   }
   
-  handleMessage(data: any): void {
-    if (data.type === 'subscribe' && data.sessionId) {
-      this.sessionId = data.sessionId;
+  handleMessage(data: unknown): void {
+    if (typeof data === 'object' && data !== null && 'type' in data && data.type === 'subscribe' && 'sessionId' in data) {
+      this.sessionId = (data as { sessionId: string }).sessionId;
     }
   }
   
   sendEvent(event: TestGameEvent): void {
     this.events.push(event);
-    this.ws.send(JSON.stringify(event));
+    (this.ws as { send: (data: string) => void }).send(JSON.stringify(event));
     
     // Trigger any waiting handlers
     const handler = this.eventHandlers.get(event.type);

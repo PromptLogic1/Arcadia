@@ -281,6 +281,7 @@ export const FormField = React.forwardRef<
                 : undefined
           }
           className={cn(inputStyles, inputClassName)}
+          data-testid={props['data-testid']}
         />
 
         {/* Help Text */}

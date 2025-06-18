@@ -78,6 +78,7 @@ export const LoginFormFields = React.forwardRef<
           required
           variant={variant}
           size={size}
+          data-testid="auth-email-input"
         />
 
         {/* Password Field */}
@@ -93,6 +94,7 @@ export const LoginFormFields = React.forwardRef<
           required
           variant={variant}
           size={size}
+          data-testid="auth-password-input"
         />
       </div>
     );

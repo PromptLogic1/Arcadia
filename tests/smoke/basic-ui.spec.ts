@@ -18,7 +18,7 @@ test.describe('Basic UI Smoke Tests', () => {
     
     // Check for key elements
     await expect(page.locator('header')).toBeVisible();
-    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('main[aria-label="Arcadia Gaming Platform"]')).toBeVisible();
     await expect(page.locator('footer')).toBeVisible();
     
     // Check for hero section
@@ -37,14 +37,14 @@ test.describe('Basic UI Smoke Tests', () => {
   test('navigation works correctly', async ({ page }) => {
     await page.goto('/');
     
-    // Check that navigation menu is visible
-    const nav = page.locator('nav');
+    // Check that primary navigation menu is visible (desktop)
+    const nav = page.locator('nav[aria-label="Primary Navigation"]');
     await expect(nav).toBeVisible();
     
-    // Test navigation links
+    // Test navigation links - update to match actual navigation
     const navLinks = [
       { text: 'About', href: '/about' },
-      { text: 'Play', href: '/play' },
+      { text: 'Play Area', href: '/play-area' },
       { text: 'Community', href: '/community' },
     ];
     
@@ -64,17 +64,43 @@ test.describe('Basic UI Smoke Tests', () => {
 
   test('theme toggle works', async ({ page }) => {
     await page.goto('/');
+    await waitForNetworkIdle(page);
     
-    // Find theme toggle button
-    const themeToggle = page.locator('[data-testid="theme-toggle"], button[aria-label*="theme"], button[aria-label*="Theme"]').first();
+    // Try to find theme toggle - check both desktop and mobile versions
+    const desktopToggle = page.locator('button[aria-label="Toggle theme"]:not([disabled])');
+    const mobileToggle = page.locator('button[aria-label*="theme"]:not([disabled])');
+    
+    // Wait for at least one theme toggle to be available
+    let themeToggle;
+    try {
+      await desktopToggle.waitFor({ timeout: 5000 });
+      themeToggle = desktopToggle;
+    } catch {
+      await mobileToggle.waitFor({ timeout: 5000 });
+      themeToggle = mobileToggle;
+    }
     
     // Get initial theme
     const htmlElement = page.locator('html');
     const initialTheme = await htmlElement.getAttribute('class') || '';
     const isDarkMode = initialTheme.includes('dark');
     
-    // Click theme toggle
-    await themeToggle.click();
+    // Handle different theme toggle variants
+    const ariaLabel = await themeToggle.getAttribute('aria-label') || '';
+    if (ariaLabel === 'Toggle theme') {
+      // Desktop dropdown version
+      await themeToggle.click();
+      
+      // Click the opposite theme option
+      if (isDarkMode) {
+        await page.locator('text=Light').click();
+      } else {
+        await page.locator('text=Dark').click();
+      }
+    } else {
+      // Mobile toggle version - just click to toggle
+      await themeToggle.click();
+    }
     
     // Wait for theme change
     await page.waitForTimeout(TIMEOUTS.animation);
@@ -94,7 +120,7 @@ test.describe('Basic UI Smoke Tests', () => {
     await waitForNetworkIdle(page);
     
     // Desktop navigation should be visible
-    const desktopNav = page.locator('nav').first();
+    const desktopNav = page.locator('nav[aria-label="Primary Navigation"]');
     await expect(desktopNav).toBeVisible();
     
     // Test mobile view
@@ -109,7 +135,7 @@ test.describe('Basic UI Smoke Tests', () => {
     await mobileMenuButton.click();
     
     // Mobile navigation should appear
-    const mobileNav = page.locator('nav[aria-label*="mobile"], nav[aria-label*="Mobile"], [data-testid="mobile-nav"]').first();
+    const mobileNav = page.locator('nav[aria-label="Mobile Navigation"]');
     await expect(mobileNav).toBeVisible();
   });
 
@@ -120,8 +146,8 @@ test.describe('Basic UI Smoke Tests', () => {
     // Should get 404 response
     expect(response?.status()).toBe(404);
     
-    // Should show 404 page content
-    await expect(page.locator('h1, h2')).toContainText(/404|not found/i);
+    // Should show 404 page content - be more specific about which heading
+    await expect(page.locator('h1').first()).toContainText(/404/i);
     
     // Should still have header/footer
     await expect(page.locator('header')).toBeVisible();
@@ -189,18 +215,36 @@ test.describe('Basic UI Smoke Tests', () => {
   test('forms have proper validation', async ({ page }) => {
     // Go to login page which should have a form
     await page.goto('/auth/login');
+    await waitForNetworkIdle(page);
     
     // Find form
     const form = page.locator('form').first();
     await expect(form).toBeVisible();
     
-    // Try to submit empty form
-    const submitButton = form.locator('button[type="submit"]');
-    await submitButton.click();
+    // Fill in invalid data to trigger validation
+    const emailField = form.locator('input[type="email"], input[name="email"]').first();
+    const passwordField = form.locator('input[type="password"], input[name="password"]').first();
     
-    // Should show validation errors
-    const errorMessages = page.locator('[role="alert"], .error-message, [aria-invalid="true"]');
-    await expect(errorMessages.first()).toBeVisible();
+    if (await emailField.isVisible()) {
+      await emailField.fill('invalid-email'); // Invalid email format
+    }
+    if (await passwordField.isVisible()) {
+      await passwordField.fill('123'); // Too short password
+    }
+    
+    // Try to submit form with invalid data
+    const submitButton = form.locator('button[type="submit"]:not([disabled])');
+    if (await submitButton.isVisible()) {
+      await submitButton.click();
+      
+      // Should show validation errors
+      const errorMessages = page.locator('[role="alert"], .error-message, [aria-invalid="true"], .text-red-500, .text-destructive');
+      await expect(errorMessages.first()).toBeVisible({ timeout: 5000 });
+    } else {
+      // If submit button is still disabled, check for real-time validation
+      const validationMessages = page.locator('[role="alert"], .error-message, .text-red-500, .text-destructive');
+      await expect(validationMessages.first()).toBeVisible({ timeout: 5000 });
+    }
   });
 
   test('images have alt text', async ({ page }) => {

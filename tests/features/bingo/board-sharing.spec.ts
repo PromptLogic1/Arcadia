@@ -1,11 +1,10 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import { 
   waitForNetworkIdle, 
-  waitForAnimations,
   mockApiResponse,
   fillForm
 } from '../../helpers/test-utils';
-import { BINGO_TEST_DATA } from '../../helpers/test-data';
+import type { TestWindow } from '../../types/test-types';
 
 test.describe('Bingo Board Sharing', () => {
   let testBoardId: string;
@@ -124,7 +123,7 @@ test.describe('Bingo Board Sharing', () => {
       
       // Verify clipboard was called
       const clipboardCalled = await authenticatedPage.evaluate(() => 
-        navigator.clipboard.writeText.mock?.calls?.length > 0
+        (window as TestWindow).__clipboardWriteCalled
       );
       expect(clipboardCalled).toBe(true);
       
@@ -145,15 +144,25 @@ test.describe('Bingo Board Sharing', () => {
       
       // Mock window.open
       await authenticatedPage.evaluate(() => {
-        window.open = jest.fn();
+        (window as TestWindow).__originalOpen = window.open;
+        (window as TestWindow).__openCalled = false;
+        window.open = (..._args: unknown[]) => {
+          (window as TestWindow).__openCalled = true;
+          return null;
+        };
       });
       
       await twitterButton.click();
       
       const windowOpenCalled = await authenticatedPage.evaluate(() => 
-        window.open.mock?.calls?.length > 0
+        (window as TestWindow).__openCalled
       );
       expect(windowOpenCalled).toBe(true);
+      
+      // Restore original window.open
+      await authenticatedPage.evaluate(() => {
+        window.open = (window as TestWindow).__originalOpen!;
+      });
     });
 
     test('should access shared board via direct link', async ({ authenticatedPage, context }) => {
@@ -460,6 +469,7 @@ test.describe('Bingo Board Sharing', () => {
     test('should show in featured boards when popular', async ({ authenticatedPage, context }) => {
       // Mock board popularity (simulate multiple plays/likes)
       await mockApiResponse(authenticatedPage, '**/api/bingo/boards/featured', {
+        status: 200,
         body: {
           featured: [{
             id: testBoardId,
@@ -503,8 +513,18 @@ test.describe('Bingo Board Sharing', () => {
       // Mock download functionality
       await authenticatedPage.evaluate(() => {
         // Mock URL.createObjectURL and download
-        URL.createObjectURL = jest.fn(() => 'mock-url');
-        HTMLAnchorElement.prototype.click = jest.fn();
+        (window as TestWindow).__originalCreateObjectURL = URL.createObjectURL;
+        (window as TestWindow).__downloadClicked = false;
+        
+        URL.createObjectURL = () => 'mock-url';
+        
+        const originalClick = HTMLAnchorElement.prototype.click;
+        HTMLAnchorElement.prototype.click = function() {
+          if (this.download) {
+            (window as TestWindow).__downloadClicked = true;
+          }
+          return originalClick.call(this);
+        };
       });
       
       await authenticatedPage.getByRole('button', { name: /board.*settings/i }).click();
@@ -516,9 +536,14 @@ test.describe('Bingo Board Sharing', () => {
       
       // Should trigger download
       const downloadTriggered = await authenticatedPage.evaluate(() => 
-        HTMLAnchorElement.prototype.click.mock?.calls?.length > 0
+        (window as TestWindow).__downloadClicked
       );
       expect(downloadTriggered).toBe(true);
+      
+      // Restore original functions
+      await authenticatedPage.evaluate(() => {
+        URL.createObjectURL = (window as TestWindow).__originalCreateObjectURL!;
+      });
     });
 
     test('should import board from file', async ({ authenticatedPage }) => {
@@ -550,7 +575,7 @@ test.describe('Bingo Board Sharing', () => {
   });
 
   test.describe('Social Features', () => {
-    test('should like and unlike boards', async ({ authenticatedPage, context }) => {
+    test('should like and unlike boards', async ({ context }) => {
       // View board as another user
       const viewerPage = await context.newPage();
       await viewerPage.goto(`/play-area/bingo/board/${testBoardId}`);

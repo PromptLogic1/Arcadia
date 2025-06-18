@@ -1,19 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { test as authTest } from '../fixtures/auth.fixture';
 import { 
-  TEST_USERS, 
+  TEST_FORM_DATA, 
   TEST_VIEWPORTS, 
   TIMEOUTS,
-  SELECTORS 
+  AUTH_SELECTORS 
 } from '../helpers/test-data';
 import { 
   checkAccessibility, 
   mockApiResponse, 
-  waitForNetworkIdle,
-  getPerformanceMetrics,
-  getStoreState
-} from '../helpers/test-utils.enhanced';
-import type { Tables } from '@/types/database.types';
+  waitForNetworkIdle
+} from '../helpers/test-utils';
 
 test.describe('Signup Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -27,9 +23,9 @@ test.describe('Signup Flow', () => {
       const testEmail = `test_${timestamp}@example.com`;
       
       // Use proper selectors with fallbacks
-      const emailInput = page.locator(SELECTORS.auth.emailInput).or(page.getByLabel('Email'));
-      const passwordInput = page.locator(SELECTORS.auth.passwordInput).or(page.getByLabel('Password'));
-      const submitButton = page.locator(SELECTORS.auth.submitButton).or(page.getByRole('button', { name: /sign up|create.*account/i }));
+      const emailInput = page.locator(AUTH_SELECTORS.inputs.email).or(page.getByLabel('Email'));
+      const passwordInput = page.locator(AUTH_SELECTORS.inputs.password).or(page.getByLabel('Password'));
+      const submitButton = page.locator(AUTH_SELECTORS.buttons.submit).or(page.getByRole('button', { name: /sign up|create.*account/i }));
       
       // Fill registration form
       await emailInput.fill(testEmail);
@@ -50,12 +46,12 @@ test.describe('Signup Flow', () => {
         await lastNameField.fill('User');
       }
       
-      await passwordInput.fill(TEST_USERS.valid.password);
+      await passwordInput.fill(TEST_FORM_DATA.login.valid.password);
       
       // Fill confirm password if present
       const confirmPasswordField = page.getByLabel(/confirm.*password/i);
       if (await confirmPasswordField.isVisible()) {
-        await confirmPasswordField.fill(TEST_USERS.valid.password);
+        await confirmPasswordField.fill(TEST_FORM_DATA.login.valid.password);
       }
       
       // Accept terms if checkbox exists
@@ -208,11 +204,11 @@ test.describe('Signup Flow', () => {
         // Fill form but don't check terms
         const timestamp = Date.now();
         await page.getByLabel('Email').fill(`test_${timestamp}@example.com`);
-        await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+        await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
         
         const confirmPasswordField = page.getByLabel(/confirm.*password/i);
         if (await confirmPasswordField.isVisible()) {
-          await confirmPasswordField.fill(TEST_USERS.valid.password);
+          await confirmPasswordField.fill(TEST_FORM_DATA.login.valid.password);
         }
         
         // Try to submit without accepting terms
@@ -236,11 +232,11 @@ test.describe('Signup Flow', () => {
         await usernameField.fill('existinguser');
       }
       
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       
       const confirmPasswordField = page.getByLabel(/confirm.*password/i);
       if (await confirmPasswordField.isVisible()) {
-        await confirmPasswordField.fill(TEST_USERS.valid.password);
+        await confirmPasswordField.fill(TEST_FORM_DATA.login.valid.password);
       }
       
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
@@ -276,11 +272,11 @@ test.describe('Signup Flow', () => {
         await usernameField.fill(xssPayload);
       }
       
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign up|create.*account/i }).click();
       
       // Verify script is not executed
-      const xssExecuted = await page.evaluate(() => (window as any).xssTest);
+      const xssExecuted = await page.evaluate(() => (window as Window).xssTest);
       expect(xssExecuted).toBeFalsy();
       
       // Error messages should be properly escaped
@@ -510,11 +506,11 @@ test.describe('Signup Flow', () => {
       const startTime = Date.now();
       
       await page.getByLabel('Email').fill(`test_${timestamp}@example.com`);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       
       const confirmPasswordField = page.getByLabel(/confirm.*password/i);
       if (await confirmPasswordField.isVisible()) {
-        await confirmPasswordField.fill(TEST_USERS.valid.password);
+        await confirmPasswordField.fill(TEST_FORM_DATA.login.valid.password);
       }
       
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
@@ -541,11 +537,11 @@ test.describe('Signup Flow', () => {
       
       const timestamp = Date.now();
       await page.getByLabel('Email').fill(`test_${timestamp}@example.com`);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       
       const confirmPasswordField = page.getByLabel(/confirm.*password/i);
       if (await confirmPasswordField.isVisible()) {
-        await confirmPasswordField.fill(TEST_USERS.valid.password);
+        await confirmPasswordField.fill(TEST_FORM_DATA.login.valid.password);
       }
       
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });
@@ -561,7 +557,7 @@ test.describe('Signup Flow', () => {
       await expect(networkError).toBeVisible();
     });
 
-    test('should handle server errors (500)', async ({ page, context }) => {
+    test('should handle server errors (500)', async ({ page }) => {
       await mockApiResponse(page, '**/auth/signup', {
         status: 500,
         body: { error: 'Internal Server Error' }
@@ -569,11 +565,11 @@ test.describe('Signup Flow', () => {
       
       const timestamp = Date.now();
       await page.getByLabel('Email').fill(`test_${timestamp}@example.com`);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       
       const confirmPasswordField = page.getByLabel(/confirm.*password/i);
       if (await confirmPasswordField.isVisible()) {
-        await confirmPasswordField.fill(TEST_USERS.valid.password);
+        await confirmPasswordField.fill(TEST_FORM_DATA.login.valid.password);
       }
       
       const termsCheckbox = page.getByRole('checkbox', { name: /terms/i });

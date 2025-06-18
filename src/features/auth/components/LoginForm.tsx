@@ -219,6 +219,7 @@ export const LoginForm = React.forwardRef<HTMLDivElement, LoginFormProps>(
             className={cn(LOGIN_STYLES.FORM.SUBMIT_BUTTON_BASE, {
               [LOGIN_STYLES.FORM.SUBMIT_BUTTON_DISABLED]: !canSubmit,
             })}
+            data-testid="auth-submit-button"
           >
             {submission.loading
               ? LOGIN_MESSAGES.FORM.PROCESSING

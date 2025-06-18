@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import type { Page } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
   mockApiResponse, 
@@ -6,7 +7,6 @@ import {
   checkAccessibility,
   waitForAnimations 
 } from '../../helpers/test-utils';
-import { COMMUNITY_TEST_DATA, ERROR_MESSAGES, TIMEOUTS } from '../../helpers/test-data';
 
 /**
  * User Interactions Tests
@@ -123,6 +123,7 @@ test.describe('User Interactions', () => {
     test('shows mutual following indicators', async ({ authenticatedPage: page }) => {
       // Mock mutual following data
       await mockApiResponse(page, '**/api/users/pro_gamer_123**', {
+        status: 200,
         body: {
           user: {
             id: 'pro_gamer_123',
@@ -239,6 +240,7 @@ test.describe('User Interactions', () => {
 
       // Mock slow response
       await mockApiResponse(page, '**/api/discussions/*/upvote**', {
+        status: 200,
         delay: 2000,
         body: { success: true },
       });
@@ -626,7 +628,7 @@ test.describe('User Interactions', () => {
       const discussionCard = page.locator('[data-testid="discussion-card"]').first();
       
       // Check accessibility of interaction buttons
-      const accessibilityResult = await checkAccessibility(page, '[data-testid="discussion-interactions"]');
+      const accessibilityResult = await checkAccessibility(page, { includeTags: ['[data-testid="discussion-interactions"]'] });
       expect(accessibilityResult.passed).toBe(true);
 
       // Test keyboard navigation
@@ -655,7 +657,7 @@ test.describe('User Interactions', () => {
 });
 
 // Helper function to create a test discussion
-async function createTestDiscussion(page: any) {
+async function createTestDiscussion(page: Page) {
   await page.goto('/community');
   await page.getByRole('button', { name: /new discussion/i }).click();
   

@@ -1,16 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Route } from '@playwright/test';
 import {
   fillAuthForm,
   mockAuthResponse,
-  waitForAuthRedirect,
   getAuthErrorMessage,
-  getAuthStoreState,
   clearAuthStorage,
   measureAuthPerformance,
   waitForNetworkIdle
 } from './utils/auth-test-helpers';
 import { TOTPSimulator, TOTPTestFactory, MFAMockProvider } from './utils/totp-simulator';
-import { TEST_FORM_DATA, AUTH_ROUTES, AUTH_SELECTORS } from '../helpers/test-data.enhanced';
+import { TEST_FORM_DATA, AUTH_ROUTES, AUTH_SELECTORS } from '../helpers/test-data';
 import type { LoginResponse, AuthErrorResponse } from './types/test-types';
 
 /**
@@ -31,12 +29,12 @@ test.describe('MFA Authentication', () => {
   });
 
   test.describe('TOTP Setup and Verification', () => {
-    let totpSimulator: TOTPSimulator;
-    let mfaProvider: MFAMockProvider;
+    let _totpSimulator: TOTPSimulator;
+    let _mfaProvider: MFAMockProvider;
 
     test.beforeEach(() => {
-      totpSimulator = TOTPTestFactory.createDefault();
-      mfaProvider = new MFAMockProvider();
+      _totpSimulator = TOTPTestFactory.createDefault();
+      _mfaProvider = new MFAMockProvider();
     });
 
     test('should allow user to set up TOTP authentication', async ({ page }) => {
@@ -83,7 +81,7 @@ test.describe('MFA Authentication', () => {
       const totpSecret = TOTPSimulator.generateTestSecret();
       const setupSimulator = new TOTPSimulator({ secret: totpSecret });
       
-      await page.route('/api/auth/mfa/setup', async (route) => {
+      await page.route('/api/auth/mfa/setup', async (route: Route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -126,7 +124,7 @@ test.describe('MFA Authentication', () => {
       await totpInput.fill(validCode);
       
       // Mock verification with real TOTP validation
-      await page.route('/api/auth/mfa/verify-setup', async (route) => {
+      await page.route('/api/auth/mfa/verify-setup', async (route: Route) => {
         const body = await route.request().postDataJSON();
         const isValidCode = setupSimulator.verifyCode(body.code);
         
@@ -166,7 +164,7 @@ test.describe('MFA Authentication', () => {
       await page.goto('/auth/mfa/verify');
       
       // Mock MFA verification endpoint
-      await page.route('/api/auth/mfa/verify', async (route) => {
+      await page.route('/api/auth/mfa/verify', async (route: Route) => {
         const body = await route.request().postDataJSON();
         const isValid = testSimulator.verifyCode(body.code, 1); // 1 step tolerance
         
@@ -195,7 +193,11 @@ test.describe('MFA Authentication', () => {
       // Test expired code (should fail)
       await page.goto('/auth/mfa/verify');
       const expiredCodes = testSimulator.generateExpiredCodes(1);
-      await page.locator('[data-testid="mfa-code-input"]').fill(expiredCodes[0]);
+      const expiredCode = expiredCodes[0];
+      if (!expiredCode) {
+        throw new Error('Failed to generate expired code');
+      }
+      await page.locator('[data-testid="mfa-code-input"]').fill(expiredCode);
       await page.locator('[data-testid="verify-mfa-button"]').click();
       
       await waitForNetworkIdle(page);
@@ -212,7 +214,7 @@ test.describe('MFA Authentication', () => {
       // Mock endpoint that tracks used codes
       const usedCodes = new Set<string>();
       
-      await page.route('/api/auth/mfa/verify', async (route) => {
+      await page.route('/api/auth/mfa/verify', async (route: Route) => {
         const body = await route.request().postDataJSON();
         const code = body.code;
         
@@ -274,7 +276,7 @@ test.describe('MFA Authentication', () => {
 
     test('should require TOTP code for login when MFA is enabled', async ({ page }) => {
       // Mock login response that requires MFA
-      await page.route(AUTH_ROUTES.api.login, async (route) => {
+      await page.route(AUTH_ROUTES.api.login, async (route: Route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -305,7 +307,7 @@ test.describe('MFA Authentication', () => {
       await expect(totpInput).toBeVisible();
       
       // Mock successful MFA verification
-      await page.route('/api/auth/mfa/verify', async (route) => {
+      await page.route('/api/auth/mfa/verify', async (route: Route) => {
         const body = await route.request().postDataJSON();
         if (body.code === '123456') {
           await route.fulfill({
@@ -411,7 +413,7 @@ test.describe('MFA Authentication', () => {
       await expect(backupCodeInput).toBeVisible();
       
       // Mock successful backup code verification
-      await page.route('/api/auth/mfa/verify-backup', async (route) => {
+      await page.route('/api/auth/mfa/verify-backup', async (route: Route) => {
         const body = await route.request().postDataJSON();
         const validBackupCodes = ['12345678', '87654321', '24681357'];
         
@@ -518,7 +520,7 @@ test.describe('MFA Authentication', () => {
       await expect(page.getByText('Contact support')).toBeVisible();
       
       // Mock support contact form submission
-      await page.route('/api/auth/mfa/recovery-request', async (route) => {
+      await page.route('/api/auth/mfa/recovery-request', async (route: Route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -542,7 +544,7 @@ test.describe('MFA Authentication', () => {
   test.describe('MFA Bypass for Admins', () => {
     test('should allow admin bypass of MFA in emergency', async ({ page }) => {
       // Mock admin login requiring MFA
-      await page.route(AUTH_ROUTES.api.login, async (route) => {
+      await page.route(AUTH_ROUTES.api.login, async (route: Route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -574,7 +576,7 @@ test.describe('MFA Authentication', () => {
       await expect(bypassButton).toContainText('Emergency Admin Bypass');
       
       // Mock bypass confirmation
-      await page.route('/api/auth/mfa/admin-bypass', async (route) => {
+      await page.route('/api/auth/mfa/admin-bypass', async (route: Route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',

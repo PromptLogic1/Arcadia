@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { test as authTest } from '../fixtures/auth.fixture.enhanced';
+import { test, expect, Route } from '@playwright/test';
+import { test as authTest } from '../fixtures/auth.fixture';
 import {
   fillAuthForm,
   waitForNetworkIdle,
@@ -91,7 +91,7 @@ test.describe('Email Integration Tests', () => {
     });
 
     test('should handle expired verification links gracefully', async ({ page }) => {
-      const testEmail = await emailService.createTestEmailAddress('expired_test');
+      const _testEmail = await emailService.createTestEmailAddress('expired_test');
       
       // Mock expired verification link
       const expiredToken = 'expired_token_12345';
@@ -136,7 +136,7 @@ test.describe('Email Integration Tests', () => {
       await page.getByRole('button', { name: /verify/i }).click();
       
       // Mock successful verification
-      await page.route('/api/auth/verify-email', async (route) => {
+      await page.route('/api/auth/verify-email', async (route: Route) => {
         const body = await route.request().postDataJSON();
         const isFirstUse = body.code === '123456' && !route.request().url().includes('reused');
         
@@ -257,18 +257,32 @@ test.describe('Email Integration Tests', () => {
       // If multiple emails, only the latest should be valid
       if (resetEmails.length > 1) {
         const latestEmail = resetEmails[0]; // Emails sorted by newest first
+        if (!latestEmail) {
+          throw new Error('No latest email found');
+        }
         const latestLink = emailService.extractResetLink(latestEmail);
         
+        if (!latestLink) {
+          throw new Error('Failed to extract reset link from latest email');
+        }
+        
         // Test latest link works
-        await page.goto(latestLink!);
+        await page.goto(latestLink);
         await expect(page.getByLabel(/new.*password/i)).toBeVisible();
         
         // Test older links are invalid (if system invalidates them)
         if (resetEmails.length > 1) {
           const olderEmail = resetEmails[1];
+          if (!olderEmail) {
+            throw new Error('No older email found');
+          }
           const olderLink = emailService.extractResetLink(olderEmail);
           
-          await page.goto(olderLink!);
+          if (!olderLink) {
+            throw new Error('Failed to extract reset link from older email');
+          }
+          
+          await page.goto(olderLink);
           
           // May show expired error or redirect to forgot password
           const isOnReset = page.url().includes('reset-password');
@@ -354,7 +368,7 @@ test.describe('Email Integration Tests', () => {
       
       // Email should be delivered within 10 seconds
       expect(emailDeliveryTime).toBeLessThan(10000);
-      console.log(`Email delivery time: ${emailDeliveryTime}ms`);
+      // Performance: Email delivery time = emailDeliveryTimems
     });
 
     test('should handle email service outages gracefully', async ({ page }) => {
@@ -396,7 +410,7 @@ test.describe('Email Integration Tests', () => {
       }
     });
 
-    test('should handle concurrent email requests', async ({ page, browser }) => {
+    test('should handle concurrent email requests', async ({ browser }) => {
       const emails = await Promise.all([
         emailService.createTestEmailAddress('concurrent_1'),
         emailService.createTestEmailAddress('concurrent_2'),
@@ -414,6 +428,9 @@ test.describe('Email Integration Tests', () => {
         // Send concurrent password reset requests
         const resetPromises = emails.map(async (email, index) => {
           const context = contexts[index];
+          if (!context) {
+            throw new Error(`Context ${index} is undefined`);
+          }
           const contextPage = await context.newPage();
           
           await contextPage.goto('/auth/forgot-password');

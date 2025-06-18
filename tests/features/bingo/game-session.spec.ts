@@ -1,11 +1,9 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import { 
-  waitForNetworkIdle, 
-  waitForAnimations,
-  mockApiResponse,
+  waitForNetworkIdle,
   getPerformanceMetrics
 } from '../../helpers/test-utils';
-import { BINGO_TEST_DATA, TIMEOUTS } from '../../helpers/test-data';
+import { TIMEOUTS } from '../../helpers/test-data';
 
 test.describe('Bingo Game Session', () => {
   let testBoardId: string;
@@ -42,13 +40,16 @@ test.describe('Bingo Game Session', () => {
     ];
     
     for (let i = 0; i < cardTexts.length; i++) {
+      const cardText = cardTexts[i];
+      if (!cardText) continue;
+      
       await authenticatedPage.getByRole('button', { name: /add.*card/i }).click();
-      await authenticatedPage.getByLabel(/card text/i).fill(cardTexts[i]);
+      await authenticatedPage.getByLabel(/card text/i).fill(cardText);
       await authenticatedPage.getByLabel(/category/i).selectOption('action');
       await authenticatedPage.getByRole('button', { name: /save.*card/i }).click();
       
       // Place card in grid
-      const card = authenticatedPage.getByTestId('library-card').filter({ hasText: cardTexts[i] }).first();
+      const card = authenticatedPage.getByTestId('library-card').filter({ hasText: cardText }).first();
       const row = Math.floor(i / 3);
       const col = i % 3;
       const cell = authenticatedPage.getByTestId(`grid-cell-${row}-${col}`);

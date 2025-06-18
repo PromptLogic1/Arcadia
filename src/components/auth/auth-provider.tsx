@@ -50,8 +50,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { initializeApp, setLoading: setStoreLoading } = useAuthActions();
 
   // Use TanStack Query for session data
-  const isLandingPage =
-    typeof window !== 'undefined' && window.location.pathname === '/';
+  const isPublicPage =
+    typeof window !== 'undefined' && 
+    ['/', '/about', '/community'].includes(window.location.pathname);
   const { data: session, isLoading } = useAuthSessionQuery();
 
   // Use refs to avoid stale closures
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!isLoading && !initializationCompleteRef.current) {
       const initialize = async () => {
         try {
-          if (!isLandingPage) {
+          if (!isPublicPage) {
             setStoreLoading(true);
             await initializeAppRef.current();
           }
@@ -102,7 +103,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       initialize();
     }
-  }, [isLoading, session, isLandingPage, setStoreLoading]);
+  }, [isLoading, session, isPublicPage, setStoreLoading]);
 
   // Set up auth state change listener
   useEffect(() => {

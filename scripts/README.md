@@ -192,6 +192,18 @@ Updates image components to use optimized patterns:
 - **Usage**: `node scripts/optimize-images.js [directory]`
 - **Note**: OptimizedImage component provides lazy loading and blur placeholders
 
+## Maintenance Scripts (Use As Needed)
+
+### analyze-console-logs.ts
+- **Description**: Analyze console.log usage in test files and categorize them
+- **Usage**: `tsx scripts/analyze-console-logs.ts`
+- **Purpose**: Identify which console.logs are test scenarios vs debug logs
+
+### replace-safe-console-logs.ts
+- **Description**: Replace debug console.logs with comments while keeping test scenario logs
+- **Usage**: `tsx scripts/replace-safe-console-logs.ts`
+- **Purpose**: Clean up unnecessary console.logs without breaking test scenarios
+
 ## Archived Scripts
 
 Completed migration scripts have been moved to `scripts/archive/`:
@@ -199,6 +211,8 @@ Completed migration scripts have been moved to `scripts/archive/`:
 - `replace-react-icons.js` - Migration from react-icons to lucide-react (completed)
 - `update-button-variants.js` - Update old button variants to new system (completed)
 - `update-card-variants.js` - Update card component variants (completed)
+- `fix-remaining-any-types.ts` - Automated any type fixes (completed)
+- `fix-test-any-types.ts` - Test-specific any type fixes (completed)
 
 ## 📊 Generated Reports
 

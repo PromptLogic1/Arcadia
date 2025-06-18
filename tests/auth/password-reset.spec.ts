@@ -1,18 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { test as authTest } from '../fixtures/auth.fixture';
 import { 
-  TEST_USERS, 
+  TEST_FORM_DATA, 
   TEST_VIEWPORTS, 
-  TIMEOUTS,
-  SELECTORS 
+  TIMEOUTS
 } from '../helpers/test-data';
 import { 
   checkAccessibility, 
   mockApiResponse, 
-  waitForNetworkIdle,
-  getStoreState
-} from '../helpers/test-utils.enhanced';
-import type { Tables } from '@/types/database.types';
+  waitForNetworkIdle
+} from '../helpers/test-utils';
 
 test.describe('Password Reset Flow', () => {
   test.describe('Forgot Password Request', () => {
@@ -23,7 +19,7 @@ test.describe('Password Reset Flow', () => {
 
     test('should allow user to request password reset', async ({ page }) => {
       // Fill email field
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
       
       // Submit request
       await page.getByRole('button', { name: /reset.*password|send.*reset/i }).click();
@@ -88,7 +84,7 @@ test.describe('Password Reset Flow', () => {
     });
 
     test('should handle rate limiting on password reset requests', async ({ page }) => {
-      const email = TEST_USERS.valid.email;
+      const email = TEST_FORM_DATA.login.valid.email;
       
       // Submit multiple requests quickly
       for (let i = 0; i < 5; i++) {
@@ -224,7 +220,7 @@ test.describe('Password Reset Flow', () => {
       await page.getByRole('button', { name: /reset.*password|send.*reset/i }).click();
       
       // Verify script is not executed
-      const xssExecuted = await page.evaluate(() => (window as any).xssTest);
+      const xssExecuted = await page.evaluate(() => (window as Window).xssTest);
       expect(xssExecuted).toBeFalsy();
     });
 
@@ -330,7 +326,7 @@ test.describe('Password Reset Flow', () => {
       await page.keyboard.press('Tab');
       await expect(page.getByLabel('Email')).toBeFocused();
       
-      await page.keyboard.type(TEST_USERS.valid.email);
+      await page.keyboard.type(TEST_FORM_DATA.login.valid.email);
       
       await page.keyboard.press('Tab');
       await expect(page.getByRole('button', { name: /reset.*password|send.*reset/i })).toBeFocused();
@@ -433,7 +429,7 @@ test.describe('Password Reset Flow', () => {
       // Mock network failure
       await context.route('**/auth/forgot-password', route => route.abort());
       
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
       await page.getByRole('button', { name: /reset.*password|send.*reset/i }).click();
       
       // Should show network error message
@@ -442,7 +438,7 @@ test.describe('Password Reset Flow', () => {
       await expect(networkError).toBeVisible();
     });
 
-    test('should handle server errors in password reset', async ({ page, context }) => {
+    test('should handle server errors in password reset', async ({ page }) => {
       const mockToken = 'mock-reset-token-123';
       await page.goto(`/auth/reset-password?token=${mockToken}`);
       
@@ -485,7 +481,7 @@ test.describe('Password Reset Flow', () => {
       
       const startTime = Date.now();
       
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
       await page.getByRole('button', { name: /reset.*password|send.*reset/i }).click();
       
       // Wait for success message
@@ -502,7 +498,7 @@ test.describe('Password Reset Flow', () => {
     test('should display appropriate instructions after reset request', async ({ page }) => {
       await page.goto('/auth/forgot-password');
       
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
       await page.getByRole('button', { name: /reset.*password|send.*reset/i }).click();
       
       // Should show detailed instructions
@@ -519,7 +515,7 @@ test.describe('Password Reset Flow', () => {
     test('should handle resend reset email functionality', async ({ page }) => {
       await page.goto('/auth/forgot-password');
       
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
       await page.getByRole('button', { name: /reset.*password|send.*reset/i }).click();
       
       // Wait for success message

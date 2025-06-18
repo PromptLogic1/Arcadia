@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import type { Route } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
   mockApiResponse
@@ -460,7 +461,7 @@ test.describe('Game Filtering and Discovery', () => {
 
     test('should show loading states during filtering', async ({ authenticatedPage }) => {
       // Mock slow response
-      await authenticatedPage.route('**/api/games**', async (route) => {
+      await authenticatedPage.route('**/api/games**', async (route: Route) => {
         await authenticatedPage.waitForTimeout(2000); // 2 second delay
         await route.fulfill({
           status: 200,

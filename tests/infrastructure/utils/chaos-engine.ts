@@ -6,10 +6,26 @@
  * under adverse conditions.
  */
 
-import type { Page, BrowserContext } from '@playwright/test';
-import type { BaseError } from '../types/errors';
+import type { Page, BrowserContext, Route } from '@playwright/test';
+import type { BaseError, InfrastructureError } from '../types/errors';
 import { generateRandomError } from './error-generators';
 import { mockNetworkFailure, mockInfrastructureFailure } from './mock-helpers';
+import type { TestWindow } from '../../types/test-types';
+
+// Extend Page type for chaos-specific properties
+interface ChaosPage extends Page {
+  __chaosInterval?: NodeJS.Timeout;
+}
+
+// Extend Window type for chaos-specific properties
+interface ChaosWindow extends Window {
+  __cpuWorkers?: Worker[];
+  __memoryArrays?: ArrayBuffer[];
+  __OriginalDate?: typeof Date;
+  __originalSetItem?: typeof localStorage.setItem;
+  gc?: () => void;
+  Date: typeof Date;
+}
 
 /**
  * Chaos scenario configuration
@@ -86,7 +102,7 @@ export class ChaosEngine {
     }, 5000); // Check every 5 seconds
     
     // Store interval ID for cleanup
-    (page as any).__chaosInterval = interval;
+    (page as ChaosPage).__chaosInterval = interval;
   }
   
   /**
@@ -97,7 +113,7 @@ export class ChaosEngine {
     this.logEvent('Chaos engine stopped');
     
     // Clear interval
-    const interval = (page as any).__chaosInterval;
+    const interval = (page as ChaosPage).__chaosInterval;
     if (interval) {
       clearInterval(interval);
     }
@@ -228,7 +244,7 @@ export class ChaosEngine {
     scenario: ChaosScenario
   ): Promise<void> {
     // Add artificial latency to all requests
-    await page.route('**/*', async (route) => {
+    await page.route('**/*', async (route: Route) => {
       const delay = scenario.severity === 'critical' ? 5000 :
                    scenario.severity === 'high' ? 3000 :
                    scenario.severity === 'medium' ? 1500 : 500;
@@ -251,9 +267,14 @@ export class ChaosEngine {
     const services = scenario.affectedServices || ['redis'];
     
     for (const service of services) {
-      await mockInfrastructureFailure(page, service as any, 'all', {
-        fatal: scenario.severity === 'critical',
-      });
+      await mockInfrastructureFailure(
+        page, 
+        service as InfrastructureError['service'], 
+        'all', 
+        {
+          fatal: scenario.severity === 'critical',
+        }
+      );
     }
   }
   
@@ -295,7 +316,7 @@ export class ChaosEngine {
       }
       
       // Store workers for cleanup
-      (window as any).__cpuWorkers = workers;
+      (window as ChaosWindow).__cpuWorkers = workers;
     }, scenario.severity);
   }
   
@@ -326,7 +347,7 @@ export class ChaosEngine {
       }
       
       // Store for cleanup
-      (window as any).__memoryArrays = arrays;
+      (window as ChaosWindow).__memoryArrays = arrays;
     }, scenario.severity);
   }
   
@@ -345,23 +366,32 @@ export class ChaosEngine {
       
       // Override Date constructor
       const OriginalDate = Date;
-      (window as any).Date = class extends OriginalDate {
-        constructor(...args: any[]) {
-          if (args.length === 0) {
-            super();
-            this.setTime(this.getTime() + skewMs);
-          } else {
-            super(...(args as ConstructorParameters<typeof Date>));
-          }
+      
+      // Create a new Date constructor that adds skew
+      function MockDate(this: Date): Date;
+      function MockDate(value: number | string): Date;
+      function MockDate(year: number, monthIndex: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date;
+      function MockDate(this: unknown, ...args: unknown[]): Date {
+        let instance: Date;
+        if (args.length === 0) {
+          instance = new OriginalDate();
+          instance.setTime(instance.getTime() + skewMs);
+        } else {
+          instance = new (OriginalDate as unknown as new (...args: unknown[]) => Date)(...args);
         }
-        
-        static now() {
-          return OriginalDate.now() + skewMs;
-        }
-      };
+        return instance;
+      }
+      
+      // Copy static methods
+      MockDate.now = () => OriginalDate.now() + skewMs;
+      MockDate.parse = OriginalDate.parse;
+      MockDate.UTC = OriginalDate.UTC;
+      Object.setPrototypeOf(MockDate, OriginalDate);
+      
+      (window as TestWindow).Date = MockDate as unknown as DateConstructor;
       
       // Store original for cleanup
-      (window as any).__OriginalDate = OriginalDate;
+      (window as ChaosWindow).__OriginalDate = OriginalDate;
     }, scenario.severity);
   }
   
@@ -392,7 +422,7 @@ export class ChaosEngine {
       };
       
       // Store original for cleanup
-      (window as any).__originalSetItem = originalSetItem;
+      (window as ChaosWindow).__originalSetItem = originalSetItem;
     }, scenario.severity);
   }
   
@@ -413,7 +443,7 @@ export class ChaosEngine {
     
     // After 4 seconds, cause API failures
     setTimeout(async () => {
-      await page.route('**/api/**', async (route) => {
+      await page.route('**/api/**', async (route: Route) => {
         await route.fulfill({
           status: 503,
           body: JSON.stringify({ error: 'Service cascade failure' }),
@@ -457,41 +487,43 @@ export class ChaosEngine {
           
         case 'cpu-spike':
           await page.evaluate(() => {
-            const workers = (window as any).__cpuWorkers;
+            const workers = (window as ChaosWindow).__cpuWorkers;
             if (workers) {
               workers.forEach((w: Worker) => {
                 w.postMessage('stop');
                 w.terminate();
               });
-              delete (window as any).__cpuWorkers;
+              delete (window as ChaosWindow).__cpuWorkers;
             }
           });
           break;
           
         case 'memory-pressure':
           await page.evaluate(() => {
-            delete (window as any).__memoryArrays;
+            delete (window as ChaosWindow).__memoryArrays;
             // Suggest garbage collection
-            if ((window as any).gc) {
-              (window as any).gc();
+            const gc = (window as ChaosWindow).gc;
+            if (gc && typeof gc === 'function') {
+              gc();
             }
           });
           break;
           
         case 'clock-skew':
           await page.evaluate(() => {
-            if ((window as any).__OriginalDate) {
-              (window as any).Date = (window as any).__OriginalDate;
-              delete (window as any).__OriginalDate;
+            if ((window as ChaosWindow).__OriginalDate) {
+              (window as ChaosWindow).Date = (window as ChaosWindow).__OriginalDate!;
+              delete (window as ChaosWindow).__OriginalDate;
             }
           });
           break;
           
         case 'data-corruption':
           await page.evaluate(() => {
-            if ((window as any).__originalSetItem) {
-              localStorage.setItem = (window as any).__originalSetItem;
-              delete (window as any).__originalSetItem;
+            const originalSetItem = (window as ChaosWindow).__originalSetItem;
+            if (originalSetItem && typeof originalSetItem === 'function') {
+              localStorage.setItem = originalSetItem;
+              delete (window as ChaosWindow).__originalSetItem;
             }
           });
           break;
@@ -538,8 +570,8 @@ export class ChaosEngine {
     const executedScenarios = this.results.length;
     const totalErrors = this.results.reduce((sum, r) => sum + r.errors.length, 0);
     const recoveryTimes = this.results
-      .filter(r => r.metrics.recoveryTime)
-      .map(r => r.metrics.recoveryTime!);
+      .filter(r => r.metrics.recoveryTime !== undefined)
+      .map(r => r.metrics.recoveryTime as number);
     
     const averageRecoveryTime = recoveryTimes.length > 0
       ? recoveryTimes.reduce((sum, t) => sum + t, 0) / recoveryTimes.length

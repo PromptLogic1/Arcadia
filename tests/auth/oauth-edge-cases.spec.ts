@@ -2,13 +2,12 @@ import { test, expect } from '@playwright/test';
 import {
   mockAuthResponse,
   waitForAuthRedirect,
-  getAuthErrorMessage,
   clearAuthStorage,
   measureAuthPerformance,
   getAuthCookies
 } from './utils/auth-test-helpers';
-import { AUTH_ROUTES, AUTH_SELECTORS } from '../helpers/test-data.enhanced';
-import type { LoginResponse, AuthErrorResponse, OAuthProvider } from './types/test-types';
+import { AUTH_ROUTES, AUTH_SELECTORS } from '../helpers/test-data';
+import type { LoginResponse, AuthErrorResponse } from './types/test-types';
 
 /**
  * OAuth Edge Cases and Error Scenarios Testing Suite
@@ -89,7 +88,7 @@ test.describe('OAuth Edge Cases', () => {
       // Mock popup blocker behavior
       await page.evaluate(() => {
         // Override window.open to simulate popup blocker
-        const originalOpen = window.open;
+        const _originalOpen = window.open;
         window.open = () => {
           return null; // Popup blocked
         };
@@ -249,7 +248,7 @@ test.describe('OAuth Edge Cases', () => {
       // Mock OAuth callback with invalid state
       await context.route('**/auth/google/callback**', route => {
         const url = new URL(route.request().url());
-        const state = url.searchParams.get('state');
+        const _state = url.searchParams.get('state');
         
         // Simulate state mismatch
         route.fulfill({
@@ -259,6 +258,7 @@ test.describe('OAuth Edge Cases', () => {
             error: 'invalid_state',
             error_description: 'OAuth state parameter is invalid or expired',
             code: 'oauth_state_mismatch',
+            statusCode: 400,
           } satisfies AuthErrorResponse),
         });
       });
@@ -289,6 +289,7 @@ test.describe('OAuth Edge Cases', () => {
             error: 'csrf_token_mismatch',
             error_description: 'CSRF token validation failed',
             code: 'oauth_csrf_error',
+            statusCode: 403,
           } satisfies AuthErrorResponse),
         });
       });
@@ -574,7 +575,7 @@ test.describe('OAuth Edge Cases', () => {
   });
 
   test.describe('Performance and Monitoring', () => {
-    test('should complete OAuth flow within acceptable time', async ({ page, context }) => {
+    test('should complete OAuth flow within acceptable time', async ({ page }) => {
       const oauthTime = await measureAuthPerformance(page, async () => {
         // Mock fast OAuth response
         await mockAuthResponse<LoginResponse>(page, '**/auth/google/callback**', {
@@ -627,8 +628,8 @@ test.describe('OAuth Edge Cases', () => {
       expect(oauthTime).toBeLessThan(5000);
     });
 
-    test('should track OAuth conversion funnel', async ({ page, context }) => {
-      let funnelEvents: string[] = [];
+    test('should track OAuth conversion funnel', async ({ page }) => {
+      const funnelEvents: string[] = [];
       
       // Mock analytics tracking
       await page.route('/api/analytics/track', route => {

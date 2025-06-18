@@ -1,37 +1,32 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import type { Page } from '@playwright/test';
 import { 
-  waitForNetworkIdle, 
-  waitForAnimations
+  waitForNetworkIdle
 } from '../../helpers/test-utils';
 import {
   createTypedTestBoard,
   startTypedGameSession,
   joinTypedGameSession,
   createTypedMultiplayerSession,
-  markWinPattern,
-  verifyWinDetection,
   getTypedGameState,
   TypedTestSessionManager
 } from './bingo-test-utils';
 import {
-  MULTIPLAYER_SCENARIOS,
   COMPLEX_GAME_STATES,
-  SECURITY_TEST_SCENARIOS,
-  PERFORMANCE_BENCHMARKS
+  SECURITY_TEST_SCENARIOS
 } from './bingo-fixtures';
 import {
   ErrorInjector,
   LoadTestFramework,
   PerformanceRegressionTester,
   SecurityTestFramework
-} from './realtime-test-utils-enhanced';
+} from './realtime-test-utils';
 import {
   StateSyncTester,
   ConflictResolver,
-  WebSocketEventTracker,
-  NetworkSimulator
+  WebSocketEventTracker
 } from './realtime-test-utils';
-import type { Tables, Enums } from '../../../types/database.types';
+import type { Tables } from '../../../types/database.types';
 
 /**
  * Enhanced Multiplayer Bingo Tests with Advanced Real-time Features
@@ -52,7 +47,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
     const boardFixture = await createTypedTestBoard(authenticatedPage, {
       title: 'Enhanced Multiplayer Test',
       size: 5,
-      gameType: 'valorant',
+      gameType: 'Valorant',
       difficulty: 'medium',
       winConditions: {
         line: true,
@@ -75,7 +70,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
       const player2Page = await context.newPage();
       sessionManager.trackPage(player2Page);
       
-      const { session, players } = await createTypedMultiplayerSession(
+      await createTypedMultiplayerSession(
         authenticatedPage,
         [player2Page],
         {
@@ -97,7 +92,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
       }
       
       // Set up conflict resolver
-      const conflictResolver = new ConflictResolver();
+      const _conflictResolver = new ConflictResolver();
       
       // Both players try to mark the conflict cell simultaneously
       const conflictResult = await ConflictResolver.testLastWriteWins(
@@ -127,7 +122,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
         sessionManager.trackPage(page);
       }
       
-      const { session, players } = await createTypedMultiplayerSession(
+      await createTypedMultiplayerSession(
         authenticatedPage,
         playerPages,
         {
@@ -145,22 +140,24 @@ test.describe('Enhanced Multiplayer Bingo', () => {
         const row = Math.floor(cellData.position / scenario.boardSize);
         const col = cellData.position % scenario.boardSize;
         
-        let playerPage: any;
+        let playerPage: Page | undefined;
         if (cellData.team === 'red') {
           playerPage = redTeamPages[cellData.playerId === 'player1' ? 0 : 1];
         } else {
           playerPage = blueTeamPages[cellData.playerId === 'player3' ? 0 : 1];
         }
         
-        await playerPage.getByTestId(`grid-cell-${row}-${col}`).click();
-        await playerPage.waitForTimeout(50);
+        if (playerPage) {
+          await playerPage.getByTestId(`grid-cell-${row}-${col}`).click();
+          await playerPage.waitForTimeout(50);
+        }
       }
       
       // Verify team win detection
       if (scenario.expectedWinner === 'red') {
         // Red team should have completed a line
         const redWinDetected = await authenticatedPage.getByText(/bingo/i).isVisible().catch(() => false) ||
-                               await playerPages[0].getByText(/bingo/i).isVisible().catch(() => false);
+                               (playerPages[0] ? await playerPages[0].getByText(/bingo/i).isVisible().catch(() => false) : false);
         expect(redWinDetected).toBe(true);
       }
     });
@@ -223,7 +220,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
       const player2Page = await context.newPage();
       sessionManager.trackPage(player2Page);
       
-      const { session } = await createTypedMultiplayerSession(
+      await createTypedMultiplayerSession(
         authenticatedPage,
         [player2Page],
         { boardId: testBoard.id }
@@ -258,7 +255,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
       const errorInjector = new ErrorInjector(authenticatedPage);
       
       // Start session
-      const session = await startTypedGameSession(authenticatedPage, testBoard.id);
+      const _session = await startTypedGameSession(authenticatedPage, testBoard.id);
       
       // Simulate WebSocket failures
       await errorInjector.simulateWebSocketFailures(0.5, 10000); // 50% failure rate
@@ -284,7 +281,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
     });
 
     test('should recover from session corruption', async ({ authenticatedPage }) => {
-      const session = await startTypedGameSession(authenticatedPage, testBoard.id);
+      const _session = await startTypedGameSession(authenticatedPage, testBoard.id);
       const errorInjector = new ErrorInjector(authenticatedPage);
       
       // Corrupt session data
@@ -295,7 +292,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
       await waitForNetworkIdle(authenticatedPage);
       
       // Should show recovery message or gracefully handle corruption
-      const recoveryShown = await authenticatedPage.getByText(/recovered|restored|error/i)
+      const _recoveryShown = await authenticatedPage.getByText(/recovered|restored|error/i)
         .isVisible().catch(() => false);
       
       // Should be able to continue using the application
@@ -415,7 +412,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
     });
 
     test('should validate input sanitization', async ({ authenticatedPage }) => {
-      const session = await startTypedGameSession(authenticatedPage, testBoard.id);
+      const _session = await startTypedGameSession(authenticatedPage, testBoard.id);
       
       // Test malicious inputs from security test scenarios
       const maliciousInputs = SECURITY_TEST_SCENARIOS.inputValidation.maliciousInputs;
@@ -424,7 +421,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
         // Try to inject malicious content
         await authenticatedPage.evaluate((payload) => {
           // Try to manipulate WebSocket messages
-          const mockMessage = {
+          const _mockMessage = {
             type: 'cell_marked',
             data: {
               cellPosition: 0,
@@ -438,7 +435,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
         }, maliciousInput.payload);
         
         // Verify the application handles malicious input safely
-        const errorState = await authenticatedPage.evaluate(() => {
+        const _errorState = await authenticatedPage.evaluate(() => {
           return window.console.error.toString().includes('error') || 
                  document.querySelector('[data-testid="error-message"]') !== null;
         });
@@ -449,7 +446,7 @@ test.describe('Enhanced Multiplayer Bingo', () => {
     });
 
     test('should enforce rate limiting', async ({ authenticatedPage }) => {
-      const session = await startTypedGameSession(authenticatedPage, testBoard.id);
+      const _session2 = await startTypedGameSession(authenticatedPage, testBoard.id);
       
       // Attempt rapid cell marking (potential DoS)
       const rapidActions = [];
@@ -559,7 +556,9 @@ test.describe('Enhanced Multiplayer Bingo', () => {
         const col = Math.floor(Math.random() * scenario.boardSize);
         
         chaosActions.push(async () => {
-          await page.getByTestId(`grid-cell-${row}-${col}`).click();
+          if (page) {
+            await page.getByTestId(`grid-cell-${row}-${col}`).click();
+          }
         });
       }
       

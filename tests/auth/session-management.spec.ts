@@ -1,24 +1,20 @@
 import { test, expect } from '@playwright/test';
 import { test as authTest } from '../fixtures/auth.fixture';
 import { 
-  TEST_USERS, 
-  TIMEOUTS,
-  SELECTORS 
+  TEST_FORM_DATA, 
+  TIMEOUTS
 } from '../helpers/test-data';
 import { 
-  waitForNetworkIdle, 
-  getStoreState, 
-  waitForStore 
-} from '../helpers/test-utils.enhanced';
-import type { Tables } from '@/types/database.types';
+  waitForNetworkIdle
+} from '../helpers/test-utils';
 
 test.describe('Session Management', () => {
   test.describe('Session Persistence', () => {
     test('should maintain session across page refreshes', async ({ page, context }) => {
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       
       await page.waitForURL(/(dashboard|home|\/$)/, { timeout: TIMEOUTS.navigation });
@@ -50,12 +46,12 @@ test.describe('Session Management', () => {
       await expect(userMenu).toBeVisible();
     });
 
-    test('should maintain session across browser tabs', async ({ browser, context }) => {
+    test('should maintain session across browser tabs', async ({ context }) => {
       // Create first page and login
       const page1 = await context.newPage();
       await page1.goto('/auth/login');
-      await page1.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page1.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page1.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page1.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page1.getByRole('button', { name: /sign in/i }).click();
       await page1.waitForURL(/(dashboard|home|\/$)/);
       
@@ -83,8 +79,8 @@ test.describe('Session Management', () => {
     test('should restore session after browser restart simulation', async ({ page, context }) => {
       // Login and save session state
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -111,8 +107,8 @@ test.describe('Session Management', () => {
     test('should handle session timeout gracefully', async ({ page, context }) => {
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -162,8 +158,8 @@ test.describe('Session Management', () => {
       
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -194,8 +190,8 @@ test.describe('Session Management', () => {
       
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -224,8 +220,8 @@ test.describe('Session Management', () => {
       
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -299,13 +295,13 @@ test.describe('Session Management', () => {
     authTest('should clear client-side session data on logout', async ({ authenticatedPage }) => {
       const page = authenticatedPage;
       
-      // Check if Zustand store exists and has auth data
+      // Check if user is authenticated (visual check)
       try {
-        await waitForStore(page, 'auth-store');
-        const authState = await getStoreState(page, 'auth-store');
-        console.log('Auth state before logout:', authState);
-      } catch (error) {
-        console.log('No Zustand auth store found or accessible');
+        const userMenu = page.locator('[data-testid="user-menu"]');
+        const isAuthenticated = await userMenu.isVisible();
+        console.log('User authenticated before logout:', isAuthenticated);
+      } catch {
+        console.log('Could not check authentication state');
       }
       
       // Perform logout
@@ -344,16 +340,15 @@ test.describe('Session Management', () => {
       console.log('Local storage auth keys after logout:', localStorageAuth);
       console.log('Session storage auth keys after logout:', sessionStorageAuth);
       
-      // Check if Zustand store is cleared
+      // Check if user menu is no longer visible after logout
       try {
-        const authStateAfterLogout = await getStoreState(page, 'auth-store');
-        console.log('Auth state after logout:', authStateAfterLogout);
+        const userMenuAfterLogout = page.locator('[data-testid="user-menu"]');
+        const isStillAuthenticated = await userMenuAfterLogout.isVisible();
+        console.log('User still authenticated after logout:', isStillAuthenticated);
         
-        if (authStateAfterLogout) {
-          // If store exists, user should be null/undefined
-          expect(authStateAfterLogout.user || authStateAfterLogout.currentUser).toBeFalsy();
-        }
-      } catch (error) {
+        // User should no longer be authenticated
+        expect(isStillAuthenticated).toBeFalsy();
+      } catch {
         console.log('Auth store not accessible after logout (expected)');
       }
     });
@@ -408,15 +403,15 @@ test.describe('Session Management', () => {
       
       // Login from first device
       await page1.goto('/auth/login');
-      await page1.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page1.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page1.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page1.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page1.getByRole('button', { name: /sign in/i }).click();
       await page1.waitForURL(/(dashboard|home|\/$)/);
       
       // Login from second device
       await page2.goto('/auth/login');
-      await page2.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page2.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page2.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page2.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page2.getByRole('button', { name: /sign in/i }).click();
       await page2.waitForURL(/(dashboard|home|\/$)/);
       
@@ -451,14 +446,14 @@ test.describe('Session Management', () => {
       await Promise.all([
         (async () => {
           await page1.goto('/auth/login');
-          await page1.getByLabel('Email').fill(TEST_USERS.valid.email);
-          await page1.getByLabel('Password').fill(TEST_USERS.valid.password);
+          await page1.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+          await page1.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
           await page1.getByRole('button', { name: /sign in/i }).click();
         })(),
         (async () => {
           await page2.goto('/auth/login');
-          await page2.getByLabel('Email').fill(TEST_USERS.valid.email);
-          await page2.getByLabel('Password').fill(TEST_USERS.valid.password);
+          await page2.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+          await page2.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
           await page2.getByRole('button', { name: /sign in/i }).click();
         })()
       ]);
@@ -483,8 +478,8 @@ test.describe('Session Management', () => {
     test('should invalidate session on suspicious activity', async ({ page, context }) => {
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -524,8 +519,8 @@ test.describe('Session Management', () => {
     test('should handle session hijacking attempts', async ({ page, context }) => {
       // Login first
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -569,8 +564,8 @@ test.describe('Session Management', () => {
     test('should store minimal data in client-side storage', async ({ page }) => {
       // Login
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
@@ -619,13 +614,13 @@ test.describe('Session Management', () => {
     test('should handle storage quota exceeded gracefully', async ({ page }) => {
       // Login
       await page.goto('/auth/login');
-      await page.getByLabel('Email').fill(TEST_USERS.valid.email);
-      await page.getByLabel('Password').fill(TEST_USERS.valid.password);
+      await page.getByLabel('Email').fill(TEST_FORM_DATA.login.valid.email);
+      await page.getByLabel('Password').fill(TEST_FORM_DATA.login.valid.password);
       await page.getByRole('button', { name: /sign in/i }).click();
       await page.waitForURL(/(dashboard|home|\/$)/);
       
       // Simulate storage quota exceeded
-      const storageOverflowHandled = await page.evaluate(() => {
+      const _storageOverflowHandled = await page.evaluate(() => {
         try {
           // Fill localStorage to quota
           const largeString = 'x'.repeat(1024 * 1024); // 1MB string
@@ -633,7 +628,7 @@ test.describe('Session Management', () => {
             localStorage.setItem(`test_${i}`, largeString);
           }
           return false;
-        } catch (error) {
+        } catch {
           // Should handle storage quota exceeded gracefully
           console.log('Storage quota exceeded, handled gracefully');
           return true;

@@ -9,11 +9,94 @@ import type {
   TestLeaderboardEntry
 } from '../types/test-types';
 
+// Define TestBoard type
+type TestBoard = {
+  id: string;
+  title: string;
+  game: string;
+  size: number;
+  is_public: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
 /**
  * Type-safe fixture factory for gaming tests
  * Generates consistent test data following database schema
  */
 export class GameFixtureFactory {
+  // Random data generators
+  private static randomId(prefix: string = ''): string {
+    return `${prefix}${prefix ? '-' : ''}${Math.random().toString(36).substring(2, 15)}`;
+  }
+
+  private static randomChoice<T>(arr: T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)] as T;
+  }
+
+  private static randomBoardTitle(): string {
+    const games = ['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid'];
+    const types = ['Bingo', 'Speedrun', 'Challenge', 'Marathon'];
+    return `${this.randomChoice(games)} ${this.randomChoice(types)}`;
+  }
+
+  private static randomPlayerName(): string {
+    return `Player${Math.floor(Math.random() * 9999) + 1}`;
+  }
+
+  private static randomSessionCode(): string {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  private static randomPlayerColor(): string {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#9C88FF'];
+    return this.randomChoice(colors);
+  }
+
+  private static randomAchievementName(): string {
+    const prefixes = ['First', 'Master', 'Speed', 'Perfect', 'Ultimate'];
+    const suffixes = ['Victory', 'Collector', 'Champion', 'Runner', 'Expert'];
+    return `${this.randomChoice(prefixes)} ${this.randomChoice(suffixes)}`;
+  }
+
+  /**
+   * Generate a board fixture
+   */
+  static board(overrides?: Partial<TestBoard>): TestBoard {
+    return this.boardState(overrides).board;
+  }
+
+  /**
+   * Generate board state with cells
+   */
+  static boardState(overrides?: Partial<TestBoard>): { board: TestBoard; cells: TestGameCell[] } {
+    const boardId = overrides?.id || this.randomId('board');
+    const board: TestBoard = {
+      id: boardId,
+      title: this.randomBoardTitle(),
+      game: this.randomChoice(['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid']),
+      size: 5,
+      is_public: true,
+      created_by: this.randomId('user'),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...overrides
+    };
+
+    const cells: TestGameCell[] = Array.from({ length: 25 }, (_, index) => ({
+      position: index,
+      text: `Cell ${index}`,
+      is_marked: false,
+      marked_by: null,
+      marked_at: null,
+      row: Math.floor(index / 5),
+      col: index % 5
+    }));
+
+    return { board, cells };
+  }
+
   
   /**
    * Generate a test gaming session with realistic data
@@ -79,7 +162,7 @@ export class GameFixtureFactory {
       last_action: 'joined',
       points: 0,
       completed_cells: 0,
-      completion_time: null,
+      completion_time: undefined,
       connection_status: 'connected'
     };
 
@@ -98,7 +181,7 @@ export class GameFixtureFactory {
       id: this.randomId('achievement'),
       user_id: this.randomId('user'),
       achievement_name: this.randomAchievementName(),
-      achievement_type: achievementTypes[Math.floor(Math.random() * achievementTypes.length)],
+      achievement_type: achievementTypes[Math.floor(Math.random() * achievementTypes.length)] as string,
       description: 'Complete a challenging gaming task',
       points: Math.floor(Math.random() * 500) + 50,
       unlocked_at: Math.random() > 0.5 ? new Date().toISOString() : null,
@@ -166,11 +249,11 @@ export class GameFixtureFactory {
       version: 1,
       last_updated: new Date().toISOString(),
       active_players: [],
-      current_turn: null,
-      time_remaining: null,
+      current_turn: undefined,
+      time_remaining: undefined,
       paused: false,
-      winner: null,
-      win_condition: null
+      winner: undefined,
+      win_condition: undefined
     };
   }
 
@@ -190,8 +273,8 @@ export class GameFixtureFactory {
         marked_at: null,
         row: Math.floor(i / gridSize),
         col: i % gridSize,
-        hover_player: null,
-        animation: null
+        hover_player: undefined,
+        animation: undefined
       });
     }
     
@@ -209,7 +292,7 @@ export class GameFixtureFactory {
         rank: i + 1,
         user_id: this.randomId('user'),
         username: this.randomPlayerName(),
-        avatar_url: Math.random() > 0.5 ? `https://avatar.example.com/${i}.jpg` : null,
+        avatar_url: Math.random() > 0.5 ? `https://avatar.example.com/${i}.jpg` : undefined,
         score: Math.floor(Math.random() * 5000) + 1000,
         time: Math.floor(Math.random() * 300) + 30,
         date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -285,8 +368,8 @@ export class GameFixtureFactory {
 
     const speedrun = this.speedrun({
       user_id: userId,
-      board_id: session.board_id!,
-      board_title: session.board_title
+      board_id: session.board_id || this.randomId('board'),
+      board_title: session.board_title ?? 'Speedrun Challenge'
     });
 
     return { session, player, speedrun };
@@ -342,43 +425,7 @@ export class GameFixtureFactory {
     ];
   }
 
-  // ===== UTILITY GENERATORS =====
-
-  private static randomId(prefix: string = 'test'): string {
-    return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private static randomSessionCode(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }
-
-  private static randomBoardTitle(): string {
-    const adjectives = ['Epic', 'Legendary', 'Ultimate', 'Classic', 'Master', 'Elite', 'Pro', 'Super'];
-    const nouns = ['Challenge', 'Quest', 'Adventure', 'Battle', 'Tournament', 'Competition', 'Showdown'];
-    const games = ['Bingo', 'Speedrun', 'Marathon', 'Sprint', 'Rush', 'Blitz'];
-    
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const game = games[Math.floor(Math.random() * games.length)];
-    
-    return `${adj} ${game} ${noun}`;
-  }
-
-  private static randomPlayerName(): string {
-    const prefixes = ['Gaming', 'Pro', 'Elite', 'Master', 'Speed', 'Quick', 'Ninja', 'Cyber'];
-    const suffixes = ['Player', 'Gamer', 'Legend', 'Hero', 'Champion', 'Warrior', 'Runner', 'Star'];
-    
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-    const number = Math.floor(Math.random() * 999) + 1;
-    
-    return `${prefix}${suffix}${number}`;
-  }
+  // ===== ADDITIONAL UTILITY METHODS =====
 
   private static randomCellText(): string {
     const actions = [
@@ -391,22 +438,7 @@ export class GameFixtureFactory {
       'Discover a recipe'
     ];
     
-    return actions[Math.floor(Math.random() * actions.length)];
-  }
-
-  private static randomAchievementName(): string {
-    const achievements = [
-      'first_win', 'quick_start', 'speed_demon', 'perfectionist', 'social_butterfly',
-      'streak_master', 'completionist', 'explorer', 'collector', 'champion',
-      'legend', 'veteran', 'rookie', 'mentor', 'survivor', 'destroyer',
-      'creator', 'strategist', 'lucky_shot', 'persistence'
-    ];
-    
-    return achievements[Math.floor(Math.random() * achievements.length)];
-  }
-
-  private static randomPlayerColor(): string {
-    return this.PLAYER_COLORS[Math.floor(Math.random() * this.PLAYER_COLORS.length)];
+    return actions[Math.floor(Math.random() * actions.length)] || 'Complete tutorial';
   }
 
   // ===== CONSTANTS =====
@@ -437,7 +469,7 @@ export class GameFixtureFactory {
         ...options,
         board_title: `${options?.gameType || 'Test'} Session ${i + 1}`,
         current_player_count: Math.floor(Math.random() * 4) + 1,
-        status: ['waiting', 'active', 'paused'][Math.floor(Math.random() * 3)] as any
+        status: ['waiting', 'active', 'completed'][Math.floor(Math.random() * 3)] as 'waiting' | 'active' | 'completed'
       }));
     }
     

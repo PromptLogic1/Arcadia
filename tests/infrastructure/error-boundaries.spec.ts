@@ -335,7 +335,8 @@ test.describe('Enhanced Error Boundary Infrastructure', () => {
       const getMemoryUsage = async (): Promise<number> => {
         return await page.evaluate(() => {
           if ('memory' in performance) {
-            return (performance as Performance).memory.usedJSHeapSize;
+            const memoryPerformance = performance as Performance & { memory?: { usedJSHeapSize: number } };
+            return memoryPerformance.memory?.usedJSHeapSize ?? 0;
           }
           return 0;
         });
@@ -383,8 +384,9 @@ test.describe('Enhanced Error Boundary Infrastructure', () => {
       
       // Force garbage collection if available
       await page.evaluate(() => {
-        if ((window as Window).gc) {
-          (window as Window).gc();
+        const windowWithGc = window as Window & { gc?: () => void };
+        if (windowWithGc.gc) {
+          windowWithGc.gc();
         }
       });
       
@@ -477,13 +479,19 @@ test.describe('Enhanced Error Boundary Infrastructure', () => {
       await page.evaluate(() => {
         // Mock Sentry
         (window as TestWindow).Sentry = {
-          captureException: (error: Error, context?: { tags?: Record<string, string> }) => {
+          captureException: (error: Error, context?: unknown) => {
             (window as TestWindow).captureSentryEvent!({
               error: {
                 message: error.message,
                 stack: error.stack,
               },
               context,
+              timestamp: Date.now(),
+            });
+          },
+          captureMessage: (message: string) => {
+            (window as TestWindow).captureSentryEvent!({
+              message,
               timestamp: Date.now(),
             });
           },

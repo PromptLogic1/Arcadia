@@ -12,15 +12,9 @@ import { AnalyticsWrapper } from './analytics-wrapper';
 export function TemplateContent({ children }: { children: React.ReactNode }) {
   return (
     <ThemeWrapper>
-      {/* Skip to main content link for accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-cyan-600 focus:px-4 focus:py-2 focus:text-white focus:shadow-lg"
-      >
-        Skip to main content
-      </a>
       <Header />
-      <main id="main-content" tabIndex={-1} className="pt-20">
+      {/* Remove the main wrapper here - let individual pages define their own main landmarks */}
+      <div id="main-content" tabIndex={-1} className="pt-20">
         {/* Wrap main content in Suspense for streaming SSR */}
         <Suspense
           fallback={
@@ -34,7 +28,7 @@ export function TemplateContent({ children }: { children: React.ReactNode }) {
         >
           {children}
         </Suspense>
-      </main>
+      </div>
       <Footer />
       <ScrollToTop />
       {/* Analytics without Suspense since it's already using dynamic imports */}

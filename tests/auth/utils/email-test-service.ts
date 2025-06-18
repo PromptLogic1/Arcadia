@@ -129,7 +129,8 @@ export class MailHogEmailService implements EmailTestService {
 
   async cleanup(): Promise<void> {
     // Clean up all created test emails
-    for (const email of this.createdEmails) {
+    const emailArray = Array.from(this.createdEmails);
+    for (const email of emailArray) {
       await this.deleteAllEmails(email);
     }
     this.createdEmails.clear();
@@ -168,7 +169,11 @@ export class MailHogEmailService implements EmailTestService {
       });
       
       if (emails.length > 0) {
-        return emails[0]; // Return most recent
+        const email = emails[0];
+        if (!email) {
+          throw new Error('Email is undefined despite array having length > 0');
+        }
+        return email; // Return most recent
       }
       
       await new Promise(resolve => setTimeout(resolve, retryInterval));
@@ -213,8 +218,9 @@ export class MailHogEmailService implements EmailTestService {
       }
       
       if (options.since) {
+        const sinceDate = options.since;
         filtered = filtered.filter((msg: MailHogMessage) => 
-          new Date(msg.Created) >= options.since!
+          new Date(msg.Created) >= sinceDate
         );
       }
       
@@ -460,14 +466,14 @@ export class EmailServiceFactory {
         await mailhogService.initialize();
         console.log('Using MailHog email service for testing');
         return mailhogService;
-      } catch (error) {
+      } catch {
         console.warn('MailHog not available, falling back to mock email service');
       }
     }
     
     const mockService = new MockEmailService();
     await mockService.initialize();
-    console.log('Using mock email service for testing');
+    // Using mock service
     return mockService;
   }
 }

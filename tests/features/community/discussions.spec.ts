@@ -1,12 +1,10 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import { 
   waitForNetworkIdle, 
-  mockApiResponse, 
   fillForm,
   checkAccessibility,
   waitForAnimations 
 } from '../../helpers/test-utils';
-import { COMMUNITY_TEST_DATA, ERROR_MESSAGES, TIMEOUTS } from '../../helpers/test-data';
 
 /**
  * Discussion Creation and Management Tests
@@ -181,7 +179,7 @@ test.describe('Discussion Management', () => {
       await expect(page.getByText('keep-me')).toBeVisible();
 
       // Verify tag input is enabled again
-      await expect(page.getByLabel('Tags')).not.toBeDisabled();
+      await expect(page.getByLabel('Tags')).toBeEnabled();
     });
   });
 
@@ -208,8 +206,8 @@ test.describe('Discussion Management', () => {
       await page.getByRole('button', { name: /edit/i }).click();
 
       // Verify edit form opens with current values
-      await expect(page.getByDisplayValue('Original Title')).toBeVisible();
-      await expect(page.getByDisplayValue('Original content for editing test')).toBeVisible();
+      await expect(page.getByRole('textbox', { name: /title/i })).toHaveValue('Original Title');
+      await expect(page.getByRole('textbox', { name: /content/i })).toHaveValue('Original content for editing test');
 
       // Update content
       await page.getByLabel('Title').fill('Updated: Original Title');

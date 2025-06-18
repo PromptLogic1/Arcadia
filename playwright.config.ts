@@ -53,8 +53,8 @@ export default defineConfig({
     locale: 'en-US',
     timezoneId: 'America/New_York',
     
-    /* Permissions */
-    permissions: ['clipboard-read', 'clipboard-write'],
+    /* Permissions - using only cross-browser compatible permissions */
+    permissions: ['clipboard-write'],
     
     /* User agent */
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -83,7 +83,7 @@ export default defineConfig({
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
-        channel: 'chrome', // Use Google Chrome
+        // Use bundled Chromium instead of system Chrome
       },
     },
     
@@ -119,7 +119,7 @@ export default defineConfig({
       name: 'edge',
       use: { 
         ...devices['Desktop Edge'], 
-        channel: 'msedge' 
+        // Use bundled Edge for compatibility
       },
     },
   ],
@@ -130,7 +130,7 @@ export default defineConfig({
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
+        // Use bundled Chromium for local development
       },
     }],
   }),
@@ -145,6 +145,8 @@ export default defineConfig({
     stderr: 'pipe',
     env: {
       NODE_ENV: 'test',
+      // Pass through all environment variables to the web server
+      ...process.env,
     },
   },
   

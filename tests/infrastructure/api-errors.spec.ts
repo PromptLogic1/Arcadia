@@ -504,7 +504,7 @@ test.describe('API Error Response Handling', () => {
     });
 
     test('should include request context in error logs', async ({ page }) => {
-      const networkRequests: any[] = [];
+      const networkRequests: unknown[] = [];
       
       page.on('requestfailed', request => {
         networkRequests.push({
@@ -527,8 +527,10 @@ test.describe('API Error Response Handling', () => {
       // Should capture request context
       if (networkRequests.length > 0) {
         const failedRequest = networkRequests[0];
-        expect(failedRequest.url).toBeTruthy();
-        expect(failedRequest.method).toBeTruthy();
+        if (failedRequest && typeof failedRequest === 'object' && 'url' in failedRequest && 'method' in failedRequest) {
+          expect(failedRequest.url).toBeTruthy();
+          expect(failedRequest.method).toBeTruthy();
+        }
       }
     });
   });

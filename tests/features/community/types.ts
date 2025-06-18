@@ -1,13 +1,13 @@
-import type { Tables } from '@/types/database.types';
+import type { Tables, TablesInsert, TablesUpdate } from '../../../types/database.types';
 import { z } from 'zod';
 
 // Type aliases for better readability and consistency
 export type Discussion = Tables<'discussions'>;
 export type Comment = Tables<'comments'>;
-export type DiscussionInsert = Tables<'discussions'>['Insert'];
-export type DiscussionUpdate = Tables<'discussions'>['Update'];
-export type CommentInsert = Tables<'comments'>['Insert'];
-export type CommentUpdate = Tables<'comments'>['Update'];
+export type DiscussionInsert = TablesInsert<'discussions'>;
+export type DiscussionUpdate = TablesUpdate<'discussions'>;
+export type CommentInsert = TablesInsert<'comments'>;
+export type CommentUpdate = TablesUpdate<'comments'>;
 
 // Extended types with relations for testing
 export interface DiscussionWithAuthor extends Discussion {
@@ -32,7 +32,7 @@ export interface CommentWithAuthor extends Comment {
 }
 
 // Real-time event types with proper validation
-export interface RealTimeEvent<T = any> {
+export interface RealTimeEvent<T = unknown> {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
   schema: 'public';
   table: 'discussions' | 'comments';
@@ -41,7 +41,7 @@ export interface RealTimeEvent<T = any> {
   commit_timestamp: string;
 }
 
-export interface WebSocketMessage<T = any> {
+export interface WebSocketMessage<T = unknown> {
   topic: string;
   event: string;
   payload: T;
@@ -68,11 +68,15 @@ export const CommentCreateSchema = z.object({
 
 export const ReportSchema = z.object({
   reason: z.enum(['spam', 'harassment', 'hate-speech', 'misinformation', 'copyright', 'off-topic', 'other']),
-  details: z.string().min(1).when('reason', {
-    is: 'other',
-    then: z.string().min(10, 'Please provide additional details for other reports'),
-    otherwise: z.string().optional(),
-  }),
+  details: z.string().optional(),
+}).refine(data => {
+  if (data.reason === 'other' && (!data.details || data.details.length < 10)) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Please provide additional details for other reports',
+  path: ['details'],
 });
 
 // User scenarios with enhanced typing
@@ -312,7 +316,7 @@ export interface TestDatabaseState {
   discussions: DiscussionWithAuthor[];
   comments: CommentWithAuthor[];
   users: UserScenario[];
-  reports: any[];
+  reports: unknown[];
 }
 
 // Error types for testing
@@ -324,7 +328,7 @@ export interface TestError {
 }
 
 // Test result types
-export interface TestResult<T = any> {
+export interface TestResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: TestError;
@@ -338,7 +342,7 @@ export interface TestResult<T = any> {
 // Concurrent operation testing
 export interface ConcurrentTestOperation {
   id: string;
-  operation: () => Promise<any>;
+  operation: () => Promise<unknown>;
   expectedResult: 'success' | 'failure' | 'race_condition';
   delay?: number;
 }
@@ -347,7 +351,7 @@ export interface ConcurrentTestResult {
   operations: Array<{
     id: string;
     result: 'success' | 'failure' | 'timeout';
-    data?: any;
+    data?: unknown;
     error?: string;
     duration: number;
   }>;
@@ -356,14 +360,17 @@ export interface ConcurrentTestResult {
 }
 
 // Export utility type guards
-export const isDiscussion = (obj: any): obj is Discussion => {
-  return obj && typeof obj.id === 'number' && typeof obj.title === 'string';
+export const isDiscussion = (obj: unknown): obj is Discussion => {
+  const d = obj as Record<string, unknown>;
+  return d && typeof d.id === 'number' && typeof d.title === 'string';
 };
 
-export const isComment = (obj: any): obj is Comment => {
-  return obj && typeof obj.id === 'number' && typeof obj.content === 'string';
+export const isComment = (obj: unknown): obj is Comment => {
+  const c = obj as Record<string, unknown>;
+  return c && typeof c.id === 'number' && typeof c.content === 'string';
 };
 
-export const isRealTimeEvent = (obj: any): obj is RealTimeEvent => {
-  return obj && ['INSERT', 'UPDATE', 'DELETE'].includes(obj.eventType);
+export const isRealTimeEvent = (obj: unknown): obj is RealTimeEvent => {
+  const e = obj as Record<string, unknown>;
+  return e && ['INSERT', 'UPDATE', 'DELETE'].includes(e.eventType as string);
 };

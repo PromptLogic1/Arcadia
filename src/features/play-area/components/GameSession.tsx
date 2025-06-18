@@ -220,17 +220,13 @@ export function GameSession({ sessionId }: GameSessionProps) {
       const cell = boardStateData.boardState[position];
       if (!cell) return;
 
-      try {
-        await markCellMutation.mutateAsync({
-          sessionId,
-          cell_position: position,
-          user_id: authUser.id,
-          action: cell.is_marked ? 'unmark' : 'mark',
-          version: boardStateData.version,
-        });
-      } catch (error) {
-        throw error; // Let GameBoard handle the error
-      }
+      await markCellMutation.mutateAsync({
+        sessionId,
+        cell_position: position,
+        user_id: authUser.id,
+        action: cell.is_marked ? 'unmark' : 'mark',
+        version: boardStateData.version,
+      });
     },
     [authUser?.id, boardStateData, markCellMutation, sessionId]
   );

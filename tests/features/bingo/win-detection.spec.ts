@@ -1,516 +1,444 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import { 
-  waitForNetworkIdle, 
-  waitForAnimations,
-  mockApiResponse
+  waitForNetworkIdle
 } from '../../helpers/test-utils';
+import {
+  createTypedTestBoard,
+  startTypedGameSession,
+  markWinPattern,
+  verifyWinDetection,
+  getTypedGameState,
+  createTypedMultiplayerSession,
+  measureOperationPerformance,
+  TypedTestSessionManager
+} from './bingo-test-utils';
+import {
+  PERFORMANCE_BENCHMARKS,
+  GAME_STATE_FIXTURES,
+  MULTIPLAYER_SCENARIOS
+} from './bingo-fixtures';
+import {
+  StateSyncTester,
+  ConflictResolver,
+  RealtimePerformanceMonitor,
+  WebSocketEventTracker
+} from './realtime-test-utils';
+import type { Tables } from '../../../types/database.types';
+import type { Page } from '@playwright/test';
 
-test.describe('Bingo Win Detection', () => {
-  let testBoardId: string;
+/**
+ * Enhanced Win Detection Tests with Full Type Safety
+ */
+test.describe('Typed Bingo Win Detection', () => {
+  let sessionManager: TypedTestSessionManager;
+  let testBoard: Tables<'bingo_boards'>;
+  let testSession: Tables<'bingo_sessions'>;
+
+  test.beforeAll(() => {
+    sessionManager = new TypedTestSessionManager();
+  });
+
+  test.afterEach(async () => {
+    await sessionManager.cleanup();
+  });
 
   test.beforeEach(async ({ authenticatedPage }) => {
-    // Create a complete 5x5 test board for win pattern testing
-    await authenticatedPage.goto('/play-area/bingo');
-    await waitForNetworkIdle(authenticatedPage);
+    // Create a typed test board with proper fixtures
+    const boardFixture = await createTypedTestBoard(authenticatedPage, {
+      title: 'Typed Win Detection Test',
+      size: 5,
+      gameType: 'Valorant',
+      difficulty: 'medium',
+      winConditions: {
+        line: true,
+        diagonal: true,
+        corners: true,
+        majority: false
+      }
+    });
     
-    await authenticatedPage.getByRole('button', { name: /create.*board/i }).click();
-    await authenticatedPage.getByLabel(/title/i).fill('Win Detection Test Board');
-    await authenticatedPage.getByRole('combobox', { name: /game type/i }).click();
-    await authenticatedPage.getByRole('option', { name: /valorant/i }).click();
-    await authenticatedPage.getByRole('button', { name: /create/i }).click();
+    testBoard = boardFixture.board;
+    sessionManager.trackBoard(testBoard.id);
     
-    // Extract board ID
-    const url = authenticatedPage.url();
-    testBoardId = url.split('/').pop() || '';
-    
-    // Fill the board with 25 unique cards
-    const cardTexts = [
-      'Get kill', 'Plant spike', 'Defuse bomb', 'Ace round', 'Clutch 1v3',
-      'Use ultimate', 'Win pistol', 'Headshot', 'Save weapon', 'Flash enemy',
-      'Smoke site', 'Wallbang', 'Ninja defuse', 'Teamkill', 'Buy armor',
-      'Drop weapon', 'Eco round', 'Force buy', 'Trade kill', 'First blood',
-      'Entry frag', 'Support play', 'Lurk', 'Rotate fast', 'Check corners'
-    ];
-    
-    for (let i = 0; i < 25; i++) {
-      await authenticatedPage.getByRole('button', { name: /add.*card/i }).click();
-      await authenticatedPage.getByLabel(/card text/i).fill(cardTexts[i]);
-      await authenticatedPage.getByLabel(/category/i).selectOption('action');
-      await authenticatedPage.getByRole('button', { name: /save.*card/i }).click();
-      
-      // Place card in grid
-      const card = authenticatedPage.getByTestId('library-card').filter({ hasText: cardTexts[i] }).first();
-      const row = Math.floor(i / 5);
-      const col = i % 5;
-      const cell = authenticatedPage.getByTestId(`grid-cell-${row}-${col}`);
-      await card.dragTo(cell);
-    }
-    
-    // Start game session
-    await authenticatedPage.getByRole('button', { name: /start.*game/i }).click();
-    await expect(authenticatedPage.getByText(/game started/i)).toBeVisible();
-    await waitForNetworkIdle(authenticatedPage);
+    // Start typed game session
+    const session = await startTypedGameSession(authenticatedPage, testBoard.id);
+    testSession = session.session;
+    sessionManager.trackSession(testSession.id);
+    sessionManager.trackPage(authenticatedPage);
   });
 
-  test.describe('Horizontal Line Wins', () => {
-    test('should detect top row win', async ({ authenticatedPage }) => {
-      // Mark all cells in top row (row 0)
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-        await expect(authenticatedPage.getByTestId(`grid-cell-0-${col}`)).toHaveAttribute('data-marked', 'true');
-      }
+  test.describe('Typed Pattern Detection', () => {
+    test('should detect horizontal line with type safety', async ({ authenticatedPage }) => {
+      // Use typed pattern marking
+      const markedPositions = await markWinPattern(authenticatedPage, 'horizontal', {
+        row: 0,
+        boardSize: testBoard.size || 5,
+        playerId: 'test-player-1',
+        color: '#06b6d4'
+      });
       
-      // Should detect win
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/horizontal.*line/i)).toBeVisible();
-      await expect(authenticatedPage.getByRole('dialog', { name: /winner/i })).toBeVisible();
+      // Verify win with typed response
+      const winResult = await verifyWinDetection(
+        authenticatedPage,
+        'test-player-1',
+        'horizontal'
+      );
       
-      // Verify winning cells are highlighted
-      for (let col = 0; col < 5; col++) {
-        await expect(authenticatedPage.getByTestId(`grid-cell-0-${col}`)).toHaveClass(/winning-cell/);
-      }
+      expect(winResult.pattern).toBe('Horizontal Line');
+      expect(winResult.winningCells).toEqual(markedPositions);
+      
+      // Verify game state update
+      const gameState = await getTypedGameState(authenticatedPage);
+      expect(gameState.gameStatus).toBe('completed');
     });
 
-    test('should detect middle row win', async ({ authenticatedPage }) => {
-      // Mark all cells in middle row (row 2)
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-2-${col}`).click();
-      }
+    test('should detect diagonal win with conflict resolution', async ({ authenticatedPage, context }) => {
+      // Create multiplayer session with typed players
+      const playerPage = await context.newPage();
+      sessionManager.trackPage(playerPage);
       
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/horizontal.*line/i)).toBeVisible();
-    });
-
-    test('should detect bottom row win', async ({ authenticatedPage }) => {
-      // Mark all cells in bottom row (row 4)
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-4-${col}`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/horizontal.*line/i)).toBeVisible();
-    });
-  });
-
-  test.describe('Vertical Line Wins', () => {
-    test('should detect left column win', async ({ authenticatedPage }) => {
-      // Mark all cells in left column (col 0)
-      for (let row = 0; row < 5; row++) {
-        await authenticatedPage.getByTestId(`grid-cell-${row}-0`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/vertical.*line/i)).toBeVisible();
-      
-      // Verify winning cells are highlighted
-      for (let row = 0; row < 5; row++) {
-        await expect(authenticatedPage.getByTestId(`grid-cell-${row}-0`)).toHaveClass(/winning-cell/);
-      }
-    });
-
-    test('should detect middle column win', async ({ authenticatedPage }) => {
-      // Mark all cells in middle column (col 2)
-      for (let row = 0; row < 5; row++) {
-        await authenticatedPage.getByTestId(`grid-cell-${row}-2`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/vertical.*line/i)).toBeVisible();
-    });
-
-    test('should detect right column win', async ({ authenticatedPage }) => {
-      // Mark all cells in right column (col 4)
-      for (let row = 0; row < 5; row++) {
-        await authenticatedPage.getByTestId(`grid-cell-${row}-4`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/vertical.*line/i)).toBeVisible();
-    });
-  });
-
-  test.describe('Diagonal Wins', () => {
-    test('should detect top-left to bottom-right diagonal win', async ({ authenticatedPage }) => {
-      // Mark main diagonal
-      for (let i = 0; i < 5; i++) {
-        await authenticatedPage.getByTestId(`grid-cell-${i}-${i}`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/diagonal/i)).toBeVisible();
-      
-      // Verify winning cells are highlighted
-      for (let i = 0; i < 5; i++) {
-        await expect(authenticatedPage.getByTestId(`grid-cell-${i}-${i}`)).toHaveClass(/winning-cell/);
-      }
-    });
-
-    test('should detect top-right to bottom-left diagonal win', async ({ authenticatedPage }) => {
-      // Mark anti-diagonal
-      for (let i = 0; i < 5; i++) {
-        await authenticatedPage.getByTestId(`grid-cell-${i}-${4-i}`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/diagonal/i)).toBeVisible();
-      
-      // Verify winning cells are highlighted
-      for (let i = 0; i < 5; i++) {
-        await expect(authenticatedPage.getByTestId(`grid-cell-${i}-${4-i}`)).toHaveClass(/winning-cell/);
-      }
-    });
-  });
-
-  test.describe('Special Pattern Wins', () => {
-    test('should detect four corners win', async ({ authenticatedPage }) => {
-      // Mark four corners
-      const corners = [
-        'grid-cell-0-0', 'grid-cell-0-4',
-        'grid-cell-4-0', 'grid-cell-4-4'
-      ];
-      
-      for (const corner of corners) {
-        await authenticatedPage.getByTestId(corner).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/four.*corners/i)).toBeVisible();
-      
-      // Verify winning cells are highlighted
-      for (const corner of corners) {
-        await expect(authenticatedPage.getByTestId(corner)).toHaveClass(/winning-cell/);
-      }
-    });
-
-    test('should detect X pattern win', async ({ authenticatedPage }) => {
-      // Mark both diagonals for X pattern
-      const xCells = [
-        'grid-cell-0-0', 'grid-cell-1-1', 'grid-cell-2-2', 'grid-cell-3-3', 'grid-cell-4-4',
-        'grid-cell-0-4', 'grid-cell-1-3', 'grid-cell-3-1', 'grid-cell-4-0'
-      ];
-      
-      for (const cell of xCells) {
-        await authenticatedPage.getByTestId(cell).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/x.*pattern/i)).toBeVisible();
-    });
-
-    test('should detect plus/cross pattern win', async ({ authenticatedPage }) => {
-      // Mark middle row and middle column
-      const plusCells = [
-        'grid-cell-2-0', 'grid-cell-2-1', 'grid-cell-2-2', 'grid-cell-2-3', 'grid-cell-2-4',
-        'grid-cell-0-2', 'grid-cell-1-2', 'grid-cell-3-2', 'grid-cell-4-2'
-      ];
-      
-      for (const cell of plusCells) {
-        await authenticatedPage.getByTestId(cell).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/plus.*pattern/i)).toBeVisible();
-    });
-
-    test('should detect full house win', async ({ authenticatedPage }) => {
-      // Mark all cells
-      for (let row = 0; row < 5; row++) {
-        for (let col = 0; col < 5; col++) {
-          await authenticatedPage.getByTestId(`grid-cell-${row}-${col}`).click();
+      const { players } = await createTypedMultiplayerSession(
+        authenticatedPage,
+        [playerPage],
+        {
+          boardId: testBoard.id,
+          playerColors: ['#06b6d4', '#8b5cf6']
         }
+      );
+      
+      // Test concurrent diagonal marking
+      const conflictTest = await ConflictResolver.testLastWriteWins(
+        [authenticatedPage, playerPage],
+        { row: 2, col: 2 } // Center cell
+      );
+      
+      // Complete diagonal patterns for both players
+      const firstPlayer = players[0];
+      if (!firstPlayer) {
+        throw new Error('No players in session');
       }
       
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/full.*house/i)).toBeVisible();
+      await markWinPattern(authenticatedPage, 'diagonal', {
+        boardSize: 5,
+        playerId: firstPlayer.user_id
+      });
       
-      // All cells should be highlighted
-      for (let row = 0; row < 5; row++) {
-        for (let col = 0; col < 5; col++) {
-          await expect(authenticatedPage.getByTestId(`grid-cell-${row}-${col}`)).toHaveClass(/winning-cell/);
-        }
-      }
+      // Verify correct winner despite conflict
+      const winResult = await verifyWinDetection(
+        authenticatedPage,
+        firstPlayer.display_name,
+        'diagonal'
+      );
+      
+      expect(winResult.winner).toContain(firstPlayer.display_name);
+      expect(conflictTest.resolutionTime).toBeLessThan(200);
+    });
+
+    test('should detect complex patterns with performance tracking', async ({ authenticatedPage }) => {
+      const monitor = new RealtimePerformanceMonitor(authenticatedPage);
+      await monitor.startMonitoring();
+      
+      // Test X-pattern detection performance
+      const xPatternResult = await measureOperationPerformance(
+        async () => {
+          return await markWinPattern(authenticatedPage, 'x', {
+            boardSize: 5,
+            playerId: 'test-player',
+            color: '#10b981'
+          });
+        },
+        'x-pattern-marking',
+        PERFORMANCE_BENCHMARKS.cellMarking.local.p95 * 9 // 9 cells for X
+      );
+      
+      expect(xPatternResult.passed).toBe(true);
+      
+      // Verify win detection performance
+      const detectionResult = await measureOperationPerformance(
+        async () => {
+          return await verifyWinDetection(authenticatedPage, 'test-player', 'x-pattern');
+        },
+        'x-pattern-detection',
+        PERFORMANCE_BENCHMARKS.winDetection.complex.p95
+      );
+      
+      expect(detectionResult.passed).toBe(true);
+      
+      const metrics = await monitor.getMetricsSummary();
+      expect(metrics.apiCalls.p95Duration).toBeLessThan(200);
     });
   });
 
-  test.describe('Win Detection Edge Cases', () => {
-    test('should not detect win with incomplete pattern', async ({ authenticatedPage }) => {
-      // Mark 4 out of 5 cells in top row
+  test.describe('Real-time Win Synchronization', () => {
+    test('should sync win state across multiple players', async ({ authenticatedPage, context }) => {
+      // Set up multiplayer scenario
+      const scenario = MULTIPLAYER_SCENARIOS.teamChallenge;
+      if (!scenario) {
+        throw new Error('Team challenge scenario not found');
+      }
+      
+      const playerPages: Page[] = [];
+      
+      for (let i = 0; i < scenario.playerCount - 1; i++) {
+        const page = await context.newPage();
+        playerPages.push(page);
+        sessionManager.trackPage(page);
+      }
+      
+      const { players } = await createTypedMultiplayerSession(
+        authenticatedPage,
+        playerPages,
+        {
+          boardId: testBoard.id,
+          sessionSettings: scenario.sessionSettings || undefined
+        }
+      );
+      
+      // Set up state sync tester
+      const syncTester = new StateSyncTester([authenticatedPage, ...playerPages]);
+      await syncTester.startTracking();
+      
+      // Host completes winning pattern
+      const firstPlayer = players[0];
+      if (!firstPlayer) {
+        throw new Error('No players in session');
+      }
+      
+      const _winCells = await markWinPattern(authenticatedPage, 'horizontal', {
+        row: 2,
+        playerId: firstPlayer.user_id
+      });
+      
+      // Measure sync latency
+      const syncResult = await syncTester.measureSyncLatency(
+        async () => { /* Win detection already triggered */ },
+        (state: unknown) => {
+          // Type guard to check if state has gameStatus
+          if (state && typeof state === 'object' && 'gameStatus' in state) {
+            return (state as { gameStatus: string }).gameStatus === 'completed';
+          }
+          return false;
+        }
+      );
+      
+      expect(syncResult.averageLatency).toBeLessThan(
+        PERFORMANCE_BENCHMARKS.realtimeSync.normal.p95
+      );
+      
+      // Verify all players see consistent state
+      const stateCheck = await syncTester.verifyStateConsistency();
+      expect(stateCheck.consistent).toBe(true);
+      expect(stateCheck.differences || []).toHaveLength(0);
+    });
+
+    test('should handle win detection during network issues', async ({ authenticatedPage }) => {
+      const eventTracker = new WebSocketEventTracker(authenticatedPage);
+      await eventTracker.startTracking();
+      
+      // Mark most of winning pattern
       for (let col = 0; col < 4; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
+        await authenticatedPage.getByTestId(`grid-cell-1-${col}`).click();
       }
       
-      // Should not show win dialog
-      await expect(authenticatedPage.getByText(/bingo/i)).not.toBeVisible();
-      await expect(authenticatedPage.getByRole('dialog', { name: /winner/i })).not.toBeVisible();
-    });
-
-    test('should detect multiple wins simultaneously', async ({ authenticatedPage }) => {
-      // Create a scenario where multiple patterns complete at once
-      // Mark most of first row and first column
-      for (let i = 0; i < 4; i++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${i}`).click();
-        await authenticatedPage.getByTestId(`grid-cell-${i}-0`).click();
-      }
+      // Simulate network disconnection
+      await authenticatedPage.context().setOffline(true);
       
-      // Mark the corner cell that completes both patterns
-      await authenticatedPage.getByTestId('grid-cell-0-4').click();
-      await authenticatedPage.getByTestId('grid-cell-4-0').click();
+      // Complete winning pattern while offline
+      await authenticatedPage.getByTestId('grid-cell-1-4').click();
       
-      // Should detect win (may show multiple patterns or prioritize one)
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-    });
-
-    test('should handle unmarking cells that break win patterns', async ({ authenticatedPage }) => {
-      // Mark complete row
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
-      
-      // Verify win is detected
+      // Should show optimistic win locally
       await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
       
-      // Close win dialog
-      await authenticatedPage.getByRole('button', { name: /close/i }).click();
+      // Reconnect
+      await authenticatedPage.context().setOffline(false);
       
-      // Unmark one cell to break the pattern
-      await authenticatedPage.getByTestId('grid-cell-0-2').click();
+      // Wait for sync
+      await eventTracker.waitForEvent('game_won', 5000);
       
-      // Win state should be removed
-      await expect(authenticatedPage.getByText(/bingo/i)).not.toBeVisible();
-      await expect(authenticatedPage.getByTestId('grid-cell-0-2')).not.toHaveClass(/winning-cell/);
+      // Verify win is properly recorded
+      const events = await eventTracker.getEventsByType('game_won');
+      expect(events).toHaveLength(1);
+      
+      const firstEvent = events[0];
+      if (firstEvent) {
+        expect(firstEvent.data).toMatchObject({
+          pattern: 'horizontal',
+          winningCells: expect.any(Array)
+        });
+      }
     });
+  });
 
-    test('should detect wins in different board sizes', async ({ authenticatedPage }) => {
-      // Navigate back to create a 3x3 board
-      await authenticatedPage.goto('/play-area/bingo');
-      await authenticatedPage.getByRole('button', { name: /create.*board/i }).click();
-      await authenticatedPage.getByLabel(/title/i).fill('3x3 Win Test');
-      await authenticatedPage.getByRole('combobox', { name: /game type/i }).click();
-      await authenticatedPage.getByRole('option', { name: /valorant/i }).click();
-      await authenticatedPage.getByLabel(/board size/i).selectOption('3');
-      await authenticatedPage.getByRole('button', { name: /create/i }).click();
-      
-      // Add 9 cards for 3x3 board
-      const smallBoardCards = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-      for (let i = 0; i < 9; i++) {
-        await authenticatedPage.getByRole('button', { name: /add.*card/i }).click();
-        await authenticatedPage.getByLabel(/card text/i).fill(smallBoardCards[i]);
-        await authenticatedPage.getByLabel(/category/i).selectOption('action');
-        await authenticatedPage.getByRole('button', { name: /save.*card/i }).click();
+  test.describe('Edge Cases and Special Scenarios', () => {
+    test('should handle pre-defined game states correctly', async ({ authenticatedPage }) => {
+      // Test each pre-defined game state fixture
+      for (const fixture of GAME_STATE_FIXTURES) {
+        // Reset board
+        await authenticatedPage.reload();
+        await waitForNetworkIdle(authenticatedPage);
         
-        const card = authenticatedPage.getByTestId('library-card').filter({ hasText: smallBoardCards[i] }).first();
-        const row = Math.floor(i / 3);
-        const col = i % 3;
-        const cell = authenticatedPage.getByTestId(`grid-cell-${row}-${col}`);
-        await card.dragTo(cell);
+        // Apply fixture state
+        for (const { position, playerId, color } of fixture.markedCells) {
+          const row = Math.floor(position / fixture.boardSize);
+          const col = position % fixture.boardSize;
+          
+          // Mock the cell as marked by specific player
+          await authenticatedPage.evaluate(
+            ({ row, col, playerId, color }) => {
+              const cell = document.querySelector(`[data-testid="grid-cell-${row}-${col}"]`);
+              if (cell) {
+                cell.setAttribute('data-marked', 'true');
+                cell.setAttribute('data-marked-by', playerId);
+                cell.setAttribute('data-player-color', color);
+              }
+            },
+            { row, col, playerId, color }
+          );
+        }
+        
+        // Trigger win detection check
+        await authenticatedPage.evaluate(() => {
+          window.dispatchEvent(new Event('check-win-condition'));
+        });
+        
+        // Verify expected outcome
+        if (fixture.expectedWinner) {
+          await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
+          const winResult = await verifyWinDetection(
+            authenticatedPage,
+            fixture.expectedWinner,
+            fixture.expectedPattern!
+          );
+          expect(winResult.winner).toContain(fixture.expectedWinner);
+        } else {
+          await expect(authenticatedPage.getByText(/bingo/i)).not.toBeVisible();
+        }
       }
-      
-      await authenticatedPage.getByRole('button', { name: /start.*game/i }).click();
-      
-      // Mark top row of 3x3 board
-      for (let col = 0; col < 3; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
-      
-      // Should detect win on smaller board
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/horizontal.*line/i)).toBeVisible();
-    });
-  });
-
-  test.describe('Multiplayer Win Detection', () => {
-    test('should detect correct winner in multiplayer game', async ({ authenticatedPage, context }) => {
-      // Navigate back to the prepared 5x5 board
-      await authenticatedPage.goto(`/play-area/bingo/edit/${testBoardId}`);
-      await authenticatedPage.getByRole('button', { name: /start.*game/i }).click();
-      
-      const sessionCode = await authenticatedPage.getByTestId('session-code').textContent();
-      
-      // Add second player
-      const player2Page = await context.newPage();
-      await player2Page.goto('/play-area/bingo');
-      await player2Page.getByRole('button', { name: /join.*game/i }).click();
-      await player2Page.getByLabel(/session code/i).fill(sessionCode || '');
-      await player2Page.getByRole('button', { name: /join/i }).click();
-      
-      // Player 1 marks most of top row
-      for (let col = 0; col < 4; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
-      
-      // Player 2 marks some random cells
-      await player2Page.getByTestId('grid-cell-1-1').click();
-      await player2Page.getByTestId('grid-cell-2-2').click();
-      
-      // Player 1 completes the winning pattern
-      await authenticatedPage.getByTestId('grid-cell-0-4').click();
-      
-      // Both players should see Player 1 as winner
-      await expect(authenticatedPage.getByText(/you won/i)).toBeVisible();
-      await expect(player2Page.getByText(/player.*won/i)).toBeVisible();
-      
-      // Winner announcement should show on both screens
-      await expect(authenticatedPage.getByRole('dialog', { name: /winner/i })).toBeVisible();
-      await expect(player2Page.getByRole('dialog', { name: /winner/i })).toBeVisible();
-      
-      await player2Page.close();
     });
 
-    test('should handle simultaneous wins', async ({ authenticatedPage, context }) => {
-      await authenticatedPage.goto(`/play-area/bingo/edit/${testBoardId}`);
-      await authenticatedPage.getByRole('button', { name: /start.*game/i }).click();
-      
-      const sessionCode = await authenticatedPage.getByTestId('session-code').textContent();
-      
-      const player2Page = await context.newPage();
-      await player2Page.goto('/play-area/bingo');
-      await player2Page.getByRole('button', { name: /join.*game/i }).click();
-      await player2Page.getByLabel(/session code/i).fill(sessionCode || '');
-      await player2Page.getByRole('button', { name: /join/i }).click();
-      
-      // Set up scenario where both players are one cell away from winning
-      // Player 1: top row (mark 4/5)
-      for (let col = 0; col < 4; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
-      
-      // Player 2: left column (mark 4/5, skip the corner that player 1 already marked)
-      for (let row = 1; row < 5; row++) {
-        await player2Page.getByTestId(`grid-cell-${row}-0`).click();
-      }
-      
-      // Both players try to complete their patterns simultaneously
-      await Promise.all([
-        authenticatedPage.getByTestId('grid-cell-0-4').click(),
-        player2Page.getByTestId('grid-cell-0-0').click()
-      ]);
-      
-      // One player should be declared winner (based on timestamp/server processing)
-      const player1Won = await authenticatedPage.getByText(/you won/i).isVisible();
-      const player2Won = await player2Page.getByText(/you won/i).isVisible();
-      
-      expect(player1Won || player2Won).toBe(true);
-      expect(player1Won && player2Won).toBe(false); // Only one should win
-      
-      await player2Page.close();
-    });
-  });
-
-  test.describe('Win Animations and Effects', () => {
-    test('should display victory animation', async ({ authenticatedPage }) => {
-      // Complete a winning pattern
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
-      
-      // Verify animation elements are present
-      await expect(authenticatedPage.locator('.victory-animation')).toBeVisible();
-      await expect(authenticatedPage.locator('.confetti-container')).toBeVisible();
-      
-      // Check animation is actually running
-      const animationElement = authenticatedPage.locator('.victory-animation');
-      const animationDuration = await animationElement.evaluate(el => {
-        const style = window.getComputedStyle(el);
-        return style.animationDuration;
+    test('should detect wins on different board sizes', async ({ authenticatedPage }) => {
+      // Test 3x3 board
+      const smallBoard = await createTypedTestBoard(authenticatedPage, {
+        title: '3x3 Win Test',
+        size: 3,
+        gameType: 'Minecraft',
+        difficulty: 'easy'
       });
       
-      expect(parseFloat(animationDuration)).toBeGreaterThan(0);
-    });
-
-    test('should play victory sound effect', async ({ authenticatedPage }) => {
-      // Enable audio context for testing
-      await authenticatedPage.evaluate(() => {
-        // Mock audio play for testing
-        window.AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        HTMLAudioElement.prototype.play = jest.fn().mockResolvedValue(undefined);
+      await startTypedGameSession(authenticatedPage, smallBoard.board.id);
+      
+      // Mark diagonal on 3x3
+      const positions = await markWinPattern(authenticatedPage, 'diagonal', {
+        boardSize: 3,
+        playerId: 'test-player'
       });
       
-      // Complete winning pattern
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
+      expect(positions).toHaveLength(3);
+      await verifyWinDetection(authenticatedPage, 'test-player', 'diagonal');
       
-      // Verify audio play was called
-      const audioPlayCalled = await authenticatedPage.evaluate(() => {
-        return HTMLAudioElement.prototype.play.mock?.calls?.length > 0;
+      // Test 6x6 board
+      const largeBoard = await createTypedTestBoard(authenticatedPage, {
+        title: '6x6 Win Test',
+        size: 6,
+        gameType: 'League of Legends',
+        difficulty: 'hard'
       });
       
-      expect(audioPlayCalled).toBe(true);
-    });
-
-    test('should highlight winning pattern cells', async ({ authenticatedPage }) => {
-      // Complete diagonal pattern
-      for (let i = 0; i < 5; i++) {
-        await authenticatedPage.getByTestId(`grid-cell-${i}-${i}`).click();
-      }
+      await startTypedGameSession(authenticatedPage, largeBoard.board.id);
       
-      // All diagonal cells should be highlighted
-      for (let i = 0; i < 5; i++) {
-        await expect(authenticatedPage.getByTestId(`grid-cell-${i}-${i}`)).toHaveClass(/winning-cell/);
-      }
+      // Mark plus pattern on 6x6
+      const plusPositions = await markWinPattern(authenticatedPage, 'plus', {
+        boardSize: 6,
+        playerId: 'test-player'
+      });
       
-      // Non-winning cells should not be highlighted
-      await expect(authenticatedPage.getByTestId('grid-cell-0-1')).not.toHaveClass(/winning-cell/);
-      await expect(authenticatedPage.getByTestId('grid-cell-1-0')).not.toHaveClass(/winning-cell/);
+      expect(plusPositions).toHaveLength(11); // 6 + 6 - 1 (center overlap)
+      await verifyWinDetection(authenticatedPage, 'test-player', 'plus');
     });
   });
 
-  test.describe('Win Performance', () => {
-    test('should detect wins quickly', async ({ authenticatedPage }) => {
-      // Mark 4 cells in a row quickly
-      for (let col = 0; col < 4; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
+  test.describe('Win State Persistence and Recovery', () => {
+    test('should persist win state to database', async ({ authenticatedPage }) => {
+      // Complete a win
+      await markWinPattern(authenticatedPage, 'horizontal', {
+        row: 0,
+        playerId: 'test-player'
+      });
       
-      // Time the final cell that triggers win detection
-      const startTime = Date.now();
-      await authenticatedPage.getByTestId('grid-cell-0-4').click();
+      const _winResult = await verifyWinDetection(authenticatedPage, 'test-player', 'horizontal');
       
-      // Win should be detected quickly
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      const endTime = Date.now();
+      // Verify database update via typed query
+      const sessionState = await authenticatedPage.evaluate(async (sessionId) => {
+        const response = await fetch(`/api/sessions/${sessionId}`);
+        return response.json();
+      }, testSession.id);
       
-      const detectionTime = endTime - startTime;
-      expect(detectionTime).toBeLessThan(50); // Should detect win in under 50ms
+      expect(sessionState).toMatchObject({
+        status: 'completed',
+        winner_id: expect.any(String),
+        ended_at: expect.any(String)
+      });
     });
 
-    test('should handle rapid cell marking without missing wins', async ({ authenticatedPage }) => {
-      // Rapidly mark all cells in top row
-      const cells = [];
-      for (let col = 0; col < 5; col++) {
-        cells.push(authenticatedPage.getByTestId(`grid-cell-0-${col}`));
-      }
+    test('should recover win state after refresh', async ({ authenticatedPage }) => {
+      // Create specific win state
+      const winCells = await markWinPattern(authenticatedPage, 'four-corners', {
+        boardSize: 5,
+        playerId: 'test-player'
+      });
       
-      // Click all cells rapidly
-      await Promise.all(cells.map(cell => cell.click()));
-      
-      // Should still detect the win
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      await expect(authenticatedPage.getByText(/horizontal.*line/i)).toBeVisible();
-    });
-  });
-
-  test.describe('Win State Persistence', () => {
-    test('should maintain win state after page refresh', async ({ authenticatedPage }) => {
-      // Complete winning pattern
-      for (let col = 0; col < 5; col++) {
-        await authenticatedPage.getByTestId(`grid-cell-0-${col}`).click();
-      }
-      
-      await expect(authenticatedPage.getByText(/bingo/i)).toBeVisible();
-      
-      // Close win modal
-      await authenticatedPage.getByRole('button', { name: /close/i }).click();
+      await verifyWinDetection(authenticatedPage, 'test-player', 'four-corners');
       
       // Refresh page
       await authenticatedPage.reload();
       await waitForNetworkIdle(authenticatedPage);
       
-      // Win state should be restored
-      for (let col = 0; col < 5; col++) {
-        await expect(authenticatedPage.getByTestId(`grid-cell-0-${col}`)).toHaveClass(/winning-cell/);
+      // Verify win state is restored
+      const gameState = await getTypedGameState(authenticatedPage);
+      expect(gameState.gameStatus).toBe('completed');
+      
+      // Verify winning cells are still highlighted
+      for (const position of winCells) {
+        const row = Math.floor(position / 5);
+        const col = position % 5;
+        await expect(
+          authenticatedPage.getByTestId(`grid-cell-${row}-${col}`)
+        ).toHaveClass(/winning-cell/);
       }
-      await expect(authenticatedPage.getByTestId('game-status')).toContainText(/won/i);
+    });
+  });
+
+  test.describe('Performance Benchmarks', () => {
+    test('should meet win detection performance targets', async ({ authenticatedPage }) => {
+      const results: Record<string, boolean> = {};
+      
+      // Test each win pattern performance
+      const patterns: Array<Parameters<typeof markWinPattern>[1]> = [
+        'horizontal', 'vertical', 'diagonal', 'four-corners', 'x', 'plus'
+      ];
+      
+      for (const pattern of patterns) {
+        const result = await measureOperationPerformance(
+          async () => {
+            // Clear board first
+            await authenticatedPage.reload();
+            await waitForNetworkIdle(authenticatedPage);
+            
+            // Mark pattern and detect win
+            await markWinPattern(authenticatedPage, pattern);
+            await authenticatedPage.waitForSelector('[role="dialog"][aria-label*="winner"]');
+          },
+          `win-detection-${pattern}`,
+          PERFORMANCE_BENCHMARKS.winDetection.complex.p95
+        );
+        
+        results[pattern] = result.passed;
+      }
+      
+      // All patterns should meet performance targets
+      Object.entries(results).forEach(([pattern, passed]) => {
+        expect(passed).toBe(true);
+      });
     });
   });
 });

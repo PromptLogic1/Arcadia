@@ -165,12 +165,8 @@ export function trackTransaction<T>(
             op: operation,
           },
           async () => {
-            try {
-              const result = await callback();
-              return result;
-            } catch (error) {
-              throw error;
-            }
+            const result = await callback();
+            return result;
           }
         );
       })

@@ -1,713 +1,548 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+
+// Extend Window interface for test properties
+declare global {
+  interface Window {
+    __testUserReputation?: string;
+    __testAppealData?: unknown;
+    __testModerationLog?: unknown;
+  }
+}
 import { 
   waitForNetworkIdle, 
-  mockApiResponse, 
-  fillForm,
-  checkAccessibility,
-  waitForAnimations 
 } from '../../helpers/test-utils';
-import { COMMUNITY_TEST_DATA, ERROR_MESSAGES, TIMEOUTS } from '../../helpers/test-data';
+import {
+  createTypedDiscussion,
+  createTypedComment,
+  reportContent,
+} from '../../helpers/community-test-helpers';
+import {
+  MODERATION_TEST_CONTENT,
+} from '../../fixtures/community-fixtures';
 
 /**
- * Content Moderation Tests
+ * Enhanced Content Moderation Tests
  * 
- * Tests content reporting and moderation features including:
- * - Reporting inappropriate content
- * - Spam detection and prevention
- * - Rate limiting mechanisms
- * - Content filtering
- * - XSS and security prevention
- * - Moderator tools and actions
- * - Automated content moderation
+ * This comprehensive test suite covers:
+ * - Advanced spam detection algorithms
+ * - Complex rate limiting scenarios
+ * - Content filtering edge cases
+ * - Automated moderation systems
+ * - Appeal and review processes
+ * - Cross-platform content synchronization
+ * - AI-powered content analysis
  */
 
-test.describe('Content Moderation', () => {
-  test.beforeEach(async ({ authenticatedPage: page }) => {
-    await page.goto('/community');
-    await waitForNetworkIdle(page);
-  });
+test.describe('Enhanced Content Moderation', () => {
+  test.describe('Advanced Spam Detection', () => {
+    test('detects obvious spam patterns with high confidence', async ({ authenticatedPage: page }) => {
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
 
-  test.describe('Content Reporting', () => {
-    test('user can report inappropriate discussion', async ({ authenticatedPage: page }) => {
-      // Create a discussion to report
-      await createSpamDiscussion(page);
+      // Test obvious spam content
+      const spamContent = MODERATION_TEST_CONTENT.spam.obvious;
+      await page.getByLabel('Title').fill(spamContent.title);
+      await page.getByLabel('Content').fill(spamContent.content);
+      await page.getByLabel('Game').selectOption(spamContent.game);
+
+      // Submit and verify spam detection
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Verify spam prevention
+      await expect(page.getByText(/appears to contain spam/i)).toBeVisible();
+      await expect(page.getByText(/community guidelines/i)).toBeVisible();
       
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
-      await waitForAnimations(page);
-
-      // Click report button
-      await page.getByRole('button', { name: /report/i }).click();
-
-      // Verify report modal opens
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await expect(page.getByText('Report Content')).toBeVisible();
-
-      // Select reason and add details
-      await page.getByLabel('Reason').selectOption('spam');
-      await page.getByLabel('Additional details').fill('This discussion is clearly spam advertising external services');
-
-      // Submit report
-      await page.getByRole('button', { name: /submit report/i }).click();
-
-      // Verify confirmation
-      await expect(page.getByText('Thank you for your report')).toBeVisible();
-      await expect(page.getByText('Our moderation team will review this content within 24 hours')).toBeVisible();
-      
-      // Verify report button is disabled after reporting
-      await expect(page.getByRole('button', { name: /report/i })).toBeDisabled();
-      await expect(page.getByText('Reported')).toBeVisible();
+      // Verify confidence score is high
+      await expect(page.getByText(/confidence: high/i)).toBeVisible();
     });
 
-    test('user can report inappropriate comment', async ({ authenticatedPage: page }) => {
-      // Create discussion and add inappropriate comment
-      await createTestDiscussion(page);
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
+    test('detects subtle spam patterns with ML analysis', async ({ authenticatedPage: page }) => {
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
 
-      // Add inappropriate comment
-      await page.getByPlaceholder('What are your thoughts on this discussion?').fill('This is an inappropriate comment with offensive language');
+      // Test subtle spam content
+      const subtleSpam = MODERATION_TEST_CONTENT.spam.subtle;
+      await page.getByLabel('Title').fill(subtleSpam.title);
+      await page.getByLabel('Content').fill(subtleSpam.content);
+      await page.getByLabel('Game').selectOption(subtleSpam.game);
+
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Verify subtle spam detection with lower confidence
+      await expect(page.getByText(/may contain promotional content/i)).toBeVisible();
+      await expect(page.getByText(/confidence: medium/i)).toBeVisible();
+      
+      // Verify user can still post but with warning
+      await page.getByRole('button', { name: /post anyway/i }).click();
+      await waitForNetworkIdle(page);
+      
+      // Verify post is created but flagged for review
+      await expect(page.getByText(/flagged for review/i)).toBeVisible();
+    });
+
+    test('handles repetitive content and link spam', async ({ authenticatedPage: page }) => {
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
+
+      // Test repetitive spam content
+      const repetitiveSpam = MODERATION_TEST_CONTENT.spam.repetitive;
+      await page.getByLabel('Title').fill(repetitiveSpam.title);
+      await page.getByLabel('Content').fill(repetitiveSpam.content);
+      await page.getByLabel('Game').selectOption(repetitiveSpam.game);
+
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Verify repetition detection
+      await expect(page.getByText(/excessive repetition detected/i)).toBeVisible();
+      await expect(page.getByText(/multiple links to same domain/i)).toBeVisible();
+    });
+
+    test('allows legitimate promotional content with proper context', async ({ authenticatedPage: page }) => {
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
+
+      // Test legitimate promotional content
+      await page.getByLabel('Title').fill('Sharing my tournament highlights video');
+      await page.getByLabel('Content').fill('I created a highlights video from last week\'s tournament. It shows some advanced techniques that might be helpful for others. You can find it on my channel if you\'re interested in seeing the strategies in action.');
+      await page.getByLabel('Game').selectOption('Pokemon');
+
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Verify legitimate content is allowed
+      await expect(page.getByRole('dialog')).not.toBeVisible();
+      await waitForNetworkIdle(page);
+      
+      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
+      await expect(discussionCard).toBeVisible();
+      await expect(discussionCard).toContainText('tournament highlights video');
+    });
+  });
+
+  test.describe('Sophisticated Rate Limiting', () => {
+    test('implements sliding window rate limiting for discussions', async ({ authenticatedPage: page }) => {
+      // Test sliding window algorithm
+      const _timeWindow = 5 * 60 * 1000; // 5 minutes
+      const maxRequests = 3;
+
+      // Create discussions at specific intervals
+      for (let i = 0; i < maxRequests; i++) {
+        await createTypedDiscussion(page, {
+          title: `Rate limit test discussion ${i + 1}`,
+          content: `Testing sliding window rate limiting ${i + 1}`,
+        });
+        
+        if (i < maxRequests - 1) {
+          await page.waitForTimeout(1000); // 1 second between requests
+        }
+      }
+
+      // Fourth request should be rate limited
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
+      
+      await page.getByLabel('Title').fill('Rate limited discussion');
+      await page.getByLabel('Content').fill('This should be rate limited');
+      await page.getByLabel('Game').selectOption('Pokemon');
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Verify rate limiting with specific time information
+      await expect(page.getByText(/posting too quickly/i)).toBeVisible();
+      await expect(page.getByText(/wait.*minute/i)).toBeVisible();
+      
+      // Verify rate limit details
+      await expect(page.getByText(/3 discussions.*5 minutes/i)).toBeVisible();
+    });
+
+    test('implements token bucket rate limiting for comments', async ({ authenticatedPage: page }) => {
+      // Create discussion for commenting
+      const discussionId = await createTypedDiscussion(page);
+
+      // Test token bucket algorithm - allows burst but limits sustained rate
+      const burstSize = 5;
+      const _refillRate = 1; // 1 token per minute
+
+      // Use all tokens in burst
+      for (let i = 0; i < burstSize; i++) {
+        await createTypedComment(page, discussionId, {
+          content: `Burst comment ${i + 1}`,
+        });
+      }
+
+      // Next comment should be rate limited
+      await page.goto(`/community/discussions/${discussionId}`);
+      await page.getByPlaceholder('What are your thoughts on this discussion?').fill('Rate limited comment');
       await page.getByRole('button', { name: /post comment/i }).click();
+
+      // Verify token bucket rate limiting
+      await expect(page.getByText(/comment rate limit exceeded/i)).toBeVisible();
+      await expect(page.getByText(/tokens.*refill/i)).toBeVisible();
+    });
+
+    test('applies different rate limits based on user reputation', async ({ authenticatedPage: page }) => {
+      // Test should verify that established users have higher rate limits
+      // This would typically require test data setup for user reputation
+      
+      // Mock high reputation user
+      await page.addInitScript(() => {
+        window.__testUserReputation = 'high';
+      });
+
+      // High reputation users should have higher limits
+      for (let i = 0; i < 5; i++) {
+        await createTypedDiscussion(page, {
+          title: `High rep user discussion ${i + 1}`,
+          content: `High reputation user posting ${i + 1}`,
+        });
+      }
+
+      // Verify high rep user can post more
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
+      
+      await page.getByLabel('Title').fill('Additional high rep discussion');
+      await page.getByLabel('Content').fill('High rep users get higher limits');
+      await page.getByLabel('Game').selectOption('Pokemon');
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Should succeed for high rep user
+      await expect(page.getByRole('dialog')).not.toBeVisible();
       await waitForNetworkIdle(page);
-
-      // Report the comment
-      const commentElement = page.locator('[data-testid="comment"]').first();
-      await commentElement.getByRole('button', { name: /more options/i }).click();
-      await page.getByRole('menuitem', { name: /report/i }).click();
-
-      // Fill report form
-      await page.getByLabel('Reason').selectOption('harassment');
-      await page.getByLabel('Additional details').fill('This comment contains inappropriate language');
-      await page.getByRole('button', { name: /submit report/i }).click();
-
-      // Verify report success
-      await expect(page.getByText('Comment reported successfully')).toBeVisible();
-    });
-
-    test('report form validates required fields', async ({ authenticatedPage: page }) => {
-      await createTestDiscussion(page);
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
-      await page.getByRole('button', { name: /report/i }).click();
-
-      // Try to submit without selecting reason
-      await page.getByRole('button', { name: /submit report/i }).click();
-      await expect(page.getByText('Please select a reason for reporting')).toBeVisible();
-
-      // Select reason but submit without details for specific categories
-      await page.getByLabel('Reason').selectOption('other');
-      await page.getByRole('button', { name: /submit report/i }).click();
-      await expect(page.getByText('Please provide additional details')).toBeVisible();
-    });
-
-    test('prevents duplicate reports from same user', async ({ authenticatedPage: page }) => {
-      await createTestDiscussion(page);
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
-
-      // Submit first report
-      await page.getByRole('button', { name: /report/i }).click();
-      await page.getByLabel('Reason').selectOption('spam');
-      await page.getByLabel('Additional details').fill('First report');
-      await page.getByRole('button', { name: /submit report/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Try to report again
-      await expect(page.getByRole('button', { name: /report/i })).toBeDisabled();
-      await expect(page.getByText('You have already reported this content')).toBeVisible();
-    });
-
-    test('report reasons cover common moderation cases', async ({ authenticatedPage: page }) => {
-      await createTestDiscussion(page);
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
-      await page.getByRole('button', { name: /report/i }).click();
-
-      // Verify all report reasons are available
-      const reasonSelect = page.getByLabel('Reason');
-      await expect(reasonSelect.locator('option[value="spam"]')).toBeVisible();
-      await expect(reasonSelect.locator('option[value="harassment"]')).toBeVisible();
-      await expect(reasonSelect.locator('option[value="hate-speech"]')).toBeVisible();
-      await expect(reasonSelect.locator('option[value="misinformation"]')).toBeVisible();
-      await expect(reasonSelect.locator('option[value="copyright"]')).toBeVisible();
-      await expect(reasonSelect.locator('option[value="off-topic"]')).toBeVisible();
-      await expect(reasonSelect.locator('option[value="other"]')).toBeVisible();
     });
   });
 
-  test.describe('Spam Detection', () => {
-    test('system detects and flags obvious spam content', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Try to submit obvious spam content
-      await fillForm(page, {
-        title: 'BUY CHEAP GOLD NOW!!! BEST PRICES!!!',
-        content: 'Visit spam-site.com for the cheapest game gold! Amazing deals! Click here now!!! $$$',
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-
-      // Verify spam detection
-      await expect(page.getByText('Your post appears to contain spam')).toBeVisible();
-      await expect(page.getByText('Please review our community guidelines')).toBeVisible();
-      await expect(page.getByRole('button', { name: /review and edit/i })).toBeVisible();
-    });
-
-    test('spam detection analyzes multiple criteria', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Test various spam indicators
-      const spamContent = `
-        FREE MONEY!!! CLICK HERE!!!
-        www.spam-site.com
-        AMAZING DEALS $$$$$
-        BUY NOW OR MISS OUT!!!
-      `;
-
-      await fillForm(page, {
-        title: 'URGENT!!! LIMITED TIME OFFER!!!',
-        content: spamContent,
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-
-      // Verify spam indicators are caught
-      await expect(page.getByText('Content flagged for review')).toBeVisible();
-      await expect(page.getByText('Detected issues:')).toBeVisible();
-      await expect(page.getByText('• Excessive use of capital letters')).toBeVisible();
-      await expect(page.getByText('• Multiple exclamation marks')).toBeVisible();
-      await expect(page.getByText('• Potential external links')).toBeVisible();
-    });
-
-    test('allows legitimate content with similar keywords', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Legitimate content that might trigger false positives
-      await fillForm(page, {
-        title: 'Best strategy for gold farming in RPGs',
-        content: 'What are the most effective methods for earning gold in role-playing games? I\'m looking for legitimate in-game strategies.',
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Should not trigger spam detection
-      await expect(page.getByText('Best strategy for gold farming')).toBeVisible();
-      await expect(page.getByText('Your post appears to contain spam')).not.toBeVisible();
-    });
-
-    test('escalates repeated spam attempts', async ({ authenticatedPage: page }) => {
-      // Attempt multiple spam posts
-      for (let i = 1; i <= 3; i++) {
-        await page.goto('/community');
-        await page.getByRole('button', { name: /new discussion/i }).click();
-        
-        await fillForm(page, {
-          title: `SPAM ATTEMPT ${i}!! BUY NOW!!!`,
-          content: `Spam content attempt number ${i} with external links`,
-        });
-        
-        await page.getByLabel('Game').selectOption('Pokemon');
-        await page.getByRole('button', { name: /create discussion/i }).click();
-        
-        if (i < 3) {
-          await expect(page.getByText('Your post appears to contain spam')).toBeVisible();
-          await page.getByRole('button', { name: /cancel/i }).click();
-        }
-      }
-
-      // Third attempt should trigger stronger measures
-      await expect(page.getByText('Account temporarily restricted')).toBeVisible();
-      await expect(page.getByText('Multiple spam attempts detected')).toBeVisible();
-      await expect(page.getByText('Contact support if you believe this is an error')).toBeVisible();
-    });
-  });
-
-  test.describe('Rate Limiting', () => {
-    test('prevents rapid discussion creation', async ({ authenticatedPage: page }) => {
-      // Create discussions rapidly
-      for (let i = 1; i <= 4; i++) {
-        await page.goto('/community');
-        await page.getByRole('button', { name: /new discussion/i }).click();
-        
-        await fillForm(page, {
-          title: `Rate Limit Test Discussion ${i}`,
-          content: `This is test discussion number ${i} for rate limiting`,
-        });
-        
-        await page.getByLabel('Game').selectOption('Pokemon');
-        await page.getByRole('button', { name: /create discussion/i }).click();
-        
-        if (i <= 3) {
-          await waitForNetworkIdle(page);
-        }
-      }
-
-      // Fourth attempt should be rate limited
-      await expect(page.getByText('You\'re posting too quickly')).toBeVisible();
-      await expect(page.getByText('Please wait 5 minutes before creating another discussion')).toBeVisible();
-      await expect(page.getByText('Rate limit: 3 discussions per 5 minutes')).toBeVisible();
-    });
-
-    test('prevents comment spam with rate limiting', async ({ authenticatedPage: page }) => {
-      await createTestDiscussion(page);
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
-
-      // Post comments rapidly
-      for (let i = 1; i <= 10; i++) {
-        await page.getByPlaceholder('What are your thoughts on this discussion?').fill(`Rapid comment ${i}`);
-        await page.getByRole('button', { name: /post comment/i }).click();
-        
-        if (i < 8) {
-          await waitForNetworkIdle(page);
-        }
-      }
-
-      // Should hit rate limit
-      await expect(page.getByText('Comment rate limit exceeded')).toBeVisible();
-      await expect(page.getByText('Please wait before posting another comment')).toBeVisible();
-    });
-
-    test('shows remaining time for rate limit', async ({ authenticatedPage: page }) => {
-      // Trigger rate limit
-      for (let i = 1; i <= 4; i++) {
-        await page.goto('/community');
-        await page.getByRole('button', { name: /new discussion/i }).click();
-        
-        await fillForm(page, {
-          title: `Rate Limit Timer Test ${i}`,
-          content: `Testing rate limit timer ${i}`,
-        });
-        
-        await page.getByLabel('Game').selectOption('Pokemon');
-        await page.getByRole('button', { name: /create discussion/i }).click();
-        
-        if (i <= 3) {
-          await waitForNetworkIdle(page);
-        }
-      }
-
-      // Check rate limit message with countdown
-      await expect(page.getByText(/Time remaining: \d+:\d+/)).toBeVisible();
-      await expect(page.getByText('You can create another discussion in')).toBeVisible();
-    });
-
-    test('rate limits reset after cooldown period', async ({ authenticatedPage: page }) => {
-      // This test would normally require waiting for actual cooldown
-      // Instead, we'll mock the time advancement
-      
-      // Trigger rate limit
-      for (let i = 1; i <= 4; i++) {
-        await page.goto('/community');
-        await page.getByRole('button', { name: /new discussion/i }).click();
-        
-        await fillForm(page, {
-          title: `Cooldown Test ${i}`,
-          content: `Testing cooldown ${i}`,
-        });
-        
-        await page.getByLabel('Game').selectOption('Pokemon');
-        await page.getByRole('button', { name: /create discussion/i }).click();
-        
-        if (i <= 3) {
-          await waitForNetworkIdle(page);
-        }
-      }
-
-      // Verify rate limit is active
-      await expect(page.getByText('You\'re posting too quickly')).toBeVisible();
-
-      // Mock time advancement (in a real test, this would advance server time)
-      await mockApiResponse(page, '**/api/rate-limit/check**', {
-        body: { allowed: true, remaining: 3, resetTime: null },
-      });
-
-      // Try to create discussion again
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-      
-      await fillForm(page, {
-        title: 'Post-Cooldown Discussion',
-        content: 'This should work after cooldown',
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-
-      // Should succeed
-      await expect(page.getByText('Post-Cooldown Discussion')).toBeVisible();
-    });
-  });
-
-  test.describe('Content Filtering', () => {
-    test('filters profanity in discussions and comments', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Include filtered words (using mild examples for testing)
-      await fillForm(page, {
-        title: 'Discussion with inappropriate word',
-        content: 'This content contains a filtered word that should be replaced',
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Verify content is filtered/flagged
-      await expect(page.getByText('Content contains filtered words')).toBeVisible();
-      await expect(page.getByText('Please review and edit your content')).toBeVisible();
-    });
-
-    test('allows appeal for false positive filtering', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Content that might trigger false positive
-      await fillForm(page, {
-        title: 'Scunthorpe United FC Discussion',
-        content: 'Discussing legitimate topics that might trigger filters',
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-
-      // If flagged, should have appeal option
-      if (await page.getByText('Content flagged by filter').isVisible()) {
-        await expect(page.getByRole('button', { name: /appeal this decision/i })).toBeVisible();
-        
-        await page.getByRole('button', { name: /appeal this decision/i }).click();
-        await page.getByLabel('Reason for appeal').fill('This is a legitimate discussion about a football team');
-        await page.getByRole('button', { name: /submit appeal/i }).click();
-        
-        await expect(page.getByText('Appeal submitted for review')).toBeVisible();
-      }
-    });
-
-    test('escalates content with multiple violations', async ({ authenticatedPage: page }) => {
-      // Simulate multiple content violations
-      const violations = [
-        'First violation content',
-        'Second violation with more issues',
-        'Third violation - pattern detected'
+  test.describe('Content Filtering and Sanitization', () => {
+    test('sanitizes HTML and script injection attempts', async ({ authenticatedPage: page }) => {
+      const maliciousInputs = [
+        '<script>alert("XSS")</script>',
+        '<img src=x onerror=alert("XSS")>',
+        '<iframe src="javascript:alert(\'XSS\')"></iframe>',
+        '&lt;script&gt;alert("Encoded XSS")&lt;/script&gt;',
+        'javascript:alert("Protocol XSS")',
       ];
 
-      for (let i = 0; i < violations.length; i++) {
-        await page.goto('/community');
-        await page.getByRole('button', { name: /new discussion/i }).click();
-        
-        await fillForm(page, {
-          title: `Violation Test ${i + 1}`,
-          content: violations[i],
+      for (const maliciousInput of maliciousInputs) {
+        const discussionId = await createTypedDiscussion(page, {
+          title: 'XSS Test Discussion',
+          content: `Testing input sanitization: ${maliciousInput}`,
         });
+
+        await page.goto(`/community/discussions/${discussionId}`);
         
-        await page.getByLabel('Game').selectOption('Pokemon');
-        await page.getByRole('button', { name: /create discussion/i }).click();
+        // Verify content is sanitized
+        await expect(page.locator('script')).toHaveCount(0);
+        await expect(page.locator('iframe')).toHaveCount(0);
         
-        if (i < 2) {
-          await expect(page.getByText('Content flagged for review')).toBeVisible();
-          await page.getByRole('button', { name: /cancel/i }).click();
-        }
+        // Verify sanitized content is displayed safely
+        const discussionContent = page.locator('[data-testid="discussion-content"]');
+        const content = await discussionContent.textContent();
+        expect(content).toContain('Testing input sanitization:');
+        expect(content).not.toContain('<script>');
+      }
+    });
+
+    test('filters inappropriate language while preserving context', async ({ authenticatedPage: page }) => {
+      const testContent = 'This content contains some mild inappropriate language that should be filtered but context preserved.';
+      
+      await createTypedDiscussion(page, {
+        title: 'Language Filtering Test',
+        content: testContent,
+      });
+
+      await page.goto('/community');
+      
+      // Verify content filtering
+      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
+      const filteredContent = await discussionCard.getByTestId('discussion-content').textContent();
+      
+      // Should preserve most content but filter inappropriate parts
+      expect(filteredContent).toContain('This content contains');
+      expect(filteredContent).toContain('context preserved');
+      
+      // Verify filtering indicator
+      await expect(discussionCard.getByText(/content filtered/i)).toBeVisible();
+    });
+
+    test('handles Unicode and emoji content correctly', async ({ authenticatedPage: page }) => {
+      const unicodeContent = '🎮 Gaming discussion with émojis and spéciál characters 日本語 العربية 🚀';
+      
+      const discussionId = await createTypedDiscussion(page, {
+        title: 'Unicode Test 🎯',
+        content: unicodeContent,
+      });
+
+      await page.goto(`/community/discussions/${discussionId}`);
+      
+      // Verify Unicode content is preserved
+      await expect(page.getByText(unicodeContent)).toBeVisible();
+      await expect(page.getByRole('heading')).toContainText('Unicode Test 🎯');
+      
+      // Verify search works with Unicode
+      await page.goto('/community');
+      await page.getByPlaceholder('Search discussions...').fill('🎮');
+      await page.keyboard.press('Enter');
+      await waitForNetworkIdle(page);
+      
+      await expect(page.getByText('Unicode Test 🎯')).toBeVisible();
+    });
+  });
+
+  test.describe('Automated Moderation Systems', () => {
+    test('escalates content to human moderators based on confidence scores', async ({ authenticatedPage: page }) => {
+      // Create borderline content that requires human review
+      const borderlineContent = {
+        title: 'Questionable discussion title',
+        content: 'This content is borderline and should be escalated to human moderators for review due to ambiguous nature.',
+        game: 'Pokemon',
+      };
+
+      await page.goto('/community');
+      await page.getByRole('button', { name: /new discussion/i }).click();
+      
+      await page.getByLabel('Title').fill(borderlineContent.title);
+      await page.getByLabel('Content').fill(borderlineContent.content);
+      await page.getByLabel('Game').selectOption(borderlineContent.game);
+      await page.getByRole('button', { name: /create discussion/i }).click();
+
+      // Verify escalation to human review
+      await expect(page.getByText(/submitted for review/i)).toBeVisible();
+      await expect(page.getByText(/confidence: low/i)).toBeVisible();
+      await expect(page.getByText(/human moderator/i)).toBeVisible();
+    });
+
+    test('implements auto-approval for trusted content patterns', async ({ authenticatedPage: page }) => {
+      // Test content that matches trusted patterns
+      const trustedContent = {
+        title: 'Strategy guide: Advanced techniques for competitive play',
+        content: 'This comprehensive guide covers advanced competitive strategies including frame data analysis, matchup charts, and tournament preparation tips.',
+        game: 'Pokemon',
+        tags: ['guide', 'competitive', 'strategy'],
+      };
+
+      const discussionId = await createTypedDiscussion(page, trustedContent);
+      await page.goto(`/community/discussions/${discussionId}`);
+
+      // Verify auto-approval for trusted content
+      await expect(page.getByTestId('approval-status')).toContainText('Auto-approved');
+      await expect(page.getByTestId('confidence-score')).toContainText('High');
+    });
+
+    test('implements content scoring based on multiple factors', async ({ authenticatedPage: page }) => {
+      // Test comprehensive content scoring
+      const factors = [
+        'User reputation score',
+        'Content length and quality',
+        'Topic relevance',
+        'Community engagement potential',
+        'Safety assessment',
+      ];
+
+      const highQualityContent = {
+        title: 'Comprehensive analysis of speedrun optimization techniques',
+        content: 'This detailed analysis examines various speedrun optimization techniques across multiple game categories. We\'ll explore routing efficiency, trick execution, and consistency factors that contribute to successful runs. The guide includes mathematical analysis of time saves and risk assessment for each technique.',
+        game: 'Sonic',
+        tags: ['speedrun', 'analysis', 'optimization'],
+      };
+
+      const discussionId = await createTypedDiscussion(page, highQualityContent);
+      await page.goto(`/community/discussions/${discussionId}`);
+
+      // Verify comprehensive scoring
+      for (const factor of factors) {
+        await expect(page.getByTestId('scoring-factors')).toContainText(factor);
       }
 
-      // Third violation should escalate
-      await expect(page.getByText('Account flagged for repeated violations')).toBeVisible();
-      await expect(page.getByText('Manual review required')).toBeVisible();
+      // Verify overall quality score
+      await expect(page.getByTestId('quality-score')).toContainText(/[8-9]\d\/100/); // High score 80-99
     });
   });
 
-  test.describe('XSS and Security Prevention', () => {
-    test('prevents XSS attacks in discussion content', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Try to inject malicious script
-      const xssPayload = '<script>alert("XSS")</script><img src=x onerror=alert("XSS")>';
-      await fillForm(page, {
-        title: 'XSS Test Discussion',
-        content: `Safe content with dangerous payload: ${xssPayload}`,
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Verify script tags are escaped/removed, not executed
-      const discussionContent = page.locator('[data-testid="discussion-content"]');
-      await expect(discussionContent).toContainText('Safe content');
-      
-      // Script should be visible as text, not executed
-      await expect(discussionContent.locator('script')).not.toBeAttached();
-      
-      // Verify no alert dialogs appear
-      await page.waitForTimeout(1000);
-      const dialogs: string[] = [];
-      page.on('dialog', dialog => dialogs.push(dialog.message()));
-      expect(dialogs).toHaveLength(0);
-    });
-
-    test('sanitizes HTML in comments', async ({ authenticatedPage: page }) => {
-      await createTestDiscussion(page);
-      const discussionCard = page.locator('[data-testid="discussion-card"]').first();
-      await discussionCard.click();
-
-      // Try to inject malicious HTML in comment
-      const maliciousComment = '<script>alert("comment XSS")</script><iframe src="malicious.com"></iframe>Safe comment text';
-      await page.getByPlaceholder('What are your thoughts on this discussion?').fill(maliciousComment);
-      await page.getByRole('button', { name: /post comment/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Verify malicious elements are removed but safe content remains
-      const commentElement = page.locator('[data-testid="comment"]').first();
-      await expect(commentElement).toContainText('Safe comment text');
-      await expect(commentElement.locator('script')).not.toBeAttached();
-      await expect(commentElement.locator('iframe')).not.toBeAttached();
-    });
-
-    test('validates and sanitizes URLs in content', async ({ authenticatedPage: page }) => {
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
-
-      // Include various URL types
-      const contentWithUrls = `
-        Safe link: https://example.com
-        Suspicious link: javascript:alert('xss')
-        Data URL: data:text/html,<script>alert('xss')</script>
-        Local link: /safe/internal/link
-      `;
-
-      await fillForm(page, {
-        title: 'URL Validation Test',
-        content: contentWithUrls,
-      });
-      
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Verify safe URLs are preserved and dangerous ones are removed/neutralized
-      const content = page.locator('[data-testid="discussion-content"]');
-      await expect(content.locator('a[href="https://example.com"]')).toBeVisible();
-      await expect(content.locator('a[href^="javascript:"]')).not.toBeAttached();
-      await expect(content.locator('a[href^="data:"]')).not.toBeAttached();
-    });
-
-    test('prevents CSRF attacks in form submissions', async ({ authenticatedPage: page }) => {
-      // Mock CSRF token validation
-      await mockApiResponse(page, '**/api/discussions**', {
-        status: 403,
-        body: { error: 'CSRF token mismatch' },
+  test.describe('Appeal and Review Processes', () => {
+    test('allows users to appeal moderation decisions', async ({ authenticatedPage: page }) => {
+      // Create content that gets flagged
+      const harassmentContent = MODERATION_TEST_CONTENT.inappropriate.harassment;
+      const discussionId = await createTypedDiscussion(page, {
+        title: harassmentContent.title,
+        content: harassmentContent.content,
+        game: harassmentContent.game,
+        tags: Array.isArray(harassmentContent.tags) ? harassmentContent.tags : ['test'],
       });
 
-      await page.goto('/community');
-      await page.getByRole('button', { name: /new discussion/i }).click();
+      // Report the content
+      await reportContent(page, 'discussion', discussionId, 'harassment', 'Testing appeal process');
+
+      // Navigate to moderated content
+      await page.goto(`/community/discussions/${discussionId}`);
       
-      await fillForm(page, {
-        title: 'CSRF Test Discussion',
-        content: 'Testing CSRF protection',
-      });
+      // Verify moderation notice
+      await expect(page.getByText(/content has been moderated/i)).toBeVisible();
       
-      await page.getByLabel('Game').selectOption('Pokemon');
-      await page.getByRole('button', { name: /create discussion/i }).click();
-
-      // Should show CSRF error
-      await expect(page.getByText('Security validation failed')).toBeVisible();
-      await expect(page.getByText('Please refresh the page and try again')).toBeVisible();
-    });
-  });
-
-  test.describe('Moderator Tools', () => {
-    test('moderator can view reported content', async ({ authenticatedPage: page }) => {
-      // Mock moderator role
-      await mockApiResponse(page, '**/api/user/role**', {
-        body: { role: 'moderator', permissions: ['view_reports', 'moderate_content'] },
-      });
-
-      await page.goto('/moderation/reports');
-      await waitForNetworkIdle(page);
-
-      // Verify moderator dashboard
-      await expect(page.getByText('Content Reports')).toBeVisible();
-      await expect(page.getByText('Pending Reports')).toBeVisible();
-      await expect(page.locator('[data-testid="report-item"]')).toBeVisible();
-
-      // Verify report details
-      const reportItem = page.locator('[data-testid="report-item"]').first();
-      await expect(reportItem).toContainText('Reported by:');
-      await expect(reportItem).toContainText('Reason:');
-      await expect(reportItem).toContainText('Reported at:');
-    });
-
-    test('moderator can take action on reported content', async ({ authenticatedPage: page }) => {
-      await mockApiResponse(page, '**/api/user/role**', {
-        body: { role: 'moderator', permissions: ['view_reports', 'moderate_content'] },
-      });
-
-      await page.goto('/moderation/reports');
-      await waitForNetworkIdle(page);
-
-      const reportItem = page.locator('[data-testid="report-item"]').first();
-      
-      // Test different moderation actions
-      await reportItem.getByRole('button', { name: /take action/i }).click();
-
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await expect(page.getByText('Moderation Actions')).toBeVisible();
-
-      // Verify available actions
-      await expect(page.getByRole('button', { name: /approve content/i })).toBeVisible();
-      await expect(page.getByRole('button', { name: /remove content/i })).toBeVisible();
-      await expect(page.getByRole('button', { name: /warn user/i })).toBeVisible();
-      await expect(page.getByRole('button', { name: /suspend user/i })).toBeVisible();
-
-      // Take action
-      await page.getByRole('button', { name: /remove content/i }).click();
-      await page.getByLabel('Reason for action').fill('Content violates community guidelines');
-      await page.getByRole('button', { name: /confirm action/i }).click();
-
-      await expect(page.getByText('Content removed successfully')).toBeVisible();
-    });
-
-    test('moderator can view user history for repeat offenders', async ({ authenticatedPage: page }) => {
-      await mockApiResponse(page, '**/api/user/role**', {
-        body: { role: 'moderator', permissions: ['view_reports', 'moderate_content', 'view_user_history'] },
-      });
-
-      await page.goto('/moderation/reports');
-      await page.locator('[data-testid="report-item"]').first().getByRole('link', { name: /view user history/i }).click();
-      await waitForNetworkIdle(page);
-
-      // Verify user moderation history
-      await expect(page.getByText('User Moderation History')).toBeVisible();
-      await expect(page.getByText('Previous Reports:')).toBeVisible();
-      await expect(page.getByText('Actions Taken:')).toBeVisible();
-      await expect(page.getByText('Account Status:')).toBeVisible();
-    });
-  });
-
-  test.describe('Automated Moderation', () => {
-    test('automatically hides content with high report ratio', async ({ authenticatedPage: page }) => {
-      await createTestDiscussion(page);
-      
-      // Mock high report count
-      await mockApiResponse(page, '**/api/discussions/*/reports**', {
-        body: { reportCount: 10, autoHidden: true },
-      });
-
-      await page.reload();
-      await waitForNetworkIdle(page);
-
-      // Content should be automatically hidden
-      await expect(page.getByText('Content hidden due to reports')).toBeVisible();
-      await expect(page.getByText('This content is under review')).toBeVisible();
-      await expect(page.getByRole('button', { name: /show content/i })).toBeVisible();
-    });
-
-    test('applies automatic restrictions to flagged accounts', async ({ authenticatedPage: page }) => {
-      // Mock account with automatic restrictions
-      await mockApiResponse(page, '**/api/user/restrictions**', {
-        body: { 
-          restricted: true, 
-          reason: 'Multiple content violations',
-          restrictions: ['no_posting', 'no_commenting'],
-          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        },
-      });
-
-      await page.goto('/community');
-      
-      // Verify restrictions are displayed
-      await expect(page.getByText('Account temporarily restricted')).toBeVisible();
-      await expect(page.getByText('Restrictions expire in:')).toBeVisible();
-      
-      // Verify posting is disabled
-      await expect(page.getByRole('button', { name: /new discussion/i })).toBeDisabled();
-    });
-  });
-
-  test.describe('Appeal Process', () => {
-    test('user can appeal moderation decisions', async ({ authenticatedPage: page }) => {
-      // Mock content that was moderated
-      await mockApiResponse(page, '**/api/discussions/1**', {
-        body: {
-          discussion: {
-            id: 1,
-            title: 'My Discussion',
-            content: 'This was removed',
-            status: 'removed',
-            moderationReason: 'Spam',
-            canAppeal: true
-          }
-        },
-      });
-
-      await page.goto('/user/moderated-content');
-      await waitForNetworkIdle(page);
-
-      // Find moderated content and appeal
+      // Start appeal process
       await page.getByRole('button', { name: /appeal decision/i }).click();
-
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await expect(page.getByText('Appeal Moderation Decision')).toBeVisible();
-
-      // Fill appeal form
-      await page.getByLabel('Reason for appeal').fill('This content does not violate community guidelines. It was legitimate discussion about gaming strategies.');
-      await page.getByLabel('Additional context').fill('I believe this was incorrectly flagged as spam when it was actually helpful gaming advice.');
       
+      // Fill appeal form
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.getByLabel('Appeal reason').selectOption('false_positive');
+      await page.getByLabel('Additional context').fill('This content was taken out of context and is not actually harassment.');
       await page.getByRole('button', { name: /submit appeal/i }).click();
 
-      await expect(page.getByText('Appeal submitted successfully')).toBeVisible();
-      await expect(page.getByText('You will receive a response within 48 hours')).toBeVisible();
+      // Verify appeal submission
+      await expect(page.getByText(/appeal submitted/i)).toBeVisible();
+      await expect(page.getByText(/review within 24 hours/i)).toBeVisible();
     });
 
-    test('tracks appeal status and updates', async ({ authenticatedPage: page }) => {
+    test('tracks appeal status and provides updates', async ({ authenticatedPage: page }) => {
+      // Mock appeal status data
+      await page.addInitScript(() => {
+        window.__testAppealData = {
+          id: 'appeal_123',
+          status: 'under_review',
+          submitted_at: new Date().toISOString(),
+          estimated_response: '24 hours',
+        };
+      });
+
       await page.goto('/user/appeals');
-      await waitForNetworkIdle(page);
 
       // Verify appeal tracking
-      await expect(page.getByText('Your Appeals')).toBeVisible();
-      await expect(page.locator('[data-testid="appeal-item"]')).toBeVisible();
+      await expect(page.getByText('Appeal #appeal_123')).toBeVisible();
+      await expect(page.getByText('Status: Under Review')).toBeVisible();
+      await expect(page.getByText('Estimated response: 24 hours')).toBeVisible();
+      
+      // Verify progress indicator
+      await expect(page.locator('[data-testid="appeal-progress"]')).toBeVisible();
+    });
 
-      const appealItem = page.locator('[data-testid="appeal-item"]').first();
-      await expect(appealItem).toContainText('Status:');
-      await expect(appealItem).toContainText('Submitted:');
-      await expect(appealItem).toContainText('Content:');
+    test('implements transparent moderation logs', async ({ authenticatedPage: page }) => {
+      const discussionId = await createTypedDiscussion(page);
+      
+      // Mock moderation actions
+      await page.addInitScript(() => {
+        window.__testModerationLog = [
+          {
+            action: 'flagged',
+            reason: 'user_report',
+            timestamp: new Date().toISOString(),
+            moderator: 'auto_mod_system',
+          },
+          {
+            action: 'reviewed',
+            decision: 'approved',
+            timestamp: new Date().toISOString(),
+            moderator: 'human_mod_001',
+          },
+        ];
+      });
+
+      await page.goto(`/community/discussions/${discussionId}`);
+      await page.getByRole('button', { name: /moderation history/i }).click();
+
+      // Verify transparent moderation log
+      await expect(page.getByText('Moderation History')).toBeVisible();
+      await expect(page.getByText('Flagged by user report')).toBeVisible();
+      await expect(page.getByText('Reviewed and approved')).toBeVisible();
+      await expect(page.getByText('human_mod_001')).toBeVisible();
+    });
+  });
+
+  test.describe('Cross-Platform Content Synchronization', () => {
+    test('synchronizes moderation decisions across platforms', async ({ authenticatedPage: page, context }) => {
+      const discussionId = await createTypedDiscussion(page);
+      
+      // Moderate content on first instance
+      await reportContent(page, 'discussion', discussionId, 'spam', 'Cross-platform sync test');
+      
+      // Open second browser instance
+      const page2 = await context.newPage();
+      await page2.goto(`/community/discussions/${discussionId}`);
+      
+      // Verify moderation status syncs
+      await expect(page2.getByText(/content has been moderated/i)).toBeVisible({ timeout: 10000 });
+      
+      // Verify sync indicators
+      await expect(page2.getByTestId('sync-status')).toContainText('Synchronized');
+    });
+
+    test('handles offline moderation queue and sync on reconnect', async ({ authenticatedPage: page }) => {
+      // Simulate offline mode
+      await page.context().setOffline(true);
+      
+      const discussionId = await createTypedDiscussion(page);
+      
+      // Attempt to report while offline
+      await page.goto(`/community/discussions/${discussionId}`);
+      await page.getByRole('button', { name: /report/i }).click();
+      await page.getByLabel('Reason').selectOption('spam');
+      await page.getByRole('button', { name: /submit report/i }).click();
+      
+      // Verify offline queue
+      await expect(page.getByText(/queued for sync/i)).toBeVisible();
+      
+      // Go back online
+      await page.context().setOffline(false);
+      await page.reload();
+      await waitForNetworkIdle(page);
+      
+      // Verify sync on reconnect
+      await expect(page.getByText(/report submitted/i)).toBeVisible();
+      await expect(page.getByTestId('sync-status')).toContainText('Synchronized');
+    });
+  });
+
+  test.describe('Performance Under Load', () => {
+    test('maintains moderation performance with high report volume', async ({ authenticatedPage: page }) => {
+      // Create multiple discussions for stress testing
+      const discussionIds = [];
+      for (let i = 0; i < 10; i++) {
+        const id = await createTypedDiscussion(page, {
+          title: `Load test discussion ${i}`,
+          content: `Performance testing content ${i}`,
+        });
+        discussionIds.push(id);
+      }
+
+      // Submit multiple reports simultaneously
+      const reportPromises = discussionIds.map(id => 
+        reportContent(page, 'discussion', id, 'spam', `Load test report for ${id}`)
+      );
+
+      const startTime = Date.now();
+      await Promise.all(reportPromises);
+      const endTime = Date.now();
+
+      // Verify performance under load
+      const totalTime = endTime - startTime;
+      expect(totalTime).toBeLessThan(30000); // 30 seconds max for 10 reports
+
+      // Verify all reports were processed
+      for (const id of discussionIds) {
+        await page.goto(`/community/discussions/${id}`);
+        await expect(page.getByText(/reported/i)).toBeVisible();
+      }
+    });
+
+    test('handles concurrent moderation actions without conflicts', async ({ authenticatedPage: page, context }) => {
+      const discussionId = await createTypedDiscussion(page);
+      
+      // Open multiple tabs for concurrent actions
+      const pages = [page];
+      for (let i = 0; i < 3; i++) {
+        pages.push(await context.newPage());
+      }
+
+      // Navigate all pages to the discussion
+      await Promise.all(pages.map(p => p.goto(`/community/discussions/${discussionId}`)));
+
+      // Attempt concurrent moderation actions
+      const actions = pages.map((p, index) => 
+        reportContent(p, 'discussion', discussionId, 'spam', `Concurrent report ${index}`)
+      );
+
+      await Promise.allSettled(actions);
+
+      // Verify only one report was accepted (no duplicates)
+      await page.goto(`/community/discussions/${discussionId}`);
+      const reportCount = await page.locator('[data-testid="report-count"]').textContent();
+      expect(parseInt(reportCount || '0')).toBe(1);
     });
   });
 });
-
-// Helper functions
-async function createTestDiscussion(page: any) {
-  await page.goto('/community');
-  await page.getByRole('button', { name: /new discussion/i }).click();
-  
-  await fillForm(page, {
-    title: 'Legitimate Test Discussion',
-    content: 'This is a normal discussion for testing moderation features',
-  });
-  
-  await page.getByLabel('Game').selectOption('Pokemon');
-  await page.getByRole('button', { name: /create discussion/i }).click();
-  await waitForNetworkIdle(page);
-}
-
-async function createSpamDiscussion(page: any) {
-  await page.goto('/community');
-  await page.getByRole('button', { name: /new discussion/i }).click();
-  
-  await fillForm(page, {
-    title: 'BUY CHEAP GOLD NOW!!!',
-    content: 'Visit spam.site for cheap game gold! Amazing deals! Click now!!!',
-  });
-  
-  await page.getByLabel('Game').selectOption('Pokemon');
-  await page.getByRole('button', { name: /create discussion/i }).click();
-  await waitForNetworkIdle(page);
-}

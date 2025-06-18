@@ -138,13 +138,14 @@ const nextConfig: NextConfig = {
     webVitalsAttribution: ['CLS', 'LCP', 'FCP', 'TTFB', 'INP'],
     // Disable memory optimizations to fix module loading
     webpackMemoryOptimizations: false,
-    // Add turbo configuration to improve development performance
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+    // Turbopack is now stable - moved to top-level config
+  },
+  // Turbopack configuration (moved from experimental as it's now stable)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },

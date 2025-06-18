@@ -5,7 +5,7 @@
  * with type safety and reusable patterns
  */
 
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../../types/database.types';
 
 // Test environment configuration
 export const TEST_CONFIG = {
@@ -53,20 +53,24 @@ export const TEST_CONFIG = {
 } as const;
 
 // Type guards for database tables
-export function isValidDiscussion(data: any): data is Tables<'discussions'> {
+export function isValidDiscussion(data: unknown): data is Tables<'discussions'> {
+  if (typeof data !== 'object' || data === null) return false;
+  
+  const obj = data as Record<string, unknown>;
   return (
-    typeof data === 'object' &&
-    typeof data.title === 'string' &&
-    typeof data.content === 'string' &&
-    typeof data.game === 'string'
+    typeof obj.title === 'string' &&
+    typeof obj.content === 'string' &&
+    typeof obj.game === 'string'
   );
 }
 
-export function isValidComment(data: any): data is Tables<'comments'> {
+export function isValidComment(data: unknown): data is Tables<'comments'> {
+  if (typeof data !== 'object' || data === null) return false;
+  
+  const obj = data as Record<string, unknown>;
   return (
-    typeof data === 'object' &&
-    typeof data.content === 'string' &&
-    typeof data.discussion_id === 'number'
+    typeof obj.content === 'string' &&
+    typeof obj.discussion_id === 'number'
   );
 }
 
@@ -208,7 +212,11 @@ export const TEST_USERS: Record<string, TestUser> = {
 
 // Helper to get test user by type
 export function getTestUser(userType: keyof typeof TEST_USERS): TestUser {
-  return TEST_USERS[userType];
+  const user = TEST_USERS[userType];
+  if (!user) {
+    throw new Error(`Test user type '${userType}' not found`);
+  }
+  return user;
 }
 
 // Mock data generators configuration

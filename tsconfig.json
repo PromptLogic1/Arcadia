@@ -56,7 +56,9 @@
     "types/*.d.ts",
     "types/testing.d.ts",
     "lib/jest/jest.setup.ts",
-    "dist/types/**/*.ts"
+    "dist/types/**/*.ts",
+    "tests/**/*.ts",
+    "tests/**/*.spec.ts"
   ],
   "exclude": [
     "node_modules",

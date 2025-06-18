@@ -110,7 +110,6 @@ jest.mock('@/lib/supabase', () => ({
 
 // Extend global interface to include mockSupabaseClient
 declare global {
-  // eslint-disable-next-line no-var
   var mockSupabaseClient: MockSupabaseClient;
 }
 

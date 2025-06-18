@@ -10,6 +10,56 @@ import type { Page } from '@playwright/test';
 import type { InfrastructureError } from './types/errors';
 import { generateInfrastructureError } from './utils/error-generators';
 import { mockInfrastructureFailure } from './utils/mock-helpers';
+import type { TestWindow } from '../types/test-types';
+
+interface ConnectionPool {
+  acquire(): Promise<string>;
+  release(connectionId: string): void;
+  getStats(): {
+    active: number;
+    waiting: number;
+    maxConnections: number;
+  };
+}
+
+interface LeaseableConnection {
+  lease(): string;
+  operate(leaseId: string): boolean;
+  release(leaseId: string): boolean;
+  getActiveLeases(): number;
+}
+
+interface ResilientRedisClient {
+  execute(operation: string): Promise<string>;
+  getConnectionState(): {
+    state: string;
+    reconnectAttempts: number;
+  };
+}
+
+interface PerformanceMonitor {
+  startOperation(): string;
+  endOperation(operationId: string, success: boolean): void;
+  getMetrics(): {
+    totalOps: number;
+    completedOps: number;
+    successRate: number;
+    avgDuration: number;
+    p95Duration: number;
+    minDuration: number;
+    maxDuration: number;
+  };
+}
+
+interface RedisCircuitBreaker {
+  execute<T>(operation: () => Promise<T>): Promise<T>;
+  getState(): {
+    state: string;
+    failureCount: number;
+    successCount: number;
+    lastFailureTime: number;
+  };
+}
 
 test.describe('Redis Connection Exhaustion Resilience', () => {
   test.describe('Connection Pool Management', () => {
@@ -72,15 +122,17 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
           }
         }
         
-        (window as any).redisPool = new ConnectionPool();
+        const testWindow = window as TestWindow & { redisPool?: ConnectionPool };
+        testWindow.redisPool = new ConnectionPool();
       });
       
       // Simulate high concurrent load
-      const connectionPromises: Promise<any>[] = [];
+      const connectionPromises: Promise<unknown>[] = [];
       
       for (let i = 0; i < 15; i++) {
         const promise = page.evaluate(async (index) => {
-          const pool = (window as any).redisPool;
+          const testWindow = window as TestWindow & { redisPool?: ConnectionPool };
+          const pool = testWindow.redisPool!;
           const start = Date.now();
           
           try {
@@ -92,14 +144,14 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
             const duration = Date.now() - start;
             pool.release(connectionId);
             
-            return { success: true, duration, index };
+            return { success: true, duration, index } as const;
           } catch (error) {
             return { 
               success: false, 
-              error: error.message, 
+              error: (error as Error).message, 
               duration: Date.now() - start,
               index 
-            };
+            } as const;
           }
         }, i);
         
@@ -109,8 +161,12 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       const results = await Promise.all(connectionPromises);
       
       // Verify pool exhaustion handling
-      const successful = results.filter(r => r.success);
-      const failed = results.filter(r => !r.success);
+      const successful = results.filter((r): r is { success: true; duration: number; index: number } => 
+        typeof r === 'object' && r !== null && 'success' in r && r.success === true
+      );
+      const failed = results.filter((r): r is { success: false; duration: number; index: number; error: string } => 
+        typeof r === 'object' && r !== null && 'success' in r && r.success === false
+      );
       
       // Should have some successful connections (up to pool size)
       expect(successful.length).toBeGreaterThan(0);
@@ -126,9 +182,10 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       });
       
       // Verify pool stats
-      const finalStats = await page.evaluate(() => 
-        (window as any).redisPool.getStats()
-      );
+      const finalStats = await page.evaluate(() => {
+        const testWindow = window as TestWindow & { redisPool?: ConnectionPool };
+        return testWindow.redisPool!.getStats();
+      });
       
       expect(finalStats.active).toBe(0); // All connections should be released
       expect(finalStats.waiting).toBe(0); // No waiting connections
@@ -187,27 +244,29 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
           getActiveLeases(): number {
             // Clean up expired leases
             const now = Date.now();
-            for (const [leaseId, lease] of this.leases.entries()) {
+            Array.from(this.leases.entries()).forEach(([leaseId, lease]) => {
               if (now > lease.leaseExpiry) {
                 this.leases.delete(leaseId);
               }
-            }
+            });
             return this.leases.size;
           }
         }
         
-        (window as any).connectionLease = new LeaseableConnection();
+        const testWindow = window as TestWindow & { connectionLease?: LeaseableConnection };
+        testWindow.connectionLease = new LeaseableConnection();
       });
       
       // Test lease lifecycle
       const leaseId = await page.evaluate(() => {
-        const lease = (window as any).connectionLease;
-        return lease.lease();
+        const testWindow = window as TestWindow & { connectionLease?: LeaseableConnection };
+        return testWindow.connectionLease!.lease();
       });
       
       // Should be able to operate immediately
       const operateSuccess = await page.evaluate((id) => {
-        return (window as any).connectionLease.operate(id);
+        const testWindow = window as TestWindow & { connectionLease?: LeaseableConnection };
+        return testWindow.connectionLease!.operate(id);
       }, leaseId);
       
       expect(operateSuccess).toBe(true);
@@ -217,15 +276,17 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       
       // Should not be able to operate after expiry
       const operateAfterExpiry = await page.evaluate((id) => {
-        return (window as any).connectionLease.operate(id);
+        const testWindow = window as TestWindow & { connectionLease?: LeaseableConnection };
+        return testWindow.connectionLease!.operate(id);
       }, leaseId);
       
       expect(operateAfterExpiry).toBe(false);
       
       // Active leases should be 0 after cleanup
-      const activeLeases = await page.evaluate(() => 
-        (window as any).connectionLease.getActiveLeases()
-      );
+      const activeLeases = await page.evaluate(() => {
+        const testWindow = window as TestWindow & { connectionLease?: LeaseableConnection };
+        return testWindow.connectionLease!.getActiveLeases();
+      });
       
       expect(activeLeases).toBe(0);
     });
@@ -299,15 +360,17 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
           }
         }
         
-        (window as any).resilientRedis = new ResilientRedisClient();
+        const testWindow = window as TestWindow & { resilientRedis?: ResilientRedisClient };
+        testWindow.resilientRedis = new ResilientRedisClient();
       });
       
       // Perform multiple operations to trigger failures and recovery
-      const results: any[] = [];
+      const results: Array<{ success: boolean; response?: string; error?: string; duration: number; connectionState: { state: string; reconnectAttempts: number } }> = [];
       
       for (let i = 0; i < 20; i++) {
         const result = await page.evaluate(async (index) => {
-          const client = (window as any).resilientRedis;
+          const testWindow = window as TestWindow & { resilientRedis?: ResilientRedisClient };
+          const client = testWindow.resilientRedis!;
           const start = Date.now();
           
           try {
@@ -321,7 +384,7 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
           } catch (error) {
             return {
               success: false,
-              error: error.message,
+              error: (error as Error).message,
               duration: Date.now() - start,
               connectionState: client.getConnectionState(),
             };
@@ -345,9 +408,10 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       expect(withReconnects.length).toBeGreaterThan(0);
       
       // Final state should be stable
-      const finalState = await page.evaluate(() => 
-        (window as any).resilientRedis.getConnectionState()
-      );
+      const finalState = await page.evaluate(() => {
+        const testWindow = window as TestWindow & { resilientRedis?: ResilientRedisClient };
+        return testWindow.resilientRedis!.getConnectionState();
+      });
       
       expect(['connected', 'disconnected']).toContain(finalState.state);
     });
@@ -406,11 +470,12 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
           }
         }
         
-        (window as any).perfMonitor = new PerformanceMonitor();
+        const testWindow = window as TestWindow & { perfMonitor?: PerformanceMonitor; simulateRedisOp?: () => Promise<{ success: boolean; duration?: number; error?: string }> };
+        testWindow.perfMonitor = new PerformanceMonitor();
         
         // Simulate Redis operations with limited pool
-        (window as any).simulateRedisOp = async () => {
-          const monitor = (window as any).perfMonitor;
+        testWindow.simulateRedisOp = async () => {
+          const monitor = testWindow.perfMonitor!;
           const operationId = monitor.startOperation();
           
           try {
@@ -428,7 +493,7 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
             return { success: true, duration: delay };
           } catch (error) {
             monitor.endOperation(operationId, false);
-            return { success: false, error: error.message };
+            return { success: false, error: (error as Error).message };
           }
         };
       });
@@ -436,16 +501,20 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       // Run concurrent operations
       const startTime = Date.now();
       const operations = Array.from({ length: 50 }, (_, i) => 
-        page.evaluate(() => (window as any).simulateRedisOp())
+        page.evaluate(() => {
+          const testWindow = window as TestWindow & { simulateRedisOp?: () => Promise<{ success: boolean; duration?: number; error?: string }> };
+          return testWindow.simulateRedisOp!();
+        })
       );
       
       await Promise.all(operations);
       const totalTime = Date.now() - startTime;
       
       // Analyze performance metrics
-      const metrics = await page.evaluate(() => 
-        (window as any).perfMonitor.getMetrics()
-      );
+      const metrics = await page.evaluate(() => {
+        const testWindow = window as TestWindow & { perfMonitor?: PerformanceMonitor };
+        return testWindow.perfMonitor!.getMetrics();
+      });
       
       // Performance assertions
       expect(metrics.successRate).toBeGreaterThan(90); // At least 90% success
@@ -528,13 +597,15 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
           }
         }
         
-        (window as any).redisCircuitBreaker = new RedisCircuitBreaker();
+        const testWindow = window as TestWindow & { redisCircuitBreaker?: RedisCircuitBreaker };
+        testWindow.redisCircuitBreaker = new RedisCircuitBreaker();
       });
       
       // Trigger failures to open circuit
       for (let i = 0; i < 6; i++) {
         await page.evaluate(async () => {
-          const cb = (window as any).redisCircuitBreaker;
+          const testWindow = window as TestWindow & { redisCircuitBreaker?: RedisCircuitBreaker };
+          const cb = testWindow.redisCircuitBreaker!;
           try {
             await cb.execute(async () => {
               throw new Error('Redis connection failed');
@@ -546,21 +617,23 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       }
       
       // Verify circuit is open
-      let state = await page.evaluate(() => 
-        (window as any).redisCircuitBreaker.getState()
-      );
+      let state = await page.evaluate(() => {
+        const testWindow = window as TestWindow & { redisCircuitBreaker?: RedisCircuitBreaker };
+        return testWindow.redisCircuitBreaker!.getState();
+      });
       
       expect(state.state).toBe('OPEN');
       expect(state.failureCount).toBeGreaterThanOrEqual(5);
       
       // Verify requests are rejected
       const rejectedError = await page.evaluate(async () => {
-        const cb = (window as any).redisCircuitBreaker;
+        const testWindow = window as TestWindow & { redisCircuitBreaker?: RedisCircuitBreaker };
+        const cb = testWindow.redisCircuitBreaker!;
         try {
           await cb.execute(async () => 'success');
           return null;
         } catch (error) {
-          return error.message;
+          return (error as Error).message;
         }
       });
       
@@ -571,16 +644,18 @@ test.describe('Redis Connection Exhaustion Resilience', () => {
       
       // Should transition to HALF_OPEN and allow test requests
       await page.evaluate(async () => {
-        const cb = (window as any).redisCircuitBreaker;
+        const testWindow = window as TestWindow & { redisCircuitBreaker?: RedisCircuitBreaker };
+        const cb = testWindow.redisCircuitBreaker!;
         
         // Two successful operations should close circuit
         await cb.execute(async () => 'success');
         await cb.execute(async () => 'success');
       });
       
-      state = await page.evaluate(() => 
-        (window as any).redisCircuitBreaker.getState()
-      );
+      state = await page.evaluate(() => {
+        const testWindow = window as TestWindow & { redisCircuitBreaker?: RedisCircuitBreaker };
+        return testWindow.redisCircuitBreaker!.getState();
+      });
       
       expect(state.state).toBe('CLOSED');
       expect(state.failureCount).toBe(0);

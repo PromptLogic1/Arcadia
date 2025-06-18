@@ -10,12 +10,12 @@ import type { BoardCell } from '../../../src/features/bingo-boards/types';
 // =============================================================================
 
 export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_cards'>[]> = {
-  valorant: [
+  'Valorant': [
     {
       id: 'card-val-ace',
       title: 'Get an ace',
       description: 'Eliminate all 5 enemy players in a round',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'hard',
       tags: ['elimination', 'skill', 'round-win'],
       is_public: true,
@@ -28,7 +28,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-clutch',
       title: 'Clutch 1v3',
       description: 'Win a round when outnumbered 3 to 1',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'expert',
       tags: ['clutch', 'skill', 'pressure'],
       is_public: true,
@@ -41,7 +41,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-spike',
       title: 'Plant the spike',
       description: 'Successfully plant the spike on a site',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'easy',
       tags: ['objective', 'attacker'],
       is_public: true,
@@ -54,7 +54,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-defuse',
       title: 'Defuse the spike',
       description: 'Successfully defuse the planted spike',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'medium',
       tags: ['objective', 'defender'],
       is_public: true,
@@ -67,7 +67,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-headshot',
       title: '5 headshot kills',
       description: 'Get 5 headshot eliminations in a match',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'medium',
       tags: ['aim', 'skill', 'elimination'],
       is_public: true,
@@ -80,7 +80,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-economy',
       title: 'Win an eco round',
       description: 'Win a round with inferior economy',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'hard',
       tags: ['economy', 'strategy', 'teamwork'],
       is_public: true,
@@ -93,7 +93,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-flawless',
       title: 'Flawless round',
       description: 'Win a round without any team deaths',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'hard',
       tags: ['teamwork', 'perfect', 'round-win'],
       is_public: true,
@@ -106,7 +106,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-wallbang',
       title: 'Wallbang elimination',
       description: 'Eliminate an enemy through a wall',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'medium',
       tags: ['skill', 'game-sense', 'elimination'],
       is_public: true,
@@ -119,7 +119,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-val-knife',
       title: 'Knife elimination',
       description: 'Get a knife kill on an enemy',
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'hard',
       tags: ['melee', 'risky', 'elimination'],
       is_public: true,
@@ -129,12 +129,12 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       updated_at: '2024-01-01T00:00:00Z'
     }
   ],
-  minecraft: [
+  'Minecraft': [
     {
       id: 'card-mc-diamond',
       title: 'Find diamonds',
       description: 'Mine your first diamond ore',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'medium',
       tags: ['mining', 'resources', 'progression'],
       is_public: true,
@@ -147,7 +147,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-nether',
       title: 'Enter the Nether',
       description: 'Build a portal and enter the Nether',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'easy',
       tags: ['dimension', 'exploration', 'progression'],
       is_public: true,
@@ -160,7 +160,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-dragon',
       title: 'Defeat the Ender Dragon',
       description: 'Defeat the final boss',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'expert',
       tags: ['boss', 'endgame', 'combat'],
       is_public: true,
@@ -173,7 +173,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-enchant',
       title: 'Enchant an item',
       description: 'Use an enchanting table to enchant any item',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'medium',
       tags: ['enchanting', 'progression', 'crafting'],
       is_public: true,
@@ -186,7 +186,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-village',
       title: 'Find a village',
       description: 'Discover a naturally spawned village',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'easy',
       tags: ['exploration', 'structures', 'villagers'],
       is_public: true,
@@ -199,7 +199,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-farm',
       title: 'Build an automatic farm',
       description: 'Create any type of automatic farm',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'hard',
       tags: ['redstone', 'automation', 'building'],
       is_public: true,
@@ -212,7 +212,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-tame',
       title: 'Tame 3 different animals',
       description: 'Tame a wolf, cat, and horse',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'medium',
       tags: ['animals', 'taming', 'collection'],
       is_public: true,
@@ -225,7 +225,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-elytra',
       title: 'Obtain Elytra',
       description: 'Find and equip Elytra wings',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'hard',
       tags: ['end-city', 'exploration', 'flying'],
       is_public: true,
@@ -238,7 +238,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-mc-beacon',
       title: 'Activate a beacon',
       description: 'Build and activate a full beacon',
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'expert',
       tags: ['building', 'resources', 'endgame'],
       is_public: true,
@@ -248,12 +248,12 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       updated_at: '2024-01-01T00:00:00Z'
     }
   ],
-  'league-of-legends': [
+  'League of Legends': [
     {
       id: 'card-lol-pentakill',
       title: 'Get a Pentakill',
       description: 'Eliminate all 5 enemy champions rapidly',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'expert',
       tags: ['elimination', 'teamfight', 'legendary'],
       is_public: true,
@@ -266,7 +266,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-first-blood',
       title: 'Get First Blood',
       description: 'Score the first kill of the game',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'medium',
       tags: ['early-game', 'elimination', 'gold'],
       is_public: true,
@@ -279,7 +279,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-baron',
       title: 'Secure Baron Nashor',
       description: 'Last hit Baron Nashor for your team',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'hard',
       tags: ['objective', 'late-game', 'teamwork'],
       is_public: true,
@@ -292,7 +292,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-dragon-soul',
       title: 'Obtain Dragon Soul',
       description: 'Help your team secure Dragon Soul',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'hard',
       tags: ['objective', 'macro', 'teamwork'],
       is_public: true,
@@ -305,7 +305,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-perfect-cs',
       title: 'Perfect CS (10 min)',
       description: 'Get 90+ CS by 10 minutes',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'hard',
       tags: ['farming', 'laning', 'fundamentals'],
       is_public: true,
@@ -318,7 +318,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-ward-score',
       title: 'Vision Score 50+',
       description: 'Achieve 50+ vision score in a game',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'medium',
       tags: ['vision', 'support', 'macro'],
       is_public: true,
@@ -331,7 +331,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-steal',
       title: 'Steal enemy buff',
       description: 'Steal red or blue buff from enemy jungle',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'medium',
       tags: ['jungle', 'invade', 'risky'],
       is_public: true,
@@ -344,7 +344,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-tower-dive',
       title: 'Successful tower dive',
       description: 'Get a kill under enemy tower and survive',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'hard',
       tags: ['aggressive', 'coordination', 'risky'],
       is_public: true,
@@ -357,7 +357,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       id: 'card-lol-backdoor',
       title: 'Backdoor win',
       description: 'Win by backdooring the enemy nexus',
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'expert',
       tags: ['strategy', 'split-push', 'clutch'],
       is_public: true,
@@ -367,7 +367,40 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       updated_at: '2024-01-01T00:00:00Z'
     }
   ],
-  'custom-community': []
+  'All Games': [],
+  'World of Warcraft': [],
+  'Fortnite': [],
+  'Among Us': [],
+  'Apex Legends': [],
+  'Overwatch': [],
+  'Call of Duty: Warzone': [],
+  'CS:GO': [],
+  'Dota 2': [],
+  'Rocket League': [],
+  'Fall Guys': [],
+  'Dead by Daylight': [],
+  'Cyberpunk 2077': [],
+  'The Witcher 3': [],
+  'Elden Ring': [],
+  'Dark Souls': [],
+  'Bloodborne': [],
+  'Sekiro': [],
+  'Hollow Knight': [],
+  'Celeste': [],
+  'Hades': [],
+  'The Binding of Isaac': [],
+  'Risk of Rain 2': [],
+  'Deep Rock Galactic': [],
+  'Valheim': [],
+  'Subnautica': [],
+  "No Man's Sky": [],
+  'Terraria': [],
+  'Stardew Valley': [],
+  'Animal Crossing': [],
+  'Splatoon 3': [],
+  'Super Mario Odyssey': [],
+  'The Legend of Zelda: Breath of the Wild': [],
+  'Super Smash Bros. Ultimate': []
 };
 
 // =============================================================================
@@ -386,7 +419,7 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
       title: 'Valorant Beginner Bingo',
       description: 'Perfect for new players learning the basics',
       size: 3,
-      game_type: 'valorant',
+      game_type: 'Valorant',
       difficulty: 'beginner',
       is_public: true,
       board_state: null,
@@ -394,13 +427,13 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
         winConditions: { line: true, diagonal: false, corners: false, majority: false },
         sessionSettings: { max_players: 4, allow_spectators: true, auto_start: false, time_limit: null, require_approval: false, password: null }
       },
-      status: 'published',
+      status: 'draft',
       cloned_from: null,
       version: 1,
       votes: 0,
       bookmarked_count: 0
     },
-    cards: TYPED_CARD_FIXTURES.valorant.filter(card => ['easy', 'beginner'].includes(card.difficulty)).slice(0, 9),
+    cards: TYPED_CARD_FIXTURES['Valorant'].filter(card => ['easy', 'beginner'].includes(card.difficulty)).slice(0, 9),
     layout: [] // Would be populated based on cards
   },
   'minecraft-speedrun': {
@@ -408,7 +441,7 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
       title: 'Minecraft Speedrun Bingo',
       description: 'Race to complete these Minecraft challenges',
       size: 5,
-      game_type: 'minecraft',
+      game_type: 'Minecraft',
       difficulty: 'hard',
       is_public: true,
       board_state: null,
@@ -416,13 +449,13 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
         winConditions: { line: true, diagonal: true, corners: false, majority: false },
         sessionSettings: { max_players: 8, allow_spectators: true, auto_start: false, time_limit: 3600, require_approval: false, password: null }
       },
-      status: 'published',
+      status: 'draft',
       cloned_from: null,
       version: 1,
       votes: 0,
       bookmarked_count: 0
     },
-    cards: TYPED_CARD_FIXTURES.minecraft,
+    cards: TYPED_CARD_FIXTURES['Minecraft'],
     layout: []
   },
   'lol-teamfight': {
@@ -430,7 +463,7 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
       title: 'LoL Teamfight Tactics',
       description: 'Complete these objectives in your ranked games',
       size: 4,
-      game_type: 'league-of-legends',
+      game_type: 'League of Legends',
       difficulty: 'medium',
       is_public: true,
       board_state: null,
@@ -438,13 +471,13 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
         winConditions: { line: true, diagonal: true, corners: true, majority: false },
         sessionSettings: { max_players: 5, allow_spectators: false, auto_start: true, time_limit: null, require_approval: false, password: null }
       },
-      status: 'published',
+      status: 'draft',
       cloned_from: null,
       version: 1,
       votes: 0,
       bookmarked_count: 0
     },
-    cards: TYPED_CARD_FIXTURES['league-of-legends'].slice(0, 16),
+    cards: TYPED_CARD_FIXTURES['League of Legends'].slice(0, 16),
     layout: []
   }
 };
@@ -477,7 +510,7 @@ export const MULTIPLAYER_SCENARIOS: Record<string, MultiplayerScenarioFixture> =
     description: '2-player competitive race on a small board',
     playerCount: 2,
     boardSize: 3,
-    gameType: 'valorant',
+    gameType: 'Valorant',
     difficulty: 'easy',
     winConditions: { line: true, diagonal: false },
     sessionSettings: {
@@ -501,7 +534,7 @@ export const MULTIPLAYER_SCENARIOS: Record<string, MultiplayerScenarioFixture> =
     description: '4-player team-based competition',
     playerCount: 4,
     boardSize: 5,
-    gameType: 'minecraft',
+    gameType: 'Minecraft',
     difficulty: 'medium',
     winConditions: { line: true, diagonal: true, corners: false },
     sessionSettings: {
@@ -525,7 +558,7 @@ export const MULTIPLAYER_SCENARIOS: Record<string, MultiplayerScenarioFixture> =
     description: 'Maximum players on a large board',
     playerCount: 8,
     boardSize: 6,
-    gameType: 'league-of-legends',
+    gameType: 'League of Legends',
     difficulty: 'hard',
     winConditions: { line: true, diagonal: true, corners: true, majority: true },
     sessionSettings: {
@@ -549,7 +582,7 @@ export const MULTIPLAYER_SCENARIOS: Record<string, MultiplayerScenarioFixture> =
     description: 'Password-protected friends-only game',
     playerCount: 3,
     boardSize: 4,
-    gameType: 'custom-community',
+    gameType: 'All Games',
     difficulty: 'medium',
     winConditions: { line: true, diagonal: false, corners: true },
     sessionSettings: {
@@ -924,17 +957,32 @@ export function generateBoardLayout(
     const rowCells: BoardCell[] = [];
     for (let col = 0; col < boardSize; col++) {
       const card = cards[cardIndex % cards.length];
-      rowCells.push({
-        text: card.title,
-        colors: null,
-        completed_by: null,
-        blocked: false,
-        is_marked: false,
-        cell_id: card.id,
-        version: 1,
-        last_updated: Date.now(),
-        last_modified_by: null
-      });
+      if (!card) {
+        // If no card available, create empty cell
+        rowCells.push({
+          text: '',
+          colors: null,
+          completed_by: null,
+          blocked: false,
+          is_marked: false,
+          cell_id: '',
+          version: 1,
+          last_updated: Date.now(),
+          last_modified_by: null
+        });
+      } else {
+        rowCells.push({
+          text: card.title,
+          colors: null,
+          completed_by: null,
+          blocked: false,
+          is_marked: false,
+          cell_id: card.id,
+          version: 1,
+          last_updated: Date.now(),
+          last_modified_by: null
+        });
+      }
       cardIndex++;
     }
     layout.push(rowCells);
@@ -954,7 +1002,7 @@ export function getCardsForCriteria(
   let cards = TYPED_CARD_FIXTURES[gameType] || [];
   
   if (difficulty) {
-    cards = cards.filter(card => card.difficulty === difficulty);
+    cards = cards.filter(card => card?.difficulty === difficulty);
   }
   
   if (count && cards.length > count) {
@@ -984,9 +1032,11 @@ export function createRandomBoardState(
     } while (usedPositions.has(position));
     
     usedPositions.add(position);
-    const playerId = playerIds[Math.floor(Math.random() * playerIds.length)];
-    const playerIndex = playerIds.indexOf(playerId);
-    const color = ['#06b6d4', '#8b5cf6', '#ec4899', '#10b981'][playerIndex] || '#06b6d4';
+    const playerIndex = Math.floor(Math.random() * playerIds.length);
+    const playerId = playerIds[playerIndex];
+    if (!playerId) continue; // Skip if no player ID
+    
+    const color = ['#06b6d4', '#8b5cf6', '#ec4899', '#10b981'][playerIndex] ?? '#06b6d4';
     
     markedCells.push({ position, playerId, color });
   }

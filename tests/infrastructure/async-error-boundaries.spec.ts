@@ -187,8 +187,9 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
           fetch('/api/preferences').catch(errorHandler ? errorHandler('preferences-fetch') : () => Promise.resolve('fallback')),
         ])
           .catch(errorHandler ? errorHandler('parallel-fetch') : () => Promise.resolve('fallback'))
-          .then((results: unknown[]) => {
-            return results.map(r => ({ data: r, success: true }));
+          .then((results: unknown) => {
+            const resultsArray = Array.isArray(results) ? results : [results];
+            return resultsArray.map(r => ({ data: r, success: true }));
           })
           .catch(errorHandler ? errorHandler('results-processing') : () => Promise.resolve('fallback'));
         
@@ -554,7 +555,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
           
           const executeWithBackoff = async <T>(
             operation: () => Promise<T>,
-            operationName: string
+            operationName?: string
           ): Promise<T | null> => {
             let currentDelay = config.initialDelay;
             
@@ -580,7 +581,7 @@ test.describe('Advanced Async Error Boundary Infrastructure', () => {
                 attempts.push(attemptResult);
                 
                 if (attempt === config.maxAttempts) {
-                  throw new Error(`${operationName} failed after ${config.maxAttempts} attempts`);
+                  throw new Error(`${operationName || 'Operation'} failed after ${config.maxAttempts} attempts`);
                 }
                 
                 // Calculate next delay with optional jitter

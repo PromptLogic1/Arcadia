@@ -1,13 +1,17 @@
-import type { Database, Tables } from '@/types/database.types';
+import type { Database, Tables } from '../../../types/database.types';
 
 // Core test user type with password for authentication
+// Note: email comes from Supabase auth, not public.users table
 export type TestUser = Tables<'users'> & {
-  password: string;
-  email: string; // Ensure email is always present for auth
+  password: string; // For testing only - not stored in DB
+  email: string; // From Supabase auth.users, not public.users
+  email_verified?: boolean; // From Supabase auth.users
 };
 
-// Auth session type from database
-export type AuthSession = Tables<'user_sessions'>;
+// Auth session type from database with proper ip_address typing
+export type AuthSession = Omit<Tables<'user_sessions'>, 'ip_address'> & {
+  ip_address: string | null; // Fix from unknown to string
+};
 
 // Test auth state matching Zustand store structure
 export type TestAuthState = {
@@ -20,22 +24,40 @@ export type TestAuthState = {
 
 // Auth API response types (with email field for auth responses)
 export type LoginResponse = {
-  user: Tables<'users'> & { email: string };
+  user: Omit<TestUser, 'password'> & { password?: string }; // Password not included in API responses
   session: AuthSession;
   access_token: string;
   refresh_token: string;
+  usedBackupCode?: boolean; // For MFA scenarios
+  bypassUsed?: boolean; // For MFA bypass scenarios
 };
 
 export type SignupResponse = {
-  user: Tables<'users'> & { email: string };
+  user: Omit<TestUser, 'password'> & { password?: string }; // Password not included in API responses
   session?: AuthSession;
   requiresEmailVerification: boolean;
   success?: boolean;
+  message?: string; // For various signup scenarios
 };
 
 export type PasswordResetResponse = {
   success: boolean;
   message: string;
+};
+
+export type EmailVerificationResponse = {
+  success: boolean;
+  user: Omit<TestUser, 'password'> & { password?: string }; // Password not included in API responses
+  autoLogin?: boolean;
+  session?: AuthSession;
+  access_token?: string;
+  refresh_token?: string;
+};
+
+export type ResendVerificationResponse = {
+  success: boolean;
+  message: string;
+  attemptsRemaining?: number;
 };
 
 // Error response types (extended for various auth scenarios)

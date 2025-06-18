@@ -48,6 +48,7 @@ export interface TestWindowExtensions {
     marks: PerformanceEntry[];
     measures: PerformanceEntry[];
   } | Array<{ timestamp: number; latency: number; eventType: string }>;
+  __performanceMonitor?: unknown;
   
   // Error tracking
   __errors?: Error[];
@@ -93,9 +94,11 @@ export interface TestWindowExtensions {
   
   // Sentry
   Sentry?: {
-    captureException: (error: Error) => void;
+    captureException: (error: Error, context?: unknown) => void;
     captureMessage: (message: string) => void;
+    withScope?: (callback: (scope: unknown) => void) => void;
   };
+  captureSentryEvent?: (event: unknown) => void;
   
   // Performance tracking
   updateCount?: number;
@@ -171,7 +174,13 @@ export interface TestWindowExtensions {
   
   // Exponential backoff tracking
   __exponentialBackoff?: {
-    attempts: Map<string, number>;
+    attempts: Map<string, Array<{
+      attempt: number;
+      delay: number;
+      success: boolean;
+      error?: string;
+      timestamp: number;
+    }>>;
     maxAttempts: number;
     createExponentialBackoff: (config: {
       initialDelay: number;
@@ -227,6 +236,15 @@ export interface TestWindowExtensions {
   // Storage event tracking
   receivedStorageEvent?: boolean;
   
+  // Listener tracking
+  __listenerTracker?: {
+    listenerCount: number;
+    leakDetection: boolean;
+    clear: () => void;
+    getListenerCount: () => number;
+    cleanup: () => void;
+  };
+  
   // Listener count
   listenerCount?: number;
   cleanup?: () => void;
@@ -242,7 +260,16 @@ export interface TestWindowExtensions {
   redisCircuitBreaker?: unknown;
   makeApiCall?: () => Promise<unknown>;
   distributedLock?: unknown;
-  cacheWithFallback?: (key: string) => Promise<unknown>;
+  redisPool?: unknown;
+  connectionLease?: unknown;
+  resilientRedis?: unknown;
+  perfMonitor?: unknown;
+  simulateRedisOp?: unknown;
+  cacheWithFallback?: {
+    get(key: string): Promise<unknown>;
+    set(key: string, value: unknown, ttlSeconds?: number): Promise<void>;
+    isUsingFallback(): boolean;
+  };
   
   // Error boundary
   errorBoundary?: {

@@ -260,7 +260,6 @@ class EnhancedRedisService {
           // Parse JSON if the result is a string
           if (typeof result === 'string') {
             // Type assertion needed here because JSON.parse returns 'any'
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return JSON.parse(result);
           }
           // If result is not a string, it's likely from the fallback

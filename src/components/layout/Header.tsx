@@ -43,10 +43,11 @@ const Header: React.FC = () => {
   const pathname = usePathname() ?? '';
 
   // Use Zustand auth state with useShallow for optimal performance
-  const { isAuthenticated, userData } = useAuthStore(
+  const { isAuthenticated, userData, loading } = useAuthStore(
     useShallow(state => ({
       isAuthenticated: state.isAuthenticated,
       userData: state.userData,
+      loading: state.loading,
     }))
   );
 
@@ -258,7 +259,7 @@ const Header: React.FC = () => {
 
           {/* User Actions */}
           <div className="hidden items-center space-x-4 md:flex">
-            {isAuthenticated && userData ? (
+            {!loading && isAuthenticated && userData ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -304,7 +305,7 @@ const Header: React.FC = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
+            ) : !loading ? (
               <div className="flex items-center gap-2">
                 <Link href="/auth/login">
                   <Button
@@ -319,6 +320,12 @@ const Header: React.FC = () => {
                     Sign Up
                   </Button>
                 </Link>
+              </div>
+            ) : (
+              // Loading state - show nothing or a spinner
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-16 animate-pulse rounded bg-slate-800"></div>
+                <div className="h-10 w-20 animate-pulse rounded bg-slate-800"></div>
               </div>
             )}
           </div>
@@ -378,7 +385,12 @@ const Header: React.FC = () => {
           >
             Download
           </Link>
-          {isAuthenticated && userData ? (
+          
+          {/* Theme Toggle for Mobile */}
+          <div className="flex items-center justify-center py-2">
+            <ThemeToggle variant="toggle" />
+          </div>
+          {!loading && isAuthenticated && userData ? (
             <>
               <Link
                 href={`/user`}
@@ -401,7 +413,7 @@ const Header: React.FC = () => {
                 Log out
               </button>
             </>
-          ) : (
+          ) : !loading ? (
             <>
               <Link
                 href="/auth/login"
@@ -417,6 +429,12 @@ const Header: React.FC = () => {
               >
                 Sign Up
               </Link>
+            </>
+          ) : (
+            // Mobile loading state
+            <>
+              <div className="h-8 w-20 animate-pulse rounded bg-slate-800"></div>
+              <div className="h-8 w-24 animate-pulse rounded bg-slate-800"></div>
             </>
           )}
         </div>

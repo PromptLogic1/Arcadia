@@ -1,9 +1,10 @@
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../../../types/database.types';
+import type { CommentWithAuthor, DiscussionWithAuthor } from '../types';
 
 // Mock data generation utilities (replaces faker.js)
 const mockData = {
   lorem: {
-    sentence: (options?: { min: number; max: number }) => {
+    sentence: (_options?: { min: number; max: number }) => {
       const sentences = [
         'This is a great strategy for completing the challenge.',
         'I found this technique really helpful during my speedrun.',
@@ -25,8 +26,14 @@ const mockData = {
     paragraph: () => mockData.lorem.paragraphs({ min: 2, max: 4 }),
   },
   helpers: {
-    arrayElement: <T>(array: readonly T[]): T => array[Math.floor(Math.random() * array.length)],
+    arrayElement: <T>(array: readonly T[]): T => {
+      if (array.length === 0) throw new Error('Array cannot be empty');
+      const result = array[Math.floor(Math.random() * array.length)];
+      if (result === undefined) throw new Error('Array element is undefined');
+      return result;
+    },
     arrayElements: <T>(array: readonly T[], options?: { min: number; max: number }): T[] => {
+      if (array.length === 0) return [];
       const min = options?.min ?? 1;
       const max = options?.max ?? array.length;
       const count = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -75,26 +82,6 @@ export type Discussion = Tables<'discussions'>;
 export type Comment = Tables<'comments'>;
 export type CommunityEvent = Tables<'community_events'>;
 
-// Extended types with relations
-export interface DiscussionWithAuthor extends Discussion {
-  author?: {
-    id: string;
-    username: string;
-    avatar_url?: string | null;
-  };
-  comment_count?: number;
-  comments?: CommentWithAuthor[];
-}
-
-export interface CommentWithAuthor extends Comment {
-  author?: {
-    id: string;
-    username: string;
-    avatar_url?: string | null;
-  };
-  replies?: CommentWithAuthor[];
-}
-
 // Game and challenge type constants
 export const GAMES = ['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid', 'Kirby', 'DK Country'] as const;
 export const CHALLENGE_TYPES = ['Bingo', 'Speedrun', 'Achievement Hunt', 'Puzzle', 'Co-op'] as const;
@@ -139,7 +126,7 @@ export const USER_SCENARIOS = {
 
 // Discussion generator
 export function generateDiscussion(
-  overrides?: Partial<Discussion>
+  overrides?: Partial<DiscussionWithAuthor>
 ): Partial<Discussion> {
   const title = mockData.helpers.arrayElement([
     `Best strategies for ${mockData.helpers.arrayElement(GAMES)} speedruns`,
@@ -165,8 +152,8 @@ export function generateDiscussion(
 // Comment generator
 export function generateComment(
   discussionId: number,
-  overrides?: Partial<Comment>
-): Partial<Comment> {
+  overrides?: Partial<Tables<'comments'>>
+): Partial<Tables<'comments'>> {
   const commentTypes = [
     () => `Great point! I've been using this strategy and it works well.`,
     () => `Have you tried ${mockData.helpers.arrayElement(['using the warp glitch', 'sequence breaking', 'the speedrun route'])}?`,
@@ -186,25 +173,23 @@ export function generateComment(
 }
 
 // Generate comment thread with nested replies
-export interface CommentThread extends CommentWithAuthor {
-  replies: CommentThread[];
-}
+// Using CommentWithAuthor from types.ts which already includes replies
 
 export function generateCommentThread(
   discussionId: number,
-  depth: number = 3,
-  childrenPerLevel: number = 2,
+  depth = 3,
+  childrenPerLevel = 2,
   parentId?: number
-): CommentThread[] {
+): CommentWithAuthor[] {
   if (depth === 0) return [];
 
-  const comments: CommentThread[] = [];
+  const comments: CommentWithAuthor[] = [];
   const numComments = parentId ? childrenPerLevel : mockData.number.int({ min: 3, max: 8 });
 
   for (let i = 0; i < numComments; i++) {
-    const comment: CommentThread = {
+    const comment: CommentWithAuthor = {
       id: mockData.number.int({ min: 1000, max: 9999 }),
-      content: generateComment(discussionId).content!,
+      content: generateComment(discussionId).content || 'Test comment content',
       discussion_id: discussionId,
       author_id: mockData.string.uuid(),
       upvotes: mockData.number.int({ min: 0, max: 50 }),
@@ -309,12 +294,12 @@ export function generateCommunityEvent(
   return {
     title: `${mockData.helpers.arrayElement(eventTypes)}: ${mockData.helpers.arrayElement([...GAMES])}`,
     description: mockData.lorem.paragraph(),
-    game_type: mockData.helpers.arrayElement(['pokemon', 'sonic', 'mario', 'zelda', 'metroid'] as any),
+    game_type: mockData.helpers.arrayElement(['Super Mario Odyssey', 'The Legend of Zelda: Breath of the Wild', 'Minecraft', 'Fortnite', 'Among Us'] as const),
     start_date: startDate.toISOString(),
     end_date: endDate.toISOString(),
     max_participants: mockData.number.int({ min: 10, max: 100 }),
     prize_pool: mockData.helpers.arrayElement(['$100', '$250', '$500', 'Game codes', 'Merch']),
-    status: 'upcoming' as any,
+    status: 'upcoming' as const,
     created_at: mockData.date.recent({ days: 7 }).toISOString(),
     updated_at: mockData.date.recent({ days: 7 }).toISOString(),
     ...overrides,

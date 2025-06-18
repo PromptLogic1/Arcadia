@@ -138,6 +138,7 @@ export const SignUpFormFields = React.forwardRef<
           required
           variant={theme}
           helpText={SIGNUP_MESSAGES.FIELD_LABELS.USERNAME_HELP}
+          data-testid="auth-username-input"
         />
 
         {/* Email Field */}
@@ -148,6 +149,7 @@ export const SignUpFormFields = React.forwardRef<
           onChange={handleEmailChange}
           error={validationErrors.email}
           placeholder={SIGNUP_MESSAGES.FIELD_LABELS.EMAIL_PLACEHOLDER}
+          data-testid="auth-email-input"
           disabled={fieldsDisabled}
           required
           variant={theme}
@@ -168,6 +170,7 @@ export const SignUpFormFields = React.forwardRef<
           disabled={fieldsDisabled}
           required
           variant={theme}
+          data-testid="auth-password-input"
         />
 
         {/* Password Requirements */}
@@ -195,6 +198,7 @@ export const SignUpFormFields = React.forwardRef<
           disabled={fieldsDisabled}
           required
           variant={theme}
+          data-testid="auth-confirm-password-input"
         />
       </div>
     );

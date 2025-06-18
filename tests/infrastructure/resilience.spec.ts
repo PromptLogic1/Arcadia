@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { mockApiResponse, waitForNetworkIdle, getPerformanceMetrics } from '../helpers/test-utils';
+import { waitForNetworkIdle, getPerformanceMetrics } from '../helpers/test-utils';
+import type { TestWindow } from '../types/test-types';
 
 test.describe('Application Resilience and Recovery', () => {
   test.describe('Error Recovery Mechanisms', () => {
@@ -64,6 +65,7 @@ test.describe('Application Resilience and Recovery', () => {
 
     test('should implement circuit breaker pattern for repeated failures', async ({ page, context }) => {
       let requestCount = 0;
+      // eslint-disable-next-line prefer-const
       let circuitOpen = false;
       
       await context.route('**/api/unreliable', route => {
@@ -120,12 +122,12 @@ test.describe('Application Resilience and Recovery', () => {
         };
         
         // Store function globally for testing
-        (window as any).testCircuitBreaker = makeRequest;
+        (window as TestWindow).testCircuitBreaker = makeRequest;
       });
       
       // Trigger multiple failures
       for (let i = 0; i < 5; i++) {
-        await page.evaluate(() => (window as any).testCircuitBreaker().catch(() => {}));
+        await page.evaluate(() => (window as TestWindow).testCircuitBreaker?.().catch(() => {}));
         await page.waitForTimeout(100);
       }
       
@@ -136,10 +138,11 @@ test.describe('Application Resilience and Recovery', () => {
       await page.waitForTimeout(3000);
       
       // Should allow new requests after timeout
-      await page.evaluate(() => (window as any).testCircuitBreaker().catch(() => {}));
+      await page.evaluate(() => (window as TestWindow).testCircuitBreaker?.().catch(() => {}));
     });
 
     test('should implement retry with exponential backoff', async ({ page, context }) => {
+      // eslint-disable-next-line prefer-const
       let attemptTimes: number[] = [];
       
       await context.route('**/api/retry-test', route => {
@@ -160,7 +163,7 @@ test.describe('Application Resilience and Recovery', () => {
       
       // Implement retry with backoff
       await page.evaluate(() => {
-        const retryWithBackoff = async (url: string, maxRetries = 3) => {
+        const retryWithBackoff = async (url: string, maxRetries = 3): Promise<Response | void> => {
           let attempt = 0;
           
           while (attempt < maxRetries) {
@@ -186,21 +189,21 @@ test.describe('Application Resilience and Recovery', () => {
           }
         };
         
-        (window as any).retryRequest = () => retryWithBackoff('/api/retry-test');
+        (window as TestWindow).retryRequest = () => retryWithBackoff('/api/retry-test');
       });
       
       // Execute retry logic
       const startTime = Date.now();
-      await page.evaluate(() => (window as any).retryRequest());
-      const totalTime = Date.now() - startTime;
+      await page.evaluate(() => (window as TestWindow).retryRequest?.());
+      const _totalTime = Date.now() - startTime;
       
       // Should have attempted 3 times
       expect(attemptTimes.length).toBe(3);
       
       // Should have implemented proper backoff timing
       if (attemptTimes.length >= 3) {
-        const delay1 = attemptTimes[1] - attemptTimes[0];
-        const delay2 = attemptTimes[2] - attemptTimes[1];
+        const delay1 = (attemptTimes[1] || 0) - (attemptTimes[0] || 0);
+        const delay2 = (attemptTimes[2] || 0) - (attemptTimes[1] || 0);
         
         expect(delay1).toBeGreaterThan(800); // ~1s with some tolerance
         expect(delay2).toBeGreaterThan(1800); // ~2s with some tolerance
@@ -239,7 +242,7 @@ test.describe('Application Resilience and Recovery', () => {
   });
 
   test.describe('State Recovery', () => {
-    test('should recover application state after temporary failures', async ({ page, context }) => {
+    test('should recover application state after temporary failures', async ({ page, context: _context }) => {
       await page.goto('/');
       
       // Set initial application state
@@ -257,13 +260,13 @@ test.describe('Application Resilience and Recovery', () => {
       // Simulate temporary failure that clears memory state
       await page.evaluate(() => {
         // Clear in-memory state
-        (window as any).__appState = null;
+        (window as TestWindow).__appState = null;
         
         // Trigger recovery from localStorage
         const savedState = localStorage.getItem('app-state');
         if (savedState) {
           try {
-            (window as any).__appState = JSON.parse(savedState);
+            (window as TestWindow).__appState = JSON.parse(savedState);
             console.log('State recovered from localStorage');
           } catch (error) {
             console.error('Failed to recover state:', error);
@@ -272,11 +275,12 @@ test.describe('Application Resilience and Recovery', () => {
       });
       
       // Verify state recovery
-      const recoveredState = await page.evaluate(() => (window as any).__appState);
+      const recoveredState = await page.evaluate(() => (window as TestWindow).__appState);
       
-      if (recoveredState) {
-        expect(recoveredState.user.name).toBe('Test User');
-        expect(recoveredState.gameProgress.level).toBe(5);
+      if (recoveredState && typeof recoveredState === 'object') {
+        const state = recoveredState as Record<string, unknown>;
+        expect(state.user && typeof state.user === 'object' && 'name' in state.user ? state.user.name : null).toBe('Test User');
+        expect(state.gameProgress && typeof state.gameProgress === 'object' && 'level' in state.gameProgress ? state.gameProgress.level : null).toBe(5);
       }
     });
 
@@ -293,7 +297,7 @@ test.describe('Application Resilience and Recovery', () => {
           try {
             const state = localStorage.getItem('app-state');
             JSON.parse(state || '{}');
-          } catch (error) {
+          } catch {
             console.log('Corrupted state detected, using defaults');
             
             // Clear corrupted data
@@ -311,10 +315,10 @@ test.describe('Application Resilience and Recovery', () => {
           return false;
         };
         
-        (window as any).recoveryResult = attemptRecovery();
+        (window as TestWindow).recoveryResult = attemptRecovery();
       });
       
-      const recoveryResult = await page.evaluate(() => (window as any).recoveryResult);
+      const recoveryResult = await page.evaluate(() => (window as TestWindow).recoveryResult);
       expect(recoveryResult).toBe(true);
       
       // App should continue functioning with default state
@@ -335,7 +339,7 @@ test.describe('Application Resilience and Recovery', () => {
         window.addEventListener('storage', (e) => {
           if (e.key === 'shared-state') {
             console.log('Storage event received:', e.newValue);
-            (window as any).receivedStorageEvent = true;
+            (window as TestWindow).receivedStorageEvent = true;
           }
         });
       });
@@ -348,7 +352,7 @@ test.describe('Application Resilience and Recovery', () => {
       
       // First tab should receive storage event
       await page1.waitForTimeout(500);
-      const receivedEvent = await page1.evaluate(() => (window as any).receivedStorageEvent);
+      const receivedEvent = await page1.evaluate(() => (window as TestWindow).receivedStorageEvent);
       
       if (receivedEvent) {
         expect(receivedEvent).toBe(true);
@@ -370,7 +374,7 @@ test.describe('Application Resilience and Recovery', () => {
       
       // Get initial memory usage
       const initialMemory = await page.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        return (performance as Performance).memory?.usedJSHeapSize || 0;
       });
       
       // Simulate multiple error/recovery cycles
@@ -394,8 +398,8 @@ test.describe('Application Resilience and Recovery', () => {
       
       // Force garbage collection if available
       await page.evaluate(() => {
-        if ((window as any).gc) {
-          (window as any).gc();
+        if ('gc' in window && typeof window.gc === 'function') {
+          window.gc();
         }
       });
       
@@ -403,7 +407,7 @@ test.describe('Application Resilience and Recovery', () => {
       
       // Check final memory usage
       const finalMemory = await page.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        return (performance as Performance).memory?.usedJSHeapSize || 0;
       });
       
       if (initialMemory && finalMemory) {
@@ -436,12 +440,12 @@ test.describe('Application Resilience and Recovery', () => {
         
         // Simulate error recovery cycle
         addListeners();
-        (window as any).listenerCount = listenerCount;
-        (window as any).cleanup = cleanup;
+        (window as TestWindow).listenerCount = listenerCount;
+        (window as TestWindow).cleanup = cleanup;
       });
       
       // Trigger cleanup
-      await page.evaluate(() => (window as any).cleanup());
+      await page.evaluate(() => (window as TestWindow).cleanup?.());
       
       // Verify cleanup occurred without errors
       await expect(page.locator('body')).toBeVisible();
@@ -643,7 +647,7 @@ test.describe('Application Resilience and Recovery', () => {
   });
 
   test.describe('Data Integrity During Failures', () => {
-    test('should prevent data corruption during interruptions', async ({ page, context }) => {
+    test('should prevent data corruption during interruptions', async ({ page, context: _context }) => {
       await page.goto('/');
       
       // Start data operation
@@ -655,7 +659,7 @@ test.describe('Application Resilience and Recovery', () => {
         };
         
         // Atomic write operation simulation
-        const atomicWrite = (key: string, data: any) => {
+        const atomicWrite = (key: string, data: unknown) => {
           const tempKey = `${key}_temp`;
           try {
             // Write to temporary location first
@@ -677,11 +681,13 @@ test.describe('Application Resilience and Recovery', () => {
           return false;
         };
         
-        (window as any).testAtomicWrite = () => atomicWrite('critical-data', criticalData);
+        (window as TestWindow).testAtomicWrite = async (data: unknown) => {
+          return atomicWrite('critical-data', data || criticalData);
+        };
       });
       
       // Execute atomic write
-      const writeSuccess = await page.evaluate(() => (window as any).testAtomicWrite());
+      const writeSuccess = await page.evaluate(() => (window as TestWindow).testAtomicWrite?.(null));
       expect(writeSuccess).toBe(true);
       
       // Verify data integrity
@@ -703,50 +709,58 @@ test.describe('Application Resilience and Recovery', () => {
         localStorage.setItem('app-state', JSON.stringify(initialState));
         
         // Simulate transaction with rollback
-        const updateWithRollback = (updates: any) => {
+        const updateWithRollback = async (updates: unknown) => {
           const currentState = JSON.parse(localStorage.getItem('app-state') || '{}');
           const backup = { ...currentState };
           
           try {
             // Apply updates
-            const newState = { ...currentState, ...updates, version: currentState.version + 1 };
+            const updatesObj = typeof updates === 'object' && updates !== null ? updates : {};
+            const newState = { ...currentState, ...updatesObj, version: (currentState.version || 0) + 1 };
             localStorage.setItem('app-state', JSON.stringify(newState));
             
             // Simulate validation failure
-            if (updates.user?.name === 'Invalid User') {
+            if ('user' in updatesObj && 
+                typeof updatesObj.user === 'object' && 
+                updatesObj.user !== null &&
+                'name' in updatesObj.user &&
+                updatesObj.user.name === 'Invalid User') {
               throw new Error('Validation failed');
             }
             
             return newState;
           } catch (error) {
             // Rollback on failure
-            console.log('Rolling back due to error:', error.message);
+            console.log('Rolling back due to error:', (error as Error).message);
             localStorage.setItem('app-state', JSON.stringify(backup));
             throw error;
           }
         };
         
-        (window as any).updateWithRollback = updateWithRollback;
+        (window as TestWindow).updateWithRollback = updateWithRollback;
       });
       
       // Test successful update
-      const successResult = await page.evaluate(() => {
+      const successResult = await page.evaluate(async () => {
         try {
-          return (window as any).updateWithRollback({ user: { id: 1, name: 'Valid User' } });
-        } catch (error) {
+          return await (window as TestWindow).updateWithRollback?.({ user: { id: 1, name: 'Valid User' } });
+        } catch {
           return null;
         }
       });
       
-      expect(successResult.user.name).toBe('Valid User');
-      expect(successResult.version).toBe(2);
+      if (successResult && typeof successResult === 'object') {
+        const result = successResult as Record<string, unknown>;
+        expect(result.user && typeof result.user === 'object' && 'name' in result.user ? result.user.name : null).toBe('Valid User');
+        expect(result.version).toBe(2);
+      }
       
       // Test rollback on failure
-      const failureResult = await page.evaluate(() => {
+      const failureResult = await page.evaluate(async () => {
         try {
-          (window as any).updateWithRollback({ user: { id: 1, name: 'Invalid User' } });
+          await (window as TestWindow).updateWithRollback?.({ user: { id: 1, name: 'Invalid User' } });
           return false;
-        } catch (error) {
+        } catch {
           // Check if rollback occurred
           const currentState = JSON.parse(localStorage.getItem('app-state') || '{}');
           return currentState.user.name === 'Valid User' && currentState.version === 2;

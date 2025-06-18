@@ -10,13 +10,16 @@ const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/lib/jest/jest.setup.ts'],
   testEnvironment: 'jest-environment-jsdom',
   testMatch: [
-    '**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
-    '**/*.(test|spec).(js|jsx|ts|tsx)',
+    // Only look for Jest unit tests in src directory
+    '<rootDir>/src/**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
+    '<rootDir>/src/**/*.(test|spec).(js|jsx|ts|tsx)',
   ],
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/src/features/auth/testing/', // Ignore old manual test files
+    // Exclude ALL Playwright tests (entire tests directory)
+    '<rootDir>/tests/',
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
@@ -35,10 +38,16 @@ const customJestConfig = {
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
-  transformIgnorePatterns: ['/node_modules/(?!(.*\\.mjs$|@supabase))'],
+  // Fix ESM module support for Supabase and other ES modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(@supabase|@testing-library|.*\\.mjs$))',
+  ],
+  // Support for ES modules in tests
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.json',
+      useESM: true,
     },
   },
   reporters: ['default', ['<rootDir>/lib/jest/CustomReporter.js', {}]],

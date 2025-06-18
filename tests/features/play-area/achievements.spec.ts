@@ -1,11 +1,10 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import type { Route } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
-  mockApiResponse, 
-  getStoreState,
-  waitForStore
+  mockApiResponse
 } from '../../helpers/test-utils';
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../../types/database.types';
 
 test.describe('Achievement System', () => {
   // Type-safe achievement mock data using database schema
@@ -363,11 +362,11 @@ test.describe('Achievement System', () => {
   test.describe('Achievement Validation and Integrity', () => {
     test('should handle concurrent achievement unlock attempts', async ({ authenticatedPage }) => {
       // Mock achievement that could be unlocked multiple times concurrently
-      await mockApiResponse(authenticatedPage, '**/api/achievements/unlock', async route => {
+      await authenticatedPage.route('**/api/achievements/unlock', async (route: Route) => {
         // Simulate race condition by adding delay
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        route.fulfill({
+        await route.fulfill({
           status: 409,
           body: JSON.stringify({ 
             error: 'Achievement already unlocked',

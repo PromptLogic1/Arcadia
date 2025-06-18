@@ -2,13 +2,43 @@ import { test, expect } from '@playwright/test';
 import {
   fillAuthForm,
   mockAuthResponse,
-  waitForAuthRedirect,
-  getAuthErrorMessage,
   clearAuthStorage,
   measureAuthPerformance
 } from './utils/auth-test-helpers';
-import { TEST_FORM_DATA, AUTH_ROUTES, AUTH_SELECTORS } from '../helpers/test-data.enhanced';
-import type { SignupResponse, AuthErrorResponse } from './types/test-types';
+import { TEST_FORM_DATA, AUTH_ROUTES, AUTH_SELECTORS } from '../helpers/test-data';
+import type { 
+  SignupResponse, 
+  AuthErrorResponse, 
+  TestUser, 
+  EmailVerificationResponse,
+  ResendVerificationResponse 
+} from './types/test-types';
+import type { Route } from '@playwright/test';
+
+// Helper function to create complete test user
+const createMockTestUser = (overrides: Partial<TestUser> = {}): TestUser => ({
+  id: 'test-user-id',
+  email: 'user@example.com',
+  username: 'testuser',
+  full_name: 'Test User',
+  auth_id: 'auth-id',
+  role: 'user',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  avatar_url: null,
+  bio: null,
+  city: null,
+  land: null,
+  region: null,
+  experience_points: 0,
+  last_login_at: null,
+  profile_visibility: 'public',
+  achievements_visibility: 'public',
+  submissions_visibility: 'public',
+  password: 'TestPassword123!',
+  email_verified: true,
+  ...overrides,
+});
 
 /**
  * Enhanced Email Verification Testing Suite
@@ -33,7 +63,7 @@ test.describe('Email Verification - Enhanced', () => {
       await page.goto(`/auth/verify-email?token=${expiredToken}`);
       
       // Mock expired token response
-      await page.route('/api/auth/verify-email', async (route) => {
+      await page.route('/api/auth/verify-email', async (route: Route) => {
         const requestBody = await route.request().postDataJSON();
         if (requestBody.token === expiredToken) {
           await route.fulfill({
@@ -69,7 +99,7 @@ test.describe('Email Verification - Enhanced', () => {
       await page.goto(`/auth/verify-email?token=${validToken}`);
       
       // Mock token that's valid but expiring soon
-      await page.route('/api/auth/verify-email', async (route) => {
+      await page.route('/api/auth/verify-email', async (route: Route) => {
         const requestBody = await route.request().postDataJSON();
         if (requestBody.token === validToken) {
           const expiresIn30Min = new Date(Date.now() + 30 * 60 * 1000);
@@ -113,7 +143,7 @@ test.describe('Email Verification - Enhanced', () => {
         await page.goto(`/auth/verify-email?token=${encodeURIComponent(token)}`);
         
         // Mock invalid token response
-        await page.route('/api/auth/verify-email', async (route) => {
+        await page.route('/api/auth/verify-email', async (route: Route) => {
           await route.fulfill({
             status: 400,
             contentType: 'application/json',
@@ -186,7 +216,7 @@ test.describe('Email Verification - Enhanced', () => {
       
       // Mock resend endpoint
       let resendCount = 0;
-      await page.route('/api/auth/resend-verification', async (route) => {
+      await page.route('/api/auth/resend-verification', async (route: Route) => {
         resendCount++;
         
         if (resendCount <= 3) { // Allow up to 3 resends
@@ -363,7 +393,7 @@ test.describe('Email Verification - Enhanced', () => {
       await page.goto(`/auth/verify-email?token=${validToken}`);
       
       // Mock successful verification
-      await page.route('/api/auth/verify-email', async (route) => {
+      await page.route('/api/auth/verify-email', async (route: Route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -411,15 +441,15 @@ test.describe('Email Verification - Enhanced', () => {
       await page.goto(`/auth/verify-email?token=${validToken}`);
       
       // Mock successful verification without auto-login
-      await mockAuthResponse(page, '/api/auth/verify-email', {
+      await mockAuthResponse<EmailVerificationResponse>(page, '/api/auth/verify-email', {
         status: 200,
         body: {
           success: true,
-          user: {
+          user: createMockTestUser({
             id: 'verified-user-id',
             email: 'user@example.com',
             email_verified: true,
-          },
+          }),
           autoLogin: false, // Don't auto-login
         },
       });
@@ -443,11 +473,15 @@ test.describe('Email Verification - Enhanced', () => {
       const verificationTime = await measureAuthPerformance(page, async () => {
         const validToken = 'performance_test_token';
         
-        await mockAuthResponse(page, '/api/auth/verify-email', {
+        await mockAuthResponse<EmailVerificationResponse>(page, '/api/auth/verify-email', {
           status: 200,
           body: {
             success: true,
-            user: { id: 'user-id', email: 'user@example.com', email_verified: true },
+            user: createMockTestUser({
+              id: 'user-id',
+              email: 'user@example.com',
+              email_verified: true,
+            }),
           },
         });
         
@@ -478,7 +512,7 @@ test.describe('Email Verification - Enhanced', () => {
       await page.keyboard.press('Enter');
       
       // Mock response for accessibility test
-      await mockAuthResponse(page, '/api/auth/resend-verification', {
+      await mockAuthResponse<ResendVerificationResponse>(page, '/api/auth/resend-verification', {
         status: 200,
         body: { success: true, message: 'Email sent' },
       });
@@ -541,7 +575,7 @@ test.describe('Email Verification - Enhanced', () => {
       
       // Mock that only first request succeeds
       let requestCount = 0;
-      const mockResponse = async (route: any) => {
+      const mockResponse = async (route: Route) => {
         requestCount++;
         if (requestCount === 1) {
           await route.fulfill({

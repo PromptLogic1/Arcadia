@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import type { AccessibilityResult, AccessibilityViolation } from './types';
 
 /**
@@ -66,7 +66,7 @@ export class AccessibilityTester {
       await page.addScriptTag({
         url: 'https://unpkg.com/axe-core@4.8.2/axe.min.js',
       });
-    } catch (error) {
+    } catch {
       // Fallback to CDN
       await page.evaluate(() => {
         const script = document.createElement('script');
@@ -81,15 +81,35 @@ export class AccessibilityTester {
 
   private async runAxeAudit(page: Page, selector?: string): Promise<void> {
     const axeResults = await page.evaluate((sel) => {
-      return new Promise((resolve) => {
-        if (typeof (window as any).axe === 'undefined') {
+      interface AxeResults {
+        violations: Array<{
+          id: string;
+          impact: string;
+          help: string;
+          helpUrl: string;
+          nodes: Array<{
+            html: string;
+            target: string[];
+          }>;
+        }>;
+      }
+      
+      return new Promise<AxeResults>((resolve) => {
+        const win = window as Window & { axe?: { run: (context: Element | Document | null, options: unknown, callback: (err: Error | null, results: AxeResults) => void) => void } };
+        if (typeof win.axe === 'undefined') {
           resolve({ violations: [] });
           return;
         }
 
-        (window as any).axe.run(sel ? document.querySelector(sel) : document, {
+        const context = sel ? document.querySelector(sel) : document;
+        if (!context) {
+          resolve({ violations: [] });
+          return;
+        }
+
+        win.axe.run(context, {
           tags: ['wcag2a', 'wcag2aa', 'wcag21aa'],
-        }, (err: any, results: any) => {
+        }, (err: Error | null, results: AxeResults) => {
           if (err) {
             resolve({ violations: [] });
             return;
@@ -99,15 +119,31 @@ export class AccessibilityTester {
       });
     }, selector);
 
-    const results = axeResults as any;
+    const results = axeResults;
     
     if (results.violations) {
-      results.violations.forEach((violation: any) => {
+      interface AxeViolation {
+        id: string;
+        impact?: string;
+        description?: string;
+        help: string;
+        nodes: Array<{
+          target: string[];
+        }>;
+      }
+      
+      results.violations.forEach((violation: AxeViolation) => {
+        const severityMap: Record<string, 'error' | 'warning' | 'info'> = {
+          'critical': 'error',
+          'serious': 'error',
+          'moderate': 'warning',
+          'minor': 'info'
+        };
         this.violations.push({
           rule: violation.id,
-          severity: violation.impact || 'minor',
+          severity: severityMap[violation.impact || 'minor'] || 'info',
           element: violation.nodes[0]?.target[0] || 'unknown',
-          description: violation.description,
+          description: violation.description || '',
           help: violation.help,
         });
       });
@@ -142,7 +178,7 @@ export class AccessibilityTester {
         this.passedChecks.push('Arrow key navigation available');
       }
 
-    } catch (error) {
+    } catch {
       this.violations.push({
         rule: 'keyboard-navigation',
         severity: 'error',
@@ -235,7 +271,7 @@ export class AccessibilityTester {
         hasH1 = true;
       }
 
-      if (i > 0 && currentLevel > previousLevel + 1) {
+      if (i > 0 && currentLevel !== undefined && previousLevel !== undefined && currentLevel > previousLevel + 1) {
         this.violations.push({
           rule: 'heading-structure',
           severity: 'warning',
@@ -245,7 +281,9 @@ export class AccessibilityTester {
         });
       }
 
-      previousLevel = currentLevel;
+      if (currentLevel !== undefined) {
+        previousLevel = currentLevel;
+      }
     }
 
     if (headingLevels.length > 0 && !hasH1) {
@@ -289,7 +327,7 @@ export class AccessibilityTester {
             });
           }
         }
-      } catch (error) {
+      } catch {
         // Skip elements that can't be analyzed
       }
     }
@@ -342,7 +380,7 @@ export class AccessibilityTester {
       const id = await control.getAttribute('id');
       const ariaLabel = await control.getAttribute('aria-label');
       const ariaLabelledby = await control.getAttribute('aria-labelledby');
-      const placeholder = await control.getAttribute('placeholder');
+      const _placeholder = await control.getAttribute('placeholder');
       
       let hasLabel = false;
       
@@ -421,13 +459,16 @@ export async function testKeyboardNavigation(page: Page, elements: string[]): Pr
       }
       
       // Check if the focused element matches expected
-      const expectedElement = page.locator(elements[i]);
-      const isExpectedFocused = await expectedElement.evaluate((el, focused) => {
-        return el === document.activeElement;
-      }, focusedElement);
+      const expectedElementSelector = elements[i];
+      if (expectedElementSelector) {
+        const expectedElement = page.locator(expectedElementSelector);
+        const isExpectedFocused = await expectedElement.evaluate((el, _focused) => {
+          return el === document.activeElement;
+        }, focusedElement);
       
-      if (!isExpectedFocused) {
-        issues.push(`Tab ${i + 1}: Expected ${elements[i]} but got ${focusedElement.tagName}#${focusedElement.id}`);
+        if (!isExpectedFocused) {
+          issues.push(`Tab ${i + 1}: Expected ${expectedElementSelector} but got ${focusedElement.tagName}#${focusedElement.id}`);
+        }
       }
     }
     
@@ -435,11 +476,14 @@ export async function testKeyboardNavigation(page: Page, elements: string[]): Pr
     for (let i = elements.length - 1; i >= 0; i--) {
       await page.keyboard.press('Shift+Tab');
       
-      const expectedElement = page.locator(elements[i]);
-      const isFocused = await expectedElement.evaluate(el => el === document.activeElement);
-      
-      if (!isFocused) {
-        issues.push(`Shift+Tab ${elements.length - i}: Expected ${elements[i]} to be focused`);
+      const expectedElementSelector = elements[i];
+      if (expectedElementSelector) {
+        const expectedElement = page.locator(expectedElementSelector);
+        const isFocused = await expectedElement.evaluate(el => el === document.activeElement);
+        
+        if (!isFocused) {
+          issues.push(`Shift+Tab ${elements.length - i}: Expected ${expectedElementSelector} to be focused`);
+        }
       }
     }
     
@@ -493,7 +537,7 @@ export async function testScreenReaderContent(page: Page): Promise<{
     const content: string[] = [];
     let node;
     
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       if (node.nodeType === Node.TEXT_NODE) {
         content.push(node.textContent?.trim() || '');
       } else {
@@ -538,7 +582,7 @@ export async function testScreenReaderContent(page: Page): Promise<{
 }
 
 // Color contrast testing utility
-export async function testColorContrast(page: Page, minimumRatio: number = 4.5): Promise<{
+export async function testColorContrast(page: Page, minimumRatio = 4.5): Promise<{
   passed: boolean;
   violations: Array<{ element: string; ratio: number; colors: { fg: string; bg: string } }>;
 }> {
@@ -550,15 +594,16 @@ export async function testColorContrast(page: Page, minimumRatio: number = 4.5):
     // Simple color contrast approximation
     function getLuminance(rgb: string): number {
       const match = rgb.match(/\d+/g);
-      if (!match) return 0;
+      if (!match || match.length < 3) return 0;
       
-      const [r, g, b] = match.map(Number);
+      const [r, g, b] = match.slice(0, 3).map(Number);
       const [rs, gs, bs] = [r, g, b].map(c => {
+        if (c === undefined) return 0;
         c = c / 255;
         return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
       });
       
-      return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+      return 0.2126 * (rs ?? 0) + 0.7152 * (gs ?? 0) + 0.0722 * (bs ?? 0);
     }
     
     function getContrastRatio(fg: string, bg: string): number {

@@ -1,4 +1,4 @@
-import type { Tables } from '@/types/database.types';
+// Type imports for moderation patterns
 
 /**
  * Moderation Test Patterns
@@ -17,7 +17,7 @@ export interface ModerationResult {
   action: ModerationAction;
   confidence: number;
   reasons: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // User trust levels
@@ -323,8 +323,8 @@ export function calculateSpamScore(content: string): {
   }
   
   // Advanced spam patterns
-  for (const [key, config] of Object.entries(ADVANCED_SPAM_PATTERNS)) {
-    if (config.patterns) {
+  for (const [_key, config] of Object.entries(ADVANCED_SPAM_PATTERNS)) {
+    if ('patterns' in config && config.patterns) {
       for (const pattern of config.patterns) {
         if (pattern.test(content)) {
           totalScore += config.weight;
@@ -332,14 +332,14 @@ export function calculateSpamScore(content: string): {
           break;
         }
       }
-    } else if (config.pattern && config.pattern.test(content)) {
+    } else if ('pattern' in config && config.pattern && config.pattern.test(content)) {
       totalScore += config.weight;
       reasons.push(config.reason);
     }
   }
   
   // Multilingual spam patterns
-  for (const [lang, config] of Object.entries(MULTILINGUAL_SPAM_PATTERNS)) {
+  for (const [_lang, config] of Object.entries(MULTILINGUAL_SPAM_PATTERNS)) {
     for (const pattern of config.patterns) {
       if (pattern.test(content)) {
         totalScore += config.weight;
@@ -350,7 +350,7 @@ export function calculateSpamScore(content: string): {
   }
   
   // Gaming context patterns
-  for (const [key, config] of Object.entries(GAMING_CONTEXT_PATTERNS)) {
+  for (const [_key, config] of Object.entries(GAMING_CONTEXT_PATTERNS)) {
     for (const pattern of config.patterns) {
       if (pattern.test(content)) {
         totalScore += config.weight;
@@ -388,7 +388,7 @@ export function moderateContent(
   }
   
   // Check inappropriate content
-  for (const [key, config] of Object.entries(INAPPROPRIATE_PATTERNS)) {
+  for (const [_key, config] of Object.entries(INAPPROPRIATE_PATTERNS)) {
     for (const pattern of config.patterns) {
       if (pattern.test(content)) {
         classification = 'inappropriate';
@@ -400,7 +400,7 @@ export function moderateContent(
   }
   
   // Check phishing
-  for (const [key, config] of Object.entries(PHISHING_PATTERNS)) {
+  for (const [_key, config] of Object.entries(PHISHING_PATTERNS)) {
     for (const pattern of config.patterns) {
       if (pattern.test(content)) {
         classification = 'phishing';
@@ -608,3 +608,13 @@ export function generateTestReport(overrides?: Partial<ContentReport>): ContentR
     ...overrides,
   };
 }
+
+// Combined patterns export for compatibility
+export const MODERATION_PATTERNS = {
+  spam: SPAM_PATTERNS,
+  inappropriate: INAPPROPRIATE_PATTERNS,
+  phishing: PHISHING_PATTERNS,
+  advanced: ADVANCED_SPAM_PATTERNS,
+  multilingual: MULTILINGUAL_SPAM_PATTERNS,
+  gaming: GAMING_CONTEXT_PATTERNS,
+};

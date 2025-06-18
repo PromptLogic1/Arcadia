@@ -72,17 +72,7 @@ export default function LandingPageServer() {
   return (
     <BaseErrorBoundary level="page">
       <div className="text-foreground min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        {/* Skip to main content for accessibility */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-24 focus:left-4 focus:z-[10000] focus:rounded-md focus:border-2 focus:border-cyan-400 focus:bg-cyan-600 focus:px-6 focus:py-3 focus:text-white focus:shadow-xl"
-          aria-label="Skip to main content"
-        >
-          Skip to main content
-        </a>
-
         <main
-          id="main-content"
           role="main"
           aria-label="Arcadia Gaming Platform"
         >

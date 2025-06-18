@@ -1,11 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Route } from '@playwright/test';
 import {
   fillAuthForm,
   getAuthErrorMessage,
-  clearAuthStorage,
-  measureAuthPerformance
+  clearAuthStorage
 } from './utils/auth-test-helpers';
-import { TEST_FORM_DATA, AUTH_ROUTES, AUTH_SELECTORS, RATE_LIMITS } from '../helpers/test-data.enhanced';
+import { TEST_FORM_DATA, AUTH_ROUTES, AUTH_SELECTORS, RATE_LIMITS } from '../helpers/test-data';
 
 /**
  * Redis Rate Limiting Integration Tests
@@ -31,7 +30,7 @@ test.describe('Redis Rate Limiting Integration', () => {
   test.beforeAll(async () => {
     // Verify Redis is available for integration tests
     if (!process.env.REDIS_URL && !process.env.USE_REDIS_TESTS) {
-      test.skip('Redis integration tests skipped - set USE_REDIS_TESTS=true and REDIS_URL');
+      test.skip(true, 'Redis integration tests skipped - set USE_REDIS_TESTS=true and REDIS_URL');
     }
   });
 
@@ -76,7 +75,7 @@ test.describe('Redis Rate Limiting Integration', () => {
       }
     });
 
-    test('should persist rate limits across server restarts', async ({ page, request }) => {
+    test('should persist rate limits across server restarts', async ({ page }) => {
       const testEmail = 'persistent@example.com';
       
       // Exhaust rate limit
@@ -162,7 +161,7 @@ test.describe('Redis Rate Limiting Integration', () => {
   test.describe('Redis Failover and Resilience', () => {
     test('should gracefully handle Redis connection failures', async ({ page }) => {
       // Mock Redis connection failure
-      await page.route('/api/auth/login', async (route) => {
+      await page.route('/api/auth/login', async (route: Route) => {
         // Simulate Redis being unavailable (should fall back to memory or allow through)
         await route.fulfill({
           status: 200,
@@ -274,7 +273,7 @@ test.describe('Redis Rate Limiting Integration', () => {
       if (rateStatus?.ok()) {
         const status = await rateStatus.json();
         expect(status.ttl).toBeGreaterThan(0); // Should have TTL set
-        expect(status.ttl).toBeLessThanOrEqual(RATE_LIMITS.login.windowMs / 1000);
+        expect(status.ttl).toBeLessThanOrEqual(RATE_LIMITS.login.window / 1000);
       }
     });
   });
@@ -304,7 +303,7 @@ test.describe('Redis Rate Limiting Integration', () => {
       await page.waitForSelector('text=/check.*email|sent.*link/i', { timeout: 5000 });
       
       // But multiple password resets should be limited
-      for (let i = 0; i < RATE_LIMITS.passwordReset?.attempts || 3; i++) {
+      for (let i = 0; i < (RATE_LIMITS.passwordReset?.attempts ?? 3); i++) {
         await page.goto('/auth/forgot-password');
         await page.getByLabel('Email').fill('multi@example.com');
         await page.getByRole('button', { name: /reset.*password/i }).click();

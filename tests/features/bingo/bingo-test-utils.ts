@@ -4,14 +4,18 @@ import { waitForNetworkIdle, fillForm } from '../../helpers/test-utils';
 import type { Tables, Enums } from '../../../types/database.types';
 import type { 
   BoardCell,
-  GamePlayer,
-  SessionSettings,
-  WinConditions
-} from '../../../src/features/bingo-boards/types';
+  GamePlayer
+} from '../../../types/domains/bingo';
+import type { CompositeTypes } from '../../../types/database.types';
 
 /**
  * Enhanced Bingo test utilities with full type safety
  */
+
+// Type aliases for database composite types
+type SessionSettings = CompositeTypes<'session_settings'>;
+type BoardSettings = CompositeTypes<'board_settings'>;
+type WinConditions = CompositeTypes<'win_conditions'>;
 
 // =============================================================================
 // TYPE-SAFE INTERFACES
@@ -112,7 +116,7 @@ export async function createTypedTestBoard(
   const {
     title = 'Test Board',
     size = 5,
-    gameType = 'valorant',
+    gameType = 'Valorant',
     difficulty = 'medium',
     cardCount = size * size,
     isPublic = true,
@@ -136,10 +140,10 @@ export async function createTypedTestBoard(
   });
   
   // Configure win conditions
-  if (winConditions.line !== undefined) {
+  if (winConditions.line !== undefined && winConditions.line !== null) {
     await page.getByLabel(/horizontal.*vertical.*win/i).setChecked(winConditions.line);
   }
-  if (winConditions.diagonal !== undefined) {
+  if (winConditions.diagonal !== undefined && winConditions.diagonal !== null) {
     await page.getByLabel(/diagonal.*win/i).setChecked(winConditions.diagonal);
   }
   
@@ -248,10 +252,10 @@ export async function startTypedGameSession(
   // Configure session settings if provided
   if (settings) {
     await page.getByRole('button', { name: /game.*settings/i }).click();
-    if (settings.max_players !== undefined) {
+    if (settings.max_players !== undefined && settings.max_players !== null) {
       await page.getByLabel(/max.*players/i).fill(settings.max_players.toString());
     }
-    if (settings.allow_spectators !== undefined) {
+    if (settings.allow_spectators !== undefined && settings.allow_spectators !== null) {
       await page.getByLabel(/allow.*spectators/i).setChecked(settings.allow_spectators);
     }
     await page.getByRole('button', { name: /save.*settings/i }).click();
@@ -272,7 +276,14 @@ export async function startTypedGameSession(
     host_id: null,
     status: 'active',
     current_state: null,
-    settings: settings || null,
+    settings: settings ? {
+      max_players: settings.max_players || 4,
+      allow_spectators: settings.allow_spectators || true,
+      auto_start: settings.auto_start || false,
+      time_limit: settings.time_limit || null,
+      require_approval: settings.require_approval || false,
+      password: settings.password || null
+    } : null,
     version: 1,
     winner_id: null,
     started_at: new Date().toISOString(),
@@ -316,19 +327,18 @@ export async function joinTypedGameSession(
   
   // Create typed player object
   const player: Tables<'bingo_session_players'> = {
-    id: null,
-    session_id: null,
-    user_id: null,
-    player_id: crypto.randomUUID(),
+    id: '',
+    session_id: '',
+    user_id: '',
     color: playerData.color || '#06b6d4',
     display_name: playerData.displayName || 'Player',
-    team: playerData.team || 0,
+    team: playerData.team || null,
     joined_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
+    left_at: null,
     is_host: false,
     is_ready: true,
-    is_spectator: false,
-    stats: null,
+    position: null,
+    score: null,
     avatar_url: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -426,11 +436,22 @@ export async function getTypedGameState(page: Page): Promise<GameStateSnapshot> 
     
     players.push({
       id: playerId,
-      name,
+      display_name: name,
       color,
       hoverColor: color,
       team: 0,
-      isActive: true
+      isActive: true,
+      session_id: '',
+      user_id: playerId,
+      avatar_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_host: false,
+      is_ready: true,
+      joined_at: new Date().toISOString(),
+      left_at: null,
+      position: null,
+      score: null
     });
   }
   
@@ -573,7 +594,7 @@ export async function verifyWinDetection(
   for (const cellEl of winningCellElements) {
     const testId = await cellEl.getAttribute('data-testid') || '';
     const matches = testId.match(/grid-cell-(\d+)-(\d+)/);
-    if (matches) {
+    if (matches && matches[1] && matches[2]) {
       const row = parseInt(matches[1]);
       const col = parseInt(matches[2]);
       winningCells.push(row * 5 + col); // Assuming 5x5
@@ -646,7 +667,7 @@ export async function testWebSocketResilience(
  */
 export async function testConcurrentOperations(
   pages: Page[],
-  operation: () => Promise<void>
+  operation: (page: Page) => Promise<void>
 ): Promise<{
   conflicts: number;
   resolutionTime: number;
@@ -657,7 +678,7 @@ export async function testConcurrentOperations(
   
   // Execute operations concurrently
   const results = await Promise.allSettled(
-    pages.map(page => operation.call(null, page))
+    pages.map(page => operation(page))
   );
   
   // Check for conflicts
@@ -668,10 +689,17 @@ export async function testConcurrentOperations(
   });
   
   // Wait for state to stabilize
-  await pages[0].waitForTimeout(500);
+  if (pages.length === 0) {
+    throw new Error('No pages provided for conflict resolution test');
+  }
+  
+  const firstPage = pages[0];
+  if (!firstPage) throw new Error('No pages provided');
+  
+  await firstPage.waitForTimeout(500);
   
   // Get final state from first page
-  const finalState = await getTypedGameState(pages[0]);
+  const finalState = await getTypedGameState(firstPage);
   const resolutionTime = Date.now() - startTime;
   
   // Verify all pages have same state
@@ -731,8 +759,7 @@ export async function measureOperationPerformance<T>(
     );
   }
   
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return { result: result!, metrics, passed };
+  return { result, metrics, passed };
 }
 
 // =============================================================================
@@ -766,19 +793,18 @@ export async function createTypedMultiplayerSession(
   
   // Add host as first player
   const hostPlayer: Tables<'bingo_session_players'> = {
-    id: null,
+    id: '',
     session_id: session.session.id,
-    user_id: null,
-    player_id: 'host-player',
+    user_id: '',
     color: options.playerColors?.[0] || '#06b6d4',
     display_name: 'Host',
-    team: 0,
+    team: null,
     joined_at: new Date().toISOString(),
-    last_seen_at: new Date().toISOString(),
+    left_at: null,
     is_host: true,
     is_ready: true,
-    is_spectator: false,
-    stats: null,
+    position: null,
+    score: null,
     avatar_url: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -787,8 +813,11 @@ export async function createTypedMultiplayerSession(
   
   // Other players join
   for (let i = 0; i < playerPages.length; i++) {
+    const playerPage = playerPages[i];
+    if (!playerPage) continue;
+    
     const player = await joinTypedGameSession(
-      playerPages[i],
+      playerPage,
       session.session.session_code || '',
       {
         displayName: `Player ${i + 2}`,
@@ -918,7 +947,8 @@ export class TypedTestSessionManager {
       }
     } catch (error) {
       // Session might already be ended, which is fine for cleanup
-      console.debug(`Session ${sessionId} cleanup:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.debug(`Session ${sessionId} cleanup:`, errorMessage);
     }
   }
   
@@ -936,7 +966,8 @@ export class TypedTestSessionManager {
         throw new Error(`Failed to delete board: ${response.statusText}`);
       }
     } catch (error) {
-      console.debug(`Board ${boardId} cleanup:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.debug(`Board ${boardId} cleanup:`, errorMessage);
     }
   }
   
@@ -957,7 +988,8 @@ export class TypedTestSessionManager {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
-      console.debug(`Player ${playerId} cleanup:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.debug(`Player ${playerId} cleanup:`, errorMessage);
     }
   }
   
@@ -1007,7 +1039,7 @@ function mapStatusTextToEnum(text: string): Enums<'session_status'> {
   const normalized = text.toLowerCase();
   if (normalized.includes('waiting')) return 'waiting';
   if (normalized.includes('active') || normalized.includes('in progress')) return 'active';
-  if (normalized.includes('paused')) return 'paused';
+  if (normalized.includes('paused')) return 'waiting';
   if (normalized.includes('completed') || normalized.includes('ended')) return 'completed';
   return 'waiting';
 }
@@ -1023,4 +1055,4 @@ const PLAYER_COLORS = [
 ];
 
 // Export everything for backward compatibility
-export * from './bingo.config';
+// export * from './bingo.config';

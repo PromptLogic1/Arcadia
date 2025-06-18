@@ -1,4 +1,4 @@
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../types/database.types';
 
 // ============================================================================
 // TYPES FROM DATABASE SCHEMA
@@ -107,6 +107,8 @@ export function generateDiscussion(overrides?: Partial<Discussion>): Omit<Discus
 
   const template = templates[Math.floor(Math.random() * templates.length)];
   
+  if (!template) throw new Error('Failed to select discussion template');
+  
   return {
     title: template.title,
     content: template.content,
@@ -136,6 +138,8 @@ export function generateComment(discussion_id: number, overrides?: Partial<Comme
 
   const content = templates[Math.floor(Math.random() * templates.length)];
   
+  if (!content) throw new Error('Failed to select comment template');
+  
   return {
     content,
     discussion_id,
@@ -150,7 +154,7 @@ export function generateComment(discussion_id: number, overrides?: Partial<Comme
  */
 export function generateCommentThread(
   discussion_id: number,
-  replyCount: number = 3
+  replyCount = 3
 ): { parent: Omit<Comment, 'id' | 'created_at' | 'updated_at'>; replies: Array<Omit<Comment, 'id' | 'created_at' | 'updated_at'>> } {
   const parent = generateComment(discussion_id, {
     content: 'This is a great discussion! I have some thoughts on this topic that might be helpful.',
@@ -243,6 +247,8 @@ export function generateLargeDiscussionSet(count: number): Array<Omit<Discussion
     const game = games[i % games.length];
     const challengeType = challengeTypes[i % challengeTypes.length];
     
+    if (!game || !challengeType) throw new Error('Failed to select game or challenge type');
+    
     return generateDiscussion({
       title: `Performance Test Discussion ${i + 1}: ${game} ${challengeType}`,
       content: `This is discussion number ${i + 1} created for performance testing. It contains realistic content length and proper formatting to simulate real user discussions.`,
@@ -264,6 +270,8 @@ export function generateLargeCommentSet(
   return Array.from({ length: count }, (_, i) => {
     const users = Object.values(USER_SCENARIOS);
     const author = users[i % users.length];
+    
+    if (!author) throw new Error('Failed to select author');
     
     return generateComment(discussion_id, {
       content: `Performance test comment ${i + 1}. This comment has realistic length and content to properly test pagination and scrolling performance. It includes enough text to make the testing meaningful.`,

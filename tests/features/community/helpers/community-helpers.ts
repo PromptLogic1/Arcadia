@@ -1,14 +1,13 @@
-import { Page, expect } from '@playwright/test';
-import type { Tables } from '@/types/database.types';
+import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { 
   generateDiscussion, 
   generateComment,
-  type Discussion,
-  type Comment,
-  type DiscussionWithAuthor,
-  type CommentWithAuthor,
 } from '../fixtures/community-fixtures';
+import type { DiscussionWithAuthor, CommentWithAuthor, RealTimeEvent, Comment } from '../types';
+import type { Tables } from '../../../../types/database.types';
 import { waitForNetworkIdle } from '../../../helpers/test-utils';
+import type { TestWindow } from '../../../types/test-types';
 
 // Pagination interfaces
 export interface PaginatedResponse<T> {
@@ -41,7 +40,7 @@ export interface DiscussionFilterEvent {
 // Helper to create a typed discussion
 export async function createTypedDiscussion(
   page: Page,
-  discussionData?: Partial<Discussion>
+  discussionData?: Partial<Tables<'discussions'>>
 ): Promise<string> {
   const data = generateDiscussion(discussionData);
   
@@ -77,7 +76,7 @@ export async function createTypedDiscussion(
 export async function createTypedComment(
   page: Page,
   discussionId: string,
-  commentData?: Partial<Comment>
+  commentData?: Partial<Tables<'comments'>>
 ): Promise<string> {
   const data = generateComment(parseInt(discussionId), commentData);
   
@@ -267,32 +266,40 @@ export async function testRateLimit(
 export async function setupRealtimeListener(
   page: Page,
   channel: string
-): Promise<(eventType: string) => Promise<any[]>> {
+): Promise<(eventType: string) => Promise<RealTimeEvent<Comment>[]>> {
   // Inject realtime listener into page context
   await page.evaluate((ch) => {
-    (window as any).__realtimeEvents = [];
+    const win = window as TestWindow;
+    win.__realtimeEvents = [];
     
     // Mock Supabase realtime subscription
     const mockChannel = {
-      on: (event: string, callback: Function) => {
-        (window as any).__realtimeCallback = callback;
+      on: (event: string, callback: (...args: unknown[]) => void) => {
+        win.__realtimeCallback = callback;
         return mockChannel;
       },
       subscribe: () => {
         console.log(`Subscribed to channel: ${ch}`);
         return mockChannel;
       },
+      unsubscribe: () => {
+        console.log(`Unsubscribed from channel: ${ch}`);
+        return mockChannel;
+      },
+      send: (message: unknown) => {
+        console.log(`Sent message to channel ${ch}:`, message);
+      }
     };
     
     // Store the mock for testing
-    (window as any).__mockChannel = mockChannel;
+    win.__mockChannel = mockChannel;
   }, channel);
   
   // Return function to get events by type
   return async (eventType: string) => {
     return page.evaluate((type) => {
-      return ((window as any).__realtimeEvents || []).filter((e: any) => e.type === type);
-    }, eventType);
+      return ((window as TestWindow).__realtimeEvents || []).filter((e: unknown) => (e as { type?: string }).type === type);
+    }, eventType) as Promise<RealTimeEvent<Comment>[]>;
   };
 }
 
@@ -300,16 +307,23 @@ export async function setupRealtimeListener(
 export async function triggerRealtimeEvent(
   page: Page,
   eventType: string,
-  payload: any
+  payload: unknown
 ): Promise<void> {
   await page.evaluate((args) => {
-    const callback = (window as any).__realtimeCallback;
+    interface ExtendedWindow extends Window {
+      __realtimeEvents?: unknown[];
+      __realtimeCallback?: (...args: unknown[]) => void;
+    }
+    
+    const win = window as ExtendedWindow;
+    const callback = win.__realtimeCallback;
     if (callback) {
+      const payloadData = args.payload && typeof args.payload === 'object' ? args.payload : {};
       const event = {
         type: args.eventType,
-        ...args.payload,
+        ...payloadData,
       };
-      (window as any).__realtimeEvents.push(event);
+      win.__realtimeEvents?.push(event);
       callback(event);
     }
   }, { eventType, payload });
@@ -372,7 +386,7 @@ export async function testDiscussionAccessibility(page: Page): Promise<{
 export async function testPagination(
   page: Page,
   expectedTotalItems: number,
-  itemsPerPage: number = 20
+  itemsPerPage = 20
 ): Promise<void> {
   const loadedItems = new Set<string>();
   let hasMore = true;

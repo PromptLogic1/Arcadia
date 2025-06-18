@@ -1,11 +1,13 @@
-import type { Page, BrowserContext } from '@playwright/test';
+import type { Page, BrowserContext, Route } from '@playwright/test';
 import type { 
   TestWindow, 
   AuthErrorResponse, 
   LoginResponse,
   SignupResponse,
   TestAuthState,
-  A11yViolation 
+  A11yViolation,
+  EmailVerificationResponse,
+  ResendVerificationResponse
 } from '../types/test-types';
 
 /**
@@ -49,7 +51,7 @@ export async function waitForAuthStore(page: Page, timeout = 5000): Promise<void
 /**
  * Mock typed auth API responses
  */
-export async function mockAuthResponse<T extends LoginResponse | SignupResponse | AuthErrorResponse>(
+export async function mockAuthResponse<T extends LoginResponse | SignupResponse | AuthErrorResponse | EmailVerificationResponse | ResendVerificationResponse>(
   page: Page,
   pattern: string | RegExp,
   response: {
@@ -58,7 +60,7 @@ export async function mockAuthResponse<T extends LoginResponse | SignupResponse 
     headers?: Record<string, string>;
   }
 ): Promise<void> {
-  await page.route(pattern, async (route) => {
+  await page.route(pattern, async (route: Route) => {
     await route.fulfill({
       status: response.status,
       contentType: 'application/json',
@@ -175,11 +177,14 @@ export async function fillAuthForm(
   formData: Record<string, string | boolean>
 ): Promise<void> {
   for (const [field, value] of Object.entries(formData)) {
-    // Try multiple selector strategies
+    // Try multiple selector strategies based on common patterns
     const selectors = [
+      `[data-testid="auth-${field}-input"]`, // Auth form specific data-testid
       `[data-testid="${field}"]`,
       `[name="${field}"]`,
       `[id="${field}"]`,
+      `[id="field-${field}"]`, // Generated ID pattern
+      `[id="field-${field.toLowerCase().replace(/([A-Z])/g, '-$1').toLowerCase()}"]`, // camelCase to kebab-case
       `label:has-text("${field.charAt(0).toUpperCase() + field.slice(1)}")`,
     ];
     
@@ -361,8 +366,8 @@ export async function getPerformanceMetrics(page: Page): Promise<{
         
         resolve({
           firstContentfulPaint: fcp ? fcp.startTime : 0,
-          domContentLoaded: navigation.domContentLoadedEventEnd - navigation.navigationStart,
-          loadComplete: navigation.loadEventEnd - navigation.navigationStart,
+          domContentLoaded: navigation.domContentLoadedEventEnd - navigation.fetchStart,
+          loadComplete: navigation.loadEventEnd - navigation.fetchStart,
         });
       } else {
         window.addEventListener('load', () => {
@@ -373,8 +378,8 @@ export async function getPerformanceMetrics(page: Page): Promise<{
           
           resolve({
             firstContentfulPaint: fcp ? fcp.startTime : 0,
-            domContentLoaded: navigation.domContentLoadedEventEnd - navigation.navigationStart,
-            loadComplete: navigation.loadEventEnd - navigation.navigationStart,
+            domContentLoaded: navigation.domContentLoadedEventEnd - navigation.fetchStart,
+            loadComplete: navigation.loadEventEnd - navigation.fetchStart,
           });
         });
       }

@@ -103,9 +103,10 @@ module.exports = [
     },
   },
   
-  // Test files configuration
+  // React Testing Library test files configuration (exclude Playwright tests)
   {
-    files: ['**/__tests__/**/*', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    files: ['**/__tests__/**/*', '**/*.test.{ts,tsx}'],
+    ignores: ['**/tests/**/*.spec.ts', '**/e2e/**/*.spec.ts'],
     plugins: {
       'testing-library': testingLibraryPlugin,
       'jest-dom': jestDomPlugin,
@@ -146,6 +147,18 @@ module.exports = [
       'jest-dom/prefer-to-have-style': 'warn',
       'jest-dom/prefer-to-have-text-content': 'warn',
       'jest-dom/prefer-to-have-value': 'warn',
+    },
+  },
+  
+  // Playwright test files configuration
+  {
+    files: ['**/tests/**/*.spec.ts', '**/e2e/**/*.spec.ts'],
+    rules: {
+      // Allow any types in tests for flexibility
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      // Disable testing-library rules for Playwright tests
+      'testing-library/prefer-screen-queries': 'off',
     },
   },
 ];

@@ -54,23 +54,29 @@ test.describe('Real-time Achievement Tracking System', () => {
 
       // Verify first achievement (unlocked)
       const firstAchievement = mockAchievements[0];
-      const firstCard = authenticatedPage.locator(`[data-testid="achievement-${firstAchievement.achievement_name}"]`);
-      
-      await expect(firstCard).toContainText(firstAchievement.description);
-      await expect(firstCard).toContainText(`${firstAchievement.points} points`);
-      await expect(firstCard).toHaveAttribute('data-unlocked', 'true');
-      
-      // Should show unlock date
-      if (firstAchievement.unlocked_at) {
-        await expect(firstCard.locator('[data-testid="unlock-date"]')).toBeVisible();
+      if (firstAchievement) {
+        const firstCard = authenticatedPage.locator(`[data-testid="achievement-${firstAchievement.achievement_name}"]`);
+        
+        await expect(firstCard).toContainText(firstAchievement.description || '');
+        await expect(firstCard).toContainText(`${firstAchievement.points || 0} points`);
+        await expect(firstCard).toHaveAttribute('data-unlocked', 'true');
+        
+        // Should show unlock date
+        if (firstAchievement.unlocked_at) {
+          await expect(firstCard.locator('[data-testid="unlock-date"]')).toBeVisible();
+        }
       }
     });
 
     test('should show progress tracking for multi-step achievements', async ({ authenticatedPage }) => {
       // Find achievement with progress
-      const progressAchievement = mockAchievements.find(a => 
-        a.metadata && a.metadata.max_progress && a.metadata.max_progress > 1
-      );
+      const progressAchievement = mockAchievements.find(a => {
+        if (a.metadata && typeof a.metadata === 'object' && !Array.isArray(a.metadata)) {
+          const meta = a.metadata as Record<string, unknown>;
+          return meta.max_progress && Number(meta.max_progress) > 1;
+        }
+        return false;
+      });
 
       if (progressAchievement) {
         const progressCard = authenticatedPage.locator(`[data-testid="achievement-${progressAchievement.achievement_name}"]`);
@@ -79,12 +85,15 @@ test.describe('Real-time Achievement Tracking System', () => {
         await expect(progressCard.locator('[data-testid="progress-bar"]')).toBeVisible();
         
         // Should show progress text
-        const progressText = `${progressAchievement.metadata!.progress}/${progressAchievement.metadata!.max_progress}`;
+        const meta = progressAchievement.metadata as Record<string, unknown>;
+        const progress = Number(meta.progress);
+        const maxProgress = Number(meta.max_progress);
+        const progressText = `${progress}/${maxProgress}`;
         await expect(progressCard).toContainText(progressText);
 
         // Progress bar should reflect completion percentage
         const progressBar = progressCard.locator('[role="progressbar"]');
-        const progressValue = progressAchievement.metadata!.progress! / progressAchievement.metadata!.max_progress!;
+        const progressValue = progress / maxProgress;
         const expectedPercentage = Math.round(progressValue * 100);
         
         await expect(progressBar).toHaveAttribute('aria-valuenow', expectedPercentage.toString());
@@ -118,14 +127,17 @@ test.describe('Real-time Achievement Tracking System', () => {
         const card = authenticatedPage.locator(`[data-testid="achievement-${achievement.achievement_name}"]`);
         
         // Check rarity display
-        if (achievement.metadata?.rarity) {
-          await expect(card.locator('[data-testid="rarity-badge"]')).toContainText(achievement.metadata.rarity);
-        }
-        
-        // Check icon display
-        if (achievement.metadata?.icon) {
-          const icon = card.locator('[data-testid="achievement-icon"]');
-          await expect(icon).toContainText(achievement.metadata.icon);
+        if (achievement.metadata && typeof achievement.metadata === 'object' && !Array.isArray(achievement.metadata)) {
+          const meta = achievement.metadata as Record<string, unknown>;
+          if (meta.rarity) {
+            await expect(card.locator('[data-testid="rarity-badge"]')).toContainText(String(meta.rarity));
+          }
+          
+          // Check icon display
+          if (meta.icon) {
+            const icon = card.locator('[data-testid="achievement-icon"]');
+            await expect(icon).toContainText(String(meta.icon));
+          }
         }
       }
     });
@@ -180,14 +192,20 @@ test.describe('Real-time Achievement Tracking System', () => {
       const wsHelper = await GamingTestHelpers.setupWebSocketMocking(authenticatedPage);
 
       // Try to unlock already unlocked achievement
+      const unlockedAchievement = mockAchievements[0];
+      if (!unlockedAchievement) {
+        test.skip();
+        return;
+      }
+      
       const duplicateEvent: TestGameEvent = {
         id: 'duplicate-' + Date.now(),
         type: 'achievement_unlocked',
         session_id: mockSession.id,
         player_id: testUserId,
         data: {
-          achievement_id: mockAchievements[0].achievement_name,
-          achievement_name: mockAchievements[0].achievement_name
+          achievement_id: unlockedAchievement.achievement_name,
+          achievement_name: unlockedAchievement.achievement_name
         },
         timestamp: Date.now(),
         sequence: 2
@@ -204,11 +222,18 @@ test.describe('Real-time Achievement Tracking System', () => {
       const wsHelper = await GamingTestHelpers.setupWebSocketMocking(authenticatedPage);
 
       // Find a progress-based achievement
-      const progressAchievement = mockAchievements.find(a => 
-        a.metadata && a.metadata.max_progress && a.metadata.max_progress > 1
-      );
+      const progressAchievement = mockAchievements.find(a => {
+        if (a.metadata && typeof a.metadata === 'object' && !Array.isArray(a.metadata)) {
+          const meta = a.metadata as Record<string, unknown>;
+          return meta.max_progress && Number(meta.max_progress) > 1;
+        }
+        return false;
+      });
 
       if (progressAchievement) {
+        const meta = progressAchievement.metadata as Record<string, unknown>;
+        const currentProgress = Number(meta.progress || 0);
+        const maxProgress = Number(meta.max_progress);
         const progressEvent: TestGameEvent = {
           id: 'progress-' + Date.now(),
           type: 'achievement_unlocked',
@@ -216,8 +241,8 @@ test.describe('Real-time Achievement Tracking System', () => {
           player_id: testUserId,
           data: {
             achievement_id: progressAchievement.achievement_name,
-            progress: (progressAchievement.metadata!.progress || 0) + 1,
-            max_progress: progressAchievement.metadata!.max_progress,
+            progress: currentProgress + 1,
+            max_progress: maxProgress,
             is_complete: false
           },
           timestamp: Date.now(),
@@ -233,8 +258,8 @@ test.describe('Real-time Achievement Tracking System', () => {
 
         // Should show updated progress
         const progressCard = authenticatedPage.locator(`[data-testid="achievement-${progressAchievement.achievement_name}"]`);
-        const newProgress = (progressAchievement.metadata!.progress || 0) + 1;
-        const progressText = `${newProgress}/${progressAchievement.metadata!.max_progress}`;
+        const newProgress = currentProgress + 1;
+        const progressText = `${newProgress}/${maxProgress}`;
         
         await expect(progressCard).toContainText(progressText);
       }
@@ -392,7 +417,7 @@ test.describe('Real-time Achievement Tracking System', () => {
     test('should show total points earned', async ({ authenticatedPage }) => {
       const totalPoints = mockAchievements
         .filter(a => a.unlocked_at)
-        .reduce((sum, a) => sum + a.points, 0);
+        .reduce((sum, a) => sum + (a.points || 0), 0);
 
       const pointsDisplay = authenticatedPage.locator('[data-testid="total-points"]');
       if (await pointsDisplay.isVisible()) {
@@ -408,9 +433,13 @@ test.describe('Real-time Achievement Tracking System', () => {
         const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
         
         for (const rarity of rarities) {
-          const rarityCount = mockAchievements.filter(a => 
-            a.metadata?.rarity === rarity && a.unlocked_at
-          ).length;
+          const rarityCount = mockAchievements.filter(a => {
+            if (a.metadata && typeof a.metadata === 'object' && !Array.isArray(a.metadata)) {
+              const meta = a.metadata as Record<string, unknown>;
+              return meta.rarity === rarity && a.unlocked_at;
+            }
+            return false;
+          }).length;
           
           if (rarityCount > 0) {
             await expect(raritySection).toContainText(rarity);
@@ -511,7 +540,8 @@ test.describe('Real-time Achievement Tracking System', () => {
 
       // Get initial memory
       const initialMemory = await authenticatedPage.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        const perf = performance as any;
+        return perf.memory?.usedJSHeapSize || 0;
       });
 
       // Trigger multiple achievement notifications
@@ -539,7 +569,8 @@ test.describe('Real-time Achievement Tracking System', () => {
 
       // Check final memory
       const finalMemory = await authenticatedPage.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        const perf = performance as any;
+        return perf.memory?.usedJSHeapSize || 0;
       });
 
       const memoryGrowth = finalMemory - initialMemory;

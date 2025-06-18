@@ -1,12 +1,11 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import { Page } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
   mockApiResponse, 
   fillForm,
   checkAccessibility,
-  waitForAnimations 
 } from '../../helpers/test-utils';
-import { COMMUNITY_TEST_DATA, ERROR_MESSAGES, TIMEOUTS } from '../../helpers/test-data';
 
 /**
  * Search and Filtering Functionality Tests
@@ -278,7 +277,7 @@ test.describe('Search and Filtering', () => {
       await page.getByLabel('Game').selectOption('Pokemon');
       await waitForNetworkIdle(page);
       
-      let discussionCards = page.locator('[data-testid="discussion-card"]');
+      const discussionCards = page.locator('[data-testid="discussion-card"]');
       const pokemonCount = await discussionCards.count();
 
       // Add challenge filter
@@ -434,6 +433,7 @@ test.describe('Search and Filtering', () => {
       }));
 
       await mockApiResponse(page, '**/api/discussions**', {
+        status: 200,
         body: { discussions: largeDataset },
       });
 
@@ -510,7 +510,7 @@ test.describe('Search and Filtering', () => {
   test.describe('Accessibility', () => {
     test('filter controls are accessible', async ({ authenticatedPage: page }) => {
       // Check accessibility of filter section
-      const accessibilityResult = await checkAccessibility(page, '[data-testid="filters-section"]');
+      const accessibilityResult = await checkAccessibility(page, { includeTags: ['[data-testid="filters-section"]'] });
       expect(accessibilityResult.passed).toBe(true);
 
       // Test keyboard navigation
@@ -539,7 +539,7 @@ test.describe('Search and Filtering', () => {
 });
 
 // Helper function to create test discussions
-async function createTestDiscussions(page: any) {
+async function createTestDiscussions(page: Page) {
   const discussions = [
     {
       title: 'Shiny hunting tips',

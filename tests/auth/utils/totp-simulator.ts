@@ -44,19 +44,32 @@ export class TOTPSimulator {
     timeBuffer.writeUInt32BE(timeStep & 0xffffffff, 4);
 
     // Create HMAC hash
-    const hmac = createHmac(this.config.algorithm, Buffer.from(this.config.secret, 'base32'));
+    const hmac = createHmac(this.config.algorithm, Buffer.from(this.config.secret, 'ascii'));
     const hash = hmac.update(timeBuffer).digest();
 
     // Dynamic truncation
-    const offset = hash[hash.length - 1] & 0x0f;
+    const lastByte = hash[hash.length - 1];
+    if (lastByte === undefined) {
+      throw new Error('Invalid hash generated');
+    }
+    const offset = lastByte & 0x0f;
     const truncatedHash = hash.slice(offset, offset + 4);
     
-    // Convert to integer
+    // Convert to integer with null checks
+    const byte0 = truncatedHash[0];
+    const byte1 = truncatedHash[1];
+    const byte2 = truncatedHash[2];
+    const byte3 = truncatedHash[3];
+    
+    if (byte0 === undefined || byte1 === undefined || byte2 === undefined || byte3 === undefined) {
+      throw new Error('Invalid truncated hash');
+    }
+    
     const code = (
-      ((truncatedHash[0] & 0x7f) << 24) |
-      ((truncatedHash[1] & 0xff) << 16) |
-      ((truncatedHash[2] & 0xff) << 8) |
-      (truncatedHash[3] & 0xff)
+      ((byte0 & 0x7f) << 24) |
+      ((byte1 & 0xff) << 16) |
+      ((byte2 & 0xff) << 8) |
+      (byte3 & 0xff)
     ) % Math.pow(10, this.config.digits);
 
     return code.toString().padStart(this.config.digits, '0');

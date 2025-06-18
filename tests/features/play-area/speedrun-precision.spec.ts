@@ -270,7 +270,10 @@ test.describe('Speedrun Timer Precision & Anti-Cheat', () => {
       if (cells.length > 0) {
         // Click cells with exactly the same interval (bot-like behavior)
         for (let i = 0; i < Math.min(5, cells.length); i++) {
-          await cells[i].click();
+          const cell = cells[i];
+          if (cell) {
+            await cell.click();
+          }
           await authenticatedPage.waitForTimeout(1000); // Exactly 1 second - too consistent
         }
 
@@ -376,8 +379,8 @@ test.describe('Speedrun Timer Precision & Anti-Cheat', () => {
       );
 
       // Calculate memory growth
-      const initialMemory = memoryMeasurements[0];
-      const finalMemory = memoryMeasurements[memoryMeasurements.length - 1];
+      const initialMemory = memoryMeasurements[0] || 0;
+      const finalMemory = memoryMeasurements[memoryMeasurements.length - 1] || 0;
       const memoryGrowth = finalMemory - initialMemory;
 
       // Memory growth should be minimal (< 5MB)
@@ -471,7 +474,13 @@ test.describe('Speedrun Timer Precision & Anti-Cheat', () => {
       expect(timerText).toMatch(/\.\d{3}$/);
 
       // Parse and verify precision
-      const [minutes, seconds, milliseconds] = timerText!.split(/[:.]/).map(Number);
+      const parts = timerText!.split(/[:.]/).map(Number);
+      if (parts.length !== 3) throw new Error(`Invalid timer format: ${timerText}`);
+      
+      const [minutes, seconds, milliseconds] = parts;
+      if (minutes === undefined || seconds === undefined || milliseconds === undefined) {
+        throw new Error(`Failed to parse timer parts: ${timerText}`);
+      }
       const totalMs = minutes * 60000 + seconds * 1000 + milliseconds;
 
       // Should be close to test duration (1234ms ± 100ms tolerance)

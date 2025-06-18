@@ -1,8 +1,8 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import { Route } from '@playwright/test';
 import { 
   waitForNetworkIdle, 
   fillForm, 
-  waitForAnimations,
   mockApiResponse,
   getPerformanceMetrics 
 } from '../../helpers/test-utils';
@@ -194,7 +194,7 @@ test.describe('Bingo Board Creation', () => {
     });
     
     // Mock slow response
-    await authenticatedPage.route('**/api/bingo/boards', async (route) => {
+    await authenticatedPage.route('**/api/bingo/boards', async (route: Route) => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       await route.continue();
     });
@@ -303,7 +303,10 @@ test.describe('Bingo Board Creation', () => {
     
     // Cleanup additional pages
     for (let i = 1; i < pages.length; i++) {
-      await pages[i].close();
+      const page = pages[i];
+      if (page) {
+        await page.close();
+      }
     }
   });
 

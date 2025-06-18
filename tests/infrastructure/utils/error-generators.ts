@@ -314,22 +314,21 @@ export const generateRandomError = ():
   switch (type) {
     case 'network': {
       const networkTypes: NetworkError['type'][] = ['timeout', 'connection', 'reset'];
-      return generateNetworkError(
-        networkTypes[Math.floor(Math.random() * networkTypes.length)]
-      );
+      const selectedType = networkTypes[Math.floor(Math.random() * networkTypes.length)] ?? 'timeout';
+      return generateNetworkError(selectedType);
     }
     
     case 'api': {
       const statusCodes = [400, 401, 403, 404, 500, 503];
-      return generateApiError(
-        statusCodes[Math.floor(Math.random() * statusCodes.length)]
-      );
+      const selectedStatus = statusCodes[Math.floor(Math.random() * statusCodes.length)] ?? 500;
+      return generateApiError(selectedStatus);
     }
     
     case 'infrastructure': {
       const services: InfrastructureError['service'][] = ['redis', 'supabase', 'sentry'];
+      const selectedService = services[Math.floor(Math.random() * services.length)] ?? 'redis';
       return generateInfrastructureError(
-        services[Math.floor(Math.random() * services.length)],
+        selectedService,
         'operation',
         { fatal: Math.random() > 0.8 }
       );
@@ -337,6 +336,10 @@ export const generateRandomError = ():
     
     case 'rateLimit':
       return generateRateLimitError(100, 0);
+    
+    default:
+      // Should never reach here, but TypeScript requires exhaustive case handling
+      return generateNetworkError('timeout');
   }
 };
 
@@ -344,7 +347,7 @@ export const generateRandomError = ():
  * Error scenario builder for complex test cases
  */
 export class ErrorScenarioBuilder {
-  private errors: Array<() => Promise<any>> = [];
+  private errors: Array<() => Promise<void>> = [];
   
   addNetworkFailure(delay = 0, type: NetworkError['type'] = 'timeout'): this {
     this.errors.push(async () => {

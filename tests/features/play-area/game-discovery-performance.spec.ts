@@ -10,6 +10,7 @@ import type {
   TestPerformanceMetrics,
   TestNetworkConditions
 } from './types/test-types';
+import type { TestWindow } from '../../types/test-types';
 
 test.describe('Game Discovery & Performance Optimization', () => {
   let mockSessions: TestSession[];
@@ -25,7 +26,7 @@ test.describe('Game Discovery & Performance Optimization', () => {
     mockSessions.forEach((session, index) => {
       session.difficulty = ['easy', 'medium', 'hard'][index % 3];
       session.game_type = ['bingo', 'speedrun', 'tournament'][index % 3];
-      session.status = ['waiting', 'active', 'paused'][index % 3] as any;
+      session.status = ['waiting', 'active', 'completed'][index % 3] as 'waiting' | 'active' | 'completed';
       session.current_player_count = Math.floor(Math.random() * 4) + 1;
     });
 
@@ -362,7 +363,7 @@ test.describe('Game Discovery & Performance Optimization', () => {
     test('should not leak memory during extended browsing session', async ({ authenticatedPage }) => {
       // Get baseline memory
       const initialMemory = await authenticatedPage.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        return (performance as Performance).memory?.usedJSHeapSize || 0;
       });
 
       // Simulate extended browsing
@@ -374,8 +375,10 @@ test.describe('Game Discovery & Performance Optimization', () => {
           const difficulties = ['easy', 'medium', 'hard'];
           const statuses = ['waiting', 'active', 'paused'];
           
-          await filtersSection.locator('[data-testid="difficulty-filter"]').selectOption(difficulties[i % 3]);
-          await filtersSection.locator('[data-testid="status-filter"]').selectOption(statuses[i % 3]);
+          const difficultyIndex = i % difficulties.length;
+          const statusIndex = i % statuses.length;
+          await filtersSection.locator('[data-testid="difficulty-filter"]').selectOption(difficulties[difficultyIndex] || 'medium');
+          await filtersSection.locator('[data-testid="status-filter"]').selectOption(statuses[statusIndex] || 'waiting');
           
           await waitForNetworkIdle(authenticatedPage);
           await authenticatedPage.waitForTimeout(200);
@@ -385,13 +388,13 @@ test.describe('Game Discovery & Performance Optimization', () => {
       // Force garbage collection
       await authenticatedPage.evaluate(() => {
         if ('gc' in window) {
-          (window as any).gc();
+          (window as Window & { gc?: () => void }).gc?.();
         }
       });
 
       // Check final memory
       const finalMemory = await authenticatedPage.evaluate(() => {
-        return (performance as any).memory?.usedJSHeapSize || 0;
+        return (performance as Performance).memory?.usedJSHeapSize || 0;
       });
 
       const memoryGrowth = finalMemory - initialMemory;
@@ -570,13 +573,16 @@ test.describe('Game Discovery & Performance Optimization', () => {
       // Simulate multiple session updates
       const updatePromises = [];
       
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < Math.min(10, mockSessions.length); i++) {
+        const session = mockSessions[i];
+        if (!session) continue;
+        
         const sessionUpdate = {
           id: `update-${i}`,
           type: 'session_updated' as const,
-          session_id: mockSessions[i].id,
+          session_id: session.id,
           data: {
-            current_player_count: mockSessions[i].current_player_count! + 1,
+            current_player_count: (session.current_player_count || 0) + 1,
             status: 'active'
           },
           timestamp: Date.now(),
@@ -611,15 +617,23 @@ test.describe('Game Discovery & Performance Optimization', () => {
       const wsHelper = await GamingTestHelpers.setupWebSocketMocking(authenticatedPage);
 
       // Track UI update count
-      let updateCount = 0;
-      await authenticatedPage.expose('trackUpdate', () => updateCount++);
+      await authenticatedPage.evaluate(() => {
+        (window as TestWindow).updateCount = 0;
+        (window as TestWindow).trackUpdate = () => (window as TestWindow).updateCount!++;
+      });
 
       // Simulate rapid updates (faster than UI can reasonably handle)
+      const targetSession = mockSessions[0];
+      if (!targetSession) {
+        test.skip();
+        return;
+      }
+      
       for (let i = 0; i < 50; i++) {
         const rapidUpdate = {
           id: `rapid-${i}`,
           type: 'session_updated' as const,
-          session_id: mockSessions[0].id,
+          session_id: targetSession.id,
           data: { current_player_count: i + 1 },
           timestamp: Date.now(),
           sequence: i + 100
@@ -631,6 +645,7 @@ test.describe('Game Discovery & Performance Optimization', () => {
       await authenticatedPage.waitForTimeout(2000);
 
       // UI updates should be throttled (not 1:1 with events)
+      const updateCount = await authenticatedPage.evaluate(() => (window as TestWindow).updateCount || 0);
       expect(updateCount).toBeLessThan(50);
       expect(updateCount).toBeGreaterThan(0);
 

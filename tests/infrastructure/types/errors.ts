@@ -221,7 +221,7 @@ export const createErrorReport = (
 
   errors.forEach(error => {
     // Count by type
-    const type = error.code.split('_')[0];
+    const type = error.code?.split('_')[0] || 'unknown';
     byType[type] = (byType[type] || 0) + 1;
 
     // Count by severity

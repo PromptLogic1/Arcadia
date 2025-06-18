@@ -7,12 +7,8 @@
  */
 
 import { test, expect } from '@playwright/test';
-import type { Page, Browser } from '@playwright/test';
-import type { InfrastructureError, CircuitBreakerError } from './types/errors';
-import {
-  generateInfrastructureError,
-  generateCircuitBreakerError,
-} from './utils/error-generators';
+import type { Route } from '@playwright/test';
+import type { TestWindow, ComputationResult } from './types/test-types';
 import { mockInfrastructureFailure } from './utils/mock-helpers';
 
 test.describe('Redis Infrastructure Resilience', () => {
@@ -28,7 +24,7 @@ test.describe('Redis Infrastructure Resilience', () => {
       
       // Monitor circuit breaker state
       await page.evaluate(() => {
-        (window as any).redisMetrics = {
+        (window as unknown as TestWindow).redisMetrics = {
           attempts: 0,
           failures: 0,
           circuitState: 'CLOSED',
@@ -38,7 +34,8 @@ test.describe('Redis Infrastructure Resilience', () => {
       // Trigger multiple Redis operations
       for (let i = 0; i < 6; i++) {
         await page.evaluate(async () => {
-          const metrics = (window as any).redisMetrics;
+          const metrics = (window as unknown as TestWindow).redisMetrics;
+          if (!metrics) return;
           metrics.attempts++;
           
           try {
@@ -47,7 +44,7 @@ test.describe('Redis Infrastructure Resilience', () => {
             if (!response.ok) {
               metrics.failures++;
             }
-          } catch (error) {
+          } catch {
             metrics.failures++;
           }
           
@@ -61,17 +58,17 @@ test.describe('Redis Infrastructure Resilience', () => {
       }
       
       // Verify circuit breaker opened
-      const metrics = await page.evaluate(() => (window as any).redisMetrics);
-      expect(metrics.circuitState).toBe('OPEN');
-      expect(metrics.failures).toBeGreaterThanOrEqual(5);
+      const metrics = await page.evaluate(() => (window as unknown as TestWindow).redisMetrics);
+      expect(metrics?.circuitState).toBe('OPEN');
+      expect(metrics?.failures).toBeGreaterThanOrEqual(5);
       
       // Verify requests are rejected when circuit is open
       await page.evaluate(() => {
-        const metrics = (window as any).redisMetrics;
+        const metrics = (window as unknown as TestWindow).redisMetrics;
         
         // Mock circuit breaker rejection
-        (window as any).fetch = async (url: string) => {
-          if (url.includes('/api/cache') && metrics.circuitState === 'OPEN') {
+        (window as unknown as TestWindow).fetch = async (url: string) => {
+          if (url.includes('/api/cache') && metrics?.circuitState === 'OPEN') {
             throw new Error('Circuit breaker is OPEN');
           }
           return new Response('ok');
@@ -84,7 +81,7 @@ test.describe('Redis Infrastructure Resilience', () => {
           await fetch('/api/cache-test');
           return null;
         } catch (error) {
-          return error.message;
+          return error instanceof Error ? error.message : String(error);
         }
       });
       
@@ -151,23 +148,26 @@ test.describe('Redis Infrastructure Resilience', () => {
           }
         }
         
-        (window as any).circuitBreaker = new TestCircuitBreaker();
+        (window as unknown as TestWindow).circuitBreaker = new TestCircuitBreaker();
       });
       
       // Trigger failures to open circuit
       for (let i = 0; i < 3; i++) {
         await page.evaluate(async () => {
-          const cb = (window as any).circuitBreaker;
+          const cb = (window as unknown as TestWindow).circuitBreaker;
+          if (!cb) return;
           try {
             await cb.execute(async () => {
               throw new Error('Redis connection failed');
             });
-          } catch {}
+          } catch {
+            // Ignore errors for test recovery
+          }
         });
       }
       
       // Verify circuit is open
-      let state = await page.evaluate(() => (window as any).circuitBreaker.state);
+      let state = await page.evaluate(() => (window as unknown as TestWindow).circuitBreaker?.state);
       expect(state).toBe('OPEN');
       
       // Wait for timeout
@@ -175,24 +175,28 @@ test.describe('Redis Infrastructure Resilience', () => {
       
       // Attempt operation - should transition to HALF_OPEN
       await page.evaluate(async () => {
-        const cb = (window as any).circuitBreaker;
+        const cb = (window as unknown as TestWindow).circuitBreaker;
+        if (!cb) return;
         try {
           await cb.execute(async () => 'success');
-        } catch {}
+        } catch {
+          // Ignore error for circuit breaker test
+        }
       });
       
-      state = await page.evaluate(() => (window as any).circuitBreaker.state);
+      state = await page.evaluate(() => (window as unknown as TestWindow).circuitBreaker?.state);
       expect(state).toBe('HALF_OPEN');
       
       // Two successful operations should close circuit
       for (let i = 0; i < 2; i++) {
         await page.evaluate(async () => {
-          const cb = (window as any).circuitBreaker;
+          const cb = (window as unknown as TestWindow).circuitBreaker;
+          if (!cb) return;
           await cb.execute(async () => 'success');
         });
       }
       
-      state = await page.evaluate(() => (window as any).circuitBreaker.state);
+      state = await page.evaluate(() => (window as unknown as TestWindow).circuitBreaker?.state);
       expect(state).toBe('CLOSED');
     });
   });
@@ -213,30 +217,27 @@ test.describe('Redis Infrastructure Resilience', () => {
       // Navigate all pages
       await Promise.all(pages.map(p => p.goto('/')));
       
-      // Set up shared state tracking
-      const sharedState = {
-        computationCount: 0,
-        lockAcquired: false,
-      };
+      // Track computation count for stampede prevention
+      let computationCount = 0;
       
       // Inject cache logic in all pages
       await Promise.all(pages.map(page => 
         page.evaluate(() => {
-          (window as any).cacheGet = async (key: string) => {
+          (window as unknown as TestWindow).cacheGet = async (_key: string) => {
             // Simulate cache miss
             return null;
           };
           
-          (window as any).acquireLock = async (key: string) => {
+          (window as unknown as TestWindow).acquireLock = async (_key: string) => {
             // Only one can acquire lock
             const response = await fetch('/api/acquire-lock', {
               method: 'POST',
-              body: JSON.stringify({ key }),
+              body: JSON.stringify({ key: _key }),
             });
             return response.ok;
           };
           
-          (window as any).computeExpensiveData = async () => {
+          (window as unknown as TestWindow).computeExpensiveData = async () => {
             // Track computation
             await fetch('/api/track-computation', { method: 'POST' });
             
@@ -245,18 +246,25 @@ test.describe('Redis Infrastructure Resilience', () => {
             return { data: 'expensive result', timestamp: Date.now() };
           };
           
-          (window as any).getOrCompute = async (key: string) => {
+          (window as unknown as TestWindow).getOrCompute = async (key: string) => {
             // Try cache first
-            const cached = await (window as any).cacheGet(key);
-            if (cached) return cached;
+            const cacheGet = (window as unknown as TestWindow).cacheGet;
+            if (!cacheGet) throw new Error('cacheGet function not available');
+            
+            const cached = await cacheGet(key);
+            if (cached) return cached as ComputationResult;
             
             // Try to acquire lock
             const lockKey = `lock:${key}`;
-            const hasLock = await (window as any).acquireLock(lockKey);
+            const acquireLock = (window as unknown as TestWindow).acquireLock;
+            const computeExpensiveData = (window as unknown as TestWindow).computeExpensiveData;
+            if (!acquireLock || !computeExpensiveData) throw new Error('Functions not available');
+            
+            const hasLock = await acquireLock(lockKey);
             
             if (hasLock) {
               // We have the lock, compute the data
-              const result = await (window as any).computeExpensiveData();
+              const result = await computeExpensiveData();
               
               // Cache the result
               await fetch('/api/cache-set', {
@@ -276,8 +284,12 @@ test.describe('Redis Infrastructure Resilience', () => {
               await new Promise(resolve => setTimeout(resolve, 100));
               
               // Try cache again
-              return await (window as any).cacheGet(key) || 
-                     await (window as any).getOrCompute(key);
+              const cacheGet = (window as unknown as TestWindow).cacheGet;
+              const getOrCompute = (window as unknown as TestWindow).getOrCompute;
+              if (!cacheGet || !getOrCompute) throw new Error('Functions not available');
+              
+              const cached = await cacheGet(key);
+              return (cached as ComputationResult) || await getOrCompute(key);
             }
           };
         })
@@ -285,11 +297,10 @@ test.describe('Redis Infrastructure Resilience', () => {
       
       // Mock the lock API to ensure only one succeeds
       let lockHolder: string | null = null;
-      let computationCount = 0;
       
       await Promise.all(pages.map((page, index) => 
-        page.route('**/api/acquire-lock', async (route) => {
-          const body = await route.request().postDataJSON();
+        page.route('**/api/acquire-lock', async (route: Route) => {
+          const _body = await route.request().postDataJSON() as { key: string };
           
           if (!lockHolder) {
             lockHolder = `page-${index}`;
@@ -301,17 +312,19 @@ test.describe('Redis Infrastructure Resilience', () => {
       ));
       
       await Promise.all(pages.map(page => 
-        page.route('**/api/track-computation', async (route) => {
+        page.route('**/api/track-computation', async (route: Route) => {
           computationCount++;
           await route.fulfill({ status: 200 });
         })
       ));
       
       // Trigger concurrent cache misses
-      const results = await Promise.all(pages.map((page, index) => 
+      const results = await Promise.all(pages.map((page) => 
         page.evaluate(async () => {
           const start = Date.now();
-          const result = await (window as any).getOrCompute('expensive-data');
+          const getOrCompute = (window as unknown as TestWindow).getOrCompute;
+          if (!getOrCompute) throw new Error('getOrCompute function not available');
+          const result = await getOrCompute('expensive-data');
           const duration = Date.now() - start;
           return { result, duration };
         })
@@ -321,7 +334,8 @@ test.describe('Redis Infrastructure Resilience', () => {
       expect(computationCount).toBe(1);
       
       // Verify all pages got the same result
-      const firstResult = results[0].result.data;
+      const firstResult = results[0]?.result.data;
+      expect(firstResult).toBeDefined();
       results.forEach(r => {
         expect(r.result.data).toBe(firstResult);
       });
@@ -379,7 +393,7 @@ test.describe('Redis Infrastructure Resilience', () => {
           }
         }
         
-        (window as any).distributedLock = new DistributedLock();
+        (window as unknown as TestWindow).distributedLock = new DistributedLock();
       });
       
       // Test lock timeout
@@ -387,14 +401,18 @@ test.describe('Redis Infrastructure Resilience', () => {
       
       // Acquire lock with short TTL
       const acquired = await page.evaluate(async (key) => {
-        return await (window as any).distributedLock.acquire(key, 1000);
+        const distributedLock = (window as unknown as TestWindow).distributedLock;
+        if (!distributedLock) return false;
+        return await distributedLock.acquire(key, 1000);
       }, lockKey);
       
       expect(acquired).toBe(true);
       
       // Try to acquire again immediately - should fail
       const secondAttempt = await page.evaluate(async (key) => {
-        return await (window as any).distributedLock.acquire(key);
+        const distributedLock = (window as unknown as TestWindow).distributedLock;
+        if (!distributedLock) return false;
+        return await distributedLock.acquire(key);
       }, lockKey);
       
       expect(secondAttempt).toBe(false);
@@ -404,7 +422,9 @@ test.describe('Redis Infrastructure Resilience', () => {
       
       // Should be able to acquire now
       const thirdAttempt = await page.evaluate(async (key) => {
-        return await (window as any).distributedLock.acquire(key);
+        const distributedLock = (window as unknown as TestWindow).distributedLock;
+        if (!distributedLock) return false;
+        return await distributedLock.acquire(key);
       }, lockKey);
       
       expect(thirdAttempt).toBe(true);
@@ -459,17 +479,19 @@ test.describe('Redis Infrastructure Resilience', () => {
           }
         }
         
-        (window as any).cacheMetrics = new CacheMetrics();
+        (window as unknown as TestWindow).cacheMetrics = new CacheMetrics();
         
         // Mock cache with metrics
-        (window as any).cache = new Map();
+        (window as unknown as TestWindow).cache = new Map();
         
-        (window as any).cacheGetWithMetrics = async (key: string) => {
+        (window as unknown as TestWindow).cacheGetWithMetrics = async (key: string) => {
           const start = performance.now();
-          const metrics = (window as any).cacheMetrics;
+          const metrics = (window as unknown as TestWindow).cacheMetrics;
+          const cache = (window as unknown as TestWindow).cache;
+          if (!metrics || !cache) return null;
           
           try {
-            const value = (window as any).cache.get(key);
+            const value = cache.get(key);
             const latency = performance.now() - start;
             
             if (value) {
@@ -485,8 +507,10 @@ test.describe('Redis Infrastructure Resilience', () => {
           }
         };
         
-        (window as any).cacheSetWithMetrics = async (key: string, value: any) => {
-          (window as any).cache.set(key, value);
+        (window as unknown as TestWindow).cacheSetWithMetrics = async (key: string, value: unknown) => {
+          const cache = (window as unknown as TestWindow).cache;
+          if (!cache) return;
+          cache.set(key, value);
         };
       });
       
@@ -502,19 +526,25 @@ test.describe('Redis Infrastructure Resilience', () => {
       for (const op of operations) {
         if (op.value) {
           await page.evaluate(async ({ key, value }) => {
-            await (window as any).cacheSetWithMetrics(key, value);
+            const cacheSetWithMetrics = (window as unknown as TestWindow).cacheSetWithMetrics;
+            if (!cacheSetWithMetrics) return;
+            await cacheSetWithMetrics(key, value);
           }, { key: op.key, value: op.value });
         }
         
         await page.evaluate(async (key) => {
-          await (window as any).cacheGetWithMetrics(key);
+          const cacheGetWithMetrics = (window as unknown as TestWindow).cacheGetWithMetrics;
+          if (!cacheGetWithMetrics) return;
+          await cacheGetWithMetrics(key);
         }, op.key);
       }
       
       // Get metrics
-      const stats = await page.evaluate(() => 
-        (window as any).cacheMetrics.getStats()
-      );
+      const stats = await page.evaluate(() => {
+        const cacheMetrics = (window as unknown as TestWindow).cacheMetrics;
+        if (!cacheMetrics) return { hits: 0, misses: 0, hitRate: 0, avgLatency: 0, p95Latency: 0 };
+        return cacheMetrics.getStats();
+      });
       
       // Verify metrics
       expect(stats.hits).toBe(2);
@@ -538,10 +568,10 @@ test.describe('Redis Infrastructure Resilience', () => {
       // Set up fallback mechanism
       await page.evaluate(() => {
         class CacheWithFallback {
-          private inMemoryCache = new Map<string, any>();
+          private inMemoryCache = new Map<string, unknown>();
           private redisAvailable = true;
           
-          async get(key: string): Promise<any> {
+          async get(key: string): Promise<unknown> {
             try {
               if (this.redisAvailable) {
                 // Try Redis first
@@ -551,7 +581,7 @@ test.describe('Redis Infrastructure Resilience', () => {
                 }
                 return await response.json();
               }
-            } catch (error) {
+            } catch {
               // Redis failed, mark as unavailable
               this.redisAvailable = false;
               console.warn('Redis unavailable, using in-memory cache');
@@ -561,7 +591,7 @@ test.describe('Redis Infrastructure Resilience', () => {
             return this.inMemoryCache.get(key);
           }
           
-          async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
+          async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
             // Always update in-memory cache
             this.inMemoryCache.set(key, value);
             
@@ -582,7 +612,7 @@ test.describe('Redis Infrastructure Resilience', () => {
                 if (!response.ok) {
                   throw new Error('Redis set failed');
                 }
-              } catch (error) {
+              } catch {
                 console.warn('Failed to update Redis, data cached locally');
               }
             }
@@ -593,17 +623,18 @@ test.describe('Redis Infrastructure Resilience', () => {
           }
         }
         
-        (window as any).cacheWithFallback = new CacheWithFallback();
+        (window as unknown as TestWindow).cacheWithFallback = new CacheWithFallback();
       });
       
       // Mock Redis API to fail
-      await page.route('**/api/redis/**', async (route) => {
+      await page.route('**/api/redis/**', async (route: Route) => {
         await route.fulfill({ status: 503 });
       });
       
       // Test cache operations with fallback
       await page.evaluate(async () => {
-        const cache = (window as any).cacheWithFallback;
+        const cache = (window as unknown as TestWindow).cacheWithFallback;
+        if (!cache) return { result: null, usingFallback: false };
         
         // Set some data
         await cache.set('test-key', { data: 'test value' });
@@ -618,7 +649,8 @@ test.describe('Redis Infrastructure Resilience', () => {
       });
       
       const { result, usingFallback } = await page.evaluate(async () => {
-        const cache = (window as any).cacheWithFallback;
+        const cache = (window as unknown as TestWindow).cacheWithFallback;
+        if (!cache) return { result: null, usingFallback: false };
         const result = await cache.get('test-key');
         return {
           result,
@@ -631,12 +663,15 @@ test.describe('Redis Infrastructure Resilience', () => {
       
       // Verify UI shows degraded mode
       await page.evaluate(() => {
+        const cache = (window as unknown as TestWindow).cacheWithFallback;
+        if (!cache) return;
+        
         const banner = document.createElement('div');
         banner.setAttribute('data-testid', 'degraded-mode-banner');
         banner.textContent = 'Running in degraded mode - some features may be limited';
         banner.style.cssText = 'background: orange; color: white; padding: 10px;';
         
-        if ((window as any).cacheWithFallback.isUsingFallback()) {
+        if (cache.isUsingFallback()) {
           document.body.prepend(banner);
         }
       });

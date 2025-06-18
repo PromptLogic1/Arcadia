@@ -1,5 +1,28 @@
-import { faker } from '@faker-js/faker';
-import type { Tables } from '@/types/database.types';
+// Native mock data generation utilities (faker.js replacement)
+import type { Tables } from '../../types/database.types';
+
+/**
+ * Native data generation utilities
+ */
+const mockData = {
+  randomString: (length = 8) => Math.random().toString(36).substring(2, 2 + length),
+  randomId: () => Math.random().toString(36).substring(2, 15),
+  randomInt: (min = 0, max = 100) => Math.floor(Math.random() * (max - min + 1)) + min,
+  randomBool: () => Math.random() > 0.5,
+  randomChoice: <T>(arr: T[]): T => {
+    if (arr.length === 0) throw new Error('Cannot choose from empty array');
+    const choice = arr[Math.floor(Math.random() * arr.length)];
+    if (choice === undefined) throw new Error('Array choice is undefined');
+    return choice;
+  },
+  randomDate: (daysAgo = 30) => {
+    const now = Date.now();
+    const randomTime = Math.random() * daysAgo * 24 * 60 * 60 * 1000;
+    return new Date(now - randomTime).toISOString();
+  },
+  randomUsername: () => `user_${mockData.randomString(6)}`,
+  randomEmail: () => `${mockData.randomString(8)}@test.com`,
+};
 
 /**
  * Centralized fixture factory for game-related test data
@@ -36,7 +59,7 @@ export type CellState = {
   is_marked: boolean;
   marked_by: string | null;
   marked_at: string | null;
-  color?: string;
+  color?: string | null;
 };
 
 export type BoardState = {
@@ -54,32 +77,33 @@ export const gameFixtures = {
    * Generate a game session with proper types
    */
   session: (overrides?: Partial<SessionWithStats>): SessionWithStats => ({
-    id: faker.string.uuid(),
-    board_id: faker.string.uuid(),
-    host_id: faker.string.uuid(),
-    session_code: faker.string.alphanumeric(6).toUpperCase(),
-    status: faker.helpers.arrayElement(['waiting', 'active', 'completed', 'cancelled']),
-    created_at: faker.date.recent().toISOString(),
+    id: mockData.randomId(),
+    board_id: mockData.randomId(),
+    host_id: mockData.randomId(),
+    session_code: mockData.randomString(6).toUpperCase(),
+    status: mockData.randomChoice(['waiting', 'active', 'completed', 'cancelled']),
+    created_at: mockData.randomDate(),
     updated_at: new Date().toISOString(),
     started_at: null,
     ended_at: null,
     winner_id: null,
     current_state: null,
     settings: {
-      max_players: faker.number.int({ min: 2, max: 8 }),
-      time_limit: faker.helpers.maybe(() => faker.number.int({ min: 300, max: 3600 })),
-      allow_spectators: faker.datatype.boolean(),
+      max_players: mockData.randomInt(2, 8),
+      time_limit: mockData.randomBool() ? mockData.randomInt(300, 3600) : null,
+      allow_spectators: mockData.randomBool(),
       auto_start: false,
-      require_approval: false
+      require_approval: false,
+      password: null
     },
     version: 1,
     // Extended properties
-    board_title: faker.commerce.productName(),
-    host_username: faker.internet.userName(),
-    current_player_count: faker.number.int({ min: 1, max: 4 }),
-    max_players: faker.number.int({ min: 2, max: 8 }),
-    difficulty: faker.helpers.arrayElement(['easy', 'medium', 'hard']),
-    game_type: faker.helpers.arrayElement(['bingo', 'speedrun', 'puzzle']),
+    board_title: `Test Game ${mockData.randomString(4)}`,
+    host_username: mockData.randomUsername(),
+    current_player_count: mockData.randomInt(1, 4),
+    max_players: mockData.randomInt(2, 8),
+    difficulty: mockData.randomChoice(['beginner', 'easy', 'medium', 'hard', 'expert']),
+    game_type: mockData.randomChoice(['Valorant', 'Minecraft', 'League of Legends', 'Fortnite']),
     ...overrides
   }),
 
@@ -87,21 +111,21 @@ export const gameFixtures = {
    * Generate a session player with proper types
    */
   player: (overrides?: Partial<PlayerWithStatus>): PlayerWithStatus => ({
-    user_id: faker.string.uuid(),
-    session_id: faker.string.uuid(),
-    display_name: faker.internet.userName(),
-    avatar_url: faker.image.avatar(),
-    color: faker.color.rgb(),
+    user_id: mockData.randomId(),
+    session_id: mockData.randomId(),
+    display_name: mockData.randomUsername(),
+    avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + mockData.randomString(),
+    color: `#${mockData.randomString(6)}`,
     is_host: false,
     is_ready: true,
-    joined_at: faker.date.recent().toISOString(),
+    joined_at: mockData.randomDate(),
     left_at: null,
-    position: faker.number.int({ min: 0, max: 7 }),
+    position: mockData.randomInt(0, 7),
     score: 0,
     team: null,
-    created_at: faker.date.recent().toISOString(),
+    created_at: mockData.randomDate(),
     updated_at: new Date().toISOString(),
-    id: faker.string.uuid(),
+    id: mockData.randomId(),
     // Extended properties
     is_active: true,
     connection_status: 'connected',
@@ -112,9 +136,9 @@ export const gameFixtures = {
    * Generate an achievement with proper types
    */
   achievement: (overrides?: Partial<Achievement>): Achievement => ({
-    id: faker.string.uuid(),
-    user_id: faker.string.uuid(),
-    achievement_name: faker.helpers.arrayElement([
+    id: mockData.randomId(),
+    user_id: mockData.randomId(),
+    achievement_name: mockData.randomChoice([
       'first_win',
       'speedrun_master',
       'social_butterfly',
@@ -123,16 +147,16 @@ export const gameFixtures = {
       'early_bird',
       'night_owl'
     ]),
-    achievement_type: faker.helpers.arrayElement(['gameplay', 'social', 'speedrun', 'milestone']),
-    description: faker.lorem.sentence(),
-    points: faker.helpers.arrayElement([10, 25, 50, 100, 250, 500]),
-    unlocked_at: faker.helpers.maybe(() => faker.date.recent().toISOString()),
-    created_at: faker.date.past().toISOString(),
+    achievement_type: mockData.randomChoice(['game', 'skill', 'social', 'progression']),
+    description: "Test description " + mockData.randomString(10),
+    points: mockData.randomInt(10, 1000),
+    unlocked_at: mockData.randomBool() ? mockData.randomDate() : null,
+    created_at: mockData.randomDate(90),
     metadata: {
-      icon: faker.helpers.arrayElement(['🏆', '⭐', '🎯', '🔥', '💎', '🚀']),
-      rarity: faker.helpers.arrayElement(['common', 'uncommon', 'rare', 'epic', 'legendary']),
-      progress: faker.number.int({ min: 0, max: 10 }),
-      max_progress: faker.number.int({ min: 1, max: 10 })
+      icon: mockData.randomChoice(['trophy', 'star', 'medal', 'crown']),
+      rarity: mockData.randomChoice(['common', 'rare', 'epic', 'legendary']),
+      progress: mockData.randomInt(0, 10),
+      max_progress: mockData.randomInt(1, 10)
     },
     ...overrides
   }),
@@ -141,27 +165,25 @@ export const gameFixtures = {
    * Generate a session event with proper types
    */
   sessionEvent: (overrides?: Partial<SessionEvent>): SessionEvent => ({
-    id: faker.string.uuid(),
-    session_id: faker.string.uuid(),
-    board_id: faker.string.uuid(),
-    event_type: faker.helpers.arrayElement([
-      'session_created',
+    id: mockData.randomId(),
+    session_id: mockData.randomId(),
+    board_id: mockData.randomId(),
+    event_type: mockData.randomChoice([
       'player_joined',
       'player_left',
       'game_started',
       'cell_marked',
       'cell_unmarked',
-      'game_completed',
-      'session_ended'
+      'game_ended'
     ]),
-    user_id: faker.string.uuid(),
-    player_id: faker.string.uuid(),
+    user_id: mockData.randomId(),
+    player_id: mockData.randomId(),
     timestamp: Date.now(),
-    cell_position: faker.helpers.maybe(() => faker.number.int({ min: 0, max: 24 })),
+    cell_position: mockData.randomBool() ? mockData.randomInt(0, 24) : null,
     event_data: {},
     data: null,
     version: 1,
-    created_at: faker.date.recent().toISOString(),
+    created_at: mockData.randomDate(),
     updated_at: new Date().toISOString(),
     ...overrides
   }),
@@ -170,41 +192,41 @@ export const gameFixtures = {
    * Generate a game board with proper types
    */
   board: (overrides?: Partial<GameBoard>): GameBoard => ({
-    id: faker.string.uuid(),
-    title: faker.commerce.productName(),
-    description: faker.lorem.paragraph(),
-    creator_id: faker.string.uuid(),
-    game_type: faker.helpers.arrayElement(['bingo', 'puzzle', 'trivia', 'speedrun']),
-    difficulty: faker.helpers.arrayElement(['beginner', 'easy', 'medium', 'hard', 'expert']),
+    id: mockData.randomId(),
+    title: `Test Game ${mockData.randomString(4)}`,
+    description: "Test board description " + mockData.randomString(20),
+    creator_id: mockData.randomId(),
+    game_type: mockData.randomChoice(['Valorant', 'Minecraft', 'League of Legends', 'Fortnite']),
+    difficulty: mockData.randomChoice(['beginner', 'easy', 'medium', 'hard', 'expert']),
     size: 5,
     board_state: {
       cells: gameFixtures.boardState(),
       patterns: ['line', 'diagonal', 'full_house'],
-      theme: faker.helpers.arrayElement(['classic', 'modern', 'neon', 'retro'])
+      theme: mockData.randomChoice(['classic', 'dark', 'neon', 'minimalist'])
     },
     is_public: true,
-    status: 'published',
+    status: 'draft',
     settings: {
-      time_limit: faker.helpers.maybe(() => faker.number.int({ min: 60, max: 3600 })),
+      time_limit: mockData.randomBool() ? mockData.randomInt(60, 3600) : null,
       win_conditions: ['line', 'diagonal'],
       allow_custom_marks: false
     },
-    votes: faker.number.int({ min: 0, max: 1000 }),
-    bookmarked_count: faker.number.int({ min: 0, max: 500 }),
+    votes: mockData.randomInt(0, 1000),
+    bookmarked_count: mockData.randomInt(0, 500),
     cloned_from: null,
     version: 1,
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    created_at: mockData.randomDate(90),
+    updated_at: mockData.randomDate(),
     ...overrides
   }),
 
   /**
    * Generate board state (cells)
    */
-  boardState: (size: number = 25): CellState[] => {
+  boardState: (size = 25): CellState[] => {
     return Array.from({ length: size }, (_, i) => ({
       position: i,
-      text: faker.lorem.words({ min: 1, max: 3 }),
+      text: "Test cell " + mockData.randomString(3),
       is_marked: false,
       marked_by: null,
       marked_at: null,
@@ -217,40 +239,47 @@ export const gameFixtures = {
    */
   markedBoardState: (pattern: 'line' | 'diagonal' | 'corners' | 'random' = 'random'): CellState[] => {
     const cells = gameFixtures.boardState();
-    const userId = faker.string.uuid();
-    const markTime = faker.date.recent().toISOString();
-    const color = faker.color.rgb();
+    const userId = mockData.randomId();
+    const markTime = mockData.randomDate();
+    const color = `#${mockData.randomString(6)}`;
 
     const markCell = (index: number) => {
-      cells[index] = {
-        ...cells[index],
-        is_marked: true,
-        marked_by: userId,
-        marked_at: markTime,
-        color
-      };
+      const cell = cells[index];
+      if (cell) {
+        cells[index] = {
+          position: cell.position,
+          text: cell.text,
+          is_marked: true,
+          marked_by: userId,
+          marked_at: markTime,
+          color
+        };
+      }
     };
 
     switch (pattern) {
-      case 'line':
+      case 'line': {
         // Mark horizontal line (row 2)
         [10, 11, 12, 13, 14].forEach(markCell);
         break;
-      case 'diagonal':
+      }
+      case 'diagonal': {
         // Mark diagonal from top-left to bottom-right
         [0, 6, 12, 18, 24].forEach(markCell);
         break;
+      }
       case 'corners':
         // Mark all corners
         [0, 4, 20, 24].forEach(markCell);
         break;
-      case 'random':
+      case 'random': {
         // Mark random cells
-        const count = faker.number.int({ min: 3, max: 15 });
-        faker.helpers.shuffle([...Array(25).keys()])
-          .slice(0, count)
-          .forEach(markCell);
+        const count = mockData.randomInt(3, 15);
+        const indices = Array.from({length: 25}, (_, i) => i);
+        indices.sort(() => Math.random() - 0.5);
+        indices.slice(0, count).forEach(markCell);
         break;
+      }
     }
 
     return cells;
@@ -260,20 +289,17 @@ export const gameFixtures = {
    * Generate a game card
    */
   card: (overrides?: Partial<GameCard>): GameCard => ({
-    id: faker.string.uuid(),
-    title: faker.lorem.words({ min: 2, max: 5 }),
-    description: faker.lorem.sentence(),
-    creator_id: faker.string.uuid(),
-    game_type: faker.helpers.arrayElement(['bingo', 'puzzle', 'trivia', 'speedrun']),
-    difficulty: faker.helpers.arrayElement(['beginner', 'easy', 'medium', 'hard', 'expert']),
+    id: mockData.randomId(),
+    title: "Test Card " + mockData.randomString(8),
+    description: "Test description " + mockData.randomString(10),
+    creator_id: mockData.randomId(),
+    game_type: mockData.randomChoice(['Valorant', 'Minecraft', 'League of Legends', 'Fortnite']),
+    difficulty: mockData.randomChoice(['beginner', 'easy', 'medium', 'hard', 'expert']),
     is_public: true,
-    tags: faker.helpers.arrayElements(
-      ['fun', 'challenging', 'quick', 'strategic', 'casual', 'competitive'],
-      { min: 1, max: 3 }
-    ),
-    votes: faker.number.int({ min: 0, max: 100 }),
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    tags: ['fun', 'challenging', 'quick'].slice(0, mockData.randomInt(1, 3)),
+    votes: mockData.randomInt(0, 100),
+    created_at: mockData.randomDate(90),
+    updated_at: mockData.randomDate(),
     ...overrides
   })
 };
@@ -285,9 +311,9 @@ export const gameScenarios = {
   /**
    * Generate a waiting session with players
    */
-  waitingSession: (playerCount: number = 3) => {
-    const hostId = faker.string.uuid();
-    const sessionId = faker.string.uuid();
+  waitingSession: (playerCount = 3) => {
+    const hostId = mockData.randomId();
+    const sessionId = mockData.randomId();
     
     const session = gameFixtures.session({
       id: sessionId,
@@ -300,7 +326,7 @@ export const gameScenarios = {
     const players = Array.from({ length: playerCount }, (_, i) => 
       gameFixtures.player({
         session_id: sessionId,
-        user_id: i === 0 ? hostId : faker.string.uuid(),
+        user_id: i === 0 ? hostId : mockData.randomId(),
         is_host: i === 0,
         is_ready: true,
         position: i
@@ -313,28 +339,34 @@ export const gameScenarios = {
   /**
    * Generate an active game session with board state
    */
-  activeGame: (playerCount: number = 4, markedCells: number = 5) => {
+  activeGame: (playerCount = 4, markedCells = 5) => {
     const { session, players } = gameScenarios.waitingSession(playerCount);
     
     const activeSession = {
       ...session,
       status: 'active' as const,
-      started_at: faker.date.recent().toISOString()
+      started_at: mockData.randomDate()
     };
 
     const boardState = gameFixtures.boardState();
     
     // Mark random cells by different players
-    const markedIndices = faker.helpers.shuffle([...Array(25).keys()]).slice(0, markedCells);
+    const indices = Array.from({length: 25}, (_, i) => i);
+    indices.sort(() => Math.random() - 0.5);
+    const markedIndices = indices.slice(0, markedCells);
     markedIndices.forEach((index, i) => {
       const player = players[i % players.length];
-      boardState[index] = {
-        ...boardState[index],
-        is_marked: true,
-        marked_by: player.user_id,
-        marked_at: faker.date.recent().toISOString(),
-        color: player.color
-      };
+      const cell = boardState[index];
+      if (player && cell) {
+        boardState[index] = {
+          position: cell.position,
+          text: cell.text,
+          is_marked: true,
+          marked_by: player.user_id,
+          marked_at: mockData.randomDate(),
+          color: player.color
+        };
+      }
     });
 
     return { 
@@ -346,7 +378,7 @@ export const gameScenarios = {
           session_id: activeSession.id,
           event_type: 'cell_marked',
           cell_position: index,
-          user_id: boardState[index].marked_by!
+          user_id: boardState[index]?.marked_by || 'unknown'
         })
       )
     };
@@ -357,25 +389,26 @@ export const gameScenarios = {
    */
   completedGame: (winnerId?: string) => {
     const { session, players, boardState } = gameScenarios.activeGame(4, 12);
-    const winner = winnerId || players[faker.number.int({ min: 0, max: players.length - 1 })].user_id;
+    const randomPlayerIndex = mockData.randomInt(0, Math.max(0, players.length - 1));
+    const winner = winnerId || (players[randomPlayerIndex]?.user_id ?? 'player1');
     
     return {
       session: {
         ...session,
         status: 'completed' as const,
-        ended_at: faker.date.recent().toISOString(),
+        ended_at: mockData.randomDate(),
         winner_id: winner
       },
       players,
       boardState,
       completionEvent: gameFixtures.sessionEvent({
         session_id: session.id,
-        event_type: 'game_completed',
+        event_type: 'game_ended',
         user_id: winner,
         event_data: {
           pattern: 'line',
           winning_cells: [10, 11, 12, 13, 14],
-          duration: faker.number.int({ min: 60, max: 600 })
+          duration: mockData.randomInt(60, 600)
         }
       })
     };
@@ -384,19 +417,19 @@ export const gameScenarios = {
   /**
    * Generate achievement progression
    */
-  achievementProgression: (userId: string, count: number = 5) => {
-    const achievements = Array.from({ length: count }, (_, i) => {
-      const progress = faker.number.int({ min: 0, max: 100 });
+  achievementProgression: (userId: string, count = 5) => {
+    const achievements = Array.from({ length: count }, () => {
+      const progress = mockData.randomInt(0, 100);
       const isUnlocked = progress === 100;
       
       return gameFixtures.achievement({
         user_id: userId,
-        unlocked_at: isUnlocked ? faker.date.recent().toISOString() : null,
+        unlocked_at: isUnlocked ? mockData.randomDate() : null,
         metadata: {
           progress,
           max_progress: 100,
-          icon: faker.helpers.arrayElement(['🏆', '⭐', '🎯', '🔥', '💎']),
-          rarity: faker.helpers.arrayElement(['common', 'uncommon', 'rare', 'epic', 'legendary'])
+          icon: mockData.randomChoice(['waiting', 'active', 'completed', 'cancelled']),
+          rarity: mockData.randomChoice(['waiting', 'active', 'completed', 'cancelled'])
         }
       });
     });
@@ -408,8 +441,8 @@ export const gameScenarios = {
    * Generate speedrun data
    */
   speedrunSession: (boardId: string) => {
-    const sessionId = faker.string.uuid();
-    const userId = faker.string.uuid();
+    const sessionId = mockData.randomId();
+    const userId = mockData.randomId();
     
     return {
       session: gameFixtures.session({
@@ -420,7 +453,10 @@ export const gameScenarios = {
         settings: {
           max_players: 1,
           time_limit: null,
-          speedrun_mode: true
+          allow_spectators: false,
+          auto_start: true,
+          require_approval: false,
+          password: null
         }
       }),
       player: gameFixtures.player({

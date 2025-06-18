@@ -1,15 +1,14 @@
-import { test, expect } from '@playwright/test';
-import { test as authTest } from '../fixtures/auth.fixture.enhanced';
+import { test, expect, Route } from '@playwright/test';
+import { test as authTest } from '../fixtures/auth.fixture';
 import {
   fillAuthForm,
-  mockAuthResponse,
   waitForNetworkIdle,
   getAuthErrorMessage,
   getAuthCookies,
   clearAuthStorage,
   checkXSSExecution
 } from './utils/auth-test-helpers';
-import { TEST_FORM_DATA, AUTH_ROUTES } from '../helpers/test-data.enhanced';
+import { TEST_FORM_DATA } from '../helpers/test-data';
 import type { AuthErrorResponse } from './types/test-types';
 
 /**
@@ -52,7 +51,7 @@ test.describe('Security Vulnerabilities', () => {
       expect(body.error).toMatch(/csrf|forbidden|invalid.*token/i);
     });
 
-    test('should prevent CSRF attacks on password reset', async ({ page, request }) => {
+    test('should prevent CSRF attacks on password reset', async ({ request }) => {
       // Attempt password reset without CSRF token
       const response = await request.post('/api/auth/forgot-password', {
         data: {
@@ -69,7 +68,7 @@ test.describe('Security Vulnerabilities', () => {
       expect(body.error).toMatch(/csrf|origin|forbidden/i);
     });
 
-    test('should validate origin header for sensitive operations', async ({ page, request }) => {
+    test('should validate origin header for sensitive operations', async ({ request }) => {
       // Mock malicious cross-origin request
       const maliciousResponse = await request.post('/api/auth/change-password', {
         data: {
@@ -261,7 +260,7 @@ test.describe('Security Vulnerabilities', () => {
       }
     });
 
-    test('should use parameterized queries for user search', async ({ page, request }) => {
+    test('should use parameterized queries for user search', async ({ request }) => {
       const sqlPayload = "'; SELECT * FROM users WHERE '1'='1";
       
       const response = await request.get('/api/users/search', {
@@ -286,13 +285,13 @@ test.describe('Security Vulnerabilities', () => {
       const measurements: number[] = [];
       
       // Mock responses to ensure consistent timing
-      await page.route('/api/auth/login', async (route) => {
+      await page.route('/api/auth/login', async (route: Route) => {
         const body = await route.request().postDataJSON();
         
         // Simulate processing delay
         await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 50));
         
-        const isValidEmail = body.email === validEmail;
+        const _isValidEmail = body.email === validEmail;
         await route.fulfill({
           status: 401,
           contentType: 'application/json',
@@ -434,7 +433,11 @@ test.describe('Security Vulnerabilities', () => {
       
       // Response times should increase (progressive delays)
       if (responseTimes.length >= 3) {
-        expect(responseTimes[2]).toBeGreaterThan(responseTimes[0]);
+        const firstTime = responseTimes[0];
+        const thirdTime = responseTimes[2];
+        if (firstTime !== undefined && thirdTime !== undefined) {
+          expect(thirdTime).toBeGreaterThan(firstTime);
+        }
       }
     });
 
@@ -444,7 +447,7 @@ test.describe('Security Vulnerabilities', () => {
       
       // Mock lockout behavior
       let attemptCount = 0;
-      await page.route('/api/auth/login', async (route) => {
+      await page.route('/api/auth/login', async (route: Route) => {
         attemptCount++;
         
         if (attemptCount > maxAttempts) {
@@ -541,8 +544,8 @@ test.describe('Security Vulnerabilities', () => {
   test.describe('Password Security', () => {
     test('should prevent password hints in responses', async ({ page, request }) => {
       // Mock response that might accidentally leak password hints
-      await page.route('/api/auth/login', async (route) => {
-        const body = await route.request().postDataJSON();
+      await page.route('/api/auth/login', async (route: Route) => {
+        const _body = await route.request().postDataJSON();
         
         // Should not return password-related hints
         await route.fulfill({
@@ -585,7 +588,7 @@ test.describe('Security Vulnerabilities', () => {
       
       // Intercept signup request
       let passwordInRequest = '';
-      await page.route('/api/auth/signup', async (route) => {
+      await page.route('/api/auth/signup', async (route: Route) => {
         const body = await route.request().postDataJSON();
         passwordInRequest = body.password;
         
