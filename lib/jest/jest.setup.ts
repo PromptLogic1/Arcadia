@@ -177,7 +177,7 @@ global.ResizeObserver = class ResizeObserver {
   unobserve(): void {}
 };
 
-// Mock localStorage and sessionStorage
+// Mock localStorage and sessionStorage (only if window exists)
 const mockStorage: Storage = {
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -187,13 +187,15 @@ const mockStorage: Storage = {
   key: jest.fn(),
 };
 
-Object.defineProperty(window, 'localStorage', {
-  value: mockStorage,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: mockStorage,
+  });
 
-Object.defineProperty(window, 'sessionStorage', {
-  value: mockStorage,
-});
+  Object.defineProperty(window, 'sessionStorage', {
+    value: mockStorage,
+  });
+}
 
 // Mock Web APIs that might not be available in Jest environment
 global.Request = global.Request || class Request {};

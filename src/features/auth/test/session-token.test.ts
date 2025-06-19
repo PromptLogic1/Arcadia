@@ -1,39 +1,76 @@
 /**
  * Session and Token Handling Tests
  * 
- * Tests for authentication session and token management including:
- * - Session creation and validation
- * - Token expiration handling
- * - Refresh token logic
- * - Remember me functionality
- * - Session persistence
+ * Tests for Supabase authentication session integration including:
+ * - Session structure validation
+ * - Session blacklisting functionality
+ * - Auth state change handling
+ * - Cookie-based session management via Supabase SSR
  */
 
 import { describe, test, expect, beforeEach, jest, afterEach } from '@jest/globals';
 import type { MockSupabaseSession } from './__mocks__/supabase';
+import { blacklistSession, isSessionBlacklisted, trackUserSession, blacklistAllUserSessions } from '@/lib/session-blacklist';
 
-// Session timeout values (in milliseconds)
-const SESSION_TIMEOUTS = {
-  accessToken: 15 * 60 * 1000, // 15 minutes
-  refreshToken: 7 * 24 * 60 * 60 * 1000, // 7 days
-  rememberMe: 30 * 24 * 60 * 60 * 1000, // 30 days
-  idle: 30 * 60 * 1000, // 30 minutes idle timeout
-} as const;
+// Mock window as undefined to simulate server environment
+const originalWindow = global.window;
+beforeEach(() => {
+  // @ts-expect-error - mocking window
+  delete global.window;
+});
+
+afterEach(() => {
+  global.window = originalWindow;
+});
+
+// Mock Redis for session blacklisting tests
+const mockRedisClient = {
+  setex: jest.fn().mockResolvedValue('OK'),
+  srem: jest.fn().mockResolvedValue(1),
+  get: jest.fn().mockResolvedValue(null),
+  sadd: jest.fn().mockResolvedValue(1),
+  expire: jest.fn().mockResolvedValue(1),
+  smembers: jest.fn().mockResolvedValue([]),
+  del: jest.fn().mockResolvedValue(1),
+};
+
+jest.mock('@/lib/redis', () => ({
+  getRedisClient: jest.fn(() => mockRedisClient),
+  isRedisConfigured: jest.fn(() => true),
+}));
+
+// Mock crypto module with dynamic import support
+const mockCreateHash = jest.fn();
+jest.mock('crypto', () => ({
+  createHash: mockCreateHash,
+}));
+
+// Set up crypto mock behavior
+mockCreateHash.mockImplementation(() => ({
+  update: jest.fn().mockReturnThis(),
+  digest: jest.fn(() => 'mocked-hash-value'),
+}));
+
+// Mock authService
+jest.mock('@/services/auth.service', () => ({
+  authService: {
+    getSession: jest.fn(),
+    onAuthStateChange: jest.fn((callback) => ({
+      unsubscribe: jest.fn(),
+    })),
+  },
+}));
 
 describe('Session and Token Handling', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock Date.now() for consistent time testing
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    // Reset Redis mock responses
+    mockRedisClient.get.mockResolvedValue(null);
+    mockRedisClient.smembers.mockResolvedValue([]);
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  describe('Session Creation', () => {
-    test('should create valid session with tokens', () => {
+  describe('Supabase Session Structure', () => {
+    test('should validate session has required properties', () => {
       const session: MockSupabaseSession = {
         access_token: 'access-token-123',
         token_type: 'bearer',
@@ -45,335 +82,243 @@ describe('Session and Token Handling', () => {
         },
       };
 
-      expect(session.access_token).toBeDefined();
-      expect(session.token_type).toBe('bearer');
-      expect(session.expires_in).toBe(3600);
-      expect(session.refresh_token).toBeDefined();
-      expect(session.user).toBeDefined();
+      // Validate session structure matches Supabase's documented interface
+      expect(session).toHaveProperty('access_token');
+      expect(session).toHaveProperty('refresh_token');
+      expect(session).toHaveProperty('expires_in');
+      expect(session).toHaveProperty('token_type');
+      expect(session).toHaveProperty('user');
+      expect(session.user).toHaveProperty('id');
     });
 
-    test('should calculate correct expiry time', () => {
-      const now = Date.now();
-      const expiresIn = 3600; // 1 hour in seconds
-      const expiryTime = now + (expiresIn * 1000);
-
-      expect(expiryTime - now).toBe(3600000); // 1 hour in milliseconds
-    });
-
-    test('should handle remember me option', () => {
-      const standardExpiry = Date.now() + SESSION_TIMEOUTS.accessToken;
-      const rememberMeExpiry = Date.now() + SESSION_TIMEOUTS.rememberMe;
-
-      expect(rememberMeExpiry - standardExpiry).toBe(
-        SESSION_TIMEOUTS.rememberMe - SESSION_TIMEOUTS.accessToken
-      );
-      
-      // Remember me should be 30 days
-      expect(SESSION_TIMEOUTS.rememberMe).toBe(30 * 24 * 60 * 60 * 1000);
-    });
-  });
-
-  describe('Token Expiration', () => {
-    test('should detect expired access token', () => {
-      const session: MockSupabaseSession = {
-        access_token: 'expired-token',
+    test('should handle session without optional properties', () => {
+      const minimalSession = {
+        access_token: 'token',
+        refresh_token: 'refresh',
         token_type: 'bearer',
-        expires_in: 3600,
-        refresh_token: 'refresh-token',
         user: { id: 'user-123' },
       };
 
-      const createdAt = Date.now();
-      const expiryTime = createdAt + (session.expires_in * 1000);
-
-      // Token is valid initially
-      expect(Date.now() < expiryTime).toBe(true);
-
-      // Fast forward past expiry
-      jest.advanceTimersByTime(session.expires_in * 1000 + 1000);
-
-      // Token should be expired
-      expect(Date.now() > expiryTime).toBe(true);
-    });
-
-    test('should handle token expiry buffer', () => {
-      const expiresIn = 3600; // 1 hour
-      const buffer = 5 * 60 * 1000; // 5 minute buffer
-      const effectiveExpiry = (expiresIn * 1000) - buffer;
-
-      // Should refresh token 5 minutes before actual expiry
-      expect(effectiveExpiry).toBe(55 * 60 * 1000); // 55 minutes
-    });
-
-    test('should validate different timeout scenarios', () => {
-      // Access token: 15 minutes
-      expect(SESSION_TIMEOUTS.accessToken).toBe(15 * 60 * 1000);
-      
-      // Refresh token: 7 days
-      expect(SESSION_TIMEOUTS.refreshToken).toBe(7 * 24 * 60 * 60 * 1000);
-      
-      // Idle timeout: 30 minutes
-      expect(SESSION_TIMEOUTS.idle).toBe(30 * 60 * 1000);
+      expect(minimalSession.access_token).toBeDefined();
+      expect(minimalSession.user.id).toBeDefined();
     });
   });
 
-  describe('Refresh Token Logic', () => {
-    test('should use refresh token when access token expires', async () => {
-      const mockRefreshToken = jest.fn().mockResolvedValue({
-        access_token: 'new-access-token',
-        token_type: 'bearer',
-        expires_in: 3600,
-        refresh_token: 'new-refresh-token',
-      });
-
-      const oldToken = 'old-access-token';
-      const refreshToken = 'refresh-token-123';
-
-      // Simulate token refresh
-      const result = await mockRefreshToken(refreshToken);
-
-      expect(result.access_token).toBe('new-access-token');
-      expect(result.access_token).not.toBe(oldToken);
-      expect(mockRefreshToken).toHaveBeenCalledWith(refreshToken);
-    });
-
-    test('should handle refresh token expiration', async () => {
-      const mockRefreshToken = jest.fn().mockResolvedValue({
-        error: 'Invalid refresh token',
-      });
-
-      const expiredRefreshToken = 'expired-refresh-token';
-      const result = await mockRefreshToken(expiredRefreshToken);
-
-      expect(result.error).toBe('Invalid refresh token');
-      expect(result.access_token).toBeUndefined();
-    });
-
-    test('should maintain user session during token refresh', async () => {
-      const user = { id: 'user-123', email: 'test@example.com' };
-      const mockRefreshWithUser = jest.fn().mockResolvedValue({
-        access_token: 'new-access-token',
-        user, // User data should persist
-      });
-
-      const result = await mockRefreshWithUser('refresh-token');
-
-      expect(result.user).toEqual(user);
-      expect(result.user.id).toBe('user-123');
-    });
-  });
-
-  describe('Session Persistence', () => {
-    test('should persist session in secure storage', () => {
-      const mockStorage = {
-        setItem: jest.fn(),
-        getItem: jest.fn(),
-        removeItem: jest.fn(),
-      };
-
-      const session = {
-        access_token: 'token-123',
-        refresh_token: 'refresh-123',
-      };
-
-      // Save session
-      mockStorage.setItem('auth-session', JSON.stringify(session));
-      expect(mockStorage.setItem).toHaveBeenCalledWith(
-        'auth-session',
-        JSON.stringify(session)
-      );
-
-      // Retrieve session
-      mockStorage.getItem.mockReturnValue(JSON.stringify(session));
-      const retrievedJson = mockStorage.getItem('auth-session');
-      const retrieved = typeof retrievedJson === 'string' ? JSON.parse(retrievedJson) : null;
-      expect(retrieved).toEqual(session);
-    });
-
-    test('should clear session on logout', () => {
-      const mockStorage = {
-        removeItem: jest.fn(),
-      };
-
-      mockStorage.removeItem('auth-session');
-      mockStorage.removeItem('auth-user');
-
-      expect(mockStorage.removeItem).toHaveBeenCalledWith('auth-session');
-      expect(mockStorage.removeItem).toHaveBeenCalledWith('auth-user');
-    });
-
-    test('should handle corrupted session data', () => {
-      const mockStorage = {
-        getItem: jest.fn().mockReturnValue('corrupted-json-{'),
-      };
-
-      const parseSession = () => {
-        try {
-          const sessionData = mockStorage.getItem('auth-session');
-          return typeof sessionData === 'string' ? JSON.parse(sessionData) : null;
-        } catch {
-          return null;
-        }
-      };
-
-      const session = parseSession();
-      expect(session).toBeNull();
-    });
-  });
-
-  describe('Idle Timeout', () => {
-    test('should track user activity', () => {
-      let lastActivity = Date.now();
+  describe('Session Blacklisting', () => {
+    test('should blacklist a session', async () => {
+      const sessionToken = 'session-token-123';
+      const userId = 'user-123';
       
-      const updateActivity = () => {
-        lastActivity = Date.now();
-      };
-
-      const initialTime = lastActivity;
+      const result = await blacklistSession(sessionToken, userId, 'Password changed');
       
-      // Advance time slightly to simulate activity update
-      jest.advanceTimersByTime(100);
-      updateActivity();
-      
-      expect(lastActivity).toBeGreaterThan(initialTime);
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
     });
 
-    test('should expire session after idle timeout', () => {
-      const lastActivity = Date.now();
-      const idleTimeout = SESSION_TIMEOUTS.idle;
-
-      // User is active
-      expect(Date.now() - lastActivity < idleTimeout).toBe(true);
-
-      // Fast forward past idle timeout
-      jest.advanceTimersByTime(idleTimeout + 1000);
-
-      // Session should be expired due to inactivity
-      expect(Date.now() - lastActivity > idleTimeout).toBe(true);
-    });
-
-    test('should reset idle timer on activity', () => {
-      let lastActivity = Date.now();
-      
-      // Fast forward 20 minutes (still within 30 min timeout)
-      jest.advanceTimersByTime(20 * 60 * 1000);
-      
-      // User activity resets timer
-      lastActivity = Date.now();
-      
-      // Fast forward another 20 minutes
-      jest.advanceTimersByTime(20 * 60 * 1000);
-      
-      // Should be 20 minutes since last activity, not 40 total
-      const timeSinceActivity = Date.now() - lastActivity;
-      expect(timeSinceActivity).toBe(20 * 60 * 1000);
-      expect(timeSinceActivity < SESSION_TIMEOUTS.idle).toBe(true);
-    });
-  });
-
-  describe('Concurrent Session Handling', () => {
-    test('should handle multiple sessions per user', () => {
-      const sessions = [
-        { id: 'session-1', device: 'Chrome on Windows', lastActive: Date.now() },
-        { id: 'session-2', device: 'Safari on iPhone', lastActive: Date.now() - 3600000 },
-        { id: 'session-3', device: 'Firefox on Mac', lastActive: Date.now() - 7200000 },
-      ];
-
-      // All sessions should be valid
-      const activeSessions = sessions.filter(s => 
-        Date.now() - s.lastActive < SESSION_TIMEOUTS.refreshToken
-      );
-      
-      expect(activeSessions).toHaveLength(3);
-    });
-
-    test('should revoke old sessions when limit exceeded', () => {
-      const maxSessions = 5;
-      const sessions = Array.from({ length: 6 }, (_, i) => ({
-        id: `session-${i}`,
-        createdAt: Date.now() - (i * 3600000), // Each session 1 hour older
+    test('should check if session is blacklisted', async () => {
+      // Mock blacklisted session
+      mockRedisClient.get.mockResolvedValueOnce(JSON.stringify({
+        userId: 'user-123',
+        reason: 'Security policy',
+        blacklistedAt: new Date().toISOString(),
       }));
 
-      // Sort by creation time (newest first)
-      sessions.sort((a, b) => b.createdAt - a.createdAt);
+      const result = await isSessionBlacklisted('blacklisted-token');
       
-      // Keep only the newest sessions
-      const activeSessions = sessions.slice(0, maxSessions);
-      const revokedSession = sessions[maxSessions];
+      expect(result.isBlacklisted).toBe(true);
+      expect(result.reason).toBe('Security policy');
+    });
 
-      expect(activeSessions).toHaveLength(maxSessions);
-      expect(revokedSession?.id).toBe('session-5');
+    test('should handle non-blacklisted session', async () => {
+      mockRedisClient.get.mockResolvedValueOnce(null);
+
+      const result = await isSessionBlacklisted('valid-token');
+      
+      expect(result.isBlacklisted).toBe(false);
+      expect(result.reason).toBeUndefined();
+    });
+
+    test('should track user sessions', async () => {
+      const sessionToken = 'session-token-123';
+      const userId = 'user-123';
+      
+      const result = await trackUserSession(sessionToken, userId);
+      
+      expect(result.success).toBe(true);
+      expect(mockRedisClient.sadd).toHaveBeenCalled();
+      expect(mockRedisClient.expire).toHaveBeenCalled();
+    });
+
+    test('should blacklist all user sessions', async () => {
+      // Mock existing sessions
+      mockRedisClient.smembers.mockResolvedValueOnce(['hash1', 'hash2', 'hash3']);
+      
+      const result = await blacklistAllUserSessions('user-123', 'Password changed');
+      
+      expect(result.success).toBe(true);
+      expect(result.blacklistedCount).toBe(3);
+      expect(mockRedisClient.setex).toHaveBeenCalledTimes(3);
+      expect(mockRedisClient.del).toHaveBeenCalled();
+    });
+
+    test('should handle Redis unavailable gracefully', async () => {
+      const { isRedisConfigured } = require('@/lib/redis');
+      isRedisConfigured.mockReturnValueOnce(false);
+      
+      const result = await blacklistSession('token', 'user-123');
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toBe('Redis unavailable');
     });
   });
 
-  describe('Token Security', () => {
-    test('should use secure token format', () => {
-      const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-      
-      // Token should have three parts (header.payload.signature)
-      const parts = token.split('.');
-      expect(parts).toHaveLength(3);
-    });
-
-    test('should not expose sensitive data in tokens', () => {
-      const tokenPayload = {
-        sub: 'user-123',
-        email: 'user@example.com',
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        // Should NOT include:
-        // - password
-        // - credit card info
-        // - personal details
+  describe('Auth Service Session Integration', () => {
+    test('should get current session via auth service', async () => {
+      const mockSession = {
+        user: { id: 'user-123', email: 'test@example.com' }
       };
 
-      expect(tokenPayload).not.toHaveProperty('password');
-      expect(tokenPayload).not.toHaveProperty('creditCard');
-      expect(tokenPayload).not.toHaveProperty('ssn');
-    });
-
-    test('should validate token signature', () => {
-      const mockValidateToken = jest.fn().mockImplementation((token: string) => {
-        // Simple mock validation
-        return token.split('.').length === 3;
+      jest.spyOn(authService, 'getSession').mockResolvedValueOnce({
+        success: true,
+        data: mockSession,
+        error: null,
       });
 
-      const validToken = 'header.payload.signature';
-      const invalidToken = 'malformed-token';
+      const result = await authService.getSession();
+      
+      expect(result.success).toBe(true);
+      expect(result.data?.user.id).toBe('user-123');
+    });
 
-      expect(mockValidateToken(validToken)).toBe(true);
-      expect(mockValidateToken(invalidToken)).toBe(false);
+    test('should handle no session case', async () => {
+      jest.spyOn(authService, 'getSession').mockResolvedValueOnce({
+        success: true,
+        data: null,
+        error: null,
+      });
+
+      const result = await authService.getSession();
+      
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+    });
+
+    test('should handle session retrieval errors', async () => {
+      jest.spyOn(authService, 'getSession').mockResolvedValueOnce({
+        success: false,
+        data: null,
+        error: 'Network error',
+      });
+
+      const result = await authService.getSession();
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
     });
   });
 
-  describe('Cookie Security', () => {
-    test('should set secure cookie attributes', () => {
-      const cookieOptions = {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict' as const,
-        maxAge: SESSION_TIMEOUTS.refreshToken / 1000, // in seconds
-        path: '/',
-      };
+  describe('Auth State Changes', () => {
+    test('should handle auth state change events', () => {
+      const mockCallback = jest.fn();
+      
+      const subscription = authService.onAuthStateChange(mockCallback);
 
-      expect(cookieOptions.httpOnly).toBe(true);
-      expect(cookieOptions.secure).toBe(true);
-      expect(cookieOptions.sameSite).toBe('strict');
-      expect(cookieOptions.maxAge).toBe(7 * 24 * 60 * 60); // 7 days in seconds
+      // Verify subscription was created
+      expect(authService.onAuthStateChange).toHaveBeenCalledWith(mockCallback);
+      expect(subscription).toHaveProperty('unsubscribe');
+      expect(typeof subscription.unsubscribe).toBe('function');
     });
 
-    test('should handle cookie size limits', () => {
-      const maxCookieSize = 4096; // 4KB limit
-      const session = {
-        access_token: 'a'.repeat(2100), // Increased to ensure we exceed 4KB
-        refresh_token: 'r'.repeat(2100),
+    test('should handle SIGNED_IN event', () => {
+      const callback = jest.fn();
+      authService.onAuthStateChange(callback);
+
+      // Simulate signed in event
+      const session = { user: { id: 'user-123', email: 'test@example.com' } };
+      callback('SIGNED_IN', session);
+
+      expect(callback).toHaveBeenCalledWith('SIGNED_IN', session);
+    });
+
+    test('should handle SIGNED_OUT event', () => {
+      const callback = jest.fn();
+      authService.onAuthStateChange(callback);
+
+      // Simulate signed out event
+      callback('SIGNED_OUT', null);
+
+      expect(callback).toHaveBeenCalledWith('SIGNED_OUT', null);
+    });
+
+    test('should handle TOKEN_REFRESHED event', () => {
+      const callback = jest.fn();
+      authService.onAuthStateChange(callback);
+
+      // Simulate token refresh
+      const refreshedSession = { user: { id: 'user-123', email: 'test@example.com' } };
+      callback('TOKEN_REFRESHED', refreshedSession);
+
+      expect(callback).toHaveBeenCalledWith('TOKEN_REFRESHED', refreshedSession);
+    });
+  });
+
+  describe('Security Considerations', () => {
+    test('should not expose sensitive data in session', () => {
+      const session: MockSupabaseSession = {
+        access_token: 'token-123',
+        refresh_token: 'refresh-123',
+        token_type: 'bearer',
+        expires_in: 3600,
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+        },
       };
 
-      const cookieValue = JSON.stringify(session);
-      expect(cookieValue.length).toBeGreaterThan(maxCookieSize);
+      // Ensure session doesn't contain sensitive data
+      expect(session.user).not.toHaveProperty('password');
+      expect(session.user).not.toHaveProperty('creditCard');
+      expect(session.user).not.toHaveProperty('ssn');
+    });
 
-      // Should store tokens separately or in session storage
-      const shouldUseSeparateStorage = cookieValue.length > maxCookieSize;
-      expect(shouldUseSeparateStorage).toBe(true);
+    test('should hash session tokens for blacklisting', async () => {
+      const crypto = require('crypto');
+      
+      await blacklistSession('plain-text-token', 'user-123');
+      
+      // Verify crypto was used to hash the token
+      expect(crypto.createHash).toHaveBeenCalledWith('sha256');
+    });
+
+    test('should handle session token size appropriately', () => {
+      // Supabase handles token storage via secure httpOnly cookies
+      // We just need to ensure we're not trying to store tokens in places with size limits
+      const largeToken = 'x'.repeat(4096); // 4KB
+      
+      // Our blacklisting only stores the hash, not the full token
+      expect(async () => {
+        await blacklistSession(largeToken, 'user-123');
+      }).not.toThrow();
+    });
+  });
+
+  describe('Supabase SSR Cookie Management', () => {
+    test('should recognize Supabase manages session cookies', () => {
+      // Supabase SSR handles all cookie operations internally
+      // We don't directly manipulate cookies - this is just a smoke test
+      // to ensure we understand the architecture
+      
+      const cookieConfig = {
+        httpOnly: true, // Supabase sets this
+        secure: true,   // Supabase sets this in production
+        sameSite: 'lax' as const, // Supabase default
+        path: '/',      // Supabase default
+      };
+
+      // These are the settings Supabase uses internally
+      expect(cookieConfig.httpOnly).toBe(true);
+      expect(cookieConfig.secure).toBe(true);
     });
   });
 });

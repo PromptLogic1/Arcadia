@@ -66,8 +66,7 @@
 - ✅ session-state.service.test.ts (tests lifecycle operations, player management, realtime subscriptions)
 - ✅ session.service.test.ts (tests session stats and details fetching with proper error handling)
 - ⚠️ bingo-boards.service.test.ts (4 failing tests - needs fixing)
-- ✅ rate-limiting.service.test.ts (distributed rate limiting with Upstash, fail-open pattern)
-- ✅ rate-limiting.service.additional.test.ts (comprehensive edge cases: Redis initialization failures, rate limit check errors, limiter caching, identifier parsing, withRateLimit middleware scenarios)
+- ✅ rate-limiting.service.test.ts (distributed rate limiting with Upstash, fail-open pattern, comprehensive coverage of all rate limit types)
 - ✅ user.service.test.ts (comprehensive tests for user profile, stats, activities, avatar management, follow system)
 - ✅ user.service.test.ts - extended (additional edge cases: getUserStats rank calculations, streak logic, upload/avatar edge cases, follow system errors, activity logging failures, getActivitySummary partial failures)
 - ✅ settings.service.test.ts (tests for profile updates, email/password changes, notification settings, validation)
@@ -86,8 +85,9 @@
 ## API Route Tests
 - ✅ health/route.test.ts (comprehensive health check endpoint tests)
 - ✅ bingo/sessions/route.test.ts (POST/PATCH/GET handlers with auth, validation, error handling)
-- ✅ submissions/route.test.ts (POST/GET handlers with auth, validation, service integration, error handling)
-- ✅ discussions/route.test.ts (GET/POST handlers with pagination, filtering, auth, validation, community service)
+- ❌ submissions/route.test.ts (POST/GET handlers with auth, validation, service integration, error handling - needs mock refinement)
+- ❌ discussions/route.test.ts (GET/POST handlers with pagination, filtering, auth, validation, community service - needs mock refinement)
+- ❌ revalidate/route.test.ts (POST handler with token auth, path validation, cache revalidation, config handling - needs mock refinement)
 
 ## Component Tests
 - ✅ auth/components/LoginForm.test.tsx (form submission, validation, OAuth, accessibility)
@@ -97,6 +97,8 @@
 - ✅ ui/CyberpunkBackground.test.tsx (grid/circuit/particles variants, intensity levels, responsive behavior, performance)
 - ✅ ui/LoadingSpinner.test.tsx (size/color variants, fullSize prop, accessibility, GPU optimization)
 - ✅ ui/ThemeToggle.test.tsx (dropdown/toggle variants, theme switching, hydration handling, cyberpunk styling)
+- ✅ analytics-wrapper.test.tsx (dynamic imports, client-side rendering, error handling, performance optimization)
+- ✅ web-vitals.test.tsx (Web Vitals reporting, performance budgets, long task monitoring, custom metrics)
 
 ## Styles Tests
 - ✅ cyberpunk.styles.test.ts (input/tab/scanlines/neonGlow styles, Tailwind classes, consistency checks, type safety)
