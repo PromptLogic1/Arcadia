@@ -7,12 +7,12 @@
 - ✅ search-service.test.ts
 
 ## Auth Tests
-- [ ] auth-service.test.ts
-- [ ] oauth.test.ts
-- [ ] rate-limiting.test.ts
-- [ ] session-token.test.ts
-- [ ] useAuth.test.tsx
-- [ ] validation.test.ts
+- ✅ auth-service.test.ts
+- ❌ oauth.test.ts (tests non-existent functionality)
+- ✅ rate-limiting.test.ts
+- ❌ session-token.test.ts (12 failing tests)
+- ⚠️ useAuth.test.tsx (2 failing tests)
+- ✅ validation.test.ts
 
 ## Bingo Boards Tests
 - [ ] bingo-engine.test.ts
