@@ -79,7 +79,8 @@ describe('settingsService', () => {
         username: 'testuser',
       };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // Setup the second call to from() with proper chaining
+      const mockSecondFrom = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             maybeSingle: jest.fn().mockResolvedValue({
@@ -88,13 +89,17 @@ describe('settingsService', () => {
             }),
           }),
         }),
-      });
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockFrom).mockReturnValueOnce(mockSecondFrom);
 
       const result = await settingsService.getUserProfile('auth-456');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockProfile);
       expect(mockSupabase.from).toHaveBeenCalledTimes(2);
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(1, 'users');
+      expect(mockSupabase.from).toHaveBeenNthCalledWith(2, 'users');
     });
 
     it('should handle profile not found', async () => {

@@ -188,14 +188,18 @@ describe('submissionsService', () => {
         user_id: 'user-123',
       };
 
-      mockFrom.order.mockResolvedValueOnce({
-        data: [],
-        error: null,
-      });
+      // Create a chain mock for the query building
+      const mockOrderResult = {
+        eq: jest.fn().mockReturnValue({
+          data: [],
+          error: null,
+        }),
+      };
+      mockFrom.order.mockReturnValue(mockOrderResult);
 
       await submissionsService.getSubmissions(filters);
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('user_id', 'user-123');
+      expect(mockOrderResult.eq).toHaveBeenCalledWith('user_id', 'user-123');
     });
 
     it('should apply challenge_id filter', async () => {
@@ -203,14 +207,18 @@ describe('submissionsService', () => {
         challenge_id: 'challenge-456',
       };
 
-      mockFrom.order.mockResolvedValueOnce({
-        data: [],
-        error: null,
-      });
+      // Create a chain mock for the query building
+      const mockOrderResult = {
+        eq: jest.fn().mockReturnValue({
+          data: [],
+          error: null,
+        }),
+      };
+      mockFrom.order.mockReturnValue(mockOrderResult);
 
       await submissionsService.getSubmissions(filters);
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('challenge_id', 'challenge-456');
+      expect(mockOrderResult.eq).toHaveBeenCalledWith('challenge_id', 'challenge-456');
     });
 
     it('should apply both filters', async () => {
@@ -219,15 +227,23 @@ describe('submissionsService', () => {
         challenge_id: 'challenge-456',
       };
 
-      mockFrom.order.mockResolvedValueOnce({
+      // Create a chain mock for multiple filter application
+      const mockSecondEq = {
         data: [],
         error: null,
-      });
+      };
+      const mockFirstEq = {
+        eq: jest.fn().mockReturnValue(mockSecondEq),
+      };
+      const mockOrderResult = {
+        eq: jest.fn().mockReturnValue(mockFirstEq),
+      };
+      mockFrom.order.mockReturnValue(mockOrderResult);
 
       await submissionsService.getSubmissions(filters);
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('user_id', 'user-123');
-      expect(mockFrom.eq).toHaveBeenCalledWith('challenge_id', 'challenge-456');
+      expect(mockOrderResult.eq).toHaveBeenCalledWith('user_id', 'user-123');
+      expect(mockFirstEq.eq).toHaveBeenCalledWith('challenge_id', 'challenge-456');
     });
 
     it('should handle null challenge data', async () => {

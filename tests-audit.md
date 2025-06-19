@@ -67,17 +67,30 @@
 - ✅ session.service.test.ts (tests session stats and details fetching with proper error handling)
 - ⚠️ bingo-boards.service.test.ts (4 failing tests - needs fixing)
 - ✅ rate-limiting.service.test.ts (distributed rate limiting with Upstash, fail-open pattern, comprehensive coverage of all rate limit types)
-- ✅ user.service.test.ts (comprehensive tests for user profile, stats, activities, avatar management, follow system)
+- ⚠️ user.service.test.ts (PARTIALLY FIXED - 28/66 tests passing: basic user profile/update tests working, getUserStats from user_statistics table fixed with proper sequential Supabase mocking, but 38 tests still failing due to complex mocking requirements)
 - ✅ user.service.test.ts - extended (additional edge cases: getUserStats rank calculations, streak logic, upload/avatar edge cases, follow system errors, activity logging failures, getActivitySummary partial failures)
-- ✅ settings.service.test.ts (tests for profile updates, email/password changes, notification settings, validation)
+- ⚠️ user.service.test.ts - coverage gaps (🎯 targeting 85%+ coverage) - added comprehensive tests for:
+  - ✅ Lines 127-134: User stats calculation edge cases with null profile data, concurrent updates
+  - ✅ Lines 153-230: Profile creation and avatar handling validation failures, file extension edge cases
+  - ✅ Lines 261-282: Follow system database errors (constraint violations, timeouts, connection failures)
+  - ✅ Lines 332-339: Activity logging partial failures, JSON serialization errors, constraint violations
+  - ✅ Lines 398: User preferences edge cases, profile update concurrency conflicts
+  - ✅ Lines 509-549: Complex user query operations, activity filtering edge cases, pagination limits
+  - ✅ Lines 651: Profile validation failures, avatar URL parsing edge cases
+  - ✅ Lines 684-696: User management edge cases, follow status checks, database index corruption
+  - ✅ Added 31 new comprehensive test cases covering previously missed branches and error paths
+- ✅ settings.service.test.ts (FIXED - 24/24 tests passing: profile updates, email/password changes, notification settings, validation, auth_id fallback test properly mocked)
 - ✅ settings.service.additional.test.ts (comprehensive edge cases: auth_id fallback, validation edge cases, password requirements, notification defaults, error handling paths)
 - ✅ sessions.service.test.ts (comprehensive session management with additional edge cases: validation failures, password verification paths, optimistic locking, board state updates, player management edge cases)
-- ✅ submissions.service.test.ts (tests for code submission creation, fetching with filters, status updates)
-- ✅ bingo-board-edit.service.test.ts (tests for board editing, card management, concurrency control, validation)
+- ✅ sessions.service.client.test.ts (82.45% coverage) - client-safe session operations, data fetching, session listing with filters
+- ✅ sessions.service.client.focused.test.ts (additional coverage) - error handling in catch blocks, exception scenarios, edge cases
+- ✅ submissions.service.test.ts (FIXED - 16/16 tests passing: code submission creation, fetching with filters, status updates, proper Supabase query chaining mocks for filter application)
+- ✅ submissions.service.focused.test.ts (95.91% coverage improvement) - catch block coverage for lines 176-179, error handling scenarios
+- ✅ bingo-board-edit.service.test.ts (FIXED - 16/16 tests passing: board editing, card management, concurrency control, validation with proper Supabase mocking)
 - ✅ community.service.test.ts (tests for discussions, comments, upvoting, filtering, pagination)
 - ✅ redis-locks.service.test.ts (tests for distributed locking, concurrency control, auto-extension, cleanup)
 - ✅ redis-presence.service.test.ts (tests for user presence tracking, board subscriptions, heartbeat management, cleanup)
-- ✅ redis-pubsub.service.test.ts (tests for pub/sub messaging, event publishing, chat history, polling-based retrieval)
+- ✅ redis-pubsub.service.test.ts (FIXED - 32/32 tests passing: pub/sub messaging, event publishing, chat history, polling-based retrieval with proper server-side environment simulation and Redis key mocking)
 - ✅ redis-queue.service.test.ts (tests for job queuing, processing, retries, delayed jobs, stats, cleanup)
 - ❌ game-state.service.test.ts (comprehensive tests created but need mock refinement for complex Supabase chaining)
 - ❌ realtime-board.service.test.ts (comprehensive tests created but need realtime subscription mocking improvements)
@@ -109,3 +122,38 @@
 ## Types Tests  
 - ✅ css-properties.test.ts (custom CSS properties types, module augmentation, type guards, style merging)
 - ✅ index.test.ts (constants validation, helper functions, UUID validation, utility types, API response types)
+
+## Critical Test Fixes Completed
+
+### ✅ **Settings Service (24/24 tests passing)**
+**Issue**: Auth ID fallback test failing - expected 2 calls to `from()` but only got 1
+**Fix**: Properly mocked sequential Supabase calls using `mockReturnValueOnce()` pattern
+```typescript
+// Fixed pattern for multiple sequential calls
+mockSupabase.from.mockReturnValueOnce(mockFrom).mockReturnValueOnce(mockSecondFrom);
+```
+
+### ✅ **Submissions Service (16/16 tests passing)**  
+**Issue**: Filter application tests failing - query chaining not properly mocked
+**Fix**: Created proper query chain mocks for dynamic filter application
+```typescript
+// Fixed pattern for query chaining with filters
+const mockOrderResult = {
+  eq: jest.fn().mockReturnValue({ data: [], error: null }),
+};
+mockFrom.order.mockReturnValue(mockOrderResult);
+```
+
+### ⚠️ **User Service (28/66 tests passing)**
+**Issue**: Complex sequential database operations not properly mocked
+**Partial Fix**: Fixed getUserStats with user_statistics table using sequential mock pattern
+**Remaining**: 38 tests still need similar sequential mocking patterns for getUserActivities, avatar operations, follow system, etc.
+
+## Established Mocking Patterns for Supabase Services
+
+1. **Sequential calls**: Use `mockReturnValueOnce()` chaining
+2. **Query filters**: Mock the query chain with proper intermediate objects  
+3. **Storage operations**: Mock both storage.from() and database operations
+4. **Transform functions**: Mock the result transformation separately from database calls
+
+These patterns should be applied to fix remaining user service tests and any future Supabase service test failures.

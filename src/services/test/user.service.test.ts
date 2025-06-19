@@ -157,40 +157,79 @@ describe('userService', () => {
 
   describe('getUserStats', () => {
     it('should calculate stats from user_statistics table', async () => {
-      // Mock profile data
-      mockFrom.single.mockImplementationOnce(() =>
-        Promise.resolve({
-          data: {
-            created_at: '2024-01-01T00:00:00Z',
-            last_login_at: '2024-01-10T00:00:00Z',
-          },
-          error: null,
-        })
-      );
+      // Reset the mock to handle sequential calls correctly
+      jest.clearAllMocks();
+      (createClient as jest.Mock).mockReturnValue(mockSupabase);
 
-      // Mock user statistics
-      mockFrom.single.mockImplementationOnce(() =>
-        Promise.resolve({
-          data: {
-            total_games: 50,
-            games_won: 40,
-            total_score: 5000,
-            average_score: 100,
-            current_win_streak: 5,
-          },
-          error: null,
-        })
-      );
+      // Setup sequential calls
+      const calls = [
+        // 1. Get user profile
+        {
+          from: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: {
+                    created_at: '2024-01-01T00:00:00Z',
+                    last_login_at: '2024-01-10T00:00:00Z',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        },
+        // 2. Get user statistics
+        {
+          from: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: {
+                    total_games: 50,
+                    games_won: 40,
+                    total_score: 5000,
+                    average_score: 100,
+                    current_win_streak: 5,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        },
+        // 3. Get game results (fallback)
+        {
+          from: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        },
+        // 4. Get activity count
+        {
+          from: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockResolvedValue({
+                  count: 10,
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        },
+      ];
 
-      // Mock game results (fallback)
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockResolvedValue({ data: [], error: null }),
-      });
-
-      // Mock activity count
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockResolvedValue({ count: 10, error: null }),
-      });
+      // Setup sequential returns
+      mockSupabase.from
+        .mockReturnValueOnce(calls[0].from())
+        .mockReturnValueOnce(calls[1].from())
+        .mockReturnValueOnce(calls[2].from())
+        .mockReturnValueOnce(calls[3].from());
 
       const result = await userService.getUserStats('user-123');
 
@@ -559,7 +598,7 @@ describe('userService', () => {
     });
   });
 
-  describe('getUserStats - additional edge cases', () => {
+  describe('getUserStats - coverage gap tests', () => {
     it('should handle null user_statistics gracefully', async () => {
       // Mock profile data
       mockFrom.single.mockImplementationOnce(() =>
@@ -693,6 +732,103 @@ describe('userService', () => {
       expect(result.data?.streakCount).toBe(3); // Most recent 3 wins
       expect(result.data?.totalGames).toBe(6);
       expect(result.data?.gamesWon).toBe(5);
+    });
+
+    it('should handle user stats calculation with null profile data (line 127-134)', async () => {
+      // Mock null profile data
+      mockFrom.single.mockImplementationOnce(() =>
+        Promise.resolve({
+          data: null,
+          error: null,
+        })
+      );
+
+      // Mock user statistics
+      mockFrom.single.mockImplementationOnce(() =>
+        Promise.resolve({
+          data: {
+            total_games: 10,
+            games_won: 5,
+            total_score: 1000,
+            average_score: 100,
+            current_win_streak: 2,
+          },
+          error: null,
+        })
+      );
+
+      // Mock game results (fallback)
+      mockSupabase.from.mockReturnValueOnce({
+        select: jest.fn().mockResolvedValue({ data: [], error: null }),
+      });
+
+      // Mock activity count
+      mockSupabase.from.mockReturnValueOnce({
+        select: jest.fn().mockResolvedValue({ count: 3, error: null }),
+      });
+
+      const result = await userService.getUserStats('user-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        totalGames: 10,
+        gamesWon: 5,
+        winRate: 50,
+        totalScore: 1000,
+        averageScore: 100,
+        streakCount: 2,
+        rank: 'Intermediate',
+        badgeCount: 3,
+        joinDate: expect.any(String), // Falls back to current date
+        lastActive: expect.any(String), // Falls back to current date
+      });
+    });
+
+    it('should handle edge case where profile data fails but other queries succeed', async () => {
+      // Mock profile data with error
+      mockFrom.single.mockImplementationOnce(() =>
+        Promise.resolve({
+          data: null,
+          error: { message: 'Profile fetch failed' },
+        })
+      );
+
+      // Mock user statistics
+      mockFrom.single.mockImplementationOnce(() =>
+        Promise.resolve({
+          data: {
+            total_games: 5,
+            games_won: 3,
+            total_score: 500,
+            average_score: 100,
+            current_win_streak: 1,
+          },
+          error: null,
+        })
+      );
+
+      // Mock game results (fallback)
+      mockSupabase.from.mockReturnValueOnce({
+        select: jest.fn().mockResolvedValue({ data: [], error: null }),
+      });
+
+      // Mock activity count
+      mockSupabase.from.mockReturnValueOnce({
+        select: jest.fn().mockResolvedValue({ count: 2, error: null }),
+      });
+
+      const result = await userService.getUserStats('user-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        totalGames: 5,
+        gamesWon: 3,
+        winRate: 60,
+        rank: 'Intermediate',
+        badgeCount: 2,
+        joinDate: expect.any(String), // Falls back to current date
+        lastActive: expect.any(String), // Falls back to current date
+      });
     });
   });
 
@@ -1036,6 +1172,532 @@ describe('userService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network error');
       expect(log.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('Avatar handling validation edge cases (lines 153-230)', () => {
+    it('should handle file extension extraction for complex filenames', async () => {
+      const file = new File(['test'], 'my.complex.avatar.file.jpg', { type: 'image/jpeg' });
+
+      mockStorage.upload.mockResolvedValueOnce({ error: null });
+      mockStorage.getPublicUrl.mockReturnValueOnce({
+        data: { publicUrl: 'https://example.com/avatar.jpg' },
+      });
+      mockFrom.eq.mockResolvedValueOnce({ error: null });
+
+      const result = await userService.uploadAvatar('user-123', file);
+
+      expect(result.success).toBe(true);
+      expect(mockStorage.upload).toHaveBeenCalledWith(
+        expect.stringContaining('user-123-'),
+        file,
+        expect.objectContaining({
+          upsert: true,
+          cacheControl: '3600',
+        })
+      );
+      // Should extract 'jpg' from 'my.complex.avatar.file.jpg'
+      expect(mockStorage.upload).toHaveBeenCalledWith(
+        expect.stringMatching(/avatars\/user-123-\d+\.jpg$/),
+        file,
+        expect.any(Object)
+      );
+    });
+
+    it('should handle avatar creation validation failures', async () => {
+      const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' });
+
+      mockStorage.upload.mockResolvedValueOnce({ error: null });
+      mockStorage.getPublicUrl.mockReturnValueOnce({
+        data: { publicUrl: 'https://example.com/avatar.jpg' },
+      });
+      
+      // Mock validation failure during profile update - need to set up the chain properly
+      const mockUpdateChain = jest.fn().mockResolvedValue({
+        error: { 
+          code: '23502', 
+          message: 'null value in column "avatar_url" violates not-null constraint' 
+        },
+      });
+      mockFrom.update.mockReturnValueOnce({
+        eq: mockUpdateChain,
+      });
+
+      const result = await userService.uploadAvatar('user-123', file);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('null value in column "avatar_url" violates not-null constraint');
+      expect(mockStorage.remove).toHaveBeenCalled();
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to update avatar URL',
+        expect.any(Object),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'uploadAvatar',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
+
+    it('should handle avatar removal with complex storage URLs', async () => {
+      const complexAvatarUrl = 'https://storage.supabase.co/v1/object/public/avatars/user-123-1640995200000.jpg?token=abc123';
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: { avatar_url: complexAvatarUrl },
+        error: null,
+      });
+      mockStorage.remove.mockResolvedValueOnce({ error: null });
+      
+      // Mock update chain for profile update
+      const mockUpdateChain = jest.fn().mockResolvedValue({ error: null });
+      mockFrom.update.mockReturnValueOnce({
+        eq: mockUpdateChain,
+      });
+
+      const result = await userService.removeAvatar('user-123');
+
+      expect(result.success).toBe(true);
+      expect(mockStorage.remove).toHaveBeenCalledWith(['avatars/user-123-1640995200000.jpg?token=abc123']);
+    });
+
+    it('should handle storage removal failure during avatar removal', async () => {
+      const avatarUrl = 'https://storage.example.com/avatars/user-123-12345.jpg';
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: { avatar_url: avatarUrl },
+        error: null,
+      });
+      mockStorage.remove.mockResolvedValueOnce({
+        error: { message: 'Storage removal failed' },
+      });
+      
+      // Mock update chain for profile update
+      const mockUpdateChain = jest.fn().mockResolvedValue({ error: null });
+      mockFrom.update.mockReturnValueOnce({
+        eq: mockUpdateChain,
+      });
+
+      const result = await userService.removeAvatar('user-123');
+
+      expect(result.success).toBe(true); // Should still succeed even if storage removal fails
+      expect(result.data).toBe(true);
+      expect(mockFrom.update).toHaveBeenCalledWith({
+        avatar_url: null,
+        updated_at: expect.any(String),
+      });
+    });
+  });
+
+  describe('Follow system database error scenarios (lines 261-282)', () => {
+    it('should handle database constraint violation during follow', async () => {
+      mockFrom.insert.mockResolvedValueOnce({
+        error: { 
+          code: '23503', 
+          message: 'insert or update on table "user_friends" violates foreign key constraint' 
+        },
+      });
+
+      const result = await userService.followUser('user-123', 'nonexistent-user');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('insert or update on table "user_friends" violates foreign key constraint');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to follow user',
+        expect.objectContaining({ code: '23503' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'followUser',
+            followerId: 'user-123',
+            followingId: 'nonexistent-user',
+          }),
+        })
+      );
+    });
+
+    it('should handle database timeout during follow operation', async () => {
+      mockFrom.insert.mockResolvedValueOnce({
+        error: { 
+          code: '57014', 
+          message: 'canceling statement due to statement timeout' 
+        },
+      });
+
+      const result = await userService.followUser('user-123', 'user-456');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('canceling statement due to statement timeout');
+      expect(log.error).toHaveBeenCalled();
+    });
+
+    it('should handle connection failure during unfollow operation', async () => {
+      const mockDeleteChain = {
+        eq: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            error: { 
+              code: '08006', 
+              message: 'connection to server was lost' 
+            },
+          }),
+        }),
+      };
+      
+      mockFrom.delete.mockReturnValueOnce(mockDeleteChain);
+
+      const result = await userService.unfollowUser('user-123', 'user-456');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('connection to server was lost');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to unfollow user',
+        expect.objectContaining({ code: '08006' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'unfollowUser',
+            followerId: 'user-123',
+            followingId: 'user-456',
+          }),
+        })
+      );
+    });
+  });
+
+  describe('Activity logging partial failures and retry logic (lines 332-339)', () => {
+    it('should handle JSON serialization failure in activity metadata', async () => {
+      const activityWithCircularRef: any = {
+        type: 'board_join',
+        description: 'Joined a board',
+        metadata: {
+          board_id: 'board-123',
+          board_title: 'Test Board',
+          game_type: 'All Games' as Database['public']['Enums']['game_category'],
+          difficulty: 'easy' as Database['public']['Enums']['difficulty_level'],
+        },
+      };
+      
+      // Create circular reference
+      activityWithCircularRef.metadata.self = activityWithCircularRef;
+
+      const result = await userService.logUserActivity('user-123', activityWithCircularRef);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Converting circular structure to JSON');
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error logging user activity',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'logUserActivity',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
+
+    it('should handle activity insertion constraint violation', async () => {
+      const activity: ActivityLogRequest = {
+        type: 'board_join',
+        description: 'Joined a board',
+        metadata: {
+          board_id: 'board-123',
+          board_title: 'Test Board',
+          game_type: 'All Games' as Database['public']['Enums']['game_category'],
+          difficulty: 'easy' as Database['public']['Enums']['difficulty_level'],
+        },
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: '23503', 
+          message: 'insert or update on table "user_activity" violates foreign key constraint' 
+        },
+      });
+
+      const result = await userService.logUserActivity('user-123', activity);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('insert or update on table "user_activity" violates foreign key constraint');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to log user activity',
+        expect.objectContaining({ code: '23503' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'logUserActivity',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
+
+    it('should handle partial activity data corruption', async () => {
+      const activity: ActivityLogRequest = {
+        type: 'board_join',
+        description: 'Joined a board',
+        metadata: {
+          board_id: 'board-123',
+          board_title: 'Test Board',
+          game_type: 'All Games' as Database['public']['Enums']['game_category'],
+          difficulty: 'easy' as Database['public']['Enums']['difficulty_level'],
+        },
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: { id: null }, // Corrupted data - no actual ID
+        error: null,
+      });
+
+      const result = await userService.logUserActivity('user-123', activity);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe(''); // Should handle null ID gracefully
+    });
+  });
+
+  describe('Profile update concurrency conflicts (lines 398)', () => {
+    it('should handle concurrent profile update conflicts', async () => {
+      const updates = { username: 'newusername' };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: '40001', 
+          message: 'could not serialize access due to concurrent update' 
+        },
+      });
+
+      const result = await userService.updateUserProfile('user-123', updates);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('could not serialize access due to concurrent update');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to update user profile',
+        expect.objectContaining({ code: '40001' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'updateUserProfile',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
+
+    it('should handle optimistic locking failures during profile updates', async () => {
+      const updates = { 
+        username: 'newusername',
+        updated_at: '2024-01-01T00:00:00Z' // Outdated timestamp
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: 'PGRST116', 
+          message: 'The result contains 0 rows' 
+        },
+      });
+
+      const result = await userService.updateUserProfile('user-123', updates);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('The result contains 0 rows');
+    });
+  });
+
+  describe('User search and filtering edge cases (lines 509-549)', () => {
+    it('should handle complex activity filtering with edge dates', async () => {
+      const edgeCaseOptions: ActivityOptions = {
+        limit: 100,
+        offset: 0,
+        type: 'achievement_unlock' as const,
+        fromDate: '2024-02-29T23:59:59.999Z', // Leap year edge case
+        toDate: '2024-03-01T00:00:00.000Z',
+      };
+
+      mockFrom.range.mockResolvedValueOnce({
+        data: [],
+        error: null,
+      });
+
+      const result = await userService.getUserActivities('user-123', edgeCaseOptions);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
+      expect(mockFrom.eq).toHaveBeenCalledWith('activity_type', 'achievement_unlock');
+      expect(mockFrom.gte).toHaveBeenCalledWith('created_at', '2024-02-29T23:59:59.999Z');
+      expect(mockFrom.lte).toHaveBeenCalledWith('created_at', '2024-03-01T00:00:00.000Z');
+      expect(mockFrom.range).toHaveBeenCalledWith(0, 99);
+    });
+
+    it('should handle large offset pagination edge cases', async () => {
+      const largeOffsetOptions: ActivityOptions = {
+        limit: 50,
+        offset: 9950, // Near database limit
+      };
+
+      mockFrom.range.mockResolvedValueOnce({
+        data: [],
+        error: null,
+      });
+
+      const result = await userService.getUserActivities('user-123', largeOffsetOptions);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
+      expect(mockFrom.range).toHaveBeenCalledWith(9950, 9999);
+    });
+
+    it('should handle activity query timeout gracefully', async () => {
+      mockFrom.range.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: '57014', 
+          message: 'canceling statement due to statement timeout' 
+        },
+      });
+
+      const result = await userService.getUserActivities('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('canceling statement due to statement timeout');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to get user activities',
+        expect.objectContaining({ code: '57014' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'getUserActivities',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
+  });
+
+  describe('Complex user query operations (lines 651)', () => {
+    it('should handle profile validation failures during fetch', async () => {
+      mockFrom.single.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: '42703', 
+          message: 'column "invalid_column" does not exist' 
+        },
+      });
+
+      const result = await userService.getUserProfile('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('column "invalid_column" does not exist');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to get user profile',
+        expect.objectContaining({ code: '42703' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'getUserProfile',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
+
+    it('should handle database schema validation errors', async () => {
+      const invalidUpdates = { 
+        username: 'a'.repeat(256), // Exceeds username length limit
+        email: 'invalid-email-format'
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: '23514', 
+          message: 'new row for relation "users" violates check constraint' 
+        },
+      });
+
+      const result = await userService.updateUserProfile('user-123', invalidUpdates);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('new row for relation "users" violates check constraint');
+    });
+  });
+
+  describe('User management edge cases (lines 684-696)', () => {
+    it('should handle follow status check with database index corruption', async () => {
+      mockFrom.single.mockResolvedValueOnce({
+        data: null,
+        error: { 
+          code: '23P01', 
+          message: 'could not read block 0 in file "base/16384/1234": Input/output error' 
+        },
+      });
+
+      const result = await userService.isFollowing('user-123', 'user-456');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('could not read block 0 in file "base/16384/1234": Input/output error');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to check follow status',
+        expect.objectContaining({ code: '23P01' }),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'isFollowing',
+            followerId: 'user-123',
+            followingId: 'user-456',
+          }),
+        })
+      );
+    });
+
+    it('should handle self-follow validation gracefully', async () => {
+      mockFrom.insert.mockResolvedValueOnce({
+        error: { 
+          code: '23514', 
+          message: 'new row violates check constraint "user_friends_self_follow_check"' 
+        },
+      });
+
+      const result = await userService.followUser('user-123', 'user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('new row violates check constraint "user_friends_self_follow_check"');
+    });
+
+    it('should handle activity summary with corrupted date calculations', async () => {
+      // Mock Date constructor to return invalid date
+      const originalDate = global.Date;
+      global.Date = jest.fn(() => ({ 
+        getFullYear: () => NaN,
+        getMonth: () => NaN,
+        getDate: () => NaN,
+        getTime: () => NaN,
+        toISOString: () => { throw new Error('Invalid Date'); }
+      })) as any;
+
+      const result = await userService.getActivitySummary('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid Date');
+      expect(log.error).toHaveBeenCalledWith(
+        'Failed to get activity summary',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'getActivitySummary',
+            userId: 'user-123',
+          }),
+        })
+      );
+
+      // Restore original Date
+      global.Date = originalDate;
     });
   });
 });
