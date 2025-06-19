@@ -46,12 +46,7 @@ export const BINGO_CONFIG = {
   },
 
   // Game categories for testing
-  GAME_TYPES: [
-    'valorant',
-    'minecraft',
-    'league-of-legends',
-    'custom'
-  ] as const,
+  GAME_TYPES: ['valorant', 'minecraft', 'league-of-legends', 'custom'] as const,
 
   // Card categories
   CARD_CATEGORIES: [
@@ -60,16 +55,11 @@ export const BINGO_CONFIG = {
     'map',
     'agent',
     'item',
-    'objective'
+    'objective',
   ] as const,
 
   // Difficulty levels
-  DIFFICULTIES: [
-    'easy',
-    'medium',
-    'hard',
-    'expert'
-  ] as const,
+  DIFFICULTIES: ['easy', 'medium', 'hard', 'expert'] as const,
 
   // Win patterns
   WIN_PATTERNS: {
@@ -79,7 +69,7 @@ export const BINGO_CONFIG = {
     FOUR_CORNERS: 'four-corners',
     X_PATTERN: 'x-pattern',
     PLUS_PATTERN: 'plus-pattern',
-    FULL_HOUSE: 'full-house'
+    FULL_HOUSE: 'full-house',
   } as const,
 
   // Test data sets
@@ -109,7 +99,7 @@ export const BINGO_CONFIG = {
       'Support teammate with utility',
       'Successful lurk',
       'Fast rotate',
-      'Check all corners'
+      'Check all corners',
     ],
     MINECRAFT: [
       'Mine 64 diamonds',
@@ -136,7 +126,7 @@ export const BINGO_CONFIG = {
       'Make a cake',
       'Find emeralds',
       'Build underwater',
-      'Use an elytra'
+      'Use an elytra',
     ],
     GENERIC: [
       'Complete objective A',
@@ -148,8 +138,8 @@ export const BINGO_CONFIG = {
       'Solve puzzle G',
       'Find secret H',
       'Upgrade equipment I',
-      'Form alliance J'
-    ]
+      'Form alliance J',
+    ],
   } as const,
 
   // Mock user data
@@ -157,23 +147,23 @@ export const BINGO_CONFIG = {
     HOST: {
       email: 'host@test.com',
       username: 'TestHost',
-      color: '#FF0000'
+      color: '#FF0000',
     },
     PLAYER_1: {
       email: 'player1@test.com',
       username: 'Player1',
-      color: '#00FF00'
+      color: '#00FF00',
     },
     PLAYER_2: {
       email: 'player2@test.com',
       username: 'Player2',
-      color: '#0000FF'
+      color: '#0000FF',
     },
     SPECTATOR: {
       email: 'spectator@test.com',
       username: 'Spectator',
-      color: '#808080'
-    }
+      color: '#808080',
+    },
   } as const,
 
   // Error messages for validation
@@ -190,7 +180,7 @@ export const BINGO_CONFIG = {
     SESSION_CODE_REQUIRED: /session code.*required/i,
     BOARD_INCOMPLETE: /board must be complete/i,
     NETWORK_ERROR: /connection.*error/i,
-    PERMISSION_DENIED: /permission denied/i
+    PERMISSION_DENIED: /permission denied/i,
   } as const,
 
   // Success messages
@@ -204,7 +194,7 @@ export const BINGO_CONFIG = {
     PLAYER_JOINED: /joined game/i,
     BINGO_DETECTED: /bingo/i,
     BOARD_SHARED: /board shared/i,
-    TEMPLATE_SUBMITTED: /template submitted/i
+    TEMPLATE_SUBMITTED: /template submitted/i,
   } as const,
 
   // CSS selectors for common elements
@@ -212,7 +202,8 @@ export const BINGO_CONFIG = {
     BOARD_TITLE: '[data-testid="board-title"]',
     BINGO_GRID: '[data-testid="bingo-grid"]',
     CARD_LIBRARY: '[data-testid="card-library"]',
-    GRID_CELL: (row: number, col: number) => `[data-testid="grid-cell-${row}-${col}"]`,
+    GRID_CELL: (row: number, col: number) =>
+      `[data-testid="grid-cell-${row}-${col}"]`,
     LIBRARY_CARD: '[data-testid="library-card"]',
     SESSION_CODE: '[data-testid="session-code"]',
     PLAYER_COUNT: '[data-testid="player-count"]',
@@ -226,7 +217,7 @@ export const BINGO_CONFIG = {
     GAME_CONTROLS: '[data-testid="game-controls"]',
     BOARD_SETTINGS: '[data-testid="board-settings"]',
     SHARE_DIALOG: '[data-testid="share-dialog"]',
-    COLLABORATION_PANEL: '[data-testid="collaboration-panel"]'
+    COLLABORATION_PANEL: '[data-testid="collaboration-panel"]',
   } as const,
 
   // Accessibility requirements
@@ -239,8 +230,8 @@ export const BINGO_CONFIG = {
       'Game grid',
       'Card library',
       'Player list',
-      'Game controls'
-    ]
+      'Game controls',
+    ],
   } as const,
 
   // Visual regression test settings
@@ -248,15 +239,12 @@ export const BINGO_CONFIG = {
     THRESHOLD: 0.1,
     MAX_DIFF_PIXELS: 100,
     ANIMATION_MODE: 'disabled' as const,
-    IGNORE_AREAS: [
-      '.timestamp',
-      '.player-cursor',
-      '.realtime-indicator'
-    ]
-  } as const
+    IGNORE_AREAS: ['.timestamp', '.player-cursor', '.realtime-indicator'],
+  } as const,
 } as const;
 
-export type BingoGameType = typeof BINGO_CONFIG.GAME_TYPES[number];
-export type CardCategory = typeof BINGO_CONFIG.CARD_CATEGORIES[number];
-export type DifficultyLevel = typeof BINGO_CONFIG.DIFFICULTIES[number];
-export type WinPattern = typeof BINGO_CONFIG.WIN_PATTERNS[keyof typeof BINGO_CONFIG.WIN_PATTERNS];
+export type BingoGameType = (typeof BINGO_CONFIG.GAME_TYPES)[number];
+export type CardCategory = (typeof BINGO_CONFIG.CARD_CATEGORIES)[number];
+export type DifficultyLevel = (typeof BINGO_CONFIG.DIFFICULTIES)[number];
+export type WinPattern =
+  (typeof BINGO_CONFIG.WIN_PATTERNS)[keyof typeof BINGO_CONFIG.WIN_PATTERNS];

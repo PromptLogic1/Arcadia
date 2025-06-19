@@ -6,7 +6,7 @@ type GameResult = Database['public']['Tables']['game_results']['Row'];
 
 /**
  * Statistics Calculator Tests
- * 
+ *
  * Tests business logic for calculating user statistics from game results
  * and aggregated statistics.
  */
@@ -47,7 +47,8 @@ function calculateUserStatistics(input: CalculateStatsInput): CalculatedStats {
     totalGames = gameResults?.length || 0;
     gamesWon = gameResults?.filter(game => game.placement === 1).length || 0;
     winRate = totalGames > 0 ? (gamesWon / totalGames) * 100 : 0;
-    totalScore = gameResults?.reduce((sum, game) => sum + (game.final_score || 0), 0) || 0;
+    totalScore =
+      gameResults?.reduce((sum, game) => sum + (game.final_score || 0), 0) || 0;
     averageScore = totalGames > 0 ? totalScore / totalGames : 0;
 
     // Calculate current streak (simplified)
@@ -278,7 +279,7 @@ describe('Statistics Calculator', () => {
       { totalGames: 10, winRate: 60, expectedRank: 'Advanced' }, // 6 wins out of 10 = 60%
       { totalGames: 10, winRate: 50, expectedRank: 'Intermediate' }, // 5 wins out of 10 = 50%
       { totalGames: 25, winRate: 72, expectedRank: 'Expert' }, // 18 wins out of 25 = 72%
-      { totalGames: 25, winRate: 64, expectedRank: 'Advanced' }, // 16 wins out of 25 = 64%  
+      { totalGames: 25, winRate: 64, expectedRank: 'Advanced' }, // 16 wins out of 25 = 64%
       { totalGames: 50, winRate: 80, expectedRank: 'Master' }, // 40 wins out of 50 = 80%
       { totalGames: 50, winRate: 72, expectedRank: 'Expert' }, // 36 wins out of 50 = 72%
       { totalGames: 100, winRate: 90, expectedRank: 'Master' }, // 90 wins out of 100 = 90%
@@ -376,10 +377,13 @@ describe('Statistics Calculator', () => {
 
   describe('Performance with Large Datasets', () => {
     it('should efficiently calculate stats from 1000 game results', () => {
-      const gameResults: Partial<GameResult>[] = Array.from({ length: 1000 }, (_, i) => ({
-        placement: i % 3 === 0 ? 1 : 2,
-        final_score: 50 + Math.floor(Math.random() * 100),
-      }));
+      const gameResults: Partial<GameResult>[] = Array.from(
+        { length: 1000 },
+        (_, i) => ({
+          placement: i % 3 === 0 ? 1 : 2,
+          final_score: 50 + Math.floor(Math.random() * 100),
+        })
+      );
 
       const startTime = performance.now();
       const result = calculateUserStatistics({ gameResults });
@@ -397,8 +401,14 @@ describe('Statistics Calculator', () => {
     it('should only consider last 10 games for streak calculation', () => {
       // Create 100 wins followed by 10 losses
       const gameResults: Partial<GameResult>[] = [
-        ...Array.from({ length: 100 }, () => ({ placement: 1, final_score: 100 })),
-        ...Array.from({ length: 10 }, () => ({ placement: 2, final_score: 80 })),
+        ...Array.from({ length: 100 }, () => ({
+          placement: 1,
+          final_score: 100,
+        })),
+        ...Array.from({ length: 10 }, () => ({
+          placement: 2,
+          final_score: 80,
+        })),
       ];
 
       const result = calculateUserStatistics({ gameResults });

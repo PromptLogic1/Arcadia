@@ -6,12 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { NeonText } from '@/components/ui/NeonText';
 import CyberpunkBackground from '@/components/ui/CyberpunkBackground';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import {
-  Home,
-  Search,
-  ArrowLeft,
-  MapPin,
-} from '@/components/ui/Icons';
+import { Home, Search, ArrowLeft, MapPin } from '@/components/ui/Icons';
 
 export default function NotFound() {
   return (
@@ -37,8 +32,9 @@ export default function NotFound() {
                 Page Not Found
               </h2>
               <p className="text-lg leading-relaxed text-cyan-200/80">
-                Looks like this page got lost in the digital void. The page you're looking for 
-                might have been moved, deleted, or never existed in the first place.
+                Looks like this page got lost in the digital void. The page
+                you're looking for might have been moved, deleted, or never
+                existed in the first place.
               </p>
             </div>
 
@@ -84,7 +80,7 @@ export default function NotFound() {
                   Back to Home
                 </Button>
               </Link>
-              
+
               <Link href="/play-area">
                 <Button
                   variant="secondary"
@@ -95,7 +91,7 @@ export default function NotFound() {
                   Browse Games
                 </Button>
               </Link>
-              
+
               <Button
                 variant="secondary"
                 size="lg"
@@ -110,7 +106,8 @@ export default function NotFound() {
             {/* Additional Help */}
             <div className="mt-12 text-sm text-cyan-200/60">
               <p>
-                If you believe this is an error, please contact support or try again later.
+                If you believe this is an error, please contact support or try
+                again later.
               </p>
             </div>
           </div>

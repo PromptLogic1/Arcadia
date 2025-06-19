@@ -35,9 +35,13 @@ const mockSupabase = {
   single: jest.fn(),
 };
 
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+const mockCreateClient = createClient as jest.MockedFunction<
+  typeof createClient
+>;
 const mockLog = log as jest.Mocked<typeof log>;
-const mockGenerateSessionCode = generateSessionCode as jest.MockedFunction<typeof generateSessionCode>;
+const mockGenerateSessionCode = generateSessionCode as jest.MockedFunction<
+  typeof generateSessionCode
+>;
 
 describe('Sessions Service Client', () => {
   beforeEach(() => {
@@ -180,7 +184,9 @@ describe('Sessions Service Client', () => {
       expect(result.data).toEqual(mockSessionStats);
       expect(mockSupabase.from).toHaveBeenCalledWith('session_stats');
       expect(mockSupabase.select).toHaveBeenCalledWith('*');
-      expect(mockSupabase.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockSupabase.order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      });
       expect(mockSupabase.limit).toHaveBeenCalledWith(50);
     });
 
@@ -379,7 +385,8 @@ describe('Sessions Service Client', () => {
         error: null,
       });
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSessionsWithPlayers);
@@ -425,7 +432,8 @@ describe('Sessions Service Client', () => {
         error: null,
       });
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([
@@ -443,7 +451,8 @@ describe('Sessions Service Client', () => {
         error,
       });
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(error.message);
@@ -463,7 +472,8 @@ describe('Sessions Service Client', () => {
     it('handles unexpected errors', async () => {
       mockSupabase.single.mockRejectedValue(new Error('Network error'));
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network error');
@@ -475,7 +485,8 @@ describe('Sessions Service Client', () => {
         error: null,
       });
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);

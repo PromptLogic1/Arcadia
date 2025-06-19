@@ -1,14 +1,14 @@
 /**
  * API Response Handlers Tests
- * 
+ *
  * Tests for ServiceResponse pattern and API utility functions
  */
 
-import { 
-  createServiceSuccess, 
+import {
+  createServiceSuccess,
   createServiceError,
   type ServiceResponse,
-  type PaginatedResponse 
+  type PaginatedResponse,
 } from '@/lib/service-types';
 import { ErrorFactory } from '@/lib/error-handler';
 
@@ -238,10 +238,13 @@ describe('API Response Handlers', () => {
   describe('Response Transformation', () => {
     it('should transform success response data', () => {
       const response = createServiceSuccess({ id: '123', value: 100 });
-      
+
       // Transform the response
-      const transformed = response.success 
-        ? createServiceSuccess({ ...response.data!, value: response.data!.value * 2 })
+      const transformed = response.success
+        ? createServiceSuccess({
+            ...response.data!,
+            value: response.data!.value * 2,
+          })
         : response;
 
       expect(transformed.success).toBe(true);
@@ -250,12 +253,12 @@ describe('API Response Handlers', () => {
 
     it('should chain response transformations', () => {
       const initialResponse = createServiceSuccess([1, 2, 3, 4, 5]);
-      
+
       // Filter even numbers
       const filtered = initialResponse.success
         ? createServiceSuccess(initialResponse.data!.filter(n => n % 2 === 0))
         : initialResponse;
-      
+
       // Double the values
       const doubled = filtered.success
         ? createServiceSuccess(filtered.data!.map(n => n * 2))
@@ -267,7 +270,7 @@ describe('API Response Handlers', () => {
 
     it('should propagate errors through transformations', () => {
       const errorResponse = createServiceError<number[]>('Initial error');
-      
+
       // Try to transform
       const transformed = errorResponse.success
         ? createServiceSuccess(errorResponse.data!.map(n => n * 2))
@@ -281,7 +284,7 @@ describe('API Response Handlers', () => {
   describe('Edge Cases', () => {
     it('should handle undefined as null in success response', () => {
       const response = createServiceSuccess(undefined);
-      
+
       expect(response).toEqual({
         data: undefined,
         error: null,
@@ -317,7 +320,7 @@ describe('API Response Handlers', () => {
 
       // Should not throw when creating error response
       expect(() => createServiceError(error)).not.toThrow();
-      
+
       const response = createServiceError(error);
       expect(response.error).toBe('Circular reference');
     });

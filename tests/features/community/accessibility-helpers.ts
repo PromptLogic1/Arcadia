@@ -3,7 +3,7 @@ import type { AccessibilityResult, AccessibilityViolation } from './types';
 
 /**
  * Comprehensive Accessibility Testing Utilities
- * 
+ *
  * Provides WCAG 2.1 AA compliance testing for community features
  * including keyboard navigation, screen reader support, and
  * color contrast validation.
@@ -13,7 +13,7 @@ import type { AccessibilityResult, AccessibilityViolation } from './types';
 export const WCAG_REQUIREMENTS = {
   colorContrast: {
     normal: 4.5, // Normal text minimum contrast ratio
-    large: 3.0,  // Large text minimum contrast ratio
+    large: 3.0, // Large text minimum contrast ratio
   },
   timing: {
     minimumTimeout: 20000, // 20 seconds minimum for timeouts
@@ -34,7 +34,10 @@ export class AccessibilityTester {
   private violations: AccessibilityViolation[] = [];
   private passedChecks: string[] = [];
 
-  async runFullAudit(page: Page, selector?: string): Promise<AccessibilityResult> {
+  async runFullAudit(
+    page: Page,
+    selector?: string
+  ): Promise<AccessibilityResult> {
     this.violations = [];
     this.passedChecks = [];
 
@@ -53,7 +56,7 @@ export class AccessibilityTester {
     await this.checkFormLabels(page);
 
     const score = this.calculateAccessibilityScore();
-    
+
     return {
       passed: this.violations.length === 0,
       violations: this.violations,
@@ -70,9 +73,10 @@ export class AccessibilityTester {
       // Fallback to CDN
       await page.evaluate(() => {
         const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.2/axe.min.js';
+        script.src =
+          'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.2/axe.min.js';
         document.head.appendChild(script);
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
           script.onload = resolve;
         });
       });
@@ -80,7 +84,7 @@ export class AccessibilityTester {
   }
 
   private async runAxeAudit(page: Page, selector?: string): Promise<void> {
-    const axeResults = await page.evaluate((sel) => {
+    const axeResults = await page.evaluate(sel => {
       interface AxeResults {
         violations: Array<{
           id: string;
@@ -93,9 +97,17 @@ export class AccessibilityTester {
           }>;
         }>;
       }
-      
-      return new Promise<AxeResults>((resolve) => {
-        const win = window as Window & { axe?: { run: (context: Element | Document | null, options: unknown, callback: (err: Error | null, results: AxeResults) => void) => void } };
+
+      return new Promise<AxeResults>(resolve => {
+        const win = window as Window & {
+          axe?: {
+            run: (
+              context: Element | Document | null,
+              options: unknown,
+              callback: (err: Error | null, results: AxeResults) => void
+            ) => void;
+          };
+        };
         if (typeof win.axe === 'undefined') {
           resolve({ violations: [] });
           return;
@@ -107,20 +119,24 @@ export class AccessibilityTester {
           return;
         }
 
-        win.axe.run(context, {
-          tags: ['wcag2a', 'wcag2aa', 'wcag21aa'],
-        }, (err: Error | null, results: AxeResults) => {
-          if (err) {
-            resolve({ violations: [] });
-            return;
+        win.axe.run(
+          context,
+          {
+            tags: ['wcag2a', 'wcag2aa', 'wcag21aa'],
+          },
+          (err: Error | null, results: AxeResults) => {
+            if (err) {
+              resolve({ violations: [] });
+              return;
+            }
+            resolve(results);
           }
-          resolve(results);
-        });
+        );
       });
     }, selector);
 
     const results = axeResults;
-    
+
     if (results.violations) {
       interface AxeViolation {
         id: string;
@@ -131,13 +147,13 @@ export class AccessibilityTester {
           target: string[];
         }>;
       }
-      
+
       results.violations.forEach((violation: AxeViolation) => {
         const severityMap: Record<string, 'error' | 'warning' | 'info'> = {
-          'critical': 'error',
-          'serious': 'error',
-          'moderate': 'warning',
-          'minor': 'info'
+          critical: 'error',
+          serious: 'error',
+          moderate: 'warning',
+          minor: 'info',
         };
         this.violations.push({
           rule: violation.id,
@@ -154,8 +170,10 @@ export class AccessibilityTester {
     try {
       // Test tab navigation
       await page.keyboard.press('Tab');
-      const firstFocusedElement = await page.evaluate(() => document.activeElement?.tagName);
-      
+      const firstFocusedElement = await page.evaluate(
+        () => document.activeElement?.tagName
+      );
+
       if (!firstFocusedElement || firstFocusedElement === 'BODY') {
         this.violations.push({
           rule: 'keyboard-navigation',
@@ -170,14 +188,15 @@ export class AccessibilityTester {
 
       // Test escape key functionality
       await page.keyboard.press('Escape');
-      
+
       // Test arrow key navigation for menus/lists
-      const menuElements = await page.locator('[role="menu"], [role="menubar"], [role="listbox"]').count();
+      const menuElements = await page
+        .locator('[role="menu"], [role="menubar"], [role="listbox"]')
+        .count();
       if (menuElements > 0) {
         await page.keyboard.press('ArrowDown');
         this.passedChecks.push('Arrow key navigation available');
       }
-
     } catch {
       this.violations.push({
         rule: 'keyboard-navigation',
@@ -191,8 +210,10 @@ export class AccessibilityTester {
 
   private async checkAriaLabels(page: Page): Promise<void> {
     // Check for missing ARIA labels on interactive elements
-    const interactiveElements = await page.locator('button, a, input, select, textarea').all();
-    
+    const interactiveElements = await page
+      .locator('button, a, input, select, textarea')
+      .all();
+
     for (const element of interactiveElements) {
       const tagName = await element.evaluate(el => el.tagName);
       const ariaLabel = await element.getAttribute('aria-label');
@@ -200,10 +221,10 @@ export class AccessibilityTester {
       const textContent = await element.textContent();
       const altText = await element.getAttribute('alt');
       const title = await element.getAttribute('title');
-      
+
       const hasAccessibleName = !!(
-        ariaLabel || 
-        ariaLabelledby || 
+        ariaLabel ||
+        ariaLabelledby ||
         (textContent && textContent.trim()) ||
         altText ||
         title
@@ -223,15 +244,59 @@ export class AccessibilityTester {
     // Check for proper ARIA roles
     const elementsWithRoles = await page.locator('[role]').all();
     const validRoles = [
-      'alert', 'alertdialog', 'article', 'banner', 'button', 'cell', 'checkbox',
-      'columnheader', 'combobox', 'complementary', 'contentinfo', 'dialog',
-      'document', 'feed', 'figure', 'form', 'grid', 'gridcell', 'group',
-      'heading', 'img', 'link', 'list', 'listbox', 'listitem', 'main',
-      'menu', 'menubar', 'menuitem', 'navigation', 'option', 'presentation',
-      'progressbar', 'radio', 'radiogroup', 'region', 'row', 'rowgroup',
-      'rowheader', 'search', 'separator', 'slider', 'spinbutton', 'status',
-      'switch', 'tab', 'tablist', 'tabpanel', 'textbox', 'timer', 'tooltip',
-      'tree', 'treeitem'
+      'alert',
+      'alertdialog',
+      'article',
+      'banner',
+      'button',
+      'cell',
+      'checkbox',
+      'columnheader',
+      'combobox',
+      'complementary',
+      'contentinfo',
+      'dialog',
+      'document',
+      'feed',
+      'figure',
+      'form',
+      'grid',
+      'gridcell',
+      'group',
+      'heading',
+      'img',
+      'link',
+      'list',
+      'listbox',
+      'listitem',
+      'main',
+      'menu',
+      'menubar',
+      'menuitem',
+      'navigation',
+      'option',
+      'presentation',
+      'progressbar',
+      'radio',
+      'radiogroup',
+      'region',
+      'row',
+      'rowgroup',
+      'rowheader',
+      'search',
+      'separator',
+      'slider',
+      'spinbutton',
+      'status',
+      'switch',
+      'tab',
+      'tablist',
+      'tabpanel',
+      'textbox',
+      'timer',
+      'tooltip',
+      'tree',
+      'treeitem',
     ];
 
     for (const element of elementsWithRoles) {
@@ -247,7 +312,9 @@ export class AccessibilityTester {
       }
     }
 
-    this.passedChecks.push(`Checked ${interactiveElements.length} interactive elements for ARIA labels`);
+    this.passedChecks.push(
+      `Checked ${interactiveElements.length} interactive elements for ARIA labels`
+    );
   }
 
   private async checkHeadingStructure(page: Page): Promise<void> {
@@ -266,12 +333,17 @@ export class AccessibilityTester {
 
     for (let i = 0; i < headingLevels.length; i++) {
       const currentLevel = headingLevels[i];
-      
+
       if (currentLevel === 1) {
         hasH1 = true;
       }
 
-      if (i > 0 && currentLevel !== undefined && previousLevel !== undefined && currentLevel > previousLevel + 1) {
+      if (
+        i > 0 &&
+        currentLevel !== undefined &&
+        previousLevel !== undefined &&
+        currentLevel > previousLevel + 1
+      ) {
         this.violations.push({
           rule: 'heading-structure',
           severity: 'warning',
@@ -296,17 +368,22 @@ export class AccessibilityTester {
       });
     }
 
-    this.passedChecks.push(`Checked ${headingLevels.length} headings for proper structure`);
+    this.passedChecks.push(
+      `Checked ${headingLevels.length} headings for proper structure`
+    );
   }
 
   private async checkColorContrast(page: Page): Promise<void> {
     // This is a simplified color contrast check
     // In a real implementation, you would use more sophisticated color analysis
-    const textElements = await page.locator('p, span, div, a, button, h1, h2, h3, h4, h5, h6').all();
-    
-    for (const element of textElements.slice(0, 10)) { // Check first 10 elements
+    const textElements = await page
+      .locator('p, span, div, a, button, h1, h2, h3, h4, h5, h6')
+      .all();
+
+    for (const element of textElements.slice(0, 10)) {
+      // Check first 10 elements
       try {
-        const styles = await element.evaluate((el) => {
+        const styles = await element.evaluate(el => {
           const computed = window.getComputedStyle(el);
           return {
             color: computed.color,
@@ -316,13 +393,20 @@ export class AccessibilityTester {
         });
 
         // Simple heuristic: if background is transparent/none and color is very light, flag it
-        if (styles.backgroundColor === 'rgba(0, 0, 0, 0)' || styles.backgroundColor === 'transparent') {
-          if (styles.color.includes('rgb(255, 255, 255)') || styles.color.includes('#fff')) {
+        if (
+          styles.backgroundColor === 'rgba(0, 0, 0, 0)' ||
+          styles.backgroundColor === 'transparent'
+        ) {
+          if (
+            styles.color.includes('rgb(255, 255, 255)') ||
+            styles.color.includes('#fff')
+          ) {
             this.violations.push({
               rule: 'color-contrast',
               severity: 'warning',
               element: await element.evaluate(el => el.tagName.toLowerCase()),
-              description: 'Potential color contrast issue: white text on transparent background',
+              description:
+                'Potential color contrast issue: white text on transparent background',
               help: 'Ensure sufficient color contrast between text and background',
             });
           }
@@ -338,19 +422,21 @@ export class AccessibilityTester {
   private async checkFocusManagement(page: Page): Promise<void> {
     // Check for visible focus indicators
     await page.keyboard.press('Tab');
-    
+
     const focusedElement = page.locator(':focus');
-    const focusStyles = await focusedElement.evaluate((el) => {
-      if (!el) return null;
-      const computed = window.getComputedStyle(el);
-      return {
-        outline: computed.outline,
-        outlineWidth: computed.outlineWidth,
-        outlineStyle: computed.outlineStyle,
-        outlineColor: computed.outlineColor,
-        boxShadow: computed.boxShadow,
-      };
-    }).catch(() => null);
+    const focusStyles = await focusedElement
+      .evaluate(el => {
+        if (!el) return null;
+        const computed = window.getComputedStyle(el);
+        return {
+          outline: computed.outline,
+          outlineWidth: computed.outlineWidth,
+          outlineStyle: computed.outlineStyle,
+          outlineColor: computed.outlineColor,
+          boxShadow: computed.boxShadow,
+        };
+      })
+      .catch(() => null);
 
     if (focusStyles) {
       const hasVisibleFocus = !!(
@@ -375,22 +461,23 @@ export class AccessibilityTester {
 
   private async checkFormLabels(page: Page): Promise<void> {
     const formControls = await page.locator('input, select, textarea').all();
-    
+
     for (const control of formControls) {
       const id = await control.getAttribute('id');
       const ariaLabel = await control.getAttribute('aria-label');
       const ariaLabelledby = await control.getAttribute('aria-labelledby');
       const _placeholder = await control.getAttribute('placeholder');
-      
+
       let hasLabel = false;
-      
+
       if (id) {
-        const labelExists = await page.locator(`label[for="${id}"]`).count() > 0;
+        const labelExists =
+          (await page.locator(`label[for="${id}"]`).count()) > 0;
         hasLabel = labelExists;
       }
-      
+
       hasLabel = hasLabel || !!(ariaLabel || ariaLabelledby);
-      
+
       if (!hasLabel) {
         const tagName = await control.evaluate(el => el.tagName);
         this.violations.push({
@@ -403,13 +490,15 @@ export class AccessibilityTester {
       }
     }
 
-    this.passedChecks.push(`Checked ${formControls.length} form controls for labels`);
+    this.passedChecks.push(
+      `Checked ${formControls.length} form controls for labels`
+    );
   }
 
   private calculateAccessibilityScore(): number {
     const totalChecks = this.violations.length + this.passedChecks.length;
     if (totalChecks === 0) return 100;
-    
+
     // Weight violations by severity
     let severityWeight = 0;
     this.violations.forEach(violation => {
@@ -425,72 +514,85 @@ export class AccessibilityTester {
           break;
       }
     });
-    
+
     // Calculate score (100 - severity weight, minimum 0)
     return Math.max(0, 100 - severityWeight);
   }
 }
 
 // Keyboard navigation testing utilities
-export async function testKeyboardNavigation(page: Page, elements: string[]): Promise<{
+export async function testKeyboardNavigation(
+  page: Page,
+  elements: string[]
+): Promise<{
   passed: boolean;
   issues: string[];
 }> {
   const issues: string[] = [];
-  
+
   try {
     // Test tab navigation through specified elements
     for (let i = 0; i < elements.length; i++) {
       await page.keyboard.press('Tab');
-      
+
       const focusedElement = await page.evaluate(() => {
         const el = document.activeElement;
-        return el ? {
-          tagName: el.tagName,
-          id: el.id,
-          className: el.className,
-          ariaLabel: el.getAttribute('aria-label'),
-        } : null;
+        return el
+          ? {
+              tagName: el.tagName,
+              id: el.id,
+              className: el.className,
+              ariaLabel: el.getAttribute('aria-label'),
+            }
+          : null;
       });
-      
+
       if (!focusedElement) {
         issues.push(`Tab ${i + 1}: No element focused`);
         continue;
       }
-      
+
       // Check if the focused element matches expected
       const expectedElementSelector = elements[i];
       if (expectedElementSelector) {
         const expectedElement = page.locator(expectedElementSelector);
-        const isExpectedFocused = await expectedElement.evaluate((el, _focused) => {
-          return el === document.activeElement;
-        }, focusedElement);
-      
+        const isExpectedFocused = await expectedElement.evaluate(
+          (el, _focused) => {
+            return el === document.activeElement;
+          },
+          focusedElement
+        );
+
         if (!isExpectedFocused) {
-          issues.push(`Tab ${i + 1}: Expected ${expectedElementSelector} but got ${focusedElement.tagName}#${focusedElement.id}`);
+          issues.push(
+            `Tab ${i + 1}: Expected ${expectedElementSelector} but got ${focusedElement.tagName}#${focusedElement.id}`
+          );
         }
       }
     }
-    
+
     // Test reverse tab navigation
     for (let i = elements.length - 1; i >= 0; i--) {
       await page.keyboard.press('Shift+Tab');
-      
+
       const expectedElementSelector = elements[i];
       if (expectedElementSelector) {
         const expectedElement = page.locator(expectedElementSelector);
-        const isFocused = await expectedElement.evaluate(el => el === document.activeElement);
-        
+        const isFocused = await expectedElement.evaluate(
+          el => el === document.activeElement
+        );
+
         if (!isFocused) {
-          issues.push(`Shift+Tab ${elements.length - i}: Expected ${expectedElementSelector} to be focused`);
+          issues.push(
+            `Shift+Tab ${elements.length - i}: Expected ${expectedElementSelector} to be focused`
+          );
         }
       }
     }
-    
   } catch (error) {
     issues.push(`Keyboard navigation test failed: ${error}`);
   }
-  
+
   return {
     passed: issues.length === 0,
     issues,
@@ -509,34 +611,46 @@ export async function testScreenReaderContent(page: Page): Promise<{
       document.body,
       NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
       {
-        acceptNode: (node) => {
+        acceptNode: node => {
           if (node.nodeType === Node.TEXT_NODE) {
-            return node.textContent?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            return node.textContent?.trim()
+              ? NodeFilter.FILTER_ACCEPT
+              : NodeFilter.FILTER_REJECT;
           }
-          
+
           const element = node as Element;
-          
+
           // Skip hidden elements
           const style = window.getComputedStyle(element);
           if (style.display === 'none' || style.visibility === 'hidden') {
             return NodeFilter.FILTER_REJECT;
           }
-          
+
           // Include elements with ARIA roles or semantic meaning
-          if (element.hasAttribute('role') || 
-              element.hasAttribute('aria-label') ||
-              ['MAIN', 'NAV', 'HEADER', 'FOOTER', 'SECTION', 'ARTICLE', 'ASIDE'].includes(element.tagName)) {
+          if (
+            element.hasAttribute('role') ||
+            element.hasAttribute('aria-label') ||
+            [
+              'MAIN',
+              'NAV',
+              'HEADER',
+              'FOOTER',
+              'SECTION',
+              'ARTICLE',
+              'ASIDE',
+            ].includes(element.tagName)
+          ) {
             return NodeFilter.FILTER_ACCEPT;
           }
-          
+
           return NodeFilter.FILTER_SKIP;
-        }
+        },
       }
     );
-    
+
     const content: string[] = [];
     let node;
-    
+
     while ((node = walker.nextNode())) {
       if (node.nodeType === Node.TEXT_NODE) {
         content.push(node.textContent?.trim() || '');
@@ -548,13 +662,15 @@ export async function testScreenReaderContent(page: Page): Promise<{
         }
       }
     }
-    
+
     return content.filter(text => text.length > 0);
   });
 
   // Get heading structure
   const structure = await page.evaluate(() => {
-    const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+    const headings = Array.from(
+      document.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    );
     return headings.map(heading => ({
       level: parseInt(heading.tagName.substring(1)),
       text: heading.textContent?.trim() || '',
@@ -563,17 +679,21 @@ export async function testScreenReaderContent(page: Page): Promise<{
 
   // Get landmarks
   const landmarks = await page.evaluate(() => {
-    const landmarkElements = Array.from(document.querySelectorAll(`
+    const landmarkElements = Array.from(
+      document.querySelectorAll(`
       [role="main"], [role="navigation"], [role="banner"], [role="contentinfo"],
       [role="complementary"], [role="search"], [role="region"],
       main, nav, header, footer, aside, section[aria-labelledby], section[aria-label]
-    `));
-    
+    `)
+    );
+
     return landmarkElements.map(element => {
-      const role = element.getAttribute('role') || element.tagName.toLowerCase();
-      const label = element.getAttribute('aria-label') || 
-                   element.getAttribute('aria-labelledby') || 
-                   '';
+      const role =
+        element.getAttribute('role') || element.tagName.toLowerCase();
+      const label =
+        element.getAttribute('aria-label') ||
+        element.getAttribute('aria-labelledby') ||
+        '';
       return label ? `${role}: ${label}` : role;
     });
   });
@@ -582,30 +702,41 @@ export async function testScreenReaderContent(page: Page): Promise<{
 }
 
 // Color contrast testing utility
-export async function testColorContrast(page: Page, minimumRatio = 4.5): Promise<{
+export async function testColorContrast(
+  page: Page,
+  minimumRatio = 4.5
+): Promise<{
   passed: boolean;
-  violations: Array<{ element: string; ratio: number; colors: { fg: string; bg: string } }>;
+  violations: Array<{
+    element: string;
+    ratio: number;
+    colors: { fg: string; bg: string };
+  }>;
 }> {
   // This would require a more sophisticated color analysis library in a real implementation
   // For now, we'll do a basic check
-  const violations = await page.evaluate((minRatio) => {
-    const violations: Array<{ element: string; ratio: number; colors: { fg: string; bg: string } }> = [];
-    
+  const violations = await page.evaluate(minRatio => {
+    const violations: Array<{
+      element: string;
+      ratio: number;
+      colors: { fg: string; bg: string };
+    }> = [];
+
     // Simple color contrast approximation
     function getLuminance(rgb: string): number {
       const match = rgb.match(/\d+/g);
       if (!match || match.length < 3) return 0;
-      
+
       const [r, g, b] = match.slice(0, 3).map(Number);
       const [rs, gs, bs] = [r, g, b].map(c => {
         if (c === undefined) return 0;
         c = c / 255;
         return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
       });
-      
+
       return 0.2126 * (rs ?? 0) + 0.7152 * (gs ?? 0) + 0.0722 * (bs ?? 0);
     }
-    
+
     function getContrastRatio(fg: string, bg: string): number {
       const l1 = getLuminance(fg);
       const l2 = getLuminance(bg);
@@ -613,26 +744,30 @@ export async function testColorContrast(page: Page, minimumRatio = 4.5): Promise
       const darker = Math.min(l1, l2);
       return (lighter + 0.05) / (darker + 0.05);
     }
-    
-    const textElements = document.querySelectorAll('p, span, a, button, h1, h2, h3, h4, h5, h6');
-    
+
+    const textElements = document.querySelectorAll(
+      'p, span, a, button, h1, h2, h3, h4, h5, h6'
+    );
+
     for (const element of Array.from(textElements).slice(0, 20)) {
       const style = window.getComputedStyle(element);
       const fg = style.color;
       const bg = style.backgroundColor;
-      
+
       if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
         const ratio = getContrastRatio(fg, bg);
         if (ratio < minRatio) {
           violations.push({
-            element: element.tagName.toLowerCase() + (element.id ? `#${element.id}` : ''),
+            element:
+              element.tagName.toLowerCase() +
+              (element.id ? `#${element.id}` : ''),
             ratio,
             colors: { fg, bg },
           });
         }
       }
     }
-    
+
     return violations;
   }, minimumRatio);
 

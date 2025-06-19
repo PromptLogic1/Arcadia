@@ -14,7 +14,10 @@ import {
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
-import { bingoSessionSchema, bingoSessionPlayerSchema } from '@/lib/validation/schemas/bingo';
+import {
+  bingoSessionSchema,
+  bingoSessionPlayerSchema,
+} from '@/lib/validation/schemas/bingo';
 
 // Mock the logger
 jest.mock('@/lib/logger', () => ({
@@ -43,8 +46,8 @@ jest.mock('@/lib/validation/schemas/bingo', () => ({
 
 // Mock transforms
 jest.mock('@/lib/validation/transforms', () => ({
-  transformBoardState: jest.fn((state) => state),
-  transformSessionSettings: jest.fn((settings) => settings),
+  transformBoardState: jest.fn(state => state),
+  transformSessionSettings: jest.fn(settings => settings),
 }));
 
 import { createClient } from '@/lib/supabase';
@@ -59,14 +62,16 @@ describe('SessionJoinService', () => {
     setupSupabaseMock(mockSupabase);
 
     // Default schema validation behavior
-    (bingoSessionSchema.safeParse as jest.Mock).mockImplementation((data) => ({
+    (bingoSessionSchema.safeParse as jest.Mock).mockImplementation(data => ({
       success: true,
       data,
     }));
-    (bingoSessionPlayerSchema.safeParse as jest.Mock).mockImplementation((data) => ({
-      success: true,
-      data,
-    }));
+    (bingoSessionPlayerSchema.safeParse as jest.Mock).mockImplementation(
+      data => ({
+        success: true,
+        data,
+      })
+    );
   });
 
   describe('getSessionJoinDetails', () => {
@@ -93,9 +98,11 @@ describe('SessionJoinService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockSessionWithBoard)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(mockSessionWithBoard)
+          ),
       });
 
       // Mock player count
@@ -107,7 +114,8 @@ describe('SessionJoinService', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
@@ -128,12 +136,15 @@ describe('SessionJoinService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Session not found', 'PGRST116')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('Session not found', 'PGRST116')
+          ),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('non-existent');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('non-existent');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Session not found');
@@ -155,19 +166,21 @@ describe('SessionJoinService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(closedSession)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(closedSession)),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Session is completed. Cannot join at this time.');
-      expect(log.warn).toHaveBeenCalledWith(
-        'Session not joinable',
-        { metadata: { sessionId: 'session-123', status: 'completed' } }
+      expect(result.error).toBe(
+        'Session is completed. Cannot join at this time.'
       );
+      expect(log.warn).toHaveBeenCalledWith('Session not joinable', {
+        metadata: { sessionId: 'session-123', status: 'completed' },
+      });
     });
 
     it('should handle session full', async () => {
@@ -177,9 +190,11 @@ describe('SessionJoinService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockSessionWithBoard)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(mockSessionWithBoard)
+          ),
       });
 
       // Mock player count at max
@@ -191,7 +206,8 @@ describe('SessionJoinService', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
@@ -211,9 +227,11 @@ describe('SessionJoinService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockSessionWithBoard)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(mockSessionWithBoard)
+          ),
       });
 
       // Mock player count to be called after session fetch
@@ -231,7 +249,8 @@ describe('SessionJoinService', () => {
         error: new Error('Validation failed'),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Invalid session data format');
@@ -254,7 +273,9 @@ describe('SessionJoinService', () => {
 
     it('should join session successfully', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       // Mock auth user
       mockAuth.getUser.mockResolvedValue({
@@ -272,15 +293,17 @@ describe('SessionJoinService', () => {
       });
 
       // Mock getSessionJoinDetails
-      jest.spyOn(sessionJoinService, 'getSessionJoinDetails').mockResolvedValueOnce({
-        success: true,
-        data: {
-          session: factories.bingoSession({ status: 'waiting' }),
-          currentPlayerCount: 2,
-          canJoin: true,
-        },
-        error: null,
-      });
+      jest
+        .spyOn(sessionJoinService, 'getSessionJoinDetails')
+        .mockResolvedValueOnce({
+          success: true,
+          data: {
+            session: factories.bingoSession({ status: 'waiting' }),
+            currentPlayerCount: 2,
+            canJoin: true,
+          },
+          error: null,
+        });
 
       // Mock insert new player
       const newPlayer = factories.bingoSessionPlayer({
@@ -293,9 +316,9 @@ describe('SessionJoinService', () => {
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(newPlayer)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(newPlayer)),
       });
 
       const result = await sessionJoinService.joinSession(joinData);
@@ -306,7 +329,9 @@ describe('SessionJoinService', () => {
     });
 
     it('should error when user not authenticated', async () => {
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
@@ -321,7 +346,9 @@ describe('SessionJoinService', () => {
 
     it('should error when user already in session', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -333,9 +360,11 @@ describe('SessionJoinService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseSuccessResponse(factories.bingoSessionPlayer())
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(
+              createSupabaseSuccessResponse(factories.bingoSessionPlayer())
+            ),
         })),
       });
 
@@ -347,7 +376,9 @@ describe('SessionJoinService', () => {
 
     it('should handle join failures', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -364,23 +395,25 @@ describe('SessionJoinService', () => {
       });
 
       // Mock getSessionJoinDetails
-      jest.spyOn(sessionJoinService, 'getSessionJoinDetails').mockResolvedValueOnce({
-        success: true,
-        data: {
-          session: factories.bingoSession({ status: 'waiting' }),
-          currentPlayerCount: 2,
-          canJoin: true,
-        },
-        error: null,
-      });
+      jest
+        .spyOn(sessionJoinService, 'getSessionJoinDetails')
+        .mockResolvedValueOnce({
+          success: true,
+          data: {
+            session: factories.bingoSession({ status: 'waiting' }),
+            currentPlayerCount: 2,
+            canJoin: true,
+          },
+          error: null,
+        });
 
       // Mock insert failure
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Insert failed')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Insert failed')),
       });
 
       const result = await sessionJoinService.joinSession(joinData);
@@ -395,7 +428,9 @@ describe('SessionJoinService', () => {
 
     it('should return user is in session', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -411,9 +446,9 @@ describe('SessionJoinService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseSuccessResponse(mockPlayer)
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(createSupabaseSuccessResponse(mockPlayer)),
         })),
       });
 
@@ -428,7 +463,9 @@ describe('SessionJoinService', () => {
 
     it('should return user is not in session', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -439,9 +476,11 @@ describe('SessionJoinService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseErrorResponse('Not found', 'PGRST116')
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(
+              createSupabaseErrorResponse('Not found', 'PGRST116')
+            ),
         })),
       });
 
@@ -455,7 +494,9 @@ describe('SessionJoinService', () => {
     });
 
     it('should handle unauthenticated users', async () => {
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
@@ -474,7 +515,7 @@ describe('SessionJoinService', () => {
       const mockFrom = mockSupabase.from as jest.Mock;
 
       const usedColors = ['#06b6d4', '#8b5cf6', '#ec4899'];
-      const mockPlayers = usedColors.map((color) =>
+      const mockPlayers = usedColors.map(color =>
         factories.bingoSessionPlayer({ color })
       );
 
@@ -519,9 +560,9 @@ describe('SessionJoinService', () => {
 
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Database error')
-        ),
+        eq: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Database error')),
       });
 
       const result = await sessionJoinService.getAvailableColors('session-123');

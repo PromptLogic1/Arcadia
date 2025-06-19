@@ -1,4 +1,10 @@
-import type { BoardCell, BingoBoard, BingoBoardSession, BingoCard, GamePlayer } from '../../types';
+import type {
+  BoardCell,
+  BingoBoard,
+  BingoBoardSession,
+  BingoCard,
+  GamePlayer,
+} from '../../types';
 import type { Difficulty, GameCategory, Database } from '../../../../types';
 
 // Counter for unique IDs
@@ -31,7 +37,9 @@ export function createBoardCell(overrides: Partial<BoardCell> = {}): BoardCell {
 }
 
 // Bingo Board Factory
-export function createBingoBoard(overrides: Partial<BingoBoard> = {}): BingoBoard {
+export function createBingoBoard(
+  overrides: Partial<BingoBoard> = {}
+): BingoBoard {
   const now = new Date().toISOString();
   return {
     id: getNextId('board'),
@@ -56,7 +64,9 @@ export function createBingoBoard(overrides: Partial<BingoBoard> = {}): BingoBoar
 }
 
 // Bingo Session Factory
-export function createBingoSession(overrides: Partial<BingoBoardSession> = {}): BingoBoardSession {
+export function createBingoSession(
+  overrides: Partial<BingoBoardSession> = {}
+): BingoBoardSession {
   const now = new Date().toISOString();
   return {
     id: getNextId('session'),
@@ -103,7 +113,9 @@ export function createBingoCard(overrides: Partial<BingoCard> = {}): BingoCard {
 }
 
 // Game Player Factory
-export function createGamePlayer(overrides: Partial<GamePlayer> = {}): GamePlayer {
+export function createGamePlayer(
+  overrides: Partial<GamePlayer> = {}
+): GamePlayer {
   const playerId = getNextId('player');
   return {
     id: playerId,
@@ -146,7 +158,8 @@ export function createBoardWithCells(
 
   const board = createBingoBoard({
     size,
-    board_state: cells as unknown as Database['public']['Tables']['bingo_boards']['Row']['board_state'],
+    board_state:
+      cells as unknown as Database['public']['Tables']['bingo_boards']['Row']['board_state'],
     ...boardOverrides,
   });
 

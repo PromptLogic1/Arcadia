@@ -194,7 +194,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             }
 
             const authUserData = userResult.data;
-            
+
             // Set auth user data
             get().setAuthUser({
               id: authUserData.id,
@@ -206,8 +206,10 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
 
             // Fetch full user data
-            const userDataResult = await authService.getUserData(authUserData.id);
-            
+            const userDataResult = await authService.getUserData(
+              authUserData.id
+            );
+
             if (userDataResult.success && userDataResult.data) {
               get().setUserData(userDataResult.data);
             }
@@ -271,8 +273,10 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             // Fetch user data
             if (result.data?.user) {
-              const userDataResult = await authService.getUserData(result.data.user.id);
-              
+              const userDataResult = await authService.getUserData(
+                result.data.user.id
+              );
+
               if (userDataResult.success && userDataResult.data) {
                 get().setAuthUser({
                   id: result.data.user.id,
@@ -282,7 +286,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
                   provider: 'email',
                   userRole: userDataResult.data.role || 'user',
                 });
-                
+
                 get().setUserData(userDataResult.data);
               }
             }
@@ -292,7 +296,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               data: result.data,
             };
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             get().setError(errorMessage);
             return {
               success: false,
@@ -343,7 +348,11 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             get().setLoading(true);
             get().setError(null);
 
-            const result = await authService.signUp({ email, password, username });
+            const result = await authService.signUp({
+              email,
+              password,
+              username,
+            });
 
             if (!result.success) {
               get().setError(result.error || 'Sign up failed');
@@ -364,8 +373,10 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             // If user is already confirmed, set up the session
             if (result.data?.user) {
-              const userDataResult = await authService.getUserData(result.data.user.id);
-              
+              const userDataResult = await authService.getUserData(
+                result.data.user.id
+              );
+
               if (userDataResult.success && userDataResult.data) {
                 get().setAuthUser({
                   id: result.data.user.id,
@@ -375,7 +386,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
                   provider: 'email',
                   userRole: userDataResult.data.role || 'user',
                 });
-                
+
                 get().setUserData(userDataResult.data);
               }
             }
@@ -385,7 +396,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               data: result.data,
             };
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             get().setError(errorMessage);
             return {
               success: false,
@@ -569,7 +581,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               success: true,
             };
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             get().setError(errorMessage);
             return {
               success: false,
@@ -599,7 +612,8 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               success: true,
             };
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             get().setError(errorMessage);
             return {
               success: false,

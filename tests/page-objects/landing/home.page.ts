@@ -1,6 +1,6 @@
 /**
  * Home/Landing Page Object
- * 
+ *
  * Encapsulates all landing page interactions and selectors.
  */
 
@@ -14,26 +14,26 @@ export class HomePage extends BasePage {
     heroTitle: '[data-testid="hero-title"]',
     heroSubtitle: '[data-testid="hero-subtitle"]',
     ctaButton: '[data-testid="cta-button"]',
-    
+
     // Navigation
     navBar: '[data-testid="nav-bar"]',
     navLinks: '[data-testid="nav-link"]',
     mobileMenuButton: '[data-testid="mobile-menu-button"]',
     mobileMenu: '[data-testid="mobile-menu"]',
-    
+
     // Features section
     featuresSection: '[data-testid="features-section"]',
     featureCard: '[data-testid="feature-card"]',
-    
+
     // Footer
     footer: '[data-testid="footer"]',
     footerLinks: '[data-testid="footer-link"]',
     socialLinks: '[data-testid="social-link"]',
-    
+
     // Auth buttons
     loginButton: '[data-testid="login-button"]',
     signupButton: '[data-testid="signup-button"]',
-    
+
     // Cookie banner
     cookieBanner: '[data-testid="cookie-banner"]',
     acceptCookiesButton: '[data-testid="accept-cookies"]',
@@ -59,7 +59,9 @@ export class HomePage extends BasePage {
    * Navigate to a specific page via nav
    */
   async navigateTo(linkText: string): Promise<void> {
-    const link = this.getLocator(this.selectors.navLinks, { hasText: linkText });
+    const link = this.getLocator(this.selectors.navLinks, {
+      hasText: linkText,
+    });
     await link.click();
   }
 
@@ -70,23 +72,31 @@ export class HomePage extends BasePage {
     const menuButton = this.getLocator(this.selectors.mobileMenuButton);
     if (await menuButton.isVisible()) {
       await menuButton.click();
-      await this.page.waitForSelector(this.selectors.mobileMenu, { state: 'visible' });
+      await this.page.waitForSelector(this.selectors.mobileMenu, {
+        state: 'visible',
+      });
     }
   }
 
   /**
    * Get all feature cards
    */
-  async getFeatures(): Promise<Array<{ title: string | null; description: string | null }>> {
+  async getFeatures(): Promise<
+    Array<{ title: string | null; description: string | null }>
+  > {
     const cards = await this.page.locator(this.selectors.featureCard).all();
     const features = [];
-    
+
     for (const card of cards) {
-      const title = await card.locator('[data-testid="feature-title"]').textContent();
-      const description = await card.locator('[data-testid="feature-description"]').textContent();
+      const title = await card
+        .locator('[data-testid="feature-title"]')
+        .textContent();
+      const description = await card
+        .locator('[data-testid="feature-description"]')
+        .textContent();
       features.push({ title, description });
     }
-    
+
     return features;
   }
 
@@ -118,7 +128,10 @@ export class HomePage extends BasePage {
   /**
    * Get hero text
    */
-  async getHeroText(): Promise<{ title: string | null; subtitle: string | null }> {
+  async getHeroText(): Promise<{
+    title: string | null;
+    subtitle: string | null;
+  }> {
     const title = await this.getElementText(this.selectors.heroTitle);
     const subtitle = await this.getElementText(this.selectors.heroSubtitle);
     return { title, subtitle };
@@ -137,12 +150,12 @@ export class HomePage extends BasePage {
   async getFooterLinks(): Promise<string[]> {
     const links = await this.page.locator(this.selectors.footerLinks).all();
     const linkTexts = [];
-    
+
     for (const link of links) {
       const text = await link.textContent();
       if (text) linkTexts.push(text);
     }
-    
+
     return linkTexts;
   }
 
@@ -156,10 +169,14 @@ export class HomePage extends BasePage {
   }> {
     await this.page.setViewportSize(viewport);
     await this.page.waitForTimeout(500); // Wait for responsive changes
-    
-    const isMobileMenuVisible = await this.isElementVisible(this.selectors.mobileMenuButton);
-    const isDesktopNavVisible = await this.isElementVisible(this.selectors.navLinks);
-    
+
+    const isMobileMenuVisible = await this.isElementVisible(
+      this.selectors.mobileMenuButton
+    );
+    const isDesktopNavVisible = await this.isElementVisible(
+      this.selectors.navLinks
+    );
+
     // Check if layout is intact (no overlapping elements)
     const layoutIntact = await this.page.evaluate(() => {
       const elements = document.querySelectorAll('*');
@@ -167,17 +184,20 @@ export class HomePage extends BasePage {
         const element = elements[i];
         if (!element) continue;
         const rect = element.getBoundingClientRect();
-        if (rect.width > window.innerWidth || rect.height > window.innerHeight) {
+        if (
+          rect.width > window.innerWidth ||
+          rect.height > window.innerHeight
+        ) {
           return false;
         }
       }
       return true;
     });
-    
+
     return {
       isMobileMenuVisible,
       isDesktopNavVisible,
-      layoutIntact
+      layoutIntact,
     };
   }
 
@@ -185,13 +205,15 @@ export class HomePage extends BasePage {
    * Scroll to section
    */
   async scrollToSection(sectionId: string): Promise<void> {
-    await this.page.evaluate((id) => {
-      const element = document.getElementById(id) || document.querySelector(`[data-section="${id}"]`);
+    await this.page.evaluate(id => {
+      const element =
+        document.getElementById(id) ||
+        document.querySelector(`[data-section="${id}"]`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, sectionId);
-    
+
     await this.page.waitForTimeout(1000); // Wait for smooth scroll
   }
 
@@ -207,16 +229,21 @@ export class HomePage extends BasePage {
   }> {
     return this.page.evaluate(() => {
       const getMetaContent = (name: string): string | null => {
-        const meta = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
+        const meta = document.querySelector(
+          `meta[name="${name}"], meta[property="${name}"]`
+        );
         return meta?.getAttribute('content') || null;
       };
-      
+
       return {
         title: document.title,
         description: getMetaContent('description'),
         ogTitle: getMetaContent('og:title'),
         ogDescription: getMetaContent('og:description'),
-        canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || null,
+        canonical:
+          document
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute('href') || null,
       };
     });
   }

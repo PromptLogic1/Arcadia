@@ -5,7 +5,10 @@
 import { redisPresenceService } from '../redis-presence.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
-import type { PresenceState, PresenceSubscriptionOptions } from '../redis-presence.service';
+import type {
+  PresenceState,
+  PresenceSubscriptionOptions,
+} from '../redis-presence.service';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
@@ -22,8 +25,12 @@ const mockRedis = {
   publish: jest.fn(),
 };
 
-const mockGetRedisClient = getRedisClient as jest.MockedFunction<typeof getRedisClient>;
-const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<typeof isRedisConfigured>;
+const mockGetRedisClient = getRedisClient as jest.MockedFunction<
+  typeof getRedisClient
+>;
+const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<
+  typeof isRedisConfigured
+>;
 const mockLog = log as jest.Mocked<typeof log>;
 
 describe('RedisPresenceService', () => {
@@ -38,7 +45,7 @@ describe('RedisPresenceService', () => {
     jest.clearAllMocks();
     mockIsRedisConfigured.mockReturnValue(true);
     mockGetRedisClient.mockReturnValue(mockRedis as any);
-    
+
     // Clear any subscriptions
     (redisPresenceService as any).subscriptions.clear();
   });
@@ -48,7 +55,7 @@ describe('RedisPresenceService', () => {
       // Mock window to simulate client-side
       Object.defineProperty(window, 'window', {
         value: {},
-        writable: true
+        writable: true,
       });
 
       const result = await redisPresenceService.joinBoardPresence(
@@ -58,8 +65,10 @@ describe('RedisPresenceService', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
-      
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
+
       // Clean up
       delete (global as any).window;
     });
@@ -135,7 +144,7 @@ describe('RedisPresenceService', () => {
     it('should clean up existing subscription before joining', async () => {
       const subscriptionKey = `${boardId}:${userId}`;
       const mockCleanup = jest.fn();
-      
+
       // Set up existing subscription
       (redisPresenceService as any).subscriptions.set(subscriptionKey, {
         cleanup: mockCleanup,
@@ -171,7 +180,9 @@ describe('RedisPresenceService', () => {
     });
 
     it('should handle Redis errors during join', async () => {
-      mockRedis.setex.mockRejectedValueOnce(new Error('Redis connection failed'));
+      mockRedis.setex.mockRejectedValueOnce(
+        new Error('Redis connection failed')
+      );
 
       const result = await redisPresenceService.joinBoardPresence(
         boardId,
@@ -283,9 +294,9 @@ describe('RedisPresenceService', () => {
       );
 
       expect(result.success).toBe(true);
-      
+
       // Check that the stored data contains merged metadata
-      const setexCall = mockRedis.setex.mock.calls.find(call => 
+      const setexCall = mockRedis.setex.mock.calls.find(call =>
         call[0].includes(`presence:user:${boardId}:${userId}`)
       );
       const storedData = JSON.parse(setexCall![2]);
@@ -300,7 +311,10 @@ describe('RedisPresenceService', () => {
 
   describe('leaveBoardPresence', () => {
     it('should leave board presence successfully', async () => {
-      const result = await redisPresenceService.leaveBoardPresence(boardId, userId);
+      const result = await redisPresenceService.leaveBoardPresence(
+        boardId,
+        userId
+      );
 
       expect(result.success).toBe(true);
       expect(mockRedis.del).toHaveBeenCalledWith(
@@ -329,7 +343,10 @@ describe('RedisPresenceService', () => {
     it('should handle Redis errors during leave', async () => {
       mockRedis.del.mockRejectedValueOnce(new Error('Redis error'));
 
-      const result = await redisPresenceService.leaveBoardPresence(boardId, userId);
+      const result = await redisPresenceService.leaveBoardPresence(
+        boardId,
+        userId
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Redis error');
@@ -477,7 +494,8 @@ describe('RedisPresenceService', () => {
       mockRedis.smembers.mockResolvedValueOnce(boardIds);
 
       // Mock successful leave operations
-      jest.spyOn(redisPresenceService, 'leaveBoardPresence')
+      jest
+        .spyOn(redisPresenceService, 'leaveBoardPresence')
         .mockResolvedValueOnce({ success: true, data: undefined })
         .mockResolvedValueOnce({ success: true, data: undefined });
 
@@ -490,8 +508,14 @@ describe('RedisPresenceService', () => {
       const result = await redisPresenceService.cleanupUserPresence(userId);
 
       expect(result.success).toBe(true);
-      expect(redisPresenceService.leaveBoardPresence).toHaveBeenCalledWith('board1', userId);
-      expect(redisPresenceService.leaveBoardPresence).toHaveBeenCalledWith('board2', userId);
+      expect(redisPresenceService.leaveBoardPresence).toHaveBeenCalledWith(
+        'board1',
+        userId
+      );
+      expect(redisPresenceService.leaveBoardPresence).toHaveBeenCalledWith(
+        'board2',
+        userId
+      );
       expect(mockLog.info).toHaveBeenCalledWith(
         'User presence cleaned up',
         expect.objectContaining({
@@ -566,7 +590,7 @@ describe('RedisPresenceService', () => {
     it('should clean up specific subscription', async () => {
       const subscriptionKey = `${boardId}:${userId}`;
       const mockCleanup = jest.fn();
-      
+
       // Set up subscription
       const subscriptions = (redisPresenceService as any).subscriptions;
       subscriptions.set(subscriptionKey, {
@@ -596,8 +620,10 @@ describe('RedisPresenceService', () => {
 
     it('should handle cleanup errors', async () => {
       const subscriptionKey = `${boardId}:${userId}`;
-      const mockCleanup = jest.fn().mockRejectedValue(new Error('Cleanup error'));
-      
+      const mockCleanup = jest
+        .fn()
+        .mockRejectedValue(new Error('Cleanup error'));
+
       const subscriptions = (redisPresenceService as any).subscriptions;
       subscriptions.set(subscriptionKey, {
         cleanup: mockCleanup,
@@ -629,7 +655,7 @@ describe('RedisPresenceService', () => {
 
       // Update presence via returned function
       const updatePresence = joinResult.data!.updatePresence;
-      
+
       // Mock presence data for update
       const presenceData = {
         userId,
@@ -641,7 +667,9 @@ describe('RedisPresenceService', () => {
       };
       mockRedis.get.mockResolvedValueOnce(JSON.stringify(presenceData));
 
-      const updateResult = await updatePresence('busy', { activity: 'editing' });
+      const updateResult = await updatePresence('busy', {
+        activity: 'editing',
+      });
       expect(updateResult.success).toBe(true);
 
       // Cleanup via returned function

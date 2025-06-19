@@ -22,17 +22,17 @@ export * from './performance-helpers';
 export * from './websocket-helpers';
 
 // Re-export commonly used types
-export type { 
+export type {
   PerformanceMetrics,
   AccessibilityViolation,
   AccessibilityResult,
-  ViewportConfig 
+  ViewportConfig,
 } from './test-utils';
 
 export type {
   AchievementNotification,
   AchievementProgress,
-  AchievementUnlockResult
+  AchievementUnlockResult,
 } from './achievement-helpers';
 
 export type {
@@ -41,12 +41,10 @@ export type {
   DiscussionWithAuthor,
   CommentWithAuthor,
   ModerationReport,
-  CommunityFilters
+  CommunityFilters,
 } from './community-test-helpers';
 
-export type {
-  GameWebSocketEvent
-} from './websocket-helpers';
+export type { GameWebSocketEvent } from './websocket-helpers';
 
 // Re-export core types from test-types
 export type {
@@ -75,6 +73,5 @@ export type {
   AsyncFunction,
   PageEvaluateOptions,
   MockWebSocketClass,
-  PerformanceObserverCallback
+  PerformanceObserverCallback,
 } from '../types/test-types';
-

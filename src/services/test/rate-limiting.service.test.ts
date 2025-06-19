@@ -8,8 +8,12 @@ jest.mock('@upstash/ratelimit');
 jest.mock('@/lib/redis');
 jest.mock('@/lib/logger');
 
-const mockGetRedisClient = getRedisClient as jest.MockedFunction<typeof getRedisClient>;
-const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<typeof isRedisConfigured>;
+const mockGetRedisClient = getRedisClient as jest.MockedFunction<
+  typeof getRedisClient
+>;
+const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<
+  typeof isRedisConfigured
+>;
 const mockLog = log as jest.Mocked<typeof log>;
 const MockRatelimit = Ratelimit as jest.MockedClass<typeof Ratelimit>;
 
@@ -23,17 +27,22 @@ describe('RateLimitingService', () => {
     reason: undefined,
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockIsRedisConfigured.mockReturnValue(true);
-    mockGetRedisClient.mockReturnValue(mockRedisClient as any);
-    
-    // Reset rate limiter instances
+  // Helper to reset rate limiter instances
+  function resetRateLimiterInstances() {
     (rateLimitingService as any).apiRateLimiter = null;
     (rateLimitingService as any).authRateLimiter = null;
     (rateLimitingService as any).uploadRateLimiter = null;
     (rateLimitingService as any).gameSessionRateLimiter = null;
     (rateLimitingService as any).gameActionRateLimiter = null;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsRedisConfigured.mockReturnValue(true);
+    mockGetRedisClient.mockReturnValue(mockRedisClient as any);
+
+    // Reset rate limiter instances
+    resetRateLimiterInstances();
   });
 
   describe('checkApiLimit', () => {
@@ -128,6 +137,7 @@ describe('RateLimitingService', () => {
     });
 
     it('handles rate limiter initialization failure', async () => {
+      resetRateLimiterInstances();
       MockRatelimit.mockImplementation(() => {
         throw new Error('Initialization failed');
       });
@@ -139,6 +149,42 @@ describe('RateLimitingService', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'Failed to initialize auth rate limiter',
         expect.any(Error)
+      );
+    });
+
+    it('fails open when Redis is not configured', async () => {
+      mockIsRedisConfigured.mockReturnValue(false);
+
+      const result = await rateLimitingService.checkAuthLimit('user:123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.allowed).toBe(true);
+      expect(result.data?.limit).toBe(5);
+      expect(result.data?.remaining).toBe(5);
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Auth rate limit check skipped - Redis not configured',
+        expect.objectContaining({
+          metadata: { identifier: 'user:123' },
+        })
+      );
+    });
+
+    it('fails open when rate limiter throws error', async () => {
+      const mockLimit = jest
+        .fn()
+        .mockRejectedValue(new Error('Auth Redis error'));
+      MockRatelimit.prototype.limit = mockLimit;
+
+      const result = await rateLimitingService.checkAuthLimit('user:123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.allowed).toBe(true);
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Auth rate limit check failed',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: { identifier: 'user:123' },
+        })
       );
     });
   });
@@ -164,6 +210,22 @@ describe('RateLimitingService', () => {
         analytics: false,
       });
     });
+
+    it('handles rate limiter initialization failure', async () => {
+      resetRateLimiterInstances();
+      MockRatelimit.mockImplementation(() => {
+        throw new Error('Upload initialization failed');
+      });
+
+      const result = await rateLimitingService.checkUploadLimit('user:123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.allowed).toBe(true);
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Failed to initialize upload rate limiter',
+        expect.any(Error)
+      );
+    });
   });
 
   describe('checkGameSessionLimit', () => {
@@ -175,7 +237,8 @@ describe('RateLimitingService', () => {
       });
       MockRatelimit.prototype.limit = mockLimit;
 
-      const result = await rateLimitingService.checkGameSessionLimit('user:123');
+      const result =
+        await rateLimitingService.checkGameSessionLimit('user:123');
 
       expect(result.success).toBe(true);
       expect(result.data?.limit).toBe(10);
@@ -185,6 +248,23 @@ describe('RateLimitingService', () => {
         prefix: '@arcadia/rate-limit:game-session',
         analytics: false,
       });
+    });
+
+    it('handles rate limiter initialization failure', async () => {
+      resetRateLimiterInstances();
+      MockRatelimit.mockImplementation(() => {
+        throw new Error('Game session initialization failed');
+      });
+
+      const result =
+        await rateLimitingService.checkGameSessionLimit('user:123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.allowed).toBe(true);
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Failed to initialize game session rate limiter',
+        expect.any(Error)
+      );
     });
   });
 
@@ -207,6 +287,22 @@ describe('RateLimitingService', () => {
         prefix: '@arcadia/rate-limit:game-action',
         analytics: false,
       });
+    });
+
+    it('handles rate limiter initialization failure', async () => {
+      resetRateLimiterInstances();
+      MockRatelimit.mockImplementation(() => {
+        throw new Error('Game action initialization failed');
+      });
+
+      const result = await rateLimitingService.checkGameActionLimit('user:123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.allowed).toBe(true);
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Failed to initialize game action rate limiter',
+        expect.any(Error)
+      );
     });
   });
 
@@ -257,6 +353,31 @@ describe('RateLimitingService', () => {
 
       expect(identifier).toBe('ip:unknown');
     });
+
+    it('handles x-forwarded-for with whitespace correctly', () => {
+      const request = new Request('http://localhost', {
+        headers: {
+          'x-forwarded-for': '  192.168.1.100  , 10.0.0.1',
+        },
+      });
+      const identifier = rateLimitingService.getIdentifier(request);
+
+      expect(identifier).toBe('ip:192.168.1.100');
+    });
+
+    it('prioritizes headers in correct order', () => {
+      const request = new Request('http://localhost', {
+        headers: {
+          'x-forwarded-for': '192.168.1.1',
+          'x-real-ip': '192.168.1.2',
+          'cf-connecting-ip': '192.168.1.3',
+        },
+      });
+      const identifier = rateLimitingService.getIdentifier(request);
+
+      // Should use x-forwarded-for first
+      expect(identifier).toBe('ip:192.168.1.1');
+    });
   });
 
   describe('withRateLimit', () => {
@@ -273,7 +394,12 @@ describe('RateLimitingService', () => {
       const mockLimit = jest.fn().mockResolvedValue(mockLimitResult);
       MockRatelimit.prototype.limit = mockLimit;
 
-      const result = await withRateLimit(mockRequest, mockHandler, 'api', 'user-123');
+      const result = await withRateLimit(
+        mockRequest,
+        mockHandler,
+        'api',
+        'user-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ data: 'success' });
@@ -293,7 +419,10 @@ describe('RateLimitingService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/Rate limit exceeded/);
       expect(mockHandler).not.toHaveBeenCalled();
-      expect(mockLog.warn).toHaveBeenCalledWith('Rate limit exceeded', expect.any(Object));
+      expect(mockLog.warn).toHaveBeenCalledWith(
+        'Rate limit exceeded',
+        expect.any(Object)
+      );
     });
 
     it('handles different limit types', async () => {
@@ -311,7 +440,9 @@ describe('RateLimitingService', () => {
     it('handles handler errors', async () => {
       const mockLimit = jest.fn().mockResolvedValue(mockLimitResult);
       MockRatelimit.prototype.limit = mockLimit;
-      const errorHandler = jest.fn().mockRejectedValue(new Error('Handler error'));
+      const errorHandler = jest
+        .fn()
+        .mockRejectedValue(new Error('Handler error'));
 
       const result = await withRateLimit(mockRequest, errorHandler, 'api');
 
@@ -336,6 +467,151 @@ describe('RateLimitingService', () => {
       // Even when Redis is not configured, it should fail open and allow the request
       expect(result.success).toBe(true);
       expect(mockHandler).toHaveBeenCalled();
+    });
+
+    it('handles rate limit check returning error response', async () => {
+      // Mock a rate limit check that returns an error response (lines 566-572)
+      jest.spyOn(rateLimitingService, 'checkApiLimit').mockResolvedValueOnce({
+        success: false,
+        data: null,
+        error: 'Rate limit service unavailable',
+      });
+
+      const result = await withRateLimit(mockRequest, mockHandler, 'api');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Rate limit service unavailable');
+      expect(mockHandler).not.toHaveBeenCalled();
+    });
+
+    it('handles rate limit check returning null data', async () => {
+      // Mock a rate limit check that returns null data (lines 574-580)
+      jest.spyOn(rateLimitingService, 'checkApiLimit').mockResolvedValueOnce({
+        success: true,
+        data: null,
+        error: null,
+      });
+
+      const result = await withRateLimit(mockRequest, mockHandler, 'api');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Rate limit check returned null data');
+      expect(mockHandler).not.toHaveBeenCalled();
+    });
+
+    it('handles rate limit exceeded with custom reset time calculation', async () => {
+      const resetTime = Date.now() + 90000; // 90 seconds from now
+      const mockLimit = jest.fn().mockResolvedValue({
+        ...mockLimitResult,
+        success: false,
+        remaining: 0,
+        reset: resetTime,
+      });
+      MockRatelimit.prototype.limit = mockLimit;
+
+      const result = await withRateLimit(mockRequest, mockHandler, 'api');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Try again in 90 seconds');
+      expect(mockHandler).not.toHaveBeenCalled();
+    });
+
+    it('defaults to 60 seconds when resetTime is undefined', async () => {
+      const mockLimit = jest.fn().mockResolvedValue({
+        ...mockLimitResult,
+        success: false,
+        remaining: 0,
+        reset: undefined, // No reset time provided
+      });
+      MockRatelimit.prototype.limit = mockLimit;
+
+      const result = await withRateLimit(mockRequest, mockHandler, 'api');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Try again in 60 seconds');
+      expect(mockHandler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('comprehensive coverage tests', () => {
+    it('covers all rate limiter initialization error paths', async () => {
+      // Reset all instances
+      (rateLimitingService as any).apiRateLimiter = null;
+      (rateLimitingService as any).authRateLimiter = null;
+      (rateLimitingService as any).uploadRateLimiter = null;
+      (rateLimitingService as any).gameSessionRateLimiter = null;
+      (rateLimitingService as any).gameActionRateLimiter = null;
+
+      // Test API rate limiter creation with error (lines 52-57)
+      MockRatelimit.mockImplementationOnce(() => {
+        throw new Error('API limiter init failed');
+      });
+
+      const apiResult = await rateLimitingService.checkApiLimit('test:123');
+      expect(apiResult.success).toBe(true);
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Failed to initialize API rate limiter',
+        expect.any(Error)
+      );
+    });
+
+    it('covers all rate limit check fail-open scenarios', async () => {
+      // Test when Redis is not configured for each service
+      mockIsRedisConfigured.mockReturnValue(false);
+
+      const authResult = await rateLimitingService.checkAuthLimit('test:auth');
+      expect(authResult.success).toBe(true);
+      expect(authResult.data?.allowed).toBe(true);
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Auth rate limit check skipped - Redis not configured',
+        expect.objectContaining({ metadata: { identifier: 'test:auth' } })
+      );
+
+      const uploadResult =
+        await rateLimitingService.checkUploadLimit('test:upload');
+      expect(uploadResult.success).toBe(true);
+      expect(uploadResult.data?.allowed).toBe(true);
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Upload rate limit check skipped - Redis not configured',
+        expect.objectContaining({ metadata: { identifier: 'test:upload' } })
+      );
+
+      const gameSessionResult =
+        await rateLimitingService.checkGameSessionLimit('test:session');
+      expect(gameSessionResult.success).toBe(true);
+      expect(gameSessionResult.data?.allowed).toBe(true);
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Game session rate limit check skipped - Redis not configured',
+        expect.objectContaining({ metadata: { identifier: 'test:session' } })
+      );
+
+      const gameActionResult =
+        await rateLimitingService.checkGameActionLimit('test:action');
+      expect(gameActionResult.success).toBe(true);
+      expect(gameActionResult.data?.allowed).toBe(true);
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Game action rate limit check skipped - Redis not configured',
+        expect.objectContaining({ metadata: { identifier: 'test:action' } })
+      );
+    });
+
+    it('covers error handling in rate limit checks', async () => {
+      mockIsRedisConfigured.mockReturnValue(true);
+
+      // Test auth limit error
+      const mockAuthLimit = jest
+        .fn()
+        .mockRejectedValue(new Error('Auth Redis error'));
+      MockRatelimit.prototype.limit = mockAuthLimit;
+
+      const authResult = await rateLimitingService.checkAuthLimit('test:auth');
+      expect(authResult.success).toBe(true);
+      expect(authResult.data?.allowed).toBe(true);
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Auth rate limit check failed',
+        expect.any(Error),
+        expect.objectContaining({ metadata: { identifier: 'test:auth' } })
+      );
     });
   });
 });

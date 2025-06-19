@@ -1,6 +1,6 @@
 /**
  * Data Export Tests
- * 
+ *
  * Tests for data export formatting and privacy compliance
  */
 
@@ -82,20 +82,26 @@ describe('Data Export Formatting', () => {
       const activityData = [
         { timestamp: '2024-01-01', action: 'login', details: 'web' },
         { timestamp: '2024-01-02', action: 'game_start', details: 'bingo' },
-        { timestamp: '2024-01-03', action: 'achievement', details: 'first-win' },
+        {
+          timestamp: '2024-01-03',
+          action: 'achievement',
+          details: 'first-win',
+        },
       ];
 
       const toCSV = (data: any[]): string => {
         if (data.length === 0) return '';
-        
+
         const headers = Object.keys(data[0]);
-        const rows = data.map(row => 
-          headers.map(header => {
-            const value = row[header];
-            // Escape quotes and wrap in quotes if contains comma
-            const escaped = String(value).replace(/"/g, '""');
-            return escaped.includes(',') ? `"${escaped}"` : escaped;
-          }).join(',')
+        const rows = data.map(row =>
+          headers
+            .map(header => {
+              const value = row[header];
+              // Escape quotes and wrap in quotes if contains comma
+              const escaped = String(value).replace(/"/g, '""');
+              return escaped.includes(',') ? `"${escaped}"` : escaped;
+            })
+            .join(',')
         );
 
         return [headers.join(','), ...rows].join('\n');
@@ -117,7 +123,11 @@ describe('Data Export Formatting', () => {
 
       const escapeCSVValue = (value: string): string => {
         const escaped = value.replace(/"/g, '""');
-        if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
+        if (
+          escaped.includes(',') ||
+          escaped.includes('\n') ||
+          escaped.includes('"')
+        ) {
           return `"${escaped}"`;
         }
         return escaped;
@@ -142,7 +152,7 @@ describe('Data Export Formatting', () => {
       };
 
       const sensitiveFields = ['password_hash', 'auth_token', 'internal_id'];
-      
+
       const filterSensitiveData = (data: any): any => {
         const filtered = { ...data };
         sensitiveFields.forEach(field => {
@@ -182,13 +192,19 @@ describe('Data Export Formatting', () => {
       const anonymized = anonymizeData(originalData, true);
       expect(anonymized.email).toBe('te***@example.com');
       expect(anonymized.username).toBe('user_123456');
-      expect(anonymized.ip_addresses).toEqual(['XXX.XXX.XXX.XXX', 'XXX.XXX.XXX.XXX']);
+      expect(anonymized.ip_addresses).toEqual([
+        'XXX.XXX.XXX.XXX',
+        'XXX.XXX.XXX.XXX',
+      ]);
     });
   });
 
   describe('Export File Generation', () => {
     it('should generate appropriate file metadata', () => {
-      const generateExportMetadata = (format: 'json' | 'csv', dataType: string) => {
+      const generateExportMetadata = (
+        format: 'json' | 'csv',
+        dataType: string
+      ) => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `arcadia-${dataType}-export-${timestamp}.${format}`;
         const mimeType = format === 'json' ? 'application/json' : 'text/csv';
@@ -212,7 +228,10 @@ describe('Data Export Formatting', () => {
     });
 
     it('should compress large exports', () => {
-      const shouldCompress = (dataSize: number, threshold: number = 1024 * 1024) => {
+      const shouldCompress = (
+        dataSize: number,
+        threshold: number = 1024 * 1024
+      ) => {
         return dataSize > threshold;
       };
 
@@ -224,7 +243,10 @@ describe('Data Export Formatting', () => {
     });
 
     it('should split very large exports', () => {
-      const calculateChunks = (totalSize: number, maxChunkSize: number = 10 * 1024 * 1024) => {
+      const calculateChunks = (
+        totalSize: number,
+        maxChunkSize: number = 10 * 1024 * 1024
+      ) => {
         const chunks = Math.ceil(totalSize / maxChunkSize);
         const chunkInfo = [];
 
@@ -253,7 +275,9 @@ describe('Data Export Formatting', () => {
 
   describe('Export Validation', () => {
     it('should validate export completeness', () => {
-      const validateExport = (exportData: any): { valid: boolean; missing: string[] } => {
+      const validateExport = (
+        exportData: any
+      ): { valid: boolean; missing: string[] } => {
         const requiredSections = ['profile', 'preferences', 'activity_log'];
         const missing: string[] = [];
 
@@ -279,7 +303,10 @@ describe('Data Export Formatting', () => {
         profile: { username: 'test' },
       };
 
-      expect(validateExport(completeExport)).toEqual({ valid: true, missing: [] });
+      expect(validateExport(completeExport)).toEqual({
+        valid: true,
+        missing: [],
+      });
       expect(validateExport(incompleteExport)).toEqual({
         valid: false,
         missing: ['preferences', 'activity_log'],
@@ -292,7 +319,7 @@ describe('Data Export Formatting', () => {
         let hash = 0;
         for (let i = 0; i < data.length; i++) {
           const char = data.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
+          hash = (hash << 5) - hash + char;
           hash = hash & hash; // Convert to 32-bit integer
         }
         return Math.abs(hash).toString(16);
@@ -352,7 +379,11 @@ describe('Data Export Formatting', () => {
 
       const exportRecords: ExportRecord[] = [];
 
-      const recordExport = (type: string, format: string, size: number): string => {
+      const recordExport = (
+        type: string,
+        format: string,
+        size: number
+      ): string => {
         const id = `export-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         exportRecords.push({
           id,
@@ -365,7 +396,10 @@ describe('Data Export Formatting', () => {
         return id;
       };
 
-      const updateExportStatus = (id: string, status: ExportRecord['status']) => {
+      const updateExportStatus = (
+        id: string,
+        status: ExportRecord['status']
+      ) => {
         const record = exportRecords.find(r => r.id === id);
         if (record) {
           record.status = status;

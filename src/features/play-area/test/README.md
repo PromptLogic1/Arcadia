@@ -24,6 +24,7 @@ src/features/play-area/test/
 ## Test Coverage
 
 ### Game Filtering (`games/game-filters.test.ts`)
+
 - **Extracted Logic**: Game filtering algorithms, sorting, search
 - **Test Scenarios**:
   - Category, difficulty, and tag filtering
@@ -33,6 +34,7 @@ src/features/play-area/test/
 - **Performance**: Tests with 1000+ games complete in <50ms
 
 ### Achievement Engine (`achievements/achievement-engine.test.ts`)
+
 - **Extracted Logic**: Achievement unlock conditions, validation, anti-cheat
 - **Test Scenarios**:
   - Achievement trigger conditions and validation
@@ -43,6 +45,7 @@ src/features/play-area/test/
 - **Anti-Cheat**: Validates impossible times and missing session data
 
 ### Progress Tracker (`achievements/progress-tracker.test.ts`)
+
 - **Extracted Logic**: User progress tracking, streak calculation, statistics
 - **Test Scenarios**:
   - Game completion tracking and win rate calculation
@@ -54,6 +57,7 @@ src/features/play-area/test/
 - **Performance**: Handles 100 users × 10 games efficiently
 
 ### Recommendation Engine (`recommendations/recommendation.test.ts`)
+
 - **Extracted Logic**: Game recommendation algorithms, collaborative filtering
 - **Test Scenarios**:
   - Content-based filtering (category, difficulty, tags)
@@ -64,6 +68,7 @@ src/features/play-area/test/
 - **Algorithms**: Weighted scoring system with personalization
 
 ### Speedrun Timer (`speedruns/speedrun-timer.test.ts`)
+
 - **Extracted Logic**: High-precision timing, validation, anti-cheat
 - **Test Scenarios**:
   - Millisecond precision timing
@@ -91,24 +96,26 @@ npm run test:coverage src/features/play-area/test/
 
 ## Performance Benchmarks
 
-| Test Suite | Dataset Size | Target Time | Actual Performance |
-|------------|--------------|-------------|-------------------|
-| Game Filters | 1,000 games | <50ms | ✅ ~30ms |
-| Achievement Engine | 1,000 achievements | <50ms | ✅ ~35ms |
-| Progress Tracker | 100 users × 10 games | <100ms | ✅ ~75ms |
-| Recommendations | 1,000 games | <100ms | ✅ ~85ms |
-| Speedrun Timer | Precision tests | <10ms accuracy | ✅ ±5ms |
+| Test Suite         | Dataset Size         | Target Time    | Actual Performance |
+| ------------------ | -------------------- | -------------- | ------------------ |
+| Game Filters       | 1,000 games          | <50ms          | ✅ ~30ms           |
+| Achievement Engine | 1,000 achievements   | <50ms          | ✅ ~35ms           |
+| Progress Tracker   | 100 users × 10 games | <100ms         | ✅ ~75ms           |
+| Recommendations    | 1,000 games          | <100ms         | ✅ ~85ms           |
+| Speedrun Timer     | Precision tests      | <10ms accuracy | ✅ ±5ms            |
 
 ## E2E vs Unit Test Migration
 
 ### What Was Moved
+
 - **Business Logic**: Core algorithms and calculations
-- **Data Processing**: Filtering, sorting, and transformation logic  
+- **Data Processing**: Filtering, sorting, and transformation logic
 - **Validation**: Input validation and anti-cheat mechanisms
 - **Statistics**: Progress tracking and analytics calculations
 - **Performance**: Large dataset handling and optimization
 
 ### What Remains in E2E
+
 - **User Interactions**: Button clicks, form submissions
 - **UI Behavior**: Loading states, animations, responsive design
 - **Integration**: API calls, WebSocket connections, real-time updates
@@ -126,30 +133,36 @@ npm run test:coverage src/features/play-area/test/
 ## Test Data Patterns
 
 ### Parametric Testing
+
 ```typescript
 test.each([
   ['easy', 1],
-  ['medium', 1], 
-  ['hard', 2]
-])('should filter by %s difficulty and return %i games', (difficulty, expectedCount) => {
-  // Test implementation
-});
+  ['medium', 1],
+  ['hard', 2],
+])(
+  'should filter by %s difficulty and return %i games',
+  (difficulty, expectedCount) => {
+    // Test implementation
+  }
+);
 ```
 
 ### Performance Testing
+
 ```typescript
 test('should handle large datasets efficiently', () => {
   const largeDataset = Array.from({ length: 1000 }, createMockGame);
-  
+
   const startTime = performance.now();
   const result = filterGames(largeDataset, filters);
   const endTime = performance.now();
-  
+
   expect(endTime - startTime).toBeLessThan(50);
 });
 ```
 
 ### Mock Time Management
+
 ```typescript
 beforeEach(() => {
   vi.useFakeTimers();
@@ -171,12 +184,14 @@ afterEach(() => {
 ## Integration with E2E Tests
 
 Unit tests complement E2E tests by:
+
 - Providing fast feedback on logic changes
 - Testing complex scenarios difficult to set up in E2E
 - Validating edge cases and error conditions
 - Ensuring performance requirements are met
 
 E2E tests still verify:
+
 - UI integration and user experience
 - Real-time features and WebSocket connections
 - Cross-browser compatibility

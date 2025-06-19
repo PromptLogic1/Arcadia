@@ -5,7 +5,7 @@ type User = Database['public']['Tables']['users']['Row'];
 
 /**
  * Profile Score Tests
- * 
+ *
  * Tests business logic for calculating profile completeness scores
  * and profile quality metrics.
  */
@@ -29,8 +29,16 @@ interface ProfileScore {
 const PROFILE_FIELDS: ProfileField[] = [
   { name: 'username', weight: 10, required: true },
   { name: 'full_name', weight: 8 },
-  { name: 'bio', weight: 15, validator: (v) => typeof v === 'string' && v.length >= 20 },
-  { name: 'avatar_url', weight: 12, validator: (v) => typeof v === 'string' && v.startsWith('http') },
+  {
+    name: 'bio',
+    weight: 15,
+    validator: v => typeof v === 'string' && v.length >= 20,
+  },
+  {
+    name: 'avatar_url',
+    weight: 12,
+    validator: v => typeof v === 'string' && v.startsWith('http'),
+  },
   { name: 'city', weight: 5 },
   { name: 'region', weight: 5 },
   { name: 'land', weight: 5 },
@@ -54,7 +62,7 @@ const QUALITY_FACTORS = {
 function calculateProfileScore(profile: Partial<User>): ProfileScore {
   const missingFields: string[] = [];
   const suggestions: string[] = [];
-  
+
   let completenessScore = 0;
   let totalWeight = 0;
   let qualityScore = 0;
@@ -64,7 +72,7 @@ function calculateProfileScore(profile: Partial<User>): ProfileScore {
   PROFILE_FIELDS.forEach(field => {
     totalWeight += field.weight;
     const value = profile[field.name];
-    
+
     if (value !== null && value !== undefined && value !== '') {
       if (field.validator) {
         if (field.validator(value)) {
@@ -111,7 +119,8 @@ function calculateProfileScore(profile: Partial<User>): ProfileScore {
 
   if (profile.last_login_at) {
     const lastLogin = new Date(profile.last_login_at);
-    const daysSinceLogin = (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceLogin =
+      (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceLogin < 7) {
       qualityScore += QUALITY_FACTORS.isActive;
     }
@@ -132,9 +141,13 @@ function calculateProfileScore(profile: Partial<User>): ProfileScore {
   }
 
   if (!profile.bio || profile.bio.length < 20) {
-    suggestions.push('Add a bio (at least 20 characters) to tell others about yourself');
+    suggestions.push(
+      'Add a bio (at least 20 characters) to tell others about yourself'
+    );
   } else if (profile.bio.length < 100) {
-    suggestions.push('Expand your bio to over 100 characters for a better profile');
+    suggestions.push(
+      'Expand your bio to over 100 characters for a better profile'
+    );
   }
 
   if (!profile.city || !profile.region || !profile.land) {
@@ -142,23 +155,33 @@ function calculateProfileScore(profile: Partial<User>): ProfileScore {
   }
 
   // Calculate final scores
-  const completenessPercentage = Math.round((completenessScore / totalWeight) * 100);
+  const completenessPercentage = Math.round(
+    (completenessScore / totalWeight) * 100
+  );
   const qualityPercentage = Math.round((qualityScore / maxQualityScore) * 100);
-  const overallPercentage = Math.round((completenessPercentage * 0.6 + qualityPercentage * 0.4));
+  const overallPercentage = Math.round(
+    completenessPercentage * 0.6 + qualityPercentage * 0.4
+  );
 
   return {
     completeness: completenessPercentage,
     quality: qualityPercentage,
     overall: overallPercentage,
-    missingFields: missingFields.filter((field, index, self) => self.indexOf(field) === index),
-    suggestions: suggestions.filter((s, index, self) => self.indexOf(s) === index),
+    missingFields: missingFields.filter(
+      (field, index, self) => self.indexOf(field) === index
+    ),
+    suggestions: suggestions.filter(
+      (s, index, self) => self.indexOf(s) === index
+    ),
   };
 }
 
 function getFieldSuggestion(fieldName: string, currentValue: unknown): string {
   switch (fieldName) {
     case 'bio':
-      return currentValue ? 'Your bio is too short (minimum 20 characters)' : 'Add a bio to your profile';
+      return currentValue
+        ? 'Your bio is too short (minimum 20 characters)'
+        : 'Add a bio to your profile';
     case 'avatar_url':
       return 'Invalid avatar URL format';
     default:
@@ -222,7 +245,9 @@ describe('Profile Score Calculator', () => {
       const score = calculateProfileScore(shortBioProfile);
 
       expect(score.missingFields).toContain('bio');
-      expect(score.suggestions).toContain('Your bio is too short (minimum 20 characters)');
+      expect(score.suggestions).toContain(
+        'Your bio is too short (minimum 20 characters)'
+      );
     });
 
     it('should validate avatar URL format', () => {
@@ -271,7 +296,9 @@ describe('Profile Score Calculator', () => {
       const scoreDetailed = calculateProfileScore(detailedBio);
 
       expect(scoreDetailed.quality).toBeGreaterThan(scoreShort.quality);
-      expect(scoreShort.suggestions).toContain('Expand your bio to over 100 characters for a better profile');
+      expect(scoreShort.suggestions).toContain(
+        'Expand your bio to over 100 characters for a better profile'
+      );
     });
 
     it('should reward complete location information', () => {
@@ -291,7 +318,9 @@ describe('Profile Score Calculator', () => {
       const scoreComplete = calculateProfileScore(completeLocation);
 
       expect(scoreComplete.quality).toBeGreaterThan(scorePartial.quality);
-      expect(scorePartial.suggestions).toContain('Complete your location information');
+      expect(scorePartial.suggestions).toContain(
+        'Complete your location information'
+      );
     });
 
     it('should reward custom privacy settings', () => {
@@ -318,12 +347,16 @@ describe('Profile Score Calculator', () => {
     it('should reward recent activity', () => {
       const inactiveProfile: Partial<User> = {
         username: 'user1',
-        last_login_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+        last_login_at: new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000
+        ).toISOString(), // 30 days ago
       };
 
       const activeProfile: Partial<User> = {
         username: 'user1',
-        last_login_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+        last_login_at: new Date(
+          Date.now() - 2 * 24 * 60 * 60 * 1000
+        ).toISOString(), // 2 days ago
       };
 
       const scoreInactive = calculateProfileScore(inactiveProfile);
@@ -359,7 +392,9 @@ describe('Profile Score Calculator', () => {
       };
 
       const score = calculateProfileScore(profile);
-      const expectedOverall = Math.round(score.completeness * 0.6 + score.quality * 0.4);
+      const expectedOverall = Math.round(
+        score.completeness * 0.6 + score.quality * 0.4
+      );
 
       expect(score.overall).toBe(expectedOverall);
     });
@@ -399,8 +434,12 @@ describe('Profile Score Calculator', () => {
 
       const score = calculateProfileScore(profile);
 
-      expect(score.suggestions).toContain('Your bio is too short (minimum 20 characters)');
-      expect(score.suggestions).toContain('Upload a custom avatar to personalize your profile');
+      expect(score.suggestions).toContain(
+        'Your bio is too short (minimum 20 characters)'
+      );
+      expect(score.suggestions).toContain(
+        'Upload a custom avatar to personalize your profile'
+      );
       expect(score.suggestions).toContain('Complete your location information');
     });
 
@@ -479,13 +518,15 @@ describe('Profile Score Calculator', () => {
       const profiles = Array.from({ length: 1000 }, (_, i) => ({
         username: `user${i}`,
         full_name: i % 2 === 0 ? `User ${i}` : null,
-        bio: i % 3 === 0 ? 'A'.repeat(50 + i % 100) : null,
+        bio: i % 3 === 0 ? 'A'.repeat(50 + (i % 100)) : null,
         experience_points: i * 10,
-        last_login_at: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
+        last_login_at: new Date(
+          Date.now() - i * 24 * 60 * 60 * 1000
+        ).toISOString(),
       }));
 
       const startTime = performance.now();
-      
+
       profiles.forEach(profile => {
         calculateProfileScore(profile);
       });

@@ -3,8 +3,13 @@ import type { Request } from '@playwright/test';
 
 // Supabase mock types
 export interface SupabaseRealtimeChannel {
-  on: (event: string, callback: (payload: unknown) => void) => SupabaseRealtimeChannel;
-  subscribe: (callback?: (status: string, err?: Error) => void) => SupabaseRealtimeChannel;
+  on: (
+    event: string,
+    callback: (payload: unknown) => void
+  ) => SupabaseRealtimeChannel;
+  subscribe: (
+    callback?: (status: string, err?: Error) => void
+  ) => SupabaseRealtimeChannel;
   unsubscribe: () => SupabaseRealtimeChannel;
   send: (message: unknown) => void;
 }
@@ -17,7 +22,9 @@ export interface MockSupabaseClient {
   realtime?: SupabaseRealtimeClient;
   auth?: {
     getSession: () => Promise<{ data: { session: unknown } }>;
-    onAuthStateChange: (callback: (event: string, session: unknown) => void) => { unsubscribe: () => void };
+    onAuthStateChange: (
+      callback: (event: string, session: unknown) => void
+    ) => { unsubscribe: () => void };
   };
   from: (table: string) => unknown;
 }
@@ -27,59 +34,64 @@ export interface TestWindowExtensions {
   // Realtime test extensions
   __realtimeTestConfig?: unknown;
   __realtimeEvents?: unknown[];
-  __realtimeConnections?: Map<string, {
-    handlers: Map<string, Array<(event: unknown) => void>>;
-    subscribed: boolean;
-  }>;
+  __realtimeConnections?: Map<
+    string,
+    {
+      handlers: Map<string, Array<(event: unknown) => void>>;
+      subscribed: boolean;
+    }
+  >;
   __mockRealtime?: SupabaseRealtimeClient;
   __realtimeCallback?: (...args: unknown[]) => void;
   __mockChannel?: SupabaseRealtimeChannel;
-  
+
   // Supabase extensions
   supabase?: MockSupabaseClient;
-  
+
   // WebSocket extensions
   __mockWebSocket?: typeof WebSocket;
   __wsMessages?: unknown[];
   WebSocket?: typeof WebSocket;
-  
+
   // Realtime events and callbacks
   __realtimeEvents?: unknown[];
   __realtimeCallback?: (...args: unknown[]) => void;
   __mockChannel?: SupabaseRealtimeChannel;
-  
+
   // Performance extensions
-  __performanceMetrics?: {
-    marks: PerformanceEntry[];
-    measures: PerformanceEntry[];
-  } | Array<{ timestamp: number; latency: number; eventType: string }>;
+  __performanceMetrics?:
+    | {
+        marks: PerformanceEntry[];
+        measures: PerformanceEntry[];
+      }
+    | Array<{ timestamp: number; latency: number; eventType: string }>;
   __performanceMonitor?: unknown;
-  
+
   // Error tracking
   __errors?: Error[];
   __consoleErrors?: string[];
-  
+
   // Test data
   __testData?: unknown;
   __memoryPressure?: unknown[];
-  
+
   // XSS test properties
   xssTest?: boolean;
-  
+
   // Clipboard test properties
   __clipboardWriteCalled?: boolean;
-  
+
   // Window.open test properties
   __originalOpen?: typeof window.open;
   __openCalled?: boolean;
-  
+
   // Download test properties
   __originalCreateObjectURL?: typeof URL.createObjectURL;
   __downloadClicked?: boolean;
-  
+
   // Memory pressure tracking
   __memoryPressure?: unknown[];
-  
+
   // Analytics
   gtag?: (...args: unknown[]) => void;
   dataLayer?: unknown[];
@@ -99,7 +111,7 @@ export interface TestWindowExtensions {
     page?: (...args: unknown[]) => void;
     identify?: (...args: unknown[]) => void;
   };
-  
+
   // Sentry
   Sentry?: {
     captureException: (error: Error, context?: unknown) => void;
@@ -107,35 +119,44 @@ export interface TestWindowExtensions {
     withScope?: (callback: (scope: unknown) => void) => void;
   };
   captureSentryEvent?: (event: unknown) => void;
-  
+
   // Performance tracking
   updateCount?: number;
   trackUpdate?: () => void;
-  
+
   // Debug utilities
   getEventListeners?: (target: EventTarget) => Record<string, EventListener[]>;
-  
+
   // Rejection tracking
   __rejectionTracker?: {
-    rejections: Array<{ promise: Promise<unknown>; reason: unknown; handled: boolean }>;
+    rejections: Array<{
+      promise: Promise<unknown>;
+      reason: unknown;
+      handled: boolean;
+    }>;
     getUnhandledCount: () => number;
     getTotalCount: () => number;
   };
-  
+
   // Promise chain tracking
   __promiseChainTracker?: {
     chains: Map<string, { promises: Array<Promise<unknown>>; errors: Error[] }>;
     activeChains: Set<string>;
     errors?: Error[];
-    createRecoveryMechanism?: (chainId: string) => { 
-      recover: () => Promise<unknown>; 
-      errorHandler: (step: string) => (error: Error | unknown) => Promise<unknown>;
+    createRecoveryMechanism?: (chainId: string) => {
+      recover: () => Promise<unknown>;
+      errorHandler: (
+        step: string
+      ) => (error: Error | unknown) => Promise<unknown>;
     };
   };
-  
+
   // Component lifecycle tracking
   __componentLifecycle?: {
-    components: Map<string, { mounted: boolean; errors: Error[]; cleanupFns: Array<() => void> }>;
+    components: Map<
+      string,
+      { mounted: boolean; errors: Error[]; cleanupFns: Array<() => void> }
+    >;
     state?: {
       mounted: boolean;
       cleanupErrors: Array<{
@@ -145,31 +166,37 @@ export interface TestWindowExtensions {
         timestamp: number;
       }>;
     };
-    createComponent?: (componentId: string) => { 
+    createComponent?: (componentId: string) => {
       id: string;
       mounted: boolean;
       cleanupFunctions: Array<() => void>;
-      mount: () => void; 
+      mount: () => void;
       unmount: () => void;
     };
   };
-  
+
   // Async component tracking
   __asyncComponentTracker?: {
-    components: Map<string, {
-      id: string;
-      mounted: boolean;
-      pendingUpdates: number;
-      stateUpdateErrors: string[];
-    }>;
-    globalErrors: string[];
-    tracker: {
-      components: Map<string, {
+    components: Map<
+      string,
+      {
         id: string;
         mounted: boolean;
         pendingUpdates: number;
         stateUpdateErrors: string[];
-      }>;
+      }
+    >;
+    globalErrors: string[];
+    tracker: {
+      components: Map<
+        string,
+        {
+          id: string;
+          mounted: boolean;
+          pendingUpdates: number;
+          stateUpdateErrors: string[];
+        }
+      >;
       globalErrors: string[];
     };
     createAsyncComponent: (componentId: string) => {
@@ -179,16 +206,19 @@ export interface TestWindowExtensions {
       unmount: () => void;
     };
   };
-  
+
   // Exponential backoff tracking
   __exponentialBackoff?: {
-    attempts: Map<string, Array<{
-      attempt: number;
-      delay: number;
-      success: boolean;
-      error?: string;
-      timestamp: number;
-    }>>;
+    attempts: Map<
+      string,
+      Array<{
+        attempt: number;
+        delay: number;
+        success: boolean;
+        error?: string;
+        timestamp: number;
+      }>
+    >;
     maxAttempts: number;
     createExponentialBackoff: (config: {
       initialDelay: number;
@@ -197,7 +227,10 @@ export interface TestWindowExtensions {
       maxAttempts: number;
       jitter: boolean;
     }) => {
-      execute: <T>(operation: () => Promise<T>, operationName?: string) => Promise<T | null>;
+      execute: <T>(
+        operation: () => Promise<T>,
+        operationName?: string
+      ) => Promise<T | null>;
       getAttempts: () => Array<{
         attempt: number;
         delay: number;
@@ -207,7 +240,7 @@ export interface TestWindowExtensions {
       }>;
     };
   };
-  
+
   // Circuit breaker tracking
   __circuitBreaker?: {
     createCircuitBreaker: (config: {
@@ -231,19 +264,19 @@ export interface TestWindowExtensions {
     };
   };
   testCircuitBreaker?: () => Promise<unknown>;
-  
+
   // Retry functionality
   retryRequest?: () => Promise<unknown>;
-  
+
   // App state tracking
   __appState?: unknown;
-  
+
   // Recovery tracking
   recoveryResult?: unknown;
-  
+
   // Storage event tracking
   receivedStorageEvent?: boolean;
-  
+
   // Listener tracking
   __listenerTracker?: {
     listenerCount: number;
@@ -252,18 +285,18 @@ export interface TestWindowExtensions {
     getListenerCount: () => number;
     cleanup: () => void;
   };
-  
+
   // Listener count
   listenerCount?: number;
   cleanup?: () => void;
-  
+
   // Atomic operations
   testAtomicWrite?: (updates: unknown) => Promise<unknown>;
   updateWithRollback?: (update: unknown) => Promise<unknown>;
-  
+
   // Date constructor for mocking
   Date?: DateConstructor;
-  
+
   // Redis resilience testing
   redisCircuitBreaker?: unknown;
   makeApiCall?: () => Promise<unknown>;
@@ -278,7 +311,7 @@ export interface TestWindowExtensions {
     set(key: string, value: unknown, ttlSeconds?: number): Promise<void>;
     isUsingFallback(): boolean;
   };
-  
+
   // Error boundary
   errorBoundary?: {
     handleError: (error: Error) => void;
@@ -377,7 +410,7 @@ declare global {
   interface Window extends TestWindowExtensions {
     gc?: () => void;
   }
-  
+
   interface Performance {
     memory?: {
       usedJSHeapSize: number;

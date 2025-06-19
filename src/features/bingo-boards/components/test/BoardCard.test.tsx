@@ -50,7 +50,9 @@ describe('BoardCard', () => {
       render(<BoardCard board={mockBoard} />);
 
       expect(screen.getByText('Test Bingo Board')).toBeInTheDocument();
-      expect(screen.getByText('A test board for unit testing')).toBeInTheDocument();
+      expect(
+        screen.getByText('A test board for unit testing')
+      ).toBeInTheDocument();
     });
 
     it('displays default description when none provided', () => {
@@ -179,7 +181,9 @@ describe('BoardCard', () => {
             boardId: 'board-123',
           })
         );
-        expect(mockNotifications.error).toHaveBeenCalledWith('Failed to start session');
+        expect(mockNotifications.error).toHaveBeenCalledWith(
+          'Failed to start session'
+        );
       });
     });
   });
@@ -209,22 +213,22 @@ describe('BoardCard', () => {
   describe('memoization', () => {
     it('does not re-render when props are unchanged', () => {
       const { rerender } = render(<BoardCard board={mockBoard} />);
-      
+
       const initialTitle = screen.getByText('Test Bingo Board');
-      
+
       // Re-render with same props
       rerender(<BoardCard board={mockBoard} />);
-      
+
       // Should be the same DOM element (not re-created)
       expect(screen.getByText('Test Bingo Board')).toBe(initialTitle);
     });
 
     it('re-renders when board props change', () => {
       const { rerender } = render(<BoardCard board={mockBoard} />);
-      
+
       const updatedBoard = { ...mockBoard, title: 'Updated Title' };
       rerender(<BoardCard board={updatedBoard} />);
-      
+
       expect(screen.getByText('Updated Title')).toBeInTheDocument();
       expect(screen.queryByText('Test Bingo Board')).not.toBeInTheDocument();
     });
@@ -235,7 +239,7 @@ describe('BoardCard', () => {
       // This test verifies the component structure includes error boundary
       // Actual error boundary behavior is tested in BaseErrorBoundary.test.tsx
       const { container } = render(<BoardCard board={mockBoard} />);
-      
+
       // The card should be rendered within the error boundary
       expect(container.querySelector('.group')).toBeInTheDocument();
     });

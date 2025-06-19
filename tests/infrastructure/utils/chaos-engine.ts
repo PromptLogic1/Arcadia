@@ -1,6 +1,6 @@
 /**
  * Chaos Engineering utilities for infrastructure resilience testing
- * 
+ *
  * This module provides a comprehensive chaos testing framework to
  * simulate various failure scenarios and validate system resilience
  * under adverse conditions.
@@ -65,9 +65,9 @@ export class ChaosEngine {
   private results: ChaosTestResult[] = [];
   private isActive = false;
   private executionLog: Array<{ time: number; event: string }> = [];
-  
+
   constructor(private readonly context: BrowserContext) {}
-  
+
   /**
    * Add a chaos scenario
    */
@@ -75,7 +75,7 @@ export class ChaosEngine {
     this.scenarios.set(scenario.name, scenario);
     return this;
   }
-  
+
   /**
    * Add multiple scenarios at once
    */
@@ -83,48 +83,48 @@ export class ChaosEngine {
     scenarios.forEach(s => this.addScenario(s));
     return this;
   }
-  
+
   /**
    * Start chaos injection
    */
   async start(page: Page): Promise<void> {
     this.isActive = true;
     this.logEvent('Chaos engine started');
-    
+
     // Start periodic chaos injection
     const interval = setInterval(async () => {
       if (!this.isActive) {
         clearInterval(interval);
         return;
       }
-      
+
       await this.injectChaos(page);
     }, 5000); // Check every 5 seconds
-    
+
     // Store interval ID for cleanup
     (page as ChaosPage).__chaosInterval = interval;
   }
-  
+
   /**
    * Stop chaos injection
    */
   async stop(page: Page): Promise<void> {
     this.isActive = false;
     this.logEvent('Chaos engine stopped');
-    
+
     // Clear interval
     const interval = (page as ChaosPage).__chaosInterval;
     if (interval) {
       clearInterval(interval);
     }
-    
+
     // Clean up active scenarios
     const scenarioNames = Array.from(this.activeScenarios);
     for (const scenarioName of scenarioNames) {
       await this.cleanupScenario(page, scenarioName);
     }
   }
-  
+
   /**
    * Inject chaos based on configured scenarios
    */
@@ -135,14 +135,14 @@ export class ChaosEngine {
       if (this.activeScenarios.has(name)) {
         continue;
       }
-      
+
       // Check probability
       if (Math.random() < scenario.probability) {
         await this.executeScenario(page, scenario);
       }
     }
   }
-  
+
   /**
    * Execute a specific chaos scenario
    */
@@ -152,7 +152,7 @@ export class ChaosEngine {
   ): Promise<void> {
     this.logEvent(`Executing scenario: ${scenario.name}`);
     this.activeScenarios.add(scenario.name);
-    
+
     const result: ChaosTestResult = {
       scenario: scenario.name,
       executed: true,
@@ -163,46 +163,46 @@ export class ChaosEngine {
         errorRate: 0,
       },
     };
-    
+
     try {
       switch (scenario.name) {
         case 'network-partition':
           await this.injectNetworkPartition(page, scenario);
           break;
-          
+
         case 'network-degradation':
           await this.injectNetworkDegradation(page, scenario);
           break;
-          
+
         case 'service-outage':
           await this.injectServiceOutage(page, scenario);
           break;
-          
+
         case 'cpu-spike':
           await this.injectCpuSpike(page, scenario);
           break;
-          
+
         case 'memory-pressure':
           await this.injectMemoryPressure(page, scenario);
           break;
-          
+
         case 'clock-skew':
           await this.injectClockSkew(page, scenario);
           break;
-          
+
         case 'data-corruption':
           await this.injectDataCorruption(page, scenario);
           break;
-          
+
         case 'cascading-failure':
           await this.injectCascadingFailure(page, scenario);
           break;
-          
+
         default:
           // Custom scenario handler
           await this.injectCustomScenario(page, scenario);
       }
-      
+
       // Schedule cleanup if duration is specified
       if (scenario.duration) {
         setTimeout(async () => {
@@ -218,7 +218,7 @@ export class ChaosEngine {
       this.results.push(result);
     }
   }
-  
+
   /**
    * Inject network partition
    */
@@ -226,16 +226,18 @@ export class ChaosEngine {
     page: Page,
     scenario: ChaosScenario
   ): Promise<void> {
-    const patterns = scenario.affectedServices?.map(s => `**/${s}/**`) || ['**/api/**'];
-    
+    const patterns = scenario.affectedServices?.map(s => `**/${s}/**`) || [
+      '**/api/**',
+    ];
+
     for (const pattern of patterns) {
       await mockNetworkFailure(page, pattern, 'connection');
     }
-    
+
     // Simulate offline state
     await this.context.setOffline(true);
   }
-  
+
   /**
    * Inject network degradation
    */
@@ -245,18 +247,23 @@ export class ChaosEngine {
   ): Promise<void> {
     // Add artificial latency to all requests
     await page.route('**/*', async (route: Route) => {
-      const delay = scenario.severity === 'critical' ? 5000 :
-                   scenario.severity === 'high' ? 3000 :
-                   scenario.severity === 'medium' ? 1500 : 500;
-      
+      const delay =
+        scenario.severity === 'critical'
+          ? 5000
+          : scenario.severity === 'high'
+            ? 3000
+            : scenario.severity === 'medium'
+              ? 1500
+              : 500;
+
       const jitter = delay * 0.3;
       const actualDelay = delay + (Math.random() - 0.5) * jitter;
-      
+
       await new Promise(resolve => setTimeout(resolve, actualDelay));
       await route.continue();
     });
   }
-  
+
   /**
    * Inject service outage
    */
@@ -265,19 +272,19 @@ export class ChaosEngine {
     scenario: ChaosScenario
   ): Promise<void> {
     const services = scenario.affectedServices || ['redis'];
-    
+
     for (const service of services) {
       await mockInfrastructureFailure(
-        page, 
-        service as InfrastructureError['service'], 
-        'all', 
+        page,
+        service as InfrastructureError['service'],
+        'all',
         {
           fatal: scenario.severity === 'critical',
         }
       );
     }
   }
-  
+
   /**
    * Inject CPU spike
    */
@@ -285,14 +292,19 @@ export class ChaosEngine {
     page: Page,
     scenario: ChaosScenario
   ): Promise<void> {
-    await page.evaluate((severity) => {
-      const intensity = severity === 'critical' ? 0.95 :
-                       severity === 'high' ? 0.80 :
-                       severity === 'medium' ? 0.60 : 0.40;
-      
+    await page.evaluate(severity => {
+      const intensity =
+        severity === 'critical'
+          ? 0.95
+          : severity === 'high'
+            ? 0.8
+            : severity === 'medium'
+              ? 0.6
+              : 0.4;
+
       const workers: Worker[] = [];
       const workerCount = navigator.hardwareConcurrency || 4;
-      
+
       // Create CPU-intensive workers
       for (let i = 0; i < workerCount; i++) {
         const workerCode = `
@@ -309,17 +321,17 @@ export class ChaosEngine {
             }
           }
         `;
-        
+
         const blob = new Blob([workerCode], { type: 'application/javascript' });
         const worker = new Worker(URL.createObjectURL(blob));
         workers.push(worker);
       }
-      
+
       // Store workers for cleanup
       (window as ChaosWindow).__cpuWorkers = workers;
     }, scenario.severity);
   }
-  
+
   /**
    * Inject memory pressure
    */
@@ -327,16 +339,21 @@ export class ChaosEngine {
     page: Page,
     scenario: ChaosScenario
   ): Promise<void> {
-    await page.evaluate((severity) => {
+    await page.evaluate(severity => {
       const arrays: ArrayBuffer[] = [];
-      const targetMB = severity === 'critical' ? 500 :
-                      severity === 'high' ? 300 :
-                      severity === 'medium' ? 150 : 50;
-      
+      const targetMB =
+        severity === 'critical'
+          ? 500
+          : severity === 'high'
+            ? 300
+            : severity === 'medium'
+              ? 150
+              : 50;
+
       // Allocate memory in chunks
       const chunkSize = 10 * 1024 * 1024; // 10MB chunks
-      const chunks = Math.floor(targetMB * 1024 * 1024 / chunkSize);
-      
+      const chunks = Math.floor((targetMB * 1024 * 1024) / chunkSize);
+
       for (let i = 0; i < chunks; i++) {
         try {
           arrays.push(new ArrayBuffer(chunkSize));
@@ -345,12 +362,12 @@ export class ChaosEngine {
           break;
         }
       }
-      
+
       // Store for cleanup
       (window as ChaosWindow).__memoryArrays = arrays;
     }, scenario.severity);
   }
-  
+
   /**
    * Inject clock skew
    */
@@ -358,43 +375,57 @@ export class ChaosEngine {
     page: Page,
     scenario: ChaosScenario
   ): Promise<void> {
-    await page.evaluate((severity) => {
-      const skewMs = severity === 'critical' ? 3600000 : // 1 hour
-                     severity === 'high' ? 600000 :     // 10 minutes
-                     severity === 'medium' ? 60000 :    // 1 minute
-                     10000;                             // 10 seconds
-      
+    await page.evaluate(severity => {
+      const skewMs =
+        severity === 'critical'
+          ? 3600000 // 1 hour
+          : severity === 'high'
+            ? 600000 // 10 minutes
+            : severity === 'medium'
+              ? 60000 // 1 minute
+              : 10000; // 10 seconds
+
       // Override Date constructor
       const OriginalDate = Date;
-      
+
       // Create a new Date constructor that adds skew
       function MockDate(this: Date): Date;
       function MockDate(value: number | string): Date;
-      function MockDate(year: number, monthIndex: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date;
+      function MockDate(
+        year: number,
+        monthIndex: number,
+        date?: number,
+        hours?: number,
+        minutes?: number,
+        seconds?: number,
+        ms?: number
+      ): Date;
       function MockDate(this: unknown, ...args: unknown[]): Date {
         let instance: Date;
         if (args.length === 0) {
           instance = new OriginalDate();
           instance.setTime(instance.getTime() + skewMs);
         } else {
-          instance = new (OriginalDate as unknown as new (...args: unknown[]) => Date)(...args);
+          instance = new (OriginalDate as unknown as new (
+            ...args: unknown[]
+          ) => Date)(...args);
         }
         return instance;
       }
-      
+
       // Copy static methods
       MockDate.now = () => OriginalDate.now() + skewMs;
       MockDate.parse = OriginalDate.parse;
       MockDate.UTC = OriginalDate.UTC;
       Object.setPrototypeOf(MockDate, OriginalDate);
-      
+
       (window as TestWindow).Date = MockDate as unknown as DateConstructor;
-      
+
       // Store original for cleanup
       (window as ChaosWindow).__OriginalDate = OriginalDate;
     }, scenario.severity);
   }
-  
+
   /**
    * Inject data corruption
    */
@@ -402,30 +433,40 @@ export class ChaosEngine {
     page: Page,
     scenario: ChaosScenario
   ): Promise<void> {
-    await page.evaluate((severity) => {
-      const corruptionRate = severity === 'critical' ? 0.5 :
-                            severity === 'high' ? 0.3 :
-                            severity === 'medium' ? 0.15 : 0.05;
-      
+    await page.evaluate(severity => {
+      const corruptionRate =
+        severity === 'critical'
+          ? 0.5
+          : severity === 'high'
+            ? 0.3
+            : severity === 'medium'
+              ? 0.15
+              : 0.05;
+
       // Override localStorage
       const originalSetItem = localStorage.setItem.bind(localStorage);
-      localStorage.setItem = function(key: string, value: string) {
+      localStorage.setItem = function (key: string, value: string) {
         if (Math.random() < corruptionRate) {
           // Corrupt the data
-          const corrupted = value.split('').map(char => 
-            Math.random() < 0.1 ? String.fromCharCode(char.charCodeAt(0) + 1) : char
-          ).join('');
+          const corrupted = value
+            .split('')
+            .map(char =>
+              Math.random() < 0.1
+                ? String.fromCharCode(char.charCodeAt(0) + 1)
+                : char
+            )
+            .join('');
           originalSetItem(key, corrupted);
         } else {
           originalSetItem(key, value);
         }
       };
-      
+
       // Store original for cleanup
       (window as ChaosWindow).__originalSetItem = originalSetItem;
     }, scenario.severity);
   }
-  
+
   /**
    * Inject cascading failure
    */
@@ -435,12 +476,12 @@ export class ChaosEngine {
   ): Promise<void> {
     // Start with one service failure
     await mockInfrastructureFailure(page, 'redis', 'connection');
-    
+
     // After 2 seconds, fail another service
     setTimeout(async () => {
       await mockInfrastructureFailure(page, 'supabase', 'timeout');
     }, 2000);
-    
+
     // After 4 seconds, cause API failures
     setTimeout(async () => {
       await page.route('**/api/**', async (route: Route) => {
@@ -451,7 +492,7 @@ export class ChaosEngine {
       });
     }, 4000);
   }
-  
+
   /**
    * Inject custom scenario
    */
@@ -460,31 +501,36 @@ export class ChaosEngine {
     scenario: ChaosScenario
   ): Promise<void> {
     // Emit event for custom handler
-    await page.evaluate((scenarioName) => {
-      window.dispatchEvent(new CustomEvent('chaos-scenario', {
-        detail: { scenario: scenarioName },
-      }));
+    await page.evaluate(scenarioName => {
+      window.dispatchEvent(
+        new CustomEvent('chaos-scenario', {
+          detail: { scenario: scenarioName },
+        })
+      );
     }, scenario.name);
   }
-  
+
   /**
    * Clean up after a scenario
    */
-  private async cleanupScenario(page: Page, scenarioName: string): Promise<void> {
+  private async cleanupScenario(
+    page: Page,
+    scenarioName: string
+  ): Promise<void> {
     this.logEvent(`Cleaning up scenario: ${scenarioName}`);
     this.activeScenarios.delete(scenarioName);
-    
+
     try {
       switch (scenarioName) {
         case 'network-partition':
           await this.context.setOffline(false);
           await page.unroute('**/*');
           break;
-          
+
         case 'network-degradation':
           await page.unroute('**/*');
           break;
-          
+
         case 'cpu-spike':
           await page.evaluate(() => {
             const workers = (window as ChaosWindow).__cpuWorkers;
@@ -497,7 +543,7 @@ export class ChaosEngine {
             }
           });
           break;
-          
+
         case 'memory-pressure':
           await page.evaluate(() => {
             delete (window as ChaosWindow).__memoryArrays;
@@ -508,16 +554,18 @@ export class ChaosEngine {
             }
           });
           break;
-          
+
         case 'clock-skew':
           await page.evaluate(() => {
             if ((window as ChaosWindow).__OriginalDate) {
-              (window as ChaosWindow).Date = (window as ChaosWindow).__OriginalDate!;
+              (window as ChaosWindow).Date = (
+                window as ChaosWindow
+              ).__OriginalDate!;
               delete (window as ChaosWindow).__OriginalDate;
             }
           });
           break;
-          
+
         case 'data-corruption':
           await page.evaluate(() => {
             const originalSetItem = (window as ChaosWindow).__originalSetItem;
@@ -532,7 +580,7 @@ export class ChaosEngine {
       this.logEvent(`Error cleaning up scenario ${scenarioName}: ${error}`);
     }
   }
-  
+
   /**
    * Log chaos event
    */
@@ -542,21 +590,21 @@ export class ChaosEngine {
       event,
     });
   }
-  
+
   /**
    * Get chaos test results
    */
   getResults(): ChaosTestResult[] {
     return [...this.results];
   }
-  
+
   /**
    * Get execution log
    */
   getExecutionLog(): Array<{ time: number; event: string }> {
     return [...this.executionLog];
   }
-  
+
   /**
    * Get chaos metrics
    */
@@ -568,15 +616,19 @@ export class ChaosEngine {
     averageRecoveryTime: number;
   } {
     const executedScenarios = this.results.length;
-    const totalErrors = this.results.reduce((sum, r) => sum + r.errors.length, 0);
+    const totalErrors = this.results.reduce(
+      (sum, r) => sum + r.errors.length,
+      0
+    );
     const recoveryTimes = this.results
       .filter(r => r.metrics.recoveryTime !== undefined)
       .map(r => r.metrics.recoveryTime as number);
-    
-    const averageRecoveryTime = recoveryTimes.length > 0
-      ? recoveryTimes.reduce((sum, t) => sum + t, 0) / recoveryTimes.length
-      : 0;
-    
+
+    const averageRecoveryTime =
+      recoveryTimes.length > 0
+        ? recoveryTimes.reduce((sum, t) => sum + t, 0) / recoveryTimes.length
+        : 0;
+
     return {
       totalScenarios: this.scenarios.size,
       executedScenarios,
@@ -615,7 +667,7 @@ export const CHAOS_SCENARIOS = {
       description: 'High latency network',
     },
   ],
-  
+
   advanced: [
     {
       name: 'cascading-failure',
@@ -639,7 +691,7 @@ export const CHAOS_SCENARIOS = {
       description: 'System clock drift',
     },
   ],
-  
+
   extreme: [
     {
       name: 'cpu-spike',

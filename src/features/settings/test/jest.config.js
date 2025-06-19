@@ -6,12 +6,8 @@ const path = require('path');
 
 module.exports = {
   displayName: 'Settings Feature Tests',
-  testMatch: [
-    '<rootDir>/src/features/settings/test/**/*.test.{js,ts}',
-  ],
-  setupFilesAfterEnv: [
-    '<rootDir>/src/features/settings/test/jest.setup.ts',
-  ],
+  testMatch: ['<rootDir>/src/features/settings/test/**/*.test.{js,ts}'],
+  setupFilesAfterEnv: ['<rootDir>/src/features/settings/test/jest.setup.ts'],
   testEnvironment: 'jsdom',
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -34,12 +30,15 @@ module.exports = {
     },
   },
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
-      presets: [
-        ['@babel/preset-env', { targets: { node: 'current' } }],
-        '@babel/preset-typescript',
-      ],
-    }],
+    '^.+\\.(js|jsx|ts|tsx)$': [
+      'babel-jest',
+      {
+        presets: [
+          ['@babel/preset-env', { targets: { node: 'current' } }],
+          '@babel/preset-typescript',
+        ],
+      },
+    ],
   },
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
   testTimeout: 10000,

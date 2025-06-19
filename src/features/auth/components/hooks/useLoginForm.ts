@@ -112,10 +112,10 @@ export function useLoginForm({
   // 🧼 Memoized field handlers for performance
   const handleEmailChange = React.useCallback(
     (value: string) => {
-      form.setValue('email', value, { 
+      form.setValue('email', value, {
         shouldValidate: true,
         shouldDirty: true,
-        shouldTouch: true 
+        shouldTouch: true,
       });
 
       // Save to localStorage if persistence enabled
@@ -133,10 +133,10 @@ export function useLoginForm({
 
   const handlePasswordChange = React.useCallback(
     (value: string) => {
-      form.setValue('password', value, { 
+      form.setValue('password', value, {
         shouldValidate: true,
         shouldDirty: true,
-        shouldTouch: true 
+        shouldTouch: true,
       });
 
       // Clear any existing error messages

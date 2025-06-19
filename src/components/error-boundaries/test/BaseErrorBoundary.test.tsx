@@ -9,13 +9,19 @@ jest.mock('@/lib/error-reporting');
 jest.mock('@/lib/logger');
 jest.mock('next/link', () => ({
   __esModule: true,
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => <a href={href}>{children}</a>,
 }));
 
 const mockReportError = reportError as jest.MockedFunction<typeof reportError>;
-const mockReportMessage = reportMessage as jest.MockedFunction<typeof reportMessage>;
+const mockReportMessage = reportMessage as jest.MockedFunction<
+  typeof reportMessage
+>;
 const mockLog = log as jest.Mocked<typeof log>;
 
 // Test component that throws an error
@@ -30,7 +36,7 @@ describe('BaseErrorBoundary', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockReportError.mockReturnValue('sentry-event-id-123');
-    
+
     // Suppress console.error for error boundary tests
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -73,7 +79,9 @@ describe('BaseErrorBoundary', () => {
       );
 
       expect(screen.getByText(/Error ID:/)).toBeInTheDocument();
-      expect(screen.getByText(/Sentry ID: sentry-event-id-123/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Sentry ID: sentry-event-id-123/)
+      ).toBeInTheDocument();
     });
 
     it('logs error with proper context', () => {
@@ -202,7 +210,9 @@ describe('BaseErrorBoundary', () => {
       );
 
       expect(screen.getByText('Page Error')).toBeInTheDocument();
-      expect(screen.getByText(/This page encountered an error/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/This page encountered an error/)
+      ).toBeInTheDocument();
     });
 
     it('displays layout-level error message', () => {
@@ -256,8 +266,10 @@ describe('BaseErrorBoundary', () => {
         </BaseErrorBoundary>
       );
 
-      expect(screen.getByText('Error Details (Development Only)')).toBeInTheDocument();
-      
+      expect(
+        screen.getByText('Error Details (Development Only)')
+      ).toBeInTheDocument();
+
       // Click to expand details
       fireEvent.click(screen.getByText('Error Details (Development Only)'));
 
@@ -275,7 +287,9 @@ describe('BaseErrorBoundary', () => {
         </BaseErrorBoundary>
       );
 
-      expect(screen.queryByText('Error Details (Development Only)')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Error Details (Development Only)')
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -312,14 +326,16 @@ describe('BaseErrorBoundary', () => {
       );
 
       // Verify reload is scheduled but not called immediately
-      const reloadSpy = jest.spyOn(window.location, 'reload').mockImplementation(() => {});
-      
+      const reloadSpy = jest
+        .spyOn(window.location, 'reload')
+        .mockImplementation(() => {});
+
       expect(reloadSpy).not.toHaveBeenCalled();
-      
+
       jest.advanceTimersByTime(5000);
-      
+
       expect(reloadSpy).toHaveBeenCalled();
-      
+
       reloadSpy.mockRestore();
     });
 

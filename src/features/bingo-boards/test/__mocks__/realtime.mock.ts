@@ -7,8 +7,12 @@ export const createMockRealtimeClient = () => {
     on: jest.fn(() => mockChannel), // Return self for chaining
     off: jest.fn(() => mockChannel),
     send: jest.fn(() => ({ error: null })),
-    subscribe: jest.fn().mockImplementation(() => Promise.resolve({ error: null })),
-    unsubscribe: jest.fn().mockImplementation(() => Promise.resolve({ error: null })),
+    subscribe: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve({ error: null })),
+    unsubscribe: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve({ error: null })),
     track: jest.fn(() => ({ error: null })),
     untrack: jest.fn(() => ({ error: null })),
   };
@@ -49,10 +53,11 @@ export class MockWebSocket {
   }
 
   send(data: string): void {
-    if (this.readyState !== 1) { // WebSocket.OPEN
+    if (this.readyState !== 1) {
+      // WebSocket.OPEN
       throw new Error('WebSocket is not open');
     }
-    
+
     // Echo back for testing
     setTimeout(() => {
       if (this.onmessage) {
@@ -99,9 +104,11 @@ export class MockWebSocket {
   // Test utilities
   simulateMessage(data: unknown): void {
     if (this.onmessage) {
-      this.onmessage(new MessageEvent('message', { 
-        data: typeof data === 'string' ? data : JSON.stringify(data) 
-      }));
+      this.onmessage(
+        new MessageEvent('message', {
+          data: typeof data === 'string' ? data : JSON.stringify(data),
+        })
+      );
     }
   }
 
@@ -114,7 +121,9 @@ export class MockWebSocket {
   simulateDisconnection(): void {
     this.readyState = 3; // WebSocket.CLOSED
     if (this.onclose) {
-      this.onclose(new CloseEvent('close', { code: 1006, reason: 'Connection lost' }));
+      this.onclose(
+        new CloseEvent('close', { code: 1006, reason: 'Connection lost' })
+      );
     }
   }
 }
@@ -278,7 +287,9 @@ export class MockRateLimiter {
     this.limits.set(key, { count, window: windowMs });
   }
 
-  async checkLimit(key: string): Promise<{ allowed: boolean; remaining: number; reset: number }> {
+  async checkLimit(
+    key: string
+  ): Promise<{ allowed: boolean; remaining: number; reset: number }> {
     const limit = this.limits.get(key);
     if (!limit) {
       return { allowed: true, remaining: Infinity, reset: 0 };
@@ -286,10 +297,10 @@ export class MockRateLimiter {
 
     const now = Date.now();
     const attempts = this.attempts.get(key) || [];
-    
+
     // Remove old attempts outside the window
     const validAttempts = attempts.filter(time => now - time < limit.window);
-    
+
     if (validAttempts.length >= limit.count) {
       return {
         allowed: false,
@@ -320,19 +331,25 @@ export class MockRateLimiter {
 
 // Mock database operations with timing
 export class MockDatabaseOperations {
-  private operations: Array<{ type: string; duration: number; timestamp: number }> = [];
+  private operations: Array<{
+    type: string;
+    duration: number;
+    timestamp: number;
+  }> = [];
   private latency = 10; // Default 10ms
 
   setLatency(ms: number): void {
     this.latency = ms;
   }
 
-  async mockQuery(queryType: string): Promise<{ success: boolean; timestamp: number }> {
+  async mockQuery(
+    queryType: string
+  ): Promise<{ success: boolean; timestamp: number }> {
     const start = performance.now();
-    
+
     // Simulate database latency
     await new Promise(resolve => setTimeout(resolve, this.latency));
-    
+
     const duration = performance.now() - start;
     this.operations.push({
       type: queryType,
@@ -343,13 +360,15 @@ export class MockDatabaseOperations {
     return { success: true, timestamp: Date.now() };
   }
 
-  async mockTransaction(operations: string[]): Promise<{ success: boolean; operations: number }> {
+  async mockTransaction(
+    operations: string[]
+  ): Promise<{ success: boolean; operations: number }> {
     const start = performance.now();
-    
+
     // Simulate transaction overhead
     const transactionLatency = this.latency * operations.length * 1.1;
     await new Promise(resolve => setTimeout(resolve, transactionLatency));
-    
+
     const duration = performance.now() - start;
     this.operations.push({
       type: `transaction:${operations.join(',')}`,
@@ -375,7 +394,8 @@ export class MockDatabaseOperations {
 
     return {
       totalOperations: this.operations.length,
-      averageDuration: this.operations.length > 0 ? totalDuration / this.operations.length : 0,
+      averageDuration:
+        this.operations.length > 0 ? totalDuration / this.operations.length : 0,
       operationsByType,
     };
   }
@@ -388,15 +408,21 @@ export class MockDatabaseOperations {
 // Mock utilities
 export const mockUtils = {
   delay: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
-  
-  randomDelay: (min: number, max: number) => 
-    new Promise(resolve => setTimeout(resolve, min + Math.random() * (max - min))),
-  
-  simulateConcurrentOperations: async (operations: Array<() => Promise<unknown>>) => {
+
+  randomDelay: (min: number, max: number) =>
+    new Promise(resolve =>
+      setTimeout(resolve, min + Math.random() * (max - min))
+    ),
+
+  simulateConcurrentOperations: async (
+    operations: Array<() => Promise<unknown>>
+  ) => {
     return Promise.allSettled(operations.map(op => op()));
   },
-  
-  measureOperation: async <T>(operation: () => Promise<T>): Promise<{ result: T; duration: number }> => {
+
+  measureOperation: async <T>(
+    operation: () => Promise<T>
+  ): Promise<{ result: T; duration: number }> => {
     const start = performance.now();
     const result = await operation();
     const duration = performance.now() - start;

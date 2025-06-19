@@ -1,6 +1,6 @@
 /**
  * Test Data Factories
- * 
+ *
  * Provides consistent test data generation for all tests.
  * Ensures type safety and realistic data patterns.
  */
@@ -20,12 +20,14 @@ export const generateId = (prefix = 'id'): string => {
 // Generate UUID-like IDs
 export const generateUuid = (): string => {
   const hex = (n: number) => n.toString(16).padStart(2, '0');
-  const randomBytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
-  
+  const randomBytes = Array.from({ length: 16 }, () =>
+    Math.floor(Math.random() * 256)
+  );
+
   // Set version (4) and variant bits
   randomBytes[6] = (randomBytes[6]! & 0x0f) | 0x40;
   randomBytes[8] = (randomBytes[8]! & 0x3f) | 0x80;
-  
+
   const uuid = [
     randomBytes.slice(0, 4),
     randomBytes.slice(4, 6),
@@ -35,12 +37,14 @@ export const generateUuid = (): string => {
   ]
     .map(group => group?.map(hex).join('') ?? '')
     .join('-');
-  
+
   return uuid;
 };
 
 // User factory
-export const createMockUser = (overrides?: Partial<Tables<'users'>>): Tables<'users'> => ({
+export const createMockUser = (
+  overrides?: Partial<Tables<'users'>>
+): Tables<'users'> => ({
   id: generateUuid(),
   auth_id: generateUuid(),
   username: `user_${Date.now()}`,
@@ -62,7 +66,9 @@ export const createMockUser = (overrides?: Partial<Tables<'users'>>): Tables<'us
 });
 
 // Bingo Board factory
-export const createMockBingoBoard = (overrides?: Partial<Tables<'bingo_boards'>>): Tables<'bingo_boards'> => ({
+export const createMockBingoBoard = (
+  overrides?: Partial<Tables<'bingo_boards'>>
+): Tables<'bingo_boards'> => ({
   id: generateUuid(),
   title: `Test Board ${Date.now()}`,
   description: 'A test bingo board',
@@ -84,7 +90,9 @@ export const createMockBingoBoard = (overrides?: Partial<Tables<'bingo_boards'>>
 });
 
 // Bingo Card factory
-export const createMockBingoCard = (overrides?: Partial<Tables<'bingo_cards'>>): Tables<'bingo_cards'> => ({
+export const createMockBingoCard = (
+  overrides?: Partial<Tables<'bingo_cards'>>
+): Tables<'bingo_cards'> => ({
   id: generateUuid(),
   title: `Test Card ${Date.now()}`,
   description: 'A test bingo card',
@@ -100,7 +108,9 @@ export const createMockBingoCard = (overrides?: Partial<Tables<'bingo_cards'>>):
 });
 
 // Bingo Session factory
-export const createMockBingoSession = (overrides?: Partial<Tables<'bingo_sessions'>>): Tables<'bingo_sessions'> => ({
+export const createMockBingoSession = (
+  overrides?: Partial<Tables<'bingo_sessions'>>
+): Tables<'bingo_sessions'> => ({
   id: generateUuid(),
   board_id: generateUuid(),
   host_id: generateUuid(),
@@ -125,7 +135,9 @@ export const createMockBingoSession = (overrides?: Partial<Tables<'bingo_session
 });
 
 // Session Player factory
-export const createMockSessionPlayer = (overrides?: Partial<Tables<'bingo_session_players'>>): Tables<'bingo_session_players'> => ({
+export const createMockSessionPlayer = (
+  overrides?: Partial<Tables<'bingo_session_players'>>
+): Tables<'bingo_session_players'> => ({
   id: generateUuid(),
   session_id: generateUuid(),
   user_id: generateUuid(),
@@ -145,7 +157,9 @@ export const createMockSessionPlayer = (overrides?: Partial<Tables<'bingo_sessio
 });
 
 // Submission factory
-export const createMockSubmission = (overrides?: Partial<Tables<'submissions'>>): Tables<'submissions'> => ({
+export const createMockSubmission = (
+  overrides?: Partial<Tables<'submissions'>>
+): Tables<'submissions'> => ({
   id: generateUuid(),
   challenge_id: generateUuid(),
   user_id: generateUuid(),
@@ -159,7 +173,9 @@ export const createMockSubmission = (overrides?: Partial<Tables<'submissions'>>)
 });
 
 // User Statistics factory
-export const createMockUserStatistics = (overrides?: Partial<Tables<'user_statistics'>>): Tables<'user_statistics'> => ({
+export const createMockUserStatistics = (
+  overrides?: Partial<Tables<'user_statistics'>>
+): Tables<'user_statistics'> => ({
   user_id: generateUuid(),
   average_score: 0,
   current_win_streak: 0,
@@ -179,7 +195,9 @@ export const createMockUserStatistics = (overrides?: Partial<Tables<'user_statis
 });
 
 // Challenge factory
-export const createMockChallenge = (overrides?: Partial<Tables<'challenges'>>): Tables<'challenges'> => ({
+export const createMockChallenge = (
+  overrides?: Partial<Tables<'challenges'>>
+): Tables<'challenges'> => ({
   id: generateUuid(),
   title: `Challenge ${Date.now()}`,
   description: 'A test challenge',
@@ -197,7 +215,9 @@ export const createMockChallenge = (overrides?: Partial<Tables<'challenges'>>): 
 });
 
 // Community Event factory
-export const createMockCommunityEvent = (overrides?: Partial<Tables<'community_events'>>): Tables<'community_events'> => ({
+export const createMockCommunityEvent = (
+  overrides?: Partial<Tables<'community_events'>>
+): Tables<'community_events'> => ({
   id: generateUuid(),
   title: `Event ${Date.now()}`,
   description: 'A test community event',
@@ -214,7 +234,9 @@ export const createMockCommunityEvent = (overrides?: Partial<Tables<'community_e
 });
 
 // Bingo Session Queue Entry factory
-export const createMockBingoSessionQueueEntry = (overrides?: Partial<Tables<'bingo_session_queue'>>): Tables<'bingo_session_queue'> => ({
+export const createMockBingoSessionQueueEntry = (
+  overrides?: Partial<Tables<'bingo_session_queue'>>
+): Tables<'bingo_session_queue'> => ({
   id: generateUuid(),
   session_id: generateUuid(),
   user_id: generateUuid(),
@@ -235,8 +257,8 @@ export const createMockBoardWithCards = (
   cardCount = 25
 ) => {
   const board = createMockBingoBoard(boardOverrides);
-  const cards = Array.from({ length: cardCount }, (_, index) => 
-    createMockBingoCard({ 
+  const cards = Array.from({ length: cardCount }, (_, index) =>
+    createMockBingoCard({
       title: `Card ${index + 1}`,
       game_type: board.game_type,
       difficulty: board.difficulty,
@@ -251,7 +273,7 @@ export const createMockSessionWithPlayers = (
   playerCount = 4
 ) => {
   const session = createMockBingoSession(sessionOverrides);
-  const players = Array.from({ length: playerCount }, (_, index) => 
+  const players = Array.from({ length: playerCount }, (_, index) =>
     createMockSessionPlayer({
       session_id: session.id,
       display_name: `Player ${index + 1}`,

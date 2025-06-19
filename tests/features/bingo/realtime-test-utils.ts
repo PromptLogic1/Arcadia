@@ -1,5 +1,9 @@
 import type { Page, BrowserContext } from '@playwright/test';
-import type { TestWindow, SupabaseRealtimeChannel, EventCallback } from '../../types/test-types';
+import type {
+  TestWindow,
+  SupabaseRealtimeChannel,
+  EventCallback,
+} from '../../types/test-types';
 // import { WebSocketEventTracker, NetworkSimulator, StateSyncTester } from './realtime-test-utils';
 
 /**
@@ -16,11 +20,11 @@ import type { TestWindow, SupabaseRealtimeChannel, EventCallback } from '../../t
 export class ErrorInjector {
   private page: Page;
   private injectedErrors: Map<string, () => void> = new Map();
-  
+
   constructor(page: Page) {
     this.page = page;
   }
-  
+
   /**
    * Simulate session corruption
    */
@@ -29,12 +33,12 @@ export class ErrorInjector {
       // Corrupt local session data
       localStorage.setItem('session-state', 'corrupted-data');
       localStorage.setItem('board-state', '{"invalid": json}');
-      
+
       // Trigger session validation
       window.dispatchEvent(new Event('storage'));
     });
   }
-  
+
   /**
    * Simulate database partition
    */
@@ -42,17 +46,17 @@ export class ErrorInjector {
     await this.page.route('**/api/sessions/**', route => {
       route.abort('networkfailed');
     });
-    
+
     await this.page.route('**/api/boards/**', route => {
       route.abort('networkfailed');
     });
-    
+
     setTimeout(async () => {
       await this.page.unroute('**/api/sessions/**');
       await this.page.unroute('**/api/boards/**');
     }, duration);
   }
-  
+
   /**
    * Simulate memory pressure
    */
@@ -63,17 +67,17 @@ export class ErrorInjector {
       for (let i = 0; i < 1000; i++) {
         memoryHog.push(new Array(10000).fill('memory-pressure-test'));
       }
-      
+
       // Store reference to prevent garbage collection
       (window as TestWindow).__memoryPressure = memoryHog;
-      
+
       // Clean up after 5 seconds
       setTimeout(() => {
         delete (window as TestWindow).__memoryPressure;
       }, 5000);
     });
   }
-  
+
   /**
    * Simulate WebSocket connection failures
    */
@@ -81,13 +85,13 @@ export class ErrorInjector {
     failureRate = 0.3,
     duration = 10000
   ): Promise<void> {
-    await this.page.evaluate((failureRate) => {
+    await this.page.evaluate(failureRate => {
       const originalWebSocket = window.WebSocket;
-      
+
       (window as TestWindow).WebSocket = class extends originalWebSocket {
         constructor(url: string | URL, protocols?: string | string[]) {
           super(url as string, protocols);
-          
+
           // Randomly fail connections
           if (Math.random() < failureRate) {
             setTimeout(() => {
@@ -96,7 +100,7 @@ export class ErrorInjector {
             }, 100);
           }
         }
-        
+
         send(data: string | ArrayBuffer | Blob) {
           // Randomly drop messages
           if (Math.random() < failureRate) {
@@ -105,14 +109,14 @@ export class ErrorInjector {
           super.send(data);
         }
       };
-      
+
       // Restore after duration
       setTimeout(() => {
         window.WebSocket = originalWebSocket;
       }, duration);
     }, failureRate);
   }
-  
+
   /**
    * Clean up all injected errors
    */
@@ -162,11 +166,11 @@ export class LoadTestFramework {
       errorsEncountered: number;
     };
   }> = [];
-  
+
   constructor(browser: { newContext: () => Promise<BrowserContext> }) {
     this.browser = browser;
   }
-  
+
   /**
    * Run a comprehensive load test scenario
    */
@@ -179,25 +183,25 @@ export class LoadTestFramework {
       p95Latency: 0,
       peakMemoryUsage: 0,
       messagesPerSecond: 0,
-      conflictsDetected: 0
+      conflictsDetected: 0,
     };
-    
+
     const latencies: number[] = [];
     const userPromises: Promise<void>[] = [];
-    
+
     // Create host session if not provided
     let sessionId = scenario.sessionId;
     if (!sessionId) {
       const hostSession = await this.createHostSession();
       sessionId = hostSession.sessionId;
     }
-    
+
     // Gradually ramp up users
     for (let i = 0; i < concurrentUsers; i++) {
       const delay = (i * rampUpTime) / concurrentUsers;
-      
+
       userPromises.push(
-        new Promise((resolve) => {
+        new Promise(resolve => {
           setTimeout(async () => {
             try {
               const userMetrics = await this.createLoadTestUser(
@@ -206,10 +210,9 @@ export class LoadTestFramework {
                 userBehavior,
                 duration
               );
-              
+
               results.successfulConnections++;
               latencies.push(userMetrics.connectionTime);
-              
             } catch {
               results.failedConnections++;
             }
@@ -218,46 +221,53 @@ export class LoadTestFramework {
         })
       );
     }
-    
+
     // Monitor system metrics during test
     const metricsInterval = setInterval(async () => {
       try {
         const memoryUsage = await this.measureMemoryUsage();
-        results.peakMemoryUsage = Math.max(results.peakMemoryUsage, memoryUsage);
+        results.peakMemoryUsage = Math.max(
+          results.peakMemoryUsage,
+          memoryUsage
+        );
       } catch {
         // Ignore monitoring errors
       }
     }, 1000);
-    
+
     // Wait for all users to complete
     await Promise.all(userPromises);
     clearInterval(metricsInterval);
-    
+
     // Calculate final metrics
     if (latencies.length > 0) {
-      results.averageLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+      results.averageLatency =
+        latencies.reduce((a, b) => a + b, 0) / latencies.length;
       latencies.sort((a, b) => a - b);
       const p95Index = Math.ceil(0.95 * latencies.length) - 1;
       results.p95Latency = latencies[p95Index] || 0;
     }
-    
+
     // Calculate conflicts and message rates
     results.conflictsDetected = await this.detectConflicts();
     results.messagesPerSecond = await this.calculateMessageRate(duration);
-    
+
     // Cleanup
     await this.cleanup();
-    
+
     return results;
   }
-  
+
   /**
    * Create a host session for load testing
    */
-  private async createHostSession(): Promise<{ sessionId: string; page: Page }> {
+  private async createHostSession(): Promise<{
+    sessionId: string;
+    page: Page;
+  }> {
     const context = await this.browser.newContext();
     const page = await context.newPage();
-    
+
     // Navigate and create session
     await page.goto('/play-area/bingo');
     await page.getByRole('button', { name: /create.*board/i }).click();
@@ -265,17 +275,18 @@ export class LoadTestFramework {
     await page.getByRole('combobox', { name: /game type/i }).click();
     await page.getByRole('option', { name: /valorant/i }).click();
     await page.getByRole('button', { name: /create/i }).click();
-    
+
     // Start game session
     await page.getByRole('button', { name: /start.*game/i }).click();
-    const sessionCode = await page.getByTestId('session-code').textContent() || '';
-    
+    const sessionCode =
+      (await page.getByTestId('session-code').textContent()) || '';
+
     return {
       sessionId: sessionCode,
-      page
+      page,
     };
   }
-  
+
   /**
    * Create a load test user with realistic behavior
    */
@@ -291,29 +302,29 @@ export class LoadTestFramework {
   }> {
     const context = await this.browser.newContext();
     const page = await context.newPage();
-    
+
     const startTime = Date.now();
-    
+
     // Join session
     await page.goto('/play-area/bingo');
     await page.getByRole('button', { name: /join.*game/i }).click();
     await page.getByLabel(/session code/i).fill(sessionId);
     await page.getByRole('button', { name: /join/i }).click();
-    
+
     const connectionTime = Date.now() - startTime;
     let actionsPerformed = 0;
     let errorsEncountered = 0;
-    
+
     // Define behavior patterns
     const behaviorConfig = {
       aggressive: { actionsPerMinute: 60, randomness: 0.1 },
       normal: { actionsPerMinute: 30, randomness: 0.3 },
-      passive: { actionsPerMinute: 10, randomness: 0.5 }
+      passive: { actionsPerMinute: 10, randomness: 0.5 },
     };
-    
+
     const config = behaviorConfig[behavior];
     const actionInterval = (60 * 1000) / config.actionsPerMinute;
-    
+
     // Store session info
     this.sessions.push({
       context,
@@ -322,72 +333,81 @@ export class LoadTestFramework {
       metrics: {
         connectionTime,
         actionsPerformed: 0,
-        errorsEncountered: 0
-      }
+        errorsEncountered: 0,
+      },
     });
-    
+
     // Simulate user activity
     const activityInterval = setInterval(async () => {
       try {
         if (Math.random() < config.randomness) {
           return; // Skip this action randomly
         }
-        
+
         // Random cell marking
         const row = Math.floor(Math.random() * 5);
         const col = Math.floor(Math.random() * 5);
         await page.getByTestId(`grid-cell-${row}-${col}`).click();
-        
+
         actionsPerformed++;
-        
+
         // Update session metrics
-        const session = this.sessions.find(s => s.playerId === `load-test-user-${userId}`);
+        const session = this.sessions.find(
+          s => s.playerId === `load-test-user-${userId}`
+        );
         if (session) {
           session.metrics.actionsPerformed = actionsPerformed;
         }
-        
       } catch {
         errorsEncountered++;
-        const session = this.sessions.find(s => s.playerId === `load-test-user-${userId}`);
+        const session = this.sessions.find(
+          s => s.playerId === `load-test-user-${userId}`
+        );
         if (session) {
           session.metrics.errorsEncountered = errorsEncountered;
         }
       }
     }, actionInterval);
-    
+
     // Clean up after duration
     setTimeout(async () => {
       clearInterval(activityInterval);
       await context.close();
     }, duration);
-    
+
     return {
       connectionTime,
       actionsPerformed,
-      errorsEncountered
+      errorsEncountered,
     };
   }
-  
+
   /**
    * Measure memory usage across all sessions
    */
   private async measureMemoryUsage(): Promise<number> {
     let totalMemory = 0;
-    
+
     for (const session of this.sessions) {
       try {
         const memory = await session.page.evaluate(() => {
-          return (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
+          return (
+            (
+              performance as Performance & {
+                memory?: { usedJSHeapSize: number };
+              }
+            ).memory?.usedJSHeapSize || 0
+          );
         });
         totalMemory += memory;
       } catch {
         // Ignore errors
       }
     }
-    
+
     return totalMemory;
   }
-  
+
   /**
    * Detect conflicts across all sessions
    */
@@ -396,7 +416,7 @@ export class LoadTestFramework {
     // Simplified implementation
     return Math.floor(Math.random() * this.sessions.length * 0.1);
   }
-  
+
   /**
    * Calculate message rate
    */
@@ -406,37 +426,38 @@ export class LoadTestFramework {
     const totalMessages = this.sessions.reduce((total, session) => {
       return total + session.metrics.actionsPerformed;
     }, 0);
-    
+
     return (totalMessages * 1000) / duration; // Messages per second
   }
-  
+
   /**
    * Test scalability limits
    */
   async testMaxPlayersPerSession(): Promise<number> {
     let maxPlayers = 0;
     let currentPlayers = 0;
-    
+
     // Create test session
     const hostSession = await this.createHostSession();
-    
+
     // Keep adding players until failure
-    while (currentPlayers < 50) { // Safety limit
+    while (currentPlayers < 50) {
+      // Safety limit
       try {
         const context = await this.browser.newContext();
         const page = await context.newPage();
-        
+
         await page.goto('/play-area/bingo');
         await page.getByRole('button', { name: /join.*game/i }).click();
         await page.getByLabel(/session code/i).fill(hostSession.sessionId);
         await page.getByRole('button', { name: /join/i }).click();
-        
+
         // Wait for join confirmation
         await page.waitForSelector('[data-testid="bingo-grid"]');
-        
+
         currentPlayers++;
         maxPlayers = currentPlayers;
-        
+
         this.sessions.push({
           context,
           page,
@@ -444,47 +465,50 @@ export class LoadTestFramework {
           metrics: {
             connectionTime: 0,
             actionsPerformed: 0,
-            errorsEncountered: 0
-          }
+            errorsEncountered: 0,
+          },
         });
-        
       } catch {
         // Hit the limit
         break;
       }
     }
-    
+
     // Cleanup
     await this.cleanup();
-    
+
     return maxPlayers;
   }
-  
+
   /**
    * Test concurrent session limits
    */
   async testMaxConcurrentSessions(): Promise<number> {
     let maxSessions = 0;
-    const sessions: Array<{ page: Page; context: BrowserContext; sessionId: string }> = [];
-    
+    const sessions: Array<{
+      page: Page;
+      context: BrowserContext;
+      sessionId: string;
+    }> = [];
+
     // Keep creating sessions until failure
-    while (maxSessions < 100) { // Safety limit
+    while (maxSessions < 100) {
+      // Safety limit
       try {
         const session = await this.createHostSession();
         sessions.push({
           page: session.page,
           context: session.page.context(),
-          sessionId: session.sessionId
+          sessionId: session.sessionId,
         });
-        
+
         maxSessions++;
-        
       } catch {
         // Hit the limit
         break;
       }
     }
-    
+
     // Cleanup
     for (const session of sessions) {
       try {
@@ -493,10 +517,10 @@ export class LoadTestFramework {
         // Ignore cleanup errors
       }
     }
-    
+
     return maxSessions;
   }
-  
+
   /**
    * Clean up all test sessions
    */
@@ -535,11 +559,11 @@ export interface PerformanceBaseline {
 export class PerformanceRegressionTester {
   private page: Page;
   private baselines: Map<string, PerformanceBaseline> = new Map();
-  
+
   constructor(page: Page) {
     this.page = page;
   }
-  
+
   /**
    * Run performance benchmarks against baseline
    */
@@ -580,7 +604,7 @@ export class PerformanceRegressionTester {
       isRegression?: boolean;
       isImprovement?: boolean;
     }> = [];
-    
+
     // Compare cell marking latency
     const cellMarkingRegression = this.compareMetric(
       'cellMarkingLatency.p95',
@@ -588,13 +612,13 @@ export class PerformanceRegressionTester {
       currentMetrics.cellMarkingLatency.p95,
       0.1 // 10% threshold
     );
-    
+
     if (cellMarkingRegression.isRegression) {
       regressions.push(cellMarkingRegression);
     } else if (cellMarkingRegression.isImprovement) {
       improvements.push(cellMarkingRegression);
     }
-    
+
     // Compare win detection time
     const winDetectionRegression = this.compareMetric(
       'winDetectionTime.p95',
@@ -602,13 +626,13 @@ export class PerformanceRegressionTester {
       currentMetrics.winDetectionTime.p95,
       0.1
     );
-    
+
     if (winDetectionRegression.isRegression) {
       regressions.push(winDetectionRegression);
     } else if (winDetectionRegression.isImprovement) {
       improvements.push(winDetectionRegression);
     }
-    
+
     // Compare realtime sync
     const realtimeSyncRegression = this.compareMetric(
       'realtimeSync.p95',
@@ -616,13 +640,13 @@ export class PerformanceRegressionTester {
       currentMetrics.realtimeSync.p95,
       0.15 // 15% threshold for network operations
     );
-    
+
     if (realtimeSyncRegression.isRegression) {
       regressions.push(realtimeSyncRegression);
     } else if (realtimeSyncRegression.isImprovement) {
       improvements.push(realtimeSyncRegression);
     }
-    
+
     // Compare memory usage
     const memoryRegression = this.compareMetric(
       'memoryUsage.max',
@@ -630,34 +654,40 @@ export class PerformanceRegressionTester {
       currentMetrics.memoryUsage.max,
       0.2 // 20% threshold for memory
     );
-    
+
     if (memoryRegression.isRegression) {
       regressions.push(memoryRegression);
     } else if (memoryRegression.isImprovement) {
       improvements.push(memoryRegression);
     }
-    
+
     return {
       passed: regressions.length === 0,
-      regressions: regressions.filter(r => r.regression !== undefined) as Array<{
+      regressions: regressions.filter(
+        r => r.regression !== undefined
+      ) as Array<{
         metric: string;
         baseline: number;
         current: number;
         regression: number;
       }>,
-      improvements: improvements.filter(i => i.improvement !== undefined) as Array<{
+      improvements: improvements.filter(
+        i => i.improvement !== undefined
+      ) as Array<{
         metric: string;
         baseline: number;
         current: number;
         improvement: number;
-      }>
+      }>,
     };
   }
-  
+
   /**
    * Measure current performance metrics
    */
-  private async measurePerformanceMetrics(): Promise<PerformanceBaseline['metrics']> {
+  private async measurePerformanceMetrics(): Promise<
+    PerformanceBaseline['metrics']
+  > {
     // This would implement actual performance measurement
     // Simplified implementation for demonstration
     const metrics = {
@@ -665,12 +695,12 @@ export class PerformanceRegressionTester {
       winDetectionTime: { p50: 20, p95: 40, p99: 60 },
       realtimeSync: { p50: 80, p95: 160, p99: 240 },
       memoryUsage: { baseline: 50000000, max: 100000000 },
-      networkRequests: { count: 10, averageDuration: 200 }
+      networkRequests: { count: 10, averageDuration: 200 },
     };
-    
+
     return metrics;
   }
-  
+
   /**
    * Compare a specific metric
    */
@@ -690,10 +720,10 @@ export class PerformanceRegressionTester {
   } {
     const difference = current - baseline;
     const percentage = difference / baseline;
-    
+
     const isRegression = percentage > threshold;
     const isImprovement = percentage < -threshold;
-    
+
     return {
       metric: name,
       baseline,
@@ -701,10 +731,10 @@ export class PerformanceRegressionTester {
       regression: isRegression ? percentage * 100 : undefined,
       improvement: isImprovement ? Math.abs(percentage) * 100 : undefined,
       isRegression,
-      isImprovement
+      isImprovement,
     };
   }
-  
+
   /**
    * Detect memory leaks
    */
@@ -716,9 +746,12 @@ export class PerformanceRegressionTester {
   }> {
     // Measure initial memory
     const initialMemory = await this.page.evaluate(() => {
-      return (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
+      return (
+        (performance as Performance & { memory?: { usedJSHeapSize: number } })
+          .memory?.usedJSHeapSize || 0
+      );
     });
-    
+
     // Perform actions that should not leak memory
     for (let i = 0; i < 100; i++) {
       // Create and destroy elements
@@ -729,7 +762,7 @@ export class PerformanceRegressionTester {
         document.body.removeChild(div);
       });
     }
-    
+
     // Force garbage collection if available
     await this.page.evaluate(() => {
       const windowWithGc = window as Window & { gc?: () => void };
@@ -737,26 +770,29 @@ export class PerformanceRegressionTester {
         windowWithGc.gc();
       }
     });
-    
+
     // Wait for cleanup
     await this.page.waitForTimeout(1000);
-    
+
     // Measure final memory
     const finalMemory = await this.page.evaluate(() => {
-      return (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
+      return (
+        (performance as Performance & { memory?: { usedJSHeapSize: number } })
+          .memory?.usedJSHeapSize || 0
+      );
     });
-    
+
     const leakSize = finalMemory - initialMemory;
     const hasLeak = leakSize > 1000000; // 1MB threshold
-    
+
     return {
       hasLeak,
       initialMemory,
       finalMemory,
-      leakSize
+      leakSize,
     };
   }
-  
+
   /**
    * Measure CPU usage during operations
    */
@@ -767,7 +803,7 @@ export class PerformanceRegressionTester {
   }> {
     const measurements: number[] = [];
     let peakUsage = 0;
-    
+
     // Start CPU monitoring (simplified implementation)
     const startTime = Date.now();
     const monitoringInterval = setInterval(() => {
@@ -776,22 +812,23 @@ export class PerformanceRegressionTester {
       measurements.push(usage);
       peakUsage = Math.max(peakUsage, usage);
     }, 100);
-    
+
     // Perform the operation
     await operation();
-    
+
     // Stop monitoring
     clearInterval(monitoringInterval);
     const operationTime = Date.now() - startTime;
-    
-    const averageUsage = measurements.length > 0 
-      ? measurements.reduce((a, b) => a + b, 0) / measurements.length 
-      : 0;
-    
+
+    const averageUsage =
+      measurements.length > 0
+        ? measurements.reduce((a, b) => a + b, 0) / measurements.length
+        : 0;
+
     return {
       averageUsage,
       peakUsage,
-      operationTime
+      operationTime,
     };
   }
 }
@@ -802,11 +839,11 @@ export class PerformanceRegressionTester {
 
 export class SecurityTestFramework {
   private page: Page;
-  
+
   constructor(page: Page) {
     this.page = page;
   }
-  
+
   /**
    * Test session security
    */
@@ -823,43 +860,43 @@ export class SecurityTestFramework {
       severity: 'low' | 'medium' | 'high' | 'critical';
       description: string;
     }> = [];
-    
+
     // Test session hijacking
     const hijackingResult = await this.testSessionHijacking();
     if (!hijackingResult.passed) {
       vulnerabilities.push({
         type: 'session_hijacking',
         severity: 'critical',
-        description: hijackingResult.description
+        description: hijackingResult.description,
       });
     }
-    
+
     // Test input validation
     const inputValidationResult = await this.testInputValidation();
     if (!inputValidationResult.passed) {
       vulnerabilities.push({
         type: 'input_validation',
         severity: 'high',
-        description: inputValidationResult.description
+        description: inputValidationResult.description,
       });
     }
-    
+
     // Test rate limiting
     const rateLimitingResult = await this.testRateLimiting();
     if (!rateLimitingResult.passed) {
       vulnerabilities.push({
         type: 'rate_limiting',
         severity: 'medium',
-        description: rateLimitingResult.description
+        description: rateLimitingResult.description,
       });
     }
-    
+
     return {
       passed: vulnerabilities.length === 0,
-      vulnerabilities
+      vulnerabilities,
     };
   }
-  
+
   /**
    * Test session hijacking protection
    */
@@ -870,24 +907,24 @@ export class SecurityTestFramework {
     try {
       // Attempt to join session with invalid/malicious session ID
       const maliciousSessionId = 'malicious-session-id';
-      
+
       await this.page.goto(`/play-area/bingo/session/${maliciousSessionId}`);
-      
+
       // Should be redirected to error page or login
       await this.page.waitForURL(/\/(error|login)/, { timeout: 5000 });
-      
+
       return {
         passed: true,
-        description: 'Session hijacking protection working'
+        description: 'Session hijacking protection working',
       };
     } catch {
       return {
         passed: false,
-        description: 'Session hijacking vulnerability detected'
+        description: 'Session hijacking vulnerability detected',
       };
     }
   }
-  
+
   /**
    * Test input validation
    */
@@ -901,43 +938,47 @@ export class SecurityTestFramework {
       '../../../etc/passwd',
       'A'.repeat(10000), // Buffer overflow attempt
     ];
-    
+
     for (const input of maliciousInputs) {
       try {
         // Test in card creation
         await this.page.getByRole('button', { name: /add.*card/i }).click();
         await this.page.getByLabel(/card text/i).fill(input);
         await this.page.getByRole('button', { name: /save.*card/i }).click();
-        
+
         // Check if input was sanitized or rejected
-        const cardLibraryContent = await this.page.getByTestId('card-library').textContent();
-        
+        const cardLibraryContent = await this.page
+          .getByTestId('card-library')
+          .textContent();
+
         // Should not contain raw malicious code
-        if (cardLibraryContent?.includes('<script>') || 
-            cardLibraryContent?.includes('DROP TABLE')) {
+        if (
+          cardLibraryContent?.includes('<script>') ||
+          cardLibraryContent?.includes('DROP TABLE')
+        ) {
           return {
             passed: false,
-            description: 'Input validation failed - malicious content not sanitized'
+            description:
+              'Input validation failed - malicious content not sanitized',
           };
         }
-        
+
         // Close any error dialogs
         const closeButton = this.page.getByRole('button', { name: /close/i });
         if (await closeButton.isVisible().catch(() => false)) {
           await closeButton.click();
         }
-        
       } catch {
         // Error during input is acceptable (validation working)
       }
     }
-    
+
     return {
       passed: true,
-      description: 'Input validation working correctly'
+      description: 'Input validation working correctly',
     };
   }
-  
+
   /**
    * Test rate limiting
    */
@@ -954,28 +995,29 @@ export class SecurityTestFramework {
         await this.page.getByTestId(`grid-cell-${row}-${col}`).click();
       });
     }
-    
+
     const startTime = Date.now();
     const results = await Promise.allSettled(
       rapidActions.map(action => action())
     );
     const duration = Date.now() - startTime;
-    
+
     const failedRequests = results.filter(r => r.status === 'rejected').length;
     const requestsPerSecond = (rapidActions.length * 1000) / duration;
-    
+
     // If we can make more than 50 requests per second without throttling,
     // rate limiting might not be working
     if (requestsPerSecond > 50 && failedRequests < 20) {
       return {
         passed: false,
-        description: 'Rate limiting may not be working - too many rapid requests succeeded'
+        description:
+          'Rate limiting may not be working - too many rapid requests succeeded',
       };
     }
-    
+
     return {
       passed: true,
-      description: 'Rate limiting appears to be working'
+      description: 'Rate limiting appears to be working',
     };
   }
 }
@@ -988,10 +1030,11 @@ export class SecurityTestFramework {
  * WebSocket event tracking utility
  */
 export class WebSocketEventTracker {
-  private events: Array<{ type: string; data: unknown; timestamp: number }> = [];
-  
+  private events: Array<{ type: string; data: unknown; timestamp: number }> =
+    [];
+
   constructor(private page: Page) {}
-  
+
   async startTracking(): Promise<void> {
     if (!this.page) throw new Error('Page not initialized');
     await this.page.evaluate(() => {
@@ -1000,30 +1043,50 @@ export class WebSocketEventTracker {
       (window as TestWindow).WebSocket = class extends originalWebSocket {
         constructor(url: string | URL, protocols?: string | string[]) {
           super(url, protocols);
-          
-          this.addEventListener('message', (event) => {
-            const windowWithEvents = window as Window & { __wsEvents?: Array<{ type: string; data: unknown; timestamp: number }> };
+
+          this.addEventListener('message', event => {
+            const windowWithEvents = window as Window & {
+              __wsEvents?: Array<{
+                type: string;
+                data: unknown;
+                timestamp: number;
+              }>;
+            };
             if (!windowWithEvents.__wsEvents) {
               windowWithEvents.__wsEvents = [];
             }
             windowWithEvents.__wsEvents.push({
               type: 'message',
               data: event.data,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
           });
         }
       };
     });
   }
-  
+
   async getEvents(): Promise<typeof this.events> {
-    const events = await this.page.evaluate(() => (window as Window & { __wsEvents?: Array<{ type: string; data: unknown; timestamp: number }> }).__wsEvents || []);
+    const events = await this.page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __wsEvents?: Array<{
+              type: string;
+              data: unknown;
+              timestamp: number;
+            }>;
+          }
+        ).__wsEvents || []
+    );
     this.events = events;
     return this.events;
   }
-  
-  async waitForEvent(eventType: string, timeout = 5000): Promise<{ type: string; data: unknown; timestamp: number }> {
+
+  async waitForEvent(
+    eventType: string,
+    timeout = 5000
+  ): Promise<{ type: string; data: unknown; timestamp: number }> {
     const startTime = Date.now();
     while (Date.now() - startTime < timeout) {
       const events = await this.getEvents();
@@ -1033,8 +1096,10 @@ export class WebSocketEventTracker {
     }
     throw new Error(`Timeout waiting for event: ${eventType}`);
   }
-  
-  async getEventsByType(eventType: string): Promise<Array<{ type: string; data: unknown; timestamp: number }>> {
+
+  async getEventsByType(
+    eventType: string
+  ): Promise<Array<{ type: string; data: unknown; timestamp: number }>> {
     const events = await this.getEvents();
     return events.filter(e => e.type === eventType);
   }
@@ -1049,7 +1114,7 @@ export class WebSocketEventTracker {
  */
 export class NetworkSimulator {
   constructor(private context: BrowserContext) {}
-  
+
   async applyConditions(conditions: {
     offline?: boolean;
     latency?: number;
@@ -1064,7 +1129,7 @@ export class NetworkSimulator {
       // This is a placeholder for future implementation
     }
   }
-  
+
   async reset(): Promise<void> {
     await this.context.setOffline(false);
   }
@@ -1079,81 +1144,84 @@ export class NetworkSimulator {
  */
 export class StateSyncTester {
   private pages: Page[];
-  
+
   constructor(pages: Page[]) {
     this.pages = pages || [];
   }
-  
+
   async startTracking(): Promise<void> {
     // Initialize tracking on all pages
     for (const page of this.pages) {
       await page.evaluate(() => {
-        const windowWithChanges = window as Window & { __stateChanges?: Array<{ timestamp: number; mutations: number }> };
+        const windowWithChanges = window as Window & {
+          __stateChanges?: Array<{ timestamp: number; mutations: number }>;
+        };
         windowWithChanges.__stateChanges = [];
-        
+
         // Track state changes
-        const observer = new MutationObserver((mutations) => {
+        const observer = new MutationObserver(mutations => {
           if (windowWithChanges.__stateChanges) {
             windowWithChanges.__stateChanges.push({
               timestamp: Date.now(),
-              mutations: mutations.length
+              mutations: mutations.length,
             });
           }
         });
-        
+
         observer.observe(document.body, {
           childList: true,
           subtree: true,
-          attributes: true
+          attributes: true,
         });
       });
     }
   }
-  
+
   async measureSyncLatency<T>(
     action: () => Promise<T>,
     condition: (state: unknown) => boolean
   ): Promise<{ result: T; averageLatency: number }> {
     const result = await action();
-    
+
     // Wait for sync on all pages
     const latencies: number[] = [];
     const startTime = Date.now();
-    
+
     for (const page of this.pages) {
       await page.waitForFunction(condition, { timeout: 5000 });
       latencies.push(Date.now() - startTime);
     }
-    
+
     return {
       result,
-      averageLatency: latencies.reduce((a, b) => a + b, 0) / latencies.length
+      averageLatency: latencies.reduce((a, b) => a + b, 0) / latencies.length,
     };
   }
-  
-  async verifyStateConsistency(): Promise<{ consistent: boolean; differences?: Array<{ pageIndex: number; hassDifference: boolean }> }> {
+
+  async verifyStateConsistency(): Promise<{
+    consistent: boolean;
+    differences?: Array<{ pageIndex: number; hassDifference: boolean }>;
+  }> {
     if (this.pages.length < 2) {
       return { consistent: true };
     }
-    
+
     const states = await Promise.all(
-      this.pages.map(page => 
-        page.evaluate(() => document.body.innerHTML)
-      )
+      this.pages.map(page => page.evaluate(() => document.body.innerHTML))
     );
-    
+
     const baseState = states[0];
     const differences = [];
-    
+
     for (let i = 1; i < states.length; i++) {
       if (states[i] !== baseState) {
         differences.push({ pageIndex: i, hassDifference: true });
       }
     }
-    
+
     return {
       consistent: differences.length === 0,
-      differences: differences.length > 0 ? differences : undefined
+      differences: differences.length > 0 ? differences : undefined,
     };
   }
 }
@@ -1171,28 +1239,29 @@ export class ConflictResolver {
     cell: { row: number; col: number }
   ): Promise<{ winner: string; resolutionTime: number }> {
     const startTime = Date.now();
-    
+
     // All pages click the same cell simultaneously
     const results = await Promise.allSettled(
-      pages.map((page, i) => 
+      pages.map((page, i) =>
         page.getByTestId(`grid-cell-${cell.row}-${cell.col}`).click()
       )
     );
-    
+
     // Wait for state to stabilize
     if (pages.length === 0) {
       throw new Error('No pages provided for conflict resolution');
     }
-    
+
     await pages[0]!.waitForTimeout(500);
-    
+
     // Check which player owns the cell
-    const owner = await pages[0]!.getByTestId(`grid-cell-${cell.row}-${cell.col}`)
+    const owner = await pages[0]!
+      .getByTestId(`grid-cell-${cell.row}-${cell.col}`)
       .getAttribute('data-marked-by');
-    
+
     return {
       winner: owner || 'none',
-      resolutionTime: Date.now() - startTime
+      resolutionTime: Date.now() - startTime,
     };
   }
 }
@@ -1210,68 +1279,83 @@ export class RealtimePerformanceMonitor {
     latency: number;
     eventType: string;
   }> = [];
-  
+
   constructor(private page: Page) {}
-  
+
   async startMonitoring(): Promise<void> {
     if (!this.page) throw new Error('Page not initialized');
     await this.page.evaluate(() => {
-      const windowWithMetrics = window as Window & { __performanceMetrics?: Array<{ timestamp: number; latency: number; eventType: string }> };
+      const windowWithMetrics = window as Window & {
+        __performanceMetrics?: Array<{
+          timestamp: number;
+          latency: number;
+          eventType: string;
+        }>;
+      };
       windowWithMetrics.__performanceMetrics = [];
-      
+
       // Intercept WebSocket messages
       const originalSend = WebSocket.prototype.send;
-      WebSocket.prototype.send = function(data) {
+      WebSocket.prototype.send = function (data) {
         const startTime = performance.now();
         const result = originalSend.call(this, data);
-        
+
         // Track send latency
         if (windowWithMetrics.__performanceMetrics) {
           windowWithMetrics.__performanceMetrics.push({
             timestamp: Date.now(),
             latency: performance.now() - startTime,
-            eventType: 'send'
+            eventType: 'send',
           });
         }
-        
+
         return result;
       };
     });
   }
-  
+
   async getMetrics(): Promise<typeof this.metrics> {
-    const metrics = await this.page.evaluate(() => 
-      (window as Window & { __performanceMetrics?: Array<{ timestamp: number; latency: number; eventType: string }> }).__performanceMetrics || []
+    const metrics = await this.page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __performanceMetrics?: Array<{
+              timestamp: number;
+              latency: number;
+              eventType: string;
+            }>;
+          }
+        ).__performanceMetrics || []
     );
     this.metrics = metrics;
     return this.metrics;
   }
-  
+
   getAverageLatency(): number {
     if (this.metrics.length === 0) return 0;
     const totalLatency = this.metrics.reduce((sum, m) => sum + m.latency, 0);
     return totalLatency / this.metrics.length;
   }
-  
+
   async getMetricsSummary(): Promise<{
     apiCalls: { count: number; p95Duration: number };
     renderUpdates: { count: number; p95Duration: number };
   }> {
     const metrics = await this.getMetrics();
-    
+
     const apiMetrics = metrics.filter(m => m.eventType === 'send');
     const apiLatencies = apiMetrics.map(m => m.latency).sort((a, b) => a - b);
     const p95Index = Math.floor(apiLatencies.length * 0.95);
-    
+
     return {
       apiCalls: {
         count: apiMetrics.length,
-        p95Duration: apiLatencies[p95Index] || 0
+        p95Duration: apiLatencies[p95Index] || 0,
       },
       renderUpdates: {
         count: 0, // Placeholder
-        p95Duration: 0 // Placeholder
-      }
+        p95Duration: 0, // Placeholder
+      },
     };
   }
 }

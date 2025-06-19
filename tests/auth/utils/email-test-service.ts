@@ -3,7 +3,7 @@
 
 /**
  * Email Testing Service Interface
- * 
+ *
  * Provides real email testing capabilities for verification flows.
  * Supports multiple email testing providers like MailHog, Testmail.app, etc.
  */
@@ -12,20 +12,23 @@ export interface EmailTestService {
   // Setup and teardown
   initialize(): Promise<void>;
   cleanup(): Promise<void>;
-  
+
   // Email management
   createTestEmailAddress(prefix?: string): Promise<string>;
   deleteTestEmailAddress(email: string): Promise<void>;
-  
+
   // Email retrieval and verification
   waitForEmail(email: string, options?: EmailWaitOptions): Promise<TestEmail>;
   getEmails(email: string, options?: EmailFilterOptions): Promise<TestEmail[]>;
   deleteAllEmails(email: string): Promise<void>;
-  
+
   // Email content parsing
   extractVerificationLink(email: TestEmail): string | null;
   extractResetLink(email: TestEmail): string | null;
-  extractCode(email: TestEmail, type: 'verification' | 'reset' | 'mfa'): string | null;
+  extractCode(
+    email: TestEmail,
+    type: 'verification' | 'reset' | 'mfa'
+  ): string | null;
 }
 
 export interface EmailWaitOptions {
@@ -103,7 +106,7 @@ interface MailHogResponse {
 
 /**
  * MailHog Email Testing Service Implementation
- * 
+ *
  * MailHog is a popular local SMTP testing tool
  */
 export class MailHogEmailService implements EmailTestService {
@@ -140,7 +143,7 @@ export class MailHogEmailService implements EmailTestService {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(7);
     const email = `${prefix}_${timestamp}_${randomId}@example.com`;
-    
+
     this.createdEmails.add(email);
     return email;
   }
@@ -150,16 +153,14 @@ export class MailHogEmailService implements EmailTestService {
     this.createdEmails.delete(email);
   }
 
-  async waitForEmail(email: string, options: EmailWaitOptions = {}): Promise<TestEmail> {
-    const {
-      timeout = 30000,
-      subject,
-      from,
-      retryInterval = 1000,
-    } = options;
+  async waitForEmail(
+    email: string,
+    options: EmailWaitOptions = {}
+  ): Promise<TestEmail> {
+    const { timeout = 30000, subject, from, retryInterval = 1000 } = options;
 
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       const emails = await this.getEmails(email, {
         limit: 10,
@@ -167,7 +168,7 @@ export class MailHogEmailService implements EmailTestService {
         from,
         unreadOnly: true,
       });
-      
+
       if (emails.length > 0) {
         const email = emails[0];
         if (!email) {
@@ -175,55 +176,67 @@ export class MailHogEmailService implements EmailTestService {
         }
         return email; // Return most recent
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, retryInterval));
     }
-    
+
     throw new Error(`No email received for ${email} within ${timeout}ms`);
   }
 
-  async getEmails(email: string, options: EmailFilterOptions = {}): Promise<TestEmail[]> {
+  async getEmails(
+    email: string,
+    options: EmailFilterOptions = {}
+  ): Promise<TestEmail[]> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/messages`);
       if (!response.ok) {
         throw new Error(`Failed to fetch emails: ${response.statusText}`);
       }
-      
-      const data = await response.json() as MailHogResponse;
+
+      const data = (await response.json()) as MailHogResponse;
       const messages = data.messages || [];
-      
+
       // Filter by recipient
-      let filtered = messages.filter((msg: MailHogMessage) => 
-        msg.To && msg.To.some((to) => to.Mailbox && 
-          `${to.Mailbox}@${to.Domain}`.toLowerCase() === email.toLowerCase())
+      let filtered = messages.filter(
+        (msg: MailHogMessage) =>
+          msg.To &&
+          msg.To.some(
+            to =>
+              to.Mailbox &&
+              `${to.Mailbox}@${to.Domain}`.toLowerCase() === email.toLowerCase()
+          )
       );
-      
+
       // Apply additional filters
       if (options.subject) {
-        const subjectPattern = typeof options.subject === 'string' 
-          ? new RegExp(options.subject, 'i')
-          : options.subject;
-        filtered = filtered.filter((msg: MailHogMessage) => 
+        const subjectPattern =
+          typeof options.subject === 'string'
+            ? new RegExp(options.subject, 'i')
+            : options.subject;
+        filtered = filtered.filter((msg: MailHogMessage) =>
           msg.Content?.Headers?.Subject?.[0]?.match(subjectPattern)
         );
       }
-      
+
       if (options.from) {
-        const fromPattern = typeof options.from === 'string'
-          ? new RegExp(options.from, 'i')
-          : options.from;
-        filtered = filtered.filter((msg: MailHogMessage) =>
-          msg.From?.Mailbox && `${msg.From.Mailbox}@${msg.From.Domain}`.match(fromPattern)
+        const fromPattern =
+          typeof options.from === 'string'
+            ? new RegExp(options.from, 'i')
+            : options.from;
+        filtered = filtered.filter(
+          (msg: MailHogMessage) =>
+            msg.From?.Mailbox &&
+            `${msg.From.Mailbox}@${msg.From.Domain}`.match(fromPattern)
         );
       }
-      
+
       if (options.since) {
         const sinceDate = options.since;
-        filtered = filtered.filter((msg: MailHogMessage) => 
-          new Date(msg.Created) >= sinceDate
+        filtered = filtered.filter(
+          (msg: MailHogMessage) => new Date(msg.Created) >= sinceDate
         );
       }
-      
+
       // Convert to TestEmail format
       const testEmails: TestEmail[] = filtered.map((msg: MailHogMessage) => ({
         id: msg.ID,
@@ -231,19 +244,23 @@ export class MailHogEmailService implements EmailTestService {
         from: msg.From ? `${msg.From.Mailbox}@${msg.From.Domain}` : '',
         subject: msg.Content?.Headers?.Subject?.[0] || '',
         body: msg.Content?.Body || '',
-        html: msg.MIME?.Parts?.find((part) => part.Headers?.['Content-Type']?.[0]?.includes('text/html'))?.Body,
+        html: msg.MIME?.Parts?.find(part =>
+          part.Headers?.['Content-Type']?.[0]?.includes('text/html')
+        )?.Body,
         receivedAt: new Date(msg.Created),
         isRead: false, // MailHog doesn't track read status
       }));
-      
+
       // Sort by received date (newest first)
-      testEmails.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
-      
+      testEmails.sort(
+        (a, b) => b.receivedAt.getTime() - a.receivedAt.getTime()
+      );
+
       // Apply limit
       if (options.limit) {
         return testEmails.slice(0, options.limit);
       }
-      
+
       return testEmails;
     } catch (error) {
       console.error('Failed to get emails from MailHog:', error);
@@ -257,7 +274,7 @@ export class MailHogEmailService implements EmailTestService {
       const response = await fetch(`${this.baseUrl}/api/v1/messages`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         console.warn(`Failed to delete emails: ${response.statusText}`);
       }
@@ -268,7 +285,7 @@ export class MailHogEmailService implements EmailTestService {
 
   extractVerificationLink(email: TestEmail): string | null {
     const content = email.html || email.body;
-    
+
     // Common patterns for verification links
     const patterns = [
       /href="([^"]*verify[^"]*)"/, // href="...verify..."
@@ -276,40 +293,43 @@ export class MailHogEmailService implements EmailTestService {
       /(https?:\/\/[^\s]+verify[^\s]*)/g, // https://...verify...
       /(https?:\/\/[^\s]+confirmation[^\s]*)/g, // https://...confirmation...
     ];
-    
+
     for (const pattern of patterns) {
       const match = content.match(pattern);
       if (match && match[1]) {
         return match[1];
       }
     }
-    
+
     return null;
   }
 
   extractResetLink(email: TestEmail): string | null {
     const content = email.html || email.body;
-    
+
     const patterns = [
-      /href="([^"]*reset[^"]*)"/, 
-      /href="([^"]*password[^"]*)"/, 
+      /href="([^"]*reset[^"]*)"/,
+      /href="([^"]*password[^"]*)"/,
       /(https?:\/\/[^\s]+reset[^\s]*)/g,
       /(https?:\/\/[^\s]+password[^\s]*)/g,
     ];
-    
+
     for (const pattern of patterns) {
       const match = content.match(pattern);
       if (match && match[1]) {
         return match[1];
       }
     }
-    
+
     return null;
   }
 
-  extractCode(email: TestEmail, type: 'verification' | 'reset' | 'mfa'): string | null {
+  extractCode(
+    email: TestEmail,
+    type: 'verification' | 'reset' | 'mfa'
+  ): string | null {
     const content = email.html || email.body;
-    
+
     // Pattern for common verification codes
     const patterns = {
       verification: [
@@ -327,16 +347,16 @@ export class MailHogEmailService implements EmailTestService {
         /totp[:\s]*([0-9]{6})/i,
       ],
     };
-    
+
     const typePatterns = patterns[type] || patterns.verification;
-    
+
     for (const pattern of typePatterns) {
       const match = content.match(pattern);
       if (match && match[1]) {
         return match[1];
       }
     }
-    
+
     return null;
   }
 }
@@ -361,7 +381,7 @@ export class MockEmailService implements EmailTestService {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(7);
     const email = `${prefix}_${timestamp}_${randomId}@example.com`;
-    
+
     this.createdEmails.add(email);
     this.emails.set(email, []);
     return email;
@@ -372,7 +392,10 @@ export class MockEmailService implements EmailTestService {
     this.createdEmails.delete(email);
   }
 
-  async waitForEmail(email: string, options: EmailWaitOptions = {}): Promise<TestEmail> {
+  async waitForEmail(
+    email: string,
+    options: EmailWaitOptions = {}
+  ): Promise<TestEmail> {
     // Mock immediate email delivery
     const mockEmail: TestEmail = {
       id: `mock-${Date.now()}`,
@@ -383,30 +406,34 @@ export class MockEmailService implements EmailTestService {
       receivedAt: new Date(),
       isRead: false,
     };
-    
+
     const emailList = this.emails.get(email) || [];
     emailList.unshift(mockEmail);
     this.emails.set(email, emailList);
-    
+
     return mockEmail;
   }
 
-  async getEmails(email: string, options: EmailFilterOptions = {}): Promise<TestEmail[]> {
+  async getEmails(
+    email: string,
+    options: EmailFilterOptions = {}
+  ): Promise<TestEmail[]> {
     const emailList = this.emails.get(email) || [];
-    
+
     let filtered = [...emailList];
-    
+
     if (options.subject) {
-      const subjectPattern = typeof options.subject === 'string'
-        ? new RegExp(options.subject, 'i')
-        : options.subject;
+      const subjectPattern =
+        typeof options.subject === 'string'
+          ? new RegExp(options.subject, 'i')
+          : options.subject;
       filtered = filtered.filter(e => e.subject.match(subjectPattern));
     }
-    
+
     if (options.limit) {
       filtered = filtered.slice(0, options.limit);
     }
-    
+
     return filtered;
   }
 
@@ -424,14 +451,17 @@ export class MockEmailService implements EmailTestService {
     return `http://localhost:3000/auth/reset-password?token=mock_reset_token_${Date.now()}`;
   }
 
-  extractCode(_email: TestEmail, type: 'verification' | 'reset' | 'mfa'): string | null {
+  extractCode(
+    _email: TestEmail,
+    type: 'verification' | 'reset' | 'mfa'
+  ): string | null {
     // Return mock codes based on type
     const codes = {
       verification: '123456',
       reset: 'ABC123',
       mfa: '654321',
     };
-    
+
     return codes[type] || '123456';
   }
 
@@ -459,7 +489,7 @@ export class EmailServiceFactory {
   static async create(): Promise<EmailTestService> {
     const useRealEmail = process.env.USE_REAL_EMAIL_TESTING === 'true';
     const mailhogUrl = process.env.MAILHOG_URL || 'http://localhost:8025';
-    
+
     if (useRealEmail) {
       const mailhogService = new MailHogEmailService(mailhogUrl);
       try {
@@ -467,10 +497,12 @@ export class EmailServiceFactory {
         console.log('Using MailHog email service for testing');
         return mailhogService;
       } catch {
-        console.warn('MailHog not available, falling back to mock email service');
+        console.warn(
+          'MailHog not available, falling back to mock email service'
+        );
       }
     }
-    
+
     const mockService = new MockEmailService();
     await mockService.initialize();
     // Using mock service
@@ -491,9 +523,9 @@ export class EmailTestHelpers {
       timeout,
       subject: /verify|confirmation/i,
     });
-    
+
     const verificationLink = emailService.extractVerificationLink(testEmail);
-    
+
     return { email: testEmail, verificationLink };
   }
 
@@ -506,9 +538,9 @@ export class EmailTestHelpers {
       timeout,
       subject: /reset|password/i,
     });
-    
+
     const resetLink = emailService.extractResetLink(testEmail);
-    
+
     return { email: testEmail, resetLink };
   }
 
@@ -521,9 +553,9 @@ export class EmailTestHelpers {
       timeout,
       subject: /authentication|2fa|mfa/i,
     });
-    
+
     const code = emailService.extractCode(testEmail, 'mfa');
-    
+
     return { email: testEmail, code };
   }
 }

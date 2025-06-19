@@ -5,7 +5,7 @@ type UserStats = Database['public']['Tables']['user_statistics']['Row'];
 
 /**
  * Badge Engine Tests
- * 
+ *
  * Tests the business logic for:
  * - Badge/achievement unlock conditions
  * - Progress tracking
@@ -21,7 +21,9 @@ interface BadgeDefinition {
   points: number;
   icon: string;
   condition: (stats: Partial<UserStats>) => boolean;
-  progress?: (stats: Partial<UserStats>) => { current: number; max: number } | null;
+  progress?: (
+    stats: Partial<UserStats>
+  ) => { current: number; max: number } | null;
 }
 
 // Badge definitions extracted from achievement.service.ts
@@ -33,7 +35,7 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'game_win',
     points: 50,
     icon: '🏆',
-    condition: (stats) => (stats.games_won || 0) > 0,
+    condition: stats => (stats.games_won || 0) > 0,
   },
   {
     id: 'speedrun_novice',
@@ -42,8 +44,12 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'speedrun',
     points: 75,
     icon: '⚡',
-    condition: (stats) => (stats.games_won || 0) > 0 && (stats.fastest_win || Infinity) < 300,
-    progress: (stats) => stats.fastest_win && stats.fastest_win < 300 ? { current: 1, max: 1 } : null,
+    condition: stats =>
+      (stats.games_won || 0) > 0 && (stats.fastest_win || Infinity) < 300,
+    progress: stats =>
+      stats.fastest_win && stats.fastest_win < 300
+        ? { current: 1, max: 1 }
+        : null,
   },
   {
     id: 'speedrun_expert',
@@ -52,8 +58,12 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'speedrun',
     points: 150,
     icon: '🚀',
-    condition: (stats) => (stats.games_won || 0) > 0 && (stats.fastest_win || Infinity) < 120,
-    progress: (stats) => stats.fastest_win && stats.fastest_win < 120 ? { current: 1, max: 1 } : null,
+    condition: stats =>
+      (stats.games_won || 0) > 0 && (stats.fastest_win || Infinity) < 120,
+    progress: stats =>
+      stats.fastest_win && stats.fastest_win < 120
+        ? { current: 1, max: 1 }
+        : null,
   },
   {
     id: 'winning_streak_3',
@@ -62,8 +72,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'streak',
     points: 100,
     icon: '🔥',
-    condition: (stats) => (stats.longest_win_streak || 0) >= 3,
-    progress: (stats) => ({ current: stats.current_win_streak || 0, max: 3 }),
+    condition: stats => (stats.longest_win_streak || 0) >= 3,
+    progress: stats => ({ current: stats.current_win_streak || 0, max: 3 }),
   },
   {
     id: 'winning_streak_5',
@@ -72,8 +82,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'streak',
     points: 200,
     icon: '💪',
-    condition: (stats) => (stats.longest_win_streak || 0) >= 5,
-    progress: (stats) => ({ current: stats.current_win_streak || 0, max: 5 }),
+    condition: stats => (stats.longest_win_streak || 0) >= 5,
+    progress: stats => ({ current: stats.current_win_streak || 0, max: 5 }),
   },
   {
     id: 'games_played_10',
@@ -82,8 +92,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'milestone',
     points: 50,
     icon: '🎮',
-    condition: (stats) => (stats.total_games || 0) >= 10,
-    progress: (stats) => ({ current: stats.total_games || 0, max: 10 }),
+    condition: stats => (stats.total_games || 0) >= 10,
+    progress: stats => ({ current: stats.total_games || 0, max: 10 }),
   },
   {
     id: 'games_played_50',
@@ -92,8 +102,8 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     type: 'milestone',
     points: 150,
     icon: '🎯',
-    condition: (stats) => (stats.total_games || 0) >= 50,
-    progress: (stats) => ({ current: stats.total_games || 0, max: 50 }),
+    condition: stats => (stats.total_games || 0) >= 50,
+    progress: stats => ({ current: stats.total_games || 0, max: 50 }),
   },
 ];
 
@@ -106,7 +116,7 @@ const SPECIAL_BADGES: BadgeDefinition[] = [
     type: 'special',
     points: 300,
     icon: '✨',
-    condition: (_stats) => false, // Would need game-specific data
+    condition: _stats => false, // Would need game-specific data
   },
   {
     id: 'social_butterfly',
@@ -115,7 +125,7 @@ const SPECIAL_BADGES: BadgeDefinition[] = [
     type: 'social',
     points: 100,
     icon: '🦋',
-    condition: (_stats) => false, // Would need social interaction data
+    condition: _stats => false, // Would need social interaction data
   },
   {
     id: 'night_owl',
@@ -124,7 +134,7 @@ const SPECIAL_BADGES: BadgeDefinition[] = [
     type: 'special',
     points: 75,
     icon: '🦉',
-    condition: (_stats) => false, // Would need timestamp data
+    condition: _stats => false, // Would need timestamp data
   },
 ];
 
@@ -157,7 +167,10 @@ function categorizeBadges(
   unlockedBadges: Set<string>,
   stats: Partial<UserStats>
 ) {
-  const categories: Record<string, { name: string; icon: string; badges: any[] }> = {
+  const categories: Record<
+    string,
+    { name: string; icon: string; badges: any[] }
+  > = {
     game_win: { name: 'Victories', icon: '🏆', badges: [] },
     speedrun: { name: 'Speed Runs', icon: '⚡', badges: [] },
     streak: { name: 'Win Streaks', icon: '🔥', badges: [] },
@@ -188,9 +201,9 @@ describe('Badge Engine', () => {
     it('should unlock first win badge', () => {
       const stats: Partial<UserStats> = { games_won: 1 };
       const unlocked = new Set<string>();
-      
+
       const newUnlocks = checkBadgeUnlocks(stats, unlocked);
-      
+
       expect(newUnlocks).toContain('First Victory');
       expect(newUnlocks).toHaveLength(1);
     });
@@ -198,9 +211,9 @@ describe('Badge Engine', () => {
     it('should not unlock already unlocked badges', () => {
       const stats: Partial<UserStats> = { games_won: 5 };
       const unlocked = new Set(['First Victory']);
-      
+
       const newUnlocks = checkBadgeUnlocks(stats, unlocked);
-      
+
       expect(newUnlocks).not.toContain('First Victory');
     });
 
@@ -211,9 +224,9 @@ describe('Badge Engine', () => {
         fastest_win: 250, // Under 5 minutes
       };
       const unlocked = new Set<string>();
-      
+
       const newUnlocks = checkBadgeUnlocks(stats, unlocked);
-      
+
       expect(newUnlocks).toContain('First Victory');
       expect(newUnlocks).toContain('Regular Player');
       expect(newUnlocks).toContain('Speedrun Novice');
@@ -234,9 +247,9 @@ describe('Badge Engine', () => {
       testCases.forEach(({ streak, expected }) => {
         const stats: Partial<UserStats> = { longest_win_streak: streak };
         const unlocked = new Set<string>();
-        
+
         const newUnlocks = checkBadgeUnlocks(stats, unlocked);
-        
+
         expect(newUnlocks).toEqual(expected);
       });
     });
@@ -246,19 +259,25 @@ describe('Badge Engine', () => {
         { time: 600, expected: ['First Victory'] }, // 10 minutes - only first victory
         { time: 299, expected: ['First Victory', 'Speedrun Novice'] }, // Just under 5 minutes
         { time: 150, expected: ['First Victory', 'Speedrun Novice'] }, // 2.5 minutes
-        { time: 119, expected: ['First Victory', 'Speedrun Novice', 'Speedrun Expert'] }, // Just under 2 minutes
-        { time: 60, expected: ['First Victory', 'Speedrun Novice', 'Speedrun Expert'] }, // 1 minute
+        {
+          time: 119,
+          expected: ['First Victory', 'Speedrun Novice', 'Speedrun Expert'],
+        }, // Just under 2 minutes
+        {
+          time: 60,
+          expected: ['First Victory', 'Speedrun Novice', 'Speedrun Expert'],
+        }, // 1 minute
       ];
 
       testCases.forEach(({ time, expected }) => {
-        const stats: Partial<UserStats> = { 
-          fastest_win: time, 
-          games_won: 1 // Need at least one win for speedrun badges
+        const stats: Partial<UserStats> = {
+          fastest_win: time,
+          games_won: 1, // Need at least one win for speedrun badges
         };
         const unlocked = new Set<string>();
-        
+
         const newUnlocks = checkBadgeUnlocks(stats, unlocked);
-        
+
         expect(newUnlocks).toEqual(expected);
       });
     });
@@ -271,9 +290,9 @@ describe('Badge Engine', () => {
         longest_win_streak: null,
       };
       const unlocked = new Set<string>();
-      
+
       const newUnlocks = checkBadgeUnlocks(stats, unlocked);
-      
+
       expect(newUnlocks).toHaveLength(0);
     });
   });
@@ -281,36 +300,84 @@ describe('Badge Engine', () => {
   describe('Badge Progress Tracking', () => {
     it('should track milestone progress', () => {
       const testCases = [
-        { games: 0, badgeId: 'games_played_10', expected: { current: 0, max: 10 } },
-        { games: 5, badgeId: 'games_played_10', expected: { current: 5, max: 10 } },
-        { games: 10, badgeId: 'games_played_10', expected: { current: 10, max: 10 } },
-        { games: 15, badgeId: 'games_played_10', expected: { current: 15, max: 10 } },
-        { games: 25, badgeId: 'games_played_50', expected: { current: 25, max: 50 } },
-        { games: 50, badgeId: 'games_played_50', expected: { current: 50, max: 50 } },
+        {
+          games: 0,
+          badgeId: 'games_played_10',
+          expected: { current: 0, max: 10 },
+        },
+        {
+          games: 5,
+          badgeId: 'games_played_10',
+          expected: { current: 5, max: 10 },
+        },
+        {
+          games: 10,
+          badgeId: 'games_played_10',
+          expected: { current: 10, max: 10 },
+        },
+        {
+          games: 15,
+          badgeId: 'games_played_10',
+          expected: { current: 15, max: 10 },
+        },
+        {
+          games: 25,
+          badgeId: 'games_played_50',
+          expected: { current: 25, max: 50 },
+        },
+        {
+          games: 50,
+          badgeId: 'games_played_50',
+          expected: { current: 50, max: 50 },
+        },
       ];
 
       testCases.forEach(({ games, badgeId, expected }) => {
         const stats: Partial<UserStats> = { total_games: games };
         const progress = getBadgeProgress(badgeId, stats);
-        
+
         expect(progress).toEqual(expected);
       });
     });
 
     it('should track streak progress', () => {
       const testCases = [
-        { streak: 0, badgeId: 'winning_streak_3', expected: { current: 0, max: 3 } },
-        { streak: 2, badgeId: 'winning_streak_3', expected: { current: 2, max: 3 } },
-        { streak: 3, badgeId: 'winning_streak_3', expected: { current: 3, max: 3 } },
-        { streak: 4, badgeId: 'winning_streak_3', expected: { current: 4, max: 3 } },
-        { streak: 4, badgeId: 'winning_streak_5', expected: { current: 4, max: 5 } },
-        { streak: 5, badgeId: 'winning_streak_5', expected: { current: 5, max: 5 } },
+        {
+          streak: 0,
+          badgeId: 'winning_streak_3',
+          expected: { current: 0, max: 3 },
+        },
+        {
+          streak: 2,
+          badgeId: 'winning_streak_3',
+          expected: { current: 2, max: 3 },
+        },
+        {
+          streak: 3,
+          badgeId: 'winning_streak_3',
+          expected: { current: 3, max: 3 },
+        },
+        {
+          streak: 4,
+          badgeId: 'winning_streak_3',
+          expected: { current: 4, max: 3 },
+        },
+        {
+          streak: 4,
+          badgeId: 'winning_streak_5',
+          expected: { current: 4, max: 5 },
+        },
+        {
+          streak: 5,
+          badgeId: 'winning_streak_5',
+          expected: { current: 5, max: 5 },
+        },
       ];
 
       testCases.forEach(({ streak, badgeId, expected }) => {
         const stats: Partial<UserStats> = { current_win_streak: streak };
         const progress = getBadgeProgress(badgeId, stats);
-        
+
         expect(progress).toEqual(expected);
       });
     });
@@ -318,15 +385,23 @@ describe('Badge Engine', () => {
     it('should track speedrun progress', () => {
       const testCases = [
         { time: 350, badgeId: 'speedrun_novice', expected: null }, // Not achieved
-        { time: 250, badgeId: 'speedrun_novice', expected: { current: 1, max: 1 } }, // Achieved
+        {
+          time: 250,
+          badgeId: 'speedrun_novice',
+          expected: { current: 1, max: 1 },
+        }, // Achieved
         { time: 150, badgeId: 'speedrun_expert', expected: null }, // Not achieved
-        { time: 100, badgeId: 'speedrun_expert', expected: { current: 1, max: 1 } }, // Achieved
+        {
+          time: 100,
+          badgeId: 'speedrun_expert',
+          expected: { current: 1, max: 1 },
+        }, // Achieved
       ];
 
       testCases.forEach(({ time, badgeId, expected }) => {
         const stats: Partial<UserStats> = { fastest_win: time };
         const progress = getBadgeProgress(badgeId, stats);
-        
+
         expect(progress).toEqual(expected);
       });
     });
@@ -334,14 +409,14 @@ describe('Badge Engine', () => {
     it('should return null for badges without progress tracking', () => {
       const stats: Partial<UserStats> = { games_won: 1 };
       const progress = getBadgeProgress('first_win', stats);
-      
+
       expect(progress).toBeNull();
     });
 
     it('should return null for unknown badge IDs', () => {
       const stats: Partial<UserStats> = { total_games: 5 };
       const progress = getBadgeProgress('unknown_badge', stats);
-      
+
       expect(progress).toBeNull();
     });
   });
@@ -359,7 +434,7 @@ describe('Badge Engine', () => {
       const categories = categorizeBadges(allBadges, unlockedBadges, stats);
 
       expect(categories).toHaveLength(6); // All 6 categories with badges
-      
+
       const victoriesCategory = categories.find(c => c.name === 'Victories');
       expect(victoriesCategory).toBeDefined();
       expect(victoriesCategory?.badges).toHaveLength(1);
@@ -379,11 +454,17 @@ describe('Badge Engine', () => {
       };
       const unlockedBadges = new Set<string>();
 
-      const categories = categorizeBadges(BADGE_DEFINITIONS, unlockedBadges, stats);
+      const categories = categorizeBadges(
+        BADGE_DEFINITIONS,
+        unlockedBadges,
+        stats
+      );
 
       const milestonesCategory = categories.find(c => c.name === 'Milestones');
-      const dedicatedGamerBadge = milestonesCategory?.badges.find(b => b.id === 'games_played_50');
-      
+      const dedicatedGamerBadge = milestonesCategory?.badges.find(
+        b => b.id === 'games_played_50'
+      );
+
       expect(dedicatedGamerBadge?.progress).toEqual({ current: 35, max: 50 });
     });
 
@@ -450,23 +531,29 @@ describe('Badge Engine', () => {
     });
 
     it('should calculate badge points correctly', () => {
-      const totalPoints = BADGE_DEFINITIONS.reduce((sum, badge) => sum + badge.points, 0);
-      
+      const totalPoints = BADGE_DEFINITIONS.reduce(
+        (sum, badge) => sum + badge.points,
+        0
+      );
+
       expect(totalPoints).toBe(775); // Sum of all defined badge points
     });
 
     it('should have unique badge IDs', () => {
       const ids = BADGE_DEFINITIONS.map(b => b.id);
       const uniqueIds = new Set(ids);
-      
+
       expect(uniqueIds.size).toBe(ids.length);
     });
 
     it('should have consistent icon usage', () => {
-      const iconCounts = BADGE_DEFINITIONS.reduce((acc, badge) => {
-        acc[badge.icon] = (acc[badge.icon] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const iconCounts = BADGE_DEFINITIONS.reduce(
+        (acc, badge) => {
+          acc[badge.icon] = (acc[badge.icon] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       // Each icon should be used only once
       Object.values(iconCounts).forEach(count => {
@@ -490,7 +577,7 @@ describe('Badge Engine', () => {
       }));
 
       const startTime = performance.now();
-      
+
       users.forEach(user => {
         checkBadgeUnlocks(user.stats, user.unlockedBadges);
       });

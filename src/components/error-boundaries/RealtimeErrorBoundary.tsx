@@ -69,7 +69,7 @@ export class RealtimeErrorBoundary extends Component<Props, State> {
       const { isNetworkError } = this.state;
 
       return (
-        <div 
+        <div
           className="error-boundary flex min-h-[300px] flex-col items-center justify-center space-y-4 p-6"
           data-testid="error-boundary"
         >

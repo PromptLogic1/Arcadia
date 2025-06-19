@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Route , Page} from '@playwright/test';
+import type { Route, Page } from '@playwright/test';
 import type {
   RealTimeEvent,
   WebSocketMessage,
@@ -8,14 +8,20 @@ import type {
   ConcurrentTestResult,
   UserScenario,
 } from './types';
-import type { TestWindow, SupabaseRealtimeChannel, SupabaseRealtimeClient, EventCallback } from '../../types/test-types';
+import type {
+  TestWindow,
+  SupabaseRealtimeChannel,
+  SupabaseRealtimeClient,
+  EventCallback,
+} from '../../types/test-types';
 import { waitForNetworkIdle } from '../../helpers/test-utils';
 
 // WebSocket connection testing utilities
 export class RealtimeTestManager {
   private events: RealTimeEvent[] = [];
   private connections: Map<string, WebSocket> = new Map();
-  private messageHandlers: Map<string, Array<(event: RealTimeEvent) => void>> = new Map();
+  private messageHandlers: Map<string, Array<(event: RealTimeEvent) => void>> =
+    new Map();
 
   async setupRealtimeConnection(
     page: Page,
@@ -28,27 +34,35 @@ export class RealtimeTestManager {
     }
   ): Promise<void> {
     // Inject WebSocket testing utilities into the page
-    await page.evaluate((testConfig) => {
+    await page.evaluate(testConfig => {
       // Store test configuration
       interface RealtimeWindowExtensions {
         __realtimeTestConfig?: WebSocketTestConfig;
         __realtimeEvents?: RealTimeEvent[];
-        __realtimeConnections?: Map<string, {
-          handlers: Map<string, Array<(event: RealTimeEvent) => void>>;
-          subscribed: boolean;
-        }>;
+        __realtimeConnections?: Map<
+          string,
+          {
+            handlers: Map<string, Array<(event: RealTimeEvent) => void>>;
+            subscribed: boolean;
+          }
+        >;
         __mockRealtime?: unknown;
         supabase?: { realtime?: unknown };
       }
-      (window as Window & RealtimeWindowExtensions).__realtimeTestConfig = testConfig;
+      (window as Window & RealtimeWindowExtensions).__realtimeTestConfig =
+        testConfig;
       (window as Window & RealtimeWindowExtensions).__realtimeEvents = [];
-      (window as Window & RealtimeWindowExtensions).__realtimeConnections = new Map();
-      
+      (window as Window & RealtimeWindowExtensions).__realtimeConnections =
+        new Map();
+
       // Mock Supabase realtime client
       const mockRealtimeClient: SupabaseRealtimeClient = {
         channel: (channelName: string): SupabaseRealtimeChannel => {
-          const channelHandlers: Map<string, Array<(event: RealTimeEvent) => void>> = new Map();
-          
+          const channelHandlers: Map<
+            string,
+            Array<(event: RealTimeEvent) => void>
+          > = new Map();
+
           const channel: SupabaseRealtimeChannel = {
             on: (event: string, handler: (event: RealTimeEvent) => void) => {
               if (!channelHandlers.has(event)) {
@@ -59,21 +73,27 @@ export class RealtimeTestManager {
             },
             subscribe: (callback?: (status: string, err?: Error) => void) => {
               // Store channel for testing
-              (window as Window & RealtimeWindowExtensions).__realtimeConnections?.set(channelName, {
+              (
+                window as Window & RealtimeWindowExtensions
+              ).__realtimeConnections?.set(channelName, {
                 handlers: channelHandlers,
                 subscribed: true,
               });
-              
+
               if (callback) callback('SUBSCRIBED');
               return channel;
             },
             unsubscribe: () => {
-              (window as Window & RealtimeWindowExtensions).__realtimeConnections?.delete(channelName);
+              (
+                window as Window & RealtimeWindowExtensions
+              ).__realtimeConnections?.delete(channelName);
               return channel;
             },
             send: (message: unknown) => {
               // Simulate message sending
-              (window as Window & RealtimeWindowExtensions).__realtimeEvents?.push({
+              (
+                window as Window & RealtimeWindowExtensions
+              ).__realtimeEvents?.push({
                 eventType: 'INSERT',
                 schema: 'public',
                 table: 'discussions',
@@ -84,7 +104,7 @@ export class RealtimeTestManager {
               } as RealTimeEvent);
             },
           };
-          
+
           return channel;
         },
       };
@@ -104,18 +124,21 @@ export class RealtimeTestManager {
     page: Page,
     event: RealTimeEvent<T>
   ): Promise<void> {
-    await page.evaluate((eventData) => {
+    await page.evaluate(eventData => {
       interface RealtimeWindowExtensions {
         __realtimeEvents?: RealTimeEvent[];
-        __realtimeConnections?: Map<string, {
-          handlers: Map<string, Array<(event: RealTimeEvent) => void>>;
-          subscribed: boolean;
-        }>;
+        __realtimeConnections?: Map<
+          string,
+          {
+            handlers: Map<string, Array<(event: RealTimeEvent) => void>>;
+            subscribed: boolean;
+          }
+        >;
       }
       const win = window as Window & RealtimeWindowExtensions;
       const connections = win.__realtimeConnections;
       const events = win.__realtimeEvents;
-      
+
       // Add event to history
       if (events) {
         events.push({
@@ -126,10 +149,12 @@ export class RealtimeTestManager {
 
       // Trigger handlers for all matching channels
       if (connections) {
-        for (const [channelName, connection] of Array.from(connections.entries())) {
+        for (const [channelName, connection] of Array.from(
+          connections.entries()
+        )) {
           if (connection.subscribed && connection.handlers) {
             const handlers = connection.handlers.get(eventData.eventType) || [];
-            handlers.forEach((handler) => {
+            handlers.forEach(handler => {
               try {
                 handler(eventData);
               } catch (error) {
@@ -159,13 +184,16 @@ export class RealtimeTestManager {
       { eventType, timeoutMs: timeout },
       { timeout }
     );
-    
+
     const value = await result.jsonValue();
     return value as RealTimeEvent[];
   }
 
-  async getRealtimeEvents(page: Page, filterType?: string): Promise<RealTimeEvent[]> {
-    return page.evaluate((type) => {
+  async getRealtimeEvents(
+    page: Page,
+    filterType?: string
+  ): Promise<RealTimeEvent[]> {
+    return page.evaluate(type => {
       const events = (window as TestWindow).__realtimeEvents || [];
       if (type) {
         return events.filter((e: unknown) => {
@@ -183,7 +211,8 @@ export class RealtimeTestManager {
         __realtimeEvents?: RealTimeEvent[];
         __realtimeConnections?: Map<string, unknown>;
       }
-      const connections = (window as Window & RealtimeWindowExtensions).__realtimeConnections;
+      const connections = (window as Window & RealtimeWindowExtensions)
+        .__realtimeConnections;
       if (connections) {
         connections.clear();
       }
@@ -207,11 +236,17 @@ export async function testMultiTabRealtime(
   syncTime: number;
 }> {
   const realtimeManager = new RealtimeTestManager();
-  
+
   // Setup realtime on both pages
   await Promise.all([
-    realtimeManager.setupRealtimeConnection(page1, `discussion:${operation.discussionId}`),
-    realtimeManager.setupRealtimeConnection(page2, `discussion:${operation.discussionId}`),
+    realtimeManager.setupRealtimeConnection(
+      page1,
+      `discussion:${operation.discussionId}`
+    ),
+    realtimeManager.setupRealtimeConnection(
+      page2,
+      `discussion:${operation.discussionId}`
+    ),
   ]);
 
   // Navigate both pages to the discussion
@@ -220,24 +255,26 @@ export async function testMultiTabRealtime(
     page2.goto(`/community/discussions/${operation.discussionId}`),
   ]);
 
-  await Promise.all([
-    waitForNetworkIdle(page1),
-    waitForNetworkIdle(page2),
-  ]);
+  await Promise.all([waitForNetworkIdle(page1), waitForNetworkIdle(page2)]);
 
   const startTime = Date.now();
 
   // Perform operation on page1
   switch (operation.type) {
     case 'comment':
-      await page1.getByPlaceholder('What are your thoughts on this discussion?').fill(String(operation.data.content));
+      await page1
+        .getByPlaceholder('What are your thoughts on this discussion?')
+        .fill(String(operation.data.content));
       await page1.getByRole('button', { name: /post comment/i }).click();
       break;
-      
+
     case 'upvote':
-      await page1.getByRole('button', { name: /upvote/i }).first().click();
+      await page1
+        .getByRole('button', { name: /upvote/i })
+        .first()
+        .click();
       break;
-      
+
     case 'discussion_edit':
       await page1.getByRole('button', { name: /edit/i }).click();
       await page1.getByLabel('Content').fill(String(operation.data.content));
@@ -246,16 +283,17 @@ export async function testMultiTabRealtime(
   }
 
   // Wait for real-time synchronization
-  await Promise.all([
-    waitForNetworkIdle(page1),
-    waitForNetworkIdle(page2),
-  ]);
+  await Promise.all([waitForNetworkIdle(page1), waitForNetworkIdle(page2)]);
 
   // Verify content appears on page2
   if (operation.type === 'comment') {
-    await expect(page2.getByText(String(operation.data.content))).toBeVisible({ timeout: 5000 });
+    await expect(page2.getByText(String(operation.data.content))).toBeVisible({
+      timeout: 5000,
+    });
   } else if (operation.type === 'discussion_edit') {
-    await expect(page2.getByText(String(operation.data.content))).toBeVisible({ timeout: 5000 });
+    await expect(page2.getByText(String(operation.data.content))).toBeVisible({
+      timeout: 5000,
+    });
     await expect(page2.getByText('(edited)')).toBeVisible();
   }
 
@@ -338,7 +376,7 @@ export async function testRaceConditions(
   });
 
   const operationResults = await Promise.allSettled(promises);
-  
+
   operationResults.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       results.push(result.value);
@@ -346,7 +384,10 @@ export async function testRaceConditions(
       results.push({
         index,
         success: false,
-        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        error:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
         expectedOutcome: operations[index]?.expectedOutcome || 'unknown',
         timestamp: Date.now() - startTime,
       });
@@ -354,20 +395,26 @@ export async function testRaceConditions(
   });
 
   // Analyze race conditions
-  const conflicts = results.filter(r => r.expectedOutcome === 'conflict' && !r.success);
-  const duplicatePrevention = results.filter(r => r.expectedOutcome === 'duplicate_prevention' && !r.success);
-  
-  const raceConditionsDetected = conflicts.length > 0 || duplicatePrevention.length > 0;
-  
+  const conflicts = results.filter(
+    r => r.expectedOutcome === 'conflict' && !r.success
+  );
+  const duplicatePrevention = results.filter(
+    r => r.expectedOutcome === 'duplicate_prevention' && !r.success
+  );
+
+  const raceConditionsDetected =
+    conflicts.length > 0 || duplicatePrevention.length > 0;
+
   // Determine conflict resolution strategy
-  let conflictResolution: 'first_wins' | 'last_wins' | 'merge' | 'error' = 'error';
+  let conflictResolution: 'first_wins' | 'last_wins' | 'merge' | 'error' =
+    'error';
   const successfulOperations = results.filter(r => r.success);
-  
+
   if (successfulOperations.length === 1) {
     const winner = successfulOperations[0];
     const earliestTimestamp = Math.min(...results.map(r => r.timestamp));
     const latestTimestamp = Math.max(...results.map(r => r.timestamp));
-    
+
     if (winner && winner.timestamp === earliestTimestamp) {
       conflictResolution = 'first_wins';
     } else if (winner && winner.timestamp === latestTimestamp) {
@@ -404,15 +451,19 @@ export async function testNetworkResilience(
     case 'offline': {
       // Simulate offline mode
       await page.context().setOffline(true);
-      
+
       // Try to perform operations while offline
       try {
-        await page.getByPlaceholder('What are your thoughts on this discussion?').fill('Offline comment');
+        await page
+          .getByPlaceholder('What are your thoughts on this discussion?')
+          .fill('Offline comment');
         await page.getByRole('button', { name: /post comment/i }).click();
         operationsQueued++;
-        
+
         // Verify offline indicator
-        await expect(page.getByText(/offline|no connection/i)).toBeVisible({ timeout: 2000 });
+        await expect(page.getByText(/offline|no connection/i)).toBeVisible({
+          timeout: 2000,
+        });
       } catch (error) {
         // Expected to fail or queue
       }
@@ -420,10 +471,12 @@ export async function testNetworkResilience(
       // Go back online
       const offlineReconnectStart = Date.now();
       await page.context().setOffline(false);
-      
+
       // Wait for reconnection and operation completion
       try {
-        await expect(page.getByText('Offline comment')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Offline comment')).toBeVisible({
+          timeout: 10000,
+        });
         operationsCompleted++;
         reconnectionTime = Date.now() - offlineReconnectStart;
       } catch (error) {
@@ -441,12 +494,16 @@ export async function testNetworkResilience(
 
       // Perform operations with slow connection
       const slowStart = Date.now();
-      await page.getByPlaceholder('What are your thoughts on this discussion?').fill('Slow connection comment');
+      await page
+        .getByPlaceholder('What are your thoughts on this discussion?')
+        .fill('Slow connection comment');
       await page.getByRole('button', { name: /post comment/i }).click();
       operationsQueued++;
 
       try {
-        await expect(page.getByText('Slow connection comment')).toBeVisible({ timeout: 15000 });
+        await expect(page.getByText('Slow connection comment')).toBeVisible({
+          timeout: 15000,
+        });
         operationsCompleted++;
       } catch (error) {
         // Timeout handling
@@ -468,13 +525,17 @@ export async function testNetworkResilience(
       // Try multiple operations during intermittent connection
       for (let i = 0; i < 3; i++) {
         try {
-          await page.getByPlaceholder('What are your thoughts on this discussion?').fill(`Intermittent comment ${i + 1}`);
+          await page
+            .getByPlaceholder('What are your thoughts on this discussion?')
+            .fill(`Intermittent comment ${i + 1}`);
           await page.getByRole('button', { name: /post comment/i }).click();
           operationsQueued++;
-          
+
           await page.waitForTimeout(2000);
-          
-          if (await page.getByText(`Intermittent comment ${i + 1}`).isVisible()) {
+
+          if (
+            await page.getByText(`Intermittent comment ${i + 1}`).isVisible()
+          ) {
             operationsCompleted++;
           }
         } catch (error) {
@@ -491,13 +552,15 @@ export async function testNetworkResilience(
       // Test automatic reconnection
       await page.context().setOffline(true);
       await page.waitForTimeout(5000); // Stay offline for 5 seconds
-      
+
       const networkReconnectStart = Date.now();
       await page.context().setOffline(false);
-      
+
       // Wait for reconnection indicator
       try {
-        await expect(page.getByText(/connected|online/i)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(/connected|online/i)).toBeVisible({
+          timeout: 10000,
+        });
         reconnectionTime = Date.now() - networkReconnectStart;
       } catch (error) {
         // No reconnection indicator found
@@ -507,7 +570,8 @@ export async function testNetworkResilience(
   }
 
   // Check data integrity by comparing with expected state
-  const dataIntegrity = operationsCompleted === operationsQueued || operationsCompleted > 0;
+  const dataIntegrity =
+    operationsCompleted === operationsQueued || operationsCompleted > 0;
 
   return {
     operationsQueued,
@@ -535,14 +599,15 @@ export async function validateWebSocketMessages(
   const errors: string[] = [];
 
   // Get all captured WebSocket messages
-  const messages = await page.evaluate(() => {
+  const messages = (await page.evaluate(() => {
     return (window as TestWindow).__realtimeEvents || [];
-  }) as RealTimeEvent[];
+  })) as RealTimeEvent[];
 
   for (const expectedMsg of expectedMessages) {
-    const matchingMessages = messages.filter((msg) => 
-      msg.eventType === expectedMsg.eventType && 
-      msg.table === expectedMsg.table
+    const matchingMessages = messages.filter(
+      msg =>
+        msg.eventType === expectedMsg.eventType &&
+        msg.table === expectedMsg.table
     );
 
     for (const message of matchingMessages) {
@@ -551,11 +616,15 @@ export async function validateWebSocketMessages(
           validMessages++;
         } else {
           invalidMessages++;
-          errors.push(`Invalid message payload for ${expectedMsg.eventType} on ${expectedMsg.table}`);
+          errors.push(
+            `Invalid message payload for ${expectedMsg.eventType} on ${expectedMsg.table}`
+          );
         }
       } catch (error) {
         invalidMessages++;
-        errors.push(`Validation error: ${error instanceof Error ? error.message : String(error)}`);
+        errors.push(
+          `Validation error: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }
@@ -585,7 +654,9 @@ export async function testOptimisticUpdates(
 
   switch (operation) {
     case 'upvote': {
-      const upvoteButton = page.getByRole('button', { name: /upvote/i }).first();
+      const upvoteButton = page
+        .getByRole('button', { name: /upvote/i })
+        .first();
       const initialText = await upvoteButton.textContent();
       const initialCount = parseInt(initialText?.match(/\d+/)?.[0] || '0');
 
@@ -593,7 +664,9 @@ export async function testOptimisticUpdates(
 
       // Check for optimistic update (immediate)
       try {
-        await expect(upvoteButton).toContainText(String(initialCount + 1), { timeout: 500 });
+        await expect(upvoteButton).toContainText(String(initialCount + 1), {
+          timeout: 500,
+        });
         optimisticUpdateTime = Date.now() - startTime;
       } catch (error) {
         // No optimistic update
@@ -614,7 +687,9 @@ export async function testOptimisticUpdates(
 
     case 'comment': {
       const content = String(data.content || '');
-      await page.getByPlaceholder('What are your thoughts on this discussion?').fill(content);
+      await page
+        .getByPlaceholder('What are your thoughts on this discussion?')
+        .fill(content);
       await page.getByRole('button', { name: /post comment/i }).click();
 
       // Check for optimistic comment appearance

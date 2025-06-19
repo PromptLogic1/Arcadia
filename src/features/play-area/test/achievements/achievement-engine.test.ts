@@ -26,7 +26,12 @@ interface AchievementUnlockResult {
 }
 
 interface AchievementCondition {
-  type: 'game_win' | 'speedrun_time' | 'streak' | 'play_count' | 'score_threshold';
+  type:
+    | 'game_win'
+    | 'speedrun_time'
+    | 'streak'
+    | 'play_count'
+    | 'score_threshold';
   value: number;
   operator: '>' | '<' | '>=' | '<=' | '==' | '!=';
 }
@@ -68,7 +73,10 @@ export class AchievementEngine {
     }
   }
 
-  private checkGameplayCondition(achievement: Achievement, data: Record<string, any>): boolean {
+  private checkGameplayCondition(
+    achievement: Achievement,
+    data: Record<string, any>
+  ): boolean {
     switch (achievement.achievement_name) {
       case 'first_win':
         return data.game_won === true;
@@ -81,9 +89,12 @@ export class AchievementEngine {
     }
   }
 
-  private checkSpeedrunCondition(achievement: Achievement, data: Record<string, any>): boolean {
+  private checkSpeedrunCondition(
+    achievement: Achievement,
+    data: Record<string, any>
+  ): boolean {
     const timeSeconds = data.timeSeconds || Infinity;
-    
+
     switch (achievement.achievement_name) {
       case 'speedrun_master':
         return timeSeconds < 30;
@@ -96,27 +107,33 @@ export class AchievementEngine {
     }
   }
 
-  private checkStreakCondition(achievement: Achievement, data: Record<string, any>): boolean {
+  private checkStreakCondition(
+    achievement: Achievement,
+    data: Record<string, any>
+  ): boolean {
     const currentStreak = data.current_streak || 0;
     const metadata = achievement.metadata;
-    
+
     return currentStreak >= (metadata.max_progress || 1);
   }
 
   // Update achievement progress
-  updateProgress(achievementName: string, progress: number): AchievementProgress | null {
+  updateProgress(
+    achievementName: string,
+    progress: number
+  ): AchievementProgress | null {
     const achievement = this.achievements.get(achievementName);
     if (!achievement || achievement.unlocked_at) return null;
 
     const currentProgress = this.userProgress.get(achievementName) || {
       achievement_id: achievementName,
       progress: 0,
-      max_progress: achievement.metadata.max_progress
+      max_progress: achievement.metadata.max_progress,
     };
 
     const newProgress = Math.min(progress, currentProgress.max_progress);
     const updatedProgress = { ...currentProgress, progress: newProgress };
-    
+
     this.userProgress.set(achievementName, updatedProgress);
 
     // Check if achievement is now complete
@@ -136,7 +153,11 @@ export class AchievementEngine {
 
     // Prevent duplicate unlocks
     if (achievement.unlocked_at) {
-      return { success: false, error: 'Achievement already unlocked', isDuplicate: true };
+      return {
+        success: false,
+        error: 'Achievement already unlocked',
+        isDuplicate: true,
+      };
     }
 
     // Throttle rapid unlocks
@@ -157,7 +178,7 @@ export class AchievementEngine {
   processUnlockQueue(): Achievement[] {
     const processed = [...this.unlockQueue];
     this.unlockQueue = [];
-    
+
     processed.forEach(achievement => {
       if (!achievement.unlocked_at) {
         achievement.unlocked_at = new Date().toISOString();
@@ -180,12 +201,12 @@ export class AchievementEngine {
     // Validate based on achievement type
     if (achievement.achievement_type === 'speedrun') {
       const timeSeconds = data.timeSeconds;
-      
+
       // Check for impossible times
       if (timeSeconds < 10 && achievementName === 'speedrun_expert') {
         return { valid: false, reason: 'Time too fast to be legitimate' };
       }
-      
+
       // Check for missing session data
       if (!data.session_id || !data.game_completed) {
         return { valid: false, reason: 'Missing required game session data' };
@@ -221,7 +242,8 @@ export class AchievementEngine {
 
     unlocked.forEach(a => {
       byRarity[a.metadata.rarity] = (byRarity[a.metadata.rarity] || 0) + 1;
-      byCategory[a.metadata.category] = (byCategory[a.metadata.category] || 0) + 1;
+      byCategory[a.metadata.category] =
+        (byCategory[a.metadata.category] || 0) + 1;
     });
 
     return {
@@ -230,7 +252,7 @@ export class AchievementEngine {
       points: totalPoints,
       completion: (unlockedCount / achievements.length) * 100,
       byRarity,
-      byCategory
+      byCategory,
     };
   }
 
@@ -252,14 +274,17 @@ export class AchievementEngine {
     }
 
     if (filters.unlocked !== undefined) {
-      filtered = filtered.filter(a => (a.unlocked_at !== null) === filters.unlocked);
+      filtered = filtered.filter(
+        a => (a.unlocked_at !== null) === filters.unlocked
+      );
     }
 
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(a =>
-        a.achievement_name.toLowerCase().includes(searchLower) ||
-        (a.description ?? '').toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        a =>
+          a.achievement_name.toLowerCase().includes(searchLower) ||
+          (a.description ?? '').toLowerCase().includes(searchLower)
       );
     }
 
@@ -267,31 +292,48 @@ export class AchievementEngine {
   }
 
   // Sort achievements
-  sortAchievements(achievements: Achievement[], sortBy: 'points' | 'rarity' | 'progress' | 'name'): Achievement[] {
+  sortAchievements(
+    achievements: Achievement[],
+    sortBy: 'points' | 'rarity' | 'progress' | 'name'
+  ): Achievement[] {
     const sorted = [...achievements];
 
     switch (sortBy) {
       case 'points':
         return sorted.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-      
+
       case 'rarity':
-        const rarityOrder = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
-        return sorted.sort((a, b) => 
-          (rarityOrder[b.metadata.rarity] || 0) - (rarityOrder[a.metadata.rarity] || 0)
+        const rarityOrder = {
+          common: 0,
+          uncommon: 1,
+          rare: 2,
+          epic: 3,
+          legendary: 4,
+        };
+        return sorted.sort(
+          (a, b) =>
+            (rarityOrder[b.metadata.rarity] || 0) -
+            (rarityOrder[a.metadata.rarity] || 0)
         );
-      
+
       case 'progress':
         return sorted.sort((a, b) => {
           const progressA = this.userProgress.get(a.achievement_name);
           const progressB = this.userProgress.get(b.achievement_name);
-          const percentA = progressA ? progressA.progress / progressA.max_progress : 0;
-          const percentB = progressB ? progressB.progress / progressB.max_progress : 0;
+          const percentA = progressA
+            ? progressA.progress / progressA.max_progress
+            : 0;
+          const percentB = progressB
+            ? progressB.progress / progressB.max_progress
+            : 0;
           return percentB - percentA;
         });
-      
+
       case 'name':
-        return sorted.sort((a, b) => a.achievement_name.localeCompare(b.achievement_name));
-      
+        return sorted.sort((a, b) =>
+          a.achievement_name.localeCompare(b.achievement_name)
+        );
+
       default:
         return sorted;
     }
@@ -318,8 +360,8 @@ describe('Achievement Engine', () => {
           rarity: 'common',
           progress: 0,
           max_progress: 1,
-          icon: '🏆'
-        }
+          icon: '🏆',
+        },
       },
       {
         id: 'ach-2',
@@ -335,8 +377,8 @@ describe('Achievement Engine', () => {
           rarity: 'uncommon',
           progress: 0,
           max_progress: 3,
-          icon: '🔥'
-        }
+          icon: '🔥',
+        },
       },
       {
         id: 'ach-3',
@@ -352,8 +394,8 @@ describe('Achievement Engine', () => {
           rarity: 'rare',
           progress: 0,
           max_progress: 1,
-          icon: '⚡'
-        }
+          icon: '⚡',
+        },
       },
       {
         id: 'ach-4',
@@ -369,9 +411,9 @@ describe('Achievement Engine', () => {
           rarity: 'uncommon',
           progress: 0,
           max_progress: 1,
-          icon: '🚀'
-        }
-      }
+          icon: '🚀',
+        },
+      },
     ];
 
     engine = new AchievementEngine(mockAchievements);
@@ -381,7 +423,7 @@ describe('Achievement Engine', () => {
     test('should trigger first win achievement', () => {
       const shouldTrigger = engine.checkAchievementTrigger('first_win', {
         game_won: true,
-        game_completed: true
+        game_completed: true,
       });
       expect(shouldTrigger).toBe(true);
     });
@@ -389,7 +431,7 @@ describe('Achievement Engine', () => {
     test('should not trigger achievement with wrong conditions', () => {
       const shouldTrigger = engine.checkAchievementTrigger('first_win', {
         game_won: false,
-        game_completed: true
+        game_completed: true,
       });
       expect(shouldTrigger).toBe(false);
     });
@@ -397,7 +439,7 @@ describe('Achievement Engine', () => {
     test('should trigger speedrun achievement with valid time', () => {
       const shouldTrigger = engine.checkAchievementTrigger('speedrun_master', {
         timeSeconds: 25,
-        game_completed: true
+        game_completed: true,
       });
       expect(shouldTrigger).toBe(true);
     });
@@ -405,7 +447,7 @@ describe('Achievement Engine', () => {
     test('should not trigger speedrun achievement with slow time', () => {
       const shouldTrigger = engine.checkAchievementTrigger('speedrun_master', {
         timeSeconds: 35,
-        game_completed: true
+        game_completed: true,
       });
       expect(shouldTrigger).toBe(false);
     });
@@ -413,7 +455,7 @@ describe('Achievement Engine', () => {
     test('should not trigger already unlocked achievement', () => {
       engine.unlockAchievement('first_win');
       const shouldTrigger = engine.checkAchievementTrigger('first_win', {
-        game_won: true
+        game_won: true,
       });
       expect(shouldTrigger).toBe(false);
     });
@@ -425,7 +467,7 @@ describe('Achievement Engine', () => {
       expect(progress).toEqual({
         achievement_id: 'winning_streak_3',
         progress: 1,
-        max_progress: 3
+        max_progress: 3,
       });
     });
 
@@ -437,7 +479,7 @@ describe('Achievement Engine', () => {
     test('should unlock achievement when progress completes', () => {
       const progress = engine.updateProgress('winning_streak_3', 3);
       expect(progress?.progress).toBe(3);
-      
+
       // Check if achievement was unlocked
       const achievement = engine['achievements'].get('winning_streak_3');
       expect(achievement?.unlocked_at).toBeTruthy();
@@ -462,14 +504,14 @@ describe('Achievement Engine', () => {
 
     test('should throttle rapid unlocks', () => {
       jest.useFakeTimers();
-      
+
       const unlock1 = engine.unlockAchievement('first_win');
       expect(unlock1.success).toBe(true);
 
       // Try to unlock another immediately
       const unlock2 = engine.unlockAchievement('speedrun_master');
       expect(unlock2.success).toBe(true);
-      
+
       // Should be queued
       expect(engine['unlockQueue']).toHaveLength(1);
 
@@ -479,7 +521,7 @@ describe('Achievement Engine', () => {
 
     test('should process unlock queue', () => {
       jest.useFakeTimers();
-      
+
       engine.unlockAchievement('first_win');
       engine.unlockAchievement('speedrun_master'); // Will be queued
 
@@ -494,29 +536,38 @@ describe('Achievement Engine', () => {
 
   describe('Validation and Anti-Cheat', () => {
     test('should validate legitimate speedrun time', () => {
-      const validation = engine.validateAchievementConditions('speedrun_master', {
-        timeSeconds: 25,
-        session_id: 'session-123',
-        game_completed: true
-      });
+      const validation = engine.validateAchievementConditions(
+        'speedrun_master',
+        {
+          timeSeconds: 25,
+          session_id: 'session-123',
+          game_completed: true,
+        }
+      );
       expect(validation.valid).toBe(true);
     });
 
     test('should reject impossible speedrun time', () => {
-      const validation = engine.validateAchievementConditions('speedrun_expert', {
-        timeSeconds: 5,
-        session_id: 'session-123',
-        game_completed: true
-      });
+      const validation = engine.validateAchievementConditions(
+        'speedrun_expert',
+        {
+          timeSeconds: 5,
+          session_id: 'session-123',
+          game_completed: true,
+        }
+      );
       expect(validation.valid).toBe(false);
       expect(validation.reason).toContain('too fast');
     });
 
     test('should require session data for speedruns', () => {
-      const validation = engine.validateAchievementConditions('speedrun_master', {
-        timeSeconds: 25,
-        game_completed: true
-      });
+      const validation = engine.validateAchievementConditions(
+        'speedrun_master',
+        {
+          timeSeconds: 25,
+          game_completed: true,
+        }
+      );
       expect(validation.valid).toBe(false);
       expect(validation.reason).toContain('session data');
     });
@@ -524,7 +575,7 @@ describe('Achievement Engine', () => {
     test('should require game completion for win achievements', () => {
       const validation = engine.validateAchievementConditions('first_win', {
         game_won: true,
-        game_completed: false
+        game_completed: false,
       });
       expect(validation.valid).toBe(false);
       expect(validation.reason).toContain('not completed');
@@ -535,7 +586,7 @@ describe('Achievement Engine', () => {
     test('should calculate achievement statistics', () => {
       engine.unlockAchievement('first_win');
       engine.unlockAchievement('speedrun_master');
-      
+
       // Process any queued unlocks due to throttling
       engine.processUnlockQueue();
 
@@ -547,12 +598,12 @@ describe('Achievement Engine', () => {
         completion: 50,
         byRarity: {
           common: 1,
-          rare: 1
+          rare: 1,
         },
         byCategory: {
           gameplay: 1,
-          speedrun: 1
-        }
+          speedrun: 1,
+        },
       });
     });
 
@@ -564,7 +615,7 @@ describe('Achievement Engine', () => {
         points: 0,
         completion: 0,
         byRarity: {},
-        byCategory: {}
+        byCategory: {},
       });
     });
   });
@@ -573,16 +624,20 @@ describe('Achievement Engine', () => {
     test('should filter by category', () => {
       const filtered = engine.filterAchievements({ category: 'speedrun' });
       expect(filtered).toHaveLength(2);
-      expect(filtered.some(a => a.achievement_name === 'speedrun_master')).toBe(true);
-      expect(filtered.some(a => a.achievement_name === 'speedrun_expert')).toBe(true);
+      expect(filtered.some(a => a.achievement_name === 'speedrun_master')).toBe(
+        true
+      );
+      expect(filtered.some(a => a.achievement_name === 'speedrun_expert')).toBe(
+        true
+      );
     });
 
     test('should filter by unlock status', () => {
       engine.unlockAchievement('first_win');
-      
+
       const unlocked = engine.filterAchievements({ unlocked: true });
       expect(unlocked).toHaveLength(1);
-      
+
       const locked = engine.filterAchievements({ unlocked: false });
       expect(locked).toHaveLength(3);
     });
@@ -590,8 +645,12 @@ describe('Achievement Engine', () => {
     test('should filter by search term', () => {
       const filtered = engine.filterAchievements({ search: 'speedrun' });
       expect(filtered).toHaveLength(2);
-      expect(filtered.some(a => a.achievement_name === 'speedrun_master')).toBe(true);
-      expect(filtered.some(a => a.achievement_name === 'speedrun_expert')).toBe(true);
+      expect(filtered.some(a => a.achievement_name === 'speedrun_master')).toBe(
+        true
+      );
+      expect(filtered.some(a => a.achievement_name === 'speedrun_expert')).toBe(
+        true
+      );
     });
 
     test('should sort by points', () => {
@@ -618,33 +677,35 @@ describe('Achievement Engine', () => {
         id: `ach-${i}`,
         user_id: 'user-1',
         achievement_name: `achievement_${i}`,
-        achievement_type: ['gameplay', 'speedrun', 'streak'][i % 3] ?? 'gameplay',
+        achievement_type:
+          ['gameplay', 'speedrun', 'streak'][i % 3] ?? 'gameplay',
         description: `Achievement ${i}`,
-        points: (i % 5 + 1) * 50,
+        points: ((i % 5) + 1) * 50,
         unlocked_at: i % 10 === 0 ? new Date().toISOString() : null,
         created_at: new Date().toISOString(),
         metadata: {
           category: ['gameplay', 'speedrun', 'social'][i % 3] ?? 'gameplay',
-          rarity: (['common', 'uncommon', 'rare', 'epic', 'legendary'][i % 5] ?? 'common') as any,
+          rarity: (['common', 'uncommon', 'rare', 'epic', 'legendary'][i % 5] ??
+            'common') as any,
           progress: 0,
-          max_progress: i % 5 + 1,
-          icon: '🏆'
-        }
+          max_progress: (i % 5) + 1,
+          icon: '🏆',
+        },
       }));
 
       const largeEngine = new AchievementEngine(largeSet);
-      
+
       const startTime = performance.now();
-      
+
       // Filter and sort
-      const filtered = largeEngine.filterAchievements({ 
+      const filtered = largeEngine.filterAchievements({
         category: 'speedrun',
-        unlocked: false 
+        unlocked: false,
       });
       const sorted = largeEngine.sortAchievements(filtered, 'points');
-      
+
       const endTime = performance.now();
-      
+
       expect(endTime - startTime).toBeLessThan(50);
       expect(sorted.length).toBeGreaterThan(0);
     });

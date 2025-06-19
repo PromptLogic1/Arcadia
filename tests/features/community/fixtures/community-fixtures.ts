@@ -20,8 +20,13 @@ const mockData = {
       return sentences[Math.floor(Math.random() * sentences.length)];
     },
     paragraphs: (options?: { min: number; max: number }) => {
-      const count = options ? Math.floor(Math.random() * (options.max - options.min + 1)) + options.min : 2;
-      return Array.from({ length: count }, () => mockData.lorem.sentence()).join(' ');
+      const count = options
+        ? Math.floor(Math.random() * (options.max - options.min + 1)) +
+          options.min
+        : 2;
+      return Array.from({ length: count }, () =>
+        mockData.lorem.sentence()
+      ).join(' ');
     },
     paragraph: () => mockData.lorem.paragraphs({ min: 2, max: 4 }),
   },
@@ -32,7 +37,10 @@ const mockData = {
       if (result === undefined) throw new Error('Array element is undefined');
       return result;
     },
-    arrayElements: <T>(array: readonly T[], options?: { min: number; max: number }): T[] => {
+    arrayElements: <T>(
+      array: readonly T[],
+      options?: { min: number; max: number }
+    ): T[] => {
       if (array.length === 0) return [];
       const min = options?.min ?? 1;
       const max = options?.max ?? array.length;
@@ -52,13 +60,15 @@ const mockData = {
     recent: (options?: { days: number }) => {
       const days = options?.days ?? 30;
       const now = new Date();
-      const pastTime = now.getTime() - (days * 24 * 60 * 60 * 1000 * Math.random());
+      const pastTime =
+        now.getTime() - days * 24 * 60 * 60 * 1000 * Math.random();
       return new Date(pastTime);
     },
     future: (options?: { days: number }) => {
       const days = options?.days ?? 30;
       const now = new Date();
-      const futureTime = now.getTime() + (days * 24 * 60 * 60 * 1000 * Math.random());
+      const futureTime =
+        now.getTime() + days * 24 * 60 * 60 * 1000 * Math.random();
       return new Date(futureTime);
     },
   },
@@ -67,13 +77,21 @@ const mockData = {
   },
   internet: {
     userName: () => {
-      const prefixes = ['gamer', 'speedrunner', 'player', 'champion', 'master', 'legend'];
+      const prefixes = [
+        'gamer',
+        'speedrunner',
+        'player',
+        'champion',
+        'master',
+        'legend',
+      ];
       const suffixes = ['123', '456', '789', 'pro', 'xl', 'max'];
       return `${mockData.helpers.arrayElement(prefixes)}${mockData.helpers.arrayElement(suffixes)}`;
     },
   },
   image: {
-    avatar: () => `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
+    avatar: () =>
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
   },
 };
 
@@ -83,11 +101,34 @@ export type Comment = Tables<'comments'>;
 export type CommunityEvent = Tables<'community_events'>;
 
 // Game and challenge type constants
-export const GAMES = ['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid', 'Kirby', 'DK Country'] as const;
-export const CHALLENGE_TYPES = ['Bingo', 'Speedrun', 'Achievement Hunt', 'Puzzle', 'Co-op'] as const;
+export const GAMES = [
+  'Pokemon',
+  'Sonic',
+  'Mario',
+  'Zelda',
+  'Metroid',
+  'Kirby',
+  'DK Country',
+] as const;
+export const CHALLENGE_TYPES = [
+  'Bingo',
+  'Speedrun',
+  'Achievement Hunt',
+  'Puzzle',
+  'Co-op',
+] as const;
 export const DISCUSSION_TAGS = [
-  'strategy', 'help', 'tips', 'speedrun', 'glitch', 'guide', 
-  'tournament', 'casual', 'competitive', 'showcase', 'question'
+  'strategy',
+  'help',
+  'tips',
+  'speedrun',
+  'glitch',
+  'guide',
+  'tournament',
+  'casual',
+  'competitive',
+  'showcase',
+  'question',
 ] as const;
 
 // User scenarios with permissions
@@ -107,13 +148,28 @@ export const USER_SCENARIOS = {
   trustedUser: {
     reputation: 500,
     joinedDaysAgo: 180,
-    permissions: ['read', 'comment', 'create_discussion', 'upvote', 'edit_own', 'delete_own'],
+    permissions: [
+      'read',
+      'comment',
+      'create_discussion',
+      'upvote',
+      'edit_own',
+      'delete_own',
+    ],
     rateLimit: { comments: 50, discussions: 10 },
   },
   moderator: {
     reputation: 1000,
     joinedDaysAgo: 365,
-    permissions: ['read', 'comment', 'create_discussion', 'upvote', 'edit_any', 'delete_any', 'moderate'],
+    permissions: [
+      'read',
+      'comment',
+      'create_discussion',
+      'upvote',
+      'edit_any',
+      'delete_any',
+      'moderate',
+    ],
     rateLimit: { comments: 100, discussions: 20 },
   },
   spammer: {
@@ -141,7 +197,10 @@ export function generateDiscussion(
     content: mockData.lorem.paragraphs({ min: 1, max: 3 }),
     game: mockData.helpers.arrayElement([...GAMES]),
     challenge_type: mockData.helpers.arrayElement([...CHALLENGE_TYPES]),
-    tags: mockData.helpers.arrayElements([...DISCUSSION_TAGS], { min: 1, max: 3 }),
+    tags: mockData.helpers.arrayElements([...DISCUSSION_TAGS], {
+      min: 1,
+      max: 3,
+    }),
     upvotes: mockData.number.int({ min: 0, max: 100 }),
     created_at: mockData.date.recent({ days: 30 }).toISOString(),
     updated_at: mockData.date.recent({ days: 30 }).toISOString(),
@@ -156,10 +215,12 @@ export function generateComment(
 ): Partial<Tables<'comments'>> {
   const commentTypes = [
     () => `Great point! I've been using this strategy and it works well.`,
-    () => `Have you tried ${mockData.helpers.arrayElement(['using the warp glitch', 'sequence breaking', 'the speedrun route'])}?`,
+    () =>
+      `Have you tried ${mockData.helpers.arrayElement(['using the warp glitch', 'sequence breaking', 'the speedrun route'])}?`,
     () => `Thanks for sharing! This helped me complete the challenge.`,
     () => mockData.lorem.sentence({ min: 10, max: 20 }),
-    () => `Here's a video that might help: [link]. The technique at ${mockData.number.int({ min: 1, max: 10 })}:${mockData.number.int({ min: 10, max: 59 })} is key.`,
+    () =>
+      `Here's a video that might help: [link]. The technique at ${mockData.number.int({ min: 1, max: 10 })}:${mockData.number.int({ min: 10, max: 59 })} is key.`,
   ];
 
   return {
@@ -184,7 +245,9 @@ export function generateCommentThread(
   if (depth === 0) return [];
 
   const comments: CommentWithAuthor[] = [];
-  const numComments = parentId ? childrenPerLevel : mockData.number.int({ min: 3, max: 8 });
+  const numComments = parentId
+    ? childrenPerLevel
+    : mockData.number.int({ min: 3, max: 8 });
 
   for (let i = 0; i < numComments; i++) {
     const comment: CommentWithAuthor = {
@@ -224,16 +287,20 @@ export function generateBulkDiscussions(
   count: number,
   overrides?: Partial<Discussion>
 ): DiscussionWithAuthor[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i + 1,
-    ...generateDiscussion(overrides),
-    author: {
-      id: mockData.string.uuid(),
-      username: mockData.internet.userName(),
-      avatar_url: mockData.image.avatar(),
-    },
-    comment_count: mockData.number.int({ min: 0, max: 50 }),
-  } as DiscussionWithAuthor));
+  return Array.from(
+    { length: count },
+    (_, i) =>
+      ({
+        id: i + 1,
+        ...generateDiscussion(overrides),
+        author: {
+          id: mockData.string.uuid(),
+          username: mockData.internet.userName(),
+          avatar_url: mockData.image.avatar(),
+        },
+        comment_count: mockData.number.int({ min: 0, max: 50 }),
+      }) as DiscussionWithAuthor
+  );
 }
 
 // Moderation test content
@@ -294,11 +361,23 @@ export function generateCommunityEvent(
   return {
     title: `${mockData.helpers.arrayElement(eventTypes)}: ${mockData.helpers.arrayElement([...GAMES])}`,
     description: mockData.lorem.paragraph(),
-    game_type: mockData.helpers.arrayElement(['Super Mario Odyssey', 'The Legend of Zelda: Breath of the Wild', 'Minecraft', 'Fortnite', 'Among Us'] as const),
+    game_type: mockData.helpers.arrayElement([
+      'Super Mario Odyssey',
+      'The Legend of Zelda: Breath of the Wild',
+      'Minecraft',
+      'Fortnite',
+      'Among Us',
+    ] as const),
     start_date: startDate.toISOString(),
     end_date: endDate.toISOString(),
     max_participants: mockData.number.int({ min: 10, max: 100 }),
-    prize_pool: mockData.helpers.arrayElement(['$100', '$250', '$500', 'Game codes', 'Merch']),
+    prize_pool: mockData.helpers.arrayElement([
+      '$100',
+      '$250',
+      '$500',
+      'Game codes',
+      'Merch',
+    ]),
     status: 'upcoming' as const,
     created_at: mockData.date.recent({ days: 7 }).toISOString(),
     updated_at: mockData.date.recent({ days: 7 }).toISOString(),
@@ -342,12 +421,12 @@ export const FILTER_SCENARIOS: FilterScenario[] = [
   },
   {
     name: 'Combined filters',
-    filters: { 
-      game: 'Sonic', 
+    filters: {
+      game: 'Sonic',
       challengeType: 'Speedrun',
       tags: ['speedrun', 'guide'],
     },
-    expectedResults: { 
+    expectedResults: {
       minCount: 0,
       mustInclude: ['Sonic', 'Speedrun'],
     },
@@ -368,9 +447,34 @@ export interface RateLimitTestCase {
 }
 
 export const RATE_LIMIT_TESTS: RateLimitTestCase[] = [
-  { action: 'create_comment', userType: 'newUser', expectedLimit: 5, windowSeconds: 3600 },
-  { action: 'create_comment', userType: 'regularUser', expectedLimit: 20, windowSeconds: 3600 },
-  { action: 'create_discussion', userType: 'newUser', expectedLimit: 1, windowSeconds: 86400 },
-  { action: 'upvote', userType: 'regularUser', expectedLimit: 100, windowSeconds: 3600 },
-  { action: 'create_comment', userType: 'spammer', expectedLimit: 0, windowSeconds: 3600 },
+  {
+    action: 'create_comment',
+    userType: 'newUser',
+    expectedLimit: 5,
+    windowSeconds: 3600,
+  },
+  {
+    action: 'create_comment',
+    userType: 'regularUser',
+    expectedLimit: 20,
+    windowSeconds: 3600,
+  },
+  {
+    action: 'create_discussion',
+    userType: 'newUser',
+    expectedLimit: 1,
+    windowSeconds: 86400,
+  },
+  {
+    action: 'upvote',
+    userType: 'regularUser',
+    expectedLimit: 100,
+    windowSeconds: 3600,
+  },
+  {
+    action: 'create_comment',
+    userType: 'spammer',
+    expectedLimit: 0,
+    windowSeconds: 3600,
+  },
 ];

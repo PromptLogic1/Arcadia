@@ -51,7 +51,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Use TanStack Query for session data
   const isPublicPage =
-    typeof window !== 'undefined' && 
+    typeof window !== 'undefined' &&
     ['/', '/about', '/community'].includes(window.location.pathname);
   const { data: session, isLoading } = useAuthSessionQuery();
 

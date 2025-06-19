@@ -1,6 +1,6 @@
 /**
  * Community Test Configuration
- * 
+ *
  * Central configuration for community feature tests
  * with type safety and reusable patterns
  */
@@ -16,14 +16,14 @@ export const TEST_CONFIG = {
     network: 5000,
     realtime: 10000,
   },
-  
+
   // Pagination
   pagination: {
     defaultPageSize: 20,
     maxPageSize: 100,
     testDataCount: 150,
   },
-  
+
   // Rate limiting
   rateLimits: {
     testing: {
@@ -31,7 +31,7 @@ export const TEST_CONFIG = {
       bufferRequests: 5, // extra requests to verify blocking
     },
   },
-  
+
   // Real-time testing
   realtime: {
     channels: {
@@ -41,7 +41,7 @@ export const TEST_CONFIG = {
     },
     eventTypes: ['INSERT', 'UPDATE', 'DELETE'],
   },
-  
+
   // Mock API endpoints
   endpoints: {
     discussions: '/api/discussions',
@@ -53,9 +53,11 @@ export const TEST_CONFIG = {
 } as const;
 
 // Type guards for database tables
-export function isValidDiscussion(data: unknown): data is Tables<'discussions'> {
+export function isValidDiscussion(
+  data: unknown
+): data is Tables<'discussions'> {
   if (typeof data !== 'object' || data === null) return false;
-  
+
   const obj = data as Record<string, unknown>;
   return (
     typeof obj.title === 'string' &&
@@ -66,11 +68,10 @@ export function isValidDiscussion(data: unknown): data is Tables<'discussions'> 
 
 export function isValidComment(data: unknown): data is Tables<'comments'> {
   if (typeof data !== 'object' || data === null) return false;
-  
+
   const obj = data as Record<string, unknown>;
   return (
-    typeof obj.content === 'string' &&
-    typeof obj.discussion_id === 'number'
+    typeof obj.content === 'string' && typeof obj.discussion_id === 'number'
   );
 }
 
@@ -238,14 +239,14 @@ export const CLEANUP_CONFIG = {
     comments: /^Test Comment/,
     users: /^test[-_]/,
   },
-  
+
   // Cleanup strategies
   strategies: {
     immediate: 'delete',
     delayed: 'flag_for_deletion',
     archive: 'move_to_archive',
   },
-  
+
   // Retention periods (in seconds)
   retention: {
     discussions: 3600, // 1 hour
@@ -260,22 +261,22 @@ export async function validateTestEnvironment(): Promise<{
   errors: string[];
 }> {
   const errors: string[] = [];
-  
+
   // Check required environment variables
   const requiredEnvVars = [
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'SUPABASE_SERVICE_ROLE_KEY',
   ];
-  
+
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
       errors.push(`Missing required environment variable: ${envVar}`);
     }
   }
-  
+
   // Additional validation can be added here
-  
+
   return {
     valid: errors.length === 0,
     errors,

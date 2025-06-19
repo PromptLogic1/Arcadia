@@ -1,6 +1,6 @@
 /**
  * Base Page Object
- * 
+ *
  * This class provides common functionality for all page objects.
  * Follows the Page Object Model pattern for better test organization.
  */
@@ -52,14 +52,17 @@ export abstract class BasePage {
   /**
    * Click an element with proper error handling
    */
-  public async clickElement(selector: string, options?: {
-    force?: boolean;
-    timeout?: number;
-  }): Promise<void> {
+  public async clickElement(
+    selector: string,
+    options?: {
+      force?: boolean;
+      timeout?: number;
+    }
+  ): Promise<void> {
     const element = this.getLocator(selector);
     await element.click({
       force: options?.force,
-      timeout: options?.timeout ?? 30000
+      timeout: options?.timeout ?? 30000,
     });
   }
 
@@ -74,7 +77,10 @@ export abstract class BasePage {
   /**
    * Check if element is visible
    */
-  public async isElementVisible(selector: string, timeout = 5000): Promise<boolean> {
+  public async isElementVisible(
+    selector: string,
+    timeout = 5000
+  ): Promise<boolean> {
     try {
       await this.getLocator(selector).waitFor({ state: 'visible', timeout });
       return true;
@@ -106,9 +112,9 @@ export abstract class BasePage {
    * Take a screenshot
    */
   async screenshot(name: string): Promise<void> {
-    await this.page.screenshot({ 
+    await this.page.screenshot({
       path: `tests/screenshots/${name}.png`,
-      fullPage: true 
+      fullPage: true,
     });
   }
 

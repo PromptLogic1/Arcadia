@@ -1,12 +1,12 @@
 /**
  * Enhanced test data constants with proper typing
  */
-import type { 
-  TestUser, 
-  LoginFormData, 
+import type {
+  TestUser,
+  LoginFormData,
   SignupFormData,
   ForgotPasswordFormData,
-  ResetPasswordFormData 
+  ResetPasswordFormData,
 } from '../auth/types/test-types';
 
 // Properly typed test users
@@ -17,12 +17,12 @@ export const TYPED_TEST_USERS = {
     full_name: 'Test User',
     username: 'testuser',
   } as const satisfies Partial<TestUser>,
-  
+
   invalid: {
     email: 'invalid-email',
     password: '123', // Too short
   } as const,
-  
+
   blocked: {
     email: 'blocked@example.com',
     password: 'Blocked123!',
@@ -37,13 +37,13 @@ export const TEST_FORM_DATA = {
       password: 'Test123!@#',
       rememberMe: true,
     } satisfies LoginFormData,
-    
+
     invalid: {
       email: 'invalid-email',
       password: '123',
     } satisfies Partial<LoginFormData>,
   },
-  
+
   signup: {
     valid: {
       email: 'newuser@example.com',
@@ -54,7 +54,7 @@ export const TEST_FORM_DATA = {
       lastName: 'User',
       acceptTerms: true,
     } satisfies SignupFormData,
-    
+
     passwordMismatch: {
       email: 'user@example.com',
       username: 'testuser',
@@ -63,24 +63,24 @@ export const TEST_FORM_DATA = {
       acceptTerms: true,
     } satisfies SignupFormData,
   },
-  
+
   forgotPassword: {
     valid: {
       email: 'user@example.com',
     } satisfies ForgotPasswordFormData,
-    
+
     invalid: {
       email: 'not-an-email',
     } satisfies ForgotPasswordFormData,
   },
-  
+
   resetPassword: {
     valid: {
       password: 'NewPassword123!',
       confirmPassword: 'NewPassword123!',
       token: 'valid-reset-token',
     } satisfies ResetPasswordFormData,
-    
+
     weakPassword: {
       password: 'weak',
       confirmPassword: 'weak',
@@ -97,7 +97,7 @@ export const AUTH_SELECTORS = {
     forgotPasswordForm: '[data-testid="forgot-password-form"]',
     resetPasswordForm: '[data-testid="reset-password-form"]',
   },
-  
+
   inputs: {
     email: '[data-testid="auth-email-input"]',
     password: '[data-testid="auth-password-input"]',
@@ -108,27 +108,27 @@ export const AUTH_SELECTORS = {
     rememberMe: '[data-testid="auth-remember-checkbox"]',
     acceptTerms: '[data-testid="auth-terms-checkbox"]',
   },
-  
+
   buttons: {
     submit: '[data-testid="auth-submit-button"]',
     googleOAuth: '[data-testid="auth-google-button"]',
     githubOAuth: '[data-testid="auth-github-button"]',
     logout: '[data-testid="auth-logout-button"]',
   },
-  
+
   links: {
     forgotPassword: '[data-testid="auth-forgot-password-link"]',
     signUp: '[data-testid="auth-signup-link"]',
     signIn: '[data-testid="auth-signin-link"]',
     resendEmail: '[data-testid="auth-resend-email-link"]',
   },
-  
+
   messages: {
     error: '[data-testid="auth-error-message"]',
     success: '[data-testid="auth-success-message"]',
     fieldError: '[data-testid="field-error-message"]',
   },
-  
+
   ui: {
     userMenu: '[data-testid="user-menu"]',
     userAvatar: '[data-testid="user-avatar"]',
@@ -140,10 +140,19 @@ export const AUTH_SELECTORS = {
 // Password validation test cases
 export const PASSWORD_TEST_CASES = [
   { password: 'short', error: 'Password must be at least 8 characters' },
-  { password: 'nouppercase123!', error: 'Password must contain an uppercase letter' },
-  { password: 'NOLOWERCASE123!', error: 'Password must contain a lowercase letter' },
+  {
+    password: 'nouppercase123!',
+    error: 'Password must contain an uppercase letter',
+  },
+  {
+    password: 'NOLOWERCASE123!',
+    error: 'Password must contain a lowercase letter',
+  },
   { password: 'NoNumbers!', error: 'Password must contain a number' },
-  { password: 'NoSpecialChar123', error: 'Password must contain a special character' },
+  {
+    password: 'NoSpecialChar123',
+    error: 'Password must contain a special character',
+  },
   { password: 'password123!', error: 'Password is too common' },
   { password: '12345678!Aa', error: 'Password is too common' },
 ] as const;
@@ -153,9 +162,15 @@ export const EMAIL_TEST_CASES = [
   { email: 'plaintext', error: 'Please enter a valid email address' },
   { email: '@example.com', error: 'Please enter a valid email address' },
   { email: 'user@', error: 'Please enter a valid email address' },
-  { email: 'user..name@example.com', error: 'Please enter a valid email address' },
+  {
+    email: 'user..name@example.com',
+    error: 'Please enter a valid email address',
+  },
   { email: 'user@example', error: 'Please enter a valid email address' },
-  { email: 'user name@example.com', error: 'Please enter a valid email address' },
+  {
+    email: 'user name@example.com',
+    error: 'Please enter a valid email address',
+  },
   { email: '', error: 'Email is required' },
 ] as const;
 
@@ -168,20 +183,20 @@ export const AUTH_ROUTES = {
     resetPassword: '/auth/reset-password',
     verifyEmail: '/auth/verify-email',
   },
-  
+
   protected: {
     dashboard: '/dashboard',
     profile: '/profile',
     settings: '/settings',
     account: '/account',
   },
-  
+
   admin: {
     users: '/admin/users',
     settings: '/admin/settings',
     analytics: '/admin/analytics',
   },
-  
+
   api: {
     login: '/api/auth/login',
     logout: '/api/auth/logout',
@@ -210,13 +225,13 @@ export const RATE_LIMITS = {
     window: 15 * 60 * 1000, // 15 minutes
     blockDuration: 60 * 60 * 1000, // 1 hour
   },
-  
+
   passwordReset: {
     attempts: 3,
     window: 60 * 60 * 1000, // 1 hour
     blockDuration: 24 * 60 * 60 * 1000, // 24 hours
   },
-  
+
   signup: {
     attempts: 3,
     window: 60 * 60 * 1000, // 1 hour
@@ -256,9 +271,26 @@ export const TIMEOUTS = {
 
 // Community-specific test data
 export const COMMUNITY_TEST_DATA = {
-  games: ['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid', 'Kirby', 'DK Country'],
+  games: [
+    'Pokemon',
+    'Sonic',
+    'Mario',
+    'Zelda',
+    'Metroid',
+    'Kirby',
+    'DK Country',
+  ],
   challengeTypes: ['Bingo', 'Speedrun', 'Achievement Hunt', 'Puzzle', 'Co-op'],
-  tags: ['strategy', 'help', 'tips', 'speedrun', 'glitch', 'guide', 'tournament', 'casual'],
+  tags: [
+    'strategy',
+    'help',
+    'tips',
+    'speedrun',
+    'glitch',
+    'guide',
+    'tournament',
+    'casual',
+  ],
   moderationActions: ['auto_flag', 'auto_remove', 'require_review', 'approve'],
 } as const;
 

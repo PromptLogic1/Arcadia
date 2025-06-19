@@ -10,15 +10,15 @@ export interface PerformanceMetrics {
   largestContentfulPaint: number;
   timeToInteractive: number;
   totalBlockingTime: number;
-  
+
   // Memory metrics
   jsHeapUsedSize: number;
   jsHeapTotalSize: number;
-  
+
   // Network metrics
   requestCount: number;
   totalTransferSize: number;
-  
+
   // Custom metrics
   renderTime?: number;
   apiResponseTime?: number;
@@ -69,40 +69,55 @@ export class PerformanceTestHelper {
    */
   async captureMetrics(): Promise<PerformanceMetrics> {
     const metrics = await this.page.evaluate(() => {
-      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const navigation = performance.getEntriesByType(
+        'navigation'
+      )[0] as PerformanceNavigationTiming;
       const paintEntries = performance.getEntriesByType('paint');
-      
-      const fcp = paintEntries.find(entry => entry.name === 'first-contentful-paint');
+
+      const fcp = paintEntries.find(
+        entry => entry.name === 'first-contentful-paint'
+      );
       const lcp = performance.getEntriesByType('largest-contentful-paint')[0];
-      
+
       return {
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+        domContentLoaded:
+          navigation.domContentLoadedEventEnd -
+          navigation.domContentLoadedEventStart,
         firstContentfulPaint: fcp ? fcp.startTime : 0,
         largestContentfulPaint: lcp ? lcp.startTime : 0,
         timeToInteractive: navigation.loadEventEnd - navigation.fetchStart,
         totalBlockingTime: 0, // Would need Long Task API
         requestCount: performance.getEntriesByType('resource').length,
-        totalTransferSize: performance.getEntriesByType('resource')
-          .reduce((total, entry) => total + ((entry as PerformanceResourceTiming).transferSize || 0), 0)
+        totalTransferSize: performance
+          .getEntriesByType('resource')
+          .reduce(
+            (total, entry) =>
+              total + ((entry as PerformanceResourceTiming).transferSize || 0),
+            0
+          ),
       };
     });
 
     // Add memory metrics (if available in browser context)
     const memoryInfo = await this.page.evaluate(() => {
       if ('memory' in performance) {
-        const mem = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+        const mem = (
+          performance as unknown as {
+            memory: { usedJSHeapSize: number; totalJSHeapSize: number };
+          }
+        ).memory;
         return {
           JSHeapUsedSize: mem.usedJSHeapSize || 0,
-          JSHeapTotalSize: mem.totalJSHeapSize || 0
+          JSHeapTotalSize: mem.totalJSHeapSize || 0,
         };
       }
       return { JSHeapUsedSize: 0, JSHeapTotalSize: 0 };
     });
-    
+
     return {
       ...metrics,
       jsHeapUsedSize: memoryInfo.JSHeapUsedSize,
-      jsHeapTotalSize: memoryInfo.JSHeapTotalSize
+      jsHeapTotalSize: memoryInfo.JSHeapTotalSize,
     };
   }
 
@@ -121,7 +136,9 @@ export class PerformanceTestHelper {
   /**
    * Check for memory leaks
    */
-  async checkMemoryLeak(threshold: number = 50 * 1024 * 1024): Promise<boolean> {
+  async checkMemoryLeak(
+    threshold: number = 50 * 1024 * 1024
+  ): Promise<boolean> {
     const growth = await this.getMemoryGrowth();
     return growth > threshold;
   }
@@ -131,12 +148,14 @@ export class PerformanceTestHelper {
    */
   async measureRenderPerformance(action: () => Promise<void>): Promise<number> {
     const startTime = await this.page.evaluate(() => performance.now());
-    
+
     await action();
-    
+
     // Wait for render to complete
-    await this.page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
-    
+    await this.page.evaluate(
+      () => new Promise(resolve => requestAnimationFrame(resolve))
+    );
+
     const endTime = await this.page.evaluate(() => performance.now());
     return endTime - startTime;
   }
@@ -146,14 +165,14 @@ export class PerformanceTestHelper {
    */
   getApiResponseTimes(): Map<string, number> {
     const apiTimes = new Map<string, number>();
-    
+
     this.requestTimings.forEach((value, key) => {
       if (key.startsWith('response:') && key.includes('/api/')) {
         const url = key.replace('response:', '');
         apiTimes.set(url, value);
       }
     });
-    
+
     return apiTimes;
   }
 
@@ -209,12 +228,12 @@ export class TimerAccuracyHelper {
   ): Promise<TimerAccuracy> {
     const startTime = Date.now();
     const initialTimer = await getTimerValue();
-    
+
     await page.waitForTimeout(duration);
-    
+
     const endTime = Date.now();
     const finalTimer = await getTimerValue();
-    
+
     const expectedTime = endTime - startTime;
     const actualTime = finalTimer - initialTimer;
     const drift = Math.abs(actualTime - expectedTime);
@@ -224,7 +243,7 @@ export class TimerAccuracyHelper {
       expectedTime,
       actualTime,
       drift,
-      driftPercentage
+      driftPercentage,
     };
 
     this.measurements.push(measurement);
@@ -236,7 +255,7 @@ export class TimerAccuracyHelper {
    */
   getAverageDrift(): number {
     if (this.measurements.length === 0) return 0;
-    
+
     const totalDrift = this.measurements.reduce((sum, m) => sum + m.drift, 0);
     return totalDrift / this.measurements.length;
   }
@@ -298,18 +317,20 @@ export class CPULoadSimulator {
     const iterations = {
       low: 1000,
       medium: 10000,
-      high: 100000
+      high: 100000,
     }[intensity];
 
-    this.workerId = await page.evaluate((iterations) => {
+    this.workerId = await page.evaluate(iterations => {
       const workerId = Math.random().toString(36).substring(2);
-      
+
       // Store the worker ID for later cleanup
-      const windowWithWorkers = window as Window & { __cpuWorkers?: Record<string, Worker> };
+      const windowWithWorkers = window as Window & {
+        __cpuWorkers?: Record<string, Worker>;
+      };
       if (!windowWithWorkers.__cpuWorkers) {
         windowWithWorkers.__cpuWorkers = {};
       }
-      
+
       const workerCode = `
         let running = true;
         self.onmessage = (e) => { 
@@ -325,13 +346,13 @@ export class CPULoadSimulator {
           }
         }
       `;
-      
+
       const worker = new Worker(
         URL.createObjectURL(
           new Blob([workerCode], { type: 'application/javascript' })
         )
       );
-      
+
       windowWithWorkers.__cpuWorkers[workerId] = worker;
       return workerId;
     }, iterations);
@@ -342,8 +363,10 @@ export class CPULoadSimulator {
    */
   async stopLoad(page: Page) {
     if (this.workerId) {
-      await page.evaluate((workerId) => {
-        const windowWithWorkers = window as Window & { __cpuWorkers?: Record<string, Worker> };
+      await page.evaluate(workerId => {
+        const windowWithWorkers = window as Window & {
+          __cpuWorkers?: Record<string, Worker>;
+        };
         const workers = windowWithWorkers.__cpuWorkers;
         if (workers && workers[workerId]) {
           workers[workerId].postMessage('stop');
@@ -408,6 +431,6 @@ export async function createPerformanceContext(page: Page) {
     cleanup: async () => {
       await cpuSimulator.stopLoad(page);
       await networkSimulator.restore();
-    }
+    },
   };
 }

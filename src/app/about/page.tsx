@@ -19,7 +19,7 @@ export const metadata: Metadata = aboutMetadata;
 export default function AboutPage() {
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Home', url: '/' },
-    { name: 'About', url: '/about' }
+    { name: 'About', url: '/about' },
   ]);
 
   return (

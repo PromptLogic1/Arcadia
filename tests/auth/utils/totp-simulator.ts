@@ -2,7 +2,7 @@ import { createHmac } from 'crypto';
 
 /**
  * TOTP (Time-based One-Time Password) Simulator for Testing
- * 
+ *
  * Simulates TOTP generation for authentication testing without requiring
  * real authenticator apps. Based on RFC 6238.
  */
@@ -44,7 +44,10 @@ export class TOTPSimulator {
     timeBuffer.writeUInt32BE(timeStep & 0xffffffff, 4);
 
     // Create HMAC hash
-    const hmac = createHmac(this.config.algorithm, Buffer.from(this.config.secret, 'ascii'));
+    const hmac = createHmac(
+      this.config.algorithm,
+      Buffer.from(this.config.secret, 'ascii')
+    );
     const hash = hmac.update(timeBuffer).digest();
 
     // Dynamic truncation
@@ -54,23 +57,28 @@ export class TOTPSimulator {
     }
     const offset = lastByte & 0x0f;
     const truncatedHash = hash.slice(offset, offset + 4);
-    
+
     // Convert to integer with null checks
     const byte0 = truncatedHash[0];
     const byte1 = truncatedHash[1];
     const byte2 = truncatedHash[2];
     const byte3 = truncatedHash[3];
-    
-    if (byte0 === undefined || byte1 === undefined || byte2 === undefined || byte3 === undefined) {
+
+    if (
+      byte0 === undefined ||
+      byte1 === undefined ||
+      byte2 === undefined ||
+      byte3 === undefined
+    ) {
       throw new Error('Invalid truncated hash');
     }
-    
-    const code = (
-      ((byte0 & 0x7f) << 24) |
-      ((byte1 & 0xff) << 16) |
-      ((byte2 & 0xff) << 8) |
-      (byte3 & 0xff)
-    ) % Math.pow(10, this.config.digits);
+
+    const code =
+      (((byte0 & 0x7f) << 24) |
+        ((byte1 & 0xff) << 16) |
+        ((byte2 & 0xff) << 8) |
+        (byte3 & 0xff)) %
+      Math.pow(10, this.config.digits);
 
     return code.toString().padStart(this.config.digits, '0');
   }
@@ -80,7 +88,7 @@ export class TOTPSimulator {
    */
   verifyCode(code: string, tolerance = 1): boolean {
     const currentStep = Math.floor(Date.now() / 1000 / this.config.window);
-    
+
     // Check current step and adjacent steps for clock drift tolerance
     for (let i = -tolerance; i <= tolerance; i++) {
       const expectedCode = this.generateCodeForStep(currentStep + i);
@@ -88,7 +96,7 @@ export class TOTPSimulator {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -98,11 +106,11 @@ export class TOTPSimulator {
   generateValidCodes(count = 3): string[] {
     const currentStep = Math.floor(Date.now() / 1000 / this.config.window);
     const codes: string[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       codes.push(this.generateCodeForStep(currentStep + i));
     }
-    
+
     return codes;
   }
 
@@ -112,12 +120,12 @@ export class TOTPSimulator {
   generateExpiredCodes(count = 3): string[] {
     const currentStep = Math.floor(Date.now() / 1000 / this.config.window);
     const codes: string[] = [];
-    
+
     // Generate codes from past time steps
     for (let i = count; i > 0; i--) {
       codes.push(this.generateCodeForStep(currentStep - i - 5)); // -5 for sufficient gap
     }
-    
+
     return codes;
   }
 
@@ -132,7 +140,7 @@ export class TOTPSimulator {
       digits: this.config.digits.toString(),
       period: this.config.window.toString(),
     });
-    
+
     const otpauthURL = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?${params}`;
     return otpauthURL;
   }
@@ -143,11 +151,11 @@ export class TOTPSimulator {
   static generateTestSecret(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 alphabet
     let secret = '';
-    
+
     for (let i = 0; i < 32; i++) {
       secret += chars[Math.floor(Math.random() * chars.length)];
     }
-    
+
     return secret;
   }
 }
@@ -225,13 +233,16 @@ export class MFAMockProvider {
   /**
    * Simulate MFA challenge for user
    */
-  async simulateChallenge(userId: string, code: string): Promise<{
+  async simulateChallenge(
+    userId: string,
+    code: string
+  ): Promise<{
     success: boolean;
     error?: string;
     remainingAttempts?: number;
   }> {
     const scenario = this.scenarios.get(userId);
-    
+
     if (!scenario) {
       return { success: false, error: 'No MFA configured' };
     }
@@ -246,8 +257,10 @@ export class MFAMockProvider {
       return { success: false, error: scenario.error };
     }
 
-    const isValid = scenario.code ? code === scenario.code : scenario.isValid ?? true;
-    return { 
+    const isValid = scenario.code
+      ? code === scenario.code
+      : (scenario.isValid ?? true);
+    return {
       success: isValid,
       error: isValid ? undefined : 'Invalid code',
       remainingAttempts: isValid ? undefined : 2,

@@ -1,6 +1,6 @@
 /**
  * Supabase Mock Infrastructure
- * 
+ *
  * Provides reusable mocks for Supabase client and common operations.
  * These mocks ensure type safety and consistent behavior across all tests.
  */
@@ -17,7 +17,10 @@ export const createSupabaseSuccessResponse = <T>(data: T) => ({
   statusText: 'OK',
 });
 
-export const createSupabaseErrorResponse = (message: string, code?: string) => ({
+export const createSupabaseErrorResponse = (
+  message: string,
+  code?: string
+) => ({
   data: null,
   error: {
     message,
@@ -126,9 +129,11 @@ export class MockSupabaseQueryBuilder<T> {
 
   single() {
     if (this._error) {
-      return Promise.resolve(createSupabaseErrorResponse(this._error.message, this._error.code));
+      return Promise.resolve(
+        createSupabaseErrorResponse(this._error.message, this._error.code)
+      );
     }
-    
+
     const data = Array.isArray(this._data) ? this._data[0] || null : this._data;
     return Promise.resolve(createSupabaseSuccessResponse(data));
   }
@@ -137,11 +142,14 @@ export class MockSupabaseQueryBuilder<T> {
     return this.single();
   }
 
-  async then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
-    const result = this._error 
+  async then(
+    onfulfilled?: (value: any) => any,
+    onrejected?: (reason: any) => any
+  ) {
+    const result = this._error
       ? createSupabaseErrorResponse(this._error.message, this._error.code)
       : createSupabaseSuccessResponse(this._data);
-    
+
     if (onfulfilled) {
       return onfulfilled(result);
     }
@@ -178,18 +186,23 @@ export class MockSupabaseMutationBuilder<T> {
 
   single() {
     if (this._error) {
-      return Promise.resolve(createSupabaseErrorResponse(this._error.message, this._error.code));
+      return Promise.resolve(
+        createSupabaseErrorResponse(this._error.message, this._error.code)
+      );
     }
-    
+
     const data = Array.isArray(this._data) ? this._data[0] || null : this._data;
     return Promise.resolve(createSupabaseSuccessResponse(data));
   }
 
-  async then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
-    const result = this._error 
+  async then(
+    onfulfilled?: (value: any) => any,
+    onrejected?: (reason: any) => any
+  ) {
+    const result = this._error
       ? createSupabaseErrorResponse(this._error.message, this._error.code)
       : createSupabaseSuccessResponse(this._data);
-    
+
     if (onfulfilled) {
       return onfulfilled(result);
     }
@@ -202,18 +215,44 @@ export class MockSupabaseMutationBuilder<T> {
 }
 
 // Create mock Supabase client
-export const createMockSupabaseClient = (overrides?: Partial<SupabaseClient<Database>>): SupabaseClient<Database> => {
+export const createMockSupabaseClient = (
+  overrides?: Partial<SupabaseClient<Database>>
+): SupabaseClient<Database> => {
   const mockClient = {
     auth: {
-      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      signInWithPassword: jest.fn().mockResolvedValue({ data: { user: null, session: null }, error: null }),
-      signUp: jest.fn().mockResolvedValue({ data: { user: null, session: null }, error: null }),
+      getUser: jest
+        .fn()
+        .mockResolvedValue({ data: { user: null }, error: null }),
+      getSession: jest
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
+      signInWithPassword: jest
+        .fn()
+        .mockResolvedValue({
+          data: { user: null, session: null },
+          error: null,
+        }),
+      signUp: jest
+        .fn()
+        .mockResolvedValue({
+          data: { user: null, session: null },
+          error: null,
+        }),
       signOut: jest.fn().mockResolvedValue({ error: null }),
-      onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
-      refreshSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      setSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      updateUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      onAuthStateChange: jest
+        .fn()
+        .mockReturnValue({
+          data: { subscription: { unsubscribe: jest.fn() } },
+        }),
+      refreshSession: jest
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
+      setSession: jest
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
+      updateUser: jest
+        .fn()
+        .mockResolvedValue({ data: { user: null }, error: null }),
       resetPasswordForEmail: jest.fn().mockResolvedValue({ error: null }),
     },
     from: jest.fn((table: string) => {
@@ -239,15 +278,21 @@ export const createMockSupabaseClient = (overrides?: Partial<SupabaseClient<Data
         order: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         range: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(null)),
-        maybeSingle: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(null)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(null)),
+        maybeSingle: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(null)),
         then: jest.fn().mockResolvedValue(createSupabaseSuccessResponse([])),
         catch: jest.fn().mockReturnThis(),
       };
     }),
     storage: {
       from: jest.fn((bucket: string) => ({
-        upload: jest.fn().mockResolvedValue({ data: { path: '' }, error: null }),
+        upload: jest
+          .fn()
+          .mockResolvedValue({ data: { path: '' }, error: null }),
         download: jest.fn().mockResolvedValue({ data: null, error: null }),
         remove: jest.fn().mockResolvedValue({ data: [], error: null }),
         list: jest.fn().mockResolvedValue({ data: [], error: null }),
@@ -305,7 +350,9 @@ type MockSession = {
   user: MockUser;
 };
 
-export const mockSupabaseSession = (overrides?: Partial<MockSession>): MockSession => ({
+export const mockSupabaseSession = (
+  overrides?: Partial<MockSession>
+): MockSession => ({
   access_token: 'mock-access-token',
   refresh_token: 'mock-refresh-token',
   expires_in: 3600,
@@ -316,7 +363,9 @@ export const mockSupabaseSession = (overrides?: Partial<MockSession>): MockSessi
 });
 
 // Test helpers
-export const setupSupabaseMock = (client: ReturnType<typeof createMockSupabaseClient>) => {
+export const setupSupabaseMock = (
+  client: ReturnType<typeof createMockSupabaseClient>
+) => {
   // Reset all mocks
   Object.values(client.auth).forEach(fn => {
     if (typeof fn === 'function' && 'mockReset' in fn) {

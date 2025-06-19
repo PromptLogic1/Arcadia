@@ -5,6 +5,7 @@ This directory contains the core testing infrastructure and utilities for the Ar
 ## Overview
 
 The test infrastructure is designed to:
+
 - Provide reusable mocks and test data factories
 - Ensure type safety in all test scenarios
 - Standardize testing patterns across the codebase
@@ -37,13 +38,17 @@ src/services/test/
 Provides comprehensive mocking for Supabase operations:
 
 ```typescript
-import { createMockSupabaseClient, MockQueryBuilder } from '@/lib/test/mocks/supabase.mock';
+import {
+  createMockSupabaseClient,
+  MockQueryBuilder,
+} from '@/lib/test/mocks/supabase.mock';
 
 const mockSupabase = createMockSupabaseClient();
 // Use in your tests...
 ```
 
 **Features:**
+
 - Type-safe mock implementations
 - Chainable query builder methods
 - Realistic response patterns
@@ -62,6 +67,7 @@ const { board, cards } = factories.boardWithCards();
 ```
 
 **Available Factories:**
+
 - `user()` - User data
 - `bingoBoard()` - Bingo boards
 - `bingoCard()` - Bingo cards
@@ -108,7 +114,7 @@ describe('UserService', () => {
   it('should return user data', async () => {
     const mockUser = factories.user();
     // Setup mock...
-    
+
     const result = await service.getUser(mockUser.id);
     expectServiceSuccess(result);
     expect(result.data).toEqual(mockUser);
@@ -127,7 +133,7 @@ describe('UserProfile', () => {
   it('should display user information', () => {
     const user = factories.user();
     render(<UserProfile user={user} />);
-    
+
     expect(screen.getByText(user.username)).toBeInTheDocument();
   });
 });
@@ -144,14 +150,14 @@ describe('validateUserData', () => {
   it('should validate correct user data', () => {
     const user = factories.user();
     const result = validateUserData(user);
-    
+
     expect(result.success).toBe(true);
     expect(result.data).toEqual(user);
   });
 
   it('should reject invalid data', () => {
     const result = validateUserData({ invalid: 'data' });
-    
+
     expect(result.success).toBe(false);
     expect(result.error).toContain('Missing required fields');
   });
@@ -168,18 +174,18 @@ const mockFrom = mockSupabase.from as jest.Mock;
 mockFrom.mockReturnValue({
   select: jest.fn().mockReturnThis(),
   eq: jest.fn().mockReturnThis(),
-  single: jest.fn().mockResolvedValue(
-    createSupabaseSuccessResponse(mockUser)
-  ),
+  single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
 });
 
 // Mock error response
 mockFrom.mockReturnValue({
   select: jest.fn().mockReturnThis(),
   eq: jest.fn().mockReturnThis(),
-  single: jest.fn().mockResolvedValue(
-    createSupabaseErrorResponse('User not found', 'PGRST116')
-  ),
+  single: jest
+    .fn()
+    .mockResolvedValue(
+      createSupabaseErrorResponse('User not found', 'PGRST116')
+    ),
 });
 ```
 
@@ -201,6 +207,7 @@ const mockStore = createMockZustandStore({
 ### 1. Use Factories for Test Data
 
 ❌ **Don't create data inline:**
+
 ```typescript
 const user = {
   id: 'test-id',
@@ -210,6 +217,7 @@ const user = {
 ```
 
 ✅ **Use factories:**
+
 ```typescript
 const user = factories.user({ email: 'test@example.com' });
 ```
@@ -217,6 +225,7 @@ const user = factories.user({ email: 'test@example.com' });
 ### 2. Test Both Success and Error Cases
 
 ❌ **Only test happy path:**
+
 ```typescript
 it('should get user', async () => {
   const result = await service.getUser('123');
@@ -225,6 +234,7 @@ it('should get user', async () => {
 ```
 
 ✅ **Test all scenarios:**
+
 ```typescript
 it('should get user successfully', async () => {
   // Setup success mock...
@@ -242,6 +252,7 @@ it('should handle user not found', async () => {
 ### 3. Use Type Guards and Assertions
 
 ✅ **Leverage type safety:**
+
 ```typescript
 const result = await service.getUser('123');
 if (result.success) {
@@ -298,11 +309,13 @@ it('should perform well with large datasets', async () => {
 Other development agents can leverage this infrastructure:
 
 1. **Import test utilities:**
+
    ```typescript
    import { factories, render, expectServiceSuccess } from '@/lib/test/...';
    ```
 
 2. **Use established patterns:**
+
    - Follow ServiceResponse testing pattern
    - Use factories for all test data
    - Mock Supabase consistently
@@ -319,6 +332,7 @@ Other development agents can leverage this infrastructure:
 **Problem:** Mock returns real data instead of mock data.
 
 **Solution:** Ensure mock is set up before the service call:
+
 ```typescript
 beforeEach(() => {
   setupSupabaseMock(mockSupabase);
@@ -331,6 +345,7 @@ beforeEach(() => {
 **Problem:** TypeScript errors with mock data.
 
 **Solution:** Use factories which provide correct types:
+
 ```typescript
 const user = factories.user(); // Properly typed
 ```
@@ -340,6 +355,7 @@ const user = factories.user(); // Properly typed
 **Problem:** Tests interfere with each other.
 
 **Solution:** Reset counters and clean up:
+
 ```typescript
 beforeEach(() => {
   resetIdCounter();

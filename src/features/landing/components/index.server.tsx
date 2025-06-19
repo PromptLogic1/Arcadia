@@ -81,13 +81,21 @@ export default function LandingPageServer() {
           className="sr-only"
         >
           <ul>
-            <li><Link href="/">Home</Link></li>
-            <li><Link href="/about">About</Link></li>
-            <li><Link href="/play-area">Play Area</Link></li>
-            <li><Link href="/community">Community</Link></li>
+            <li>
+              <Link href="/">Home</Link>
+            </li>
+            <li>
+              <Link href="/about">About</Link>
+            </li>
+            <li>
+              <Link href="/play-area">Play Area</Link>
+            </li>
+            <li>
+              <Link href="/community">Community</Link>
+            </li>
           </ul>
         </nav>
-        
+
         <main
           id="main-content"
           role="main"

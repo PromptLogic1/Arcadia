@@ -44,8 +44,10 @@ export function generateMetadata(config: SEOConfig): Metadata {
   return {
     title: fullTitle,
     description,
-    keywords: [...keywords, 'gaming', 'platform', 'community', 'games'].join(', '),
-    
+    keywords: [...keywords, 'gaming', 'platform', 'community', 'games'].join(
+      ', '
+    ),
+
     // Canonical URL
     alternates: {
       canonical: canonicalUrl,
@@ -106,8 +108,16 @@ export function generateMetadata(config: SEOConfig): Metadata {
  */
 export const defaultMetadata: Metadata = generateMetadata({
   title: 'Arcadia - Gaming Platform & Community',
-  description: 'Join Arcadia, the ultimate gaming platform where players connect, compete, and create unforgettable experiences. Discover games and tournaments.',
-  keywords: ['gaming', 'platform', 'community', 'tournaments', 'multiplayer', 'esports'],
+  description:
+    'Join Arcadia, the ultimate gaming platform where players connect, compete, and create unforgettable experiences. Discover games and tournaments.',
+  keywords: [
+    'gaming',
+    'platform',
+    'community',
+    'tournaments',
+    'multiplayer',
+    'esports',
+  ],
   canonical: '/',
 });
 
@@ -116,8 +126,18 @@ export const defaultMetadata: Metadata = generateMetadata({
  */
 export const homepageMetadata: Metadata = generateMetadata({
   title: 'Arcadia - Gaming Platform & Community',
-  description: 'Join Arcadia, the ultimate gaming platform where players connect, compete, and create unforgettable experiences. Discover games and tournaments.',
-  keywords: ['gaming', 'platform', 'community', 'tournaments', 'multiplayer', 'esports', 'demo', 'challenges'],
+  description:
+    'Join Arcadia, the ultimate gaming platform where players connect, compete, and create unforgettable experiences. Discover games and tournaments.',
+  keywords: [
+    'gaming',
+    'platform',
+    'community',
+    'tournaments',
+    'multiplayer',
+    'esports',
+    'demo',
+    'challenges',
+  ],
   canonical: '/',
   openGraph: {
     type: 'website',
@@ -130,7 +150,8 @@ export const homepageMetadata: Metadata = generateMetadata({
  */
 export const aboutMetadata: Metadata = generateMetadata({
   title: 'About Arcadia - Our Gaming Mission',
-  description: 'Learn about Arcadia\'s mission to revolutionize gaming through innovative technology, community building, and immersive experiences. Discover our story, values, and commitment to gamers worldwide.',
+  description:
+    "Learn about Arcadia's mission to revolutionize gaming through innovative technology, community building, and immersive experiences. Discover our story, values, and commitment to gamers worldwide.",
   keywords: ['about', 'mission', 'gaming company', 'innovation', 'community'],
   canonical: '/about',
   openGraph: {
@@ -149,7 +170,8 @@ export function generateOrganizationSchema(): Record<string, unknown> {
     name: 'Arcadia',
     url: BASE_URL,
     logo: `${BASE_URL}/images/logo.png`,
-    description: 'The ultimate gaming platform where players connect, compete, and create unforgettable gaming experiences.',
+    description:
+      'The ultimate gaming platform where players connect, compete, and create unforgettable gaming experiences.',
     sameAs: [
       'https://twitter.com/ArcadiaGaming',
       'https://facebook.com/ArcadiaGaming',
@@ -178,7 +200,8 @@ export function generateWebsiteSchema(): Record<string, unknown> {
     '@type': 'WebSite',
     name: 'Arcadia',
     url: BASE_URL,
-    description: 'The ultimate gaming platform where players connect, compete, and create unforgettable gaming experiences.',
+    description:
+      'The ultimate gaming platform where players connect, compete, and create unforgettable gaming experiences.',
     publisher: {
       '@type': 'Organization',
       name: 'Arcadia',
@@ -201,7 +224,8 @@ export function generateGamePlatformSchema(): Record<string, unknown> {
     '@type': 'VideoGameSeries',
     name: 'Arcadia Gaming Platform',
     url: BASE_URL,
-    description: 'A comprehensive gaming platform featuring multiple games, tournaments, and community features.',
+    description:
+      'A comprehensive gaming platform featuring multiple games, tournaments, and community features.',
     publisher: {
       '@type': 'Organization',
       name: 'Arcadia',
@@ -226,7 +250,9 @@ export function generateGamePlatformSchema(): Record<string, unknown> {
 /**
  * Generate breadcrumb schema for pages
  */
-export function generateBreadcrumbSchema(items: Array<{ name: string; url: string }>): Record<string, unknown> {
+export function generateBreadcrumbSchema(
+  items: Array<{ name: string; url: string }>
+): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',

@@ -1,12 +1,12 @@
-import type { 
-  TestSession, 
-  TestSessionPlayer, 
-  TestAchievement, 
+import type {
+  TestSession,
+  TestSessionPlayer,
+  TestAchievement,
   TestSpeedrun,
   TestGameState,
   TestGameCell,
   TestFixtureOptions,
-  TestLeaderboardEntry
+  TestLeaderboardEntry,
 } from '../types/test-types';
 
 // Define TestBoard type
@@ -50,7 +50,14 @@ export class GameFixtureFactory {
   }
 
   private static randomPlayerColor(): string {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#9C88FF'];
+    const colors = [
+      '#FF6B6B',
+      '#4ECDC4',
+      '#45B7D1',
+      '#96CEB4',
+      '#FECA57',
+      '#9C88FF',
+    ];
     return this.randomChoice(colors);
   }
 
@@ -70,18 +77,27 @@ export class GameFixtureFactory {
   /**
    * Generate board state with cells
    */
-  static boardState(overrides?: Partial<TestBoard>): { board: TestBoard; cells: TestGameCell[] } {
+  static boardState(overrides?: Partial<TestBoard>): {
+    board: TestBoard;
+    cells: TestGameCell[];
+  } {
     const boardId = overrides?.id || this.randomId('board');
     const board: TestBoard = {
       id: boardId,
       title: this.randomBoardTitle(),
-      game: this.randomChoice(['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid']),
+      game: this.randomChoice([
+        'Pokemon',
+        'Sonic',
+        'Mario',
+        'Zelda',
+        'Metroid',
+      ]),
       size: 5,
       is_public: true,
       created_by: this.randomId('user'),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      ...overrides
+      ...overrides,
     };
 
     const cells: TestGameCell[] = Array.from({ length: 25 }, (_, index) => ({
@@ -91,13 +107,12 @@ export class GameFixtureFactory {
       marked_by: null,
       marked_at: null,
       row: Math.floor(index / 5),
-      col: index % 5
+      col: index % 5,
     }));
 
     return { board, cells };
   }
 
-  
   /**
    * Generate a test gaming session with realistic data
    */
@@ -121,7 +136,7 @@ export class GameFixtureFactory {
         auto_start: false,
         time_limit: null,
         require_approval: false,
-        password: null
+        password: null,
       },
       // Extended test properties
       board_title: this.randomBoardTitle(),
@@ -130,7 +145,7 @@ export class GameFixtureFactory {
       max_players: 4,
       difficulty: 'medium',
       game_type: 'bingo',
-      players: []
+      players: [],
     };
 
     return { ...baseSession, ...overrides };
@@ -139,7 +154,9 @@ export class GameFixtureFactory {
   /**
    * Generate a test session player with connection status
    */
-  static sessionPlayer(overrides?: Partial<TestSessionPlayer>): TestSessionPlayer {
+  static sessionPlayer(
+    overrides?: Partial<TestSessionPlayer>
+  ): TestSessionPlayer {
     const basePlayer: TestSessionPlayer = {
       id: this.randomId('player-session'),
       session_id: this.randomId('session'),
@@ -163,7 +180,7 @@ export class GameFixtureFactory {
       points: 0,
       completed_cells: 0,
       completion_time: undefined,
-      connection_status: 'connected'
+      connection_status: 'connected',
     };
 
     return { ...basePlayer, ...overrides };
@@ -173,15 +190,29 @@ export class GameFixtureFactory {
    * Generate a test achievement with progression
    */
   static achievement(overrides?: Partial<TestAchievement>): TestAchievement {
-    const achievementTypes = ['gameplay', 'social', 'speedrun', 'completion', 'streak'] as const;
-    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
+    const achievementTypes = [
+      'gameplay',
+      'social',
+      'speedrun',
+      'completion',
+      'streak',
+    ] as const;
+    const rarities = [
+      'common',
+      'uncommon',
+      'rare',
+      'epic',
+      'legendary',
+    ] as const;
     const icons = ['🏆', '🎯', '⚡', '🔥', '💎', '⭐', '🎖️', '👑', '💫', '🚀'];
-    
+
     const baseAchievement: TestAchievement = {
       id: this.randomId('achievement'),
       user_id: this.randomId('user'),
       achievement_name: this.randomAchievementName(),
-      achievement_type: achievementTypes[Math.floor(Math.random() * achievementTypes.length)] as string,
+      achievement_type: achievementTypes[
+        Math.floor(Math.random() * achievementTypes.length)
+      ] as string,
       description: 'Complete a challenging gaming task',
       points: Math.floor(Math.random() * 500) + 50,
       unlocked_at: Math.random() > 0.5 ? new Date().toISOString() : null,
@@ -191,14 +222,14 @@ export class GameFixtureFactory {
         rarity: rarities[Math.floor(Math.random() * rarities.length)],
         progress: 0,
         max_progress: 1,
-        icon: icons[Math.floor(Math.random() * icons.length)]
+        icon: icons[Math.floor(Math.random() * icons.length)],
       },
       // Extended test properties
       progress: 0,
       max_progress: 1,
       rarity: 'common',
       category: 'gaming',
-      icon: '🏆'
+      icon: '🏆',
     };
 
     return { ...baseAchievement, ...overrides };
@@ -222,8 +253,8 @@ export class GameFixtureFactory {
       metadata: {
         splits: [],
         input_method: 'mouse',
-        version: '1.0.0'
-      }
+        version: '1.0.0',
+      },
     };
 
     // Generate realistic splits
@@ -231,7 +262,8 @@ export class GameFixtureFactory {
     const splitCount = 5;
     const splits: number[] = [];
     for (let i = 0; i < splitCount; i++) {
-      const splitTime = (totalTime / splitCount) * (i + 1) + (Math.random() - 0.5) * 1000;
+      const splitTime =
+        (totalTime / splitCount) * (i + 1) + (Math.random() - 0.5) * 1000;
       splits.push(Math.max(splits[splits.length - 1] || 0, splitTime));
     }
     baseSpeedrun.metadata!.splits = splits;
@@ -253,7 +285,7 @@ export class GameFixtureFactory {
       time_remaining: undefined,
       paused: false,
       winner: undefined,
-      win_condition: undefined
+      win_condition: undefined,
     };
   }
 
@@ -263,7 +295,7 @@ export class GameFixtureFactory {
   static boardCells(size = 25): TestGameCell[] {
     const cells: TestGameCell[] = [];
     const gridSize = Math.sqrt(size);
-    
+
     for (let i = 0; i < size; i++) {
       cells.push({
         position: i,
@@ -274,10 +306,10 @@ export class GameFixtureFactory {
         row: Math.floor(i / gridSize),
         col: i % gridSize,
         hover_player: undefined,
-        animation: undefined
+        animation: undefined,
       });
     }
-    
+
     return cells;
   }
 
@@ -286,25 +318,32 @@ export class GameFixtureFactory {
    */
   static leaderboardEntries(count = 10): TestLeaderboardEntry[] {
     const entries: TestLeaderboardEntry[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       entries.push({
         rank: i + 1,
         user_id: this.randomId('user'),
         username: this.randomPlayerName(),
-        avatar_url: Math.random() > 0.5 ? `https://avatar.example.com/${i}.jpg` : undefined,
+        avatar_url:
+          Math.random() > 0.5
+            ? `https://avatar.example.com/${i}.jpg`
+            : undefined,
         score: Math.floor(Math.random() * 5000) + 1000,
         time: Math.floor(Math.random() * 300) + 30,
-        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        is_current_user: i === 0 // First entry is current user
+        date: new Date(
+          Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        is_current_user: i === 0, // First entry is current user
       });
     }
-    
+
     // Sort by score (descending) then by time (ascending)
-    return entries.sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-      return (a.time || 0) - (b.time || 0);
-    }).map((entry, index) => ({ ...entry, rank: index + 1 }));
+    return entries
+      .sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        return (a.time || 0) - (b.time || 0);
+      })
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
   }
 
   // ===== SCENARIO GENERATORS =====
@@ -322,19 +361,21 @@ export class GameFixtureFactory {
       host_id: hostId,
       status: 'active',
       current_player_count: playerCount,
-      max_players: Math.max(playerCount, 4)
+      max_players: Math.max(playerCount, 4),
     });
 
     const players: TestSessionPlayer[] = [];
     for (let i = 0; i < playerCount; i++) {
-      players.push(this.sessionPlayer({
-        session_id: session.id,
-        user_id: i === 0 ? hostId : this.randomId('user'),
-        is_host: i === 0,
-        position: i,
-        display_name: i === 0 ? 'Host Player' : `Player ${i + 1}`,
-        color: this.PLAYER_COLORS[i % this.PLAYER_COLORS.length]
-      }));
+      players.push(
+        this.sessionPlayer({
+          session_id: session.id,
+          user_id: i === 0 ? hostId : this.randomId('user'),
+          is_host: i === 0,
+          position: i,
+          display_name: i === 0 ? 'Host Player' : `Player ${i + 1}`,
+          color: this.PLAYER_COLORS[i % this.PLAYER_COLORS.length],
+        })
+      );
     }
 
     const gameState = this.gameState(session.id);
@@ -356,20 +397,20 @@ export class GameFixtureFactory {
       host_id: userId,
       status: 'active',
       game_type: 'speedrun',
-      difficulty: 'hard'
+      difficulty: 'hard',
     });
 
     const player = this.sessionPlayer({
       session_id: session.id,
       user_id: userId,
       is_host: true,
-      is_current_user: true
+      is_current_user: true,
     });
 
     const speedrun = this.speedrun({
       user_id: userId,
       board_id: session.board_id || this.randomId('board'),
-      board_title: session.board_title ?? 'Speedrun Challenge'
+      board_title: session.board_title ?? 'Speedrun Challenge',
     });
 
     return { session, player, speedrun };
@@ -391,8 +432,8 @@ export class GameFixtureFactory {
           rarity: 'common',
           progress: 1,
           max_progress: 1,
-          icon: '🏆'
-        }
+          icon: '🏆',
+        },
       }),
       this.achievement({
         user_id: userId,
@@ -405,8 +446,8 @@ export class GameFixtureFactory {
           rarity: 'uncommon',
           progress: 3,
           max_progress: 5,
-          icon: '🔥'
-        }
+          icon: '🔥',
+        },
       }),
       this.achievement({
         user_id: userId,
@@ -419,9 +460,9 @@ export class GameFixtureFactory {
           rarity: 'rare',
           progress: 0,
           max_progress: 1,
-          icon: '⚡'
-        }
-      })
+          icon: '⚡',
+        },
+      }),
     ];
   }
 
@@ -429,16 +470,36 @@ export class GameFixtureFactory {
 
   private static randomCellText(): string {
     const actions = [
-      'Complete tutorial', 'Reach level 10', 'Defeat a boss', 'Find secret area',
-      'Collect 100 coins', 'Win a match', 'Use special ability', 'Unlock achievement',
-      'Join a team', 'Complete mission', 'Craft an item', 'Explore new area',
-      'Master a skill', 'Break a record', 'Help another player', 'Survive 5 minutes',
-      'Score a headshot', 'Build something cool', 'Solve a puzzle', 'Race to finish',
-      'Capture the flag', 'Defend the base', 'Cast a spell', 'Tame a creature',
-      'Discover a recipe'
+      'Complete tutorial',
+      'Reach level 10',
+      'Defeat a boss',
+      'Find secret area',
+      'Collect 100 coins',
+      'Win a match',
+      'Use special ability',
+      'Unlock achievement',
+      'Join a team',
+      'Complete mission',
+      'Craft an item',
+      'Explore new area',
+      'Master a skill',
+      'Break a record',
+      'Help another player',
+      'Survive 5 minutes',
+      'Score a headshot',
+      'Build something cool',
+      'Solve a puzzle',
+      'Race to finish',
+      'Capture the flag',
+      'Defend the base',
+      'Cast a spell',
+      'Tame a creature',
+      'Discover a recipe',
     ];
-    
-    return actions[Math.floor(Math.random() * actions.length)] || 'Complete tutorial';
+
+    return (
+      actions[Math.floor(Math.random() * actions.length)] || 'Complete tutorial'
+    );
   }
 
   // ===== CONSTANTS =====
@@ -453,7 +514,7 @@ export class GameFixtureFactory {
     '#98D8C8', // Mint
     '#F7DC6F', // Gold
     '#BB8FCE', // Lavender
-    '#85C1E9'  // Sky Blue
+    '#85C1E9', // Sky Blue
   ];
 
   // ===== BULK GENERATORS =====
@@ -461,57 +522,69 @@ export class GameFixtureFactory {
   /**
    * Generate multiple test sessions for performance testing
    */
-  static bulkSessions(count: number, options?: TestFixtureOptions): TestSession[] {
+  static bulkSessions(
+    count: number,
+    options?: TestFixtureOptions
+  ): TestSession[] {
     const sessions: TestSession[] = [];
-    
+
     for (let i = 0; i < count; i++) {
-      sessions.push(this.session({
-        ...options,
-        board_title: `${options?.gameType || 'Test'} Session ${i + 1}`,
-        current_player_count: Math.floor(Math.random() * 4) + 1,
-        status: ['waiting', 'active', 'completed'][Math.floor(Math.random() * 3)] as 'waiting' | 'active' | 'completed'
-      }));
+      sessions.push(
+        this.session({
+          ...options,
+          board_title: `${options?.gameType || 'Test'} Session ${i + 1}`,
+          current_player_count: Math.floor(Math.random() * 4) + 1,
+          status: ['waiting', 'active', 'completed'][
+            Math.floor(Math.random() * 3)
+          ] as 'waiting' | 'active' | 'completed',
+        })
+      );
     }
-    
+
     return sessions;
   }
 
   /**
    * Generate stress test data for concurrent operations
    */
-  static stressTestData(sessionCount = 50, playersPerSession = 4): {
+  static stressTestData(
+    sessionCount = 50,
+    playersPerSession = 4
+  ): {
     sessions: TestSession[];
     allPlayers: TestSessionPlayer[];
   } {
     const sessions = this.bulkSessions(sessionCount);
     const allPlayers: TestSessionPlayer[] = [];
-    
+
     sessions.forEach(session => {
       for (let i = 0; i < playersPerSession; i++) {
-        allPlayers.push(this.sessionPlayer({
-          session_id: session.id,
-          is_host: i === 0,
-          position: i
-        }));
+        allPlayers.push(
+          this.sessionPlayer({
+            session_id: session.id,
+            is_host: i === 0,
+            position: i,
+          })
+        );
       }
     });
-    
+
     return { sessions, allPlayers };
   }
 }
 
 // Export convenience functions
-export const { 
-  session, 
-  sessionPlayer, 
-  achievement, 
-  speedrun, 
-  gameState, 
+export const {
+  session,
+  sessionPlayer,
+  achievement,
+  speedrun,
+  gameState,
   boardCells,
   leaderboardEntries,
   multiplayerScenario,
   speedrunScenario,
   achievementProgressionScenario,
   bulkSessions,
-  stressTestData
+  stressTestData,
 } = GameFixtureFactory;

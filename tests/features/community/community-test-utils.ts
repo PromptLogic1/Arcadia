@@ -30,7 +30,7 @@ export async function createTypedDiscussion(
   options: { validate?: boolean; user?: UserScenario } = {}
 ): Promise<string> {
   const { validate = true, user } = options;
-  
+
   // Validate data if requested
   if (validate) {
     const result = DiscussionCreateSchema.safeParse(discussionData);
@@ -46,7 +46,7 @@ export async function createTypedDiscussion(
 
   await page.goto('/community');
   await waitForNetworkIdle(page);
-  
+
   // Click create discussion button
   await page.getByRole('button', { name: /new discussion/i }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -55,22 +55,25 @@ export async function createTypedDiscussion(
   if (discussionData.title) {
     await page.getByLabel('Title').fill(discussionData.title);
   }
-  
+
   if (discussionData.content) {
     await page.getByLabel('Content').fill(discussionData.content);
   }
-  
+
   if (discussionData.game) {
     await page.getByLabel('Game').selectOption(discussionData.game);
   }
-  
+
   if (discussionData.challenge_type) {
-    await page.getByLabel('Challenge Type').selectOption(discussionData.challenge_type);
+    await page
+      .getByLabel('Challenge Type')
+      .selectOption(discussionData.challenge_type);
   }
 
   // Add tags with proper validation
   if (discussionData.tags && Array.isArray(discussionData.tags)) {
-    for (const tag of discussionData.tags.slice(0, 5)) { // Limit to 5 tags
+    for (const tag of discussionData.tags.slice(0, 5)) {
+      // Limit to 5 tags
       await page.getByLabel('Tags').fill(tag);
       await page.keyboard.press('Enter');
       await expect(page.getByText(tag)).toBeVisible();
@@ -83,9 +86,11 @@ export async function createTypedDiscussion(
 
   // Extract and validate discussion ID
   await expect(page.getByRole('dialog')).not.toBeVisible();
-  const discussionCard = page.locator('[data-testid="discussion-card"]').first();
+  const discussionCard = page
+    .locator('[data-testid="discussion-card"]')
+    .first();
   await expect(discussionCard).toBeVisible();
-  
+
   const discussionId = await discussionCard.getAttribute('data-discussion-id');
   if (!discussionId) {
     throw new Error('Failed to create discussion - no ID found');
@@ -136,36 +141,42 @@ export async function createTypedComment(
     const parentComment = page.locator(`[data-comment-id="${parentId}"]`);
     await parentComment.getByRole('button', { name: /reply/i }).click();
     await expect(page.getByPlaceholder('Write a reply...')).toBeVisible();
-    
+
     if (commentData.content) {
       await page.getByPlaceholder('Write a reply...').fill(commentData.content);
     }
-    
+
     await page.getByRole('button', { name: /post reply/i }).click();
   } else {
     // Regular comment
-    const discussionCard = page.locator(`[data-discussion-id="${discussionId}"]`);
+    const discussionCard = page.locator(
+      `[data-discussion-id="${discussionId}"]`
+    );
     const isExpanded = await discussionCard.getAttribute('data-expanded');
-    
+
     if (isExpanded !== 'true') {
       await discussionCard.click();
       await waitForNetworkIdle(page);
     }
 
     if (commentData.content) {
-      await page.getByPlaceholder('What are your thoughts on this discussion?').fill(commentData.content);
+      await page
+        .getByPlaceholder('What are your thoughts on this discussion?')
+        .fill(commentData.content);
     }
-    
+
     await page.getByRole('button', { name: /post comment/i }).click();
   }
 
   await waitForNetworkIdle(page);
 
   // Extract comment ID from the newly created comment
-  const commentSelector = parentId ? '[data-testid="comment-reply"]' : '[data-testid="comment"]';
+  const commentSelector = parentId
+    ? '[data-testid="comment-reply"]'
+    : '[data-testid="comment"]';
   const commentElement = page.locator(commentSelector).last();
   await expect(commentElement).toBeVisible();
-  
+
   const commentId = await commentElement.getAttribute('data-comment-id');
   if (!commentId) {
     throw new Error('Failed to create comment - no ID found');
@@ -188,7 +199,10 @@ const mockData = {
       if (result === undefined) throw new Error('Array element is undefined');
       return result;
     },
-    arrayElements: <T>(array: readonly T[], options?: { min: number; max: number }): T[] => {
+    arrayElements: <T>(
+      array: readonly T[],
+      options?: { min: number; max: number }
+    ): T[] => {
       if (array.length === 0) return [];
       const min = options?.min ?? 1;
       const max = options?.max ?? array.length;
@@ -206,8 +220,14 @@ const mockData = {
         'Thanks for sharing this detailed guide with everyone.',
         'I never thought about approaching it this way before.',
       ];
-      const count = options ? Math.floor(Math.random() * (options.max - options.min + 1)) + options.min : 2;
-      return Array.from({ length: count }, () => sentences[Math.floor(Math.random() * sentences.length)]).join(' ');
+      const count = options
+        ? Math.floor(Math.random() * (options.max - options.min + 1)) +
+          options.min
+        : 2;
+      return Array.from(
+        { length: count },
+        () => sentences[Math.floor(Math.random() * sentences.length)]
+      ).join(' ');
     },
     sentence: (_options?: { min: number; max: number }) => {
       const sentences = [
@@ -223,16 +243,32 @@ const mockData = {
 };
 
 // Generate realistic test data with type safety
-export function generateDiscussionData(options: TestDataOptions = {}): DiscussionInsert {
+export function generateDiscussionData(
+  options: TestDataOptions = {}
+): DiscussionInsert {
   const { scenario = 'regularUser', contentType = 'safe' } = options;
   const userScenario = USER_TEST_SCENARIOS[scenario];
   if (!userScenario) {
     throw new Error(`Invalid user scenario: ${scenario}`);
   }
-  
+
   const games = ['Pokemon', 'Sonic', 'Mario', 'Zelda', 'Metroid', 'Kirby'];
-  const challengeTypes = ['Bingo', 'Speedrun', 'Achievement Hunt', 'Puzzle', 'Co-op'];
-  const tags = ['strategy', 'help', 'tips', 'speedrun', 'glitch', 'guide', 'tournament'];
+  const challengeTypes = [
+    'Bingo',
+    'Speedrun',
+    'Achievement Hunt',
+    'Puzzle',
+    'Co-op',
+  ];
+  const tags = [
+    'strategy',
+    'help',
+    'tips',
+    'speedrun',
+    'glitch',
+    'guide',
+    'tournament',
+  ];
 
   let title: string;
   let content: string;
@@ -289,12 +325,13 @@ export function generateCommentData(
     }
   } else {
     const commentTypes = [
-      'Great point! I\'ve been using this strategy and it works well.',
+      "Great point! I've been using this strategy and it works well.",
       'Have you tried using the warp glitch for this section?',
       'Thanks for sharing! This helped me complete the challenge.',
       mockData.lorem.sentence({ min: 10, max: 20 }),
     ];
-    content = mockData.helpers.arrayElement(commentTypes) || 'Default comment content';
+    content =
+      mockData.helpers.arrayElement(commentTypes) || 'Default comment content';
   }
 
   return {
@@ -315,16 +352,15 @@ export async function testRealTimeUpdates(
   // Navigate both pages to the discussion
   await page1.goto(`/community/discussions/${discussionId}`);
   await page2.goto(`/community/discussions/${discussionId}`);
-  await Promise.all([
-    waitForNetworkIdle(page1),
-    waitForNetworkIdle(page2),
-  ]);
+  await Promise.all([waitForNetworkIdle(page1), waitForNetworkIdle(page2)]);
 
   switch (updateType) {
     case 'comment': {
       // Add comment on page1
       const content = data.content || 'Real-time test comment';
-      await page1.getByPlaceholder('What are your thoughts on this discussion?').fill(content);
+      await page1
+        .getByPlaceholder('What are your thoughts on this discussion?')
+        .fill(content);
       await page1.getByRole('button', { name: /post comment/i }).click();
 
       // Verify comment appears on page2 in real-time
@@ -334,9 +370,13 @@ export async function testRealTimeUpdates(
 
     case 'upvote': {
       // Get initial count on both pages
-      const upvoteButton1 = page1.getByRole('button', { name: /upvote/i }).first();
-      const upvoteButton2 = page2.getByRole('button', { name: /upvote/i }).first();
-      
+      const upvoteButton1 = page1
+        .getByRole('button', { name: /upvote/i })
+        .first();
+      const upvoteButton2 = page2
+        .getByRole('button', { name: /upvote/i })
+        .first();
+
       const initialText = await upvoteButton1.textContent();
       const initialCount = parseInt(initialText?.match(/\d+/)?.[0] || '0');
 
@@ -344,7 +384,9 @@ export async function testRealTimeUpdates(
       await upvoteButton1.click();
 
       // Verify count updates on page2
-      await expect(upvoteButton2).toContainText(String(initialCount + 1), { timeout: 5000 });
+      await expect(upvoteButton2).toContainText(String(initialCount + 1), {
+        timeout: 5000,
+      });
       break;
     }
 
@@ -355,7 +397,9 @@ export async function testRealTimeUpdates(
       await page1.getByRole('button', { name: /save changes/i }).click();
 
       // Verify update appears on page2
-      await expect(page2.getByText(data.content || '')).toBeVisible({ timeout: 5000 });
+      await expect(page2.getByText(data.content || '')).toBeVisible({
+        timeout: 5000,
+      });
       await expect(page2.getByText('(edited)')).toBeVisible();
       break;
     }
@@ -373,7 +417,7 @@ export async function testRateLimit(
   if (!user) {
     throw new Error(`Invalid user type: ${config.userType}`);
   }
-  
+
   // Login as the specified user
   await loginAsUser(page, user);
 
@@ -388,10 +432,13 @@ export async function testRateLimit(
     } catch (err) {
       success = false;
       error = err instanceof Error ? err.message : String(err);
-      
+
       // Check if it's a rate limit error
       const errorMessage = await page.locator('[role="alert"]').textContent();
-      if (!errorMessage?.includes('rate limit') && !errorMessage?.includes('too quickly')) {
+      if (
+        !errorMessage?.includes('rate limit') &&
+        !errorMessage?.includes('too quickly')
+      ) {
         throw err; // Re-throw if not rate limit
       }
     }
@@ -404,7 +451,10 @@ export async function testRateLimit(
 
   const successful = results.filter(r => r.success).length;
   const blocked = results.filter(r => !r.success).length;
-  const errors = results.filter(r => r.error).map(r => r.error).filter((e): e is NonNullable<typeof e> => e !== undefined);
+  const errors = results
+    .filter(r => r.error)
+    .map(r => r.error)
+    .filter((e): e is NonNullable<typeof e> => e !== undefined);
 
   return { successful, blocked, errors };
 }
@@ -428,14 +478,22 @@ export async function testAccessibility(
     helpUrl: string;
     nodes: Array<{ target: string[] }>;
   }
-  
+
   interface AxeResults {
     violations: AxeViolation[];
   }
-  
-  const result = await page.evaluate((sel) => {
-    return new Promise<AxeResults>((resolve) => {
-      const win = window as Window & { axe?: { run: (context: Element | Document, options: unknown, callback: (err: Error | null, results: AxeResults) => void) => void } };
+
+  const result = await page.evaluate(sel => {
+    return new Promise<AxeResults>(resolve => {
+      const win = window as Window & {
+        axe?: {
+          run: (
+            context: Element | Document,
+            options: unknown,
+            callback: (err: Error | null, results: AxeResults) => void
+          ) => void;
+        };
+      };
       if (win.axe) {
         const context = sel ? document.querySelector(sel) : document;
         if (!context) {
@@ -453,15 +511,21 @@ export async function testAccessibility(
   }, selector);
 
   const axeResults = result;
-  
-  const violations: AccessibilityViolation[] = axeResults.violations.map((violation) => ({
-    rule: violation.id,
-    severity: (violation.impact === 'serious' || violation.impact === 'critical' ? 'error' : 
-              violation.impact === 'moderate' ? 'warning' : 'info') as 'error' | 'warning' | 'info',
-    element: violation.nodes[0]?.target[0] || 'unknown',
-    description: violation.description,
-    help: violation.help,
-  }));
+
+  const violations: AccessibilityViolation[] = axeResults.violations.map(
+    violation => ({
+      rule: violation.id,
+      severity: (violation.impact === 'serious' ||
+      violation.impact === 'critical'
+        ? 'error'
+        : violation.impact === 'moderate'
+          ? 'warning'
+          : 'info') as 'error' | 'warning' | 'info',
+      element: violation.nodes[0]?.target[0] || 'unknown',
+      description: violation.description,
+      help: violation.help,
+    })
+  );
 
   return {
     passed: violations.length === 0,
@@ -477,22 +541,28 @@ export async function measurePerformance(
 ): Promise<PerformanceMetrics> {
   // Clear performance marks
   await page.evaluate(() => performance.clearMarks());
-  
+
   const startTime = Date.now();
   await page.evaluate(() => performance.mark('operation-start'));
-  
+
   await operation();
-  
+
   await page.evaluate(() => performance.mark('operation-end'));
   const endTime = Date.now();
 
   const metrics = await page.evaluate(() => {
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const memory = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
-    
+    const navigation = performance.getEntriesByType(
+      'navigation'
+    )[0] as PerformanceNavigationTiming;
+    const memory = (
+      performance as Performance & { memory?: { usedJSHeapSize: number } }
+    ).memory;
+
     return {
       loadTime: navigation.loadEventEnd - navigation.loadEventStart,
-      renderTime: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+      renderTime:
+        navigation.domContentLoadedEventEnd -
+        navigation.domContentLoadedEventStart,
       memoryUsage: memory ? memory.usedJSHeapSize : 0,
       networkRequests: performance.getEntriesByType('resource').length,
     };
@@ -532,7 +602,7 @@ export async function testConcurrentOperations(
     try {
       data = await Promise.race([
         op.operation(),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Operation timeout')), 10000)
         ),
       ]);
@@ -558,7 +628,7 @@ export async function testConcurrentOperations(
   });
 
   const operationResults = await Promise.allSettled(promises);
-  
+
   operationResults.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       results.push(result.value);
@@ -575,8 +645,8 @@ export async function testConcurrentOperations(
   });
 
   // Detect race conditions
-  const raceConditionsDetected = results.filter(r => 
-    r.expectedResult === 'race_condition' && r.result === 'failure'
+  const raceConditionsDetected = results.filter(
+    r => r.expectedResult === 'race_condition' && r.result === 'failure'
   ).length;
 
   return {
@@ -587,9 +657,12 @@ export async function testConcurrentOperations(
 }
 
 // User management utilities
-export async function loginAsUser(page: Page, user: UserScenario): Promise<void> {
+export async function loginAsUser(
+  page: Page,
+  user: UserScenario
+): Promise<void> {
   // Mock authentication or use test credentials
-  await page.evaluate((userData) => {
+  await page.evaluate(userData => {
     // Store user data in sessionStorage for test authentication
     sessionStorage.setItem('test-user', JSON.stringify(userData));
   }, user);
@@ -609,7 +682,9 @@ export async function testSearchAndFilters(
 
   // Apply search term
   if (filters.searchTerm) {
-    await page.getByPlaceholder('Search discussions...').fill(filters.searchTerm);
+    await page
+      .getByPlaceholder('Search discussions...')
+      .fill(filters.searchTerm);
     await page.waitForTimeout(500); // Debounce
   }
 
@@ -620,13 +695,17 @@ export async function testSearchAndFilters(
 
   // Apply challenge type filter
   if (filters.challengeType) {
-    await page.getByLabel('Filter by challenge type').selectOption(filters.challengeType);
+    await page
+      .getByLabel('Filter by challenge type')
+      .selectOption(filters.challengeType);
   }
 
   // Apply tag filters
   if (filters.tags && filters.tags.length > 0) {
     for (const tag of filters.tags) {
-      await page.getByRole('button', { name: new RegExp(`#${tag}`, 'i') }).click();
+      await page
+        .getByRole('button', { name: new RegExp(`#${tag}`, 'i') })
+        .click();
     }
   }
 
@@ -638,13 +717,21 @@ export async function testSearchAndFilters(
   await waitForNetworkIdle(page);
 
   // Extract results
-  const discussions = await page.locator('[data-testid="discussion-card"]').all();
+  const discussions = await page
+    .locator('[data-testid="discussion-card"]')
+    .all();
   const results: DiscussionWithAuthor[] = [];
 
   for (const discussion of discussions) {
-    const title = await discussion.locator('[data-testid="discussion-title"]').textContent();
-    const game = await discussion.locator('[data-testid="discussion-game"]').textContent();
-    const author = await discussion.locator('[data-testid="discussion-author"]').textContent();
+    const title = await discussion
+      .locator('[data-testid="discussion-title"]')
+      .textContent();
+    const game = await discussion
+      .locator('[data-testid="discussion-game"]')
+      .textContent();
+    const author = await discussion
+      .locator('[data-testid="discussion-author"]')
+      .textContent();
     const id = await discussion.getAttribute('data-discussion-id');
 
     if (title && game && author && id) {
@@ -690,19 +777,30 @@ export async function testFormValidation(
 
     try {
       // Clear and fill the field
-      await page.locator(formSelector).locator(`[name="${testCase.field}"]`).fill('');
-      await page.locator(formSelector).locator(`[name="${testCase.field}"]`).fill(testCase.value);
-      
+      await page
+        .locator(formSelector)
+        .locator(`[name="${testCase.field}"]`)
+        .fill('');
+      await page
+        .locator(formSelector)
+        .locator(`[name="${testCase.field}"]`)
+        .fill(testCase.value);
+
       // Submit form
-      await page.locator(formSelector).getByRole('button', { name: /submit|create|save/i }).click();
-      
+      await page
+        .locator(formSelector)
+        .getByRole('button', { name: /submit|create|save/i })
+        .click();
+
       if (testCase.expectedError) {
         // Expect validation error
         await expect(page.getByText(testCase.expectedError)).toBeVisible();
         success = !testCase.shouldPass;
       } else if (testCase.shouldPass) {
         // Expect success
-        await expect(page.getByText(testCase.expectedError || '')).not.toBeVisible();
+        await expect(
+          page.getByText(testCase.expectedError || '')
+        ).not.toBeVisible();
         success = true;
       }
     } catch (err) {
@@ -711,7 +809,9 @@ export async function testFormValidation(
 
     results.push({
       success,
-      error: error ? { code: 'validation_test_failed', message: error, severity: 'error' } : undefined,
+      error: error
+        ? { code: 'validation_test_failed', message: error, severity: 'error' }
+        : undefined,
       metadata: {
         duration: Date.now() - startTime,
         retries: 0,
@@ -724,10 +824,13 @@ export async function testFormValidation(
 }
 
 // Cleanup utilities
-export async function cleanupTestData(page: Page, testIds: string[]): Promise<void> {
+export async function cleanupTestData(
+  page: Page,
+  testIds: string[]
+): Promise<void> {
   // In a real implementation, this would call cleanup APIs
   // For now, we'll just ensure we're in a clean state
-  await page.evaluate((ids) => {
+  await page.evaluate(ids => {
     // Clear any test data from local/session storage
     for (const id of ids) {
       localStorage.removeItem(`test-discussion-${id}`);
@@ -738,12 +841,17 @@ export async function cleanupTestData(page: Page, testIds: string[]): Promise<vo
 
 // Export commonly used test scenarios
 export const TEST_SCENARIOS = {
-  createBasicDiscussion: (page: Page) => createTypedDiscussion(page, generateDiscussionData()),
-  createSpamDiscussion: (page: Page) => createTypedDiscussion(page, generateDiscussionData({ contentType: 'spam' })),
+  createBasicDiscussion: (page: Page) =>
+    createTypedDiscussion(page, generateDiscussionData()),
+  createSpamDiscussion: (page: Page) =>
+    createTypedDiscussion(
+      page,
+      generateDiscussionData({ contentType: 'spam' })
+    ),
   createCommentThread: async (page: Page, discussionId: string, depth = 3) => {
     const comments = [];
     let parentId: string | undefined;
-    
+
     for (let i = 0; i < depth; i++) {
       const commentId = await createTypedComment(
         page,
@@ -754,7 +862,7 @@ export const TEST_SCENARIOS = {
       comments.push(commentId);
       parentId = commentId;
     }
-    
+
     return comments;
   },
 } as const;

@@ -5,10 +5,10 @@
 import { sessionsService } from '../sessions.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import { 
-  hashPassword, 
-  verifyPassword, 
-  generateSessionCode 
+import {
+  hashPassword,
+  verifyPassword,
+  generateSessionCode,
 } from '@/lib/crypto-utils';
 import {
   bingoSessionSchema,
@@ -74,22 +74,41 @@ const mockSupabase = {
   single: jest.fn(),
 };
 
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+const mockCreateClient = createClient as jest.MockedFunction<
+  typeof createClient
+>;
 const mockLog = log as jest.Mocked<typeof log>;
-const mockHashPassword = hashPassword as jest.MockedFunction<typeof hashPassword>;
-const mockVerifyPassword = verifyPassword as jest.MockedFunction<typeof verifyPassword>;
-const mockGenerateSessionCode = generateSessionCode as jest.MockedFunction<typeof generateSessionCode>;
-const mockBingoSessionSchema = bingoSessionSchema as jest.Mocked<typeof bingoSessionSchema>;
-const mockSessionStatsArraySchema = sessionStatsArraySchema as jest.Mocked<typeof sessionStatsArraySchema>;
-const mockTransformBoardState = transformBoardState as jest.MockedFunction<typeof transformBoardState>;
-const mockTransformSessionSettings = transformSessionSettings as jest.MockedFunction<typeof transformSessionSettings>;
+const mockHashPassword = hashPassword as jest.MockedFunction<
+  typeof hashPassword
+>;
+const mockVerifyPassword = verifyPassword as jest.MockedFunction<
+  typeof verifyPassword
+>;
+const mockGenerateSessionCode = generateSessionCode as jest.MockedFunction<
+  typeof generateSessionCode
+>;
+const mockBingoSessionSchema = bingoSessionSchema as jest.Mocked<
+  typeof bingoSessionSchema
+>;
+const mockSessionStatsArraySchema = sessionStatsArraySchema as jest.Mocked<
+  typeof sessionStatsArraySchema
+>;
+const mockTransformBoardState = transformBoardState as jest.MockedFunction<
+  typeof transformBoardState
+>;
+const mockTransformSessionSettings =
+  transformSessionSettings as jest.MockedFunction<
+    typeof transformSessionSettings
+  >;
 
 describe('Sessions Service Main', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCreateClient.mockReturnValue(mockSupabase as never);
     mockTransformBoardState.mockImplementation(state => state as never);
-    mockTransformSessionSettings.mockImplementation(settings => settings as never);
+    mockTransformSessionSettings.mockImplementation(
+      settings => settings as never
+    );
   });
 
   describe('getSessionById', () => {
@@ -118,9 +137,15 @@ describe('Sessions Service Main', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSession);
-      expect(mockBingoSessionSchema.safeParse).toHaveBeenCalledWith(mockSession);
-      expect(mockTransformBoardState).toHaveBeenCalledWith(mockSession.current_state);
-      expect(mockTransformSessionSettings).toHaveBeenCalledWith(mockSession.settings);
+      expect(mockBingoSessionSchema.safeParse).toHaveBeenCalledWith(
+        mockSession
+      );
+      expect(mockTransformBoardState).toHaveBeenCalledWith(
+        mockSession.current_state
+      );
+      expect(mockTransformSessionSettings).toHaveBeenCalledWith(
+        mockSession.settings
+      );
     });
 
     it('returns error when validation fails', async () => {
@@ -240,7 +265,10 @@ describe('Sessions Service Main', () => {
       expect(result.success).toBe(true);
       expect(result.data?.sessions).toEqual(mockSessionStats);
       expect(result.data?.totalCount).toBe(1);
-      expect(mockSupabase.in).toHaveBeenCalledWith('status', ['waiting', 'active']);
+      expect(mockSupabase.in).toHaveBeenCalledWith('status', [
+        'waiting',
+        'active',
+      ]);
     });
 
     it('filters by specific status when not "all"', async () => {
@@ -274,7 +302,10 @@ describe('Sessions Service Main', () => {
 
       await sessionsService.getActiveSessions({ status: 'all' });
 
-      expect(mockSupabase.in).not.toHaveBeenCalledWith('status', ['waiting', 'active']);
+      expect(mockSupabase.in).not.toHaveBeenCalledWith('status', [
+        'waiting',
+        'active',
+      ]);
     });
 
     it('filters out private sessions when showPrivate is false', async () => {
@@ -323,7 +354,9 @@ describe('Sessions Service Main', () => {
         data: mockSessionStats,
       });
 
-      await sessionsService.getActiveSessions({ gameCategory: 'Bingo' as never });
+      await sessionsService.getActiveSessions({
+        gameCategory: 'Bingo' as never,
+      });
 
       expect(mockSupabase.eq).toHaveBeenCalledWith('board_game_type', 'Bingo');
     });
@@ -340,9 +373,14 @@ describe('Sessions Service Main', () => {
         data: mockSessionStats,
       });
 
-      await sessionsService.getActiveSessions({ gameCategory: 'All Games' as never });
+      await sessionsService.getActiveSessions({
+        gameCategory: 'All Games' as never,
+      });
 
-      expect(mockSupabase.eq).not.toHaveBeenCalledWith('board_game_type', 'All Games');
+      expect(mockSupabase.eq).not.toHaveBeenCalledWith(
+        'board_game_type',
+        'All Games'
+      );
     });
 
     it('applies search filter', async () => {
@@ -533,7 +571,9 @@ describe('Sessions Service Main', () => {
       const result = await sessionsService.createSession(invalidSessionData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Valid host ID is required to create a session');
+      expect(result.error).toBe(
+        'Valid host ID is required to create a session'
+      );
     });
 
     it('returns error when user does not exist', async () => {
@@ -545,7 +585,9 @@ describe('Sessions Service Main', () => {
       const result = await sessionsService.createSession(sessionData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('User not found. Please ensure you are logged in.');
+      expect(result.error).toBe(
+        'User not found. Please ensure you are logged in.'
+      );
     });
 
     it('handles user lookup error', async () => {
@@ -558,7 +600,9 @@ describe('Sessions Service Main', () => {
       const result = await sessionsService.createSession(sessionData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('User not found. Please ensure you are logged in.');
+      expect(result.error).toBe(
+        'User not found. Please ensure you are logged in.'
+      );
     });
   });
 
@@ -748,7 +792,10 @@ describe('Sessions Service Main', () => {
       expect(result.session).toEqual(mockSession);
       expect(result.player).toBeDefined();
       expect(result.error).toBeUndefined();
-      expect(mockVerifyPassword).toHaveBeenCalledWith('secret123', 'hashed_secret123');
+      expect(mockVerifyPassword).toHaveBeenCalledWith(
+        'secret123',
+        'hashed_secret123'
+      );
     });
 
     it('returns error when session not found', async () => {
@@ -818,7 +865,7 @@ describe('Sessions Service Main', () => {
 
     it('returns existing player when already in session', async () => {
       const existingPlayer = { id: 'existing-player-123', user_id: userId };
-      
+
       mockSupabase.single
         .mockResolvedValueOnce({
           data: mockSession,
@@ -1069,7 +1116,10 @@ describe('Sessions Service Main', () => {
 
       expect(result.session).toBeDefined();
       expect(result.error).toBeUndefined();
-      expect(sessionsService.updateSessionStatus).toHaveBeenCalledWith(sessionId, 'active');
+      expect(sessionsService.updateSessionStatus).toHaveBeenCalledWith(
+        sessionId,
+        'active'
+      );
     });
 
     it('returns error when session not found', async () => {
@@ -1161,7 +1211,11 @@ describe('Sessions Service Main', () => {
         single: jest.fn().mockResolvedValue({ count: 0, error: null }),
       });
 
-      const result = await sessionsService.updatePlayer(sessionId, userId, updates);
+      const result = await sessionsService.updatePlayer(
+        sessionId,
+        userId,
+        updates
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockUpdatedPlayer);
@@ -1170,19 +1224,31 @@ describe('Sessions Service Main', () => {
     it('validates display name length - too short', async () => {
       const shortName = { display_name: 'AB' };
 
-      const result = await sessionsService.updatePlayer(sessionId, userId, shortName);
+      const result = await sessionsService.updatePlayer(
+        sessionId,
+        userId,
+        shortName
+      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Display name must be between 3 and 20 characters');
+      expect(result.error).toBe(
+        'Display name must be between 3 and 20 characters'
+      );
     });
 
     it('validates display name length - too long', async () => {
       const longName = { display_name: 'A'.repeat(21) };
 
-      const result = await sessionsService.updatePlayer(sessionId, userId, longName);
+      const result = await sessionsService.updatePlayer(
+        sessionId,
+        userId,
+        longName
+      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Display name must be between 3 and 20 characters');
+      expect(result.error).toBe(
+        'Display name must be between 3 and 20 characters'
+      );
     });
 
     it('returns error when color is already taken', async () => {
@@ -1194,7 +1260,11 @@ describe('Sessions Service Main', () => {
         single: jest.fn().mockResolvedValue({ count: 1, error: null }),
       });
 
-      const result = await sessionsService.updatePlayer(sessionId, userId, colorUpdate);
+      const result = await sessionsService.updatePlayer(
+        sessionId,
+        userId,
+        colorUpdate
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Color already taken');
@@ -1210,7 +1280,11 @@ describe('Sessions Service Main', () => {
         single: jest.fn().mockResolvedValue({ count: null, error: dbError }),
       });
 
-      const result = await sessionsService.updatePlayer(sessionId, userId, colorUpdate);
+      const result = await sessionsService.updatePlayer(
+        sessionId,
+        userId,
+        colorUpdate
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database error');
@@ -1270,7 +1344,10 @@ describe('Sessions Service Main', () => {
         error: { code: 'PGRST116', message: 'No rows found' },
       });
 
-      const result = await sessionsService.checkColorAvailable(sessionId, color);
+      const result = await sessionsService.checkColorAvailable(
+        sessionId,
+        color
+      );
 
       expect(result.available).toBe(true);
       expect(result.error).toBeUndefined();
@@ -1282,7 +1359,10 @@ describe('Sessions Service Main', () => {
         error: null,
       });
 
-      const result = await sessionsService.checkColorAvailable(sessionId, color);
+      const result = await sessionsService.checkColorAvailable(
+        sessionId,
+        color
+      );
 
       expect(result.available).toBe(false);
       expect(result.error).toBeUndefined();
@@ -1294,7 +1374,11 @@ describe('Sessions Service Main', () => {
         error: { code: 'PGRST116', message: 'No rows found' },
       });
 
-      await sessionsService.checkColorAvailable(sessionId, color, excludeUserId);
+      await sessionsService.checkColorAvailable(
+        sessionId,
+        color,
+        excludeUserId
+      );
 
       expect(mockSupabase.neq).toHaveBeenCalledWith('user_id', excludeUserId);
     });
@@ -1306,7 +1390,10 @@ describe('Sessions Service Main', () => {
         error: dbError,
       });
 
-      const result = await sessionsService.checkColorAvailable(sessionId, color);
+      const result = await sessionsService.checkColorAvailable(
+        sessionId,
+        color
+      );
 
       expect(result.available).toBe(false);
       expect(result.error).toBe('Database error');

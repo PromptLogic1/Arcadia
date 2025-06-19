@@ -44,8 +44,10 @@ describe('A/B Testing Logic', () => {
 
       // Test that all variants are valid
       const testUsers = ['user-1', 'user-2', 'user-3', 'user-4', 'user-5'];
-      const selections = testUsers.map(userId => selectVariant(experiment, userId));
-      
+      const selections = testUsers.map(userId =>
+        selectVariant(experiment, userId)
+      );
+
       selections.forEach(variant => {
         expect(['control', 'variant-a', 'variant-b']).toContain(variant.id);
       });
@@ -134,7 +136,7 @@ describe('A/B Testing Logic', () => {
 
       const normalized = calculateVariantWeights(variants);
       const sum = normalized.reduce((acc, v) => acc + v.weight, 0);
-      
+
       expect(sum).toBe(100);
       normalized.forEach(v => {
         expect(v.weight).toBe(25);
@@ -150,7 +152,7 @@ describe('A/B Testing Logic', () => {
 
       const normalized = calculateVariantWeights(variants);
       const sum = normalized.reduce((acc, v) => acc + v.weight, 0);
-      
+
       expect(sum).toBe(100);
       expect(normalized[0]?.weight).toBeCloseTo(50); // 30/60 * 100
       expect(normalized[1]?.weight).toBeCloseTo(33.33); // 20/60 * 100
@@ -165,7 +167,7 @@ describe('A/B Testing Logic', () => {
       ];
 
       const normalized = calculateVariantWeights(variants);
-      
+
       expect(normalized[0]?.weight).toBe(50);
       expect(normalized[1]?.weight).toBe(0);
       expect(normalized[2]?.weight).toBe(50);
@@ -188,7 +190,7 @@ describe('A/B Testing Logic', () => {
       };
 
       const validation = validateExperiment(experiment);
-      
+
       expect(validation.valid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
@@ -200,7 +202,7 @@ describe('A/B Testing Logic', () => {
       } as any;
 
       const validation = validateExperiment(experiment);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContainEqual(
         expect.objectContaining({
@@ -221,7 +223,7 @@ describe('A/B Testing Logic', () => {
       };
 
       const validation = validateExperiment(experiment);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContainEqual(
         expect.objectContaining({
@@ -245,7 +247,7 @@ describe('A/B Testing Logic', () => {
       };
 
       const validation = validateExperiment(experiment);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContainEqual(
         expect.objectContaining({
@@ -269,7 +271,7 @@ describe('A/B Testing Logic', () => {
       };
 
       const validation = validateExperiment(experiment);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContainEqual(
         expect.objectContaining({
@@ -369,12 +371,12 @@ describe('A/B Testing Logic', () => {
       };
 
       testManager.addExperiment(experiment);
-      
+
       const userId = 'impression-user';
       const variant = testManager.getVariantForUser(experiment.id, userId);
-      
+
       testManager.trackImpression(experiment.id, userId, variant!);
-      
+
       const impressions = testManager.getImpressions(experiment.id);
       expect(impressions).toHaveLength(1);
       expect(impressions[0]).toMatchObject({
@@ -399,15 +401,20 @@ describe('A/B Testing Logic', () => {
       };
 
       testManager.addExperiment(featureFlag);
-      
+
       const userId = 'feature-user';
-      const isEnabled = testManager.isFeatureEnabled('new-feature-flag', userId);
-      
+      const isEnabled = testManager.isFeatureEnabled(
+        'new-feature-flag',
+        userId
+      );
+
       expect(typeof isEnabled).toBe('boolean');
-      
+
       // Should be consistent
       for (let i = 0; i < 10; i++) {
-        expect(testManager.isFeatureEnabled('new-feature-flag', userId)).toBe(isEnabled);
+        expect(testManager.isFeatureEnabled('new-feature-flag', userId)).toBe(
+          isEnabled
+        );
       }
     });
 
@@ -429,20 +436,20 @@ describe('A/B Testing Logic', () => {
       };
 
       testManager.addExperiment(targetedExperiment);
-      
+
       // Test with different user attributes
       const newUserInTest = testManager.getVariantForUser(
         'targeted-test',
         'new-user-1',
         { audience: 'new_users' }
       );
-      
+
       const returningUser = testManager.getVariantForUser(
         'targeted-test',
         'returning-user-1',
         { audience: 'returning_users' }
       );
-      
+
       expect(['control', 'variant', null]).toContain(newUserInTest);
       expect(returningUser).toBeNull(); // Not in target audience
     });
@@ -468,11 +475,14 @@ describe('A/B Testing Logic', () => {
       };
 
       testManager.addExperiment(experiment);
-      
+
       // Normal user gets assigned randomly
-      const normalUser = testManager.getVariantForUser('campaign-test', 'user-1');
+      const normalUser = testManager.getVariantForUser(
+        'campaign-test',
+        'user-1'
+      );
       expect(['control', 'variant-a', 'variant-b']).toContain(normalUser);
-      
+
       // Campaign users get specific variants
       const summerUser = testManager.getVariantForUser(
         'campaign-test',
@@ -480,7 +490,7 @@ describe('A/B Testing Logic', () => {
         { campaign: 'summer-sale' }
       );
       expect(summerUser).toBe('variant-b');
-      
+
       const blackFridayUser = testManager.getVariantForUser(
         'campaign-test',
         'user-3',

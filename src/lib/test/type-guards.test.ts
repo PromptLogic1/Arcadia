@@ -1,12 +1,12 @@
 /**
  * Type Guards Tests
- * 
+ *
  * Tests for runtime type checking and type narrowing functions
  */
 
-import { 
-  isArcadiaError, 
-  isRetryableError, 
+import {
+  isArcadiaError,
+  isRetryableError,
   isCriticalError,
   ErrorFactory,
   ErrorCode,
@@ -214,7 +214,9 @@ describe('Type Guards', () => {
   describe('Custom Type Guards', () => {
     // Example of creating custom type guards for the application
     const isValidEmail = (value: unknown): value is string => {
-      return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      return (
+        typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+      );
     };
 
     const isValidUsername = (value: unknown): value is string => {
@@ -222,8 +224,12 @@ describe('Type Guards', () => {
     };
 
     const isValidUUID = (value: unknown): value is string => {
-      return typeof value === 'string' && 
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+      return (
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          value
+        )
+      );
     };
 
     describe('isValidEmail', () => {
@@ -256,12 +262,7 @@ describe('Type Guards', () => {
 
     describe('isValidUsername', () => {
       it('should validate usernames', () => {
-        const validUsernames = [
-          'user123',
-          'test_user',
-          'JohnDoe',
-          'abc',
-        ];
+        const validUsernames = ['user123', 'test_user', 'JohnDoe', 'abc'];
 
         const invalidUsernames = [
           'ab', // Too short
@@ -313,11 +314,13 @@ describe('Type Guards', () => {
 
   describe('Type Narrowing with Guards', () => {
     it('should narrow union types correctly', () => {
-      type Result = 
+      type Result =
         | { success: true; data: string }
         | { success: false; error: Error };
 
-      const isSuccess = (result: Result): result is { success: true; data: string } => {
+      const isSuccess = (
+        result: Result
+      ): result is { success: true; data: string } => {
         return result.success === true;
       };
 
@@ -336,18 +339,20 @@ describe('Type Guards', () => {
     });
 
     it('should work with discriminated unions', () => {
-      type Action = 
+      type Action =
         | { type: 'SET_USER'; payload: { id: string; name: string } }
         | { type: 'CLEAR_USER' }
         | { type: 'SET_ERROR'; payload: string };
 
-      const isSetUserAction = (action: Action): action is Action & { type: 'SET_USER' } => {
+      const isSetUserAction = (
+        action: Action
+      ): action is Action & { type: 'SET_USER' } => {
         return action.type === 'SET_USER';
       };
 
-      const setUserAction: Action = { 
-        type: 'SET_USER', 
-        payload: { id: '123', name: 'John' } 
+      const setUserAction: Action = {
+        type: 'SET_USER',
+        payload: { id: '123', name: 'John' },
       };
 
       if (isSetUserAction(setUserAction)) {

@@ -126,7 +126,7 @@ describe('hasCustomProperties type guard', () => {
     };
 
     const result = hasCustomProperties(styleWithCustom);
-    
+
     expect(result).toBe(true);
   });
 
@@ -138,7 +138,7 @@ describe('hasCustomProperties type guard', () => {
     };
 
     const result = hasCustomProperties(styleWithoutCustom);
-    
+
     expect(result).toBe(false);
   });
 
@@ -149,7 +149,7 @@ describe('hasCustomProperties type guard', () => {
     };
 
     const result = hasCustomProperties(customOnlyStyle);
-    
+
     expect(result).toBe(true);
   });
 
@@ -157,7 +157,7 @@ describe('hasCustomProperties type guard', () => {
     const emptyStyle: CSSProperties = {};
 
     const result = hasCustomProperties(emptyStyle);
-    
+
     expect(result).toBe(false);
   });
 
@@ -168,7 +168,7 @@ describe('hasCustomProperties type guard', () => {
     };
 
     const result = hasCustomProperties(styleWithDashes);
-    
+
     expect(result).toBe(true);
   });
 
@@ -180,7 +180,7 @@ describe('hasCustomProperties type guard', () => {
     };
 
     const result = hasCustomProperties(styleWithoutDashes);
-    
+
     expect(result).toBe(false);
   });
 
@@ -286,7 +286,9 @@ describe('mergeStyles helper', () => {
 
   test('returns CSSCustomProperties type', () => {
     const baseStyles: CSSProperties = { color: 'red' };
-    const customStyles: Partial<CSSCustomProperties> = { '--content-height': '100px' };
+    const customStyles: Partial<CSSCustomProperties> = {
+      '--content-height': '100px',
+    };
 
     const result = mergeStyles(baseStyles, customStyles);
 

@@ -1,6 +1,6 @@
 /**
  * Privacy Settings Tests
- * 
+ *
  * Tests for privacy settings logic and data protection workflows
  */
 
@@ -33,7 +33,8 @@ describe('Privacy Settings', () => {
       ): boolean => {
         if (viewerRelation === 'owner') return true;
         if (profileVisibility === 'private') return false;
-        if (profileVisibility === 'friends' && viewerRelation === 'friend') return true;
+        if (profileVisibility === 'friends' && viewerRelation === 'friend')
+          return true;
         if (profileVisibility === 'public') return true;
         return false;
       };
@@ -55,7 +56,9 @@ describe('Privacy Settings', () => {
     });
 
     it('should cascade privacy settings based on profile visibility', () => {
-      const applyPrivacyCascade = (settings: PrivacySettings): PrivacySettings => {
+      const applyPrivacyCascade = (
+        settings: PrivacySettings
+      ): PrivacySettings => {
         if (settings.profile_visibility === 'private') {
           return {
             ...settings,
@@ -96,9 +99,14 @@ describe('Privacy Settings', () => {
 
   describe('Data Collection Preferences', () => {
     it('should validate privacy setting constraints', () => {
-      const validatePrivacyConstraints = (settings: PrivacySettings): boolean => {
+      const validatePrivacyConstraints = (
+        settings: PrivacySettings
+      ): boolean => {
         // Private profiles should not show online status
-        if (settings.profile_visibility === 'private' && settings.show_online_status) {
+        if (
+          settings.profile_visibility === 'private' &&
+          settings.show_online_status
+        ) {
           return false;
         }
         return true;
@@ -164,7 +172,10 @@ describe('Privacy Settings', () => {
       ): boolean => {
         if (!settings.show_online_status) return false;
         if (settings.profile_visibility === 'private') return false;
-        if (settings.profile_visibility === 'friends' && viewerRelation === 'stranger') {
+        if (
+          settings.profile_visibility === 'friends' &&
+          viewerRelation === 'stranger'
+        ) {
           return false;
         }
         return true;
@@ -249,7 +260,10 @@ describe('Privacy Settings', () => {
       ): boolean => {
         if (!privacySettings.allow_friend_requests) return false;
         if (!notificationSettings.friend_requests) return false;
-        if (!notificationSettings.email_notifications && !notificationSettings.push_notifications) {
+        if (
+          !notificationSettings.email_notifications &&
+          !notificationSettings.push_notifications
+        ) {
           return false;
         }
         return true;
@@ -271,7 +285,7 @@ describe('Privacy Settings', () => {
       };
 
       expect(shouldNotifyFriendRequest(privacy, notifications)).toBe(true);
-      
+
       notifications.friend_requests = false;
       expect(shouldNotifyFriendRequest(privacy, notifications)).toBe(false);
     });
@@ -292,7 +306,10 @@ describe('Privacy Settings', () => {
         settings: PrivacySettings,
         viewerRelation: 'owner' | 'friend' | 'stranger'
       ): Partial<GameActivity> | null => {
-        if (settings.profile_visibility === 'private' && viewerRelation !== 'owner') {
+        if (
+          settings.profile_visibility === 'private' &&
+          viewerRelation !== 'owner'
+        ) {
           return null;
         }
 
@@ -300,7 +317,10 @@ describe('Privacy Settings', () => {
           return null;
         }
 
-        if (settings.profile_visibility === 'friends' && viewerRelation === 'stranger') {
+        if (
+          settings.profile_visibility === 'friends' &&
+          viewerRelation === 'stranger'
+        ) {
           return null;
         }
 
@@ -311,7 +331,10 @@ describe('Privacy Settings', () => {
           ended_at: activity.ended_at,
         };
 
-        if (settings.achievements_visibility !== 'private' || viewerRelation === 'owner') {
+        if (
+          settings.achievements_visibility !== 'private' ||
+          viewerRelation === 'owner'
+        ) {
           filtered.score = activity.score;
           filtered.achievements = activity.achievements;
         }
@@ -358,10 +381,17 @@ describe('Privacy Settings', () => {
 
       const blockedUsers: BlockedUser[] = [
         { user_id: 'user-123', blocked_at: Date.now() - 86400000 },
-        { user_id: 'user-456', blocked_at: Date.now() - 172800000, reason: 'spam' },
+        {
+          user_id: 'user-456',
+          blocked_at: Date.now() - 172800000,
+          reason: 'spam',
+        },
       ];
 
-      const isUserBlocked = (userId: string, blockedList: BlockedUser[]): boolean => {
+      const isUserBlocked = (
+        userId: string,
+        blockedList: BlockedUser[]
+      ): boolean => {
         return blockedList.some(blocked => blocked.user_id === userId);
       };
 
@@ -401,7 +431,12 @@ describe('Privacy Settings', () => {
       const user1Blocks = ['user-2', 'user-3'];
       const user2Blocks = ['user-1', 'user-4'];
 
-      const result = checkMutualBlock(user1Blocks, user2Blocks, 'user-1', 'user-2');
+      const result = checkMutualBlock(
+        user1Blocks,
+        user2Blocks,
+        'user-1',
+        'user-2'
+      );
       expect(result.canInteract).toBe(false);
       expect(result.reason).toBe('mutual_block');
     });

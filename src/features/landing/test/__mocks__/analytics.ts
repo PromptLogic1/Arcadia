@@ -57,7 +57,7 @@ export function clearAnalyticsMocks() {
   mockSegment.identify.mockClear();
   mockFacebookPixel.fbq.mockClear();
   mockHotjar.hj.mockClear();
-  
+
   if (global.window) {
     global.window.__analyticsEvents = [];
     global.window.dataLayer.length = 0;

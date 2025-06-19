@@ -36,7 +36,7 @@ describe('realtimeBoardService', () => {
     jest.clearAllMocks();
     (createClient as jest.Mock).mockReturnValue(mockSupabase);
     mockSupabase.channel.mockReturnValue(mockChannel);
-    
+
     // Setup default chaining behavior for channel
     mockChannel.on.mockReturnValue(mockChannel);
     mockChannel.subscribe.mockReturnValue(mockChannel);
@@ -274,7 +274,7 @@ describe('realtimeBoardService', () => {
       const boardId = 'board-123';
       let statusHandler: (status: string) => void;
 
-      mockChannel.subscribe.mockImplementation((handler) => {
+      mockChannel.subscribe.mockImplementation(handler => {
         statusHandler = handler;
         return mockChannel;
       });
@@ -307,7 +307,7 @@ describe('realtimeBoardService', () => {
       );
     });
 
-    it('should handle disconnect and reconnection', (done) => {
+    it('should handle disconnect and reconnection', done => {
       const boardId = 'board-123';
       const options = {
         onError: jest.fn(),
@@ -351,7 +351,7 @@ describe('realtimeBoardService', () => {
       }, 15);
     });
 
-    it('should stop reconnecting after max attempts', (done) => {
+    it('should stop reconnecting after max attempts', done => {
       const boardId = 'board-123';
       const options = {
         onError: jest.fn(),
@@ -375,10 +375,10 @@ describe('realtimeBoardService', () => {
 
       // Simulate multiple disconnects
       disconnectHandler!(); // First disconnect
-      
+
       setTimeout(() => {
         disconnectHandler!(); // Second disconnect - should exceed max attempts
-        
+
         setTimeout(() => {
           expect(logger.error).toHaveBeenCalledWith(
             'Max reconnection attempts reached for board',
@@ -482,7 +482,8 @@ describe('realtimeBoardService', () => {
     });
 
     it('should return not_subscribed for non-existent subscription', () => {
-      const status = realtimeBoardService.getSubscriptionStatus('nonexistent-board');
+      const status =
+        realtimeBoardService.getSubscriptionStatus('nonexistent-board');
 
       expect(status).toBe('not_subscribed');
     });
@@ -512,7 +513,9 @@ describe('realtimeBoardService', () => {
       const boardId = 'board-123';
       const error = new Error('Invalidation failed');
 
-      mockQueryClient.invalidateQueries = jest.fn().mockRejectedValueOnce(error);
+      mockQueryClient.invalidateQueries = jest
+        .fn()
+        .mockRejectedValueOnce(error);
 
       await expect(
         realtimeBoardService.refreshBoard(boardId, mockQueryClient)
@@ -531,7 +534,9 @@ describe('realtimeBoardService', () => {
       const boardId = 'board-123';
       const nonErrorObject = 'string error';
 
-      mockQueryClient.invalidateQueries = jest.fn().mockRejectedValueOnce(nonErrorObject);
+      mockQueryClient.invalidateQueries = jest
+        .fn()
+        .mockRejectedValueOnce(nonErrorObject);
 
       await expect(
         realtimeBoardService.refreshBoard(boardId, mockQueryClient)
@@ -569,6 +574,420 @@ describe('realtimeBoardService', () => {
       // Verify subscription is removed
       const status = realtimeBoardService.getSubscriptionStatus(boardId);
       expect(status).toBe('not_subscribed');
+    });
+  });
+
+  describe('additional coverage for uncovered lines', () => {
+    it('should handle subscription creation edge cases', () => {
+      const boardId = 'board-123';
+      let systemHandler: () => void;
+      let statusHandler: (status: string) => void;
+
+      // Mock channel methods to capture handlers
+      mockChannel.on.mockImplementation((type, event, handler) => {
+        if (type === 'system' && event === 'disconnect') {
+          systemHandler = handler;
+        }
+        return mockChannel;
+      });
+
+      mockChannel.subscribe.mockImplementation(handler => {
+        statusHandler = handler;
+        return mockChannel;
+      });
+
+      // Test subscription with all options
+      const options = {
+        onError: jest.fn(),
+        maxReconnectAttempts: 3,
+        reconnectDelay: 500,
+      };
+
+      const cleanup = realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        mockQueryClient,
+        options
+      );
+
+      // Test TIMED_OUT status
+      statusHandler!('TIMED_OUT');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Board real-time connection timed out',
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+
+      // Test CLOSED status
+      statusHandler!('CLOSED');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Board real-time connection closed',
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+
+      // Test unknown status
+      statusHandler!('UNKNOWN_STATUS');
+      // Should not log anything for unknown status
+
+      cleanup();
+    });
+
+    it('should handle INSERT events for boards', () => {
+      const boardId = 'board-123';
+      let updateHandler: (payload: any) => void;
+
+      mockChannel.on.mockImplementation((type, config, handler) => {
+        if (type === 'postgres_changes') {
+          updateHandler = handler;
+        }
+        return mockChannel;
+      });
+
+      realtimeBoardService.subscribeToBoardUpdates(boardId, mockQueryClient);
+
+      const newBoard: BingoBoardRow = {
+        id: boardId,
+        title: 'New Board',
+        description: 'New board description',
+        creator_id: 'user-123',
+        game_type: 'All Games',
+        difficulty: 'easy',
+        size: 5,
+        board_state: [],
+        settings: {},
+        is_public: true,
+        version: 1,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+
+      const payload = {
+        eventType: 'INSERT' as const,
+        new: newBoard,
+        old: null,
+        schema: 'public',
+        table: 'bingo_boards',
+        commit_timestamp: '2024-01-01T00:00:00Z',
+      };
+
+      updateHandler!(payload);
+
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
+        ['bingoBoards', 'byId', boardId],
+        newBoard
+      );
+      expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
+        ['bingoBoards', 'withCreator', boardId],
+        newBoard
+      );
+      expect(logger.debug).toHaveBeenCalledWith(
+        'Board created via real-time',
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+    });
+
+    it('should handle subscription errors during event processing', () => {
+      const boardId = 'board-123';
+      const options = { onError: jest.fn() };
+      let updateHandler: (payload: any) => void;
+
+      mockChannel.on.mockImplementation((type, config, handler) => {
+        if (type === 'postgres_changes') {
+          updateHandler = handler;
+        }
+        return mockChannel;
+      });
+
+      realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        mockQueryClient,
+        options
+      );
+
+      // Mock a payload that will cause an error due to missing board data
+      const invalidPayload = {
+        eventType: 'UPDATE' as const,
+        new: null, // This should cause an error
+        old: null,
+        schema: 'public',
+        table: 'bingo_boards',
+        commit_timestamp: '2024-01-01T00:00:00Z',
+      };
+
+      updateHandler!(invalidPayload);
+
+      // Should handle the error gracefully
+      expect(logger.error).toHaveBeenCalledWith(
+        'Real-time board update error',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+      expect(options.onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('should handle reconnection attempts and failure scenarios', done => {
+      const boardId = 'board-123';
+      const options = {
+        onError: jest.fn(),
+        maxReconnectAttempts: 2,
+        reconnectDelay: 10,
+      };
+      let disconnectHandler: () => void;
+
+      mockChannel.on.mockImplementation((type, event, handler) => {
+        if (type === 'system' && event === 'disconnect') {
+          disconnectHandler = handler;
+        }
+        return mockChannel;
+      });
+
+      realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        mockQueryClient,
+        options
+      );
+
+      // Simulate disconnect
+      disconnectHandler!();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Board real-time disconnected',
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+
+      // Wait for first reconnection attempt
+      setTimeout(() => {
+        expect(logger.info).toHaveBeenCalledWith(
+          'Attempting board real-time reconnection',
+          expect.objectContaining({
+            metadata: { boardId, attempt: 1 },
+          })
+        );
+
+        // Trigger another disconnect (second attempt)
+        disconnectHandler!();
+
+        setTimeout(() => {
+          expect(logger.info).toHaveBeenCalledWith(
+            'Attempting board real-time reconnection',
+            expect.objectContaining({
+              metadata: { boardId, attempt: 2 },
+            })
+          );
+
+          // Trigger final disconnect (should exceed max attempts)
+          disconnectHandler!();
+
+          setTimeout(() => {
+            expect(logger.error).toHaveBeenCalledWith(
+              'Max reconnection attempts reached for board',
+              undefined,
+              expect.objectContaining({
+                metadata: { boardId },
+              })
+            );
+            expect(options.onError).toHaveBeenCalledWith(
+              expect.objectContaining({
+                message: 'Real-time connection failed',
+              })
+            );
+            done();
+          }, 15);
+        }, 15);
+      }, 15);
+    });
+
+    it('should handle edge cases in subscription management', () => {
+      const boardId = 'board-123';
+
+      // Test subscribing to a board that's already subscribed
+      realtimeBoardService.subscribeToBoardUpdates(boardId, mockQueryClient);
+      expect(mockSupabase.channel).toHaveBeenCalledTimes(1);
+
+      // Try to subscribe again - should not create new subscription
+      realtimeBoardService.subscribeToBoardUpdates(boardId, mockQueryClient);
+      expect(mockSupabase.channel).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Board subscription already exists',
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+
+      // Test getting status of existing subscription
+      const status = realtimeBoardService.getSubscriptionStatus(boardId);
+      expect(status).toBe('subscribed');
+
+      // Test unsubscribing
+      realtimeBoardService.unsubscribeFromBoard(boardId);
+      expect(mockSupabase.removeChannel).toHaveBeenCalledTimes(1);
+
+      // Test getting status after unsubscribe
+      const statusAfterUnsub =
+        realtimeBoardService.getSubscriptionStatus(boardId);
+      expect(statusAfterUnsub).toBe('not_subscribed');
+
+      // Test unsubscribing from non-existent subscription
+      realtimeBoardService.unsubscribeFromBoard('nonexistent');
+      // Should not call removeChannel again
+      expect(mockSupabase.removeChannel).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle query client invalidation errors', async () => {
+      const boardId = 'board-123';
+      const invalidationError = new Error('Query invalidation failed');
+
+      // Mock invalidateQueries to fail
+      mockQueryClient.invalidateQueries = jest
+        .fn()
+        .mockRejectedValueOnce(invalidationError);
+
+      await expect(
+        realtimeBoardService.refreshBoard(boardId, mockQueryClient)
+      ).rejects.toThrow('Query invalidation failed');
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to refresh board',
+        invalidationError,
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+    });
+
+    it('should handle non-Error objects in refresh failures', async () => {
+      const boardId = 'board-123';
+      const stringError = 'String error message';
+
+      mockQueryClient.invalidateQueries = jest
+        .fn()
+        .mockRejectedValueOnce(stringError);
+
+      await expect(
+        realtimeBoardService.refreshBoard(boardId, mockQueryClient)
+      ).rejects.toThrow('String error message');
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to refresh board',
+        expect.objectContaining({
+          message: stringError,
+        }),
+        expect.objectContaining({
+          metadata: { boardId },
+        })
+      );
+    });
+
+    it('should handle subscription cleanup edge cases', () => {
+      // Test cleanup when no subscriptions exist
+      realtimeBoardService.unsubscribeAll();
+      expect(mockSupabase.removeChannel).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith(
+        'All board real-time subscriptions cleaned up'
+      );
+
+      // Create multiple subscriptions
+      realtimeBoardService.subscribeToBoardUpdates('board-1', mockQueryClient);
+      realtimeBoardService.subscribeToBoardUpdates('board-2', mockQueryClient);
+      realtimeBoardService.subscribeToBoardUpdates('board-3', mockQueryClient);
+
+      // Clean up all
+      realtimeBoardService.unsubscribeAll();
+      expect(mockSupabase.removeChannel).toHaveBeenCalledTimes(3);
+      expect(logger.debug).toHaveBeenCalledWith(
+        'All board real-time subscriptions cleaned up'
+      );
+    });
+
+    it('should handle malformed payload data gracefully', () => {
+      const boardId = 'board-123';
+      const options = { onError: jest.fn() };
+      let updateHandler: (payload: any) => void;
+
+      mockChannel.on.mockImplementation((type, config, handler) => {
+        if (type === 'postgres_changes') {
+          updateHandler = handler;
+        }
+        return mockChannel;
+      });
+
+      realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        mockQueryClient,
+        options
+      );
+
+      // Test with completely malformed payload
+      const malformedPayload = {
+        randomField: 'value',
+        // Missing all required fields
+      };
+
+      updateHandler!(malformedPayload as any);
+
+      // Should handle gracefully without crashing
+      expect(mockQueryClient.setQueryData).not.toHaveBeenCalled();
+    });
+
+    it('should handle subscription status edge cases', () => {
+      const boardId = 'board-123';
+      let statusHandler: (status: string) => void;
+
+      mockChannel.subscribe.mockImplementation(handler => {
+        statusHandler = handler;
+        return mockChannel;
+      });
+
+      const options = { onError: jest.fn() };
+      realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        mockQueryClient,
+        options
+      );
+
+      // Test various status types
+      const statuses = [
+        'SUBSCRIBED',
+        'CHANNEL_ERROR',
+        'TIMED_OUT',
+        'CLOSED',
+        'CONNECTING',
+        'UNKNOWN',
+      ];
+
+      statuses.forEach(status => {
+        statusHandler!(status);
+      });
+
+      // Verify appropriate logging occurred
+      expect(logger.debug).toHaveBeenCalledWith(
+        'Board real-time subscribed',
+        expect.objectContaining({ metadata: { boardId } })
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'Board real-time channel error',
+        undefined,
+        expect.objectContaining({ metadata: { boardId } })
+      );
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Board real-time connection timed out',
+        expect.objectContaining({ metadata: { boardId } })
+      );
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Board real-time connection closed',
+        expect.objectContaining({ metadata: { boardId } })
+      );
     });
   });
 });

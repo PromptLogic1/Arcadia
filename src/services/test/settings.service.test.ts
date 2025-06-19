@@ -91,7 +91,9 @@ describe('settingsService', () => {
         }),
       };
 
-      mockSupabase.from.mockReturnValueOnce(mockFrom).mockReturnValueOnce(mockSecondFrom);
+      mockSupabase.from
+        .mockReturnValueOnce(mockFrom)
+        .mockReturnValueOnce(mockSecondFrom);
 
       const result = await settingsService.getUserProfile('auth-456');
 
@@ -483,9 +485,8 @@ describe('settingsService', () => {
 
   describe('checkEmailAvailability', () => {
     it('should return email as available', async () => {
-      const result = await settingsService.checkEmailAvailability(
-        'test@example.com'
-      );
+      const result =
+        await settingsService.checkEmailAvailability('test@example.com');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ available: true });
@@ -503,9 +504,8 @@ describe('settingsService', () => {
         throw new Error('Unexpected error');
       });
 
-      const result = await settingsService.checkEmailAvailability(
-        'test@example.com'
-      );
+      const result =
+        await settingsService.checkEmailAvailability('test@example.com');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Unexpected error');

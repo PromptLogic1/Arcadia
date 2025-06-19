@@ -1,6 +1,6 @@
 /**
  * Rate Limiting Tests
- * 
+ *
  * Tests for authentication rate limiting logic including:
  * - Login attempt tracking
  * - Password reset limits
@@ -9,7 +9,14 @@
  * - Block duration handling
  */
 
-import { describe, test, expect, beforeEach, jest, afterEach } from '@jest/globals';
+import {
+  describe,
+  test,
+  expect,
+  beforeEach,
+  jest,
+  afterEach,
+} from '@jest/globals';
 import { Redis } from '@upstash/redis';
 import { Ratelimit } from '@upstash/ratelimit';
 
@@ -70,7 +77,7 @@ describe('Rate Limiting', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock Redis client
     mockRedis = {
       get: jest.fn(),
@@ -177,7 +184,7 @@ describe('Rate Limiting', () => {
 
     test('should reset after time window', async () => {
       const identifier = 'user@example.com';
-      
+
       // Mock reset operation
       mockRatelimit.reset.mockResolvedValue(true);
 
@@ -298,7 +305,7 @@ describe('Rate Limiting', () => {
   describe('Distributed Rate Limiting', () => {
     test('should handle multiple server instances', async () => {
       const identifier = 'user@example.com';
-      
+
       // Simulate distributed counter
       let counter = 0;
       mockRedis.incr.mockImplementation(() => {
@@ -321,7 +328,7 @@ describe('Rate Limiting', () => {
     test('should maintain consistency across regions', async () => {
       const identifier = 'user@example.com';
       const key = `rate-limit:${identifier}`;
-      
+
       // Mock TTL check
       mockRedis.ttl.mockResolvedValue(300); // 5 minutes remaining
 
@@ -344,7 +351,9 @@ describe('Rate Limiting', () => {
         'X-RateLimit-Limit': result.limit.toString(),
         'X-RateLimit-Remaining': result.remaining.toString(),
         'X-RateLimit-Reset': new Date(result.reset).toISOString(),
-        'Retry-After': result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000).toString(),
+        'Retry-After': result.success
+          ? undefined
+          : Math.ceil((result.reset - Date.now()) / 1000).toString(),
       };
 
       expect(headers['X-RateLimit-Limit']).toBe('5');
@@ -371,7 +380,7 @@ describe('Rate Limiting', () => {
     test('should support sliding window algorithm', () => {
       const _window = '15m';
       const _limit = 5;
-      
+
       // Sliding window maintains a rolling time window
       const windowMs = 15 * 60 * 1000;
       expect(windowMs).toBe(RATE_LIMITS.login.window);
@@ -380,7 +389,7 @@ describe('Rate Limiting', () => {
     test('should support token bucket algorithm', async () => {
       const tokens = 10;
       const interval = '1m';
-      
+
       mockRatelimit.limit.mockResolvedValue({
         success: true,
         limit: tokens,
@@ -401,7 +410,7 @@ describe('Rate Limiting', () => {
     test('should support fixed window algorithm', async () => {
       const limit = 100;
       const window = '1h';
-      
+
       mockRatelimit.limit.mockResolvedValue({
         success: true,
         limit,

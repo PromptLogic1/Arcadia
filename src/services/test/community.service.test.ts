@@ -88,7 +88,9 @@ describe('communityService', () => {
         totalCount: 1,
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('discussions');
-      expect(mockFrom.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockFrom.order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      });
     });
 
     it('should apply game filter', async () => {
@@ -154,7 +156,9 @@ describe('communityService', () => {
 
       await communityService.getDiscussionsForAPI(filters);
 
-      expect(mockFrom.order).toHaveBeenCalledWith('upvotes', { ascending: false });
+      expect(mockFrom.order).toHaveBeenCalledWith('upvotes', {
+        ascending: false,
+      });
     });
 
     it('should apply most commented sorting', async () => {
@@ -170,7 +174,9 @@ describe('communityService', () => {
 
       await communityService.getDiscussionsForAPI(filters);
 
-      expect(mockFrom.order).toHaveBeenCalledWith('comment_count', { ascending: false });
+      expect(mockFrom.order).toHaveBeenCalledWith('comment_count', {
+        ascending: false,
+      });
     });
 
     it('should apply pagination', async () => {
@@ -235,8 +241,12 @@ describe('communityService', () => {
       expect(result.success).toBe(true);
       expect(mockFrom.eq).toHaveBeenCalledWith('game_category', 'Tetris');
       expect(mockFrom.eq).toHaveBeenCalledWith('challenge_type', 'sprint');
-      expect(mockFrom.or).toHaveBeenCalledWith('title.ilike.%test%,content.ilike.%test%');
-      expect(mockFrom.order).toHaveBeenCalledWith('upvotes', { ascending: false });
+      expect(mockFrom.or).toHaveBeenCalledWith(
+        'title.ilike.%test%,content.ilike.%test%'
+      );
+      expect(mockFrom.order).toHaveBeenCalledWith('upvotes', {
+        ascending: false,
+      });
     });
 
     it('should skip All Games filter', async () => {
@@ -253,7 +263,10 @@ describe('communityService', () => {
       await communityService.getDiscussions(filters);
 
       // Should not add game_category filter for 'All Games'
-      expect(mockFrom.eq).not.toHaveBeenCalledWith('game_category', 'All Games');
+      expect(mockFrom.eq).not.toHaveBeenCalledWith(
+        'game_category',
+        'All Games'
+      );
     });
   });
 
@@ -463,7 +476,9 @@ describe('communityService', () => {
         totalCount: 1,
       });
       expect(mockFrom.eq).toHaveBeenCalledWith('discussion_id', 1);
-      expect(mockFrom.order).toHaveBeenCalledWith('created_at', { ascending: true });
+      expect(mockFrom.order).toHaveBeenCalledWith('created_at', {
+        ascending: true,
+      });
     });
 
     it('should apply pagination to comments', async () => {
@@ -571,9 +586,12 @@ describe('communityService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.upvotes).toBe(6);
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('increment_discussion_upvotes', {
-        discussion_id: 1,
-      });
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'increment_discussion_upvotes',
+        {
+          discussion_id: 1,
+        }
+      );
     });
 
     it('should handle RPC errors', async () => {

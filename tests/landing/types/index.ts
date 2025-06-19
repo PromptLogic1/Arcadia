@@ -3,23 +3,23 @@
  * Aligned with actual project implementation types
  */
 
-import type { 
-  MetaTagConfig, 
-  GeneratedMetaTags, 
-  ValidationResult 
+import type {
+  MetaTagConfig,
+  GeneratedMetaTags,
+  ValidationResult,
 } from '../../../src/features/landing/utils/seo-meta';
 
-import type { 
+import type {
   AnalyticsEvent as ProjectAnalyticsEvent,
   EventContext,
   ConversionFunnel as ProjectConversionFunnel,
-  EventValidation
+  EventValidation,
 } from '../../../src/features/landing/utils/analytics-events';
 
-import type { 
+import type {
   FeatureFlag,
   FlagContext,
-  FlagValue 
+  FlagValue,
 } from '../../../src/features/landing/utils/feature-flags';
 
 import type { TestWindow } from '../../types/test-types';
@@ -65,27 +65,27 @@ export interface PerformanceMetrics {
   load: number;
   firstPaint: number;
   firstContentfulPaint: number;
-  
+
   // Core Web Vitals (2024 Standards)
   largestContentfulPaint: number;
   cumulativeLayoutShift: number;
   interactionToNextPaint: number; // Replaces FID in 2024
   firstInputDelay: number; // Legacy support
-  
+
   // Additional metrics
   timeToInteractive: number;
   totalBlockingTime: number;
   speedIndex: number;
-  
+
   // Resource metrics
   totalRequests: number;
   totalSize: number;
   cachedRequests: number;
-  
+
   // Memory metrics
   jsHeapUsed: number;
   jsHeapTotal: number;
-  
+
   // Performance grading
   performanceGrade: 'Good' | 'Needs Improvement' | 'Poor';
 }
@@ -260,11 +260,14 @@ export interface LighthouseResults {
     totalBlockingTime: number;
     cumulativeLayoutShift: number;
   };
-  audits: Record<string, {
-    score: number;
-    displayValue?: string;
-    description: string;
-  }>;
+  audits: Record<
+    string,
+    {
+      score: number;
+      displayValue?: string;
+      description: string;
+    }
+  >;
 }
 
 /**
@@ -280,7 +283,6 @@ export interface VisualRegressionResult {
   passed: boolean;
   threshold: number;
 }
-
 
 /**
  * Test configuration
@@ -342,7 +344,7 @@ export interface TestResultSummary {
 /**
  * Landing page sections for testing
  */
-export type LandingPageSection = 
+export type LandingPageSection =
   | 'hero'
   | 'features'
   | 'demo'
@@ -355,7 +357,7 @@ export type LandingPageSection =
 /**
  * Marketing tag types
  */
-export type MarketingTagType = 
+export type MarketingTagType =
   | 'google-analytics'
   | 'google-tag-manager'
   | 'facebook-pixel'

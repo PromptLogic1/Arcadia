@@ -5,7 +5,11 @@
 import { submissionsService } from '../submissions.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import type { CreateSubmissionData, SubmissionsFilters, SubmissionStatus } from '../submissions.service';
+import type {
+  CreateSubmissionData,
+  SubmissionsFilters,
+  SubmissionStatus,
+} from '../submissions.service';
 import type { Json } from '@/types/database.types';
 
 // Mock dependencies
@@ -180,7 +184,9 @@ describe('submissionsService', () => {
           difficulty: 'easy',
         },
       });
-      expect(mockFrom.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockFrom.order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      });
     });
 
     it('should apply user_id filter', async () => {
@@ -218,7 +224,10 @@ describe('submissionsService', () => {
 
       await submissionsService.getSubmissions(filters);
 
-      expect(mockOrderResult.eq).toHaveBeenCalledWith('challenge_id', 'challenge-456');
+      expect(mockOrderResult.eq).toHaveBeenCalledWith(
+        'challenge_id',
+        'challenge-456'
+      );
     });
 
     it('should apply both filters', async () => {
@@ -243,7 +252,10 @@ describe('submissionsService', () => {
       await submissionsService.getSubmissions(filters);
 
       expect(mockOrderResult.eq).toHaveBeenCalledWith('user_id', 'user-123');
-      expect(mockFirstEq.eq).toHaveBeenCalledWith('challenge_id', 'challenge-456');
+      expect(mockFirstEq.eq).toHaveBeenCalledWith(
+        'challenge_id',
+        'challenge-456'
+      );
     });
 
     it('should handle null challenge data', async () => {
@@ -311,7 +323,8 @@ describe('submissionsService', () => {
         error: null,
       });
 
-      const result = await submissionsService.getSubmissionById('submission-123');
+      const result =
+        await submissionsService.getSubmissionById('submission-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
@@ -331,7 +344,8 @@ describe('submissionsService', () => {
         error: { message: 'Submission not found' },
       });
 
-      const result = await submissionsService.getSubmissionById('nonexistent-id');
+      const result =
+        await submissionsService.getSubmissionById('nonexistent-id');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Submission not found');
@@ -360,7 +374,8 @@ describe('submissionsService', () => {
         error: null,
       });
 
-      const result = await submissionsService.getSubmissionById('submission-123');
+      const result =
+        await submissionsService.getSubmissionById('submission-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.challenge).toBeUndefined();

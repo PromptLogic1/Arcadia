@@ -208,7 +208,7 @@ describe('Helper Functions', () => {
       expect(card.created_at).toBeTruthy();
       expect(card.updated_at).toBeTruthy();
       expect(card.created_at).toBe(card.updated_at);
-      
+
       // Check timestamps are within reasonable range
       const createdTime = new Date(card.created_at!).getTime();
       expect(createdTime).toBeGreaterThanOrEqual(beforeCreation);
@@ -281,7 +281,7 @@ describe('Helper Functions', () => {
 
       expect(card.created_at).toBeTruthy();
       expect(card.updated_at).toBeTruthy();
-      
+
       const createdTime = new Date(card.created_at!).getTime();
       expect(createdTime).toBeGreaterThanOrEqual(beforeCreation);
       expect(createdTime).toBeLessThanOrEqual(afterCreation);
@@ -326,7 +326,9 @@ describe('Helper Functions', () => {
       expect(isValidUUID('not-a-uuid')).toBe(false);
       expect(isValidUUID('123-456-789')).toBe(false);
       expect(isValidUUID('123e4567-e89b-12d3-a456')).toBe(false); // Too short
-      expect(isValidUUID('123e4567-e89b-12d3-a456-426614174000-extra')).toBe(false); // Too long
+      expect(isValidUUID('123e4567-e89b-12d3-a456-426614174000-extra')).toBe(
+        false
+      ); // Too long
     });
 
     test('returns false for UUID with invalid characters', () => {
@@ -491,13 +493,16 @@ describe('Application Interfaces', () => {
   describe('BingoCardStats', () => {
     test('has correct structure', () => {
       // Create a minimal valid stats object for testing
-      const byGameType: Record<GameCategory, number> = {} as Record<GameCategory, number>;
-      
+      const byGameType: Record<GameCategory, number> = {} as Record<
+        GameCategory,
+        number
+      >;
+
       // Add some sample game types
       byGameType['All Games'] = 50;
       byGameType['Minecraft'] = 25;
       byGameType['Fortnite'] = 25;
-      
+
       // Fill in the rest with 0s to satisfy the Record type
       GAME_CATEGORIES.forEach(category => {
         if (!(category in byGameType)) {

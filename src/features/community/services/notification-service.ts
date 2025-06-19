@@ -25,7 +25,7 @@ export interface NotificationPreferences {
   quiet_hours: {
     enabled: boolean;
     start: string; // HH:MM format
-    end: string;   // HH:MM format
+    end: string; // HH:MM format
   };
 }
 
@@ -55,8 +55,7 @@ export interface NotificationContent {
   action_url?: string;
 }
 
-
-export type NotificationType = 
+export type NotificationType =
   | 'comment_reply'
   | 'mention'
   | 'discussion_update'
@@ -137,6 +136,7 @@ export async function triggerNotification(
     resource_type: trigger.resource_type,
     resource_id: trigger.resource_id,
     created_at: new Date().toISOString(),
+    read_at: null,
     metadata: trigger.metadata,
   };
 
@@ -147,7 +147,7 @@ export async function triggerNotification(
     resource: {
       type: trigger.resource_type,
       id: trigger.resource_id,
-      content: trigger.metadata?.content as string || 'Content',
+      content: (trigger.metadata?.content as string) || 'Content',
     },
     metadata: trigger.metadata,
   });
@@ -157,7 +157,7 @@ export async function triggerNotification(
 
   // Send via different channels
   const channels = options.channels || ['in_app'];
-  
+
   try {
     if (channels.includes('email') && options.emailQueue) {
       await options.emailQueue({
@@ -204,7 +204,10 @@ export function shouldSendNotification(
   }
 
   // Always send high priority notifications (security, moderation)
-  if (options.priority === 'high' && ['content_removed', 'account_security'].includes(type)) {
+  if (
+    options.priority === 'high' &&
+    ['content_removed', 'account_security'].includes(type)
+  ) {
     return true;
   }
 
@@ -242,9 +245,9 @@ export function shouldSendNotification(
   if (options.checkQuietHours && preferences.quiet_hours.enabled) {
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     const { start, end } = preferences.quiet_hours;
-    
+
     // Handle quiet hours that span midnight
     if (start > end) {
       if (currentTime >= start || currentTime <= end) {
@@ -269,7 +272,9 @@ export async function getNotificationRecipients(
 
   // Remove excluded users
   if (context.exclude_users) {
-    recipients = recipients.filter(user => !context.exclude_users!.includes(user));
+    recipients = recipients.filter(
+      user => !context.exclude_users!.includes(user)
+    );
   }
 
   // Apply context-specific filtering
@@ -277,15 +282,15 @@ export async function getNotificationRecipients(
     case 'discussion':
       // For discussion updates, include author and commenters
       break;
-    
+
     case 'user':
       // For user actions, include followers
       break;
-    
+
     case 'team':
       // For team mentions, include all team members
       break;
-    
+
     case 'report':
       // For reports, include moderators
       break;
@@ -310,10 +315,12 @@ export async function batchNotifications(
 
     const similar = notifications.filter((other, otherIndex) => {
       if (otherIndex === index || processed.has(otherIndex)) return false;
-      
+
       // Same type and recipient
-      if (other.type !== notification.type || 
-          other.recipient_id !== notification.recipient_id) {
+      if (
+        other.type !== notification.type ||
+        other.recipient_id !== notification.recipient_id
+      ) {
         return false;
       }
 
@@ -324,10 +331,10 @@ export async function batchNotifications(
 
       // Within time window
       const timeDiff = Math.abs(
-        new Date(other.created_at || Date.now()).getTime() - 
-        new Date(notification.created_at || Date.now()).getTime()
+        new Date(other.created_at || Date.now()).getTime() -
+          new Date(notification.created_at || Date.now()).getTime()
       );
-      
+
       return timeDiff <= timeWindow;
     });
 
@@ -351,7 +358,7 @@ export async function batchNotifications(
 
       // Mark as processed
       processed.add(index);
-      similar.forEach((similarNotification) => {
+      similar.forEach(similarNotification => {
         const originalIndex = notifications.indexOf(similarNotification);
         if (originalIndex !== -1) {
           processed.add(originalIndex);
@@ -376,7 +383,9 @@ export async function batchNotifications(
 }
 
 // Format notification content for display
-export async function formatNotificationContent(notification: NotificationForFormatting): Promise<NotificationContent> {
+export async function formatNotificationContent(
+  notification: NotificationForFormatting
+): Promise<NotificationContent> {
   const { type, actor, resource, metadata } = notification;
 
   switch (type) {
@@ -409,10 +418,13 @@ export async function formatNotificationContent(notification: NotificationForFor
       };
 
     case 'upvote_batch': {
-      const actorNames = notification.actors?.slice(0, 3).map(a => a.username).join(', ');
+      const actorNames = notification.actors
+        ?.slice(0, 3)
+        .map(a => a.username)
+        .join(', ');
       const othersCount = Math.max(0, (notification.count || 0) - 3);
       const othersText = othersCount > 0 ? ` and ${othersCount} others` : '';
-      
+
       return {
         title: `${notification.count} new upvotes`,
         body: `${actorNames}${othersText} upvoted your ${resource.type}`,
@@ -452,7 +464,7 @@ function truncateText(text: string, maxLength: number): string {
   if (!text || text.length <= maxLength) {
     return text || '';
   }
-  
+
   return text.substring(0, maxLength - 3) + '...';
 }
 
@@ -462,20 +474,29 @@ export async function markNotificationsAsRead(
   userId: string
 ): Promise<void> {
   // Mock implementation
-  console.log(`Marked notifications as read for user ${userId}:`, notificationIds);
+  console.log(
+    `Marked notifications as read for user ${userId}:`,
+    notificationIds
+  );
 }
 
 // Get unread notification count
-export async function getUnreadNotificationCount(_userId: string): Promise<number> {
+export async function getUnreadNotificationCount(
+  _userId: string
+): Promise<number> {
   // Mock implementation
   return Math.floor(Math.random() * 10);
 }
 
 // Clean up old notifications
-export async function cleanupOldNotifications(olderThanDays = 30): Promise<void> {
+export async function cleanupOldNotifications(
+  olderThanDays = 30
+): Promise<void> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
-  
-  console.log(`Cleaning up notifications older than ${cutoffDate.toISOString()}`);
+
+  console.log(
+    `Cleaning up notifications older than ${cutoffDate.toISOString()}`
+  );
   // Mock implementation
 }

@@ -8,7 +8,7 @@ export class PromiseChainError extends Error {
   error: string;
   timestamp: number;
   recovered: boolean;
-  
+
   constructor(step: string, error: string) {
     super(error);
     this.name = 'PromiseChainError';
@@ -27,7 +27,10 @@ export interface RecoveryMechanism {
 
 // Promise chain tracker interface
 export interface PromiseChainTracker {
-  chains: Map<string, { promises: Array<Promise<unknown>>; errors: PromiseChainError[] }>;
+  chains: Map<
+    string,
+    { promises: Array<Promise<unknown>>; errors: PromiseChainError[] }
+  >;
   activeChains: Set<string>;
   errors: PromiseChainError[];
   createRecoveryMechanism: (chainId: string) => RecoveryMechanism;
@@ -55,7 +58,10 @@ export interface LifecycleComponent {
 }
 
 export interface ComponentLifecycleTracker {
-  components: Map<string, { mounted: boolean; errors: Error[]; cleanupFns: Array<() => void> }>;
+  components: Map<
+    string,
+    { mounted: boolean; errors: Error[]; cleanupFns: Array<() => void> }
+  >;
   state?: {
     mounted: boolean;
     cleanupErrors: Array<{
@@ -65,11 +71,11 @@ export interface ComponentLifecycleTracker {
       timestamp: number;
     }>;
   };
-  createComponent?: (componentId: string) => { 
+  createComponent?: (componentId: string) => {
     id: string;
     mounted: boolean;
     cleanupFunctions: Array<() => void>;
-    mount: () => void; 
+    mount: () => void;
     unmount: () => void;
   };
 }
@@ -85,7 +91,9 @@ export interface AsyncComponentData {
 export interface AsyncComponent {
   id: string;
   fetchData: () => Promise<{ data: string } | null>;
-  startMultipleOperations: () => Promise<PromiseSettledResult<{ data: string } | null>[]>;
+  startMultipleOperations: () => Promise<
+    PromiseSettledResult<{ data: string } | null>[]
+  >;
   unmount: () => void;
 }
 
@@ -117,7 +125,10 @@ export interface AttemptResult {
 }
 
 export interface ExponentialBackoff {
-  execute: <T>(operation: () => Promise<T>, operationName?: string) => Promise<T | null>;
+  execute: <T>(
+    operation: () => Promise<T>,
+    operationName?: string
+  ) => Promise<T | null>;
   getAttempts: () => AttemptResult[];
 }
 

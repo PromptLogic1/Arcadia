@@ -1,6 +1,6 @@
 /**
  * Account Deletion Tests
- * 
+ *
  * Tests for account deletion workflows and data cleanup
  */
 
@@ -27,7 +27,10 @@ interface UserDataCategories {
 describe('Account Deletion Workflows', () => {
   describe('Deletion Request Validation', () => {
     it('should validate deletion request requirements', () => {
-      const validateDeletionRequest = (userId: string, password: string): { valid: boolean; errors: string[] } => {
+      const validateDeletionRequest = (
+        userId: string,
+        password: string
+      ): { valid: boolean; errors: string[] } => {
         const errors: string[] = [];
 
         if (!userId) {
@@ -52,7 +55,9 @@ describe('Account Deletion Workflows', () => {
 
       const validation1 = validateDeletionRequest('user-123', 'ValidPass123!');
       expect(validation1.valid).toBe(false);
-      expect(validation1.errors).toContain('Please wait 24 hours after your last activity');
+      expect(validation1.errors).toContain(
+        'Please wait 24 hours after your last activity'
+      );
 
       const validation2 = validateDeletionRequest('', 'ValidPass123!');
       expect(validation2.valid).toBe(false);
@@ -92,27 +97,34 @@ describe('Account Deletion Workflows', () => {
       const now = Date.now();
       const request = scheduleDeletion(now);
 
-      const daysDifference = (request.scheduled_for - request.requested_at) / (24 * 60 * 60 * 1000);
+      const daysDifference =
+        (request.scheduled_for - request.requested_at) / (24 * 60 * 60 * 1000);
       expect(daysDifference).toBe(30);
       expect(request.status).toBe('pending');
     });
 
     it('should calculate remaining grace period time', () => {
-      const getRemainingGracePeriod = (request: DeletionRequest): {
+      const getRemainingGracePeriod = (
+        request: DeletionRequest
+      ): {
         days: number;
         hours: number;
         minutes: number;
         expired: boolean;
       } => {
         const remaining = request.scheduled_for - Date.now();
-        
+
         if (remaining <= 0) {
           return { days: 0, hours: 0, minutes: 0, expired: true };
         }
 
         const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-        const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-        const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+        const hours = Math.floor(
+          (remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000)
+        );
+        const minutes = Math.floor(
+          (remaining % (60 * 60 * 1000)) / (60 * 1000)
+        );
 
         return { days, hours, minutes, expired: false };
       };
@@ -131,7 +143,9 @@ describe('Account Deletion Workflows', () => {
     });
 
     it('should allow cancellation during grace period', () => {
-      const cancelDeletion = (request: DeletionRequest): DeletionRequest | null => {
+      const cancelDeletion = (
+        request: DeletionRequest
+      ): DeletionRequest | null => {
         if (request.status === 'completed') {
           return null; // Cannot cancel completed deletion
         }
@@ -286,7 +300,9 @@ describe('Account Deletion Workflows', () => {
         rolledBack: boolean;
       }
 
-      const simulateDeletionWithRollback = (failAt?: string): DeletionTransaction => {
+      const simulateDeletionWithRollback = (
+        failAt?: string
+      ): DeletionTransaction => {
         const steps = ['sessions', 'social', 'game_data', 'profile'];
         const transaction: DeletionTransaction = {
           steps,
@@ -309,7 +325,12 @@ describe('Account Deletion Workflows', () => {
       };
 
       const successfulDeletion = simulateDeletionWithRollback();
-      expect(successfulDeletion.completed).toEqual(['sessions', 'social', 'game_data', 'profile']);
+      expect(successfulDeletion.completed).toEqual([
+        'sessions',
+        'social',
+        'game_data',
+        'profile',
+      ]);
       expect(successfulDeletion.rolledBack).toBe(false);
 
       const failedDeletion = simulateDeletionWithRollback('game_data');
@@ -321,7 +342,10 @@ describe('Account Deletion Workflows', () => {
 
   describe('Notification and Confirmation', () => {
     it('should send deletion confirmation emails', () => {
-      const sendDeletionEmail = (type: 'requested' | 'reminder' | 'completed', email: string) => {
+      const sendDeletionEmail = (
+        type: 'requested' | 'reminder' | 'completed',
+        email: string
+      ) => {
         const templates = {
           requested: {
             subject: 'Account Deletion Requested',
@@ -355,7 +379,7 @@ describe('Account Deletion Workflows', () => {
         const reminders: number[] = [];
 
         reminderDays.forEach(days => {
-          const reminderTime = deletionDate - (days * 24 * 60 * 60 * 1000);
+          const reminderTime = deletionDate - days * 24 * 60 * 60 * 1000;
           if (reminderTime > Date.now()) {
             reminders.push(reminderTime);
           }
@@ -368,7 +392,7 @@ describe('Account Deletion Workflows', () => {
       const reminders = scheduleReminders(deletionDate);
 
       expect(reminders).toHaveLength(3);
-      
+
       // Verify reminders are in correct order (earliest first)
       for (let i = 1; i < reminders.length; i++) {
         expect(reminders[i]).toBeGreaterThan(reminders[i - 1]);
@@ -387,7 +411,10 @@ describe('Account Deletion Workflows', () => {
         expires_at?: number;
       }
 
-      const requestDataExport = (userId: string, format: ExportRequest['format']): ExportRequest => {
+      const requestDataExport = (
+        userId: string,
+        format: ExportRequest['format']
+      ): ExportRequest => {
         return {
           user_id: userId,
           requested_at: Date.now(),
@@ -404,8 +431,11 @@ describe('Account Deletion Workflows', () => {
     it('should validate export availability window', () => {
       const isExportAvailable = (deletionRequest: DeletionRequest): boolean => {
         // Export only available until 24 hours before deletion
-        const exportCutoff = deletionRequest.scheduled_for - 24 * 60 * 60 * 1000;
-        return Date.now() < exportCutoff && deletionRequest.status === 'pending';
+        const exportCutoff =
+          deletionRequest.scheduled_for - 24 * 60 * 60 * 1000;
+        return (
+          Date.now() < exportCutoff && deletionRequest.status === 'pending'
+        );
       };
 
       const request: DeletionRequest = {
@@ -437,7 +467,9 @@ describe('Account Deletion Workflows', () => {
         recovery_deadline?: number;
       }
 
-      const checkRecoveryEligibility = (account: DeletedAccount): {
+      const checkRecoveryEligibility = (
+        account: DeletedAccount
+      ): {
         canRecover: boolean;
         reason?: string;
       } => {
@@ -445,7 +477,10 @@ describe('Account Deletion Workflows', () => {
           return { canRecover: false, reason: 'Account permanently deleted' };
         }
 
-        if (account.recovery_deadline && Date.now() > account.recovery_deadline) {
+        if (
+          account.recovery_deadline &&
+          Date.now() > account.recovery_deadline
+        ) {
           return { canRecover: false, reason: 'Recovery period expired' };
         }
 

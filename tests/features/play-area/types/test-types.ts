@@ -99,7 +99,7 @@ export interface TestGameEvent {
 
 export type TestGameEventType =
   | 'session_created'
-  | 'session_updated' 
+  | 'session_updated'
   | 'player_joined'
   | 'player_left'
   | 'player_disconnected'
@@ -155,7 +155,11 @@ export interface TestWebSocketHelper {
   connections: Map<string, MockWebSocketConnection>;
   setupRoutes(page: Page): Promise<void>;
   simulateEvent(sessionId: string, event: TestGameEvent): void;
-  waitForEvent(sessionId: string, eventType: string, timeout?: number): Promise<TestGameEvent>;
+  waitForEvent(
+    sessionId: string,
+    eventType: string,
+    timeout?: number
+  ): Promise<TestGameEvent>;
 }
 
 export interface MockWebSocketConnection {
@@ -233,7 +237,10 @@ export interface TestFixtureOptions {
 
 export interface TestFixtureGenerator {
   session(options?: Partial<TestFixtureOptions>): TestSession;
-  players(count: number, options?: Partial<TestFixtureOptions>): TestSessionPlayer[];
+  players(
+    count: number,
+    options?: Partial<TestFixtureOptions>
+  ): TestSessionPlayer[];
   gameState(boardSize?: number): TestGameState;
   achievements(userId: string): TestAchievement[];
   speedruns(userId: string, count?: number): TestSpeedrun[];
@@ -324,17 +331,17 @@ export const TEST_CONSTANTS = {
 } as const;
 
 export const TEST_PERFORMANCE_THRESHOLDS: TestPerformanceThresholds = {
-  loadTime: 3000,      // 3 seconds
-  memoryUsage: 50,     // 50MB
+  loadTime: 3000, // 3 seconds
+  memoryUsage: 50, // 50MB
   networkRequests: 20, // max requests per page
-  domElements: 1000,   // max DOM elements
-  jsHeapSize: 100,     // 100MB
+  domElements: 1000, // max DOM elements
+  jsHeapSize: 100, // 100MB
 } as const;
 
 export const TEST_TIMER_THRESHOLDS = {
-  ACCURACY_MS: 100,           // ±100ms tolerance
-  HIGH_CPU_ACCURACY_MS: 150,  // ±150ms under load
-  MOBILE_ACCURACY_MS: 200,    // ±200ms on mobile
+  ACCURACY_MS: 100, // ±100ms tolerance
+  HIGH_CPU_ACCURACY_MS: 150, // ±150ms under load
+  MOBILE_ACCURACY_MS: 200, // ±200ms on mobile
   BACKGROUND_ACCURACY_MS: 200, // ±200ms when backgrounded
 } as const;
 
@@ -346,18 +353,18 @@ export const TEST_WIN_PATTERNS = {
     [5, 6, 7, 8, 9],
     [10, 11, 12, 13, 14],
     [15, 16, 17, 18, 19],
-    [20, 21, 22, 23, 24]
+    [20, 21, 22, 23, 24],
   ],
   VERTICAL: [
     [0, 5, 10, 15, 20],
     [1, 6, 11, 16, 21],
     [2, 7, 12, 17, 22],
     [3, 8, 13, 18, 23],
-    [4, 9, 14, 19, 24]
+    [4, 9, 14, 19, 24],
   ],
   DIAGONAL: [
     [0, 6, 12, 18, 24],
-    [4, 8, 12, 16, 20]
+    [4, 8, 12, 16, 20],
   ],
   CORNERS: [[0, 4, 20, 24]],
   CENTER_PLUS: [[2, 7, 12, 17, 22]],

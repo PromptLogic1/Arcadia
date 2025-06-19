@@ -8,10 +8,10 @@ const jestDomPlugin = require('eslint-plugin-jest-dom');
 module.exports = [
   // Base JavaScript recommended config
   js.configs.recommended,
-  
+
   // TypeScript recommended configs
   ...typescript.configs.recommended,
-  
+
   // Global ignores
   {
     ignores: [
@@ -24,7 +24,7 @@ module.exports = [
       'public/**',
     ],
   },
-  
+
   // Main TypeScript configuration
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
@@ -57,11 +57,11 @@ module.exports = [
       '@typescript-eslint/no-inferrable-types': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-empty-interface': 'warn',
-      
+
       // React hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      
+
       // Next.js rules
       '@next/next/no-html-link-for-pages': 'error',
       '@next/next/no-img-element': 'error',
@@ -77,7 +77,7 @@ module.exports = [
       '@next/next/next-script-for-ga': 'error',
       '@next/next/no-before-interactive-script-outside-document': 'error',
       '@next/next/no-assign-module-variable': 'error',
-      
+
       // General rules
       'no-process-env': 'off',
       'no-const-assign': 'error',
@@ -91,7 +91,7 @@ module.exports = [
       },
     },
   },
-  
+
   // JavaScript files configuration
   {
     files: ['**/*.{js,jsx,cjs,mjs}', '**/*.config.js'],
@@ -102,7 +102,7 @@ module.exports = [
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
-  
+
   // React Testing Library test files configuration (exclude Playwright tests)
   {
     files: ['**/__tests__/**/*', '**/*.test.{ts,tsx}'],
@@ -115,7 +115,7 @@ module.exports = [
       // Allow any types in tests for flexibility
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
-      
+
       // Testing Library best practices
       'testing-library/await-async-queries': 'error',
       'testing-library/await-async-utils': 'error',
@@ -135,7 +135,7 @@ module.exports = [
       'testing-library/prefer-screen-queries': 'warn',
       'testing-library/prefer-user-event': 'warn',
       'testing-library/render-result-naming-convention': 'warn',
-      
+
       // Jest DOM best practices
       'jest-dom/prefer-checked': 'warn',
       'jest-dom/prefer-enabled-disabled': 'warn',
@@ -149,7 +149,7 @@ module.exports = [
       'jest-dom/prefer-to-have-value': 'warn',
     },
   },
-  
+
   // Playwright test files configuration
   {
     files: ['**/tests/**/*.spec.ts', '**/e2e/**/*.spec.ts'],

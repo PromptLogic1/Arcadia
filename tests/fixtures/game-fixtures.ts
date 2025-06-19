@@ -5,9 +5,13 @@ import type { Tables } from '../../types/database.types';
  * Native data generation utilities
  */
 const mockData = {
-  randomString: (length = 8) => Math.random().toString(36).substring(2, 2 + length),
+  randomString: (length = 8) =>
+    Math.random()
+      .toString(36)
+      .substring(2, 2 + length),
   randomId: () => Math.random().toString(36).substring(2, 15),
-  randomInt: (min = 0, max = 100) => Math.floor(Math.random() * (max - min + 1)) + min,
+  randomInt: (min = 0, max = 100) =>
+    Math.floor(Math.random() * (max - min + 1)) + min,
   randomBool: () => Math.random() > 0.5,
   randomChoice: <T>(arr: T[]): T => {
     if (arr.length === 0) throw new Error('Cannot choose from empty array');
@@ -81,7 +85,12 @@ export const gameFixtures = {
     board_id: mockData.randomId(),
     host_id: mockData.randomId(),
     session_code: mockData.randomString(6).toUpperCase(),
-    status: mockData.randomChoice(['waiting', 'active', 'completed', 'cancelled']),
+    status: mockData.randomChoice([
+      'waiting',
+      'active',
+      'completed',
+      'cancelled',
+    ]),
     created_at: mockData.randomDate(),
     updated_at: new Date().toISOString(),
     started_at: null,
@@ -94,7 +103,7 @@ export const gameFixtures = {
       allow_spectators: mockData.randomBool(),
       auto_start: false,
       require_approval: false,
-      password: null
+      password: null,
     },
     version: 1,
     // Extended properties
@@ -102,9 +111,20 @@ export const gameFixtures = {
     host_username: mockData.randomUsername(),
     current_player_count: mockData.randomInt(1, 4),
     max_players: mockData.randomInt(2, 8),
-    difficulty: mockData.randomChoice(['beginner', 'easy', 'medium', 'hard', 'expert']),
-    game_type: mockData.randomChoice(['Valorant', 'Minecraft', 'League of Legends', 'Fortnite']),
-    ...overrides
+    difficulty: mockData.randomChoice([
+      'beginner',
+      'easy',
+      'medium',
+      'hard',
+      'expert',
+    ]),
+    game_type: mockData.randomChoice([
+      'Valorant',
+      'Minecraft',
+      'League of Legends',
+      'Fortnite',
+    ]),
+    ...overrides,
   }),
 
   /**
@@ -114,7 +134,9 @@ export const gameFixtures = {
     user_id: mockData.randomId(),
     session_id: mockData.randomId(),
     display_name: mockData.randomUsername(),
-    avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + mockData.randomString(),
+    avatar_url:
+      'https://api.dicebear.com/7.x/avataaars/svg?seed=' +
+      mockData.randomString(),
     color: `#${mockData.randomString(6)}`,
     is_host: false,
     is_ready: true,
@@ -129,7 +151,7 @@ export const gameFixtures = {
     // Extended properties
     is_active: true,
     connection_status: 'connected',
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -145,10 +167,15 @@ export const gameFixtures = {
       'winning_streak',
       'perfect_game',
       'early_bird',
-      'night_owl'
+      'night_owl',
     ]),
-    achievement_type: mockData.randomChoice(['game', 'skill', 'social', 'progression']),
-    description: "Test description " + mockData.randomString(10),
+    achievement_type: mockData.randomChoice([
+      'game',
+      'skill',
+      'social',
+      'progression',
+    ]),
+    description: 'Test description ' + mockData.randomString(10),
     points: mockData.randomInt(10, 1000),
     unlocked_at: mockData.randomBool() ? mockData.randomDate() : null,
     created_at: mockData.randomDate(90),
@@ -156,9 +183,9 @@ export const gameFixtures = {
       icon: mockData.randomChoice(['trophy', 'star', 'medal', 'crown']),
       rarity: mockData.randomChoice(['common', 'rare', 'epic', 'legendary']),
       progress: mockData.randomInt(0, 10),
-      max_progress: mockData.randomInt(1, 10)
+      max_progress: mockData.randomInt(1, 10),
     },
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -174,7 +201,7 @@ export const gameFixtures = {
       'game_started',
       'cell_marked',
       'cell_unmarked',
-      'game_ended'
+      'game_ended',
     ]),
     user_id: mockData.randomId(),
     player_id: mockData.randomId(),
@@ -185,7 +212,7 @@ export const gameFixtures = {
     version: 1,
     created_at: mockData.randomDate(),
     updated_at: new Date().toISOString(),
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -194,22 +221,33 @@ export const gameFixtures = {
   board: (overrides?: Partial<GameBoard>): GameBoard => ({
     id: mockData.randomId(),
     title: `Test Game ${mockData.randomString(4)}`,
-    description: "Test board description " + mockData.randomString(20),
+    description: 'Test board description ' + mockData.randomString(20),
     creator_id: mockData.randomId(),
-    game_type: mockData.randomChoice(['Valorant', 'Minecraft', 'League of Legends', 'Fortnite']),
-    difficulty: mockData.randomChoice(['beginner', 'easy', 'medium', 'hard', 'expert']),
+    game_type: mockData.randomChoice([
+      'Valorant',
+      'Minecraft',
+      'League of Legends',
+      'Fortnite',
+    ]),
+    difficulty: mockData.randomChoice([
+      'beginner',
+      'easy',
+      'medium',
+      'hard',
+      'expert',
+    ]),
     size: 5,
     board_state: {
       cells: gameFixtures.boardState(),
       patterns: ['line', 'diagonal', 'full_house'],
-      theme: mockData.randomChoice(['classic', 'dark', 'neon', 'minimalist'])
+      theme: mockData.randomChoice(['classic', 'dark', 'neon', 'minimalist']),
     },
     is_public: true,
     status: 'draft',
     settings: {
       time_limit: mockData.randomBool() ? mockData.randomInt(60, 3600) : null,
       win_conditions: ['line', 'diagonal'],
-      allow_custom_marks: false
+      allow_custom_marks: false,
     },
     votes: mockData.randomInt(0, 1000),
     bookmarked_count: mockData.randomInt(0, 500),
@@ -217,7 +255,7 @@ export const gameFixtures = {
     version: 1,
     created_at: mockData.randomDate(90),
     updated_at: mockData.randomDate(),
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -226,18 +264,20 @@ export const gameFixtures = {
   boardState: (size = 25): CellState[] => {
     return Array.from({ length: size }, (_, i) => ({
       position: i,
-      text: "Test cell " + mockData.randomString(3),
+      text: 'Test cell ' + mockData.randomString(3),
       is_marked: false,
       marked_by: null,
       marked_at: null,
-      color: null
+      color: null,
     }));
   },
 
   /**
    * Generate a marked board state with pattern
    */
-  markedBoardState: (pattern: 'line' | 'diagonal' | 'corners' | 'random' = 'random'): CellState[] => {
+  markedBoardState: (
+    pattern: 'line' | 'diagonal' | 'corners' | 'random' = 'random'
+  ): CellState[] => {
     const cells = gameFixtures.boardState();
     const userId = mockData.randomId();
     const markTime = mockData.randomDate();
@@ -252,7 +292,7 @@ export const gameFixtures = {
           is_marked: true,
           marked_by: userId,
           marked_at: markTime,
-          color
+          color,
         };
       }
     };
@@ -275,7 +315,7 @@ export const gameFixtures = {
       case 'random': {
         // Mark random cells
         const count = mockData.randomInt(3, 15);
-        const indices = Array.from({length: 25}, (_, i) => i);
+        const indices = Array.from({ length: 25 }, (_, i) => i);
         indices.sort(() => Math.random() - 0.5);
         indices.slice(0, count).forEach(markCell);
         break;
@@ -290,18 +330,29 @@ export const gameFixtures = {
    */
   card: (overrides?: Partial<GameCard>): GameCard => ({
     id: mockData.randomId(),
-    title: "Test Card " + mockData.randomString(8),
-    description: "Test description " + mockData.randomString(10),
+    title: 'Test Card ' + mockData.randomString(8),
+    description: 'Test description ' + mockData.randomString(10),
     creator_id: mockData.randomId(),
-    game_type: mockData.randomChoice(['Valorant', 'Minecraft', 'League of Legends', 'Fortnite']),
-    difficulty: mockData.randomChoice(['beginner', 'easy', 'medium', 'hard', 'expert']),
+    game_type: mockData.randomChoice([
+      'Valorant',
+      'Minecraft',
+      'League of Legends',
+      'Fortnite',
+    ]),
+    difficulty: mockData.randomChoice([
+      'beginner',
+      'easy',
+      'medium',
+      'hard',
+      'expert',
+    ]),
     is_public: true,
     tags: ['fun', 'challenging', 'quick'].slice(0, mockData.randomInt(1, 3)),
     votes: mockData.randomInt(0, 100),
     created_at: mockData.randomDate(90),
     updated_at: mockData.randomDate(),
-    ...overrides
-  })
+    ...overrides,
+  }),
 };
 
 /**
@@ -314,22 +365,22 @@ export const gameScenarios = {
   waitingSession: (playerCount = 3) => {
     const hostId = mockData.randomId();
     const sessionId = mockData.randomId();
-    
+
     const session = gameFixtures.session({
       id: sessionId,
       host_id: hostId,
       status: 'waiting',
       current_player_count: playerCount,
-      max_players: 4
+      max_players: 4,
     });
 
-    const players = Array.from({ length: playerCount }, (_, i) => 
+    const players = Array.from({ length: playerCount }, (_, i) =>
       gameFixtures.player({
         session_id: sessionId,
         user_id: i === 0 ? hostId : mockData.randomId(),
         is_host: i === 0,
         is_ready: true,
-        position: i
+        position: i,
       })
     );
 
@@ -341,17 +392,17 @@ export const gameScenarios = {
    */
   activeGame: (playerCount = 4, markedCells = 5) => {
     const { session, players } = gameScenarios.waitingSession(playerCount);
-    
+
     const activeSession = {
       ...session,
       status: 'active' as const,
-      started_at: mockData.randomDate()
+      started_at: mockData.randomDate(),
     };
 
     const boardState = gameFixtures.boardState();
-    
+
     // Mark random cells by different players
-    const indices = Array.from({length: 25}, (_, i) => i);
+    const indices = Array.from({ length: 25 }, (_, i) => i);
     indices.sort(() => Math.random() - 0.5);
     const markedIndices = indices.slice(0, markedCells);
     markedIndices.forEach((index, i) => {
@@ -364,23 +415,23 @@ export const gameScenarios = {
           is_marked: true,
           marked_by: player.user_id,
           marked_at: mockData.randomDate(),
-          color: player.color
+          color: player.color,
         };
       }
     });
 
-    return { 
-      session: activeSession, 
-      players, 
+    return {
+      session: activeSession,
+      players,
       boardState,
-      events: markedIndices.map(index => 
+      events: markedIndices.map(index =>
         gameFixtures.sessionEvent({
           session_id: activeSession.id,
           event_type: 'cell_marked',
           cell_position: index,
-          user_id: boardState[index]?.marked_by || 'unknown'
+          user_id: boardState[index]?.marked_by || 'unknown',
         })
-      )
+      ),
     };
   },
 
@@ -389,15 +440,19 @@ export const gameScenarios = {
    */
   completedGame: (winnerId?: string) => {
     const { session, players, boardState } = gameScenarios.activeGame(4, 12);
-    const randomPlayerIndex = mockData.randomInt(0, Math.max(0, players.length - 1));
-    const winner = winnerId || (players[randomPlayerIndex]?.user_id ?? 'player1');
-    
+    const randomPlayerIndex = mockData.randomInt(
+      0,
+      Math.max(0, players.length - 1)
+    );
+    const winner =
+      winnerId || (players[randomPlayerIndex]?.user_id ?? 'player1');
+
     return {
       session: {
         ...session,
         status: 'completed' as const,
         ended_at: mockData.randomDate(),
-        winner_id: winner
+        winner_id: winner,
       },
       players,
       boardState,
@@ -408,9 +463,9 @@ export const gameScenarios = {
         event_data: {
           pattern: 'line',
           winning_cells: [10, 11, 12, 13, 14],
-          duration: mockData.randomInt(60, 600)
-        }
-      })
+          duration: mockData.randomInt(60, 600),
+        },
+      }),
     };
   },
 
@@ -421,16 +476,26 @@ export const gameScenarios = {
     const achievements = Array.from({ length: count }, () => {
       const progress = mockData.randomInt(0, 100);
       const isUnlocked = progress === 100;
-      
+
       return gameFixtures.achievement({
         user_id: userId,
         unlocked_at: isUnlocked ? mockData.randomDate() : null,
         metadata: {
           progress,
           max_progress: 100,
-          icon: mockData.randomChoice(['waiting', 'active', 'completed', 'cancelled']),
-          rarity: mockData.randomChoice(['waiting', 'active', 'completed', 'cancelled'])
-        }
+          icon: mockData.randomChoice([
+            'waiting',
+            'active',
+            'completed',
+            'cancelled',
+          ]),
+          rarity: mockData.randomChoice([
+            'waiting',
+            'active',
+            'completed',
+            'cancelled',
+          ]),
+        },
       });
     });
 
@@ -443,7 +508,7 @@ export const gameScenarios = {
   speedrunSession: (boardId: string) => {
     const sessionId = mockData.randomId();
     const userId = mockData.randomId();
-    
+
     return {
       session: gameFixtures.session({
         id: sessionId,
@@ -456,20 +521,20 @@ export const gameScenarios = {
           allow_spectators: false,
           auto_start: true,
           require_approval: false,
-          password: null
-        }
+          password: null,
+        },
       }),
       player: gameFixtures.player({
         session_id: sessionId,
         user_id: userId,
-        is_host: true
+        is_host: true,
       }),
       timerData: {
         startTime: Date.now(),
         splits: [] as number[],
         isPaused: false,
-        pausedDuration: 0
-      }
+        pausedDuration: 0,
+      },
     };
-  }
+  },
 };

@@ -1,6 +1,6 @@
 /**
  * Validation Helpers Tests
- * 
+ *
  * Tests for runtime validation functions and type guards
  */
 
@@ -32,7 +32,7 @@ describe('Validation Helpers', () => {
       const result = validateUserData(userData);
 
       expect(result.success).toBe(true);
-      
+
       // The validator returns only specific fields, not the entire input
       expect(result.data).toEqual({
         id: userData.id,
@@ -58,18 +58,25 @@ describe('Validation Helpers', () => {
         { data: [], error: 'User data must be an object' },
         { data: {}, error: 'Missing required fields' },
         { data: { id: 123 }, error: 'Missing required fields' },
-        { data: { id: 'test', auth_id: 123 }, error: 'Auth ID must be a string' },
+        {
+          data: { id: 'test', auth_id: 123 },
+          error: 'Auth ID must be a string',
+        },
       ];
 
       invalidCases.forEach(({ data, error }) => {
         const result = validateUserData(data);
         expect(result.success).toBe(false);
         expect(result.data).toBeNull();
-        
+
         // Type guard: if success is false, then error exists
         if (!result.success) {
           // Some error messages may vary, so just check it contains key terms
-          if (result.error.includes('object') || result.error.includes('required') || result.error.includes('string')) {
+          if (
+            result.error.includes('object') ||
+            result.error.includes('required') ||
+            result.error.includes('string')
+          ) {
             expect(true).toBe(true); // Valid error case
           } else {
             expect(result.error).toBe(error); // Exact match for unexpected cases
@@ -85,7 +92,7 @@ describe('Validation Helpers', () => {
       };
 
       const result = validateUserData(minimalUser);
-      
+
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         id: 'user-123',
@@ -116,7 +123,7 @@ describe('Validation Helpers', () => {
       };
 
       const result = validateUserData(fullUser);
-      
+
       expect(result.success).toBe(true);
       expect(result.data).toEqual(fullUser);
     });
@@ -136,10 +143,13 @@ describe('Validation Helpers', () => {
         { data: null, error: 'Board data must be an object' },
         { data: { title: 'Test' }, error: 'Board ID must be a string' },
         { data: { id: '123' }, error: 'Board title must be a string' },
-        { data: { id: '123', title: 'Test' }, error: 'Invalid game type: missing' },
-        { 
-          data: { id: '123', title: 'Test', game_type: 'Invalid Game' }, 
-          error: 'Invalid game type: Invalid Game' 
+        {
+          data: { id: '123', title: 'Test' },
+          error: 'Invalid game type: missing',
+        },
+        {
+          data: { id: '123', title: 'Test', game_type: 'Invalid Game' },
+          error: 'Invalid game type: Invalid Game',
         },
       ];
 
@@ -154,8 +164,14 @@ describe('Validation Helpers', () => {
 
     it('should validate all game categories', () => {
       const gameCategories = [
-        'All Games', 'World of Warcraft', 'Fortnite', 'Minecraft',
-        'Among Us', 'Apex Legends', 'League of Legends', 'Overwatch',
+        'All Games',
+        'World of Warcraft',
+        'Fortnite',
+        'Minecraft',
+        'Among Us',
+        'Apex Legends',
+        'League of Legends',
+        'Overwatch',
       ];
 
       gameCategories.forEach(game_type => {
@@ -214,7 +230,7 @@ describe('Validation Helpers', () => {
 
     it('should handle empty array', () => {
       const result = validateBingoBoardArray([]);
-      
+
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
     });
@@ -227,7 +243,7 @@ describe('Validation Helpers', () => {
       ];
 
       const result = validateBingoBoardArray(boards);
-      
+
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain('Board 1:');
@@ -274,7 +290,7 @@ describe('Validation Helpers', () => {
     it('should handle null settings', () => {
       const session = factories.bingoSession({ settings: null });
       const result = validateBingoSession(session);
-      
+
       expect(result.success).toBe(true);
       expect(result.data?.settings).toBeNull();
     });
@@ -314,13 +330,13 @@ describe('Validation Helpers', () => {
       const invalidCases = [
         { data: null, error: 'Presence data must be an object' },
         { data: {}, error: 'Presence ref must be a string' },
-        { 
-          data: { presence_ref: 'ref-123' }, 
-          error: 'Display name must be a string' 
+        {
+          data: { presence_ref: 'ref-123' },
+          error: 'Display name must be a string',
         },
-        { 
-          data: { presence_ref: 'ref-123', displayName: 'Test' }, 
-          error: 'User ID is required' 
+        {
+          data: { presence_ref: 'ref-123', displayName: 'Test' },
+          error: 'User ID is required',
         },
       ];
 
@@ -376,7 +392,7 @@ describe('Validation Helpers', () => {
       it('should validate board IDs same as user IDs', () => {
         const validId = '123e4567-e89b-12d3-a456-426614174000';
         const result = validateBoardId(validId);
-        
+
         expect(result.success).toBe(true);
         expect(result.data).toBe(validId);
       });
@@ -386,7 +402,7 @@ describe('Validation Helpers', () => {
       it('should validate session IDs same as user IDs', () => {
         const validId = '123e4567-e89b-12d3-a456-426614174000';
         const result = validateSessionId(validId);
-        
+
         expect(result.success).toBe(true);
         expect(result.data).toBe(validId);
       });
@@ -396,7 +412,7 @@ describe('Validation Helpers', () => {
       it('should validate card IDs same as user IDs', () => {
         const validId = '123e4567-e89b-12d3-a456-426614174000';
         const result = validateCardId(validId);
-        
+
         expect(result.success).toBe(true);
         expect(result.data).toBe(validId);
       });
@@ -411,7 +427,7 @@ describe('Validation Helpers', () => {
           error: null,
         };
 
-        const result = validateSupabaseResponse(response, (data) => ({
+        const result = validateSupabaseResponse(response, data => ({
           success: true,
           data: data as any,
         }));
@@ -426,7 +442,7 @@ describe('Validation Helpers', () => {
           error: { message: 'Database error', code: 'PGRST116' },
         };
 
-        const result = validateSupabaseResponse(response, (data) => ({
+        const result = validateSupabaseResponse(response, data => ({
           success: true,
           data: data as any,
         }));
@@ -466,7 +482,7 @@ describe('Validation Helpers', () => {
           error: null,
         };
 
-        const result = validateSupabaseArrayResponse(response, (data) => ({
+        const result = validateSupabaseArrayResponse(response, data => ({
           success: true,
           data: data as any,
         }));
@@ -481,7 +497,7 @@ describe('Validation Helpers', () => {
           error: null,
         };
 
-        const result = validateSupabaseArrayResponse(response, (data) => ({
+        const result = validateSupabaseArrayResponse(response, data => ({
           success: true,
           data: data as any,
         }));
@@ -498,7 +514,7 @@ describe('Validation Helpers', () => {
           error: null,
         };
 
-        const result = validateSupabaseArrayResponse(response, (data) => ({
+        const result = validateSupabaseArrayResponse(response, data => ({
           success: true,
           data: data as any,
         }));

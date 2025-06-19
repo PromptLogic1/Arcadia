@@ -1,4 +1,4 @@
-import { GET } from './route';
+import { GET } from '../route';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
@@ -16,9 +16,15 @@ jest.mock('next/server', () => ({
   },
 }));
 
-const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<typeof isRedisConfigured>;
-const mockGetRedisClient = getRedisClient as jest.MockedFunction<typeof getRedisClient>;
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<
+  typeof isRedisConfigured
+>;
+const mockGetRedisClient = getRedisClient as jest.MockedFunction<
+  typeof getRedisClient
+>;
+const mockCreateClient = createClient as jest.MockedFunction<
+  typeof createClient
+>;
 
 describe('Health Check Route', () => {
   const originalEnv = process.env;
@@ -66,7 +72,9 @@ describe('Health Check Route', () => {
 
       expect(data.status).toBe('healthy');
       expect(data.checks).toHaveLength(3);
-      expect(data.checks.every((check: any) => check.status === 'healthy')).toBe(true);
+      expect(
+        data.checks.every((check: any) => check.status === 'healthy')
+      ).toBe(true);
       expect(data.overall.healthy).toBe(3);
       expect(data.overall.unhealthy).toBe(0);
       expect(response.status).toBe(200);
@@ -80,7 +88,11 @@ describe('Health Check Route', () => {
         from: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ error: new Error('Database connection failed') }),
+        single: jest
+          .fn()
+          .mockResolvedValue({
+            error: new Error('Database connection failed'),
+          }),
       };
       mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 
@@ -101,7 +113,9 @@ describe('Health Check Route', () => {
       const data = await response.json();
 
       expect(data.status).toBe('unhealthy');
-      expect(data.checks.find((check: any) => check.service === 'database').status).toBe('unhealthy');
+      expect(
+        data.checks.find((check: any) => check.service === 'database').status
+      ).toBe('unhealthy');
       expect(data.overall.unhealthy).toBe(1);
       expect(response.status).toBe(503);
     });
@@ -131,7 +145,9 @@ describe('Health Check Route', () => {
       const data = await response.json();
 
       expect(data.status).toBe('degraded');
-      expect(data.checks.find((check: any) => check.service === 'redis').status).toBe('degraded');
+      expect(
+        data.checks.find((check: any) => check.service === 'redis').status
+      ).toBe('degraded');
       expect(response.status).toBe(200);
     });
   });
@@ -147,8 +163,12 @@ describe('Health Check Route', () => {
       const data = await response.json();
 
       expect(data.status).toBe('unhealthy');
-      expect(data.checks.find((check: any) => check.service === 'database').status).toBe('unhealthy');
-      expect(data.checks.find((check: any) => check.service === 'database').message).toContain('Missing Supabase environment variables');
+      expect(
+        data.checks.find((check: any) => check.service === 'database').status
+      ).toBe('unhealthy');
+      expect(
+        data.checks.find((check: any) => check.service === 'database').message
+      ).toContain('Missing Supabase environment variables');
     });
   });
 

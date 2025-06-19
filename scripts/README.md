@@ -195,11 +195,13 @@ Updates image components to use optimized patterns:
 ## Maintenance Scripts (Use As Needed)
 
 ### analyze-console-logs.ts
+
 - **Description**: Analyze console.log usage in test files and categorize them
 - **Usage**: `tsx scripts/analyze-console-logs.ts`
 - **Purpose**: Identify which console.logs are test scenarios vs debug logs
 
 ### replace-safe-console-logs.ts
+
 - **Description**: Replace debug console.logs with comments while keeping test scenario logs
 - **Usage**: `tsx scripts/replace-safe-console-logs.ts`
 - **Purpose**: Clean up unnecessary console.logs without breaking test scenarios

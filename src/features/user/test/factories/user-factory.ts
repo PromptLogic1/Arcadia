@@ -9,7 +9,7 @@ type UserAchievement = Database['public']['Tables']['user_achievements']['Row'];
 
 /**
  * Test Data Factories
- * 
+ *
  * Factory functions for creating test data with realistic values
  * for user profile related tests.
  */
@@ -69,7 +69,9 @@ export function createUserStats(overrides: Partial<UserStats> = {}): UserStats {
   };
 }
 
-export function createGameResult(overrides: Partial<GameResult> = {}): GameResult {
+export function createGameResult(
+  overrides: Partial<GameResult> = {}
+): GameResult {
   const id = `game_${gameIdCounter++}`;
   const now = new Date().toISOString();
 
@@ -88,7 +90,9 @@ export function createGameResult(overrides: Partial<GameResult> = {}): GameResul
   };
 }
 
-export function createUserActivity(overrides: Partial<UserActivity> = {}): UserActivity {
+export function createUserActivity(
+  overrides: Partial<UserActivity> = {}
+): UserActivity {
   const id = `activity_${activityIdCounter++}`;
   const now = new Date().toISOString();
 
@@ -107,7 +111,9 @@ export function createUserActivity(overrides: Partial<UserActivity> = {}): UserA
   };
 }
 
-export function createUserAchievement(overrides: Partial<UserAchievement> = {}): UserAchievement {
+export function createUserAchievement(
+  overrides: Partial<UserAchievement> = {}
+): UserAchievement {
   const id = `achievement_${achievementIdCounter++}`;
   const now = new Date().toISOString();
 
@@ -150,7 +156,7 @@ export function createPowerUser(username: string): {
   achievements: UserAchievement[];
 } {
   const userId = `power_user_${userIdCounter++}`;
-  
+
   const profile = createUserProfile({
     id: userId,
     username,
@@ -211,9 +217,11 @@ export function createGameHistory(
   for (let i = 0; i < count; i++) {
     const isWin = Math.random() < winRate;
     const scoreVariance = avgScore * 0.3;
-    const score = Math.round(avgScore + (Math.random() - 0.5) * scoreVariance * 2);
+    const score = Math.round(
+      avgScore + (Math.random() - 0.5) * scoreVariance * 2
+    );
     const timeAgo = Math.random() * timeRange * 24 * 60 * 60 * 1000;
-    
+
     results.push(
       createGameResult({
         user_id: userId,
@@ -252,16 +260,18 @@ export function createActivityLog(
 
   for (let day = 0; day < days; day++) {
     const dayStart = now - day * 24 * 60 * 60 * 1000;
-    
+
     for (let i = 0; i < activitiesPerDay; i++) {
       const timeOffset = Math.random() * 24 * 60 * 60 * 1000;
-      const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-      
+      const activityType =
+        activityTypes[Math.floor(Math.random() * activityTypes.length)];
+
       if (activityType) {
         activities.push(
           createUserActivity({
             user_id: userId,
-            activity_type: activityType as Database['public']['Enums']['activity_type'],
+            activity_type:
+              activityType as Database['public']['Enums']['activity_type'],
             created_at: new Date(dayStart - timeOffset).toISOString(),
             data: generateActivityData(activityType),
           })
@@ -285,7 +295,9 @@ function generateActivityData(activityType: string): Json {
       return {
         board_id: `board_${Math.floor(Math.random() * 100)}`,
         board_title: `Board ${Math.floor(Math.random() * 100)}`,
-        difficulty: ['easy', 'medium', 'hard', 'expert'][Math.floor(Math.random() * 4)],
+        difficulty: ['easy', 'medium', 'hard', 'expert'][
+          Math.floor(Math.random() * 4)
+        ],
       };
     case 'submission_create':
       return {
@@ -304,7 +316,9 @@ function generateActivityData(activityType: string): Json {
       };
     case 'achievement_unlock':
       return {
-        achievement_name: ['First Victory', 'Regular Player', 'On Fire'][Math.floor(Math.random() * 3)],
+        achievement_name: ['First Victory', 'Regular Player', 'On Fire'][
+          Math.floor(Math.random() * 3)
+        ],
         points: [50, 100, 150][Math.floor(Math.random() * 3)],
       };
     default:

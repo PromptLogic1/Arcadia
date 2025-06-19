@@ -5,7 +5,10 @@
 import { settingsService } from '../settings.service';
 import { createClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-import type { ProfileUpdateData, NotificationSettingsData } from '../settings.service';
+import type {
+  ProfileUpdateData,
+  NotificationSettingsData,
+} from '../settings.service';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -358,7 +361,9 @@ describe('settingsService - Additional Edge Cases', () => {
         confirmEmail: 'new@example.com',
       };
 
-      mockSupabase.auth.updateUser.mockRejectedValueOnce(new Error('Auth service unavailable'));
+      mockSupabase.auth.updateUser.mockRejectedValueOnce(
+        new Error('Auth service unavailable')
+      );
 
       const result = await settingsService.updateEmail(emailData);
 
@@ -510,7 +515,9 @@ describe('settingsService - Additional Edge Cases', () => {
         confirmPassword: 'newpass',
       };
 
-      mockSupabase.auth.getUser.mockRejectedValueOnce(new Error('Auth service down'));
+      mockSupabase.auth.getUser.mockRejectedValueOnce(
+        new Error('Auth service down')
+      );
 
       const result = await settingsService.updatePassword(passwordData);
 
@@ -691,7 +698,10 @@ describe('settingsService - Additional Edge Cases', () => {
         error: null,
       });
 
-      const result = await settingsService.updateNotificationSettings(userId, partialSettings);
+      const result = await settingsService.updateNotificationSettings(
+        userId,
+        partialSettings
+      );
 
       expect(result.success).toBe(true);
       expect(mockFrom.upsert).toHaveBeenCalledWith({
@@ -712,7 +722,10 @@ describe('settingsService - Additional Edge Cases', () => {
         error: { message: 'Foreign key violation', code: '23503' },
       });
 
-      const result = await settingsService.updateNotificationSettings(userId, settings);
+      const result = await settingsService.updateNotificationSettings(
+        userId,
+        settings
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Foreign key violation');
@@ -733,7 +746,10 @@ describe('settingsService - Additional Edge Cases', () => {
 
       mockFrom.single.mockRejectedValueOnce(new Error('Connection lost'));
 
-      const result = await settingsService.updateNotificationSettings(userId, settings);
+      const result = await settingsService.updateNotificationSettings(
+        userId,
+        settings
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Connection lost');
@@ -754,7 +770,10 @@ describe('settingsService - Additional Edge Cases', () => {
 
       mockFrom.single.mockRejectedValueOnce('Network error');
 
-      const result = await settingsService.updateNotificationSettings(userId, settings);
+      const result = await settingsService.updateNotificationSettings(
+        userId,
+        settings
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to update notification settings');
@@ -901,11 +920,11 @@ describe('settingsService - Additional Edge Cases', () => {
 
     it('should validate various special characters', () => {
       const specialChars = '!@#$%^&*(),.?":{}|<>';
-      
+
       for (const char of specialChars) {
         const password = `Valid123${char}`;
         const result = settingsService.validatePassword(password);
-        
+
         expect(result.requirements.hasSpecialChar).toBe(true);
       }
     });

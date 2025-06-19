@@ -1,6 +1,6 @@
 /**
  * Test Utilities
- * 
+ *
  * Common testing utilities and helpers for all test files.
  * These utilities ensure consistent testing patterns across the codebase.
  */
@@ -20,18 +20,19 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
 }
 
 // Default query client for tests
-export const createTestQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false, // Turn off retries for tests
-      gcTime: 0, // No garbage collection time
-      staleTime: 0, // Data is immediately stale
+export const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false, // Turn off retries for tests
+        gcTime: 0, // No garbage collection time
+        staleTime: 0, // Data is immediately stale
+      },
+      mutations: {
+        retry: false,
+      },
     },
-    mutations: {
-      retry: false,
-    },
-  },
-});
+  });
 
 // Test wrapper component
 export const createWrapper = ({
@@ -42,9 +43,7 @@ export const createWrapper = ({
   supabaseClient?: SupabaseClient<Database>;
 } = {}) => {
   return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 };
 
@@ -73,7 +72,8 @@ export * from '@testing-library/react';
 export { customRender as render };
 
 // Async utilities
-export const waitForMs = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const waitForMs = (ms: number) =>
+  new Promise(resolve => setTimeout(resolve, ms));
 
 // Mock window methods
 export const mockWindowMethods = () => {
@@ -96,11 +96,19 @@ export const mockWindowMethods = () => {
     let store: Record<string, string> = {};
     return {
       getItem: (key: string) => store[key] || null,
-      setItem: (key: string, value: string) => { store[key] = value; },
-      removeItem: (key: string) => { delete store[key]; },
-      clear: () => { store = {}; },
+      setItem: (key: string, value: string) => {
+        store[key] = value;
+      },
+      removeItem: (key: string) => {
+        delete store[key];
+      },
+      clear: () => {
+        store = {};
+      },
       key: (index: number) => Object.keys(store)[index] || null,
-      get length() { return Object.keys(store).length; },
+      get length() {
+        return Object.keys(store).length;
+      },
     };
   })();
 
@@ -124,17 +132,20 @@ export const mockWindowMethods = () => {
 };
 
 // Mock fetch
-export const mockFetch = (responses: Array<{ url: string | RegExp; response: any; status?: number }>) => {
+export const mockFetch = (
+  responses: Array<{ url: string | RegExp; response: any; status?: number }>
+) => {
   const originalFetch = global.fetch;
 
   global.fetch = jest.fn(async (url: string | URL, options?: RequestInit) => {
     const urlString = typeof url === 'string' ? url : url.toString();
-    
+
     for (const mock of responses) {
-      const matches = typeof mock.url === 'string' 
-        ? urlString === mock.url 
-        : mock.url.test(urlString);
-        
+      const matches =
+        typeof mock.url === 'string'
+          ? urlString === mock.url
+          : mock.url.test(urlString);
+
       if (matches) {
         return {
           ok: (mock.status || 200) >= 200 && (mock.status || 200) < 300,
@@ -166,22 +177,39 @@ export const mockFetch = (responses: Array<{ url: string | RegExp; response: any
 // Test data cleanup
 export const cleanupTestData = async (
   supabase: SupabaseClient<Database>,
-  tables: string[] = ['session_players', 'bingo_sessions', 'board_cards', 'bingo_cards', 'bingo_boards', 'users']
+  tables: string[] = [
+    'session_players',
+    'bingo_sessions',
+    'board_cards',
+    'bingo_cards',
+    'bingo_boards',
+    'users',
+  ]
 ) => {
   for (const table of tables) {
-    await supabase.from(table as keyof Database['public']['Tables']).delete().gte('created_at', '1900-01-01');
+    await supabase
+      .from(table as keyof Database['public']['Tables'])
+      .delete()
+      .gte('created_at', '1900-01-01');
   }
 };
 
 // Assertion helpers
-export const expectServiceSuccess = <T extends unknown>(response: { success: boolean; data: T | null; error: string | null }) => {
+export const expectServiceSuccess = <T extends unknown>(response: {
+  success: boolean;
+  data: T | null;
+  error: string | null;
+}) => {
   expect(response.success).toBe(true);
   expect(response.data).not.toBeNull();
   expect(response.error).toBeNull();
   return response.data as T;
 };
 
-export const expectServiceError = (response: { success: boolean; data: any; error: string | null }, errorMessage?: string) => {
+export const expectServiceError = (
+  response: { success: boolean; data: any; error: string | null },
+  errorMessage?: string
+) => {
   expect(response.success).toBe(false);
   expect(response.data).toBeNull();
   expect(response.error).not.toBeNull();
@@ -284,7 +312,7 @@ export const mockDate = (date: string | Date) => {
           super(...args);
         }
       }
-      
+
       static now() {
         return mockDate.getTime();
       }
@@ -299,7 +327,10 @@ export const mockDate = (date: string | Date) => {
 };
 
 // Performance testing utility
-export const measurePerformance = async (fn: () => Promise<void> | void, iterations: number = 100) => {
+export const measurePerformance = async (
+  fn: () => Promise<void> | void,
+  iterations: number = 100
+) => {
   const times: number[] = [];
 
   for (let i = 0; i < iterations; i++) {

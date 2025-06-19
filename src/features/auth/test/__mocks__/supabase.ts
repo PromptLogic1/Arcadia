@@ -1,6 +1,6 @@
 /**
  * Supabase Mock for Auth Tests
- * 
+ *
  * Provides comprehensive mocks for Supabase auth functionality
  */
 
@@ -40,29 +40,49 @@ export interface MockAuthError {
 export class MockSupabaseAuthClient {
   private currentUser: MockSupabaseUser | null = null;
   private currentSession: MockSupabaseSession | null = null;
-  private subscribers: Array<(event: string, session: MockSupabaseSession | null) => void> = [];
+  private subscribers: Array<
+    (event: string, session: MockSupabaseSession | null) => void
+  > = [];
 
-  async getSession(): Promise<{ data: { session: MockSupabaseSession | null }; error: MockAuthError | null }> {
+  async getSession(): Promise<{
+    data: { session: MockSupabaseSession | null };
+    error: MockAuthError | null;
+  }> {
     return { data: { session: this.currentSession }, error: null };
   }
 
-  async getUser(): Promise<{ data: { user: MockSupabaseUser | null }; error: MockAuthError | null }> {
+  async getUser(): Promise<{
+    data: { user: MockSupabaseUser | null };
+    error: MockAuthError | null;
+  }> {
     return { data: { user: this.currentUser }, error: null };
   }
 
-  async signInWithPassword({ email, password }: { email: string; password: string }): Promise<{ data: MockAuthResponse | null; error: MockAuthError | null }> {
+  async signInWithPassword({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }): Promise<{ data: MockAuthResponse | null; error: MockAuthError | null }> {
     // Simulate various scenarios
     if (email === 'blocked@example.com') {
       return {
         data: null,
-        error: { message: 'Too many login attempts. Please try again later.', code: 'rate_limit_exceeded' },
+        error: {
+          message: 'Too many login attempts. Please try again later.',
+          code: 'rate_limit_exceeded',
+        },
       };
     }
 
     if (password === 'wrong') {
       return {
         data: null,
-        error: { message: 'Invalid login credentials', code: 'invalid_credentials' },
+        error: {
+          message: 'Invalid login credentials',
+          code: 'invalid_credentials',
+        },
       };
     }
 
@@ -89,19 +109,32 @@ export class MockSupabaseAuthClient {
     return { data: { user, session }, error: null };
   }
 
-  async signUp({ email, password: _password, options: _options }: { email: string; password: string; options?: { data?: Record<string, unknown> } }): Promise<{ data: MockAuthResponse | null; error: MockAuthError | null }> {
+  async signUp({
+    email,
+    password: _password,
+    options: _options,
+  }: {
+    email: string;
+    password: string;
+    options?: { data?: Record<string, unknown> };
+  }): Promise<{ data: MockAuthResponse | null; error: MockAuthError | null }> {
     // Simulate already registered
     if (email === 'existing@example.com') {
       return {
         data: null,
-        error: { message: 'User already registered', code: 'user_already_exists' },
+        error: {
+          message: 'User already registered',
+          code: 'user_already_exists',
+        },
       };
     }
 
     const user: MockSupabaseUser = {
       id: `user-${Date.now()}`,
       email,
-      email_confirmed_at: email.includes('confirmed') ? new Date().toISOString() : null,
+      email_confirmed_at: email.includes('confirmed')
+        ? new Date().toISOString()
+        : null,
       user_metadata: _options?.data || {},
       app_metadata: { provider: 'email' },
     };
@@ -130,21 +163,36 @@ export class MockSupabaseAuthClient {
     return { error: null };
   }
 
-  async resetPasswordForEmail(email: string): Promise<{ error: MockAuthError | null }> {
+  async resetPasswordForEmail(
+    email: string
+  ): Promise<{ error: MockAuthError | null }> {
     if (email === 'ratelimited@example.com') {
-      return { error: { message: 'Too many password reset attempts', code: 'rate_limit_exceeded' } };
+      return {
+        error: {
+          message: 'Too many password reset attempts',
+          code: 'rate_limit_exceeded',
+        },
+      };
     }
     return { error: null };
   }
 
-  async updateUser({ password }: { password?: string }): Promise<{ error: MockAuthError | null }> {
+  async updateUser({
+    password,
+  }: {
+    password?: string;
+  }): Promise<{ error: MockAuthError | null }> {
     if (password && password.length < 8) {
-      return { error: { message: 'Password is too weak', code: 'weak_password' } };
+      return {
+        error: { message: 'Password is too weak', code: 'weak_password' },
+      };
     }
     return { error: null };
   }
 
-  onAuthStateChange(callback: (event: string, session: MockSupabaseSession | null) => void) {
+  onAuthStateChange(
+    callback: (event: string, session: MockSupabaseSession | null) => void
+  ) {
     this.subscribers.push(callback);
     return {
       data: {
@@ -157,14 +205,17 @@ export class MockSupabaseAuthClient {
     };
   }
 
-  private notifySubscribers(event: string, session: MockSupabaseSession | null) {
+  private notifySubscribers(
+    event: string,
+    session: MockSupabaseSession | null
+  ) {
     this.subscribers.forEach(callback => callback(event, session));
   }
 }
 
 export class MockSupabaseClient {
   auth = new MockSupabaseAuthClient();
-  
+
   from(table: string) {
     return new MockSupabaseQueryBuilder(table);
   }
@@ -174,7 +225,7 @@ export class MockSupabaseQueryBuilder {
   private table: string;
   private filters: Record<string, unknown> = {};
   private selectFields = '*';
-  
+
   constructor(table: string) {
     this.table = table;
   }
@@ -251,19 +302,23 @@ export class MockSupabaseQueryBuilder {
 export const createMockSupabaseClient = () => new MockSupabaseClient();
 
 // Mock functions for rate limiting
-export const mockRateLimitCheck = jest.fn(() => Promise.resolve({
-  success: true,
-  limit: 10,
-  remaining: 9,
-  reset: Date.now() + 3600000,
-}));
+export const mockRateLimitCheck = jest.fn(() =>
+  Promise.resolve({
+    success: true,
+    limit: 10,
+    remaining: 9,
+    reset: Date.now() + 3600000,
+  })
+);
 
-export const mockRateLimitExceeded = jest.fn(() => Promise.resolve({
-  success: false,
-  limit: 10,
-  remaining: 0,
-  reset: Date.now() + 3600000,
-}));
+export const mockRateLimitExceeded = jest.fn(() =>
+  Promise.resolve({
+    success: false,
+    limit: 10,
+    remaining: 0,
+    reset: Date.now() + 3600000,
+  })
+);
 
 // Mock OAuth providers
 export const mockOAuthProviders = {
@@ -288,20 +343,22 @@ export const mockSessionUtils = {
     // Check if token is expired (simple mock)
     return true;
   },
-  
+
   getSessionExpiryTime: (session: MockSupabaseSession): number => {
     return Date.now() + session.expires_in * 1000;
   },
-  
-  refreshSession: jest.fn(() => Promise.resolve({
-    session: {
-      access_token: `refreshed-token-${Date.now()}`,
-      token_type: 'bearer',
-      expires_in: 3600,
-      refresh_token: `refreshed-refresh-${Date.now()}`,
-    },
-    error: null,
-  })),
+
+  refreshSession: jest.fn(() =>
+    Promise.resolve({
+      session: {
+        access_token: `refreshed-token-${Date.now()}`,
+        token_type: 'bearer',
+        expires_in: 3600,
+        refresh_token: `refreshed-refresh-${Date.now()}`,
+      },
+      error: null,
+    })
+  ),
 };
 
 // Export default mock

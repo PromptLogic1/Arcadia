@@ -19,7 +19,7 @@ const ACCESSIBILITY_CONFIG: AccessibilityConfig = {
 // Install axe-core for accessibility testing
 async function injectAxe(page: Page) {
   await page.addScriptTag({
-    url: 'https://unpkg.com/axe-core@4.8.2/axe.min.js'
+    url: 'https://unpkg.com/axe-core@4.8.2/axe.min.js',
   });
 }
 
@@ -29,19 +29,26 @@ async function runAxeAccessibilityScan(
   config: AccessibilityConfig = ACCESSIBILITY_CONFIG
 ): Promise<AccessibilityResult> {
   await injectAxe(page);
-  
+
   const results = await page.evaluate((config: AccessibilityConfig) => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       // @ts-expect-error - axe is injected globally
-      window.axe.run(document, {
-        tags: config.tags,
-        rules: Object.fromEntries(
-          Object.entries(config.rules).map(([rule, settings]) => [rule, settings])
-        ),
-      }, (err: Error | null, results: unknown) => {
-        if (err) throw err;
-        resolve(results);
-      });
+      window.axe.run(
+        document,
+        {
+          tags: config.tags,
+          rules: Object.fromEntries(
+            Object.entries(config.rules).map(([rule, settings]) => [
+              rule,
+              settings,
+            ])
+          ),
+        },
+        (err: Error | null, results: unknown) => {
+          if (err) throw err;
+          resolve(results);
+        }
+      );
     });
   }, config);
 
@@ -80,35 +87,41 @@ async function runAxeAccessibilityScan(
     url?: string;
     timestamp?: string;
   };
-  
+
   // Transform axe results to our format
   const accessibilityResult: AccessibilityResult = {
-    violations: axeResults.violations.map((violation) => ({
+    violations: axeResults.violations.map(violation => ({
       id: violation.id,
       impact: violation.impact as 'critical' | 'serious' | 'moderate' | 'minor',
       description: violation.description,
       help: violation.help,
       helpUrl: violation.helpUrl,
       tags: violation.tags,
-      nodes: violation.nodes.map((node) => ({
+      nodes: violation.nodes.map(node => ({
         html: node.html,
         target: node.target,
         failureSummary: node.failureSummary,
         element: String(node.element || ''),
       })),
     })),
-    passes: axeResults.passes.map((pass) => ({
+    passes: axeResults.passes.map(pass => ({
       id: pass.id,
       description: pass.description,
-      nodes: pass.nodes.map((node) => ({
+      nodes: pass.nodes.map(node => ({
         html: node.html,
         target: node.target,
       })),
     })),
-    incomplete: ((axeResults.incomplete || []) as Array<{ id: string; description: string; nodes: Array<{ html: string; target: string[] }> }>).map((incomplete) => ({
+    incomplete: (
+      (axeResults.incomplete || []) as Array<{
+        id: string;
+        description: string;
+        nodes: Array<{ html: string; target: string[] }>;
+      }>
+    ).map(incomplete => ({
       id: incomplete.id,
       description: incomplete.description,
-      nodes: incomplete.nodes.map((node) => ({
+      nodes: incomplete.nodes.map(node => ({
         html: node.html,
         target: node.target,
       })),
@@ -120,12 +133,20 @@ async function runAxeAccessibilityScan(
     timestamp: axeResults.timestamp || new Date().toISOString(),
     summary: {
       totalViolations: axeResults.violations.length,
-      criticalViolations: axeResults.violations.filter((v) => v.impact === 'critical').length,
-      seriousViolations: axeResults.violations.filter((v) => v.impact === 'serious').length,
-      moderateViolations: axeResults.violations.filter((v) => v.impact === 'moderate').length,
-      minorViolations: axeResults.violations.filter((v) => v.impact === 'minor').length,
+      criticalViolations: axeResults.violations.filter(
+        v => v.impact === 'critical'
+      ).length,
+      seriousViolations: axeResults.violations.filter(
+        v => v.impact === 'serious'
+      ).length,
+      moderateViolations: axeResults.violations.filter(
+        v => v.impact === 'moderate'
+      ).length,
+      minorViolations: axeResults.violations.filter(v => v.impact === 'minor')
+        .length,
       passedRules: axeResults.passes.length,
-      incompleteRules: (axeResults as { incomplete?: unknown[] }).incomplete?.length || 0,
+      incompleteRules:
+        (axeResults as { incomplete?: unknown[] }).incomplete?.length || 0,
     },
   };
 
@@ -138,9 +159,11 @@ test.describe('Enhanced Accessibility Testing', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('should pass WCAG 2.1 AA automated accessibility tests @accessibility @critical', async ({ page }) => {
+  test('should pass WCAG 2.1 AA automated accessibility tests @accessibility @critical', async ({
+    page,
+  }) => {
     const results = await runAxeAccessibilityScan(page, ACCESSIBILITY_CONFIG);
-    
+
     // Log summary for visibility
     console.log('Accessibility Test Summary:');
     console.log(`  Total violations: ${results.summary.totalViolations}`);
@@ -170,15 +193,17 @@ test.describe('Enhanced Accessibility Testing', () => {
     // No critical or serious violations allowed
     expect(results.summary.criticalViolations).toBe(0);
     expect(results.summary.seriousViolations).toBe(0);
-    
+
     // Moderate violations should be minimal
     expect(results.summary.moderateViolations).toBeLessThanOrEqual(2);
-    
+
     // Should have some passing rules
     expect(results.summary.passedRules).toBeGreaterThan(10);
   });
 
-  test('should have proper keyboard navigation support @accessibility @keyboard', async ({ page }) => {
+  test('should have proper keyboard navigation support @accessibility @keyboard', async ({
+    page,
+  }) => {
     // Test tab navigation through interactive elements
     const interactiveSelectors = [
       'button',
@@ -195,7 +220,7 @@ test.describe('Enhanced Accessibility Testing', () => {
     for (const selector of interactiveSelectors) {
       const elements = await page.locator(selector).all();
       for (const element of elements) {
-        if (await element.isVisible() && await element.isEnabled()) {
+        if ((await element.isVisible()) && (await element.isEnabled())) {
           focusableElements.push(element);
         }
       }
@@ -211,8 +236,10 @@ test.describe('Enhanced Accessibility Testing', () => {
     // Test that Tab moves through elements
     for (let i = 0; i < Math.min(focusableElements.length, 10); i++) {
       await page.keyboard.press('Tab');
-      const newFocusedElement = await page.evaluate(() => document.activeElement);
-      
+      const newFocusedElement = await page.evaluate(
+        () => document.activeElement
+      );
+
       // Focus should change (unless we've reached the end)
       if (i < focusableElements.length - 1) {
         expect(newFocusedElement).not.toEqual(focusedElement);
@@ -222,26 +249,32 @@ test.describe('Enhanced Accessibility Testing', () => {
 
     // Test Shift+Tab (reverse navigation)
     await page.keyboard.press('Shift+Tab');
-    const reverseFocusedElement = await page.evaluate(() => document.activeElement);
+    const reverseFocusedElement = await page.evaluate(
+      () => document.activeElement
+    );
     expect(reverseFocusedElement).not.toEqual(focusedElement);
   });
 
-  test('should have visible focus indicators @accessibility @focus', async ({ page }) => {
-    const focusableElements = await page.locator('button, a[href], input, [tabindex="0"]').all();
-    
+  test('should have visible focus indicators @accessibility @focus', async ({
+    page,
+  }) => {
+    const focusableElements = await page
+      .locator('button, a[href], input, [tabindex="0"]')
+      .all();
+
     for (let i = 0; i < Math.min(focusableElements.length, 5); i++) {
       const element = focusableElements[i];
       if (!element) continue;
-      
+
       if (await element.isVisible()) {
         // Focus the element
         await element.focus();
-        
+
         // Check if element has visible focus indicator
-        const focusStyles = await element.evaluate((el) => {
+        const focusStyles = await element.evaluate(el => {
           const styles = window.getComputedStyle(el);
           const pseudoStyles = window.getComputedStyle(el, ':focus');
-          
+
           return {
             outline: styles.outline,
             outlineWidth: styles.outlineWidth,
@@ -255,20 +288,23 @@ test.describe('Enhanced Accessibility Testing', () => {
         });
 
         // Should have visible focus indicator
-        const hasVisibleFocus = 
+        const hasVisibleFocus =
           focusStyles.outlineWidth !== '0px' ||
           focusStyles.boxShadow !== 'none' ||
           focusStyles.pseudoOutline !== 'none' ||
           focusStyles.pseudoBoxShadow !== 'none';
 
-        expect(hasVisibleFocus, 
+        expect(
+          hasVisibleFocus,
           `Element ${await element.textContent()} should have visible focus indicator`
         ).toBe(true);
       }
     }
   });
 
-  test('should have proper heading hierarchy @accessibility @headings', async ({ page }) => {
+  test('should have proper heading hierarchy @accessibility @headings', async ({
+    page,
+  }) => {
     const headings = await page.locator('h1, h2, h3, h4, h5, h6').all();
     expect(headings.length).toBeGreaterThan(0);
 
@@ -291,7 +327,7 @@ test.describe('Enhanced Accessibility Testing', () => {
     for (let i = 1; i < headingLevels.length; i++) {
       const currentLevel = headingLevels[i];
       const previousLevel = headingLevels[i - 1];
-      
+
       if (currentLevel !== undefined && previousLevel !== undefined) {
         // Current level should not be more than 1 level deeper than previous
         expect(currentLevel - previousLevel).toBeLessThanOrEqual(1);
@@ -299,22 +335,25 @@ test.describe('Enhanced Accessibility Testing', () => {
     }
   });
 
-  test('should have proper ARIA labels and roles @accessibility @aria', async ({ page }) => {
+  test('should have proper ARIA labels and roles @accessibility @aria', async ({
+    page,
+  }) => {
     // Check for elements that should have ARIA labels
     const buttonElements = await page.locator('button').all();
-    
+
     for (const button of buttonElements) {
       const textContent = await button.textContent();
       const ariaLabel = await button.getAttribute('aria-label');
       const ariaLabelledBy = await button.getAttribute('aria-labelledby');
-      
+
       // Button should have accessible name
-      const hasAccessibleName = 
+      const hasAccessibleName =
         (textContent && textContent.trim().length > 0) ||
         (ariaLabel && ariaLabel.length > 0) ||
         ariaLabelledBy;
-        
-      expect(hasAccessibleName, 
+
+      expect(
+        hasAccessibleName,
         'Button should have accessible name (text content, aria-label, or aria-labelledby)'
       ).toBe(true);
     }
@@ -333,27 +372,32 @@ test.describe('Enhanced Accessibility Testing', () => {
       const listItems = await list.locator('li').count();
       if (listItems > 0) {
         // Lists should contain only li elements as direct children
-        const directChildren = await list.evaluate(el => 
+        const directChildren = await list.evaluate(el =>
           Array.from(el.children).map(child => child.tagName.toLowerCase())
         );
-        
+
         const nonListItems = directChildren.filter(tag => tag !== 'li');
-        expect(nonListItems.length, 
+        expect(
+          nonListItems.length,
           'Lists should only contain li elements as direct children'
         ).toBe(0);
       }
     }
   });
 
-  test('should have adequate color contrast @accessibility @color-contrast', async ({ page }) => {
+  test('should have adequate color contrast @accessibility @color-contrast', async ({
+    page,
+  }) => {
     const results = await runAxeAccessibilityScan(page, {
       ...ACCESSIBILITY_CONFIG,
-      rules: { 'color-contrast': { enabled: true } }
+      rules: { 'color-contrast': { enabled: true } },
     });
 
     // Check specifically for color contrast violations
-    const contrastViolations = results.violations.filter(v => v.id === 'color-contrast');
-    
+    const contrastViolations = results.violations.filter(
+      v => v.id === 'color-contrast'
+    );
+
     if (contrastViolations.length > 0) {
       console.log('Color contrast violations:');
       contrastViolations.forEach(violation => {
@@ -366,7 +410,9 @@ test.describe('Enhanced Accessibility Testing', () => {
     expect(contrastViolations.length).toBe(0);
   });
 
-  test('should have proper form accessibility @accessibility @forms', async ({ page }) => {
+  test('should have proper form accessibility @accessibility @forms', async ({
+    page,
+  }) => {
     // Navigate to a page with forms (if available)
     const formPages = ['/contact', '/auth/signup', '/auth/login'];
     let hasForm = false;
@@ -375,7 +421,7 @@ test.describe('Enhanced Accessibility Testing', () => {
       try {
         await page.goto(formPage);
         await page.waitForLoadState('networkidle');
-        
+
         const formCount = await page.locator('form').count();
         if (formCount > 0) {
           hasForm = true;
@@ -394,7 +440,7 @@ test.describe('Enhanced Accessibility Testing', () => {
 
     // Test form accessibility
     const inputs = await page.locator('input, textarea, select').all();
-    
+
     for (const input of inputs) {
       const inputType = await input.getAttribute('type');
       const hasLabel = await input.evaluate(el => {
@@ -402,14 +448,15 @@ test.describe('Enhanced Accessibility Testing', () => {
         const ariaLabel = el.getAttribute('aria-label');
         const ariaLabelledBy = el.getAttribute('aria-labelledby');
         const placeholder = el.getAttribute('placeholder');
-        
+
         // Check for associated label
         const label = id ? document.querySelector(`label[for="${id}"]`) : null;
-        
+
         return !!(label || ariaLabel || ariaLabelledBy || placeholder);
       });
 
-      expect(hasLabel, 
+      expect(
+        hasLabel,
         `Input of type "${inputType}" should have an associated label or aria-label`
       ).toBe(true);
     }
@@ -417,43 +464,55 @@ test.describe('Enhanced Accessibility Testing', () => {
     // Check for form validation messages
     await page.locator('input[required]').first().focus();
     await page.keyboard.press('Tab'); // Move focus away to trigger validation
-    
+
     // Error messages should be announced to screen readers
-    const errorMessages = await page.locator('[role="alert"], .error-message').all();
+    const errorMessages = await page
+      .locator('[role="alert"], .error-message')
+      .all();
     for (const errorMsg of errorMessages) {
       if (await errorMsg.isVisible()) {
         const role = await errorMsg.getAttribute('role');
         const ariaLive = await errorMsg.getAttribute('aria-live');
-        
-        const isAccessible = role === 'alert' || ariaLive === 'polite' || ariaLive === 'assertive';
-        expect(isAccessible, 
+
+        const isAccessible =
+          role === 'alert' || ariaLive === 'polite' || ariaLive === 'assertive';
+        expect(
+          isAccessible,
           'Error messages should have role="alert" or aria-live attribute'
         ).toBe(true);
       }
     }
   });
 
-  test('should be accessible with screen reader simulation @accessibility @screen-reader', async ({ page }) => {
+  test('should be accessible with screen reader simulation @accessibility @screen-reader', async ({
+    page,
+  }) => {
     // Test basic screen reader navigation patterns
-    const landmarks = await page.locator('main, nav, header, footer, aside, [role="main"], [role="navigation"], [role="banner"], [role="contentinfo"], [role="complementary"]').all();
-    
+    const landmarks = await page
+      .locator(
+        'main, nav, header, footer, aside, [role="main"], [role="navigation"], [role="banner"], [role="contentinfo"], [role="complementary"]'
+      )
+      .all();
+
     expect(landmarks.length).toBeGreaterThan(0);
 
     // Test skip links
     await page.keyboard.press('Tab');
     const firstFocusedElement = await page.evaluate(() => {
       const el = document.activeElement;
-      return el ? {
-        tagName: el.tagName,
-        textContent: el.textContent,
-        href: el.getAttribute('href')
-      } : null;
+      return el
+        ? {
+            tagName: el.tagName,
+            textContent: el.textContent,
+            href: el.getAttribute('href'),
+          }
+        : null;
     });
 
     // Check if first focusable element is a skip link
     if (firstFocusedElement?.href?.includes('#')) {
       console.log('Skip link found:', firstFocusedElement.textContent);
-      
+
       // Test skip link functionality
       await page.keyboard.press('Enter');
       const targetElement = await page.evaluate(() => document.activeElement);
@@ -465,7 +524,7 @@ test.describe('Enhanced Accessibility Testing', () => {
     for (const img of images) {
       const alt = await img.getAttribute('alt');
       const role = await img.getAttribute('role');
-      
+
       // Decorative images should have empty alt or role="presentation"
       // Content images should have descriptive alt text
       if (role === 'presentation' || role === 'none') {
@@ -480,7 +539,9 @@ test.describe('Enhanced Accessibility Testing', () => {
     }
   });
 
-  test('should support reduced motion preferences @accessibility @motion', async ({ page }) => {
+  test('should support reduced motion preferences @accessibility @motion', async ({
+    page,
+  }) => {
     // Test with prefers-reduced-motion enabled
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.reload();
@@ -503,24 +564,32 @@ test.describe('Enhanced Accessibility Testing', () => {
     expect(hasAnimations).toBe(false);
 
     // Check for motion-reduce utility classes
-    const motionReduceElements = await page.locator('.motion-reduce\\:hidden').count();
+    const motionReduceElements = await page
+      .locator('.motion-reduce\\:hidden')
+      .count();
     // If elements use motion-reduce classes, they should be hidden
     if (motionReduceElements > 0) {
-      console.log(`Found ${motionReduceElements} elements with motion-reduce classes`);
+      console.log(
+        `Found ${motionReduceElements} elements with motion-reduce classes`
+      );
     }
   });
 
-  test('should have proper touch target sizes for mobile @accessibility @mobile', async ({ page }) => {
+  test('should have proper touch target sizes for mobile @accessibility @mobile', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    const touchTargets = await page.locator('button, a[href], [role="button"], [tabindex="0"]').all();
-    
+    const touchTargets = await page
+      .locator('button, a[href], [role="button"], [tabindex="0"]')
+      .all();
+
     for (const target of touchTargets.slice(0, 10)) {
       if (await target.isVisible()) {
         const box = await target.boundingBox();
-        
+
         if (box) {
           // WCAG 2.1 AA requires 44x44px minimum touch targets
           expect(box.width).toBeGreaterThanOrEqual(44);
@@ -530,36 +599,46 @@ test.describe('Enhanced Accessibility Testing', () => {
     }
   });
 
-  test('should validate accessibility across different pages @accessibility @comprehensive', async ({ page }) => {
+  test('should validate accessibility across different pages @accessibility @comprehensive', async ({
+    page,
+  }) => {
     const pagesToTest = ['/', '/about'];
     const allResults: AccessibilityResult[] = [];
 
     for (const pagePath of pagesToTest) {
       await page.goto(pagePath);
       await page.waitForLoadState('networkidle');
-      
+
       const results = await runAxeAccessibilityScan(page, ACCESSIBILITY_CONFIG);
       allResults.push(results);
-      
+
       console.log(`\nAccessibility results for ${pagePath}:`);
       console.log(`  Violations: ${results.summary.totalViolations}`);
       console.log(`  Critical: ${results.summary.criticalViolations}`);
       console.log(`  Serious: ${results.summary.seriousViolations}`);
-      
+
       // No critical violations on any page
       expect(results.summary.criticalViolations).toBe(0);
       expect(results.summary.seriousViolations).toBeLessThanOrEqual(1);
     }
 
     // Overall accessibility health check
-    const totalViolations = allResults.reduce((sum, result) => sum + result.summary.totalViolations, 0);
-    const totalPassed = allResults.reduce((sum, result) => sum + result.summary.passedRules, 0);
-    
+    const totalViolations = allResults.reduce(
+      (sum, result) => sum + result.summary.totalViolations,
+      0
+    );
+    const totalPassed = allResults.reduce(
+      (sum, result) => sum + result.summary.passedRules,
+      0
+    );
+
     console.log(`\nOverall accessibility summary:`);
     console.log(`  Total violations across all pages: ${totalViolations}`);
     console.log(`  Total passed rules: ${totalPassed}`);
-    console.log(`  Success rate: ${((totalPassed / (totalPassed + totalViolations)) * 100).toFixed(2)}%`);
-    
+    console.log(
+      `  Success rate: ${((totalPassed / (totalPassed + totalViolations)) * 100).toFixed(2)}%`
+    );
+
     // Should have more passed rules than violations
     expect(totalPassed).toBeGreaterThan(totalViolations);
   });

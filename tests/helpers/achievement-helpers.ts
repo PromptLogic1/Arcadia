@@ -49,7 +49,10 @@ export class AchievementTestHelper {
   private setupInterceptors() {
     // Track achievement unlocks
     this.page.on('response', async response => {
-      if (response.url().includes('/api/achievements/unlock') && response.ok()) {
+      if (
+        response.url().includes('/api/achievements/unlock') &&
+        response.ok()
+      ) {
         try {
           const data = await response.json();
           if (data.success && data.achievement) {
@@ -70,24 +73,27 @@ export class AchievementTestHelper {
     triggerAction: () => Promise<void>
   ): Promise<AchievementUnlockResult> {
     // Set up response listener
-    const unlockPromise = this.page.waitForResponse(
-      resp => resp.url().includes('/api/achievements/unlock') &&
-              resp.request().postDataJSON()?.achievement_id === achievementId,
-      { timeout: 10000 }
-    ).catch(() => null);
+    const unlockPromise = this.page
+      .waitForResponse(
+        resp =>
+          resp.url().includes('/api/achievements/unlock') &&
+          resp.request().postDataJSON()?.achievement_id === achievementId,
+        { timeout: 10000 }
+      )
+      .catch(() => null);
 
     // Execute the trigger action
     await triggerAction();
 
     // Wait for unlock response
     const response = await unlockPromise;
-    
+
     if (!response) {
       return { success: false, error: 'No unlock request detected' };
     }
 
     const data = await response.json();
-    
+
     // Get notification if displayed
     const notification = await this.getNotification();
 
@@ -95,25 +101,41 @@ export class AchievementTestHelper {
       success: data.success,
       achievement: data.achievement,
       notification: notification || undefined,
-      error: data.error
+      error: data.error,
     };
   }
 
   /**
    * Get displayed achievement notification
    */
-  async getNotification(timeout = 5000): Promise<AchievementNotification | null> {
+  async getNotification(
+    timeout = 5000
+  ): Promise<AchievementNotification | null> {
     try {
-      const notificationSelector = '[data-testid="achievement-notification"], [data-testid="achievement-unlocked"]';
+      const notificationSelector =
+        '[data-testid="achievement-notification"], [data-testid="achievement-unlocked"]';
       await this.page.waitForSelector(notificationSelector, { timeout });
-      
+
       const notification = this.page.locator(notificationSelector).first();
-      
-      const title = await notification.locator('[data-testid="achievement-title"], h3, h4').textContent();
-      const description = await notification.locator('[data-testid="achievement-description"], p').textContent().catch(() => null);
-      const pointsText = await notification.locator('[data-testid="achievement-points"], .points').textContent();
-      const icon = await notification.locator('[data-testid="achievement-icon"], .icon').textContent().catch(() => null);
-      const rarity = await notification.locator('[data-testid="achievement-rarity"], .rarity').textContent().catch(() => null);
+
+      const title = await notification
+        .locator('[data-testid="achievement-title"], h3, h4')
+        .textContent();
+      const description = await notification
+        .locator('[data-testid="achievement-description"], p')
+        .textContent()
+        .catch(() => null);
+      const pointsText = await notification
+        .locator('[data-testid="achievement-points"], .points')
+        .textContent();
+      const icon = await notification
+        .locator('[data-testid="achievement-icon"], .icon')
+        .textContent()
+        .catch(() => null);
+      const rarity = await notification
+        .locator('[data-testid="achievement-rarity"], .rarity')
+        .textContent()
+        .catch(() => null);
 
       // Extract points number from text like "100 points" or "+100"
       const points = parseInt(pointsText?.match(/\d+/)?.[0] || '0');
@@ -123,7 +145,7 @@ export class AchievementTestHelper {
         description: description || undefined,
         points,
         icon: icon || undefined,
-        rarity: rarity || undefined
+        rarity: rarity || undefined,
       };
     } catch {
       return null;
@@ -133,52 +155,66 @@ export class AchievementTestHelper {
   /**
    * Wait for achievement unlock
    */
-  async waitForUnlock(achievementId: string, timeout = 10000): Promise<boolean> {
+  async waitForUnlock(
+    achievementId: string,
+    timeout = 10000
+  ): Promise<boolean> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       if (this.unlockedAchievements.has(achievementId)) {
         return true;
       }
-      
+
       // Check if achievement is marked as unlocked in UI
-      const achievementCard = this.page.locator(`[data-testid="achievement-${achievementId}"]`);
-      if (await achievementCard.count() > 0) {
-        const isUnlocked = await achievementCard.getAttribute('data-unlocked') === 'true';
+      const achievementCard = this.page.locator(
+        `[data-testid="achievement-${achievementId}"]`
+      );
+      if ((await achievementCard.count()) > 0) {
+        const isUnlocked =
+          (await achievementCard.getAttribute('data-unlocked')) === 'true';
         if (isUnlocked) {
           this.unlockedAchievements.add(achievementId);
           return true;
         }
       }
-      
+
       await this.page.waitForTimeout(100);
     }
-    
+
     return false;
   }
 
   /**
    * Track achievement progress
    */
-  async trackProgress(achievementId: string): Promise<AchievementProgress | null> {
-    const achievementCard = this.page.locator(`[data-testid="achievement-${achievementId}"]`);
-    
-    if (await achievementCard.count() === 0) {
+  async trackProgress(
+    achievementId: string
+  ): Promise<AchievementProgress | null> {
+    const achievementCard = this.page.locator(
+      `[data-testid="achievement-${achievementId}"]`
+    );
+
+    if ((await achievementCard.count()) === 0) {
       return null;
     }
 
     // Try different selectors for progress
-    const progressBar = achievementCard.locator('[role="progressbar"], [data-testid="progress-bar"]');
-    const progressText = achievementCard.locator('[data-testid="progress-text"], .progress');
+    const progressBar = achievementCard.locator(
+      '[role="progressbar"], [data-testid="progress-bar"]'
+    );
+    const progressText = achievementCard.locator(
+      '[data-testid="progress-text"], .progress'
+    );
 
     let currentProgress = 0;
     let maxProgress = 1;
 
     // Get progress from progress bar
-    if (await progressBar.count() > 0) {
+    if ((await progressBar.count()) > 0) {
       const currentStr = await progressBar.getAttribute('aria-valuenow');
       const maxStr = await progressBar.getAttribute('aria-valuemax');
-      
+
       if (currentStr && maxStr) {
         currentProgress = parseInt(currentStr);
         maxProgress = parseInt(maxStr);
@@ -186,11 +222,11 @@ export class AchievementTestHelper {
     }
 
     // Get progress from text (e.g., "3/5" or "60%")
-    if (await progressText.count() > 0) {
+    if ((await progressText.count()) > 0) {
       const text = await progressText.textContent();
       const fractionMatch = text?.match(/(\d+)\s*\/\s*(\d+)/);
       const percentMatch = text?.match(/(\d+)%/);
-      
+
       if (fractionMatch && fractionMatch[1] && fractionMatch[2]) {
         currentProgress = parseInt(fractionMatch[1]);
         maxProgress = parseInt(fractionMatch[2]);
@@ -201,13 +237,14 @@ export class AchievementTestHelper {
       }
     }
 
-    const percentage = maxProgress > 0 ? (currentProgress / maxProgress) * 100 : 0;
+    const percentage =
+      maxProgress > 0 ? (currentProgress / maxProgress) * 100 : 0;
 
     const progress: AchievementProgress = {
       achievementId,
       currentProgress,
       maxProgress,
-      percentage
+      percentage,
     };
 
     this.progressTracking.set(achievementId, progress);
@@ -223,17 +260,17 @@ export class AchievementTestHelper {
     timeout = 5000
   ): Promise<boolean> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       const progress = await this.trackProgress(achievementId);
-      
+
       if (progress && progress.currentProgress >= expectedProgress) {
         return true;
       }
-      
+
       await this.page.waitForTimeout(100);
     }
-    
+
     return false;
   }
 
@@ -241,16 +278,27 @@ export class AchievementTestHelper {
    * Verify achievement display
    */
   async verifyAchievementDisplay(achievementId: string) {
-    const achievementCard = this.page.locator(`[data-testid="achievement-${achievementId}"]`);
-    
+    const achievementCard = this.page.locator(
+      `[data-testid="achievement-${achievementId}"]`
+    );
+
     return {
       isVisible: await achievementCard.isVisible(),
-      isUnlocked: await achievementCard.getAttribute('data-unlocked') === 'true',
-      title: await achievementCard.locator('[data-testid="achievement-title"]').textContent(),
-      description: await achievementCard.locator('[data-testid="achievement-description"]').textContent(),
-      points: await achievementCard.locator('[data-testid="achievement-points"]').textContent(),
-      icon: await achievementCard.locator('[data-testid="achievement-icon"]').textContent(),
-      rarity: await achievementCard.getAttribute('data-rarity')
+      isUnlocked:
+        (await achievementCard.getAttribute('data-unlocked')) === 'true',
+      title: await achievementCard
+        .locator('[data-testid="achievement-title"]')
+        .textContent(),
+      description: await achievementCard
+        .locator('[data-testid="achievement-description"]')
+        .textContent(),
+      points: await achievementCard
+        .locator('[data-testid="achievement-points"]')
+        .textContent(),
+      icon: await achievementCard
+        .locator('[data-testid="achievement-icon"]')
+        .textContent(),
+      rarity: await achievementCard.getAttribute('data-rarity'),
     };
   }
 
@@ -259,24 +307,42 @@ export class AchievementTestHelper {
    */
   async getStatistics() {
     const statsSection = this.page.locator('[data-testid="achievement-stats"]');
-    
-    if (await statsSection.count() === 0) {
+
+    if ((await statsSection.count()) === 0) {
       return null;
     }
 
     return {
-      totalPoints: await this.extractNumber(statsSection, '[data-testid="total-points"]'),
-      unlockedCount: await this.extractNumber(statsSection, '[data-testid="unlocked-count"]'),
-      totalCount: await this.extractNumber(statsSection, '[data-testid="total-count"]'),
-      completionRate: await this.extractNumber(statsSection, '[data-testid="completion-rate"]'),
-      recentUnlocks: await this.extractNumber(statsSection, '[data-testid="recent-unlocks"]')
+      totalPoints: await this.extractNumber(
+        statsSection,
+        '[data-testid="total-points"]'
+      ),
+      unlockedCount: await this.extractNumber(
+        statsSection,
+        '[data-testid="unlocked-count"]'
+      ),
+      totalCount: await this.extractNumber(
+        statsSection,
+        '[data-testid="total-count"]'
+      ),
+      completionRate: await this.extractNumber(
+        statsSection,
+        '[data-testid="completion-rate"]'
+      ),
+      recentUnlocks: await this.extractNumber(
+        statsSection,
+        '[data-testid="recent-unlocks"]'
+      ),
     };
   }
 
   /**
    * Extract number from element text
    */
-  private async extractNumber(parent: ReturnType<Page['locator']>, selector: string): Promise<number> {
+  private async extractNumber(
+    parent: ReturnType<Page['locator']>,
+    selector: string
+  ): Promise<number> {
     try {
       const element = parent.locator(selector);
       const text = await element.textContent();
@@ -296,7 +362,12 @@ export class AchievementTestHelper {
     expectedPoints: number;
     expectedNotification?: Partial<AchievementNotification>;
   }) {
-    const { achievementId, triggerAction, expectedPoints, expectedNotification } = config;
+    const {
+      achievementId,
+      triggerAction,
+      expectedPoints,
+      expectedNotification,
+    } = config;
 
     // Verify achievement is locked initially
     const initialDisplay = await this.verifyAchievementDisplay(achievementId);
@@ -306,7 +377,7 @@ export class AchievementTestHelper {
 
     // Unlock achievement
     const result = await this.unlockAchievement(achievementId, triggerAction);
-    
+
     if (!result.success) {
       throw new Error(`Failed to unlock achievement: ${result.error}`);
     }
@@ -315,12 +386,16 @@ export class AchievementTestHelper {
     if (result.notification) {
       if (expectedNotification?.title) {
         if (!result.notification.title.includes(expectedNotification.title)) {
-          throw new Error(`Expected notification title to include "${expectedNotification.title}"`);
+          throw new Error(
+            `Expected notification title to include "${expectedNotification.title}"`
+          );
         }
       }
-      
+
       if (expectedPoints && result.notification.points !== expectedPoints) {
-        throw new Error(`Expected ${expectedPoints} points but got ${result.notification.points}`);
+        throw new Error(
+          `Expected ${expectedPoints} points but got ${result.notification.points}`
+        );
       }
     }
 
@@ -330,13 +405,15 @@ export class AchievementTestHelper {
     // Verify achievement is now unlocked
     const finalDisplay = await this.verifyAchievementDisplay(achievementId);
     if (!finalDisplay.isUnlocked) {
-      throw new Error(`Achievement ${achievementId} not marked as unlocked in UI`);
+      throw new Error(
+        `Achievement ${achievementId} not marked as unlocked in UI`
+      );
     }
 
     return {
       ...result,
       initialDisplay,
-      finalDisplay
+      finalDisplay,
     };
   }
 
@@ -358,7 +435,7 @@ export class AchievementTestHelper {
     for (let index = 0; index < steps.length; index++) {
       const step = steps[index];
       if (!step) continue;
-      
+
       // Execute action
       await step.action();
 
@@ -369,7 +446,9 @@ export class AchievementTestHelper {
       );
 
       if (!updated) {
-        throw new Error(`Progress did not update to ${step.expectedProgress} at step ${index + 1}`);
+        throw new Error(
+          `Progress did not update to ${step.expectedProgress} at step ${index + 1}`
+        );
       }
 
       // Track progress
@@ -391,7 +470,7 @@ export class AchievementTestHelper {
 
     return {
       progressHistory,
-      finalProgress
+      finalProgress,
     };
   }
 
@@ -416,9 +495,9 @@ export class AchievementTestHelper {
  */
 export async function createAchievementContext(page: Page) {
   const helper = new AchievementTestHelper(page);
-  
+
   return {
     achievements: helper,
-    cleanup: () => helper.clearTracking()
+    cleanup: () => helper.clearTracking(),
   };
 }

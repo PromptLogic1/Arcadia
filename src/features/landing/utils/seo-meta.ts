@@ -50,10 +50,19 @@ const SEO_LIMITS = {
 
 // Required Open Graph tags
 const REQUIRED_OG_TAGS = ['og:title', 'og:type', 'og:url'] as const;
-const RECOMMENDED_OG_TAGS = ['og:description', 'og:image', 'og:site_name'] as const;
+const RECOMMENDED_OG_TAGS = [
+  'og:description',
+  'og:image',
+  'og:site_name',
+] as const;
 
 // Valid Twitter card types
-const VALID_TWITTER_CARDS = ['summary', 'summary_large_image', 'app', 'player'] as const;
+const VALID_TWITTER_CARDS = [
+  'summary',
+  'summary_large_image',
+  'app',
+  'player',
+] as const;
 
 /**
  * Generate meta tags from configuration
@@ -67,11 +76,16 @@ export function generateMetaTags(config: MetaTagConfig): GeneratedMetaTags {
 
   // Basic meta tags
   if (config.description) {
-    metaTags.description = truncateText(config.description, SEO_LIMITS.DESCRIPTION_MAX);
+    metaTags.description = truncateText(
+      config.description,
+      SEO_LIMITS.DESCRIPTION_MAX
+    );
   }
 
   if (config.keywords && config.keywords.length > 0) {
-    metaTags.keywords = config.keywords.slice(0, SEO_LIMITS.KEYWORDS_MAX).join(', ');
+    metaTags.keywords = config.keywords
+      .slice(0, SEO_LIMITS.KEYWORDS_MAX)
+      .join(', ');
   }
 
   if (config.author) {
@@ -90,7 +104,7 @@ export function generateMetaTags(config: MetaTagConfig): GeneratedMetaTags {
   }
   metaTags.openGraph['og:type'] = config.type || 'website';
   metaTags.openGraph['og:url'] = config.url;
-  
+
   if (config.image) {
     metaTags.openGraph['og:image'] = config.image;
   }
@@ -123,7 +137,9 @@ export function generateMetaTags(config: MetaTagConfig): GeneratedMetaTags {
   }
 
   // Twitter Card tags
-  metaTags.twitter['twitter:card'] = config.image ? 'summary_large_image' : 'summary';
+  metaTags.twitter['twitter:card'] = config.image
+    ? 'summary_large_image'
+    : 'summary';
   metaTags.twitter['twitter:title'] = metaTags.title;
   if (metaTags.description) {
     metaTags.twitter['twitter:description'] = metaTags.description;
@@ -157,7 +173,9 @@ export function generateMetaTags(config: MetaTagConfig): GeneratedMetaTags {
 /**
  * Validate meta tags for SEO best practices
  */
-export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): ValidationResult {
+export function validateMetaTags(
+  metaTags: Partial<GeneratedMetaTags>
+): ValidationResult {
   const errors: Array<{ field: string; message: string }> = [];
   const warnings: Array<{ field: string; message: string }> = [];
 
@@ -181,7 +199,10 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
 
   // Description validation
   if (!metaTags.description) {
-    warnings.push({ field: 'description', message: 'Description is recommended for SEO' });
+    warnings.push({
+      field: 'description',
+      message: 'Description is recommended for SEO',
+    });
   } else {
     if (metaTags.description.length > SEO_LIMITS.DESCRIPTION_MAX) {
       errors.push({
@@ -208,13 +229,18 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
     }
 
     // Check for keyword stuffing
-    const keywordCounts = keywords.reduce((acc, keyword) => {
-      const normalized = keyword.toLowerCase();
-      acc[normalized] = (acc[normalized] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const keywordCounts = keywords.reduce(
+      (acc, keyword) => {
+        const normalized = keyword.toLowerCase();
+        acc[normalized] = (acc[normalized] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
-    const duplicates = Object.entries(keywordCounts).filter(([_, count]) => count > 1);
+    const duplicates = Object.entries(keywordCounts).filter(
+      ([_, count]) => count > 1
+    );
     if (duplicates.length > 0) {
       warnings.push({
         field: 'keywords',
@@ -246,7 +272,10 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
     }
 
     // Validate URL format
-    if (metaTags.openGraph['og:url'] && !isValidUrl(metaTags.openGraph['og:url'])) {
+    if (
+      metaTags.openGraph['og:url'] &&
+      !isValidUrl(metaTags.openGraph['og:url'])
+    ) {
       errors.push({
         field: 'og:url',
         message: 'Invalid URL format',
@@ -254,7 +283,10 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
     }
 
     // Validate image URL
-    if (metaTags.openGraph['og:image'] && !isValidUrl(metaTags.openGraph['og:image'])) {
+    if (
+      metaTags.openGraph['og:image'] &&
+      !isValidUrl(metaTags.openGraph['og:image'])
+    ) {
       errors.push({
         field: 'og:image',
         message: 'Invalid image URL format',
@@ -265,7 +297,12 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
   // Twitter Card validation
   if (metaTags.twitter) {
     const cardType = metaTags.twitter['twitter:card'];
-    if (cardType && !VALID_TWITTER_CARDS.includes(cardType as typeof VALID_TWITTER_CARDS[number])) {
+    if (
+      cardType &&
+      !VALID_TWITTER_CARDS.includes(
+        cardType as (typeof VALID_TWITTER_CARDS)[number]
+      )
+    ) {
       errors.push({
         field: 'twitter:card',
         message: `Invalid Twitter card type. Must be one of: ${VALID_TWITTER_CARDS.join(', ')}`,
@@ -276,7 +313,8 @@ export function validateMetaTags(metaTags: Partial<GeneratedMetaTags>): Validati
     if (metaTags.openGraph && !metaTags.twitter['twitter:title']) {
       warnings.push({
         field: 'twitter:title',
-        message: 'Twitter title missing. Twitter may fall back to Open Graph tags',
+        message:
+          'Twitter title missing. Twitter may fall back to Open Graph tags',
       });
     }
   }
@@ -353,39 +391,54 @@ export function generateDynamicMetaTags(
   params?: Record<string, string>
 ): MetaTagConfig {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://arcadia.game';
-  
+
   // Default configuration
   const defaultConfig: MetaTagConfig = {
     title: 'Arcadia - The Ultimate Gaming Community Platform',
-    description: 'Join Arcadia to compete in gaming challenges, connect with players worldwide, and track your achievements across multiple games.',
-    keywords: ['gaming', 'community', 'platform', 'challenges', 'tournaments', 'achievements'],
+    description:
+      'Join Arcadia to compete in gaming challenges, connect with players worldwide, and track your achievements across multiple games.',
+    keywords: [
+      'gaming',
+      'community',
+      'platform',
+      'challenges',
+      'tournaments',
+      'achievements',
+    ],
     url: baseUrl,
     type: 'website',
     image: `${baseUrl}/images/og-image.png`,
   };
 
   // Route-specific configurations
-  const routeConfigs: Record<string, (params?: Record<string, string>) => Partial<MetaTagConfig>> = {
+  const routeConfigs: Record<
+    string,
+    (params?: Record<string, string>) => Partial<MetaTagConfig>
+  > = {
     '/': () => defaultConfig,
     '/about': () => ({
       title: 'About Arcadia - Gaming Community Platform',
-      description: 'Learn about Arcadia, our mission, and the team behind the gaming community platform.',
+      description:
+        'Learn about Arcadia, our mission, and the team behind the gaming community platform.',
       url: `${baseUrl}/about`,
     }),
     '/pricing': () => ({
       title: 'Pricing - Arcadia Gaming Platform',
-      description: 'Choose the perfect plan for your gaming journey. Free tier available with premium features for serious gamers.',
+      description:
+        'Choose the perfect plan for your gaming journey. Free tier available with premium features for serious gamers.',
       url: `${baseUrl}/pricing`,
     }),
     '/blog': () => ({
       title: 'Gaming Blog - Tips, News & Strategies | Arcadia',
-      description: 'Stay updated with the latest gaming news, tips, and strategies from the Arcadia community.',
+      description:
+        'Stay updated with the latest gaming news, tips, and strategies from the Arcadia community.',
       url: `${baseUrl}/blog`,
       type: 'website',
     }),
-    '/blog/[slug]': (params) => ({
+    '/blog/[slug]': params => ({
       title: params?.title || 'Blog Post - Arcadia',
-      description: params?.excerpt || 'Read the latest gaming insights on Arcadia blog.',
+      description:
+        params?.excerpt || 'Read the latest gaming insights on Arcadia blog.',
       url: `${baseUrl}/blog/${params?.slug}`,
       type: 'article',
       publishedTime: params?.publishedTime,

@@ -279,13 +279,13 @@ describe('Analytics Event Tracking', () => {
       });
 
       const events = Array(5).fill(largeEvent);
-      const batches = batchEvents(events, { 
+      const batches = batchEvents(events, {
         maxBatchSize: 10,
         maxBatchBytes: 2000,
       });
 
       expect(batches.length).toBeGreaterThan(1);
-      
+
       // Each batch should be under size limit
       batches.forEach(batch => {
         const size = JSON.stringify(batch).length;
@@ -335,22 +335,22 @@ describe('Analytics Event Tracking', () => {
       tracker.startFunnel(funnel, 'user-123');
 
       // Simulate user journey with userId
-      tracker.track('page_view', { 
-        category: 'navigation', 
+      tracker.track('page_view', {
+        category: 'navigation',
         action: 'view',
         userId: 'user-123',
       });
-      tracker.track('cta_click', { 
-        category: 'engagement', 
+      tracker.track('cta_click', {
+        category: 'engagement',
         action: 'click',
         userId: 'user-123',
       });
-      tracker.track('signup_page_view', { 
-        category: 'navigation', 
+      tracker.track('signup_page_view', {
+        category: 'navigation',
         action: 'view',
         userId: 'user-123',
       });
-      
+
       const progress = tracker.getFunnelProgress('signup-funnel', 'user-123');
       expect(progress?.completedSteps).toBe(3);
       expect(progress?.totalSteps).toBe(5);
@@ -377,7 +377,7 @@ describe('Analytics Event Tracking', () => {
       }
 
       const metrics = tracker.getEventMetrics();
-      
+
       expect(metrics.totalEvents).toBe(15);
       expect(metrics.uniqueEventTypes).toBe(2);
       expect(metrics.eventCounts['page_view']).toBe(10);
@@ -391,7 +391,8 @@ describe('Analytics Event Tracking', () => {
       tracker.trackScrollDepth(75);
       tracker.trackScrollDepth(100);
 
-      const scrollEvents = tracker.getEventsByCategory('engagement')
+      const scrollEvents = tracker
+        .getEventsByCategory('engagement')
         .filter(e => e.name === 'scroll_depth');
 
       expect(scrollEvents).toHaveLength(4);
@@ -404,18 +405,18 @@ describe('Analytics Event Tracking', () => {
       const startTime = 1000;
       const endTime = 1100;
       let callCount = 0;
-      
+
       jest.spyOn(Date, 'now').mockImplementation(() => {
         callCount++;
         return callCount === 1 ? startTime : endTime;
       });
-      
+
       // Simulate page session
       tracker.startPageTimer('/home');
       const timeSpent = tracker.endPageTimer('/home');
-      
+
       expect(timeSpent).toBe(100); // Exact difference
-      
+
       const events = tracker.getEventsByName('time_on_page');
       expect(events).toHaveLength(1);
       expect(events[0]?.value).toBe(100);
@@ -434,7 +435,7 @@ describe('Analytics Event Tracking', () => {
       tracker.track('duplicate_test', event);
 
       const events = tracker.getEvents();
-      
+
       // Should only have one event (deduplicated)
       const duplicateEvents = events.filter(e => e.name === 'duplicate_test');
       expect(duplicateEvents).toHaveLength(1);
@@ -453,7 +454,7 @@ describe('Analytics Event Tracking', () => {
 
       const events = limitedTracker.getEvents();
       expect(events).toHaveLength(5);
-      
+
       // Should keep the most recent events
       expect(events[0]?.name).toBe('event_5');
       expect(events[4]?.name).toBe('event_9');
@@ -468,7 +469,9 @@ describe('Analytics Event Tracking', () => {
 
       // Export as CSV
       const csv = tracker.exportEvents('csv');
-      expect(csv).toContain('id,name,category,action,label,value,timestamp,userId,sessionId');
+      expect(csv).toContain(
+        'id,name,category,action,label,value,timestamp,userId,sessionId'
+      );
       expect(csv).toContain('test_event,test,test');
 
       // Export as JSON
@@ -506,16 +509,16 @@ describe('Analytics Event Tracking', () => {
 
     it('should track last-touch attribution', () => {
       // First visit
-      tracker.track('page_view', { 
-        category: 'navigation', 
+      tracker.track('page_view', {
+        category: 'navigation',
         action: 'view',
         userId: 'test-user-123',
         utm: { source: 'google', medium: 'organic' },
       });
 
       // Later visit with different source
-      tracker.track('page_view', { 
-        category: 'navigation', 
+      tracker.track('page_view', {
+        category: 'navigation',
         action: 'view',
         userId: 'test-user-123',
         utm: { source: 'email', medium: 'newsletter' },
@@ -538,8 +541,8 @@ describe('Analytics Event Tracking', () => {
 
       sources.forEach((utm, index) => {
         tracker.setContext({ ...mockContext, utm });
-        tracker.track('page_view', { 
-          category: 'navigation', 
+        tracker.track('page_view', {
+          category: 'navigation',
           action: 'view',
           metadata: { session: index },
         });

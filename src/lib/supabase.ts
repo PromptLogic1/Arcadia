@@ -207,7 +207,7 @@ export const isAuthError = (error: unknown): boolean => {
   if (isSupabaseError(error) && error.code?.startsWith('auth') === true) {
     return true;
   }
-  
+
   // Check for auth error markers
   return (
     error &&

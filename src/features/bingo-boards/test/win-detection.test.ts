@@ -11,17 +11,21 @@ describe('WinDetectionService', () => {
 
   // Helper function to create a board state
   function createBoardState(markedPositions: number[], size = 25): BoardCell[] {
-    return Array.from({ length: size }, (_, index) => ({
-      text: `Cell ${index}`,
-      colors: null,
-      completed_by: null,
-      blocked: false,
-      is_marked: markedPositions.includes(index),
-      cell_id: `cell-${index}`,
-      version: 1,
-      last_updated: Date.now(),
-      last_modified_by: null,
-    } satisfies BoardCell));
+    return Array.from(
+      { length: size },
+      (_, index) =>
+        ({
+          text: `Cell ${index}`,
+          colors: null,
+          completed_by: null,
+          blocked: false,
+          is_marked: markedPositions.includes(index),
+          cell_id: `cell-${index}`,
+          version: 1,
+          last_updated: Date.now(),
+          last_modified_by: null,
+        }) satisfies BoardCell
+    );
   }
 
   describe('Horizontal Line Detection', () => {
@@ -196,8 +200,10 @@ describe('WinDetectionService', () => {
 
       expect(result.hasWin).toBe(true);
       expect(result.patterns).toHaveLength(14); // 5 rows + 5 columns + 2 diagonals + 1 four corners + 1 full house = 14
-      
-      const fullHousePattern = result.patterns.find(p => p.type === 'full-house');
+
+      const fullHousePattern = result.patterns.find(
+        p => p.type === 'full-house'
+      );
       expect(fullHousePattern).toMatchObject({
         type: 'full-house',
         name: 'Full House',
@@ -213,7 +219,9 @@ describe('WinDetectionService', () => {
 
       // Should detect other patterns but not full house
       expect(result.hasWin).toBe(true);
-      const fullHousePattern = result.patterns.find(p => p.type === 'full-house');
+      const fullHousePattern = result.patterns.find(
+        p => p.type === 'full-house'
+      );
       expect(fullHousePattern).toBeUndefined();
     });
   });
@@ -221,11 +229,20 @@ describe('WinDetectionService', () => {
   describe('Special Pattern Detection', () => {
     test('should detect Letter T pattern', () => {
       const tPattern = [
-        0, 1, 2, 3, 4, // Top row
-        7, 12, 17, 22  // Middle column (excluding cell 2 to avoid duplicate)
+        0,
+        1,
+        2,
+        3,
+        4, // Top row
+        7,
+        12,
+        17,
+        22, // Middle column (excluding cell 2 to avoid duplicate)
       ];
       const boardState = createBoardState(tPattern);
-      const result = winDetector.checkLetterT(boardState.map((_, i) => i).filter(i => boardState[i]?.is_marked));
+      const result = winDetector.checkLetterT(
+        boardState.map((_, i) => i).filter(i => boardState[i]?.is_marked)
+      );
 
       expect(result).toMatchObject({
         type: 'letter-t',
@@ -237,11 +254,20 @@ describe('WinDetectionService', () => {
 
     test('should detect Letter X pattern', () => {
       const xPattern = [
-        0, 6, 12, 18, 24, // Main diagonal
-        4, 8, 16, 20       // Anti-diagonal (12 is shared)
+        0,
+        6,
+        12,
+        18,
+        24, // Main diagonal
+        4,
+        8,
+        16,
+        20, // Anti-diagonal (12 is shared)
       ];
       const boardState = createBoardState(xPattern);
-      const result = winDetector.checkLetterX(boardState.map((_, i) => i).filter(i => boardState[i]?.is_marked));
+      const result = winDetector.checkLetterX(
+        boardState.map((_, i) => i).filter(i => boardState[i]?.is_marked)
+      );
 
       expect(result).toMatchObject({
         type: 'letter-x',
@@ -256,8 +282,16 @@ describe('WinDetectionService', () => {
     test('should detect multiple patterns simultaneously', () => {
       // Mark cells for both a row and a column
       const boardState = createBoardState([
-        0, 1, 2, 3, 4,  // Row 1
-        0, 5, 10, 15, 20 // Column 1 (0 is shared)
+        0,
+        1,
+        2,
+        3,
+        4, // Row 1
+        0,
+        5,
+        10,
+        15,
+        20, // Column 1 (0 is shared)
       ]);
       const result = winDetector.detectWin(boardState);
 
@@ -270,13 +304,22 @@ describe('WinDetectionService', () => {
         ])
       );
       expect(result.totalPoints).toBe(200);
-      expect(result.winningCells.sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 10, 15, 20]);
+      expect(result.winningCells.sort((a, b) => a - b)).toEqual([
+        0, 1, 2, 3, 4, 5, 10, 15, 20,
+      ]);
     });
 
     test('should detect crossed diagonals (X pattern)', () => {
       const boardState = createBoardState([
-        0, 6, 12, 18, 24, // Main diagonal
-        4, 8, 16, 20       // Anti-diagonal
+        0,
+        6,
+        12,
+        18,
+        24, // Main diagonal
+        4,
+        8,
+        16,
+        20, // Anti-diagonal
       ]);
       const result = winDetector.detectWin(boardState);
 
@@ -360,14 +403,23 @@ describe('WinDetectionService', () => {
     test('should deduplicate winning cells in overlapping patterns', () => {
       // Create a plus pattern (overlapping at center)
       const boardState = createBoardState([
-        10, 11, 12, 13, 14, // Middle row
-        2, 7, 17, 22        // Middle column (12 is shared)
+        10,
+        11,
+        12,
+        13,
+        14, // Middle row
+        2,
+        7,
+        17,
+        22, // Middle column (12 is shared)
       ]);
       const result = winDetector.detectWin(boardState);
 
       expect(result.hasWin).toBe(true);
       expect(result.patterns).toHaveLength(2);
-      expect(result.winningCells.sort((a, b) => a - b)).toEqual([2, 7, 10, 11, 12, 13, 14, 17, 22]);
+      expect(result.winningCells.sort((a, b) => a - b)).toEqual([
+        2, 7, 10, 11, 12, 13, 14, 17, 22,
+      ]);
       expect(result.winningCells).toHaveLength(9); // Not 10, because 12 is deduplicated
     });
   });
@@ -389,10 +441,26 @@ describe('WinDetectionService', () => {
     test('should handle complex pattern detection efficiently', () => {
       // Mark many cells to trigger multiple pattern checks
       const complexPattern = [
-        0, 1, 2, 3, 4,     // Row 1
-        0, 5, 10, 15, 20,  // Column 1
-        0, 6, 12, 18, 24,  // Main diagonal
-        4, 8, 12, 16, 20   // Anti-diagonal
+        0,
+        1,
+        2,
+        3,
+        4, // Row 1
+        0,
+        5,
+        10,
+        15,
+        20, // Column 1
+        0,
+        6,
+        12,
+        18,
+        24, // Main diagonal
+        4,
+        8,
+        12,
+        16,
+        20, // Anti-diagonal
       ];
       const boardState = createBoardState([...new Set(complexPattern)]);
 

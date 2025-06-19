@@ -7,18 +7,21 @@ import type { Database, Tables } from '../../types/database.types';
 
 // Window extension for test utilities (consistent across all tests)
 export interface TestWindow {
-  __zustand?: Record<string, {
-    getState: () => unknown;
-    setState: (state: unknown) => void;
-    subscribe: (listener: (state: unknown) => void) => () => void;
-  }>;
+  __zustand?: Record<
+    string,
+    {
+      getState: () => unknown;
+      setState: (state: unknown) => void;
+      subscribe: (listener: (state: unknown) => void) => () => void;
+    }
+  >;
   __analyticsEvents?: Array<{
     provider?: string;
     data?: unknown;
     args?: unknown[];
     timestamp?: number;
   }>;
-  
+
   // Analytics providers for testing
   gtag?: (...args: unknown[]) => void;
   ga?: (...args: unknown[]) => void;
@@ -31,7 +34,7 @@ export interface TestWindow {
   twq?: (...args: unknown[]) => void;
   hj?: (...args: unknown[]) => void;
   _linkedin_data_partner_ids?: unknown;
-  
+
   // Test flags
   xssTest?: boolean;
 }
@@ -106,14 +109,21 @@ export interface MockSupabaseClient {
   realtime?: SupabaseRealtimeClient;
   auth?: {
     getSession: () => Promise<{ data: { session: unknown } }>;
-    onAuthStateChange: (callback: (event: string, session: unknown) => void) => { unsubscribe: () => void };
+    onAuthStateChange: (
+      callback: (event: string, session: unknown) => void
+    ) => { unsubscribe: () => void };
   };
   from: (table: string) => unknown;
 }
 
 export interface SupabaseRealtimeChannel {
-  on: (event: string, callback: (payload: unknown) => void) => SupabaseRealtimeChannel;
-  subscribe: (callback?: (status: string, err?: Error) => void) => SupabaseRealtimeChannel;
+  on: (
+    event: string,
+    callback: (payload: unknown) => void
+  ) => SupabaseRealtimeChannel;
+  subscribe: (
+    callback?: (status: string, err?: Error) => void
+  ) => SupabaseRealtimeChannel;
   unsubscribe: () => SupabaseRealtimeChannel;
   send: (message: unknown) => void;
 }
@@ -139,7 +149,10 @@ export interface SentryScope {
 export type EventCallback = (event: unknown) => void;
 
 export interface RouteHandler {
-  (route: import('@playwright/test').Route, request: import('@playwright/test').Request): Promise<void> | void;
+  (
+    route: import('@playwright/test').Route,
+    request: import('@playwright/test').Request
+  ): Promise<void> | void;
 }
 
 export interface RealtimeEvent {
@@ -156,7 +169,9 @@ export interface RealtimeEvent {
 }
 
 export type StatusCallback = (status: string, error?: Error) => void;
-export type RouteCallback = (route: import('@playwright/test').Route) => Promise<void> | void;
+export type RouteCallback = (
+  route: import('@playwright/test').Route
+) => Promise<void> | void;
 export type AnyFunction = (...args: unknown[]) => unknown;
 export type AsyncFunction = (...args: unknown[]) => Promise<unknown>;
 

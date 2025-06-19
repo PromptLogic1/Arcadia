@@ -4,21 +4,62 @@ import type { Tables } from '../../types/database.types';
 /**
  * Type-safe WebSocket event definitions
  */
-export type GameWebSocketEvent = 
+export type GameWebSocketEvent =
   | { type: 'session_created'; session: Tables<'bingo_sessions'> }
-  | { type: 'session_updated'; sessionId: string; updates: Partial<Tables<'bingo_sessions'>> }
-  | { type: 'player_joined'; sessionId: string; player: Tables<'bingo_session_players'> }
+  | {
+      type: 'session_updated';
+      sessionId: string;
+      updates: Partial<Tables<'bingo_sessions'>>;
+    }
+  | {
+      type: 'player_joined';
+      sessionId: string;
+      player: Tables<'bingo_session_players'>;
+    }
   | { type: 'player_left'; sessionId: string; playerId: string }
-  | { type: 'player_ready'; sessionId: string; playerId: string; ready: boolean }
+  | {
+      type: 'player_ready';
+      sessionId: string;
+      playerId: string;
+      ready: boolean;
+    }
   | { type: 'game_started'; sessionId: string; startTime: string }
-  | { type: 'cell_marked'; sessionId: string; position: number; playerId: string; color: string }
-  | { type: 'cell_unmarked'; sessionId: string; position: number; playerId: string }
-  | { type: 'game_completed'; sessionId: string; winnerId: string; pattern: string; duration: number }
-  | { type: 'achievement_unlocked'; achievement: { id: string; title: string; points: number; icon: string } }
-  | { type: 'achievement_progress'; achievementId: string; progress: number; maxProgress: number }
+  | {
+      type: 'cell_marked';
+      sessionId: string;
+      position: number;
+      playerId: string;
+      color: string;
+    }
+  | {
+      type: 'cell_unmarked';
+      sessionId: string;
+      position: number;
+      playerId: string;
+    }
+  | {
+      type: 'game_completed';
+      sessionId: string;
+      winnerId: string;
+      pattern: string;
+      duration: number;
+    }
+  | {
+      type: 'achievement_unlocked';
+      achievement: { id: string; title: string; points: number; icon: string };
+    }
+  | {
+      type: 'achievement_progress';
+      achievementId: string;
+      progress: number;
+      maxProgress: number;
+    }
   | { type: 'speedrun_completed'; time: number; rank: number; boardId: string }
   | { type: 'timer_sync'; serverTime: number; clientTime: number }
-  | { type: 'connection_status'; status: 'connected' | 'disconnected' | 'reconnecting' }
+  | {
+      type: 'connection_status';
+      status: 'connected' | 'disconnected' | 'reconnecting';
+    }
   | { type: 'error'; code: string; message: string };
 
 /**
@@ -26,7 +67,10 @@ export type GameWebSocketEvent =
  */
 class MockWebSocketConnection {
   public readonly id: string;
-  private eventHandlers = new Map<string, Array<(data: GameWebSocketEvent) => void>>();
+  private eventHandlers = new Map<
+    string,
+    Array<(data: GameWebSocketEvent) => void>
+  >();
   private messageQueue: GameWebSocketEvent[] = [];
   private isConnected = true;
 
@@ -38,7 +82,8 @@ class MockWebSocketConnection {
   private setupHandlers() {
     this.ws.onMessage(message => {
       try {
-        const messageStr = typeof message === 'string' ? message : message.toString();
+        const messageStr =
+          typeof message === 'string' ? message : message.toString();
         const data = JSON.parse(messageStr);
         this.handleMessage(data);
       } catch (error) {
@@ -81,7 +126,10 @@ class MockWebSocketConnection {
     this.ws.send(JSON.stringify(event));
   }
 
-  async waitForEvent(eventType: string, timeout = 5000): Promise<GameWebSocketEvent> {
+  async waitForEvent(
+    eventType: string,
+    timeout = 5000
+  ): Promise<GameWebSocketEvent> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.off(eventType, handler);
@@ -106,7 +154,7 @@ class MockWebSocketConnection {
   reconnect() {
     this.isConnected = true;
     this.broadcast({ type: 'connection_status', status: 'connected' });
-    
+
     // Send queued messages
     while (this.messageQueue.length > 0) {
       const event = this.messageQueue.shift();
@@ -122,7 +170,10 @@ class MockWebSocketConnection {
  */
 export class WebSocketTestHelper {
   private connections = new Map<string, MockWebSocketConnection>();
-  private globalHandlers = new Map<string, Array<(data: GameWebSocketEvent) => void>>();
+  private globalHandlers = new Map<
+    string,
+    Array<(data: GameWebSocketEvent) => void>
+  >();
 
   /**
    * Set up WebSocket routes for testing
@@ -130,11 +181,12 @@ export class WebSocketTestHelper {
   async setupRoutes(page: Page) {
     await page.routeWebSocket('**/ws', ws => {
       const connection = new MockWebSocketConnection(ws);
-      
+
       // Extract session ID from connection or first message
       ws.onMessage(message => {
         try {
-          const messageStr = typeof message === 'string' ? message : message.toString();
+          const messageStr =
+            typeof message === 'string' ? message : message.toString();
           const data = JSON.parse(messageStr);
           if (data.type === 'subscribe' && data.sessionId) {
             this.connections.set(data.sessionId, connection);
@@ -156,13 +208,16 @@ export class WebSocketTestHelper {
   /**
    * Simulate a player joining a session
    */
-  simulatePlayerJoin(sessionId: string, player: Tables<'bingo_session_players'>) {
+  simulatePlayerJoin(
+    sessionId: string,
+    player: Tables<'bingo_session_players'>
+  ) {
     const event: GameWebSocketEvent = {
       type: 'player_joined',
       sessionId,
-      player
+      player,
     };
-    
+
     this.broadcast(sessionId, event);
     this.notifyGlobalHandlers(event);
   }
@@ -174,9 +229,9 @@ export class WebSocketTestHelper {
     const event: GameWebSocketEvent = {
       type: 'player_left',
       sessionId,
-      playerId
+      playerId,
     };
-    
+
     this.broadcast(sessionId, event);
     this.notifyGlobalHandlers(event);
   }
@@ -188,9 +243,9 @@ export class WebSocketTestHelper {
     const event: GameWebSocketEvent = {
       type: 'game_started',
       sessionId,
-      startTime: new Date().toISOString()
+      startTime: new Date().toISOString(),
     };
-    
+
     this.broadcast(sessionId, event);
     this.notifyGlobalHandlers(event);
   }
@@ -198,15 +253,20 @@ export class WebSocketTestHelper {
   /**
    * Simulate cell marking
    */
-  simulateCellMark(sessionId: string, position: number, playerId: string, color: string) {
+  simulateCellMark(
+    sessionId: string,
+    position: number,
+    playerId: string,
+    color: string
+  ) {
     const event: GameWebSocketEvent = {
       type: 'cell_marked',
       sessionId,
       position,
       playerId,
-      color
+      color,
     };
-    
+
     this.broadcast(sessionId, event);
     this.notifyGlobalHandlers(event);
   }
@@ -214,15 +274,20 @@ export class WebSocketTestHelper {
   /**
    * Simulate game completion
    */
-  simulateGameComplete(sessionId: string, winnerId: string, pattern: string, duration: number) {
+  simulateGameComplete(
+    sessionId: string,
+    winnerId: string,
+    pattern: string,
+    duration: number
+  ) {
     const event: GameWebSocketEvent = {
       type: 'game_completed',
       sessionId,
       winnerId,
       pattern,
-      duration
+      duration,
     };
-    
+
     this.broadcast(sessionId, event);
     this.notifyGlobalHandlers(event);
   }
@@ -230,12 +295,17 @@ export class WebSocketTestHelper {
   /**
    * Simulate achievement unlock
    */
-  simulateAchievementUnlock(achievement: { id: string; title: string; points: number; icon: string }) {
+  simulateAchievementUnlock(achievement: {
+    id: string;
+    title: string;
+    points: number;
+    icon: string;
+  }) {
     const event: GameWebSocketEvent = {
       type: 'achievement_unlocked',
-      achievement
+      achievement,
     };
-    
+
     // Broadcast to all connections
     this.connections.forEach(conn => conn.broadcast(event));
     this.notifyGlobalHandlers(event);
@@ -244,14 +314,18 @@ export class WebSocketTestHelper {
   /**
    * Simulate achievement progress update
    */
-  simulateAchievementProgress(achievementId: string, progress: number, maxProgress: number) {
+  simulateAchievementProgress(
+    achievementId: string,
+    progress: number,
+    maxProgress: number
+  ) {
     const event: GameWebSocketEvent = {
       type: 'achievement_progress',
       achievementId,
       progress,
-      maxProgress
+      maxProgress,
     };
-    
+
     // Broadcast to all connections
     this.connections.forEach(conn => conn.broadcast(event));
     this.notifyGlobalHandlers(event);
@@ -264,9 +338,9 @@ export class WebSocketTestHelper {
     const event: GameWebSocketEvent = {
       type: 'timer_sync',
       serverTime,
-      clientTime
+      clientTime,
     };
-    
+
     // Broadcast to all connections
     this.connections.forEach(conn => conn.broadcast(event));
   }
@@ -292,7 +366,10 @@ export class WebSocketTestHelper {
   /**
    * Register global event handler
    */
-  onGlobalEvent(eventType: string, handler: (data: GameWebSocketEvent) => void) {
+  onGlobalEvent(
+    eventType: string,
+    handler: (data: GameWebSocketEvent) => void
+  ) {
     if (!this.globalHandlers.has(eventType)) {
       this.globalHandlers.set(eventType, []);
     }
@@ -302,12 +379,16 @@ export class WebSocketTestHelper {
   /**
    * Wait for a specific event
    */
-  async waitForEvent(sessionId: string, eventType: string, timeout = 5000): Promise<GameWebSocketEvent> {
+  async waitForEvent(
+    sessionId: string,
+    eventType: string,
+    timeout = 5000
+  ): Promise<GameWebSocketEvent> {
     const conn = this.connections.get(sessionId);
     if (!conn) {
       throw new Error(`No connection found for session: ${sessionId}`);
     }
-    
+
     return conn.waitForEvent(eventType, timeout);
   }
 
@@ -320,10 +401,10 @@ export class WebSocketTestHelper {
 
     // Disconnect
     conn.disconnect();
-    
+
     // Wait
     await new Promise(resolve => setTimeout(resolve, duration));
-    
+
     // Reconnect
     conn.reconnect();
   }
@@ -344,9 +425,9 @@ export class WebSocketTestHelper {
 export async function createWebSocketContext(page: Page) {
   const helper = new WebSocketTestHelper();
   await helper.setupRoutes(page);
-  
+
   return {
     helper,
-    cleanup: () => helper.cleanup()
+    cleanup: () => helper.cleanup(),
   };
 }

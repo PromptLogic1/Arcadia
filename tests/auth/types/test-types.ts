@@ -137,11 +137,14 @@ export type AuthResponseUser = {
 
 // Window extension for test utilities
 export interface TestWindow {
-  __zustand?: Record<string, {
-    getState: () => unknown;
-    setState: (state: unknown) => void;
-    subscribe: (listener: (state: unknown) => void) => () => void;
-  }>;
+  __zustand?: Record<
+    string,
+    {
+      getState: () => unknown;
+      setState: (state: unknown) => void;
+      subscribe: (listener: (state: unknown) => void) => () => void;
+    }
+  >;
   xssTest?: boolean;
 }
 

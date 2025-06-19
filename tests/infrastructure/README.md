@@ -5,7 +5,9 @@ This directory contains comprehensive test suites for validating the resilience 
 ## Test Files Overview
 
 ### 1. `error-boundaries.spec.ts`
+
 **Component-Level Error Boundary Testing**
+
 - JavaScript error catching without app crashes
 - User-friendly error message display
 - Error recovery mechanisms
@@ -16,6 +18,7 @@ This directory contains comprehensive test suites for validating the resilience 
 - Performance impact assessment
 
 **Key Scenarios Tested:**
+
 - Component crashes don't break the whole app
 - Error boundaries provide "Try Again" functionality
 - Circuit breaker pattern for excessive errors
@@ -24,7 +27,9 @@ This directory contains comprehensive test suites for validating the resilience 
 - Memory leak prevention during error cycles
 
 ### 2. `network-failures.spec.ts`
+
 **Network Failure and Recovery Testing**
+
 - API timeout handling
 - Request retry mechanisms with exponential backoff
 - HTTP status code handling (400, 401, 403, 404, 429, 500, 503)
@@ -35,6 +40,7 @@ This directory contains comprehensive test suites for validating the resilience 
 - Network recovery detection
 
 **Key Scenarios Tested:**
+
 - API returns 500 errors → Shows user-friendly messages
 - Network goes offline → Queue actions for later sync
 - Slow connections → Display loading states
@@ -42,7 +48,9 @@ This directory contains comprehensive test suites for validating the resilience 
 - Recovery → Resume normal operation seamlessly
 
 ### 3. `404-pages.spec.ts`
+
 **404 and Error Page Functionality**
+
 - Proper 404 page display for non-existent routes
 - Navigation maintenance on error pages
 - Helpful 404 content and suggestions
@@ -54,6 +62,7 @@ This directory contains comprehensive test suites for validating the resilience 
 - SEO meta data handling
 
 **Key Scenarios Tested:**
+
 - Invalid routes show proper 404 pages
 - 404 pages maintain site navigation
 - Accessibility standards compliance
@@ -62,7 +71,9 @@ This directory contains comprehensive test suites for validating the resilience 
 - Performance doesn't degrade
 
 ### 4. `api-errors.spec.ts`
+
 **API Error Response Handling**
+
 - HTTP status code specific handling
 - Error message security (no sensitive data exposure)
 - Contextual error messages
@@ -73,6 +84,7 @@ This directory contains comprehensive test suites for validating the resilience 
 - Authentication/authorization error handling
 
 **Key Scenarios Tested:**
+
 - API errors don't expose technical details
 - Validation errors show specific field feedback
 - Authentication errors redirect to login
@@ -81,7 +93,9 @@ This directory contains comprehensive test suites for validating the resilience 
 - Error context preserved for debugging
 
 ### 5. `resilience.spec.ts`
+
 **Application Resilience and Recovery**
+
 - Component crash recovery without page reload
 - Circuit breaker pattern implementation
 - Retry mechanisms with exponential backoff
@@ -94,6 +108,7 @@ This directory contains comprehensive test suites for validating the resilience 
 - Rollback mechanisms
 
 **Key Scenarios Tested:**
+
 - Components recover from crashes locally
 - Circuit breakers prevent cascade failures
 - Memory usage doesn't grow with error cycles
@@ -105,6 +120,7 @@ This directory contains comprehensive test suites for validating the resilience 
 ## Test Utilities Used
 
 The tests leverage utilities from `../helpers/test-utils.ts`:
+
 - `mockApiResponse()` - Simulate API failures
 - `waitForNetworkIdle()` - Ensure network requests complete
 - `checkAccessibility()` - Basic accessibility validation
@@ -130,6 +146,7 @@ npx playwright test tests/infrastructure/ --debug
 ## Test Coverage Focus
 
 ### Critical Resilience Scenarios
+
 ✅ **Component crashes** - Isolated error boundaries prevent app crashes  
 ✅ **Network failures** - Graceful degradation with user feedback  
 ✅ **API errors** - User-friendly messages, no technical exposure  
@@ -137,21 +154,23 @@ npx playwright test tests/infrastructure/ --debug
 ✅ **404 handling** - Proper navigation and helpful content  
 ✅ **Memory management** - No leaks during error/recovery cycles  
 ✅ **Performance** - Errors don't degrade app performance  
-✅ **Data integrity** - Atomic operations with rollback protection  
+✅ **Data integrity** - Atomic operations with rollback protection
 
 ### User Experience Validation
+
 ✅ **Error messages** - Clear, actionable, non-technical  
 ✅ **Recovery options** - "Try Again", "Go Home", "Retry" buttons  
 ✅ **Loading states** - Progress indicators during slow operations  
 ✅ **Accessibility** - Error pages meet WCAG standards  
 ✅ **Navigation** - Consistent navigation even during errors  
-✅ **Context preservation** - User state maintained through failures  
+✅ **Context preservation** - User state maintained through failures
 
 ### Security Considerations
+
 ✅ **Error sanitization** - No sensitive data in error messages  
 ✅ **XSS prevention** - HTML/JS sanitization in error content  
 ✅ **API security** - Internal error details not exposed  
-✅ **Logging safety** - No passwords/tokens in console logs  
+✅ **Logging safety** - No passwords/tokens in console logs
 
 ## Expected Behavior
 
@@ -170,7 +189,7 @@ When these tests pass, the application demonstrates:
 These tests validate the existing error handling infrastructure:
 
 - **BaseErrorBoundary** - Component-level error catching
-- **RootErrorBoundary** - Application-level error handling  
+- **RootErrorBoundary** - Application-level error handling
 - **Sentry Integration** - Error reporting and tracking
 - **Redis/Upstash** - Distributed caching and rate limiting
 - **Service Layer Pattern** - Clean separation of concerns
@@ -186,6 +205,7 @@ For comprehensive infrastructure test documentation, including detailed chaos en
 **[📖 Core Infrastructure Tests Documentation](/test-documentation/06-core-infrastructure-tests.md)**
 
 This consolidated documentation includes:
+
 - Complete test scenarios and implementation details
 - Redis connection exhaustion test suite
 - Chaos engineering framework

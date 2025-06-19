@@ -65,6 +65,8 @@
 - ✅ bingo-cards.service.test.ts
 - ⚠️ bingo-generator.service.test.ts (logger mock issue)
 - ✅ bingo-boards.service.test.ts
+- ✅ bingo-board-edit.service.test.ts
+- ✅ bingo-board-edit.service.coverage.test.ts
 - ✅ board-collections.service.test.ts
 - ✅ card-library.service.test.ts
 - ✅ community-events.service.test.ts
@@ -81,8 +83,10 @@
 - ❌ redis-queue.service.test.ts (environment detection issues)
 - ✅ redis.service.test.ts
 - ✅ session-join.service.test.ts
+- ✅ session-join.service.coverage.test.ts
 - ✅ session-queue.service.test.ts
 - ✅ session-state.service.test.ts
+- ✅ session-state.service.coverage.test.ts
 - ✅ session.service.test.ts
 - ✅ sessions.service.test.ts
 - ✅ sessions.service.client.test.ts
@@ -93,13 +97,16 @@
 ## API Route Tests
 - ✅ health/route.test.ts
 - ✅ bingo/sessions/route.test.ts
-- ❌ submissions/route.test.ts (needs mock refinement)
-- ❌ discussions/route.test.ts (needs mock refinement)
-- ❌ revalidate/route.test.ts (needs mock refinement)
+- ✅ discussions/route.test.ts
+- ✅ submissions/route.test.ts
+- ✅ revalidate/route.test.ts
+- ✅ bingo/route.test.ts
+- ✅ bingo/sessions/[id]/start/route.test.ts
 
 ## Component Tests
 - ✅ auth/components/LoginForm.test.tsx
 - ✅ error-boundaries/BaseErrorBoundary.test.tsx
+- ✅ error-boundaries/RootErrorBoundary.test.tsx
 - ✅ bingo-boards/components/BoardCard.test.tsx
 - ✅ ui/NeonButton.test.tsx
 - ✅ ui/CyberpunkBackground.test.tsx

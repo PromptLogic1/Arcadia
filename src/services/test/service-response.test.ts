@@ -1,11 +1,16 @@
 /**
  * Service Response Pattern Tests
- * 
+ *
  * Tests for the core service layer pattern and error handling
  */
 
 import { createServiceSuccess, createServiceError } from '@/lib/service-types';
-import { createMockSupabaseClient, setupSupabaseMock, createSupabaseSuccessResponse, createSupabaseErrorResponse } from '@/lib/test/mocks/supabase.mock';
+import {
+  createMockSupabaseClient,
+  setupSupabaseMock,
+  createSupabaseSuccessResponse,
+  createSupabaseErrorResponse,
+} from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
@@ -32,7 +37,9 @@ class ExampleService {
 
       return createServiceSuccess(data);
     } catch (error) {
-      return createServiceError(error instanceof Error ? error : new Error('Unknown error'));
+      return createServiceError(
+        error instanceof Error ? error : new Error('Unknown error')
+      );
     }
   }
 
@@ -50,11 +57,16 @@ class ExampleService {
 
       return createServiceSuccess(data);
     } catch (error) {
-      return createServiceError(error instanceof Error ? error : new Error('Unknown error'));
+      return createServiceError(
+        error instanceof Error ? error : new Error('Unknown error')
+      );
     }
   }
 
-  async updateUser(userId: string, updates: Partial<{ username: string; bio: string }>) {
+  async updateUser(
+    userId: string,
+    updates: Partial<{ username: string; bio: string }>
+  ) {
     try {
       const { data, error } = await this.supabase
         .from('users')
@@ -69,7 +81,9 @@ class ExampleService {
 
       return createServiceSuccess(data);
     } catch (error) {
-      return createServiceError(error instanceof Error ? error : new Error('Unknown error'));
+      return createServiceError(
+        error instanceof Error ? error : new Error('Unknown error')
+      );
     }
   }
 
@@ -95,7 +109,9 @@ class ExampleService {
         },
       };
     } catch (error) {
-      return createServiceError(error instanceof Error ? error : new Error('Unknown error'));
+      return createServiceError(
+        error instanceof Error ? error : new Error('Unknown error')
+      );
     }
   }
 
@@ -112,7 +128,9 @@ class ExampleService {
 
       return createServiceSuccess(null);
     } catch (error) {
-      return createServiceError(error instanceof Error ? error : new Error('Unknown error'));
+      return createServiceError(
+        error instanceof Error ? error : new Error('Unknown error')
+      );
     }
   }
 }
@@ -131,11 +149,13 @@ describe('Service Response Pattern', () => {
     it('should return success response with user data', async () => {
       const mockUser = factories.user();
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
       });
 
       const result = await service.getUser(mockUser.id);
@@ -148,11 +168,15 @@ describe('Service Response Pattern', () => {
 
     it('should return error response on database error', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('User not found', 'PGRST116')),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('User not found', 'PGRST116')
+          ),
       });
 
       const result = await service.getUser('non-existent-id');
@@ -164,11 +188,13 @@ describe('Service Response Pattern', () => {
 
     it('should handle null data', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(null)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(null)),
       });
 
       const result = await service.getUser('some-id');
@@ -195,11 +221,13 @@ describe('Service Response Pattern', () => {
       const userData = { email: 'test@example.com', username: 'testuser' };
       const mockUser = factories.user(userData);
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
       });
 
       const result = await service.createUser(userData);
@@ -211,13 +239,15 @@ describe('Service Response Pattern', () => {
     it('should handle duplicate user error', async () => {
       const userData = { email: 'existing@example.com', username: 'existing' };
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Duplicate key value', '23505')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('Duplicate key value', '23505')
+          ),
       });
 
       const result = await service.createUser(userData);
@@ -233,12 +263,14 @@ describe('Service Response Pattern', () => {
       const updates = { username: 'newusername', bio: 'New bio' };
       const mockUser = factories.user({ id: userId, ...updates });
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockUser)),
       });
 
       const result = await service.updateUser(userId, updates);
@@ -249,17 +281,21 @@ describe('Service Response Pattern', () => {
 
     it('should handle non-existent user update', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('No rows found', 'PGRST116')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('No rows found', 'PGRST116')
+          ),
       });
 
-      const result = await service.updateUser('non-existent', { bio: 'New bio' });
+      const result = await service.updateUser('non-existent', {
+        bio: 'New bio',
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('No rows found');
@@ -268,13 +304,9 @@ describe('Service Response Pattern', () => {
 
   describe('listUsers', () => {
     it('should list users with pagination', async () => {
-      const mockUsers = [
-        factories.user(),
-        factories.user(),
-        factories.user(),
-      ];
+      const mockUsers = [factories.user(), factories.user(), factories.user()];
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         range: jest.fn().mockReturnThis(),
@@ -299,7 +331,7 @@ describe('Service Response Pattern', () => {
 
     it('should handle empty results', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         range: jest.fn().mockReturnThis(),
@@ -315,17 +347,21 @@ describe('Service Response Pattern', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
       expect('pagination' in result ? result.pagination?.total : 0).toBe(0);
-      expect('pagination' in result ? result.pagination?.hasMore : false).toBe(false);
+      expect('pagination' in result ? result.pagination?.hasMore : false).toBe(
+        false
+      );
     });
 
     it('should calculate pagination correctly', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         range: jest.fn().mockReturnThis(),
         order: jest.fn().mockResolvedValue({
-          data: Array(5).fill(null).map(() => factories.user()),
+          data: Array(5)
+            .fill(null)
+            .map(() => factories.user()),
           error: null,
           count: 45,
         }),
@@ -345,7 +381,7 @@ describe('Service Response Pattern', () => {
   describe('deleteUser', () => {
     it('should delete user successfully', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         delete: jest.fn().mockReturnThis(),
         eq: jest.fn().mockResolvedValue({ error: null }),
@@ -360,7 +396,7 @@ describe('Service Response Pattern', () => {
 
     it('should handle delete constraints', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         delete: jest.fn().mockReturnThis(),
         eq: jest.fn().mockResolvedValue({
@@ -379,7 +415,7 @@ describe('Service Response Pattern', () => {
     it('should handle network errors consistently', async () => {
       const networkError = new Error('Network request failed');
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockImplementation(() => {
         throw networkError;
       });
@@ -407,7 +443,7 @@ describe('Service Response Pattern', () => {
       };
 
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -427,7 +463,7 @@ describe('Service Response Pattern', () => {
   describe('Service Pattern Consistency', () => {
     it('should always return ServiceResponse shape', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       // Set up various scenarios
       const scenarios = [
         { data: factories.user(), error: null }, // Success
@@ -449,10 +485,10 @@ describe('Service Response Pattern', () => {
         expect(result).toHaveProperty('success');
         expect(result).toHaveProperty('data');
         expect(result).toHaveProperty('error');
-        
+
         // success should be boolean
         expect(typeof result.success).toBe('boolean');
-        
+
         // Either data or error should be non-null
         expect(result.data !== null || result.error !== null).toBe(true);
       }

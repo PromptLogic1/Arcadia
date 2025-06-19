@@ -1,6 +1,6 @@
 /**
  * Infrastructure Test Types
- * 
+ *
  * Type definitions for infrastructure resilience and Redis testing.
  */
 
@@ -77,35 +77,35 @@ export interface TestWindow extends Window {
   [key: string]: unknown;
   // Redis metrics
   redisMetrics?: RedisMetrics;
-  
+
   // Circuit breaker
   circuitBreaker?: TestCircuitBreaker;
-  
+
   // Distributed lock
   distributedLock?: DistributedLock;
-  
+
   // Cache metrics
   cacheMetrics?: CacheMetrics;
-  
+
   // Cache operations
   cache?: Map<string, unknown>;
   cacheGet?: (key: string) => Promise<unknown>;
   cacheGetWithMetrics?: (key: string) => Promise<unknown>;
   cacheSetWithMetrics?: (key: string, value: unknown) => Promise<void>;
-  
+
   // Cache with fallback
   cacheWithFallback?: CacheWithFallback;
-  
+
   // Lock operations
   acquireLock?: (key: string) => Promise<boolean>;
-  
+
   // Computation operations
   computeExpensiveData?: () => Promise<ComputationResult>;
   getOrCompute?: (key: string) => Promise<ComputationResult>;
-  
+
   // Mock fetch override
   mockFetch?: MockFetch;
-  
+
   // Event listener tracking for performance tests
   __listenerTracker?: {
     listenerCount: number;
@@ -114,7 +114,7 @@ export interface TestWindow extends Window {
     getListenerCount: () => number;
     cleanup: () => void;
   };
-  
+
   // Performance monitoring
   __performanceMonitor?: {
     errors: Array<{
@@ -129,7 +129,7 @@ export interface TestWindow extends Window {
       successful: boolean;
     }>;
   };
-  
+
   // Garbage collection function (if available)
   gc?: () => void;
 }

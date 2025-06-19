@@ -13,7 +13,9 @@ jest.mock('@/lib/cache-metrics');
 const mockCacheService = cacheService as jest.Mocked<typeof cacheService>;
 const mockLog = log as jest.Mocked<typeof log>;
 const mockCacheMetrics = cacheMetrics as jest.Mocked<typeof cacheMetrics>;
-const mockMeasureLatency = measureLatency as jest.MockedFunction<typeof measureLatency>;
+const mockMeasureLatency = measureLatency as jest.MockedFunction<
+  typeof measureLatency
+>;
 
 describe('RedisCache', () => {
   const mockLatencyFn = jest.fn(() => 100);
@@ -30,7 +32,11 @@ describe('RedisCache', () => {
       const result = await cache.set('test-key', { data: 'test' }, 300);
 
       expect(result.success).toBe(true);
-      expect(mockCacheService.set).toHaveBeenCalledWith('test-key', { data: 'test' }, 300);
+      expect(mockCacheService.set).toHaveBeenCalledWith(
+        'test-key',
+        { data: 'test' },
+        300
+      );
       expect(mockCacheMetrics.recordSet).toHaveBeenCalledWith(100);
     });
 
@@ -39,7 +45,11 @@ describe('RedisCache', () => {
 
       await cache.set('test-key', { data: 'test' });
 
-      expect(mockCacheService.set).toHaveBeenCalledWith('test-key', { data: 'test' }, 300);
+      expect(mockCacheService.set).toHaveBeenCalledWith(
+        'test-key',
+        { data: 'test' },
+        300
+      );
     });
 
     it('handles cache service errors', async () => {
@@ -76,18 +86,25 @@ describe('RedisCache', () => {
 
     it('retrieves data from cache with schema validation', async () => {
       const testData = { data: 'test' };
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceSuccess(testData));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceSuccess(testData)
+      );
 
       const result = await cache.get('test-key', testSchema);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(testData);
-      expect(mockCacheService.getWithSchema).toHaveBeenCalledWith('test-key', testSchema);
+      expect(mockCacheService.getWithSchema).toHaveBeenCalledWith(
+        'test-key',
+        testSchema
+      );
       expect(mockCacheMetrics.recordHit).toHaveBeenCalledWith(100);
     });
 
     it('returns null when data not found', async () => {
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceSuccess(null));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceSuccess(null)
+      );
 
       const result = await cache.get('test-key', testSchema);
 
@@ -108,7 +125,9 @@ describe('RedisCache', () => {
     });
 
     it('handles cache service errors', async () => {
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceError('Redis error'));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceError('Redis error')
+      );
 
       const result = await cache.get('test-key', testSchema);
 
@@ -117,7 +136,9 @@ describe('RedisCache', () => {
     });
 
     it('handles exceptions', async () => {
-      mockCacheService.getWithSchema.mockRejectedValue(new Error('Network error'));
+      mockCacheService.getWithSchema.mockRejectedValue(
+        new Error('Network error')
+      );
 
       const result = await cache.get('test-key', testSchema);
 
@@ -152,7 +173,9 @@ describe('RedisCache', () => {
 
     it('returns cached data when available', async () => {
       const cachedData = { data: 'cached' };
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceSuccess(cachedData));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceSuccess(cachedData)
+      );
 
       const result = await cache.getWithFallback(
         'test-key',
@@ -167,7 +190,9 @@ describe('RedisCache', () => {
     });
 
     it('calls fallback on cache miss', async () => {
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceSuccess(null));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceSuccess(null)
+      );
       mockCacheService.set.mockResolvedValue(createServiceSuccess(undefined));
 
       const result = await cache.getWithFallback(
@@ -180,7 +205,7 @@ describe('RedisCache', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(fallbackData);
       expect(mockFallback).toHaveBeenCalled();
-      
+
       // Verify it tries to cache the fresh data
       await new Promise(resolve => setTimeout(resolve, 0)); // Wait for async cache
       expect(mockCacheService.set).toHaveBeenCalledWith(
@@ -191,7 +216,9 @@ describe('RedisCache', () => {
     });
 
     it('handles fallback errors', async () => {
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceSuccess(null));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceSuccess(null)
+      );
       mockFallback.mockRejectedValue(new Error('Fetch failed'));
 
       const result = await cache.getWithFallback(
@@ -207,7 +234,9 @@ describe('RedisCache', () => {
     });
 
     it('continues even if caching fresh data fails', async () => {
-      mockCacheService.getWithSchema.mockResolvedValue(createServiceSuccess(null));
+      mockCacheService.getWithSchema.mockResolvedValue(
+        createServiceSuccess(null)
+      );
       mockCacheService.set.mockRejectedValue(new Error('Cache write failed'));
 
       const result = await cache.getWithFallback(
@@ -219,7 +248,7 @@ describe('RedisCache', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(fallbackData);
-      
+
       // Wait for async cache attempt
       await new Promise(resolve => setTimeout(resolve, 0));
       expect(mockLog.warn).toHaveBeenCalledWith(
@@ -238,13 +267,19 @@ describe('RedisCache', () => {
       const result = await cache.getOrSet('test-key', fetcher, 300);
 
       expect(result).toBe(expectedResult);
-      expect(mockCacheService.getOrSet).toHaveBeenCalledWith('test-key', fetcher, 300);
+      expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
+        'test-key',
+        fetcher,
+        300
+      );
     });
   });
 
   describe('invalidate', () => {
     it('invalidates single key', async () => {
-      mockCacheService.invalidate.mockResolvedValue(createServiceSuccess(undefined));
+      mockCacheService.invalidate.mockResolvedValue(
+        createServiceSuccess(undefined)
+      );
 
       const result = await cache.invalidate('test-key');
 
@@ -253,7 +288,9 @@ describe('RedisCache', () => {
     });
 
     it('invalidates pattern when key contains wildcard', async () => {
-      mockCacheService.invalidatePattern.mockResolvedValue(createServiceSuccess(undefined));
+      mockCacheService.invalidatePattern.mockResolvedValue(
+        createServiceSuccess(undefined)
+      );
 
       const result = await cache.invalidate('test-*');
 
@@ -274,7 +311,9 @@ describe('RedisCache', () => {
 
   describe('clear', () => {
     it('invalidates all cache entries', async () => {
-      mockCacheService.invalidatePattern.mockResolvedValue(createServiceSuccess(undefined));
+      mockCacheService.invalidatePattern.mockResolvedValue(
+        createServiceSuccess(undefined)
+      );
 
       const result = await cache.clear();
 
@@ -322,14 +361,22 @@ describe('RedisCache', () => {
 
   describe('CACHE_KEYS', () => {
     it('generates correct cache keys', () => {
-      mockCacheService.createKey.mockImplementation((prefix, ...parts) => 
-        `@arcadia/cache:${[prefix, ...parts].join(':')}`
+      mockCacheService.createKey.mockImplementation(
+        (prefix, ...parts) => `@arcadia/cache:${[prefix, ...parts].join(':')}`
       );
 
-      expect(CACHE_KEYS.USER_PROFILE('123')).toBe('@arcadia/cache:user-profile:123');
-      expect(CACHE_KEYS.BOARD_DATA('board-456')).toBe('@arcadia/cache:bingo-board:board-456');
-      expect(CACHE_KEYS.SESSION_DATA('session-789')).toBe('@arcadia/cache:session:session-789');
-      expect(CACHE_KEYS.USER_BOARDS('user-123', 'active')).toBe('@arcadia/cache:user-boards:user-123:active');
+      expect(CACHE_KEYS.USER_PROFILE('123')).toBe(
+        '@arcadia/cache:user-profile:123'
+      );
+      expect(CACHE_KEYS.BOARD_DATA('board-456')).toBe(
+        '@arcadia/cache:bingo-board:board-456'
+      );
+      expect(CACHE_KEYS.SESSION_DATA('session-789')).toBe(
+        '@arcadia/cache:session:session-789'
+      );
+      expect(CACHE_KEYS.USER_BOARDS('user-123', 'active')).toBe(
+        '@arcadia/cache:user-boards:user-123:active'
+      );
     });
   });
 

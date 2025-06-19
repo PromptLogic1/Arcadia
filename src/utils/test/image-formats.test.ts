@@ -28,7 +28,7 @@ class MockImage {
       } else {
         this.height = 0; // Failure case
       }
-      
+
       if (this.onload) {
         this.onload();
       }
@@ -51,13 +51,13 @@ const mockCreateElement = jest.fn();
 beforeAll(() => {
   // Mock Image constructor
   global.Image = ImageConstructorSpy as any;
-  
+
   // Mock document methods
   Object.defineProperty(document, 'head', {
     value: { appendChild: mockAppendChild },
     writable: true,
   });
-  
+
   Object.defineProperty(document, 'createElement', {
     value: mockCreateElement,
     writable: true,
@@ -106,7 +106,8 @@ describe('Image Format Detection', () => {
 describe('Image Format Optimization', () => {
   describe('getBestImageFormat', () => {
     test('returns original URL for data URLs unchanged', async () => {
-      const dataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+      const dataUrl =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       const result = await getBestImageFormat(dataUrl);
       expect(result).toBe(dataUrl);
     });
@@ -144,11 +145,11 @@ describe('Image Format Optimization', () => {
               }
               if (img.onload) img.onload();
             }, 0);
-          }
+          },
         });
         return img;
       });
-      
+
       global.Image = MockImageNoAVIF as any;
 
       const originalUrl = '/images/photo.png';
@@ -198,11 +199,11 @@ describe('Image Format Optimization', () => {
               }
               if (img.onload) img.onload();
             }, 0);
-          }
+          },
         });
         return img;
       });
-      
+
       global.Image = MockImageWebPOnly as any;
 
       const webpUrl = '/images/photo.webp';
@@ -218,9 +219,9 @@ describe('Image Format Optimization', () => {
     test('generates AVIF srcSet when AVIF is supported', async () => {
       const basePath = '/images/hero';
       const sizes = [640, 1280, 1920];
-      
+
       const result = await generateSrcSet(basePath, sizes);
-      
+
       expect(result).toBe(
         '/images/hero-640w.avif 640w, /images/hero-1280w.avif 1280w, /images/hero-1920w.avif 1920w'
       );
@@ -241,18 +242,18 @@ describe('Image Format Optimization', () => {
               }
               if (img.onload) img.onload();
             }, 0);
-          }
+          },
         });
         return img;
       });
-      
+
       global.Image = MockImageWebPOnly as any;
 
       const basePath = '/images/hero';
       const sizes = [640, 1280];
-      
+
       const result = await generateSrcSet(basePath, sizes);
-      
+
       expect(result).toBe(
         '/images/hero-640w.webp 640w, /images/hero-1280w.webp 1280w'
       );
@@ -272,18 +273,18 @@ describe('Image Format Optimization', () => {
               img.height = 0; // No format support
               if (img.onload) img.onload();
             }, 0);
-          }
+          },
         });
         return img;
       });
-      
+
       global.Image = MockImageNoSupport as any;
 
       const basePath = '/images/hero';
       const sizes = [640, 1280];
-      
+
       const result = await generateSrcSet(basePath, sizes);
-      
+
       expect(result).toBe(
         '/images/hero-640w.jpg 640w, /images/hero-1280w.jpg 1280w'
       );
@@ -294,9 +295,9 @@ describe('Image Format Optimization', () => {
 
     test('uses default sizes when no sizes provided', async () => {
       const basePath = '/images/hero';
-      
+
       const result = await generateSrcSet(basePath);
-      
+
       expect(result).toContain('640w');
       expect(result).toContain('750w');
       expect(result).toContain('3840w');
@@ -323,9 +324,9 @@ describe('Image Preloading', () => {
 
     test('creates preload link with optimized image format', async () => {
       const src = '/images/hero.jpg';
-      
+
       await preloadImage(src);
-      
+
       expect(mockCreateElement).toHaveBeenCalledWith('link');
       expect(mockAppendChild).toHaveBeenCalled();
     });
@@ -337,13 +338,13 @@ describe('Image Preloading', () => {
         href: '',
         fetchPriority: '',
       };
-      
+
       mockCreateElement.mockReturnValue(mockLink);
-      
+
       const src = '/images/hero.jpg';
-      
+
       await preloadImage(src, 'high');
-      
+
       expect(mockLink.fetchPriority).toBe('high');
       expect(mockLink.rel).toBe('preload');
       expect(mockLink.as).toBe('image');
@@ -356,13 +357,13 @@ describe('Image Preloading', () => {
         href: '',
         fetchPriority: '',
       };
-      
+
       mockCreateElement.mockReturnValue(mockLink);
-      
+
       const src = '/images/hero.jpg';
-      
+
       await preloadImage(src);
-      
+
       expect(mockLink.fetchPriority).toBe('low');
     });
 
@@ -373,13 +374,13 @@ describe('Image Preloading', () => {
         href: '',
         fetchPriority: '',
       };
-      
+
       mockCreateElement.mockReturnValue(mockLink);
-      
+
       const src = '/images/hero.jpg';
-      
+
       await preloadImage(src);
-      
+
       expect(mockLink.href).toBe('/images/hero.avif');
     });
   });
@@ -406,9 +407,9 @@ describe('Picture Element Creation', () => {
     test('creates picture element with fallback img', () => {
       const src = '/images/hero.jpg';
       const alt = 'Hero image';
-      
+
       const result = createPictureElement(src, alt);
-      
+
       expect(mockCreateElement).toHaveBeenCalledWith('picture');
       expect(mockCreateElement).toHaveBeenCalledWith('img');
       expect(result.appendChild).toHaveBeenCalled();
@@ -428,21 +429,21 @@ describe('Picture Element Creation', () => {
         alt: '',
         className: '',
       };
-      
+
       mockCreateElement
         .mockReturnValueOnce(mockPicture)
         .mockReturnValueOnce(mockAvifSource)
         .mockReturnValueOnce(mockImg);
-      
+
       const src = '/images/hero.jpg';
       const alt = 'Hero image';
       const options = {
         avifSrc: '/images/hero.avif',
         sizes: '(max-width: 768px) 100vw, 50vw',
       };
-      
+
       createPictureElement(src, alt, options);
-      
+
       expect(mockCreateElement).toHaveBeenCalledWith('source');
       expect(mockAvifSource.srcset).toBe('/images/hero.avif');
       expect(mockAvifSource.type).toBe('image/avif');
@@ -464,20 +465,20 @@ describe('Picture Element Creation', () => {
         alt: '',
         className: '',
       };
-      
+
       mockCreateElement
         .mockReturnValueOnce(mockPicture)
         .mockReturnValueOnce(mockWebpSource)
         .mockReturnValueOnce(mockImg);
-      
+
       const src = '/images/hero.jpg';
       const alt = 'Hero image';
       const options = {
         webpSrc: '/images/hero.webp',
       };
-      
+
       createPictureElement(src, alt, options);
-      
+
       expect(mockWebpSource.srcset).toBe('/images/hero.webp');
       expect(mockWebpSource.type).toBe('image/webp');
       expect(mockPicture.appendChild).toHaveBeenCalledWith(mockWebpSource);
@@ -492,19 +493,19 @@ describe('Picture Element Creation', () => {
         alt: '',
         className: '',
       };
-      
+
       mockCreateElement
         .mockReturnValueOnce(mockPicture)
         .mockReturnValueOnce(mockImg);
-      
+
       const src = '/images/hero.jpg';
       const alt = 'Hero image';
       const options = {
         className: 'responsive-image',
       };
-      
+
       createPictureElement(src, alt, options);
-      
+
       expect(mockImg.src).toBe(src);
       expect(mockImg.alt).toBe(alt);
       expect(mockImg.className).toBe('responsive-image');
@@ -517,13 +518,13 @@ describe('Picture Element Creation', () => {
       const mockAvifSource = { srcset: '', type: '', sizes: '' };
       const mockWebpSource = { srcset: '', type: '', sizes: '' };
       const mockImg = { src: '', alt: '', className: '' };
-      
+
       mockCreateElement
         .mockReturnValueOnce(mockPicture)
         .mockReturnValueOnce(mockAvifSource)
         .mockReturnValueOnce(mockWebpSource)
         .mockReturnValueOnce(mockImg);
-      
+
       const src = '/images/hero.jpg';
       const alt = 'Hero image';
       const options = {
@@ -532,9 +533,9 @@ describe('Picture Element Creation', () => {
         className: 'hero-image',
         sizes: '100vw',
       };
-      
+
       createPictureElement(src, alt, options);
-      
+
       expect(mockPicture.appendChild).toHaveBeenCalledTimes(3); // AVIF, WebP, img
       expect(mockAvifSource.sizes).toBe('100vw');
       expect(mockWebpSource.sizes).toBe('100vw');

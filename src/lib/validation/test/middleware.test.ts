@@ -65,7 +65,10 @@ describe('Validation Middleware', () => {
         expect(errorResponse._init.status).toBe(400);
         expect(errorResponse._data.error).toBe('Validation failed');
         expect(errorResponse._data.details).toEqual([
-          { path: 'name', message: 'String must contain at least 3 character(s)' },
+          {
+            path: 'name',
+            message: 'String must contain at least 3 character(s)',
+          },
           { path: 'age', message: 'Number must be greater than 0' },
         ]);
       }

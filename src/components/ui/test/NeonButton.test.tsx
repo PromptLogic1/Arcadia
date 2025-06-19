@@ -6,13 +6,15 @@ describe('NeonButton', () => {
   describe('rendering', () => {
     test('should render children correctly', () => {
       render(<NeonButton>Test Button</NeonButton>);
-      
-      expect(screen.getByRole('button', { name: 'Test Button' })).toBeInTheDocument();
+
+      expect(
+        screen.getByRole('button', { name: 'Test Button' })
+      ).toBeInTheDocument();
     });
 
     test('should render with custom className', () => {
       render(<NeonButton className="custom-class">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('custom-class');
     });
@@ -20,13 +22,13 @@ describe('NeonButton', () => {
     test('should forward ref correctly', () => {
       const ref = React.createRef<HTMLButtonElement>();
       render(<NeonButton ref={ref}>Test</NeonButton>);
-      
+
       expect(ref.current).toBeInstanceOf(HTMLButtonElement);
     });
 
     test('should have relative z-10 span for children', () => {
       const { container } = render(<NeonButton>Test Content</NeonButton>);
-      
+
       const span = container.querySelector('span.relative.z-10');
       expect(span).toBeInTheDocument();
       expect(span).toHaveTextContent('Test Content');
@@ -36,28 +38,28 @@ describe('NeonButton', () => {
   describe('intensity variants', () => {
     test('should apply default intensity classes', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('hover:scale-[1.02]', 'active:scale-[0.98]');
     });
 
     test('should apply none intensity variant', () => {
       render(<NeonButton intensity="none">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).not.toHaveClass('hover:scale-[1.02]');
     });
 
     test('should apply subtle intensity variant', () => {
       render(<NeonButton intensity="subtle">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('hover:scale-[1.01]', 'active:scale-[0.99]');
     });
 
     test('should apply strong intensity variant', () => {
       render(<NeonButton intensity="strong">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('hover:scale-[1.03]', 'active:scale-[0.97]');
     });
@@ -66,7 +68,7 @@ describe('NeonButton', () => {
   describe('glow variants', () => {
     test('should apply default rainbow glow classes', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('before:from-cyan-500/50');
       expect(button).toHaveClass('before:via-fuchsia-500/50');
@@ -75,7 +77,7 @@ describe('NeonButton', () => {
 
     test('should apply cyan glow variant', () => {
       render(<NeonButton glow="cyan">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('before:from-cyan-500/50');
       expect(button).toHaveClass('before:via-cyan-400/50');
@@ -84,7 +86,7 @@ describe('NeonButton', () => {
 
     test('should apply fuchsia glow variant', () => {
       render(<NeonButton glow="fuchsia">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('before:from-fuchsia-500/50');
       expect(button).toHaveClass('before:via-fuchsia-400/50');
@@ -93,7 +95,7 @@ describe('NeonButton', () => {
 
     test('should apply primary glow variant', () => {
       render(<NeonButton glow="primary">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('before:from-primary/50');
       expect(button).toHaveClass('before:via-primary/70');
@@ -104,7 +106,7 @@ describe('NeonButton', () => {
   describe('overlay variants', () => {
     test('should apply default overlay classes', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('after:from-cyan-500');
       expect(button).toHaveClass('after:to-fuchsia-500');
@@ -114,14 +116,14 @@ describe('NeonButton', () => {
 
     test('should apply none overlay variant', () => {
       render(<NeonButton overlay="none">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).not.toHaveClass('after:opacity-20');
     });
 
     test('should apply subtle overlay variant', () => {
       render(<NeonButton overlay="subtle">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('after:from-current');
       expect(button).toHaveClass('after:to-current');
@@ -131,7 +133,7 @@ describe('NeonButton', () => {
 
     test('should apply strong overlay variant', () => {
       render(<NeonButton overlay="strong">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('after:opacity-30');
       expect(button).toHaveClass('group-hover:after:opacity-40');
@@ -142,21 +144,21 @@ describe('NeonButton', () => {
     test('should handle click events', () => {
       const handleClick = jest.fn();
       render(<NeonButton onClick={handleClick}>Test</NeonButton>);
-      
+
       fireEvent.click(screen.getByRole('button'));
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
     test('should be disabled when disabled prop is true', () => {
       render(<NeonButton disabled>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toBeDisabled();
     });
 
     test('should accept button type attribute', () => {
       render(<NeonButton type="submit">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('type', 'submit');
     });
@@ -165,7 +167,7 @@ describe('NeonButton', () => {
   describe('accessibility', () => {
     test('should support aria-label', () => {
       render(<NeonButton aria-label="Custom Label">Test</NeonButton>);
-      
+
       const button = screen.getByRole('button', { name: 'Custom Label' });
       expect(button).toBeInTheDocument();
     });
@@ -177,14 +179,14 @@ describe('NeonButton', () => {
           <div id="description">Button description</div>
         </div>
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-describedby', 'description');
     });
 
     test('should be focusable by default', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       button.focus();
       expect(button).toHaveFocus();
@@ -192,7 +194,7 @@ describe('NeonButton', () => {
 
     test('should not be focusable when disabled', () => {
       render(<NeonButton disabled>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       button.focus();
       expect(button).not.toHaveFocus();
@@ -211,19 +213,19 @@ describe('NeonButton', () => {
           Combined Test
         </NeonButton>
       );
-      
+
       const button = screen.getByRole('button');
-      
+
       // Check intensity
       expect(button).toHaveClass('hover:scale-[1.03]');
-      
+
       // Check glow
       expect(button).toHaveClass('before:from-cyan-500/50');
-      
+
       // Check overlay
       expect(button).toHaveClass('after:from-current');
       expect(button).toHaveClass('after:opacity-5');
-      
+
       // Check custom class
       expect(button).toHaveClass('custom-class');
     });
@@ -232,7 +234,7 @@ describe('NeonButton', () => {
   describe('animations and transitions', () => {
     test('should have transition classes for smooth animations', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('transition-all');
       expect(button).toHaveClass('duration-300');
@@ -241,14 +243,14 @@ describe('NeonButton', () => {
 
     test('should have group class for hover effects', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('group');
     });
 
     test('should have overflow-hidden for proper effect clipping', () => {
       render(<NeonButton>Test</NeonButton>);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('overflow-hidden');
     });
@@ -268,7 +270,7 @@ describe('NeonButton', () => {
           Test
         </NeonButton>
       );
-      
+
       const button = screen.getByTestId('neon-button');
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute('type', 'button');

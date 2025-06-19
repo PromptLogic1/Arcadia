@@ -106,6 +106,7 @@ const mockSupabaseClient: MockSupabaseClient = {
 
 jest.mock('@/lib/supabase', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
+  createServerComponentClient: jest.fn(() => Promise.resolve(mockSupabaseClient)),
   isSupabaseError: (error: unknown): boolean => {
     if (!error || typeof error !== 'object') {
       return false;
@@ -120,13 +121,14 @@ jest.mock('@/lib/supabase', () => ({
     if (!error || typeof error !== 'object') {
       return false;
     }
-    return (
-      '__isAuthError' in error &&
-      error.__isAuthError === true
-    );
+    return '__isAuthError' in error && error.__isAuthError === true;
   },
   SupabaseError: class SupabaseError extends Error {
-    constructor(message: string, public code?: string, public details?: string) {
+    constructor(
+      message: string,
+      public code?: string,
+      public details?: string
+    ) {
       super(message);
       this.name = 'SupabaseError';
     }
@@ -199,20 +201,36 @@ if (typeof window !== 'undefined') {
 
 // Mock Web APIs that might not be available in Jest environment
 global.Request = global.Request || class Request {};
-global.Response = global.Response || class Response {};
+global.Response = global.Response || class Response {
+  static json = jest.fn((data: any, options?: ResponseInit) => {
+    return new Response(JSON.stringify(data), {
+      ...options,
+      headers: {
+        'content-type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  });
+};
 global.Headers = global.Headers || class Headers {};
 global.fetch = global.fetch || jest.fn();
 
+// Add TextEncoder/TextDecoder polyfills for Node.js environment
+global.TextEncoder = global.TextEncoder || require('util').TextEncoder;
+global.TextDecoder = global.TextDecoder || require('util').TextDecoder;
+
 // Mock crypto for UUID generation
-global.crypto = global.crypto || {
-  getRandomValues: jest.fn((arr: Uint8Array) => {
-    for (let i = 0; i < arr.length; i++) {
-      arr[i] = Math.floor(Math.random() * 256);
-    }
-    return arr;
-  }),
-  randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
-} as any;
+global.crypto =
+  global.crypto ||
+  ({
+    getRandomValues: jest.fn((arr: Uint8Array) => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256);
+      }
+      return arr;
+    }),
+    randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
+  } as any);
 
 // Mock Upstash Redis
 jest.mock('@upstash/redis', () => ({
@@ -258,7 +276,9 @@ const MockRatelimit = jest.fn().mockImplementation(() => ({
 }));
 
 // Add static methods to the constructor
-MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter');
+MockRatelimit.slidingWindow = jest
+  .fn()
+  .mockReturnValue('sliding-window-limiter');
 MockRatelimit.fixedWindow = jest.fn().mockReturnValue('fixed-window-limiter');
 MockRatelimit.tokenBucket = jest.fn().mockReturnValue('token-bucket-limiter');
 
@@ -287,9 +307,16 @@ jest.mock('@/services/auth.service', () => ({
   authService: {
     getSession: jest.fn().mockResolvedValue({ success: true, data: null }),
     getCurrentUser: jest.fn().mockResolvedValue({ success: true, data: null }),
-    signIn: jest.fn().mockResolvedValue({ success: true, data: { user: null, session: null } }),
+    signIn: jest
+      .fn()
+      .mockResolvedValue({
+        success: true,
+        data: { user: null, session: null },
+      }),
     signInWithOAuth: jest.fn().mockResolvedValue({ success: true, data: null }),
-    signUp: jest.fn().mockResolvedValue({ success: true, data: { needsVerification: false } }),
+    signUp: jest
+      .fn()
+      .mockResolvedValue({ success: true, data: { needsVerification: false } }),
     signOut: jest.fn().mockResolvedValue({ success: true, data: null }),
     resetPassword: jest.fn().mockResolvedValue({ success: true, data: null }),
     updateUser: jest.fn().mockResolvedValue({ success: true, data: null }),

@@ -1,6 +1,6 @@
 /**
  * Auth Feature Tests - Index
- * 
+ *
  * Exports all test utilities, mocks, and helpers for auth testing
  */
 
@@ -70,7 +70,10 @@ export const createTestSession = (overrides = {}) => ({
   ...overrides,
 });
 
-export const createTestError = (message = 'Test error', code = 'test_error') => ({
+export const createTestError = (
+  message = 'Test error',
+  code = 'test_error'
+) => ({
   message,
   code,
   statusCode: 400,
@@ -82,7 +85,9 @@ export const expectValidEmail = (email: string) => {
 };
 
 export const expectValidPassword = (password: string) => {
-  expect(password).toMatch(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/);
+  expect(password).toMatch(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
+  );
 };
 
 export const expectValidUsername = (username: string) => {

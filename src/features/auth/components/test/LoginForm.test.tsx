@@ -14,8 +14,12 @@ jest.mock('@/components/ui/Button', () => ({
   )),
 }));
 
-const mockUseLoginForm = useLoginForm as jest.MockedFunction<typeof useLoginForm>;
-const mockUseLoginSubmission = useLoginSubmission as jest.MockedFunction<typeof useLoginSubmission>;
+const mockUseLoginForm = useLoginForm as jest.MockedFunction<
+  typeof useLoginForm
+>;
+const mockUseLoginSubmission = useLoginSubmission as jest.MockedFunction<
+  typeof useLoginSubmission
+>;
 
 describe('LoginForm', () => {
   const defaultFormState = {
@@ -38,7 +42,7 @@ describe('LoginForm', () => {
 
   const defaultSubmission = {
     loading: false,
-    handleSubmit: jest.fn((e) => e.preventDefault()),
+    handleSubmit: jest.fn(e => e.preventDefault()),
     handleOAuthLogin: jest.fn(),
   };
 
@@ -52,7 +56,9 @@ describe('LoginForm', () => {
     it('renders login form with default props', () => {
       render(<LoginForm />);
 
-      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /sign in/i })
+      ).toBeInTheDocument();
       expect(mockUseLoginForm).toHaveBeenCalledWith({
         initialData: undefined,
         enablePersistence: true,
@@ -95,11 +101,13 @@ describe('LoginForm', () => {
       );
 
       // Verify sections are hidden (implementation depends on child components)
-      expect(screen.queryByText(/sign in to your account/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/sign in to your account/i)
+      ).not.toBeInTheDocument();
 
       // Re-render with sections shown
       rerender(<LoginForm showHeader={true} />);
-      
+
       // This would depend on LoginFormHeader implementation
       // For now we just verify the component renders
       expect(screen.getByRole('button')).toBeInTheDocument();
@@ -273,9 +281,11 @@ describe('LoginForm', () => {
     it('renders with different variants', () => {
       const variants = ['default', 'gaming', 'neon', 'cyber'] as const;
 
-      variants.forEach((variant) => {
+      variants.forEach(variant => {
         const { unmount } = render(<LoginForm variant={variant} />);
-        expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /sign in/i })
+        ).toBeInTheDocument();
         unmount();
       });
     });

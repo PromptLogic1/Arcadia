@@ -1,6 +1,6 @@
 /**
  * Theme Engine Tests
- * 
+ *
  * Tests for theme calculation and preference logic
  */
 
@@ -45,7 +45,7 @@ describe('Theme Engine', () => {
 
     it('should retrieve stored theme preference', () => {
       localStorage.setItem('theme-preference', 'light');
-      
+
       const storedTheme = localStorage.getItem('theme-preference');
       expect(storedTheme).toBe('light');
     });
@@ -86,7 +86,9 @@ describe('Theme Engine', () => {
 
       global.matchMedia = mockMatchMedia as any;
 
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDarkMode = window.matchMedia(
+        '(prefers-color-scheme: dark)'
+      ).matches;
       expect(isDarkMode).toBe(true);
     });
 
@@ -104,7 +106,9 @@ describe('Theme Engine', () => {
 
       global.matchMedia = mockMatchMedia as any;
 
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDarkMode = window.matchMedia(
+        '(prefers-color-scheme: dark)'
+      ).matches;
       expect(isDarkMode).toBe(false);
     });
 
@@ -114,7 +118,9 @@ describe('Theme Engine', () => {
 
       const getSystemTheme = () => {
         if (typeof window !== 'undefined' && window.matchMedia) {
-          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          return window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
         }
         return 'light'; // Default fallback
       };
@@ -129,7 +135,10 @@ describe('Theme Engine', () => {
     it('should apply theme based on user preference', () => {
       const applyTheme = (theme: 'light' | 'dark' | 'system') => {
         if (theme === 'system') {
-          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+            .matches
+            ? 'dark'
+            : 'light';
           return systemTheme;
         }
         return theme;
@@ -150,7 +159,7 @@ describe('Theme Engine', () => {
       transitionTheme(mockCallback);
 
       expect(mockCallback).not.toHaveBeenCalled();
-      
+
       setTimeout(() => {
         expect(mockCallback).toHaveBeenCalled();
       }, THEME_TRANSITION_DURATION + 50);
@@ -178,12 +187,20 @@ describe('Theme Engine', () => {
       };
 
       updateThemeClasses('dark');
-      expect(mockDocument.documentElement.classList.add).toHaveBeenCalledWith('dark');
-      expect(mockDocument.documentElement.classList.remove).toHaveBeenCalledWith('light');
+      expect(mockDocument.documentElement.classList.add).toHaveBeenCalledWith(
+        'dark'
+      );
+      expect(
+        mockDocument.documentElement.classList.remove
+      ).toHaveBeenCalledWith('light');
 
       updateThemeClasses('light');
-      expect(mockDocument.documentElement.classList.add).toHaveBeenCalledWith('light');
-      expect(mockDocument.documentElement.classList.remove).toHaveBeenCalledWith('dark');
+      expect(mockDocument.documentElement.classList.add).toHaveBeenCalledWith(
+        'light'
+      );
+      expect(
+        mockDocument.documentElement.classList.remove
+      ).toHaveBeenCalledWith('dark');
     });
   });
 
@@ -281,7 +298,10 @@ describe('Theme Engine', () => {
     });
 
     it('should calculate contrast ratios', () => {
-      const calculateContrastRatio = (color1: string, color2: string): number => {
+      const calculateContrastRatio = (
+        color1: string,
+        color2: string
+      ): number => {
         // Simplified contrast calculation for testing
         if (color1 === '#ffffff' && color2 === '#000000') return 21;
         if (color1 === '#ffffff' && color2 === '#666666') return 5.74;
@@ -297,7 +317,11 @@ describe('Theme Engine', () => {
 
   describe('Theme Preference Analytics', () => {
     it('should track theme changes', () => {
-      const themeChanges: Array<{ from: string; to: string; timestamp: number }> = [];
+      const themeChanges: Array<{
+        from: string;
+        to: string;
+        timestamp: number;
+      }> = [];
 
       const trackThemeChange = (from: string, to: string) => {
         themeChanges.push({

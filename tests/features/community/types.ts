@@ -1,4 +1,8 @@
-import type { Tables, TablesInsert, TablesUpdate } from '../../../types/database.types';
+import type {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from '../../../types/database.types';
 import { z } from 'zod';
 
 // Type aliases for better readability and consistency
@@ -51,14 +55,18 @@ export interface WebSocketMessage<T = unknown> {
 // Zod schemas for validation testing
 export const DiscussionCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255, 'Title too long'),
-  content: z.string().min(1, 'Content is required').max(5000, 'Content must be less than 5000 characters'),
+  content: z
+    .string()
+    .min(1, 'Content is required')
+    .max(5000, 'Content must be less than 5000 characters'),
   game: z.string().min(1, 'Please select a specific game'),
   challenge_type: z.string().optional(),
   tags: z.array(z.string()).max(5, 'Maximum 5 tags allowed').optional(),
 });
 
 export const CommentCreateSchema = z.object({
-  content: z.string()
+  content: z
+    .string()
     .min(1, 'Comment cannot be empty')
     .max(2000, 'Comment must be less than 2000 characters')
     .refine(val => val.trim().length > 0, 'Comment cannot be empty'),
@@ -66,18 +74,34 @@ export const CommentCreateSchema = z.object({
   parent_id: z.number().positive().optional(),
 });
 
-export const ReportSchema = z.object({
-  reason: z.enum(['spam', 'harassment', 'hate-speech', 'misinformation', 'copyright', 'off-topic', 'other']),
-  details: z.string().optional(),
-}).refine(data => {
-  if (data.reason === 'other' && (!data.details || data.details.length < 10)) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Please provide additional details for other reports',
-  path: ['details'],
-});
+export const ReportSchema = z
+  .object({
+    reason: z.enum([
+      'spam',
+      'harassment',
+      'hate-speech',
+      'misinformation',
+      'copyright',
+      'off-topic',
+      'other',
+    ]),
+    details: z.string().optional(),
+  })
+  .refine(
+    data => {
+      if (
+        data.reason === 'other' &&
+        (!data.details || data.details.length < 10)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Please provide additional details for other reports',
+      path: ['details'],
+    }
+  );
 
 // User scenarios with enhanced typing
 export interface UserScenario {
@@ -124,7 +148,14 @@ export const USER_TEST_SCENARIOS: Record<string, UserScenario> = {
     role: 'user',
     reputation: 500,
     joinedDaysAgo: 180,
-    permissions: ['read', 'comment', 'create_discussion', 'upvote', 'edit_own', 'delete_own'],
+    permissions: [
+      'read',
+      'comment',
+      'create_discussion',
+      'upvote',
+      'edit_own',
+      'delete_own',
+    ],
     rateLimit: { comments: 50, discussions: 10, upvotes: 200 },
   },
   moderator: {
@@ -134,7 +165,15 @@ export const USER_TEST_SCENARIOS: Record<string, UserScenario> = {
     role: 'moderator',
     reputation: 1000,
     joinedDaysAgo: 365,
-    permissions: ['read', 'comment', 'create_discussion', 'upvote', 'edit_any', 'delete_any', 'moderate'],
+    permissions: [
+      'read',
+      'comment',
+      'create_discussion',
+      'upvote',
+      'edit_any',
+      'delete_any',
+      'moderate',
+    ],
     rateLimit: { comments: 100, discussions: 20, upvotes: 500 },
   },
   spammer: {
@@ -163,7 +202,12 @@ export const MODERATION_PATTERNS: Record<string, ModerationPattern[]> = {
       content: 'BUY CHEAP GOLD NOW!!! BEST PRICES!!! Visit spam-site.com',
       expectedAction: 'auto_flag',
       confidence: 'high',
-      reasons: ['excessive_caps', 'multiple_exclamation', 'external_link', 'commercial_language'],
+      reasons: [
+        'excessive_caps',
+        'multiple_exclamation',
+        'external_link',
+        'commercial_language',
+      ],
     },
     {
       content: 'FREE MONEY!!! Click here: bit.ly/free-coins',
@@ -180,7 +224,8 @@ export const MODERATION_PATTERNS: Record<string, ModerationPattern[]> = {
   ],
   inappropriate: [
     {
-      content: 'This game is [EXPLICIT CONTENT] and the developers are [OFFENSIVE LANGUAGE]',
+      content:
+        'This game is [EXPLICIT CONTENT] and the developers are [OFFENSIVE LANGUAGE]',
       expectedAction: 'auto_remove',
       confidence: 'high',
       reasons: ['profanity', 'inappropriate_content'],

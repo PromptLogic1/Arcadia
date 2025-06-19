@@ -103,9 +103,11 @@ export function selectVariant(
 /**
  * Calculate normalized variant weights
  */
-export function calculateVariantWeights(variants: ABTestVariant[]): ABTestVariant[] {
+export function calculateVariantWeights(
+  variants: ABTestVariant[]
+): ABTestVariant[] {
   const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
-  
+
   if (totalWeight === 0) {
     // Equal distribution if all weights are 0
     const equalWeight = 100 / variants.length;
@@ -126,7 +128,9 @@ export function calculateVariantWeights(variants: ABTestVariant[]): ABTestVarian
 /**
  * Validate experiment configuration
  */
-export function validateExperiment(experiment: ABTestExperiment): ExperimentValidation {
+export function validateExperiment(
+  experiment: ABTestExperiment
+): ExperimentValidation {
   const errors: Array<{ field: string; message: string }> = [];
 
   // Required fields
@@ -140,11 +144,17 @@ export function validateExperiment(experiment: ABTestExperiment): ExperimentVali
 
   // Variants validation
   if (!experiment.variants || experiment.variants.length === 0) {
-    errors.push({ field: 'variants', message: 'At least one variant is required' });
+    errors.push({
+      field: 'variants',
+      message: 'At least one variant is required',
+    });
   } else {
     // Check for A/B test requirements
     if (!experiment.isFeatureFlag && experiment.variants.length < 2) {
-      errors.push({ field: 'variants', message: 'At least 2 variants required for A/B test' });
+      errors.push({
+        field: 'variants',
+        message: 'At least 2 variants required for A/B test',
+      });
     }
 
     // Check for unique IDs
@@ -155,9 +165,15 @@ export function validateExperiment(experiment: ABTestExperiment): ExperimentVali
     }
 
     // Validate weights
-    const totalWeight = experiment.variants.reduce((sum, v) => sum + v.weight, 0);
+    const totalWeight = experiment.variants.reduce(
+      (sum, v) => sum + v.weight,
+      0
+    );
     if (Math.abs(totalWeight - 100) > 0.01 && totalWeight !== 0) {
-      errors.push({ field: 'variants', message: `Variant weights should sum to 100 (current: ${totalWeight})` });
+      errors.push({
+        field: 'variants',
+        message: `Variant weights should sum to 100 (current: ${totalWeight})`,
+      });
     }
   }
 
@@ -170,8 +186,15 @@ export function validateExperiment(experiment: ABTestExperiment): ExperimentVali
     errors.push({ field: 'endDate', message: 'End date is required' });
   }
 
-  if (experiment.startDate && experiment.endDate && experiment.endDate <= experiment.startDate) {
-    errors.push({ field: 'dates', message: 'End date must be after start date' });
+  if (
+    experiment.startDate &&
+    experiment.endDate &&
+    experiment.endDate <= experiment.startDate
+  ) {
+    errors.push({
+      field: 'dates',
+      message: 'End date must be after start date',
+    });
   }
 
   return {
@@ -204,7 +227,9 @@ export class ABTestManager {
   addExperiment(experiment: ABTestExperiment): void {
     const validation = validateExperiment(experiment);
     if (!validation.valid) {
-      throw new Error(`Invalid experiment: ${validation.errors.map(e => e.message).join(', ')}`);
+      throw new Error(
+        `Invalid experiment: ${validation.errors.map(e => e.message).join(', ')}`
+      );
     }
     this.experiments.set(experiment.id, experiment);
   }
@@ -222,7 +247,8 @@ export class ABTestManager {
   getActiveExperiments(): ABTestExperiment[] {
     const now = new Date();
     return Array.from(this.experiments.values()).filter(
-      exp => exp.status === 'active' && now >= exp.startDate && now <= exp.endDate
+      exp =>
+        exp.status === 'active' && now >= exp.startDate && now <= exp.endDate
     );
   }
 
@@ -241,14 +267,18 @@ export class ABTestManager {
     if (experiment.targeting) {
       // Check audience targeting
       if (experiment.targeting.audiences && context?.audience) {
-        if (!experiment.targeting.audiences.includes(context.audience as string)) {
+        if (
+          !experiment.targeting.audiences.includes(context.audience as string)
+        ) {
           return null; // User not in target audience
         }
       }
 
       // Check percentage targeting
       if (experiment.targeting.percentage) {
-        const inPercentage = generateHash(`${experimentId}:${userId}:targeting`) < experiment.targeting.percentage;
+        const inPercentage =
+          generateHash(`${experimentId}:${userId}:targeting`) <
+          experiment.targeting.percentage;
         if (!inPercentage) return null;
       }
     }
@@ -261,7 +291,7 @@ export class ABTestManager {
 
     // Select variant
     const variant = selectVariant(experiment, userId, context);
-    
+
     // Store assignment
     if (!userRecord) {
       this.userAssignments.set(userId, { [experimentId]: variant.id });
@@ -275,9 +305,12 @@ export class ABTestManager {
   /**
    * Get all variant assignments for a user
    */
-  getUserVariants(userId: string, context?: Record<string, unknown>): Record<string, string> {
+  getUserVariants(
+    userId: string,
+    context?: Record<string, unknown>
+  ): Record<string, string> {
     const assignments: Record<string, string> = {};
-    
+
     for (const experiment of this.getActiveExperiments()) {
       const variant = this.getVariantForUser(experiment.id, userId, context);
       if (variant) {
@@ -316,7 +349,11 @@ export class ABTestManager {
   /**
    * Check if a feature flag is enabled for a user
    */
-  isFeatureEnabled(featureFlagId: string, userId: string, context?: Record<string, unknown>): boolean {
+  isFeatureEnabled(
+    featureFlagId: string,
+    userId: string,
+    context?: Record<string, unknown>
+  ): boolean {
     const variant = this.getVariantForUser(featureFlagId, userId, context);
     return variant === 'on' || variant === 'enabled' || variant === 'true';
   }
@@ -333,7 +370,8 @@ export class ABTestManager {
     const variantCounts: Record<string, number> = {};
 
     for (const impression of impressions) {
-      variantCounts[impression.variantId] = (variantCounts[impression.variantId] || 0) + 1;
+      variantCounts[impression.variantId] =
+        (variantCounts[impression.variantId] || 0) + 1;
     }
 
     return {
@@ -374,9 +412,17 @@ export const DEFAULT_EXPERIMENTS: ABTestExperiment[] = [
     name: 'Hero Section Headline',
     status: 'active',
     variants: [
-      { id: 'control', name: 'The Ultimate Gaming Community Platform', weight: 33 },
+      {
+        id: 'control',
+        name: 'The Ultimate Gaming Community Platform',
+        weight: 33,
+      },
       { id: 'competitive', name: 'Compete. Connect. Conquer.', weight: 33 },
-      { id: 'social', name: 'Where Gamers Unite and Legends Are Born', weight: 34 },
+      {
+        id: 'social',
+        name: 'Where Gamers Unite and Legends Are Born',
+        weight: 34,
+      },
     ],
     startDate: new Date('2024-01-01'),
     endDate: new Date('2024-12-31'),

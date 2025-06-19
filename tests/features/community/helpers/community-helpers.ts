@@ -1,10 +1,14 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { 
-  generateDiscussion, 
+import {
+  generateDiscussion,
   generateComment,
 } from '../fixtures/community-fixtures';
-import type { DiscussionWithAuthor, CommentWithAuthor, RealTimeEvent } from '../types';
+import type {
+  DiscussionWithAuthor,
+  CommentWithAuthor,
+  RealTimeEvent,
+} from '../types';
 import type { Tables } from '../../../../types/database.types';
 import { waitForNetworkIdle } from '../../../helpers/test-utils';
 import type { TestWindow } from '../../../types/test-types';
@@ -43,16 +47,17 @@ export async function createTypedDiscussion(
   discussionData?: Partial<Tables<'discussions'>>
 ): Promise<string> {
   const data = generateDiscussion(discussionData);
-  
+
   await page.goto('/community');
   await page.getByRole('button', { name: /new discussion/i }).click();
-  
+
   // Fill form with typed data
   if (data.title) await page.getByLabel('Title').fill(data.title);
   if (data.content) await page.getByLabel('Content').fill(data.content);
   if (data.game) await page.getByLabel('Game').selectOption(data.game);
-  if (data.challenge_type) await page.getByLabel('Challenge Type').selectOption(data.challenge_type);
-  
+  if (data.challenge_type)
+    await page.getByLabel('Challenge Type').selectOption(data.challenge_type);
+
   // Add tags
   if (data.tags) {
     for (const tag of data.tags) {
@@ -60,14 +65,16 @@ export async function createTypedDiscussion(
       await page.keyboard.press('Enter');
     }
   }
-  
+
   await page.getByRole('button', { name: /create discussion/i }).click();
   await waitForNetworkIdle(page);
-  
+
   // Get the created discussion ID
-  const discussionCard = page.locator('[data-testid="discussion-card"]').first();
+  const discussionCard = page
+    .locator('[data-testid="discussion-card"]')
+    .first();
   const discussionId = await discussionCard.getAttribute('data-discussion-id');
-  
+
   if (!discussionId) throw new Error('Failed to create discussion');
   return discussionId;
 }
@@ -79,7 +86,7 @@ export async function createTypedComment(
   commentData?: Partial<Tables<'comments'>>
 ): Promise<string> {
   const data = generateComment(parseInt(discussionId), commentData);
-  
+
   // Ensure discussion is expanded
   const discussionCard = page.locator(`[data-discussion-id="${discussionId}"]`);
   const isExpanded = await discussionCard.getAttribute('data-expanded');
@@ -87,18 +94,20 @@ export async function createTypedComment(
     await discussionCard.click();
     await waitForNetworkIdle(page);
   }
-  
+
   // Fill and submit comment
   if (data.content) {
-    await page.getByPlaceholder('What are your thoughts on this discussion?').fill(data.content);
+    await page
+      .getByPlaceholder('What are your thoughts on this discussion?')
+      .fill(data.content);
     await page.getByRole('button', { name: /post comment/i }).click();
     await waitForNetworkIdle(page);
   }
-  
+
   // Get created comment ID
   const comment = page.locator('[data-testid="comment"]').last();
   const commentId = await comment.getAttribute('data-comment-id');
-  
+
   if (!commentId) throw new Error('Failed to create comment');
   return commentId;
 }
@@ -109,44 +118,60 @@ export async function testDiscussionFilters(
   filters: DiscussionFilterEvent
 ): Promise<DiscussionWithAuthor[]> {
   await page.goto('/community');
-  
+
   // Apply filters
   if (filters.game) {
     await page.getByLabel('Filter by game').selectOption(filters.game);
   }
-  
+
   if (filters.challengeType) {
-    await page.getByLabel('Filter by challenge type').selectOption(filters.challengeType);
+    await page
+      .getByLabel('Filter by challenge type')
+      .selectOption(filters.challengeType);
   }
-  
+
   if (filters.searchTerm) {
-    await page.getByPlaceholder('Search discussions...').fill(filters.searchTerm);
+    await page
+      .getByPlaceholder('Search discussions...')
+      .fill(filters.searchTerm);
     await page.waitForTimeout(500); // Debounce
   }
-  
+
   if (filters.tags && filters.tags.length > 0) {
     for (const tag of filters.tags) {
-      await page.getByRole('button', { name: new RegExp(`#${tag}`, 'i') }).click();
+      await page
+        .getByRole('button', { name: new RegExp(`#${tag}`, 'i') })
+        .click();
     }
   }
-  
+
   if (filters.sortBy) {
     await page.getByLabel('Sort by').selectOption(filters.sortBy);
   }
-  
+
   await waitForNetworkIdle(page);
-  
+
   // Extract filtered results
-  const discussions = await page.locator('[data-testid="discussion-card"]').all();
+  const discussions = await page
+    .locator('[data-testid="discussion-card"]')
+    .all();
   const results: DiscussionWithAuthor[] = [];
-  
+
   for (const discussion of discussions) {
-    const title = await discussion.locator('[data-testid="discussion-title"]').textContent();
-    const game = await discussion.locator('[data-testid="discussion-game"]').textContent();
-    const author = await discussion.locator('[data-testid="discussion-author"]').textContent();
-    
+    const title = await discussion
+      .locator('[data-testid="discussion-title"]')
+      .textContent();
+    const game = await discussion
+      .locator('[data-testid="discussion-game"]')
+      .textContent();
+    const author = await discussion
+      .locator('[data-testid="discussion-author"]')
+      .textContent();
+
     results.push({
-      id: parseInt(await discussion.getAttribute('data-discussion-id') || '0'),
+      id: parseInt(
+        (await discussion.getAttribute('data-discussion-id')) || '0'
+      ),
       title: title || '',
       content: '',
       game: game || '',
@@ -157,7 +182,7 @@ export async function testDiscussionFilters(
       },
     } as DiscussionWithAuthor);
   }
-  
+
   return results;
 }
 
@@ -167,7 +192,7 @@ export async function performCommentInteraction(
   event: CommentInteractionEvent
 ): Promise<void> {
   const comment = page.locator(`[data-comment-id="${event.commentId}"]`);
-  
+
   switch (event.type) {
     case 'upvote':
       await comment.getByRole('button', { name: /upvote/i }).click();
@@ -183,7 +208,7 @@ export async function performCommentInteraction(
       await comment.getByRole('button', { name: /reply/i }).click();
       break;
   }
-  
+
   await waitForNetworkIdle(page);
 }
 
@@ -198,10 +223,10 @@ export async function testModerationAction(
     title: 'Moderation Test',
     content: content,
   });
-  
+
   // Check moderation status
   const discussionCard = page.locator(`[data-discussion-id="${discussionId}"]`);
-  
+
   switch (expectedAction) {
     case 'auto_flag':
       await expect(discussionCard).toHaveAttribute('data-flagged', 'true');
@@ -210,7 +235,10 @@ export async function testModerationAction(
       await expect(discussionCard).not.toBeVisible();
       break;
     case 'require_review':
-      await expect(discussionCard).toHaveAttribute('data-pending-review', 'true');
+      await expect(discussionCard).toHaveAttribute(
+        'data-pending-review',
+        'true'
+      );
       break;
     case 'approve':
       await expect(discussionCard).toBeVisible();
@@ -233,12 +261,12 @@ export async function testRateLimit(
   action: () => Promise<void>
 ): Promise<{ successful: number; blocked: number }> {
   const results: { success: boolean; timestamp: number }[] = [];
-  
+
   // Perform actions up to limit + buffer
   for (let i = 0; i < config.limit + 5; i++) {
     const start = Date.now();
     let success = true;
-    
+
     try {
       await action();
     } catch (error) {
@@ -249,16 +277,16 @@ export async function testRateLimit(
         throw error; // Re-throw if not rate limit
       }
     }
-    
+
     results.push({ success, timestamp: start });
-    
+
     // Small delay between requests
     await page.waitForTimeout(100);
   }
-  
+
   const successful = results.filter(r => r.success).length;
   const blocked = results.filter(r => !r.success).length;
-  
+
   return { successful, blocked };
 }
 
@@ -266,12 +294,14 @@ export async function testRateLimit(
 export async function setupRealtimeListener(
   page: Page,
   channel: string
-): Promise<(eventType: string) => Promise<RealTimeEvent<Tables<'comments'>>[]>> {
+): Promise<
+  (eventType: string) => Promise<RealTimeEvent<Tables<'comments'>>[]>
+> {
   // Inject realtime listener into page context
-  await page.evaluate((ch) => {
+  await page.evaluate(ch => {
     const win = window as TestWindow;
     win.__realtimeEvents = [];
-    
+
     // Mock Supabase realtime subscription
     const mockChannel = {
       on: (event: string, callback: (...args: unknown[]) => void) => {
@@ -288,17 +318,19 @@ export async function setupRealtimeListener(
       },
       send: (message: unknown) => {
         console.log(`Sent message to channel ${ch}:`, message);
-      }
+      },
     };
-    
+
     // Store the mock for testing
     win.__mockChannel = mockChannel;
   }, channel);
-  
+
   // Return function to get events by type
   return async (eventType: string) => {
-    return page.evaluate((type) => {
-      return ((window as TestWindow).__realtimeEvents || []).filter((e: unknown) => (e as { type?: string }).type === type);
+    return page.evaluate(type => {
+      return ((window as TestWindow).__realtimeEvents || []).filter(
+        (e: unknown) => (e as { type?: string }).type === type
+      );
     }, eventType) as Promise<RealTimeEvent<Tables<'comments'>>[]>;
   };
 }
@@ -309,24 +341,28 @@ export async function triggerRealtimeEvent(
   eventType: string,
   payload: unknown
 ): Promise<void> {
-  await page.evaluate((args) => {
-    interface ExtendedWindow extends Window {
-      __realtimeEvents?: unknown[];
-      __realtimeCallback?: (...args: unknown[]) => void;
-    }
-    
-    const win = window as ExtendedWindow;
-    const callback = win.__realtimeCallback;
-    if (callback) {
-      const payloadData = args.payload && typeof args.payload === 'object' ? args.payload : {};
-      const event = {
-        type: args.eventType,
-        ...payloadData,
-      };
-      win.__realtimeEvents?.push(event);
-      callback(event);
-    }
-  }, { eventType, payload });
+  await page.evaluate(
+    args => {
+      interface ExtendedWindow extends Window {
+        __realtimeEvents?: unknown[];
+        __realtimeCallback?: (...args: unknown[]) => void;
+      }
+
+      const win = window as ExtendedWindow;
+      const callback = win.__realtimeCallback;
+      if (callback) {
+        const payloadData =
+          args.payload && typeof args.payload === 'object' ? args.payload : {};
+        const event = {
+          type: args.eventType,
+          ...payloadData,
+        };
+        win.__realtimeEvents?.push(event);
+        callback(event);
+      }
+    },
+    { eventType, payload }
+  );
 }
 
 // Test accessibility for discussions
@@ -335,22 +371,24 @@ export async function testDiscussionAccessibility(page: Page): Promise<{
   violations: string[];
 }> {
   const violations: string[] = [];
-  
+
   // Check discussion cards
-  const discussions = await page.locator('[data-testid="discussion-card"]').all();
-  
+  const discussions = await page
+    .locator('[data-testid="discussion-card"]')
+    .all();
+
   for (const discussion of discussions) {
     // Check ARIA attributes
     const role = await discussion.getAttribute('role');
     if (role !== 'article') {
       violations.push('Discussion card missing role="article"');
     }
-    
+
     const ariaLabel = await discussion.getAttribute('aria-label');
     if (!ariaLabel) {
       violations.push('Discussion card missing aria-label');
     }
-    
+
     // Check interactive elements
     const buttons = await discussion.locator('button').all();
     for (const button of buttons) {
@@ -361,7 +399,7 @@ export async function testDiscussionAccessibility(page: Page): Promise<{
       }
     }
   }
-  
+
   // Check comment thread structure
   const comments = await page.locator('[data-testid="comment"]').all();
   for (const comment of comments) {
@@ -369,13 +407,13 @@ export async function testDiscussionAccessibility(page: Page): Promise<{
     if (role !== 'article') {
       violations.push('Comment missing role="article"');
     }
-    
+
     const level = await comment.getAttribute('aria-level');
     if (!level) {
       violations.push('Nested comment missing aria-level');
     }
   }
-  
+
   return {
     passed: violations.length === 0,
     violations,
@@ -391,32 +429,34 @@ export async function testPagination(
   const loadedItems = new Set<string>();
   let hasMore = true;
   let currentPage = 1;
-  
+
   while (hasMore) {
     // Get current page items
     const items = await page.locator('[data-testid="discussion-card"]').all();
-    
+
     for (const item of items) {
       const itemId = await item.getAttribute('data-discussion-id');
       if (itemId) loadedItems.add(itemId);
     }
-    
+
     // Check if "Load More" button exists
     const loadMoreButton = page.getByRole('button', { name: /load more/i });
     hasMore = await loadMoreButton.isVisible();
-    
+
     if (hasMore) {
       await loadMoreButton.click();
       await waitForNetworkIdle(page);
       currentPage++;
     }
-    
+
     // Prevent infinite loops
     if (currentPage > Math.ceil(expectedTotalItems / itemsPerPage) + 1) {
       throw new Error('Pagination exceeded expected pages');
     }
   }
-  
+
   // Verify all items loaded
-  expect(loadedItems.size).toBeGreaterThanOrEqual(Math.min(expectedTotalItems, 100)); // Cap at 100 for testing
+  expect(loadedItems.size).toBeGreaterThanOrEqual(
+    Math.min(expectedTotalItems, 100)
+  ); // Cap at 100 for testing
 }

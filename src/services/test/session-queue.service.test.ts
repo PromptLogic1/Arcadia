@@ -14,7 +14,10 @@ import {
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
-import type { SessionQueueEntry, PlayerQueueData } from '../session-queue.service';
+import type {
+  SessionQueueEntry,
+  PlayerQueueData,
+} from '../session-queue.service';
 
 // Mock the logger
 jest.mock('@/lib/logger', () => ({
@@ -116,9 +119,9 @@ describe('SessionQueueService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Database error')
-        ),
+        order: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Database error')),
       });
 
       const result = await sessionQueueService.getSessionQueue('session-123');
@@ -139,7 +142,9 @@ describe('SessionQueueService', () => {
 
     it('should add player to queue successfully', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -175,24 +180,34 @@ describe('SessionQueueService', () => {
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(newEntry)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(newEntry)),
       });
 
-      const result = await sessionQueueService.addToQueue('session-123', playerData);
+      const result = await sessionQueueService.addToQueue(
+        'session-123',
+        playerData
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(newEntry);
     });
 
     it('should error when user not authenticated', async () => {
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: null,
       });
 
-      const result = await sessionQueueService.addToQueue('session-123', playerData);
+      const result = await sessionQueueService.addToQueue(
+        'session-123',
+        playerData
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('User not authenticated');
@@ -200,7 +215,9 @@ describe('SessionQueueService', () => {
 
     it('should error when user already in queue', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -213,14 +230,19 @@ describe('SessionQueueService', () => {
         eq: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue(
-              createSupabaseSuccessResponse({ id: 'existing' })
-            ),
+            single: jest
+              .fn()
+              .mockResolvedValue(
+                createSupabaseSuccessResponse({ id: 'existing' })
+              ),
           })),
         })),
       });
 
-      const result = await sessionQueueService.addToQueue('session-123', playerData);
+      const result = await sessionQueueService.addToQueue(
+        'session-123',
+        playerData
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('User already in queue for this session');
@@ -240,7 +262,9 @@ describe('SessionQueueService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(updatedEntry)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(updatedEntry)),
       });
 
       const result = await sessionQueueService.updateQueueEntry('entry-123', {
@@ -259,7 +283,9 @@ describe('SessionQueueService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('Update failed')),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Update failed')),
       });
 
       const result = await sessionQueueService.updateQueueEntry('entry-123', {
@@ -293,9 +319,9 @@ describe('SessionQueueService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockQueueEntry)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockQueueEntry)),
       });
 
       // Mock check session capacity
@@ -312,9 +338,11 @@ describe('SessionQueueService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseErrorResponse('Not found', 'PGRST116')
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(
+              createSupabaseErrorResponse('Not found', 'PGRST116')
+            ),
         })),
       });
 
@@ -329,7 +357,10 @@ describe('SessionQueueService', () => {
         eq: jest.fn().mockResolvedValue({ error: null }),
       });
 
-      const result = await sessionQueueService.acceptPlayer('entry-123', 'session-123');
+      const result = await sessionQueueService.acceptPlayer(
+        'entry-123',
+        'session-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toBeUndefined();
@@ -342,9 +373,9 @@ describe('SessionQueueService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockQueueEntry)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockQueueEntry)),
       });
 
       // Mock check session capacity - full
@@ -356,7 +387,10 @@ describe('SessionQueueService', () => {
         }),
       });
 
-      const result = await sessionQueueService.acceptPlayer('entry-123', 'session-123');
+      const result = await sessionQueueService.acceptPlayer(
+        'entry-123',
+        'session-123'
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Session is full');
@@ -369,9 +403,9 @@ describe('SessionQueueService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockQueueEntry)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockQueueEntry)),
       });
 
       // Mock check session capacity
@@ -388,13 +422,18 @@ describe('SessionQueueService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseSuccessResponse({ id: 'existing-player' })
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(
+              createSupabaseSuccessResponse({ id: 'existing-player' })
+            ),
         })),
       });
 
-      const result = await sessionQueueService.acceptPlayer('entry-123', 'session-123');
+      const result = await sessionQueueService.acceptPlayer(
+        'entry-123',
+        'session-123'
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Color already taken');
@@ -403,19 +442,24 @@ describe('SessionQueueService', () => {
 
   describe('rejectPlayer', () => {
     it('should reject player successfully', async () => {
-      jest.spyOn(sessionQueueService, 'updateQueueEntry').mockResolvedValueOnce({
-        success: true,
-        data: {} as SessionQueueEntry,
-        error: null,
-      });
+      jest
+        .spyOn(sessionQueueService, 'updateQueueEntry')
+        .mockResolvedValueOnce({
+          success: true,
+          data: {} as SessionQueueEntry,
+          error: null,
+        });
 
       const result = await sessionQueueService.rejectPlayer('entry-123');
 
       expect(result.success).toBe(true);
-      expect(sessionQueueService.updateQueueEntry).toHaveBeenCalledWith('entry-123', {
-        status: 'cancelled',
-        processed_at: expect.any(String),
-      });
+      expect(sessionQueueService.updateQueueEntry).toHaveBeenCalledWith(
+        'entry-123',
+        {
+          status: 'cancelled',
+          processed_at: expect.any(String),
+        }
+      );
     });
   });
 
@@ -478,7 +522,10 @@ describe('SessionQueueService', () => {
         error: null,
       });
 
-      const result = await sessionQueueService.getPlayerPosition('user-2', 'session-123');
+      const result = await sessionQueueService.getPlayerPosition(
+        'user-2',
+        'session-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toBe(2); // Second position
@@ -491,7 +538,10 @@ describe('SessionQueueService', () => {
         error: null,
       });
 
-      const result = await sessionQueueService.getPlayerPosition('user-123', 'session-123');
+      const result = await sessionQueueService.getPlayerPosition(
+        'user-123',
+        'session-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toBe(-1);
@@ -508,14 +558,17 @@ describe('SessionQueueService', () => {
         eq: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue(
-              createSupabaseSuccessResponse(mockEntry)
-            ),
+            single: jest
+              .fn()
+              .mockResolvedValue(createSupabaseSuccessResponse(mockEntry)),
           })),
         })),
       });
 
-      const result = await sessionQueueService.isPlayerInQueue('user-123', 'session-123');
+      const result = await sessionQueueService.isPlayerInQueue(
+        'user-123',
+        'session-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
@@ -532,14 +585,19 @@ describe('SessionQueueService', () => {
         eq: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue(
-              createSupabaseErrorResponse('Not found', 'PGRST116')
-            ),
+            single: jest
+              .fn()
+              .mockResolvedValue(
+                createSupabaseErrorResponse('Not found', 'PGRST116')
+              ),
           })),
         })),
       });
 
-      const result = await sessionQueueService.isPlayerInQueue('user-123', 'session-123');
+      const result = await sessionQueueService.isPlayerInQueue(
+        'user-123',
+        'session-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
@@ -568,7 +626,8 @@ describe('SessionQueueService', () => {
         }),
       });
 
-      const result = await sessionQueueService.cleanupExpiredEntries('session-123');
+      const result =
+        await sessionQueueService.cleanupExpiredEntries('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toBe(2);
@@ -582,12 +641,13 @@ describe('SessionQueueService', () => {
         eq: jest.fn().mockReturnThis(),
         lt: jest.fn().mockReturnThis(),
         in: jest.fn().mockReturnThis(),
-        select: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Cleanup failed')
-        ),
+        select: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Cleanup failed')),
       });
 
-      const result = await sessionQueueService.cleanupExpiredEntries('session-123');
+      const result =
+        await sessionQueueService.cleanupExpiredEntries('session-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Cleanup failed');
@@ -612,7 +672,9 @@ describe('SessionQueueService', () => {
         {
           name: 'updateQueueEntry',
           method: () =>
-            sessionQueueService.updateQueueEntry('entry-123', { status: 'matched' }),
+            sessionQueueService.updateQueueEntry('entry-123', {
+              status: 'matched',
+            }),
         },
         {
           name: 'removeFromQueue',
@@ -620,7 +682,8 @@ describe('SessionQueueService', () => {
         },
         {
           name: 'acceptPlayer',
-          method: () => sessionQueueService.acceptPlayer('entry-123', 'session-123'),
+          method: () =>
+            sessionQueueService.acceptPlayer('entry-123', 'session-123'),
         },
         {
           name: 'rejectPlayer',
@@ -628,7 +691,8 @@ describe('SessionQueueService', () => {
         },
         {
           name: 'cleanupExpiredEntries',
-          method: () => sessionQueueService.cleanupExpiredEntries('session-123'),
+          method: () =>
+            sessionQueueService.cleanupExpiredEntries('session-123'),
         },
         {
           name: 'getQueueStats',
@@ -636,11 +700,13 @@ describe('SessionQueueService', () => {
         },
         {
           name: 'getPlayerPosition',
-          method: () => sessionQueueService.getPlayerPosition('user-123', 'session-123'),
+          method: () =>
+            sessionQueueService.getPlayerPosition('user-123', 'session-123'),
         },
         {
           name: 'isPlayerInQueue',
-          method: () => sessionQueueService.isPlayerInQueue('user-123', 'session-123'),
+          method: () =>
+            sessionQueueService.isPlayerInQueue('user-123', 'session-123'),
         },
       ];
 

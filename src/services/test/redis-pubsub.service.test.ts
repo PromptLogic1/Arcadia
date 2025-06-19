@@ -3,9 +3,13 @@
  */
 
 import { redisPubSubService } from '../redis-pubsub.service';
-import { getRedisClient, isRedisConfigured } from '@/lib/redis';
+import { getRedisClient, isRedisConfigured, createRedisKey } from '@/lib/redis';
 import { log } from '@/lib/logger';
-import type { GameEvent, ChatMessage, PublishOptions } from '../redis-pubsub.service';
+import type {
+  GameEvent,
+  ChatMessage,
+  PublishOptions,
+} from '../redis-pubsub.service';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
@@ -22,8 +26,15 @@ const mockRedis = {
   keys: jest.fn(),
 };
 
-const mockGetRedisClient = getRedisClient as jest.MockedFunction<typeof getRedisClient>;
-const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<typeof isRedisConfigured>;
+const mockGetRedisClient = getRedisClient as jest.MockedFunction<
+  typeof getRedisClient
+>;
+const mockIsRedisConfigured = isRedisConfigured as jest.MockedFunction<
+  typeof isRedisConfigured
+>;
+const mockCreateRedisKey = createRedisKey as jest.MockedFunction<
+  typeof createRedisKey
+>;
 const mockLog = log as jest.Mocked<typeof log>;
 
 describe('RedisPubSubService', () => {
@@ -34,6 +45,18 @@ describe('RedisPubSubService', () => {
     jest.clearAllMocks();
     mockIsRedisConfigured.mockReturnValue(true);
     mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+    // Mock createRedisKey to return predictable keys
+    mockCreateRedisKey.mockImplementation((...parts) => parts.join(':'));
+
+    // Ensure we're simulating server-side environment (no window)
+    // Need to both delete from global and make the typeof check return 'undefined'
+    delete (global as any).window;
+    Object.defineProperty(global, 'window', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
   });
 
   describe('server-only guard', () => {
@@ -41,7 +64,7 @@ describe('RedisPubSubService', () => {
       // Mock window to simulate client-side
       Object.defineProperty(global, 'window', {
         value: {},
-        writable: true
+        writable: true,
       });
 
       const result = await redisPubSubService.publishGameEvent({
@@ -51,8 +74,10 @@ describe('RedisPubSubService', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('PubSub operations are only available on the server');
-      
+      expect(result.error).toBe(
+        'PubSub operations are only available on the server'
+      );
+
       // Clean up
       delete (global as any).window;
     });
@@ -209,7 +234,8 @@ describe('RedisPubSubService', () => {
         userId,
       };
 
-      const result = await redisPubSubService.publishGameEvent(invalidEventData);
+      const result =
+        await redisPubSubService.publishGameEvent(invalidEventData);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Invalid');
@@ -401,7 +427,11 @@ describe('RedisPubSubService', () => {
 
       mockRedis.zrange.mockResolvedValueOnce([]);
 
-      const result = await redisPubSubService.getRecentEvents(gameId, since, 25);
+      const result = await redisPubSubService.getRecentEvents(
+        gameId,
+        since,
+        25
+      );
 
       expect(result.success).toBe(true);
       expect(mockRedis.zrange).toHaveBeenCalledWith(
@@ -446,7 +476,7 @@ describe('RedisPubSubService', () => {
         'Failed to get recent events',
         expect.any(Error),
         expect.objectContaining({
-          metadata: { gameId, since: 0, limit: 50 },
+          metadata: { gameId, since: undefined, limit: 50 },
         })
       );
     });
@@ -514,7 +544,11 @@ describe('RedisPubSubService', () => {
 
       mockRedis.zrange.mockResolvedValueOnce([]);
 
-      const result = await redisPubSubService.getChatHistory(gameId, 25, before);
+      const result = await redisPubSubService.getChatHistory(
+        gameId,
+        25,
+        before
+      );
 
       expect(result.success).toBe(true);
       expect(mockRedis.zrange).toHaveBeenCalledWith(
@@ -760,7 +794,9 @@ describe('RedisPubSubService', () => {
       };
 
       mockRedis.publish.mockResolvedValueOnce(1);
-      mockRedis.zadd.mockRejectedValueOnce(new Error('Chat persistence failed'));
+      mockRedis.zadd.mockRejectedValueOnce(
+        new Error('Chat persistence failed')
+      );
 
       const result = await redisPubSubService.publishChatMessage(messageData);
 

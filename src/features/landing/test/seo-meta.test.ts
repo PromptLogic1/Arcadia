@@ -4,15 +4,26 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { generateMetaTags, validateMetaTags, type MetaTagConfig } from '../utils/seo-meta';
+import {
+  generateMetaTags,
+  validateMetaTags,
+  type MetaTagConfig,
+} from '../utils/seo-meta';
 
 describe('SEO Meta Tag Generation', () => {
   describe('generateMetaTags', () => {
     it('should generate complete meta tags for home page', () => {
       const config: MetaTagConfig = {
         title: 'Arcadia - The Ultimate Gaming Community Platform',
-        description: 'Join Arcadia to compete in gaming challenges, connect with players worldwide, and track your achievements across multiple games.',
-        keywords: ['gaming', 'community', 'platform', 'challenges', 'tournaments'],
+        description:
+          'Join Arcadia to compete in gaming challenges, connect with players worldwide, and track your achievements across multiple games.',
+        keywords: [
+          'gaming',
+          'community',
+          'platform',
+          'challenges',
+          'tournaments',
+        ],
         author: 'Arcadia Team',
         url: 'https://arcadia.game',
         image: 'https://arcadia.game/images/og-image.png',
@@ -22,9 +33,13 @@ describe('SEO Meta Tag Generation', () => {
       const metaTags = generateMetaTags(config);
 
       // Basic meta tags
-      expect(metaTags.title).toBe('Arcadia - The Ultimate Gaming Community Platform');
+      expect(metaTags.title).toBe(
+        'Arcadia - The Ultimate Gaming Community Platform'
+      );
       expect(metaTags.description).toBe(config.description);
-      expect(metaTags.keywords).toBe('gaming, community, platform, challenges, tournaments');
+      expect(metaTags.keywords).toBe(
+        'gaming, community, platform, challenges, tournaments'
+      );
       expect(metaTags.author).toBe('Arcadia Team');
 
       // Open Graph tags
@@ -32,7 +47,9 @@ describe('SEO Meta Tag Generation', () => {
       expect(metaTags.openGraph['og:description']).toBe(config.description);
       expect(metaTags.openGraph['og:type']).toBe('website');
       expect(metaTags.openGraph['og:url']).toBe('https://arcadia.game');
-      expect(metaTags.openGraph['og:image']).toBe('https://arcadia.game/images/og-image.png');
+      expect(metaTags.openGraph['og:image']).toBe(
+        'https://arcadia.game/images/og-image.png'
+      );
       expect(metaTags.openGraph['og:site_name']).toBe('Arcadia');
 
       // Twitter Card tags
@@ -47,7 +64,8 @@ describe('SEO Meta Tag Generation', () => {
     it('should generate article-specific meta tags', () => {
       const config: MetaTagConfig = {
         title: 'Top 10 Gaming Strategies for 2024',
-        description: 'Discover the most effective gaming strategies to improve your performance in 2024.',
+        description:
+          'Discover the most effective gaming strategies to improve your performance in 2024.',
         url: 'https://arcadia.game/blog/top-10-gaming-strategies',
         type: 'article',
         publishedTime: '2024-01-15T08:00:00Z',
@@ -142,7 +160,8 @@ describe('SEO Meta Tag Generation', () => {
         keywords: 'gaming, community, platform',
         openGraph: {
           'og:title': 'Arcadia - Gaming Platform',
-          'og:description': 'Join Arcadia to compete in gaming challenges worldwide.',
+          'og:description':
+            'Join Arcadia to compete in gaming challenges worldwide.',
           'og:type': 'website',
           'og:url': 'https://arcadia.game',
           'og:image': 'https://arcadia.game/og-image.png',
@@ -288,7 +307,8 @@ describe('SEO Meta Tag Generation', () => {
     it('should include relevant keywords in title and description', () => {
       const config: MetaTagConfig = {
         title: 'Arcadia - Gaming Community Platform',
-        description: 'Join Arcadia to compete in gaming challenges and connect with players.',
+        description:
+          'Join Arcadia to compete in gaming challenges and connect with players.',
         keywords: ['gaming', 'community', 'challenges'],
         url: 'https://arcadia.game',
       };

@@ -106,7 +106,9 @@ jest.mock('@/lib/supabase/client', () => ({
       unsubscribe: jest.fn().mockResolvedValue({ error: null }),
     })),
     auth: {
-      getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      getUser: jest
+        .fn()
+        .mockResolvedValue({ data: { user: null }, error: null }),
     },
   },
 }));
@@ -125,7 +127,7 @@ jest.mock('@/lib/logger', () => ({
 export const testHelpers = {
   // Advance timers and flush promises
   flushPromises: () => new Promise(resolve => setTimeout(resolve, 0)),
-  
+
   // Wait for a condition to be true
   waitFor: async (condition: () => boolean, timeout = 1000) => {
     const start = Date.now();
@@ -136,7 +138,7 @@ export const testHelpers = {
       throw new Error('Condition not met within timeout');
     }
   },
-  
+
   // Create a mock implementation that tracks calls
   createMockTracker: <Args extends readonly unknown[], Return>(
     implementation?: (...args: Args) => Return
@@ -144,7 +146,7 @@ export const testHelpers = {
     const calls: Args[] = [];
     const mock = jest.fn((...args: Args): Return => {
       calls.push(args);
-      return implementation ? implementation(...args) : undefined as Return;
+      return implementation ? implementation(...args) : (undefined as Return);
     });
 
     return {
@@ -159,7 +161,7 @@ export const testHelpers = {
       },
     };
   },
-  
+
   // Mock timer helpers
   mockTimers: {
     enable: () => jest.useFakeTimers(),
@@ -179,13 +181,13 @@ export const performanceConfig = {
     boardGeneration: 50,
     stateUpdate: 20,
   },
-  
+
   // Memory usage thresholds
   memoryLimits: {
     maxHeapUsed: 50 * 1024 * 1024, // 50MB
     maxEventListeners: 100,
   },
-  
+
   // Concurrency limits
   concurrency: {
     maxConcurrentOperations: 10,
@@ -195,15 +197,19 @@ export const performanceConfig = {
 
 // Test data generators using type-safe factories
 export const testDataGenerators = {
-  randomString: (length = 10): string => 
-    Math.random().toString(36).substring(2, 2 + length),
-    
-  randomId: (): string => 
+  randomString: (length = 10): string =>
+    Math.random()
+      .toString(36)
+      .substring(2, 2 + length),
+
+  randomId: (): string =>
     `test-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-    
-  randomColor: (): string => 
-    `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
-    
+
+  randomColor: (): string =>
+    `#${Math.floor(Math.random() * 16777215)
+      .toString(16)
+      .padStart(6, '0')}`,
+
   // Use factory function for consistent board creation
   randomBoardState: (size = 5): BoardCell[] => {
     const cellCount = size * size;
@@ -234,7 +240,7 @@ afterEach(() => {
 
 // Global error handler for unhandled promise rejections in tests
 if (typeof window !== 'undefined') {
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener('unhandledrejection', event => {
     console.error('Unhandled promise rejection in test:', event.reason);
   });
 }

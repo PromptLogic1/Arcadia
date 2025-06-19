@@ -15,6 +15,7 @@
 ### 2. Tool Usage Optimization
 
 - **Search Operations**:
+
   - Use `codebase_search` for semantic understanding
   - Use `grep_search` for exact matches
   - Use `file_search` for quick file location
@@ -32,7 +33,7 @@
   - Use `update_memory` for important patterns
   - Delete outdated memories immediately
   - Update memories when contradicted
-  - Cite memories using [text][[memory:ID]] format
+  - Cite memories using [text][memory:ID]] format
 
 ### 4. Error Prevention
 
@@ -164,6 +165,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 ### 1. Code Quality & Comprehension
 
 - **Read Entire Files**: MANDATORY - Read complete files before modifications
+
   - Prevents code duplication
   - Ensures architectural consistency
   - Avoids misunderstandings of existing patterns
@@ -179,6 +181,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 ### 2. Development Process
 
 - **Commit Strategy**: Early and frequent
+
   - Break large tasks into logical milestones
   - Commit after user confirmation of each milestone
   - Prevents loss of work if issues arise
@@ -193,6 +196,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 ### 3. Quality Assurance
 
 - **Linting**: Run after major changes
+
   - Catch syntax errors early
   - Ensure method usage correctness
   - Maintain code style consistency
@@ -207,6 +211,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 ### 4. Implementation Standards
 
 - **No Dummy Implementations**:
+
   - Deliver production-ready code
   - No placeholder functionality
   - Complete feature implementation
@@ -222,6 +227,7 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 ### 5. Architectural Discipline
 
 - **Before Coding**:
+
   1. Understand current architecture
   2. Identify files to modify
   3. Create detailed implementation plan
@@ -236,34 +242,34 @@ export const useAppActions = () => useAppStore(useShallow(s => s.actions));
 
 ## Tech Stack (Updated 2025-06-19)
 
-| Layer | Library | Version |
-|-------|---------|---------|
-| **Framework** | React | 19.0.0 |
-| | Next.js (App Router) | 15.3.3 |
-| **Language & Tooling** | TypeScript | 5.7.2 (strict) |
-| | ESLint | 9.29.0 (flat) |
-| | @typescript-eslint | 8.34.1 |
-| | Prettier | 3.5.3 + tailwind-plugin 0.6.12 |
-| **State & Data** | TanStack Query | 5.80.7 |
-| | Zustand | 5.0.5 |
-| | Zod | 3.25.64 |
-| | Supabase JS | 2.50.0 |
-| | @supabase/ssr | 0.6.1 |
-| **Styling & UI** | Tailwind CSS | 4.1.10 |
-| | shadcn/ui (Radix v1) | *latest* |
-| | Radix UI components | 1.x (see dependencies) |
-| **Monitoring & Tracing** | @sentry/nextjs | 9.29.0 |
-| | OpenTelemetry API | 1.9.0 |
-| | OpenTelemetry SDK (trace) | 2.0.1 |
-| **Infrastructure Clients** | @upstash/redis | 1.35.0 |
-| | @upstash/ratelimit | 2.0.5 |
-| | @vercel/analytics | 1.4.1 |
-| | @vercel/edge-config | 1.4.0 |
-| | @vercel/speed-insights | 1.1.0 |
-| **Testing & Quality** | Jest | 29.7.0 |
-| | Playwright | 1.53.0 |
-| | Testing Library (react) | 16.3.0 |
-| | jest-dom | 6.6.3 |
+| Layer                      | Library                   | Version                        |
+| -------------------------- | ------------------------- | ------------------------------ |
+| **Framework**              | React                     | 19.0.0                         |
+|                            | Next.js (App Router)      | 15.3.3                         |
+| **Language & Tooling**     | TypeScript                | 5.7.2 (strict)                 |
+|                            | ESLint                    | 9.29.0 (flat)                  |
+|                            | @typescript-eslint        | 8.34.1                         |
+|                            | Prettier                  | 3.5.3 + tailwind-plugin 0.6.12 |
+| **State & Data**           | TanStack Query            | 5.80.7                         |
+|                            | Zustand                   | 5.0.5                          |
+|                            | Zod                       | 3.25.64                        |
+|                            | Supabase JS               | 2.50.0                         |
+|                            | @supabase/ssr             | 0.6.1                          |
+| **Styling & UI**           | Tailwind CSS              | 4.1.10                         |
+|                            | shadcn/ui (Radix v1)      | _latest_                       |
+|                            | Radix UI components       | 1.x (see dependencies)         |
+| **Monitoring & Tracing**   | @sentry/nextjs            | 9.29.0                         |
+|                            | OpenTelemetry API         | 1.9.0                          |
+|                            | OpenTelemetry SDK (trace) | 2.0.1                          |
+| **Infrastructure Clients** | @upstash/redis            | 1.35.0                         |
+|                            | @upstash/ratelimit        | 2.0.5                          |
+|                            | @vercel/analytics         | 1.4.1                          |
+|                            | @vercel/edge-config       | 1.4.0                          |
+|                            | @vercel/speed-insights    | 1.1.0                          |
+| **Testing & Quality**      | Jest                      | 29.7.0                         |
+|                            | Playwright                | 1.53.0                         |
+|                            | Testing Library (react)   | 16.3.0                         |
+|                            | jest-dom                  | 6.6.3                          |
 
 ## Deployment & Local Development Rule (CRITICAL)
 
@@ -327,16 +333,19 @@ npm run type-check    # Type-check
 When responding to queries:
 
 1. **Task Analysis**:
+
    - Break down complex requests
    - Identify required tools
    - Plan approach before execution
 
 2. **Tool Selection**:
+
    - Choose most appropriate tools
    - Combine tools effectively
    - Explain tool usage decisions
 
 3. **Implementation**:
+
    - Follow type safety rules
    - Maintain existing patterns
    - Document changes clearly
@@ -347,15 +356,12 @@ When responding to queries:
    - Confirm pattern compliance
 
 ## Response to Feature Requests
-
-"90% production-ready. ALL critical issues resolved: ✅ Type safety (207/207 assertions fixed) ✅ Zustand patterns (98/100 exemplary compliance). REFERENCE IMPLEMENTATION for modern React architecture. Only infrastructure scaling remaining. Timeline: 1-2 weeks."
-
----
-
 **Remember**: Quality over speed. Pattern compliance mandatory. Fix it right the first time.
 
 ## CLEAN UP
+
 Whenever you add temporary files and they become outdated/not needed anymore, make sure to clean up after yourself and remove/archive these files so the codebase does not become cluttered.
 
 ## File Imports
+
 This file can import other documentation files using the `@path/to/file.md` syntax for modular organization.

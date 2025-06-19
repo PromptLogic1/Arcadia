@@ -1,6 +1,6 @@
 /**
  * Type-safe error definitions for infrastructure testing
- * 
+ *
  * This module provides strongly-typed error interfaces for different
  * failure scenarios in infrastructure tests, ensuring type safety
  * and consistency across all test files.
@@ -137,15 +137,21 @@ export const isApiError = (error: BaseError): error is ApiError => {
   return 'status' in error && 'statusText' in error;
 };
 
-export const isValidationError = (error: BaseError): error is ValidationError => {
+export const isValidationError = (
+  error: BaseError
+): error is ValidationError => {
   return 'fields' in error;
 };
 
-export const isInfrastructureError = (error: BaseError): error is InfrastructureError => {
+export const isInfrastructureError = (
+  error: BaseError
+): error is InfrastructureError => {
   return 'service' in error && 'operation' in error;
 };
 
-export const isCircuitBreakerError = (error: BaseError): error is CircuitBreakerError => {
+export const isCircuitBreakerError = (
+  error: BaseError
+): error is CircuitBreakerError => {
   return 'state' in error && 'failureCount' in error;
 };
 
@@ -157,15 +163,21 @@ export const isAuthError = (error: BaseError): error is AuthError => {
   return 'type' in error && 'requiresAction' in error;
 };
 
-export const isDataIntegrityError = (error: BaseError): error is DataIntegrityError => {
+export const isDataIntegrityError = (
+  error: BaseError
+): error is DataIntegrityError => {
   return 'operation' in error && 'resource' in error;
 };
 
-export const isPerformanceError = (error: BaseError): error is PerformanceError => {
+export const isPerformanceError = (
+  error: BaseError
+): error is PerformanceError => {
   return 'metric' in error && 'threshold' in error;
 };
 
-export const isErrorBoundaryError = (error: BaseError): error is ErrorBoundaryError => {
+export const isErrorBoundaryError = (
+  error: BaseError
+): error is ErrorBoundaryError => {
   return 'level' in error && 'fallbackRendered' in error;
 };
 
@@ -184,7 +196,7 @@ export const getErrorSeverity = (error: BaseError): ErrorSeverity => {
   if (isAuthError(error) && error.type === 'expired') return 'medium';
   if (isRateLimitError(error)) return 'low';
   if (isNetworkError(error) && error.retryable) return 'low';
-  
+
   return 'medium';
 };
 

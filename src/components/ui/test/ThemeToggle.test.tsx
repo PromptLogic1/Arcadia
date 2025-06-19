@@ -23,7 +23,9 @@ jest.mock('@/components/ui/Button', () => ({
 }));
 
 jest.mock('@/components/ui/DropdownMenu', () => ({
-  DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
+  DropdownMenu: ({ children }: any) => (
+    <div data-testid="dropdown-menu">{children}</div>
+  ),
   DropdownMenuTrigger: ({ children, asChild }: any) => (
     <div data-testid="dropdown-trigger">{children}</div>
   ),
@@ -40,9 +42,15 @@ jest.mock('@/components/ui/DropdownMenu', () => ({
 }));
 
 jest.mock('@/components/ui/Icons', () => ({
-  Sun: ({ className }: any) => <span className={className} data-testid="sun-icon" />,
-  Moon: ({ className }: any) => <span className={className} data-testid="moon-icon" />,
-  Monitor: ({ className }: any) => <span className={className} data-testid="monitor-icon" />,
+  Sun: ({ className }: any) => (
+    <span className={className} data-testid="sun-icon" />
+  ),
+  Moon: ({ className }: any) => (
+    <span className={className} data-testid="moon-icon" />
+  ),
+  Monitor: ({ className }: any) => (
+    <span className={className} data-testid="monitor-icon" />
+  ),
 }));
 
 const mockUseTheme = useTheme as jest.MockedFunction<typeof useTheme>;
@@ -63,7 +71,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const button = screen.getByRole('button');
       expect(button).toBeDisabled();
       expect(screen.getByTestId('monitor-icon')).toBeInTheDocument();
@@ -80,7 +88,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       // Wait for useEffect to run
       await waitFor(() => {
         expect(screen.getByTestId('dropdown-menu')).toBeInTheDocument();
@@ -91,7 +99,8 @@ describe('ThemeToggle', () => {
   describe('dropdown variant (default)', () => {
     beforeEach(async () => {
       // Mock mounted state
-      jest.spyOn(React, 'useState')
+      jest
+        .spyOn(React, 'useState')
         .mockReturnValueOnce([true, jest.fn()]) // mounted state
         .mockReturnValueOnce([false, jest.fn()]); // any other useState calls
     });
@@ -107,10 +116,12 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       expect(screen.getByTestId('dropdown-menu')).toBeInTheDocument();
       expect(screen.getByTestId('moon-icon')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Toggle theme' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Toggle theme' })
+      ).toBeInTheDocument();
     });
 
     test('should render dropdown with light theme icon', () => {
@@ -124,7 +135,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       expect(screen.getByTestId('sun-icon')).toBeInTheDocument();
     });
 
@@ -139,7 +150,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       expect(screen.getByTestId('monitor-icon')).toBeInTheDocument();
     });
 
@@ -154,17 +165,17 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const dropdownItems = screen.getAllByTestId('dropdown-item');
-      
+
       // Click light theme
       fireEvent.click(dropdownItems[0]);
       expect(setThemeMock).toHaveBeenCalledWith('light');
-      
+
       // Click dark theme
       fireEvent.click(dropdownItems[1]);
       expect(setThemeMock).toHaveBeenCalledWith('dark');
-      
+
       // Click system theme
       fireEvent.click(dropdownItems[2]);
       expect(setThemeMock).toHaveBeenCalledWith('system');
@@ -181,7 +192,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const dropdownItems = screen.getAllByTestId('dropdown-item');
       expect(dropdownItems[0]).toHaveClass('bg-cyan-500/20', 'text-cyan-300');
     });
@@ -190,7 +201,8 @@ describe('ThemeToggle', () => {
   describe('toggle variant', () => {
     beforeEach(async () => {
       // Mock mounted state
-      jest.spyOn(React, 'useState')
+      jest
+        .spyOn(React, 'useState')
         .mockReturnValueOnce([true, jest.fn()]) // mounted state
         .mockReturnValueOnce([false, jest.fn()]); // any other useState calls
     });
@@ -206,9 +218,11 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle variant="toggle" />);
-      
+
       expect(screen.getByTestId('sun-icon')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Switch to light theme' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Switch to light theme' })
+      ).toBeInTheDocument();
     });
 
     test('should render toggle button with light theme', () => {
@@ -222,9 +236,11 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle variant="toggle" />);
-      
+
       expect(screen.getByTestId('moon-icon')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Switch to dark theme' })
+      ).toBeInTheDocument();
     });
 
     test('should toggle theme when clicked', () => {
@@ -238,10 +254,10 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle variant="toggle" />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(setThemeMock).toHaveBeenCalledWith('light');
     });
 
@@ -256,10 +272,10 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle variant="toggle" />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(setThemeMock).toHaveBeenCalledWith('dark');
     });
   });
@@ -267,7 +283,8 @@ describe('ThemeToggle', () => {
   describe('styling and accessibility', () => {
     beforeEach(async () => {
       // Mock mounted state
-      jest.spyOn(React, 'useState')
+      jest
+        .spyOn(React, 'useState')
         .mockReturnValueOnce([true, jest.fn()]) // mounted state
         .mockReturnValueOnce([false, jest.fn()]); // any other useState calls
     });
@@ -283,7 +300,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle className="custom-class" />);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass('custom-class');
     });
@@ -299,7 +316,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveClass(
         'h-11',
@@ -324,7 +341,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const dropdownContent = screen.getByTestId('dropdown-content');
       expect(dropdownContent).toHaveClass(
         'cyber-card',
@@ -346,7 +363,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const triggerIcon = screen.getByTestId('moon-icon');
       expect(triggerIcon).toHaveClass('h-5', 'w-5');
     });
@@ -364,12 +381,13 @@ describe('ThemeToggle', () => {
       });
 
       // Mock mounted state
-      jest.spyOn(React, 'useState')
+      jest
+        .spyOn(React, 'useState')
         .mockReturnValueOnce([true, jest.fn()]) // mounted state
         .mockReturnValueOnce([false, jest.fn()]); // any other useState calls
 
       render(<ThemeToggle />);
-      
+
       expect(screen.getByTestId('monitor-icon')).toBeInTheDocument();
     });
 
@@ -384,15 +402,16 @@ describe('ThemeToggle', () => {
       });
 
       // Mock mounted state
-      jest.spyOn(React, 'useState')
+      jest
+        .spyOn(React, 'useState')
         .mockReturnValueOnce([true, jest.fn()]) // mounted state
         .mockReturnValueOnce([false, jest.fn()]); // any other useState calls
 
       render(<ThemeToggle variant="toggle" />);
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       // Should default to switching to 'dark' when resolvedTheme is undefined
       expect(setThemeMock).toHaveBeenCalledWith('dark');
     });
@@ -401,7 +420,8 @@ describe('ThemeToggle', () => {
   describe('dropdown menu structure', () => {
     beforeEach(async () => {
       // Mock mounted state
-      jest.spyOn(React, 'useState')
+      jest
+        .spyOn(React, 'useState')
         .mockReturnValueOnce([true, jest.fn()]) // mounted state
         .mockReturnValueOnce([false, jest.fn()]); // any other useState calls
     });
@@ -417,10 +437,10 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       const dropdownItems = screen.getAllByTestId('dropdown-item');
       expect(dropdownItems).toHaveLength(3);
-      
+
       // Check that all icons are present in dropdown items
       expect(screen.getAllByTestId('sun-icon')).toHaveLength(1); // Light option
       expect(screen.getAllByTestId('moon-icon')).toHaveLength(2); // Dark option + trigger
@@ -438,7 +458,7 @@ describe('ThemeToggle', () => {
       });
 
       render(<ThemeToggle />);
-      
+
       expect(screen.getByText('Light')).toBeInTheDocument();
       expect(screen.getByText('Dark')).toBeInTheDocument();
       expect(screen.getByText('System')).toBeInTheDocument();

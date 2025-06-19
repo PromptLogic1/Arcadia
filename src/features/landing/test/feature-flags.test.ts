@@ -458,7 +458,7 @@ describe('Feature Flags Logic', () => {
       };
 
       flagManager.registerFlag(flag);
-      
+
       const retrieved = flagManager.getFlag('test-flag');
       expect(retrieved?.key).toBe(flag.key);
       expect(retrieved?.name).toBe(flag.name);
@@ -644,7 +644,9 @@ describe('Feature Flags Logic', () => {
       const iterations = 1000;
 
       for (let i = 0; i < iterations; i++) {
-        const result = flagManager.getString('experiment-flag', { userId: `user-${i}` });
+        const result = flagManager.getString('experiment-flag', {
+          userId: `user-${i}`,
+        });
         results[result] = (results[result] || 0) + 1;
       }
 
@@ -652,9 +654,12 @@ describe('Feature Flags Logic', () => {
       expect(results['control']).toBeGreaterThan(300);
       expect(results['variant-a']).toBeGreaterThan(50);
       expect(results['variant-b']).toBeGreaterThan(50);
-      
+
       // Check that all results add up to the total iterations
-      const total = Object.values(results).reduce((sum, count) => sum + count, 0);
+      const total = Object.values(results).reduce(
+        (sum, count) => sum + count,
+        0
+      );
       expect(total).toBe(iterations);
     });
   });
@@ -695,10 +700,14 @@ describe('Feature Flags Logic', () => {
 
       flagManager.registerFlag(heroFlag);
 
-      const newUserVariant = flagManager.getString('hero-variant', { isNewUser: true });
+      const newUserVariant = flagManager.getString('hero-variant', {
+        isNewUser: true,
+      });
       expect(newUserVariant).toBe('onboarding-focused');
 
-      const returningUserVariant = flagManager.getString('hero-variant', { isNewUser: false });
+      const returningUserVariant = flagManager.getString('hero-variant', {
+        isNewUser: false,
+      });
       expect(returningUserVariant).toBe('feature-focused');
     });
 
@@ -715,7 +724,9 @@ describe('Feature Flags Logic', () => {
       flagManager.registerFlag(demoFlag);
 
       // Test that flag returns expected value
-      const shouldShow = flagManager.isEnabled('show-demo-game', { userId: 'test-user' });
+      const shouldShow = flagManager.isEnabled('show-demo-game', {
+        userId: 'test-user',
+      });
       expect(shouldShow).toBe(true);
 
       // Test with disabled flag
@@ -726,7 +737,9 @@ describe('Feature Flags Logic', () => {
       };
 
       flagManager.updateFlag(disabledFlag);
-      const shouldNotShow = flagManager.isEnabled('show-demo-game', { userId: 'test-user' });
+      const shouldNotShow = flagManager.isEnabled('show-demo-game', {
+        userId: 'test-user',
+      });
       expect(shouldNotShow).toBe(false);
     });
 
@@ -770,11 +783,15 @@ describe('Feature Flags Logic', () => {
       expect(standardDisplay).toBe('standard');
 
       // Enterprise user
-      const enterpriseDisplay = flagManager.getString('pricing-display', { companySize: 500 });
+      const enterpriseDisplay = flagManager.getString('pricing-display', {
+        companySize: 500,
+      });
       expect(enterpriseDisplay).toBe('enterprise');
 
       // Holiday sale
-      const saleDisplay = flagManager.getString('pricing-display', { currentDate: '2024-11-26' });
+      const saleDisplay = flagManager.getString('pricing-display', {
+        currentDate: '2024-11-26',
+      });
       expect(saleDisplay).toBe('sale');
     });
   });

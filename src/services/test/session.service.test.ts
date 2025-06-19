@@ -56,9 +56,9 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockSessionStats)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockSessionStats)),
       });
 
       const result = await sessionService.getSessionStats('session-123');
@@ -88,9 +88,11 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Session not found', 'PGRST116')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('Session not found', 'PGRST116')
+          ),
       });
 
       const result = await sessionService.getSessionStats('non-existent');
@@ -107,7 +109,9 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(null)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(null)),
       });
 
       const result = await sessionService.getSessionStats('session-123');
@@ -146,9 +150,14 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Database connection failed', 'CONNECTION_ERROR')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse(
+              'Database connection failed',
+              'CONNECTION_ERROR'
+            )
+          ),
       });
 
       const result = await sessionService.getSessionStats('session-123');
@@ -159,7 +168,9 @@ describe('SessionService', () => {
       expect(log.error).toHaveBeenCalledWith(
         'Failed to get session stats',
         expect.objectContaining({ message: 'Database connection failed' }),
-        { metadata: { sessionId: 'session-123', errorCode: 'CONNECTION_ERROR' } }
+        {
+          metadata: { sessionId: 'session-123', errorCode: 'CONNECTION_ERROR' },
+        }
       );
     });
 
@@ -207,9 +218,11 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockSessionWithDetails)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(mockSessionWithDetails)
+          ),
       });
 
       const result = await sessionService.getSessionWithDetails('session-123');
@@ -242,9 +255,9 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(sessionWithNulls)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(sessionWithNulls)),
       });
 
       const result = await sessionService.getSessionWithDetails('session-123');
@@ -263,9 +276,11 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Session not found', 'PGRST116')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('Session not found', 'PGRST116')
+          ),
       });
 
       const result = await sessionService.getSessionWithDetails('non-existent');
@@ -282,9 +297,11 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Row-level security violation', '42501')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('Row-level security violation', '42501')
+          ),
       });
 
       const result = await sessionService.getSessionWithDetails('session-123');
@@ -330,9 +347,9 @@ describe('SessionService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(partialSession)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(partialSession)),
       });
 
       const result = await sessionService.getSessionWithDetails('session-123');
@@ -356,9 +373,14 @@ describe('SessionService', () => {
             mockFrom.mockReturnValue({
               select: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockResolvedValue(
-                createSupabaseSuccessResponse({ id: 'test', board_title: 'Test' })
-              ),
+              single: jest
+                .fn()
+                .mockResolvedValue(
+                  createSupabaseSuccessResponse({
+                    id: 'test',
+                    board_title: 'Test',
+                  })
+                ),
             });
           },
         },
@@ -369,9 +391,11 @@ describe('SessionService', () => {
             mockFrom.mockReturnValue({
               select: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockResolvedValue(
-                createSupabaseErrorResponse('Error occurred')
-              ),
+              single: jest
+                .fn()
+                .mockResolvedValue(
+                  createSupabaseErrorResponse('Error occurred')
+                ),
             });
           },
         },
@@ -390,7 +414,8 @@ describe('SessionService', () => {
         scenario.setup();
 
         const statsResult = await sessionService.getSessionStats('test');
-        const detailsResult = await sessionService.getSessionWithDetails('test');
+        const detailsResult =
+          await sessionService.getSessionWithDetails('test');
 
         for (const result of [statsResult, detailsResult]) {
           expect(result).toHaveProperty('success');

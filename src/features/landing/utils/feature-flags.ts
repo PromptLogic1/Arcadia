@@ -10,10 +10,23 @@ export type FlagType = 'boolean' | 'string' | 'number';
 
 export interface FlagCondition {
   attribute: string;
-  operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 
-           'greater_than' | 'less_than' | 'greater_equal' | 'less_equal' |
-           'in' | 'not_in' | 'starts_with' | 'ends_with' | 'matches' |
-           'before' | 'after' | 'between';
+  operator:
+    | 'equals'
+    | 'not_equals'
+    | 'contains'
+    | 'not_contains'
+    | 'greater_than'
+    | 'less_than'
+    | 'greater_equal'
+    | 'less_equal'
+    | 'in'
+    | 'not_in'
+    | 'starts_with'
+    | 'ends_with'
+    | 'matches'
+    | 'before'
+    | 'after'
+    | 'between';
   value: unknown;
 }
 
@@ -143,7 +156,10 @@ function evaluateRule(rule: FlagRule, context: FlagContext): boolean {
 /**
  * Parse and evaluate a single condition
  */
-export function parseCondition(condition: FlagCondition, context: FlagContext): boolean {
+export function parseCondition(
+  condition: FlagCondition,
+  context: FlagContext
+): boolean {
   const contextValue = context[condition.attribute];
   const conditionValue = condition.value;
 
@@ -155,46 +171,46 @@ export function parseCondition(condition: FlagCondition, context: FlagContext): 
   switch (condition.operator) {
     case 'equals':
       return String(contextValue) === String(conditionValue);
-    
+
     case 'not_equals':
       return String(contextValue) !== String(conditionValue);
-    
+
     case 'contains':
       return String(contextValue).includes(String(conditionValue));
-    
+
     case 'not_contains':
       return !String(contextValue).includes(String(conditionValue));
-    
+
     case 'starts_with':
       return String(contextValue).startsWith(String(conditionValue));
-    
+
     case 'ends_with':
       return String(contextValue).endsWith(String(conditionValue));
-    
+
     case 'greater_than':
       return Number(contextValue) > Number(conditionValue);
-    
+
     case 'less_than':
       return Number(contextValue) < Number(conditionValue);
-    
+
     case 'greater_equal':
       return Number(contextValue) >= Number(conditionValue);
-    
+
     case 'less_equal':
       return Number(contextValue) <= Number(conditionValue);
-    
+
     case 'in':
       if (Array.isArray(conditionValue)) {
         return conditionValue.includes(contextValue);
       }
       return false;
-    
+
     case 'not_in':
       if (Array.isArray(conditionValue)) {
         return !conditionValue.includes(contextValue);
       }
       return true;
-    
+
     case 'matches':
       try {
         const regex = new RegExp(String(conditionValue));
@@ -202,13 +218,13 @@ export function parseCondition(condition: FlagCondition, context: FlagContext): 
       } catch {
         return false;
       }
-    
+
     case 'before':
       return new Date(String(contextValue)) < new Date(String(conditionValue));
-    
+
     case 'after':
       return new Date(String(contextValue)) > new Date(String(conditionValue));
-    
+
     case 'between':
       if (Array.isArray(conditionValue) && conditionValue.length === 2) {
         const date = new Date(String(contextValue));
@@ -217,7 +233,7 @@ export function parseCondition(condition: FlagCondition, context: FlagContext): 
         return date >= start && date <= end;
       }
       return false;
-    
+
     default:
       return false;
   }
@@ -245,13 +261,13 @@ function selectExperimentVariant(
 
   const hash = generateUserHash(experiment.id, userId);
   const totalWeight = experiment.variants.reduce((sum, v) => sum + v.weight, 0);
-  
+
   if (totalWeight === 0) {
     const firstVariant = experiment.variants[0];
     return firstVariant ? firstVariant.value : null;
   }
 
-  const bucket = (hash % totalWeight);
+  const bucket = hash % totalWeight;
   let accumulated = 0;
 
   for (const variant of experiment.variants) {
@@ -276,9 +292,10 @@ export function validateFlagConfig(flag: FeatureFlag): FlagValidation {
   if (!flag.key) {
     errors.push({ field: 'key', message: 'Flag key is required' });
   } else if (!FLAG_KEY_REGEX.test(flag.key)) {
-    errors.push({ 
-      field: 'key', 
-      message: 'Flag key must be in kebab-case format (lowercase, hyphens only)' 
+    errors.push({
+      field: 'key',
+      message:
+        'Flag key must be in kebab-case format (lowercase, hyphens only)',
     });
   }
 
@@ -295,19 +312,26 @@ export function validateFlagConfig(flag: FeatureFlag): FlagValidation {
   }
 
   if (flag.defaultValue === undefined || flag.defaultValue === null) {
-    errors.push({ field: 'defaultValue', message: 'Default value is required' });
+    errors.push({
+      field: 'defaultValue',
+      message: 'Default value is required',
+    });
   }
 
   // Type consistency
   if (flag.type && flag.defaultValue !== undefined) {
     const actualType = typeof flag.defaultValue;
-    const expectedType = flag.type === 'number' ? 'number' : 
-                        flag.type === 'boolean' ? 'boolean' : 'string';
-    
+    const expectedType =
+      flag.type === 'number'
+        ? 'number'
+        : flag.type === 'boolean'
+          ? 'boolean'
+          : 'string';
+
     if (actualType !== expectedType) {
-      errors.push({ 
-        field: 'defaultValue', 
-        message: `Default value type mismatch. Expected ${expectedType}, got ${actualType}` 
+      errors.push({
+        field: 'defaultValue',
+        message: `Default value type mismatch. Expected ${expectedType}, got ${actualType}`,
       });
     }
   }
@@ -315,9 +339,9 @@ export function validateFlagConfig(flag: FeatureFlag): FlagValidation {
   // Rollout percentage validation
   if (flag.rolloutPercentage !== undefined) {
     if (flag.rolloutPercentage < 0 || flag.rolloutPercentage > 100) {
-      errors.push({ 
-        field: 'rolloutPercentage', 
-        message: 'Rollout percentage must be between 0 and 100' 
+      errors.push({
+        field: 'rolloutPercentage',
+        message: 'Rollout percentage must be between 0 and 100',
       });
     }
   }
@@ -330,14 +354,23 @@ export function validateFlagConfig(flag: FeatureFlag): FlagValidation {
       }
 
       if (!rule.conditions || rule.conditions.length === 0) {
-        errors.push({ field: 'rules', message: 'Rule must have at least one condition' });
+        errors.push({
+          field: 'rules',
+          message: 'Rule must have at least one condition',
+        });
       } else {
         for (const condition of rule.conditions) {
           if (!condition.attribute) {
-            errors.push({ field: 'rules', message: 'Condition attribute is required' });
+            errors.push({
+              field: 'rules',
+              message: 'Condition attribute is required',
+            });
           }
           if (!condition.operator) {
-            errors.push({ field: 'rules', message: 'Condition operator is required' });
+            errors.push({
+              field: 'rules',
+              message: 'Condition operator is required',
+            });
           }
         }
       }
@@ -351,17 +384,26 @@ export function validateFlagConfig(flag: FeatureFlag): FlagValidation {
   // Experiment validation
   if (flag.experiment) {
     if (!flag.experiment.id) {
-      errors.push({ field: 'experiment', message: 'Experiment ID is required' });
+      errors.push({
+        field: 'experiment',
+        message: 'Experiment ID is required',
+      });
     }
 
     if (!flag.experiment.variants || flag.experiment.variants.length === 0) {
-      errors.push({ field: 'experiment', message: 'Experiment must have variants' });
+      errors.push({
+        field: 'experiment',
+        message: 'Experiment must have variants',
+      });
     } else {
-      const totalWeight = flag.experiment.variants.reduce((sum, v) => sum + v.weight, 0);
+      const totalWeight = flag.experiment.variants.reduce(
+        (sum, v) => sum + v.weight,
+        0
+      );
       if (totalWeight === 0) {
-        warnings?.push({ 
-          field: 'experiment', 
-          message: 'Experiment variants have zero total weight' 
+        warnings?.push({
+          field: 'experiment',
+          message: 'Experiment variants have zero total weight',
         });
       }
     }
@@ -383,7 +425,9 @@ export class FeatureFlagManager {
   registerFlag(flag: FeatureFlag): void {
     const validation = validateFlagConfig(flag);
     if (!validation.valid) {
-      throw new Error(`Invalid flag configuration: ${validation.errors.map(e => e.message).join(', ')}`);
+      throw new Error(
+        `Invalid flag configuration: ${validation.errors.map(e => e.message).join(', ')}`
+      );
     }
 
     this.flags.set(flag.key, {
@@ -454,7 +498,7 @@ export class FeatureFlagManager {
    */
   getEvaluationContext(context: FlagContext): Record<string, FlagValue> {
     const result: Record<string, FlagValue> = {};
-    
+
     Array.from(this.flags.entries()).forEach(([key, flag]) => {
       result[key] = evaluateFlag(key, flag.defaultValue, context, flag);
     });
@@ -467,7 +511,7 @@ export class FeatureFlagManager {
    */
   private trackUsage(flagKey: string, context: FlagContext): void {
     let usage = this.usage.get(flagKey);
-    
+
     if (!usage) {
       usage = {
         flagKey,
@@ -480,7 +524,7 @@ export class FeatureFlagManager {
 
     usage.evaluationCount++;
     usage.lastEvaluated = new Date();
-    
+
     if (context.userId) {
       usage.uniqueUsers.add(context.userId);
     }
@@ -577,7 +621,11 @@ export const LANDING_PAGE_FLAGS: FeatureFlag[] = [
       {
         id: 'enterprise-focus',
         conditions: [
-          { attribute: 'utm.campaign', operator: 'equals', value: 'enterprise' },
+          {
+            attribute: 'utm.campaign',
+            operator: 'equals',
+            value: 'enterprise',
+          },
         ],
         value: 'enterprise',
         description: 'Show enterprise pricing for enterprise campaigns',
@@ -585,7 +633,11 @@ export const LANDING_PAGE_FLAGS: FeatureFlag[] = [
       {
         id: 'holiday-sale',
         conditions: [
-          { attribute: 'currentDate', operator: 'between', value: ['2024-11-25', '2024-12-02'] },
+          {
+            attribute: 'currentDate',
+            operator: 'between',
+            value: ['2024-11-25', '2024-12-02'],
+          },
         ],
         value: 'sale',
         description: 'Show sale pricing during Black Friday week',
@@ -622,7 +674,11 @@ export const LANDING_PAGE_FLAGS: FeatureFlag[] = [
       {
         id: 'high-contrast-accessibility',
         conditions: [
-          { attribute: 'accessibilityMode', operator: 'equals', value: 'high-contrast' },
+          {
+            attribute: 'accessibilityMode',
+            operator: 'equals',
+            value: 'high-contrast',
+          },
         ],
         value: 'high-contrast',
         description: 'Use high contrast buttons for accessibility',

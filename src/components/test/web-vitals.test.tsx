@@ -10,8 +10,12 @@ jest.mock('next/web-vitals', () => ({
 
 // Mock console methods
 const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
-const mockConsoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+const mockConsoleWarn = jest
+  .spyOn(console, 'warn')
+  .mockImplementation(() => {});
+const mockConsoleError = jest
+  .spyOn(console, 'error')
+  .mockImplementation(() => {});
 
 // Mock performance API
 const mockPerformance = {
@@ -24,7 +28,7 @@ const mockPerformance = {
 Object.defineProperty(global, 'window', {
   value: {
     performance: mockPerformance,
-    PerformanceObserver: jest.fn().mockImplementation((callback) => ({
+    PerformanceObserver: jest.fn().mockImplementation(callback => ({
       observe: jest.fn(),
       disconnect: jest.fn(),
     })),
@@ -33,7 +37,7 @@ Object.defineProperty(global, 'window', {
 });
 
 Object.defineProperty(global, 'PerformanceObserver', {
-  value: jest.fn().mockImplementation((callback) => ({
+  value: jest.fn().mockImplementation(callback => ({
     observe: jest.fn(),
     disconnect: jest.fn(),
   })),
@@ -57,13 +61,13 @@ describe('WebVitals', () => {
   describe('component rendering', () => {
     test('should render without visible output', () => {
       const { container } = render(<WebVitals />);
-      
+
       expect(container.firstChild).toBeNull();
     });
 
     test('should call useReportWebVitals', () => {
       render(<WebVitals />);
-      
+
       expect(useReportWebVitals).toHaveBeenCalledWith(expect.any(Function));
     });
   });
@@ -71,7 +75,7 @@ describe('WebVitals', () => {
   describe('web vitals reporting', () => {
     test('should handle good metrics without warnings', () => {
       const mockCallback = jest.fn();
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'LCP',
           value: 2000, // Good value
@@ -88,7 +92,7 @@ describe('WebVitals', () => {
     });
 
     test('should warn about poor metrics', () => {
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'LCP',
           value: 5000, // Poor value
@@ -122,7 +126,7 @@ describe('WebVitals', () => {
     });
 
     test('should handle metrics that need improvement', () => {
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'CLS',
           value: 0.15, // Needs improvement
@@ -145,7 +149,7 @@ describe('WebVitals', () => {
     });
 
     test('should handle metrics without attribution', () => {
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'FID',
           value: 400, // Poor value
@@ -168,7 +172,7 @@ describe('WebVitals', () => {
 
   describe('performance budget checking', () => {
     test('should error when LCP exceeds poor threshold', () => {
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'LCP',
           value: 4500, // Above poor threshold (4000)
@@ -190,7 +194,7 @@ describe('WebVitals', () => {
     });
 
     test('should warn when FCP needs improvement', () => {
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'FCP',
           value: 2000, // Between good (1800) and poor (3000)
@@ -212,7 +216,7 @@ describe('WebVitals', () => {
     });
 
     test('should not warn for good metrics', () => {
-      (useReportWebVitals as jest.Mock).mockImplementation((callback) => {
+      (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'TTFB',
           value: 500, // Good value (below 800)
@@ -234,19 +238,25 @@ describe('WebVitals', () => {
         observe: jest.fn(),
         disconnect: jest.fn(),
       };
-      
-      (global.PerformanceObserver as jest.Mock).mockImplementation(() => mockObserver);
+
+      (global.PerformanceObserver as jest.Mock).mockImplementation(
+        () => mockObserver
+      );
 
       render(<WebVitals />);
 
-      expect(global.PerformanceObserver).toHaveBeenCalledWith(expect.any(Function));
-      expect(mockObserver.observe).toHaveBeenCalledWith({ entryTypes: ['longtask'] });
+      expect(global.PerformanceObserver).toHaveBeenCalledWith(
+        expect.any(Function)
+      );
+      expect(mockObserver.observe).toHaveBeenCalledWith({
+        entryTypes: ['longtask'],
+      });
     });
 
     test('should warn about long tasks', () => {
       let observerCallback: (list: any) => void;
-      
-      (global.PerformanceObserver as jest.Mock).mockImplementation((callback) => {
+
+      (global.PerformanceObserver as jest.Mock).mockImplementation(callback => {
         observerCallback = callback;
         return {
           observe: jest.fn(),
@@ -266,19 +276,16 @@ describe('WebVitals', () => {
         ],
       });
 
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        'Long Task Detected:',
-        {
-          duration: 75,
-          startTime: 1000,
-        }
-      );
+      expect(mockConsoleWarn).toHaveBeenCalledWith('Long Task Detected:', {
+        duration: 75,
+        startTime: 1000,
+      });
     });
 
     test('should not warn about short tasks', () => {
       let observerCallback: (list: any) => void;
-      
-      (global.PerformanceObserver as jest.Mock).mockImplementation((callback) => {
+
+      (global.PerformanceObserver as jest.Mock).mockImplementation(callback => {
         observerCallback = callback;
         return {
           observe: jest.fn(),
@@ -319,8 +326,10 @@ describe('WebVitals', () => {
         observe: jest.fn(),
         disconnect: mockDisconnect,
       };
-      
-      (global.PerformanceObserver as jest.Mock).mockImplementation(() => mockObserver);
+
+      (global.PerformanceObserver as jest.Mock).mockImplementation(
+        () => mockObserver
+      );
 
       const { unmount } = render(<WebVitals />);
       unmount();
@@ -337,7 +346,7 @@ describe('measurePerformance', () => {
 
   test('should call performance.mark when window is available', () => {
     measurePerformance('test-mark');
-    
+
     expect(mockPerformance.mark).toHaveBeenCalledWith('test-mark');
   });
 
@@ -379,7 +388,7 @@ describe('measureDuration', () => {
 
   test('should measure duration between marks', () => {
     measureDuration('start-mark', 'end-mark', 'test-measure');
-    
+
     expect(mockPerformance.measure).toHaveBeenCalledWith(
       'test-measure',
       'start-mark',
@@ -389,14 +398,11 @@ describe('measureDuration', () => {
 
   test('should log performance measurement', () => {
     measureDuration('start-mark', 'end-mark', 'test-measure');
-    
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      'Performance: test-measure',
-      {
-        duration: 150,
-        start: 1000,
-      }
-    );
+
+    expect(mockConsoleLog).toHaveBeenCalledWith('Performance: test-measure', {
+      duration: 150,
+      start: 1000,
+    });
   });
 
   test('should handle measurement errors gracefully', () => {
@@ -413,7 +419,7 @@ describe('measureDuration', () => {
     mockPerformance.getEntriesByName.mockReturnValue([]);
 
     measureDuration('start-mark', 'end-mark', 'test-measure');
-    
+
     expect(mockConsoleLog).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,6 @@
 /**
  * useAuth Hook Tests
- * 
+ *
  * Tests for authentication hook including:
  * - Sign in/up functionality
  * - Session management
@@ -234,7 +234,9 @@ describe('Auth Store', () => {
         await result.current.signIn(credentials);
       });
 
-      expect(result.current.error).toBe('Too many login attempts. Please try again later.');
+      expect(result.current.error).toBe(
+        'Too many login attempts. Please try again later.'
+      );
     });
   });
 
@@ -322,7 +324,16 @@ describe('Auth Store', () => {
     test('should sign out user successfully', async () => {
       // Set up authenticated state
       useAuthStore.setState({
-        authUser: { id: 'user-123', email: 'test@example.com', phone: null, auth_username: null, username: 'test', avatar_url: null, provider: null, userRole: 'user' },
+        authUser: {
+          id: 'user-123',
+          email: 'test@example.com',
+          phone: null,
+          auth_username: null,
+          username: 'test',
+          avatar_url: null,
+          provider: null,
+          userRole: 'user',
+        },
         isAuthenticated: true,
         loading: false,
       });
@@ -346,7 +357,16 @@ describe('Auth Store', () => {
 
     test('should handle sign out errors', async () => {
       useAuthStore.setState({
-        authUser: { id: 'user-123', email: 'test@example.com', phone: null, auth_username: null, username: 'test', avatar_url: null, provider: null, userRole: 'user' },
+        authUser: {
+          id: 'user-123',
+          email: 'test@example.com',
+          phone: null,
+          auth_username: null,
+          username: 'test',
+          avatar_url: null,
+          provider: null,
+          userRole: 'user',
+        },
         isAuthenticated: true,
         loading: false,
       });
@@ -384,7 +404,9 @@ describe('Auth Store', () => {
       });
 
       expect(response.success).toBe(true);
-      expect(authService.resetPassword).toHaveBeenCalledWith('test@example.com');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        'test@example.com'
+      );
     });
 
     test('should handle rate limiting for password reset', async () => {
@@ -420,7 +442,9 @@ describe('Auth Store', () => {
       });
 
       expect(response.success).toBe(true);
-      expect(authService.updatePassword).toHaveBeenCalledWith('NewPassword123!');
+      expect(authService.updatePassword).toHaveBeenCalledWith(
+        'NewPassword123!'
+      );
     });
 
     test('should handle weak password error', async () => {
@@ -444,7 +468,7 @@ describe('Auth Store', () => {
   describe('Loading States', () => {
     test('should handle loading state during sign in', async () => {
       let resolveSignIn: (value: any) => void;
-      const signInPromise = new Promise((resolve) => {
+      const signInPromise = new Promise(resolve => {
         resolveSignIn = resolve;
       });
 
@@ -455,7 +479,10 @@ describe('Auth Store', () => {
       expect(result.current.loading).toBe(false);
 
       act(() => {
-        result.current.signIn({ email: 'test@example.com', password: 'Test123!' });
+        result.current.signIn({
+          email: 'test@example.com',
+          password: 'Test123!',
+        });
       });
 
       expect(result.current.loading).toBe(true);
@@ -498,7 +525,10 @@ describe('Auth Store', () => {
       const { result } = renderHook(() => useAuthStore(), { wrapper });
 
       await act(async () => {
-        await result.current.signIn({ email: 'test@example.com', password: 'Test123!' });
+        await result.current.signIn({
+          email: 'test@example.com',
+          password: 'Test123!',
+        });
       });
 
       expect(result.current.error).toBeNull();
@@ -508,7 +538,16 @@ describe('Auth Store', () => {
   describe('Session Management', () => {
     test('should handle session expiration', async () => {
       useAuthStore.setState({
-        authUser: { id: 'user-123', email: 'test@example.com', phone: null, auth_username: null, username: 'test', avatar_url: null, provider: null, userRole: 'user' },
+        authUser: {
+          id: 'user-123',
+          email: 'test@example.com',
+          phone: null,
+          auth_username: null,
+          username: 'test',
+          avatar_url: null,
+          provider: null,
+          userRole: 'user',
+        },
         isAuthenticated: true,
         loading: false,
       });
@@ -519,12 +558,16 @@ describe('Auth Store', () => {
         // Simulate session expiration
         result.current.setAuthUser(null);
         result.current.setUserData(null);
-        result.current.setError('Your session has expired. Please sign in again.');
+        result.current.setError(
+          'Your session has expired. Please sign in again.'
+        );
       });
 
       expect(result.current.userData).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
-      expect(result.current.error).toBe('Your session has expired. Please sign in again.');
+      expect(result.current.error).toBe(
+        'Your session has expired. Please sign in again.'
+      );
     });
   });
 });

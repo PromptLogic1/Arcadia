@@ -1,6 +1,6 @@
 /**
  * Settings Feature Test Suite
- * 
+ *
  * Comprehensive unit tests for settings business logic
  */
 
@@ -15,7 +15,7 @@ export * from './account-deletion.test';
 
 /**
  * Test Coverage Areas:
- * 
+ *
  * 1. Preference Validation (preference-validation.test.ts)
  *    - Email validation rules
  *    - Password requirements
@@ -23,7 +23,7 @@ export * from './account-deletion.test';
  *    - Privacy settings constraints
  *    - Profile update validation
  *    - Form field validation
- * 
+ *
  * 2. Theme Engine (theme-engine.test.ts)
  *    - Theme preference storage and retrieval
  *    - System theme detection
@@ -31,7 +31,7 @@ export * from './account-deletion.test';
  *    - Theme persistence and sync
  *    - Color calculations
  *    - Analytics tracking
- * 
+ *
  * 3. Privacy Settings (privacy-settings.test.ts)
  *    - Profile visibility rules
  *    - Data collection preferences
@@ -39,7 +39,7 @@ export * from './account-deletion.test';
  *    - Friend request settings
  *    - Game activity privacy
  *    - Blocked users management
- * 
+ *
  * 4. Data Export (data-export.test.ts)
  *    - Export format generation (JSON, CSV)
  *    - Privacy compliance filtering
@@ -47,7 +47,7 @@ export * from './account-deletion.test';
  *    - Export validation and checksums
  *    - Rate limiting
  *    - Export history tracking
- * 
+ *
  * 5. Settings Store (settings-store.test.ts)
  *    - Zustand store state management
  *    - Modal management
@@ -56,7 +56,7 @@ export * from './account-deletion.test';
  *    - Notification/privacy preferences
  *    - Store reset functionality
  *    - Persistence logic
- * 
+ *
  * 6. Preference Migration (preference-migration.test.ts)
  *    - Theme migration from legacy formats
  *    - Notification settings migration
@@ -64,7 +64,7 @@ export * from './account-deletion.test';
  *    - Language/locale migration
  *    - Version tracking
  *    - Conflict resolution
- * 
+ *
  * 7. Account Deletion (account-deletion.test.ts)
  *    - Deletion request validation
  *    - Grace period handling

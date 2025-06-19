@@ -1,7 +1,18 @@
-import type { BoardCell, GameState, BingoBoardSession, GamePlayer } from '../../types';
-import { createBoardCell, createBingoSession, createGamePlayer } from '../factories';
+import type {
+  BoardCell,
+  GameState,
+  BingoBoardSession,
+  GamePlayer,
+} from '../../types';
+import {
+  createBoardCell,
+  createBingoSession,
+  createGamePlayer,
+} from '../factories';
 
-export const createMockBoardCell = (overrides: Partial<BoardCell> = {}): BoardCell => ({
+export const createMockBoardCell = (
+  overrides: Partial<BoardCell> = {}
+): BoardCell => ({
   text: 'Mock cell',
   colors: null,
   completed_by: null,
@@ -14,18 +25,24 @@ export const createMockBoardCell = (overrides: Partial<BoardCell> = {}): BoardCe
   ...overrides,
 });
 
-export const createMockGameState = (overrides: Partial<GameState> = {}): GameState => ({
-  currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-    cell_id: `cell-${i}`,
-    text: `Cell ${i}`,
-  })),
+export const createMockGameState = (
+  overrides: Partial<GameState> = {}
+): GameState => ({
+  currentState: Array.from({ length: 25 }, (_, i) =>
+    createMockBoardCell({
+      cell_id: `cell-${i}`,
+      text: `Cell ${i}`,
+    })
+  ),
   version: 1,
   lastUpdate: new Date().toISOString(),
   activePlayer: 'mock-player-1',
   ...overrides,
 });
 
-export const createMockSession = (overrides: Partial<BingoBoardSession> = {}): BingoBoardSession => ({
+export const createMockSession = (
+  overrides: Partial<BingoBoardSession> = {}
+): BingoBoardSession => ({
   id: 'mock-session-id',
   board_id: 'mock-board-id',
   host_id: 'mock-host-id',
@@ -49,7 +66,9 @@ export const createMockSession = (overrides: Partial<BingoBoardSession> = {}): B
   ...overrides,
 });
 
-export const createMockPlayer = (overrides: Partial<GamePlayer> = {}): GamePlayer => ({
+export const createMockPlayer = (
+  overrides: Partial<GamePlayer> = {}
+): GamePlayer => ({
   id: 'mock-player-id',
   name: 'Mock Player',
   color: '#06b6d4',
@@ -63,69 +82,84 @@ export const createMockPlayer = (overrides: Partial<GamePlayer> = {}): GamePlaye
 
 export const mockGameStates = {
   empty: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      is_marked: false,
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        is_marked: false,
+      })
+    ),
   }),
 
   nearWinHorizontal: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      is_marked: i >= 0 && i <= 3, // First row minus last cell
-      completed_by: i >= 0 && i <= 3 ? ['player1'] : null,
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        is_marked: i >= 0 && i <= 3, // First row minus last cell
+        completed_by: i >= 0 && i <= 3 ? ['player1'] : null,
+      })
+    ),
   }),
 
   completeHorizontal: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      is_marked: i >= 0 && i <= 4, // Complete first row
-      completed_by: i >= 0 && i <= 4 ? ['player1'] : null,
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        is_marked: i >= 0 && i <= 4, // Complete first row
+        completed_by: i >= 0 && i <= 4 ? ['player1'] : null,
+      })
+    ),
   }),
 
   diagonal: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      is_marked: i % 6 === 0, // Diagonal pattern (0, 6, 12, 18, 24)
-      completed_by: i % 6 === 0 ? ['player1'] : null,
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        is_marked: i % 6 === 0, // Diagonal pattern (0, 6, 12, 18, 24)
+        completed_by: i % 6 === 0 ? ['player1'] : null,
+      })
+    ),
   }),
 
   fourCorners: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      is_marked: [0, 4, 20, 24].includes(i), // Four corners
-      completed_by: [0, 4, 20, 24].includes(i) ? ['player1'] : null,
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        is_marked: [0, 4, 20, 24].includes(i), // Four corners
+        completed_by: [0, 4, 20, 24].includes(i) ? ['player1'] : null,
+      })
+    ),
   }),
 
   fullHouse: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      is_marked: true, // All cells marked
-      completed_by: ['player1'],
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        is_marked: true, // All cells marked
+        completed_by: ['player1'],
+      })
+    ),
   }),
 
   multiplePatterns: createMockGameState({
-    currentState: Array.from({ length: 25 }, (_, i) => createMockBoardCell({ 
-      cell_id: `cell-${i}`,
-      // Both first row (0-4) and first column (0, 5, 10, 15, 20)
-      is_marked: (i >= 0 && i <= 4) || (i % 5 === 0),
-      completed_by: (i >= 0 && i <= 4) || (i % 5 === 0) ? ['player1'] : null,
-    })),
+    currentState: Array.from({ length: 25 }, (_, i) =>
+      createMockBoardCell({
+        cell_id: `cell-${i}`,
+        // Both first row (0-4) and first column (0, 5, 10, 15, 20)
+        is_marked: (i >= 0 && i <= 4) || i % 5 === 0,
+        completed_by: (i >= 0 && i <= 4) || i % 5 === 0 ? ['player1'] : null,
+      })
+    ),
   }),
 
   competitive: createMockGameState({
     currentState: Array.from({ length: 25 }, (_, i) => {
       // Player 1 controls even positions, Player 2 controls odd positions
       const isPlayer1 = i % 2 === 0;
-      return createMockBoardCell({ 
+      return createMockBoardCell({
         cell_id: `cell-${i}`,
         is_marked: Math.random() > 0.5, // Random 50% marked
-        completed_by: Math.random() > 0.5 ? [isPlayer1 ? 'player1' : 'player2'] : null,
+        completed_by:
+          Math.random() > 0.5 ? [isPlayer1 ? 'player1' : 'player2'] : null,
       });
     }),
   }),
@@ -240,11 +274,15 @@ export const mockConflictScenarios = {
 };
 
 // Helper functions for creating test scenarios
-export const createWinningBoard = (pattern: 'horizontal' | 'vertical' | 'diagonal' | 'corners'): BoardCell[] => {
-  const cells = Array.from({ length: 25 }, (_, i) => createMockBoardCell({ cell_id: `cell-${i}` }));
-  
+export const createWinningBoard = (
+  pattern: 'horizontal' | 'vertical' | 'diagonal' | 'corners'
+): BoardCell[] => {
+  const cells = Array.from({ length: 25 }, (_, i) =>
+    createMockBoardCell({ cell_id: `cell-${i}` })
+  );
+
   let winningPositions: number[] = [];
-  
+
   switch (pattern) {
     case 'horizontal':
       winningPositions = [0, 1, 2, 3, 4]; // First row
@@ -259,7 +297,7 @@ export const createWinningBoard = (pattern: 'horizontal' | 'vertical' | 'diagona
       winningPositions = [0, 4, 20, 24]; // Four corners
       break;
   }
-  
+
   winningPositions.forEach(pos => {
     cells[pos] = createMockBoardCell({
       cell_id: `cell-${pos}`,
@@ -267,13 +305,17 @@ export const createWinningBoard = (pattern: 'horizontal' | 'vertical' | 'diagona
       completed_by: ['player1'],
     });
   });
-  
+
   return cells;
 };
 
-export const createMultiPlayerBoard = (playerActions: Record<string, number[]>): BoardCell[] => {
-  const cells = Array.from({ length: 25 }, (_, i) => createMockBoardCell({ cell_id: `cell-${i}` }));
-  
+export const createMultiPlayerBoard = (
+  playerActions: Record<string, number[]>
+): BoardCell[] => {
+  const cells = Array.from({ length: 25 }, (_, i) =>
+    createMockBoardCell({ cell_id: `cell-${i}` })
+  );
+
   Object.entries(playerActions).forEach(([playerId, positions]) => {
     positions.forEach(pos => {
       const cell = cells[pos];
@@ -284,16 +326,18 @@ export const createMultiPlayerBoard = (playerActions: Record<string, number[]>):
       }
     });
   });
-  
+
   return cells;
 };
 
 export const createBoardWithConflicts = (): BoardCell[] => {
-  const cells = Array.from({ length: 25 }, (_, i) => createMockBoardCell({ cell_id: `cell-${i}` }));
-  
+  const cells = Array.from({ length: 25 }, (_, i) =>
+    createMockBoardCell({ cell_id: `cell-${i}` })
+  );
+
   // Simulate conflicts on certain cells
   const conflictCells = [5, 12, 18];
-  
+
   conflictCells.forEach(pos => {
     cells[pos] = createMockBoardCell({
       cell_id: `cell-${pos}`,
@@ -305,6 +349,6 @@ export const createBoardWithConflicts = (): BoardCell[] => {
       version: 2, // Higher version indicates conflict resolution
     });
   });
-  
+
   return cells;
 };

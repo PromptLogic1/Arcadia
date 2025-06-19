@@ -82,9 +82,9 @@ describe('SessionStateService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseSuccessResponse(mockSessionStats)
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(createSupabaseSuccessResponse(mockSessionStats)),
         })),
       });
 
@@ -93,7 +93,10 @@ describe('SessionStateService', () => {
         insert: jest.fn().mockResolvedValue({ error: null }),
       });
 
-      const result = await sessionStateService.initializeSession('board-123', mockPlayer);
+      const result = await sessionStateService.initializeSession(
+        'board-123',
+        mockPlayer
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
@@ -112,9 +115,11 @@ describe('SessionStateService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseErrorResponse('Not found', 'PGRST116')
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(
+              createSupabaseErrorResponse('Not found', 'PGRST116')
+            ),
         })),
       });
 
@@ -128,9 +133,9 @@ describe('SessionStateService', () => {
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(newSession)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(newSession)),
       });
 
       // Mock adding host as player
@@ -142,12 +147,15 @@ describe('SessionStateService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse(mockSessionStats)
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockSessionStats)),
       });
 
-      const result = await sessionStateService.initializeSession('board-123', mockPlayer);
+      const result = await sessionStateService.initializeSession(
+        'board-123',
+        mockPlayer
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
@@ -163,13 +171,18 @@ describe('SessionStateService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseErrorResponse('Database error', 'DB_ERROR')
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(
+              createSupabaseErrorResponse('Database error', 'DB_ERROR')
+            ),
         })),
       });
 
-      const result = await sessionStateService.initializeSession('board-123', mockPlayer);
+      const result = await sessionStateService.initializeSession(
+        'board-123',
+        mockPlayer
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database error');
@@ -188,13 +201,16 @@ describe('SessionStateService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseSuccessResponse(invalidSession)
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(createSupabaseSuccessResponse(invalidSession)),
         })),
       });
 
-      const result = await sessionStateService.initializeSession('board-123', mockPlayer);
+      const result = await sessionStateService.initializeSession(
+        'board-123',
+        mockPlayer
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Invalid session ID');
@@ -208,20 +224,23 @@ describe('SessionStateService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
           eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue(
-            createSupabaseSuccessResponse(mockSessionStats)
-          ),
+          single: jest
+            .fn()
+            .mockResolvedValue(createSupabaseSuccessResponse(mockSessionStats)),
         })),
       });
 
       // Mock join failure
       mockFrom.mockReturnValueOnce({
-        insert: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Join failed')
-        ),
+        insert: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Join failed')),
       });
 
-      const result = await sessionStateService.initializeSession('board-123', mockPlayer);
+      const result = await sessionStateService.initializeSession(
+        'board-123',
+        mockPlayer
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Join failed');
@@ -235,7 +254,10 @@ describe('SessionStateService', () => {
         throw error;
       });
 
-      const result = await sessionStateService.initializeSession('board-123', mockPlayer);
+      const result = await sessionStateService.initializeSession(
+        'board-123',
+        mockPlayer
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Unexpected error');
@@ -351,9 +373,9 @@ describe('SessionStateService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         is: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue(
-          createSupabaseErrorResponse('Database error')
-        ),
+        order: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Database error')),
       });
 
       const result = await sessionStateService.getSessionPlayers('session-123');
@@ -374,7 +396,10 @@ describe('SessionStateService', () => {
         })),
       });
 
-      const result = await sessionStateService.leaveSession('session-123', 'player-123');
+      const result = await sessionStateService.leaveSession(
+        'session-123',
+        'player-123'
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toBeUndefined();
@@ -387,13 +412,16 @@ describe('SessionStateService', () => {
       mockFrom.mockReturnValueOnce({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue(
-            createSupabaseErrorResponse('Update failed')
-          ),
+          eq: jest
+            .fn()
+            .mockResolvedValue(createSupabaseErrorResponse('Update failed')),
         })),
       });
 
-      const result = await sessionStateService.leaveSession('session-123', 'player-123');
+      const result = await sessionStateService.leaveSession(
+        'session-123',
+        'player-123'
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Update failed');
@@ -405,9 +433,14 @@ describe('SessionStateService', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
-      (safeRealtimeManager.subscribe as jest.Mock).mockReturnValue(mockUnsubscribe);
+      (safeRealtimeManager.subscribe as jest.Mock).mockReturnValue(
+        mockUnsubscribe
+      );
 
-      const unsubscribe = sessionStateService.subscribeToSession('session-123', mockCallback);
+      const unsubscribe = sessionStateService.subscribeToSession(
+        'session-123',
+        mockCallback
+      );
 
       // Should create two subscriptions (sessions and players)
       expect(safeRealtimeManager.subscribe).toHaveBeenCalledTimes(2);
@@ -555,7 +588,8 @@ describe('SessionStateService', () => {
         },
         {
           name: 'leaveSession',
-          method: () => sessionStateService.leaveSession('session-123', 'player-123'),
+          method: () =>
+            sessionStateService.leaveSession('session-123', 'player-123'),
         },
       ];
 

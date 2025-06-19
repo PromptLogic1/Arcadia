@@ -1,6 +1,6 @@
 /**
  * Preference Migration Tests
- * 
+ *
  * Tests for migrating settings from old formats to new formats
  */
 
@@ -57,14 +57,14 @@ describe('Preference Migration', () => {
     it('should migrate legacy theme values', () => {
       const migrateTheme = (legacyTheme?: string): ModernSettings['theme'] => {
         if (!legacyTheme) return 'system';
-        
+
         const themeMap: Record<string, ModernSettings['theme']> = {
           'dark-mode': 'dark',
           'light-mode': 'light',
-          'auto': 'system',
-          'default': 'system',
-          'dark': 'dark',
-          'light': 'light',
+          auto: 'system',
+          default: 'system',
+          dark: 'dark',
+          light: 'light',
         };
 
         return themeMap[legacyTheme] || 'system';
@@ -78,7 +78,9 @@ describe('Preference Migration', () => {
     });
 
     it('should handle numeric theme values from old versions', () => {
-      const migrateNumericTheme = (themeId: number): ModernSettings['theme'] => {
+      const migrateNumericTheme = (
+        themeId: number
+      ): ModernSettings['theme'] => {
         const themeMap: Record<number, ModernSettings['theme']> = {
           0: 'light',
           1: 'dark',
@@ -97,7 +99,9 @@ describe('Preference Migration', () => {
 
   describe('Notification Settings Migration', () => {
     it('should migrate simple boolean notifications to granular settings', () => {
-      const migrateNotifications = (legacy: LegacySettings): ModernSettings['notifications'] => {
+      const migrateNotifications = (
+        legacy: LegacySettings
+      ): ModernSettings['notifications'] => {
         const allEnabled = legacy.notifications ?? true;
         const emailEnabled = legacy.emailAlerts ?? allEnabled;
 
@@ -110,7 +114,10 @@ describe('Preference Migration', () => {
         };
       };
 
-      const legacy1: LegacySettings = { notifications: true, emailAlerts: false };
+      const legacy1: LegacySettings = {
+        notifications: true,
+        emailAlerts: false,
+      };
       const migrated1 = migrateNotifications(legacy1);
       expect(migrated1.email_notifications).toBe(false);
       expect(migrated1.push_notifications).toBe(true);
@@ -123,7 +130,9 @@ describe('Preference Migration', () => {
     });
 
     it('should handle missing notification preferences', () => {
-      const migrateNotifications = (legacy: LegacySettings): ModernSettings['notifications'] => {
+      const migrateNotifications = (
+        legacy: LegacySettings
+      ): ModernSettings['notifications'] => {
         return {
           email_notifications: legacy.emailAlerts ?? true,
           push_notifications: legacy.notifications ?? true,
@@ -165,9 +174,12 @@ describe('Preference Migration', () => {
         blockFriendRequests?: boolean;
       }
 
-      const migratePrivacyFlags = (old: OldPrivacyFlags): ModernSettings['privacy'] => {
+      const migratePrivacyFlags = (
+        old: OldPrivacyFlags
+      ): ModernSettings['privacy'] => {
         return {
-          profile_visibility: old.publicProfile === false ? 'private' : 'public',
+          profile_visibility:
+            old.publicProfile === false ? 'private' : 'public',
           show_online_status: !old.hideOnlineStatus,
           allow_friend_requests: !old.blockFriendRequests,
         };
@@ -192,15 +204,15 @@ describe('Preference Migration', () => {
         if (!legacyLang) return 'en-US';
 
         const languageMap: Record<string, string> = {
-          'en': 'en-US',
-          'english': 'en-US',
-          'en_US': 'en-US',
-          'fr': 'fr-FR',
-          'french': 'fr-FR',
-          'es': 'es-ES',
-          'spanish': 'es-ES',
-          'de': 'de-DE',
-          'german': 'de-DE',
+          en: 'en-US',
+          english: 'en-US',
+          en_US: 'en-US',
+          fr: 'fr-FR',
+          french: 'fr-FR',
+          es: 'es-ES',
+          spanish: 'es-ES',
+          de: 'de-DE',
+          german: 'de-DE',
         };
 
         return languageMap[legacyLang] || legacyLang;
@@ -244,10 +256,16 @@ describe('Preference Migration', () => {
 
   describe('Complete Settings Migration', () => {
     it('should perform full migration from legacy to modern format', () => {
-      const migrateLegacySettings = (legacy: LegacySettings): ModernSettings => {
+      const migrateLegacySettings = (
+        legacy: LegacySettings
+      ): ModernSettings => {
         return {
-          theme: legacy.theme === 'dark-mode' ? 'dark' : 
-                 legacy.theme === 'light-mode' ? 'light' : 'system',
+          theme:
+            legacy.theme === 'dark-mode'
+              ? 'dark'
+              : legacy.theme === 'light-mode'
+                ? 'light'
+                : 'system',
           notifications: {
             email_notifications: legacy.emailAlerts ?? true,
             push_notifications: legacy.notifications ?? true,
@@ -264,15 +282,15 @@ describe('Preference Migration', () => {
             language: (() => {
               if (!legacy.language) return 'en-US';
               const languageMap: Record<string, string> = {
-                'en': 'en-US',
-                'english': 'en-US',
-                'en_US': 'en-US',
-                'fr': 'fr-FR',
-                'french': 'fr-FR',
-                'es': 'es-ES',
-                'spanish': 'es-ES',
-                'de': 'de-DE',
-                'german': 'de-DE',
+                en: 'en-US',
+                english: 'en-US',
+                en_US: 'en-US',
+                fr: 'fr-FR',
+                french: 'fr-FR',
+                es: 'es-ES',
+                spanish: 'es-ES',
+                de: 'de-DE',
+                german: 'de-DE',
               };
               return languageMap[legacy.language] || legacy.language;
             })(),
@@ -301,7 +319,9 @@ describe('Preference Migration', () => {
     });
 
     it('should validate migrated settings', () => {
-      const validateModernSettings = (settings: ModernSettings): { valid: boolean; errors: string[] } => {
+      const validateModernSettings = (
+        settings: ModernSettings
+      ): { valid: boolean; errors: string[] } => {
         const errors: string[] = [];
 
         // Validate theme
@@ -310,7 +330,11 @@ describe('Preference Migration', () => {
         }
 
         // Validate privacy visibility
-        if (!['public', 'friends', 'private'].includes(settings.privacy.profile_visibility)) {
+        if (
+          !['public', 'friends', 'private'].includes(
+            settings.privacy.profile_visibility
+          )
+        ) {
           errors.push('Invalid profile visibility');
         }
 
@@ -361,25 +385,31 @@ describe('Preference Migration', () => {
         emailNotifications: boolean;
       }
 
-      const resolveNotificationConflicts = (settings: ConflictingSettings): boolean => {
+      const resolveNotificationConflicts = (
+        settings: ConflictingSettings
+      ): boolean => {
         // If explicitly disabled all, that takes precedence
         if (settings.disableAllNotifications) return false;
-        
+
         // Otherwise use the specific setting
         return settings.emailNotifications ?? settings.notifications ?? true;
       };
 
-      expect(resolveNotificationConflicts({
-        notifications: true,
-        disableAllNotifications: true,
-        emailNotifications: true,
-      })).toBe(false);
+      expect(
+        resolveNotificationConflicts({
+          notifications: true,
+          disableAllNotifications: true,
+          emailNotifications: true,
+        })
+      ).toBe(false);
 
-      expect(resolveNotificationConflicts({
-        notifications: false,
-        disableAllNotifications: false,
-        emailNotifications: true,
-      })).toBe(true);
+      expect(
+        resolveNotificationConflicts({
+          notifications: false,
+          disableAllNotifications: false,
+          emailNotifications: true,
+        })
+      ).toBe(true);
     });
 
     it('should merge multiple legacy setting sources', () => {
@@ -396,7 +426,10 @@ describe('Preference Migration', () => {
         };
       };
 
-      const cookies: LegacySettings = { theme: 'light-mode', notifications: false };
+      const cookies: LegacySettings = {
+        theme: 'light-mode',
+        notifications: false,
+      };
       const storage: LegacySettings = { theme: 'dark-mode', language: 'en' };
       const db: LegacySettings = { emailAlerts: true };
 
@@ -422,7 +455,9 @@ describe('Preference Migration', () => {
         return stored.version < CURRENT_VERSION;
       };
 
-      const applyMigrations = (stored: VersionedSettings): VersionedSettings => {
+      const applyMigrations = (
+        stored: VersionedSettings
+      ): VersionedSettings => {
         const settings = { ...stored.settings };
         let version = stored.version;
 

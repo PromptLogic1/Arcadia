@@ -1,10 +1,10 @@
 /**
  * Bingo Page Object
- * 
+ *
  * Encapsulates all bingo game interactions and selectors.
  */
 
-import type { Page} from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { Locator } from '@playwright/test';
 import { BasePage } from '../base.page';
 
@@ -17,22 +17,22 @@ export class BingoPage extends BasePage {
     boardDescriptionInput: '[data-testid="board-description-input"]',
     boardSizeSelect: '[data-testid="board-size-select"]',
     submitBoardButton: '[data-testid="submit-board-button"]',
-    
+
     // Board elements
     bingoBoard: '[data-testid="bingo-board"]',
     bingoCell: '[data-testid="bingo-cell"]',
     cellInput: '[data-testid="cell-input"]',
-    
+
     // Game controls
     startGameButton: '[data-testid="start-game-button"]',
     joinGameButton: '[data-testid="join-game-button"]',
     shareButton: '[data-testid="share-board-button"]',
-    
+
     // Game status
     gameStatus: '[data-testid="game-status"]',
     playerList: '[data-testid="player-list"]',
     winnerBanner: '[data-testid="winner-banner"]',
-    
+
     // Realtime indicators
     connectionStatus: '[data-testid="connection-status"]',
     syncIndicator: '[data-testid="sync-indicator"]',
@@ -50,14 +50,18 @@ export class BingoPage extends BasePage {
   /**
    * Create a new bingo board
    */
-  async createBoard(title: string, description: string, size: '3x3' | '4x4' | '5x5' = '5x5'): Promise<void> {
+  async createBoard(
+    title: string,
+    description: string,
+    size: '3x3' | '4x4' | '5x5' = '5x5'
+  ): Promise<void> {
     await this.clickElement(this.selectors.createBoardButton);
     await this.fillInput(this.selectors.boardTitleInput, title);
     await this.fillInput(this.selectors.boardDescriptionInput, description);
-    
+
     const sizeSelect = this.getLocator(this.selectors.boardSizeSelect);
     await sizeSelect.selectOption(size);
-    
+
     await this.clickElement(this.selectors.submitBoardButton);
   }
 
@@ -66,7 +70,7 @@ export class BingoPage extends BasePage {
    */
   async fillBoardCells(content: string[]): Promise<void> {
     const cells = await this.page.locator(this.selectors.cellInput).all();
-    
+
     for (let i = 0; i < Math.min(content.length, cells.length); i++) {
       if (cells[i] && content[i]) {
         await cells[i].fill(content[i]);
@@ -108,7 +112,7 @@ export class BingoPage extends BasePage {
   async getMarkedCells(): Promise<number[]> {
     const cells = await this.page.locator(this.selectors.bingoCell).all();
     const markedIndices: number[] = [];
-    
+
     for (let i = 0; i < cells.length; i++) {
       const marked = await cells[i]?.getAttribute('data-marked');
       const isMarked = marked === 'true';
@@ -116,7 +120,7 @@ export class BingoPage extends BasePage {
         markedIndices.push(i);
       }
     }
-    
+
     return markedIndices;
   }
 
@@ -142,14 +146,16 @@ export class BingoPage extends BasePage {
    * Get current players
    */
   async getPlayers(): Promise<string[]> {
-    const playerElements = await this.page.locator(`${this.selectors.playerList} [data-testid="player-name"]`).all();
+    const playerElements = await this.page
+      .locator(`${this.selectors.playerList} [data-testid="player-name"]`)
+      .all();
     const players: string[] = [];
-    
+
     for (const element of playerElements) {
       const name = await element.textContent();
       if (name) players.push(name);
     }
-    
+
     return players;
   }
 
@@ -165,7 +171,9 @@ export class BingoPage extends BasePage {
    * Wait for realtime sync
    */
   async waitForSync(): Promise<void> {
-    await this.page.waitForSelector(this.selectors.syncIndicator, { state: 'hidden' });
+    await this.page.waitForSelector(this.selectors.syncIndicator, {
+      state: 'hidden',
+    });
   }
 
   /**
@@ -173,15 +181,15 @@ export class BingoPage extends BasePage {
    */
   async shareBoard(): Promise<string | null> {
     await this.clickElement(this.selectors.shareButton);
-    
+
     // Wait for share modal/toast
     await this.page.waitForTimeout(500);
-    
+
     // Try to get share link from clipboard or modal
     const shareLink = await this.page.evaluate(() => {
       return navigator.clipboard.readText().catch(() => null);
     });
-    
+
     return shareLink;
   }
 
@@ -206,7 +214,7 @@ export class BingoPage extends BasePage {
   async saveBoard(): Promise<void> {
     // Trigger save with keyboard shortcut
     await this.page.keyboard.press('Control+S');
-    
+
     // Or click save button if available
     const saveButton = this.page.locator('[data-testid="save-board-button"]');
     if (await saveButton.isVisible()) {
@@ -222,14 +230,18 @@ export class BingoPage extends BasePage {
     cells: string[];
     size: number;
   }> {
-    const title = await this.page.locator('[data-testid="board-title"]').textContent();
-    const cells = await this.page.locator(this.selectors.bingoCell).allTextContents();
+    const title = await this.page
+      .locator('[data-testid="board-title"]')
+      .textContent();
+    const cells = await this.page
+      .locator(this.selectors.bingoCell)
+      .allTextContents();
     const boardSize = Math.sqrt(cells.length);
-    
+
     return {
       title,
       cells,
-      size: boardSize
+      size: boardSize,
     };
   }
 }

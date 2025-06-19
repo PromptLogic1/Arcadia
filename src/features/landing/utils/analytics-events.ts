@@ -152,9 +152,9 @@ export function validateEvent(event: AnalyticsEvent): EventValidation {
   if (!event.name) {
     errors.push({ field: 'name', message: 'Event name is required' });
   } else if (!EVENT_NAME_REGEX.test(event.name)) {
-    errors.push({ 
-      field: 'name', 
-      message: 'Event name must be in snake_case format' 
+    errors.push({
+      field: 'name',
+      message: 'Event name must be in snake_case format',
     });
   }
 
@@ -178,7 +178,8 @@ export function validateEvent(event: AnalyticsEvent): EventValidation {
       if (pattern.test(metadataStr)) {
         warnings.push({
           field: 'metadata',
-          message: 'Potential PII detected in metadata. Ensure data is properly anonymized.',
+          message:
+            'Potential PII detected in metadata. Ensure data is properly anonymized.',
         });
         break;
       }
@@ -228,7 +229,7 @@ export function batchEvents(
   } = {}
 ): AnalyticsEvent[][] {
   const { maxBatchSize = 100, maxBatchBytes = 50000 } = options;
-  
+
   if (events.length === 0) return [];
 
   const batches: AnalyticsEvent[][] = [];
@@ -237,7 +238,7 @@ export function batchEvents(
 
   for (const event of events) {
     const eventSize = JSON.stringify(event).length;
-    
+
     if (
       currentBatch.length >= maxBatchSize ||
       (currentBatchSize + eventSize > maxBatchBytes && currentBatch.length > 0)
@@ -272,10 +273,12 @@ export class AnalyticsEventTracker {
   private maxEvents: number;
   private dedupeWindowMs: number;
 
-  constructor(options: {
-    maxEvents?: number;
-    dedupeWindowMs?: number;
-  } = {}) {
+  constructor(
+    options: {
+      maxEvents?: number;
+      dedupeWindowMs?: number;
+    } = {}
+  ) {
     this.maxEvents = options.maxEvents || 1000;
     this.dedupeWindowMs = options.dedupeWindowMs || 1000;
   }
@@ -378,7 +381,10 @@ export class AnalyticsEventTracker {
   /**
    * Get funnel progress
    */
-  getFunnelProgress(funnelId: string, userId: string): FunnelProgress | undefined {
+  getFunnelProgress(
+    funnelId: string,
+    userId: string
+  ): FunnelProgress | undefined {
     return this.funnelProgress.get(`${funnelId}:${userId}`);
   }
 
@@ -425,7 +431,7 @@ export class AnalyticsEventTracker {
     for (const event of this.events) {
       eventCounts[event.name] = (eventCounts[event.name] || 0) + 1;
       totalValue += event.value || 0;
-      
+
       if (event.sessionId) uniqueSessions.add(event.sessionId);
       if (event.userId) uniqueUsers.add(event.userId);
     }
@@ -435,9 +441,12 @@ export class AnalyticsEventTracker {
       uniqueEventTypes: Object.keys(eventCounts).length,
       eventCounts,
       totalValue,
-      averageValue: this.events.length > 0 ? totalValue / this.events.length : 0,
-      eventsPerSession: uniqueSessions.size > 0 ? this.events.length / uniqueSessions.size : 0,
-      eventsPerUser: uniqueUsers.size > 0 ? this.events.length / uniqueUsers.size : 0,
+      averageValue:
+        this.events.length > 0 ? totalValue / this.events.length : 0,
+      eventsPerSession:
+        uniqueSessions.size > 0 ? this.events.length / uniqueSessions.size : 0,
+      eventsPerUser:
+        uniqueUsers.size > 0 ? this.events.length / uniqueUsers.size : 0,
     };
   }
 
@@ -532,15 +541,27 @@ export class AnalyticsEventTracker {
     }
 
     // CSV format
-    const headers = ['id', 'name', 'category', 'action', 'label', 'value', 'timestamp', 'userId', 'sessionId'];
-    const rows = this.events.map(event => 
-      headers.map(header => {
-        const value = event[header as keyof AnalyticsEvent];
-        if (value instanceof Date) {
-          return value.toISOString();
-        }
-        return value?.toString() || '';
-      }).join(',')
+    const headers = [
+      'id',
+      'name',
+      'category',
+      'action',
+      'label',
+      'value',
+      'timestamp',
+      'userId',
+      'sessionId',
+    ];
+    const rows = this.events.map(event =>
+      headers
+        .map(header => {
+          const value = event[header as keyof AnalyticsEvent];
+          if (value instanceof Date) {
+            return value.toISOString();
+          }
+          return value?.toString() || '';
+        })
+        .join(',')
     );
 
     return [headers.join(','), ...rows].join('\n');
@@ -570,7 +591,10 @@ export const EVENT_TEMPLATES = {
     label: path,
   }),
 
-  ctaClick: (location: string, destination: string): Partial<AnalyticsEvent> => ({
+  ctaClick: (
+    location: string,
+    destination: string
+  ): Partial<AnalyticsEvent> => ({
     name: 'cta_click',
     category: 'engagement',
     action: 'click',
@@ -578,7 +602,10 @@ export const EVENT_TEMPLATES = {
     metadata: { location, destination },
   }),
 
-  formSubmit: (formName: string, success: boolean): Partial<AnalyticsEvent> => ({
+  formSubmit: (
+    formName: string,
+    success: boolean
+  ): Partial<AnalyticsEvent> => ({
     name: 'form_submit',
     category: 'conversion',
     action: success ? 'submit_success' : 'submit_error',

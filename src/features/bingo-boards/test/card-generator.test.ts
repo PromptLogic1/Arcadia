@@ -1,5 +1,10 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import type { BingoCard, GameCategory, Difficulty, GeneratorOptions } from '../types';
+import type {
+  BingoCard,
+  GameCategory,
+  Difficulty,
+  GeneratorOptions,
+} from '../types';
 
 // Mock card generator service
 class CardGeneratorService {
@@ -12,8 +17,18 @@ class CardGeneratorService {
 
   private initializeCardPool() {
     // Initialize with test cards for different categories
-    const categories: GameCategory[] = ['Valorant', 'Minecraft', 'League of Legends'];
-    const difficulties: Difficulty[] = ['beginner', 'easy', 'medium', 'hard', 'expert'];
+    const categories: GameCategory[] = [
+      'Valorant',
+      'Minecraft',
+      'League of Legends',
+    ];
+    const difficulties: Difficulty[] = [
+      'beginner',
+      'easy',
+      'medium',
+      'hard',
+      'expert',
+    ];
 
     for (const category of categories) {
       const cards: BingoCard[] = [];
@@ -48,13 +63,21 @@ class CardGeneratorService {
       customCardsUsed: number;
     };
   } {
-    const { gameCategory, difficulty, tags, excludePrevious, customPrompts = [] } = options;
-    
+    const {
+      gameCategory,
+      difficulty,
+      tags,
+      excludePrevious,
+      customPrompts = [],
+    } = options;
+
     // Get available cards for the category
     const categoryCards = this.cardPool.get(gameCategory) || [];
-    
+
     // Filter by difficulty
-    let availableCards = categoryCards.filter(card => card.difficulty === difficulty);
+    let availableCards = categoryCards.filter(
+      card => card.difficulty === difficulty
+    );
 
     // Filter by tags if specified
     if (tags.length > 0) {
@@ -67,24 +90,29 @@ class CardGeneratorService {
     let duplicatesAvoided = 0;
     if (excludePrevious) {
       const beforeCount = availableCards.length;
-      availableCards = availableCards.filter(card => !this.usedCards.has(card.id));
+      availableCards = availableCards.filter(
+        card => !this.usedCards.has(card.id)
+      );
       duplicatesAvoided = beforeCount - availableCards.length;
     }
 
     // Generate custom cards from prompts
-    const customCards: BingoCard[] = customPrompts.map((prompt, index) => ({
-      id: `custom-${Date.now()}-${index}`,
-      title: prompt,
-      description: `Custom card: ${prompt}`,
-      game_type: gameCategory,
-      difficulty,
-      tags: ['custom', ...tags],
-      is_public: false,
-      creator_id: 'generator',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      votes: 0,
-    } satisfies BingoCard));
+    const customCards: BingoCard[] = customPrompts.map(
+      (prompt, index) =>
+        ({
+          id: `custom-${Date.now()}-${index}`,
+          title: prompt,
+          description: `Custom card: ${prompt}`,
+          game_type: gameCategory,
+          difficulty,
+          tags: ['custom', ...tags],
+          is_public: false,
+          creator_id: 'generator',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          votes: 0,
+        }) satisfies BingoCard
+    );
 
     // Combine available and custom cards
     const allCards = [...availableCards, ...customCards];
@@ -98,7 +126,7 @@ class CardGeneratorService {
       this.usedCards.add(card.id);
     }
 
-    const actualCustomCardsUsed = selectedCards.filter(card => 
+    const actualCustomCardsUsed = selectedCards.filter(card =>
       customCards.some(custom => custom.id === card.id)
     ).length;
 
@@ -114,8 +142,8 @@ class CardGeneratorService {
   }
 
   suggestCards(
-    existingCards: BingoCard[], 
-    targetCount: number, 
+    existingCards: BingoCard[],
+    targetCount: number,
     overrides: Partial<GeneratorOptions> = {}
   ): BingoCard[] {
     // If no existing cards, return empty array
@@ -124,23 +152,29 @@ class CardGeneratorService {
     }
 
     // Determine the options from existing cards
-    const gameType = overrides.gameCategory || existingCards[0]?.game_type || 'Valorant';
-    const difficulty = overrides.difficulty || existingCards[0]?.difficulty || 'medium';
+    const gameType =
+      overrides.gameCategory || existingCards[0]?.game_type || 'Valorant';
+    const difficulty =
+      overrides.difficulty || existingCards[0]?.difficulty || 'medium';
     const tags = overrides.tags || [];
 
     // Get available cards
     const availableCards = this.cardPool.get(gameType) || [];
-    const filteredCards = availableCards.filter(card => 
-      card.difficulty === difficulty &&
-      !existingCards.some(existing => existing.id === card.id)
+    const filteredCards = availableCards.filter(
+      card =>
+        card.difficulty === difficulty &&
+        !existingCards.some(existing => existing.id === card.id)
     );
 
     const needed = Math.max(0, targetCount - existingCards.length);
     return this.shuffleArray(filteredCards).slice(0, needed);
   }
 
-  validateCards(cards: BingoCard[], boardSize: number): { 
-    valid: boolean; 
+  validateCards(
+    cards: BingoCard[],
+    boardSize: number
+  ): {
+    valid: boolean;
     errors: string[];
     warnings: string[];
   } {
@@ -162,7 +196,9 @@ class CardGeneratorService {
       warnings.push('Multiple difficulty levels detected');
     }
 
-    const duplicateIds = cards.map(c => c.id).filter((id, i, arr) => arr.indexOf(id) !== i);
+    const duplicateIds = cards
+      .map(c => c.id)
+      .filter((id, i, arr) => arr.indexOf(id) !== i);
     if (duplicateIds.length > 0) {
       errors.push(`Duplicate card IDs: ${duplicateIds.join(', ')}`);
     }
@@ -204,7 +240,10 @@ class CardGeneratorService {
     return this.usedCards.size;
   }
 
-  validateCards(cards: BingoCard[], boardSize: number): {
+  validateCards(
+    cards: BingoCard[],
+    boardSize: number
+  ): {
     valid: boolean;
     errors: string[];
     warnings: string[];
@@ -215,9 +254,13 @@ class CardGeneratorService {
 
     // Check card count
     if (cards.length < requiredCards) {
-      errors.push(`Insufficient cards: need ${requiredCards}, got ${cards.length}`);
+      errors.push(
+        `Insufficient cards: need ${requiredCards}, got ${cards.length}`
+      );
     } else if (cards.length > requiredCards) {
-      warnings.push(`Too many cards: need ${requiredCards}, got ${cards.length}`);
+      warnings.push(
+        `Too many cards: need ${requiredCards}, got ${cards.length}`
+      );
     }
 
     // Check for duplicates
@@ -244,14 +287,18 @@ class CardGeneratorService {
     const avgCards = requiredCards / 5; // 5 difficulty levels
     for (const [difficulty, count] of difficultyCount.entries()) {
       if (count > avgCards * 2) {
-        warnings.push(`High concentration of ${difficulty} cards (${count}/${requiredCards})`);
+        warnings.push(
+          `High concentration of ${difficulty} cards (${count}/${requiredCards})`
+        );
       }
     }
 
     // Check category consistency
     const categories = new Set(cards.map(c => c.game_type));
     if (categories.size > 1) {
-      warnings.push(`Mixed game categories detected: ${Array.from(categories).join(', ')}`);
+      warnings.push(
+        `Mixed game categories detected: ${Array.from(categories).join(', ')}`
+      );
     }
 
     return {
@@ -272,8 +319,14 @@ class CardGeneratorService {
     const allTags = new Set<string>();
 
     for (const card of existingCards) {
-      categoryCount.set(card.game_type, (categoryCount.get(card.game_type) ?? 0) + 1);
-      difficultyCount.set(card.difficulty, (difficultyCount.get(card.difficulty) ?? 0) + 1);
+      categoryCount.set(
+        card.game_type,
+        (categoryCount.get(card.game_type) ?? 0) + 1
+      );
+      difficultyCount.set(
+        card.difficulty,
+        (difficultyCount.get(card.difficulty) ?? 0) + 1
+      );
       if (card.tags) {
         for (const tag of card.tags) {
           allTags.add(tag);
@@ -350,7 +403,7 @@ describe('CardGeneratorService', () => {
       };
 
       const result = generator.generateCards(options);
-      
+
       // All cards should have the specified difficulty
       for (const card of result.cards) {
         expect(card.difficulty).toBe('medium');
@@ -366,7 +419,7 @@ describe('CardGeneratorService', () => {
       };
 
       const result = generator.generateCards(options);
-      
+
       for (const card of result.cards) {
         expect(card.tags).toContain('hard');
       }
@@ -386,12 +439,12 @@ describe('CardGeneratorService', () => {
 
       // Generate second batch with exclusion
       const result2 = generator.generateCards(options);
-      
+
       // Check no overlap
       for (const card of result2.cards) {
         expect(firstBatchIds.has(card.id)).toBe(false);
       }
-      
+
       expect(result2.metadata.duplicatesAvoided).toBeGreaterThan(0);
     });
 
@@ -411,11 +464,13 @@ describe('CardGeneratorService', () => {
       };
 
       const result = generator.generateCards(options);
-      
-      const customCards = result.cards.filter(c => c.creator_id === 'generator');
+
+      const customCards = result.cards.filter(
+        c => c.creator_id === 'generator'
+      );
       expect(customCards.length).toBe(customPrompts.length);
       expect(result.metadata.customCardsUsed).toBe(customPrompts.length);
-      
+
       for (const prompt of customPrompts) {
         expect(result.cards.some(c => c.title === prompt)).toBe(true);
       }
@@ -424,149 +479,183 @@ describe('CardGeneratorService', () => {
 
   describe('Card Validation', () => {
     test('should validate correct card set', () => {
-      const cards = Array.from({ length: 25 }, (_, i) => ({
-        id: `card-${i}`,
-        title: `Card ${i}`,
-        description: `Description ${i}`,
-        game_type: 'Valorant',
-        difficulty: 'medium',
-        tags: ['test'],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const cards = Array.from(
+        { length: 25 },
+        (_, i) =>
+          ({
+            id: `card-${i}`,
+            title: `Card ${i}`,
+            description: `Description ${i}`,
+            game_type: 'Valorant',
+            difficulty: 'medium',
+            tags: ['test'],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const validation = generator.validateCards(cards, 5);
-      
+
       expect(validation.valid).toBe(true);
       expect(validation.errors).toHaveLength(0);
     });
 
     test('should detect insufficient cards', () => {
-      const cards = Array.from({ length: 20 }, (_, i) => ({
-        id: `card-${i}`,
-        title: `Card ${i}`,
-        description: `Description ${i}`,
-        game_type: 'Minecraft',
-        difficulty: 'easy',
-        tags: [],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const cards = Array.from(
+        { length: 20 },
+        (_, i) =>
+          ({
+            id: `card-${i}`,
+            title: `Card ${i}`,
+            description: `Description ${i}`,
+            game_type: 'Minecraft',
+            difficulty: 'easy',
+            tags: [],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const validation = generator.validateCards(cards, 5);
-      
+
       expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain('Insufficient cards: need 25, got 20');
+      expect(validation.errors).toContain(
+        'Insufficient cards: need 25, got 20'
+      );
     });
 
     test('should detect duplicate cards', () => {
-      const cards = Array.from({ length: 25 }, (_, i) => ({
-        id: i < 24 ? `card-${i}` : 'card-0', // Duplicate ID
-        title: `Card ${i}`,
-        description: `Description ${i}`,
-        game_type: 'Valorant',
-        difficulty: 'medium',
-        tags: [],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const cards = Array.from(
+        { length: 25 },
+        (_, i) =>
+          ({
+            id: i < 24 ? `card-${i}` : 'card-0', // Duplicate ID
+            title: `Card ${i}`,
+            description: `Description ${i}`,
+            game_type: 'Valorant',
+            difficulty: 'medium',
+            tags: [],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const validation = generator.validateCards(cards, 5);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain('Duplicate cards detected');
     });
 
     test('should detect empty titles', () => {
-      const cards = Array.from({ length: 25 }, (_, i) => ({
-        id: `card-${i}`,
-        title: i % 5 === 0 ? '' : `Card ${i}`, // Some empty titles
-        description: `Description ${i}`,
-        game_type: 'League of Legends',
-        difficulty: 'hard',
-        tags: [],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const cards = Array.from(
+        { length: 25 },
+        (_, i) =>
+          ({
+            id: `card-${i}`,
+            title: i % 5 === 0 ? '' : `Card ${i}`, // Some empty titles
+            description: `Description ${i}`,
+            game_type: 'League of Legends',
+            difficulty: 'hard',
+            tags: [],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const validation = generator.validateCards(cards, 5);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain('5 cards have empty titles');
     });
 
     test('should warn about skewed difficulty distribution', () => {
-      const cards = Array.from({ length: 25 }, (_, i) => ({
-        id: `card-${i}`,
-        title: `Card ${i}`,
-        description: `Description ${i}`,
-        game_type: 'Valorant',
-        difficulty: 'expert', // All same difficulty
-        tags: [],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const cards = Array.from(
+        { length: 25 },
+        (_, i) =>
+          ({
+            id: `card-${i}`,
+            title: `Card ${i}`,
+            description: `Description ${i}`,
+            game_type: 'Valorant',
+            difficulty: 'expert', // All same difficulty
+            tags: [],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const validation = generator.validateCards(cards, 5);
-      
+
       expect(validation.valid).toBe(true);
-      expect(validation.warnings).toContain('High concentration of expert cards (25/25)');
+      expect(validation.warnings).toContain(
+        'High concentration of expert cards (25/25)'
+      );
     });
 
     test('should warn about mixed categories', () => {
-      const cards = Array.from({ length: 25 }, (_, i) => ({
-        id: `card-${i}`,
-        title: `Card ${i}`,
-        description: `Description ${i}`,
-        game_type: i % 2 === 0 ? 'Valorant' : 'Minecraft',
-        difficulty: 'medium',
-        tags: [],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const cards = Array.from(
+        { length: 25 },
+        (_, i) =>
+          ({
+            id: `card-${i}`,
+            title: `Card ${i}`,
+            description: `Description ${i}`,
+            game_type: i % 2 === 0 ? 'Valorant' : 'Minecraft',
+            difficulty: 'medium',
+            tags: [],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const validation = generator.validateCards(cards, 5);
-      
-      expect(validation.warnings).toContain('Mixed game categories detected: Valorant, Minecraft');
+
+      expect(validation.warnings).toContain(
+        'Mixed game categories detected: Valorant, Minecraft'
+      );
     });
   });
 
   describe('Card Suggestions', () => {
     test('should suggest cards matching existing pattern', () => {
-      const existingCards: BingoCard[] = Array.from({ length: 15 }, (_, i) => ({
-        id: `existing-${i}`,
-        title: `Existing ${i}`,
-        description: `Description ${i}`,
-        game_type: 'Valorant',
-        difficulty: 'medium',
-        tags: ['fps', 'competitive'],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const existingCards: BingoCard[] = Array.from(
+        { length: 15 },
+        (_, i) =>
+          ({
+            id: `existing-${i}`,
+            title: `Existing ${i}`,
+            description: `Description ${i}`,
+            game_type: 'Valorant',
+            difficulty: 'medium',
+            tags: ['fps', 'competitive'],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const suggestions = generator.suggestCards(existingCards, 25, {});
-      
+
       expect(suggestions).toHaveLength(10); // 25 - 15 existing
       for (const card of suggestions) {
         expect(card.game_type).toBe('Valorant');
@@ -575,25 +664,29 @@ describe('CardGeneratorService', () => {
     });
 
     test('should respect override options in suggestions', () => {
-      const existingCards: BingoCard[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `existing-${i}`,
-        title: `Existing ${i}`,
-        description: `Description ${i}`,
-        game_type: 'Minecraft',
-        difficulty: 'easy',
-        tags: ['sandbox'],
-        is_public: true,
-        creator_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        votes: 0,
-      } satisfies BingoCard));
+      const existingCards: BingoCard[] = Array.from(
+        { length: 10 },
+        (_, i) =>
+          ({
+            id: `existing-${i}`,
+            title: `Existing ${i}`,
+            description: `Description ${i}`,
+            game_type: 'Minecraft',
+            difficulty: 'easy',
+            tags: ['sandbox'],
+            is_public: true,
+            creator_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            votes: 0,
+          }) satisfies BingoCard
+      );
 
       const suggestions = generator.suggestCards(existingCards, 25, {
         gameCategory: 'Valorant',
         difficulty: 'hard',
       });
-      
+
       expect(suggestions).toHaveLength(15);
       for (const card of suggestions) {
         expect(card.game_type).toBe('Valorant');

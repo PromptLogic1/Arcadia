@@ -23,8 +23,12 @@ jest.mock('@/lib/rate-limiter-middleware', () => ({
 
 const mockAuthService = authService as jest.Mocked<typeof authService>;
 const mockUserService = userService as jest.Mocked<typeof userService>;
-const mockBingoBoardsService = bingoBoardsService as jest.Mocked<typeof bingoBoardsService>;
-const mockSessionsService = sessionsService as jest.Mocked<typeof sessionsService>;
+const mockBingoBoardsService = bingoBoardsService as jest.Mocked<
+  typeof bingoBoardsService
+>;
+const mockSessionsService = sessionsService as jest.Mocked<
+  typeof sessionsService
+>;
 
 describe('Bingo Sessions API Route', () => {
   const mockUser = {
@@ -242,7 +246,9 @@ describe('Bingo Sessions API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(500);
-      expect(mockSessionsService.deleteSession).toHaveBeenCalledWith('session-123');
+      expect(mockSessionsService.deleteSession).toHaveBeenCalledWith(
+        'session-123'
+      );
     });
   });
 
@@ -349,10 +355,9 @@ describe('Bingo Sessions API Route', () => {
 
       expect(response.status).toBe(200);
       expect(data).toEqual(mockSessionsWithPlayers);
-      expect(mockSessionsService.getSessionsByBoardIdWithPlayers).toHaveBeenCalledWith(
-        'board-123',
-        'active'
-      );
+      expect(
+        mockSessionsService.getSessionsByBoardIdWithPlayers
+      ).toHaveBeenCalledWith('board-123', 'active');
     });
 
     it('uses default status when not provided', async () => {
@@ -367,10 +372,9 @@ describe('Bingo Sessions API Route', () => {
 
       await GET(request);
 
-      expect(mockSessionsService.getSessionsByBoardIdWithPlayers).toHaveBeenCalledWith(
-        'board-123',
-        undefined
-      );
+      expect(
+        mockSessionsService.getSessionsByBoardIdWithPlayers
+      ).toHaveBeenCalledWith('board-123', undefined);
     });
 
     it('returns 500 when service fails', async () => {

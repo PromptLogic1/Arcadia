@@ -11,30 +11,30 @@ import { Button } from '@/components/ui/Button';
 function ThrowError({ type }: { type: string }) {
   // Force re-render to ensure error is thrown during React's render cycle
   const [shouldThrow, setShouldThrow] = useState(false);
-  
+
   // Use useEffect to trigger error after component mounts
   useEffect(() => {
     if (type) {
       setShouldThrow(true);
     }
   }, [type]);
-  
+
   if (shouldThrow && type === 'render') {
     // Force a synchronous render error
     throw new Error('Test render error');
   }
-  
+
   if (shouldThrow && type === 'async') {
     // This doesn't actually work for testing - async errors need different handling
     setTimeout(() => {
       throw new Error('Test async error');
     }, 100);
   }
-  
+
   if (shouldThrow && type === 'network') {
     throw new Error('WebSocket connection failed');
   }
-  
+
   return <div>Component rendered successfully</div>;
 }
 

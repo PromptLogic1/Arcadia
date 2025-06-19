@@ -14,7 +14,7 @@ import {
   validateQueryParams,
   isValidationError,
 } from '@/lib/validation/middleware';
-import { communityService } from '@/src/services/community.service';
+import { communityService } from '@/services/community.service';
 
 export const GET = withRateLimit(
   async (request: NextRequest): Promise<NextResponse> => {

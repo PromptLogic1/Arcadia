@@ -1,12 +1,18 @@
 /**
  * Settings Store Tests
- * 
+ *
  * Tests for Zustand store updates and persistence logic
  */
 
 import { describe, it, expect, beforeEach, vi } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react';
-import { useSettingsState, useSettingsActions, useSettingsModals, useSettingsForms, useSettingsPreferences } from '@/lib/stores/settings-store';
+import {
+  useSettingsState,
+  useSettingsActions,
+  useSettingsModals,
+  useSettingsForms,
+  useSettingsPreferences,
+} from '@/lib/stores/settings-store';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -142,10 +148,15 @@ describe('Settings Store', () => {
       expect(formsResult.current.emailForm?.newEmail).toBe('test@example.com');
 
       act(() => {
-        actionsResult.current.updateEmailField('confirmEmail', 'test@example.com');
+        actionsResult.current.updateEmailField(
+          'confirmEmail',
+          'test@example.com'
+        );
       });
 
-      expect(formsResult.current.emailForm?.confirmEmail).toBe('test@example.com');
+      expect(formsResult.current.emailForm?.confirmEmail).toBe(
+        'test@example.com'
+      );
     });
 
     it('should update password form fields', () => {
@@ -153,14 +164,24 @@ describe('Settings Store', () => {
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
       act(() => {
-        actionsResult.current.updatePasswordField('currentPassword', 'oldPass123!');
+        actionsResult.current.updatePasswordField(
+          'currentPassword',
+          'oldPass123!'
+        );
         actionsResult.current.updatePasswordField('newPassword', 'newPass123!');
-        actionsResult.current.updatePasswordField('confirmPassword', 'newPass123!');
+        actionsResult.current.updatePasswordField(
+          'confirmPassword',
+          'newPass123!'
+        );
       });
 
-      expect(formsResult.current.passwordForm?.currentPassword).toBe('oldPass123!');
+      expect(formsResult.current.passwordForm?.currentPassword).toBe(
+        'oldPass123!'
+      );
       expect(formsResult.current.passwordForm?.newPassword).toBe('newPass123!');
-      expect(formsResult.current.passwordForm?.confirmPassword).toBe('newPass123!');
+      expect(formsResult.current.passwordForm?.confirmPassword).toBe(
+        'newPass123!'
+      );
     });
 
     it('should reset individual forms', () => {
@@ -242,7 +263,9 @@ describe('Settings Store', () => {
 
   describe('Notification Settings', () => {
     it('should update notification preferences', () => {
-      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
+      const { result: preferencesResult } = renderHook(() =>
+        useSettingsPreferences()
+      );
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
       act(() => {
@@ -252,17 +275,27 @@ describe('Settings Store', () => {
         });
       });
 
-      expect(preferencesResult.current.notificationSettings.email_notifications).toBe(false);
-      expect(preferencesResult.current.notificationSettings.push_notifications).toBe(true);
+      expect(
+        preferencesResult.current.notificationSettings.email_notifications
+      ).toBe(false);
+      expect(
+        preferencesResult.current.notificationSettings.push_notifications
+      ).toBe(true);
       // Other settings should remain unchanged
-      expect(preferencesResult.current.notificationSettings.game_invites).toBe(true);
+      expect(preferencesResult.current.notificationSettings.game_invites).toBe(
+        true
+      );
     });
 
     it('should maintain existing settings when partially updating', () => {
-      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
+      const { result: preferencesResult } = renderHook(() =>
+        useSettingsPreferences()
+      );
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
-      const initialSettings = { ...preferencesResult.current.notificationSettings };
+      const initialSettings = {
+        ...preferencesResult.current.notificationSettings,
+      };
 
       act(() => {
         actionsResult.current.setNotificationSettings({
@@ -270,10 +303,12 @@ describe('Settings Store', () => {
         });
       });
 
-      expect(preferencesResult.current.notificationSettings.push_notifications).toBe(false);
-      expect(preferencesResult.current.notificationSettings.email_notifications).toBe(
-        initialSettings.email_notifications
-      );
+      expect(
+        preferencesResult.current.notificationSettings.push_notifications
+      ).toBe(false);
+      expect(
+        preferencesResult.current.notificationSettings.email_notifications
+      ).toBe(initialSettings.email_notifications);
       expect(preferencesResult.current.notificationSettings.game_invites).toBe(
         initialSettings.game_invites
       );
@@ -282,7 +317,9 @@ describe('Settings Store', () => {
 
   describe('Privacy Settings', () => {
     it('should update privacy preferences', () => {
-      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
+      const { result: preferencesResult } = renderHook(() =>
+        useSettingsPreferences()
+      );
       const { result: actionsResult } = renderHook(() => useSettingsActions());
 
       act(() => {
@@ -292,16 +329,28 @@ describe('Settings Store', () => {
         });
       });
 
-      expect(preferencesResult.current.privacySettings.profile_visibility).toBe('private');
-      expect(preferencesResult.current.privacySettings.show_online_status).toBe(false);
-      expect(preferencesResult.current.privacySettings.allow_friend_requests).toBe(true);
+      expect(preferencesResult.current.privacySettings.profile_visibility).toBe(
+        'private'
+      );
+      expect(preferencesResult.current.privacySettings.show_online_status).toBe(
+        false
+      );
+      expect(
+        preferencesResult.current.privacySettings.allow_friend_requests
+      ).toBe(true);
     });
 
     it('should validate privacy visibility options', () => {
       const { result: actionsResult } = renderHook(() => useSettingsActions());
-      const { result: preferencesResult } = renderHook(() => useSettingsPreferences());
+      const { result: preferencesResult } = renderHook(() =>
+        useSettingsPreferences()
+      );
 
-      const validOptions: Array<'public' | 'friends' | 'private'> = ['public', 'friends', 'private'];
+      const validOptions: Array<'public' | 'friends' | 'private'> = [
+        'public',
+        'friends',
+        'private',
+      ];
 
       validOptions.forEach(option => {
         act(() => {
@@ -310,7 +359,9 @@ describe('Settings Store', () => {
           });
         });
 
-        expect(preferencesResult.current.privacySettings.profile_visibility).toBe(option);
+        expect(
+          preferencesResult.current.privacySettings.profile_visibility
+        ).toBe(option);
       });
     });
   });
@@ -326,7 +377,9 @@ describe('Settings Store', () => {
         actionsResult.current.setIsChangingEmail(true);
         actionsResult.current.updateEmailField('newEmail', 'test@example.com');
         actionsResult.current.setShowEmailSuccess(true);
-        actionsResult.current.setNotificationSettings({ push_notifications: false });
+        actionsResult.current.setNotificationSettings({
+          push_notifications: false,
+        });
       });
 
       // Reset everything
@@ -335,13 +388,17 @@ describe('Settings Store', () => {
       });
 
       // Get preferences after reset to verify
-      const { result: preferencesAfterReset } = renderHook(() => useSettingsPreferences());
-      
+      const { result: preferencesAfterReset } = renderHook(() =>
+        useSettingsPreferences()
+      );
+
       // Verify all state is back to initial
       expect(stateResult.current.activeSection).toBe('general');
       expect(stateResult.current.isChangingEmail).toBe(false);
       expect(stateResult.current.showEmailSuccess).toBe(false);
-      expect(preferencesAfterReset.current.notificationSettings.push_notifications).toBe(true);
+      expect(
+        preferencesAfterReset.current.notificationSettings.push_notifications
+      ).toBe(true);
     });
   });
 
@@ -369,7 +426,10 @@ describe('Settings Store', () => {
         game_invites: false,
       };
 
-      localStorage.setItem('notification-preferences', JSON.stringify(preferences));
+      localStorage.setItem(
+        'notification-preferences',
+        JSON.stringify(preferences)
+      );
 
       const stored = localStorage.getItem('notification-preferences');
       const parsed = stored ? JSON.parse(stored) : null;

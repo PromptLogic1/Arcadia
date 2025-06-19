@@ -1,6 +1,9 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import type { Tables, Enums } from '@/types/database.types';
-import type { SessionFilters, SessionWithStats } from '@/services/sessions.service';
+import type {
+  SessionFilters,
+  SessionWithStats,
+} from '@/services/sessions.service';
 
 // Types for session filtering (aligned with actual implementation)
 type GameCategory = Enums<'game_category'>;
@@ -13,25 +16,33 @@ interface SessionSortOptions {
 }
 
 // Session filtering logic extracted from E2E tests
-export const filterSessions = (sessions: SessionWithStats[], filters: SessionFilters): SessionWithStats[] => {
+export const filterSessions = (
+  sessions: SessionWithStats[],
+  filters: SessionFilters
+): SessionWithStats[] => {
   let filtered = [...sessions];
 
   // Game category filter
   if (filters.gameCategory) {
-    filtered = filtered.filter(session => session.board_game_type === filters.gameCategory);
+    filtered = filtered.filter(
+      session => session.board_game_type === filters.gameCategory
+    );
   }
 
   // Difficulty filter
   if (filters.difficulty) {
-    filtered = filtered.filter(session => session.board_difficulty === filters.difficulty);
+    filtered = filtered.filter(
+      session => session.board_difficulty === filters.difficulty
+    );
   }
 
   // Search filter
   if (filters.search) {
     const searchLower = filters.search.toLowerCase();
-    filtered = filtered.filter(session =>
-      (session.board_title ?? '').toLowerCase().includes(searchLower) ||
-      (session.host_username ?? '').toLowerCase().includes(searchLower)
+    filtered = filtered.filter(
+      session =>
+        (session.board_title ?? '').toLowerCase().includes(searchLower) ||
+        (session.host_username ?? '').toLowerCase().includes(searchLower)
     );
   }
 
@@ -53,17 +64,21 @@ export const filterSessions = (sessions: SessionWithStats[], filters: SessionFil
 };
 
 // Sort sessions by different criteria
-export const sortSessions = (sessions: SessionWithStats[], options: SessionSortOptions): SessionWithStats[] => {
+export const sortSessions = (
+  sessions: SessionWithStats[],
+  options: SessionSortOptions
+): SessionWithStats[] => {
   const sorted = [...sessions];
   const { sortBy, order = 'desc' } = options;
 
   switch (sortBy) {
     case 'current_player_count':
       return sorted.sort((a, b) => {
-        const diff = (b.current_player_count ?? 0) - (a.current_player_count ?? 0);
+        const diff =
+          (b.current_player_count ?? 0) - (a.current_player_count ?? 0);
         return order === 'asc' ? -diff : diff;
       });
-    
+
     case 'created_at':
       return sorted.sort((a, b) => {
         const aTime = new Date(a.created_at ?? 0).getTime();
@@ -71,13 +86,13 @@ export const sortSessions = (sessions: SessionWithStats[], options: SessionSortO
         const diff = bTime - aTime;
         return order === 'asc' ? -diff : diff;
       });
-    
+
     case 'board_title':
       return sorted.sort((a, b) => {
         const diff = (a.board_title ?? '').localeCompare(b.board_title ?? '');
         return order === 'asc' ? diff : -diff;
       });
-    
+
     default:
       return sorted;
   }
@@ -118,7 +133,7 @@ describe('Session Filtering Logic', () => {
         winner_id: null,
         current_state: null,
         settings: null,
-        version: 1
+        version: 1,
       },
       {
         id: 'session-2',
@@ -140,7 +155,7 @@ describe('Session Filtering Logic', () => {
         winner_id: null,
         current_state: null,
         settings: null,
-        version: 2
+        version: 2,
       },
       {
         id: 'session-3',
@@ -162,14 +177,16 @@ describe('Session Filtering Logic', () => {
         winner_id: null,
         current_state: null,
         settings: null,
-        version: 1
-      }
+        version: 1,
+      },
     ];
   });
 
   describe('Category Filtering', () => {
     test('should filter sessions by game category', () => {
-      const filtered = filterSessions(mockSessions, { gameCategory: 'Minecraft' });
+      const filtered = filterSessions(mockSessions, {
+        gameCategory: 'Minecraft',
+      });
       expect(filtered).toHaveLength(1);
       expect(filtered[0]?.board_title).toBe('Classic Bingo');
     });
@@ -255,7 +272,7 @@ describe('Session Filtering Logic', () => {
       const filtered = filterSessions(mockSessions, {
         status: 'waiting',
         difficulty: 'easy',
-        showPrivate: false
+        showPrivate: false,
       });
       expect(filtered).toHaveLength(1);
       expect(filtered[0]?.board_title).toBe('Classic Bingo');
@@ -265,7 +282,7 @@ describe('Session Filtering Logic', () => {
       const filtered = filterSessions(mockSessions, {
         gameCategory: 'Minecraft',
         status: 'active',
-        difficulty: 'hard'
+        difficulty: 'hard',
       });
       expect(filtered).toHaveLength(0);
     });
@@ -273,27 +290,39 @@ describe('Session Filtering Logic', () => {
 
   describe('Session Sorting', () => {
     test('should sort by player count descending', () => {
-      const sorted = sortSessions(mockSessions, { sortBy: 'current_player_count', order: 'desc' });
+      const sorted = sortSessions(mockSessions, {
+        sortBy: 'current_player_count',
+        order: 'desc',
+      });
       expect(sorted[0]?.current_player_count).toBe(6);
       expect(sorted[1]?.current_player_count).toBe(2);
       expect(sorted[2]?.current_player_count).toBe(1);
     });
 
     test('should sort by player count ascending', () => {
-      const sorted = sortSessions(mockSessions, { sortBy: 'current_player_count', order: 'asc' });
+      const sorted = sortSessions(mockSessions, {
+        sortBy: 'current_player_count',
+        order: 'asc',
+      });
       expect(sorted[0]?.current_player_count).toBe(1);
       expect(sorted[1]?.current_player_count).toBe(2);
       expect(sorted[2]?.current_player_count).toBe(6);
     });
 
     test('should sort by creation date (newest first)', () => {
-      const sorted = sortSessions(mockSessions, { sortBy: 'created_at', order: 'desc' });
+      const sorted = sortSessions(mockSessions, {
+        sortBy: 'created_at',
+        order: 'desc',
+      });
       expect(sorted[0]?.board_title).toBe('Speed Challenge'); // Most recent
       expect(sorted[2]?.board_title).toBe('Casual Fun'); // Oldest
     });
 
     test('should sort alphabetically by board title', () => {
-      const sorted = sortSessions(mockSessions, { sortBy: 'board_title', order: 'asc' });
+      const sorted = sortSessions(mockSessions, {
+        sortBy: 'board_title',
+        order: 'asc',
+      });
       expect(sorted[0]?.board_title).toBe('Casual Fun');
       expect(sorted[1]?.board_title).toBe('Classic Bingo');
       expect(sorted[2]?.board_title).toBe('Speed Challenge');
@@ -307,7 +336,7 @@ describe('Session Filtering Logic', () => {
         { status: 'waiting' },
         { sortBy: 'current_player_count', order: 'desc' }
       );
-      
+
       expect(result).toHaveLength(2);
       expect(result[0]?.current_player_count).toBe(2);
       expect(result[1]?.current_player_count).toBe(1);
@@ -319,7 +348,7 @@ describe('Session Filtering Logic', () => {
         { gameCategory: 'CS:GO' }, // Non-existent game
         { sortBy: 'board_title' }
       );
-      
+
       expect(result).toHaveLength(0);
     });
   });
@@ -332,16 +361,20 @@ describe('Session Filtering Logic', () => {
         id: `session-${i}`,
         board_title: `Session ${i}`,
         current_player_count: Math.floor(Math.random() * 8) + 1,
-        board_game_type: (['Minecraft', 'Valorant', 'Among Us'] as GameCategory[])[i % 3],
+        board_game_type: (
+          ['Minecraft', 'Valorant', 'Among Us'] as GameCategory[]
+        )[i % 3],
       }));
 
       const startTime = performance.now();
-      
-      const filtered = filterSessions(largeSessions, { gameCategory: 'Minecraft' });
+
+      const filtered = filterSessions(largeSessions, {
+        gameCategory: 'Minecraft',
+      });
       const sorted = sortSessions(filtered, { sortBy: 'current_player_count' });
-      
+
       const endTime = performance.now();
-      
+
       expect(endTime - startTime).toBeLessThan(100); // Should complete in under 100ms
       expect(sorted.length).toBeGreaterThan(0);
     });

@@ -1,6 +1,6 @@
 /**
  * Type-safe error generators for infrastructure testing
- * 
+ *
  * This module provides factory functions to generate strongly-typed
  * error objects for different failure scenarios, ensuring consistency
  * and type safety in test error simulation.
@@ -111,11 +111,16 @@ export const generateValidationError = (
   options?: Partial<ValidationError>
 ): ValidationError => {
   const fieldCount = Object.keys(fields).length;
-  const errorCount = Object.values(fields).reduce((sum, errors) => sum + errors.length, 0);
-  
+  const errorCount = Object.values(fields).reduce(
+    (sum, errors) => sum + errors.length,
+    0
+  );
+
   return {
     code: 'VALIDATION_ERROR',
-    message: options?.message || `Validation failed: ${errorCount} errors in ${fieldCount} fields`,
+    message:
+      options?.message ||
+      `Validation failed: ${errorCount} errors in ${fieldCount} fields`,
     timestamp: Date.now(),
     errorId: generateErrorId(),
     fields,
@@ -133,7 +138,7 @@ export const generateInfrastructureError = (
   options?: Partial<InfrastructureError>
 ): InfrastructureError => {
   const fatal = options?.fatal ?? false;
-  
+
   return {
     code: `INFRA_${service.toUpperCase()}_ERROR`,
     message: options?.message || `${service} ${operation} operation failed`,
@@ -156,7 +161,7 @@ export const generateCircuitBreakerError = (
   options?: Partial<CircuitBreakerError>
 ): CircuitBreakerError => {
   const now = Date.now();
-  
+
   return {
     code: 'CIRCUIT_BREAKER_OPEN',
     message: options?.message || `Circuit breaker is ${state}`,
@@ -180,10 +185,12 @@ export const generateRateLimitError = (
   options?: Partial<RateLimitError>
 ): RateLimitError => {
   const resetTime = options?.resetTime || Date.now() + 60000;
-  
+
   return {
     code: 'RATE_LIMIT_EXCEEDED',
-    message: options?.message || `Rate limit exceeded: ${remaining}/${limit} requests remaining`,
+    message:
+      options?.message ||
+      `Rate limit exceeded: ${remaining}/${limit} requests remaining`,
     timestamp: Date.now(),
     errorId: generateErrorId(),
     limit,
@@ -207,14 +214,17 @@ export const generateAuthError = (
     expired: 'Session expired',
     invalid: 'Invalid credentials',
   };
-  
-  const requiresAction: Record<AuthError['type'], AuthError['requiresAction'] | undefined> = {
+
+  const requiresAction: Record<
+    AuthError['type'],
+    AuthError['requiresAction'] | undefined
+  > = {
     unauthorized: 'login',
     forbidden: undefined,
     expired: 'refresh',
     invalid: 'login',
   };
-  
+
   return {
     code: `AUTH_${type.toUpperCase()}`,
     message: options?.message || messages[type],
@@ -236,7 +246,9 @@ export const generateDataIntegrityError = (
 ): DataIntegrityError => {
   return {
     code: 'DATA_INTEGRITY_ERROR',
-    message: options?.message || `Data integrity check failed for ${operation} on ${resource}`,
+    message:
+      options?.message ||
+      `Data integrity check failed for ${operation} on ${resource}`,
     timestamp: Date.now(),
     errorId: generateErrorId(),
     operation,
@@ -255,14 +267,20 @@ export const generatePerformanceError = (
   actual: number,
   options?: Partial<PerformanceError>
 ): PerformanceError => {
-  const impactLevel: PerformanceError['impactLevel'] = 
-    actual > threshold * 3 ? 'critical' :
-    actual > threshold * 2 ? 'high' :
-    actual > threshold * 1.5 ? 'medium' : 'low';
-  
+  const impactLevel: PerformanceError['impactLevel'] =
+    actual > threshold * 3
+      ? 'critical'
+      : actual > threshold * 2
+        ? 'high'
+        : actual > threshold * 1.5
+          ? 'medium'
+          : 'low';
+
   return {
     code: `PERFORMANCE_${metric.toUpperCase()}_EXCEEDED`,
-    message: options?.message || `${metric} exceeded threshold: ${actual}ms > ${threshold}ms`,
+    message:
+      options?.message ||
+      `${metric} exceeded threshold: ${actual}ms > ${threshold}ms`,
     timestamp: Date.now(),
     errorId: generateErrorId(),
     metric,
@@ -283,7 +301,9 @@ export const generateErrorBoundaryError = (
 ): ErrorBoundaryError => {
   return {
     code: `ERROR_BOUNDARY_${level.toUpperCase()}`,
-    message: options?.message || `Error caught at ${level} boundary: ${originalError.message}`,
+    message:
+      options?.message ||
+      `Error caught at ${level} boundary: ${originalError.message}`,
     timestamp: Date.now(),
     errorId: generateErrorId(),
     level,
@@ -297,46 +317,51 @@ export const generateErrorBoundaryError = (
 /**
  * Generate a random error for chaos testing
  */
-export const generateRandomError = (): 
-  | NetworkError 
-  | ApiError 
-  | InfrastructureError 
+export const generateRandomError = ():
+  | NetworkError
+  | ApiError
+  | InfrastructureError
   | RateLimitError => {
-  const errorTypes = [
-    'network',
-    'api',
-    'infrastructure',
-    'rateLimit',
-  ] as const;
-  
+  const errorTypes = ['network', 'api', 'infrastructure', 'rateLimit'] as const;
+
   const type = errorTypes[Math.floor(Math.random() * errorTypes.length)];
-  
+
   switch (type) {
     case 'network': {
-      const networkTypes: NetworkError['type'][] = ['timeout', 'connection', 'reset'];
-      const selectedType = networkTypes[Math.floor(Math.random() * networkTypes.length)] ?? 'timeout';
+      const networkTypes: NetworkError['type'][] = [
+        'timeout',
+        'connection',
+        'reset',
+      ];
+      const selectedType =
+        networkTypes[Math.floor(Math.random() * networkTypes.length)] ??
+        'timeout';
       return generateNetworkError(selectedType);
     }
-    
+
     case 'api': {
       const statusCodes = [400, 401, 403, 404, 500, 503];
-      const selectedStatus = statusCodes[Math.floor(Math.random() * statusCodes.length)] ?? 500;
+      const selectedStatus =
+        statusCodes[Math.floor(Math.random() * statusCodes.length)] ?? 500;
       return generateApiError(selectedStatus);
     }
-    
+
     case 'infrastructure': {
-      const services: InfrastructureError['service'][] = ['redis', 'supabase', 'sentry'];
-      const selectedService = services[Math.floor(Math.random() * services.length)] ?? 'redis';
-      return generateInfrastructureError(
-        selectedService,
-        'operation',
-        { fatal: Math.random() > 0.8 }
-      );
+      const services: InfrastructureError['service'][] = [
+        'redis',
+        'supabase',
+        'sentry',
+      ];
+      const selectedService =
+        services[Math.floor(Math.random() * services.length)] ?? 'redis';
+      return generateInfrastructureError(selectedService, 'operation', {
+        fatal: Math.random() > 0.8,
+      });
     }
-    
+
     case 'rateLimit':
       return generateRateLimitError(100, 0);
-    
+
     default:
       // Should never reach here, but TypeScript requires exhaustive case handling
       return generateNetworkError('timeout');
@@ -348,7 +373,7 @@ export const generateRandomError = ():
  */
 export class ErrorScenarioBuilder {
   private errors: Array<() => Promise<void>> = [];
-  
+
   addNetworkFailure(delay = 0, type: NetworkError['type'] = 'timeout'): this {
     this.errors.push(async () => {
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -356,7 +381,7 @@ export class ErrorScenarioBuilder {
     });
     return this;
   }
-  
+
   addApiFailure(delay = 0, status = 500): this {
     this.errors.push(async () => {
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -364,7 +389,7 @@ export class ErrorScenarioBuilder {
     });
     return this;
   }
-  
+
   addInfrastructureFailure(
     delay = 0,
     service: InfrastructureError['service'] = 'redis'
@@ -375,11 +400,14 @@ export class ErrorScenarioBuilder {
     });
     return this;
   }
-  
+
   async execute(): Promise<Error[]> {
     const results = await Promise.allSettled(this.errors.map(fn => fn()));
     return results
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+      .filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected'
+      )
       .map(result => result.reason as Error);
   }
 }

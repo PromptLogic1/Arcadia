@@ -1,6 +1,6 @@
 /**
  * OAuth Flow Tests
- * 
+ *
  * Tests for OAuth authentication flows including:
  * - Provider authorization
  * - Callback handling
@@ -53,10 +53,10 @@ describe('OAuth Authentication', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset modules to ensure fresh imports
     jest.resetModules();
-    
+
     // Get references to mocked functions
     mockSignInWithOAuth = authService.signInWithOAuth as jest.Mock;
     mockGetCurrentUser = authService.getCurrentUser as jest.Mock;
@@ -137,11 +137,11 @@ describe('OAuth Authentication', () => {
       };
 
       const storedState = 'secure-random-state-123';
-      
+
       // Invalid state should fail
       expect(validateState(storedState, 'different-state')).toBe(false);
       expect(validateState(storedState, '')).toBe(false);
-      
+
       // Valid state should pass
       expect(validateState(storedState, storedState)).toBe(true);
     });
@@ -327,7 +327,10 @@ describe('OAuth Authentication', () => {
       const transformOAuthUser = (provider: Provider, metadata: any) => {
         return {
           email: metadata.email,
-          username: metadata.email?.split('@')[0] || metadata.user_name || metadata.username,
+          username:
+            metadata.email?.split('@')[0] ||
+            metadata.user_name ||
+            metadata.username,
           full_name: metadata.full_name || metadata.name,
           avatar_url: metadata.avatar_url || metadata.picture,
           provider,
@@ -355,7 +358,10 @@ describe('OAuth Authentication', () => {
       const transformOAuthUser = (provider: Provider, metadata: any) => {
         return {
           email: metadata.email,
-          username: metadata.user_name || metadata.username || metadata.email?.split('@')[0],
+          username:
+            metadata.user_name ||
+            metadata.username ||
+            metadata.email?.split('@')[0],
           full_name: metadata.full_name || metadata.name,
           avatar_url: metadata.avatar_url,
           bio: metadata.bio,
@@ -380,11 +386,12 @@ describe('OAuth Authentication', () => {
       };
 
       const transformOAuthUser = (provider: Provider, metadata: any) => {
-        const username = metadata.custom_claims?.username || 
-                        metadata.user_name || 
-                        metadata.username || 
-                        metadata.email?.split('@')[0];
-                        
+        const username =
+          metadata.custom_claims?.username ||
+          metadata.user_name ||
+          metadata.username ||
+          metadata.email?.split('@')[0];
+
         return {
           email: metadata.email,
           username,
@@ -410,7 +417,9 @@ describe('OAuth Authentication', () => {
       const generateState = (): string => {
         const array = new Uint8Array(32);
         global.crypto.getRandomValues(array);
-        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+        return Array.from(array, byte =>
+          byte.toString(16).padStart(2, '0')
+        ).join('');
       };
 
       const states = new Set<string>();
@@ -434,16 +443,20 @@ describe('OAuth Authentication', () => {
 
         try {
           const url = new URL(uri);
-          return allowedHosts.some(host => 
-            url.host === host || url.hostname === host
+          return allowedHosts.some(
+            host => url.host === host || url.hostname === host
           );
         } catch {
           return false;
         }
       };
 
-      expect(isValidRedirectUri('https://app.example.com/auth/callback')).toBe(true);
-      expect(isValidRedirectUri('http://localhost:3000/auth/callback')).toBe(true);
+      expect(isValidRedirectUri('https://app.example.com/auth/callback')).toBe(
+        true
+      );
+      expect(isValidRedirectUri('http://localhost:3000/auth/callback')).toBe(
+        true
+      );
       expect(isValidRedirectUri('https://evil.com/auth/callback')).toBe(false);
       expect(isValidRedirectUri('not-a-url')).toBe(false);
     });
@@ -451,7 +464,7 @@ describe('OAuth Authentication', () => {
     test('should not expose sensitive data in frontend', () => {
       // Verify OAuth config doesn't include secrets
       const providers: OAuthProvider[] = ['google', 'github', 'discord'];
-      
+
       providers.forEach(provider => {
         const config = OAUTH_CONFIG[provider];
         // Should have client ID (public)

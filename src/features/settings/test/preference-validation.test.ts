@@ -1,12 +1,16 @@
 /**
  * Preference Validation Tests
- * 
+ *
  * Tests for validating user preferences and settings input
  */
 
 import { settingsService } from '@/services/settings.service';
 import { SETTINGS_CONSTANTS } from '../components/constants';
-import type { EmailUpdateData, PasswordUpdateData, NotificationSettingsData } from '@/services/settings.service';
+import type {
+  EmailUpdateData,
+  PasswordUpdateData,
+  NotificationSettingsData,
+} from '@/services/settings.service';
 
 describe('Preference Validation', () => {
   describe('Email Validation', () => {
@@ -229,8 +233,12 @@ describe('Preference Validation', () => {
       // Business rule: If email notifications are off, email-specific settings should be ignored
       const processedSettings = {
         ...settings,
-        weekly_digest: settings.email_notifications ? (settings.weekly_digest ?? true) : false,
-        marketing_emails: settings.email_notifications ? (settings.marketing_emails ?? false) : false,
+        weekly_digest: settings.email_notifications
+          ? (settings.weekly_digest ?? true)
+          : false,
+        marketing_emails: settings.email_notifications
+          ? (settings.marketing_emails ?? false)
+          : false,
       };
 
       expect(processedSettings.weekly_digest).toBe(false);
@@ -297,8 +305,14 @@ describe('Preference Validation', () => {
       // Business rule: Private profiles should not show online status
       const processedSettings = {
         ...settings,
-        show_online_status: settings.profile_visibility === 'private' ? false : settings.show_online_status,
-        allow_friend_requests: settings.profile_visibility === 'private' ? false : settings.allow_friend_requests,
+        show_online_status:
+          settings.profile_visibility === 'private'
+            ? false
+            : settings.show_online_status,
+        allow_friend_requests:
+          settings.profile_visibility === 'private'
+            ? false
+            : settings.allow_friend_requests,
       };
 
       expect(processedSettings.show_online_status).toBe(false);
@@ -353,12 +367,7 @@ describe('Preference Validation', () => {
         'UTC',
       ];
 
-      const invalidTimezones = [
-        'New York',
-        'GMT+5',
-        'Eastern Time',
-        '',
-      ];
+      const invalidTimezones = ['New York', 'GMT+5', 'Eastern Time', ''];
 
       const timezoneRegex = /^[A-Za-z]+\/[A-Za-z_]+$|^UTC$/;
 
@@ -382,7 +391,7 @@ describe('Preference Validation', () => {
 
     it('should not trim whitespace from password inputs', () => {
       const passwordWithSpaces = '  MyPass123!  ';
-      
+
       // Passwords should NOT be trimmed as spaces might be intentional
       expect(passwordWithSpaces).toBe('  MyPass123!  ');
     });

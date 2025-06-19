@@ -10,76 +10,94 @@ test.describe('SEO & Meta Tags - Homepage', () => {
   test('should have proper page title', async ({ page }) => {
     // Check title exists and contains key terms
     await expect(page).toHaveTitle(/Arcadia/);
-    
+
     const title = await page.title();
     expect(title).toBeTruthy();
     expect(title.length).toBeGreaterThan(10);
     expect(title.length).toBeLessThan(60); // SEO best practice
-    
+
     // Should contain relevant keywords
     const lowerTitle = title.toLowerCase();
     expect(
       lowerTitle.includes('gaming') ||
-      lowerTitle.includes('game') ||
-      lowerTitle.includes('community') ||
-      lowerTitle.includes('platform')
+        lowerTitle.includes('game') ||
+        lowerTitle.includes('community') ||
+        lowerTitle.includes('platform')
     ).toBe(true);
   });
 
   test('should have meta description', async ({ page }) => {
-    const metaDescription = await page.locator('meta[name="description"]').getAttribute('content');
-    
+    const metaDescription = await page
+      .locator('meta[name="description"]')
+      .getAttribute('content');
+
     expect(metaDescription).toBeTruthy();
     expect(metaDescription!.length).toBeGreaterThan(50);
     expect(metaDescription!.length).toBeLessThan(160); // SEO best practice
-    
+
     // Should contain relevant keywords
     const lowerDescription = metaDescription!.toLowerCase();
     expect(
       lowerDescription.includes('gaming') ||
-      lowerDescription.includes('game') ||
-      lowerDescription.includes('community') ||
-      lowerDescription.includes('platform')
+        lowerDescription.includes('game') ||
+        lowerDescription.includes('community') ||
+        lowerDescription.includes('platform')
     ).toBe(true);
   });
 
   test('should have proper Open Graph tags', async ({ page }) => {
     // OG Title
-    const ogTitle = await page.locator('meta[property="og:title"]').getAttribute('content');
+    const ogTitle = await page
+      .locator('meta[property="og:title"]')
+      .getAttribute('content');
     expect(ogTitle).toBeTruthy();
     expect(ogTitle).toContain('Arcadia');
-    
+
     // OG Description
-    const ogDescription = await page.locator('meta[property="og:description"]').getAttribute('content');
+    const ogDescription = await page
+      .locator('meta[property="og:description"]')
+      .getAttribute('content');
     expect(ogDescription).toBeTruthy();
     expect(ogDescription!.length).toBeGreaterThan(20);
-    
+
     // OG Type
-    const ogType = await page.locator('meta[property="og:type"]').getAttribute('content');
+    const ogType = await page
+      .locator('meta[property="og:type"]')
+      .getAttribute('content');
     expect(ogType).toBe('website');
-    
+
     // OG URL
-    const ogUrl = await page.locator('meta[property="og:url"]').getAttribute('content');
+    const ogUrl = await page
+      .locator('meta[property="og:url"]')
+      .getAttribute('content');
     expect(ogUrl).toBeTruthy();
     expect(ogUrl).toMatch(/^https?:\/\//);
-    
+
     // OG Image
-    const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content');
+    const ogImage = await page
+      .locator('meta[property="og:image"]')
+      .getAttribute('content');
     if (ogImage) {
       expect(ogImage).toMatch(/\.(jpg|jpeg|png|webp)(\?|$)/i);
-      
+
       // Check image dimensions if specified
-      const ogImageWidth = await page.locator('meta[property="og:image:width"]').getAttribute('content');
-      const ogImageHeight = await page.locator('meta[property="og:image:height"]').getAttribute('content');
-      
+      const ogImageWidth = await page
+        .locator('meta[property="og:image:width"]')
+        .getAttribute('content');
+      const ogImageHeight = await page
+        .locator('meta[property="og:image:height"]')
+        .getAttribute('content');
+
       if (ogImageWidth && ogImageHeight) {
         expect(parseInt(ogImageWidth)).toBeGreaterThanOrEqual(400);
         expect(parseInt(ogImageHeight)).toBeGreaterThanOrEqual(300);
       }
     }
-    
+
     // OG Site Name
-    const ogSiteName = await page.locator('meta[property="og:site_name"]').getAttribute('content');
+    const ogSiteName = await page
+      .locator('meta[property="og:site_name"]')
+      .getAttribute('content');
     if (ogSiteName) {
       expect(ogSiteName).toContain('Arcadia');
     }
@@ -87,45 +105,60 @@ test.describe('SEO & Meta Tags - Homepage', () => {
 
   test('should have Twitter Card tags', async ({ page }) => {
     // Twitter Card Type
-    const twitterCard = await page.locator('meta[name="twitter:card"]').getAttribute('content');
+    const twitterCard = await page
+      .locator('meta[name="twitter:card"]')
+      .getAttribute('content');
     if (twitterCard) {
-      expect(['summary', 'summary_large_image', 'app', 'player']).toContain(twitterCard);
+      expect(['summary', 'summary_large_image', 'app', 'player']).toContain(
+        twitterCard
+      );
     }
-    
+
     // Twitter Title
-    const twitterTitle = await page.locator('meta[name="twitter:title"]').getAttribute('content');
+    const twitterTitle = await page
+      .locator('meta[name="twitter:title"]')
+      .getAttribute('content');
     if (twitterTitle) {
       expect(twitterTitle).toBeTruthy();
       expect(twitterTitle).toContain('Arcadia');
     }
-    
+
     // Twitter Description
-    const twitterDescription = await page.locator('meta[name="twitter:description"]').getAttribute('content');
+    const twitterDescription = await page
+      .locator('meta[name="twitter:description"]')
+      .getAttribute('content');
     if (twitterDescription) {
       expect(twitterDescription.length).toBeGreaterThan(20);
       expect(twitterDescription.length).toBeLessThan(200);
     }
-    
+
     // Twitter Image
-    const twitterImage = await page.locator('meta[name="twitter:image"]').getAttribute('content');
+    const twitterImage = await page
+      .locator('meta[name="twitter:image"]')
+      .getAttribute('content');
     if (twitterImage) {
       expect(twitterImage).toMatch(/\.(jpg|jpeg|png|webp)(\?|$)/i);
     }
-    
+
     // Twitter Site
-    const twitterSite = await page.locator('meta[name="twitter:site"]').getAttribute('content');
+    const twitterSite = await page
+      .locator('meta[name="twitter:site"]')
+      .getAttribute('content');
     if (twitterSite) {
       expect(twitterSite).toMatch(/^@[a-zA-Z0-9_]+$/);
     }
   });
 
   test('should have proper viewport meta tag', async ({ page }) => {
-    const viewport = await page.locator('meta[name="viewport"]').first().getAttribute('content');
-    
+    const viewport = await page
+      .locator('meta[name="viewport"]')
+      .first()
+      .getAttribute('content');
+
     expect(viewport).toBeTruthy();
     expect(viewport).toContain('width=device-width');
     expect(viewport).toContain('initial-scale=1');
-    
+
     // Should not disable zoom for accessibility
     expect(viewport).not.toContain('user-scalable=no');
     expect(viewport).not.toContain('maximum-scale=1');
@@ -133,16 +166,21 @@ test.describe('SEO & Meta Tags - Homepage', () => {
 
   test('should have proper charset and language', async ({ page }) => {
     // Charset - check for either format
-    const charsetElements = page.locator('meta[charset], meta[http-equiv="Content-Type"]');
+    const charsetElements = page.locator(
+      'meta[charset], meta[http-equiv="Content-Type"]'
+    );
     const charsetCount = await charsetElements.count();
     expect(charsetCount).toBeGreaterThan(0);
-    
+
     // Check if has charset attribute
-    const charsetAttr = await page.locator('meta[charset]').first().getAttribute('charset');
+    const charsetAttr = await page
+      .locator('meta[charset]')
+      .first()
+      .getAttribute('charset');
     if (charsetAttr) {
       expect(charsetAttr.toLowerCase()).toBe('utf-8');
     }
-    
+
     // Language
     const htmlLang = await page.locator('html').getAttribute('lang');
     expect(htmlLang).toBeTruthy();
@@ -154,43 +192,47 @@ test.describe('SEO & Meta Tags - Homepage', () => {
     const favicon = page.locator('link[rel="icon"], link[rel="shortcut icon"]');
     const faviconCount = await favicon.count();
     expect(faviconCount).toBeGreaterThan(0);
-    
+
     if (faviconCount > 0) {
       const faviconHref = await favicon.first().getAttribute('href');
       expect(faviconHref).toBeTruthy();
       expect(faviconHref).toMatch(/\.(ico|png|svg)(\?|$)/i);
     }
-    
+
     // Apple touch icon
     const appleTouchIcon = page.locator('link[rel="apple-touch-icon"]');
     const appleTouchIconCount = await appleTouchIcon.count();
-    
+
     if (appleTouchIconCount > 0) {
-      const appleTouchIconHref = await appleTouchIcon.first().getAttribute('href');
+      const appleTouchIconHref = await appleTouchIcon
+        .first()
+        .getAttribute('href');
       expect(appleTouchIconHref).toMatch(/\.(png|jpg)(\?|$)/i);
-      
+
       const sizes = await appleTouchIcon.first().getAttribute('sizes');
       if (sizes) {
         expect(sizes).toMatch(/\d+x\d+/);
       }
     }
-    
+
     // Manifest file
     const manifest = page.locator('link[rel="manifest"]');
-    if (await manifest.count() > 0) {
+    if ((await manifest.count()) > 0) {
       const manifestHref = await manifest.getAttribute('href');
       expect(manifestHref).toMatch(/\.(json|webmanifest)(\?|$)/);
     }
   });
 
   test('should have proper robots meta tag', async ({ page }) => {
-    const robots = await page.locator('meta[name="robots"]').getAttribute('content');
-    
+    const robots = await page
+      .locator('meta[name="robots"]')
+      .getAttribute('content');
+
     if (robots) {
       // Should allow indexing for public pages
       expect(robots).not.toContain('noindex');
       expect(robots).not.toContain('nofollow');
-      
+
       // Common valid values
       const validRobots = ['index,follow', 'all', 'index', 'follow'];
       const isValid = validRobots.some(valid => robots.includes(valid));
@@ -199,91 +241,102 @@ test.describe('SEO & Meta Tags - Homepage', () => {
   });
 
   test('should have canonical URL', async ({ page }) => {
-    const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
-    
+    const canonical = await page
+      .locator('link[rel="canonical"]')
+      .getAttribute('href');
+
     if (canonical) {
       expect(canonical).toMatch(/^https?:\/\//);
-      
+
       // In test environment, localhost is acceptable
       const isTestEnvironment = canonical.includes('localhost');
       if (!isTestEnvironment) {
         // In production, should not contain localhost
         expect(canonical).not.toContain('localhost');
       }
-      
+
       // Should be a valid URL
       expect(() => new URL(canonical)).not.toThrow();
     }
   });
 
   test('should have theme color meta tag', async ({ page }) => {
-    const themeColor = await page.locator('meta[name="theme-color"]').getAttribute('content');
-    
+    const themeColor = await page
+      .locator('meta[name="theme-color"]')
+      .getAttribute('content');
+
     if (themeColor) {
       // Should be a valid color value
-      expect(themeColor).toMatch(/^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{3}$|^rgb\(|^rgba\(/);
+      expect(themeColor).toMatch(
+        /^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{3}$|^rgb\(|^rgba\(/
+      );
     }
   });
 
   test('should have proper JSON-LD structured data', async ({ page }) => {
     const jsonLD = page.locator('script[type="application/ld+json"]');
     const jsonLDCount = await jsonLD.count();
-    
+
     expect(jsonLDCount).toBeGreaterThan(0);
-    
+
     let foundValidSchema = false;
-    
+
     for (let i = 0; i < jsonLDCount; i++) {
       const scriptContent = await jsonLD.nth(i).textContent();
       expect(scriptContent).toBeTruthy();
-      
+
       // Should be valid JSON
       let parsedData: unknown;
       expect(() => {
         parsedData = JSON.parse(scriptContent!);
       }).not.toThrow();
-      
+
       // Ensure parsedData is defined after JSON.parse
       if (!parsedData || typeof parsedData !== 'object') {
         continue; // Skip invalid data, but don't fail
       }
-      
+
       // Handle both single objects and arrays
       const schemas = Array.isArray(parsedData) ? parsedData : [parsedData];
-      
+
       for (const schemaItem of schemas) {
         const schemaData = schemaItem as Record<string, unknown>;
-        
+
         // Check if it's a valid schema.org object
-        if (schemaData['@context'] === 'https://schema.org' && schemaData['@type']) {
+        if (
+          schemaData['@context'] === 'https://schema.org' &&
+          schemaData['@type']
+        ) {
           foundValidSchema = true;
-          
+
           // For organization schema
           if (schemaData['@type'] === 'Organization') {
             expect(schemaData.name).toBeTruthy();
             expect(schemaData.url).toBeTruthy();
-            
+
             if (schemaData.logo) {
               expect(schemaData.logo).toMatch(/\.(png|jpg|jpeg|svg)(\?|$)/i);
             }
           }
-          
+
           // For website schema
           if (schemaData['@type'] === 'WebSite') {
             expect(schemaData.name).toBeTruthy();
             expect(schemaData.url).toBeTruthy();
-            
+
             if (schemaData.potentialAction) {
-              expect((schemaData.potentialAction as Record<string, unknown>)['@type']).toBe('SearchAction');
+              expect(
+                (schemaData.potentialAction as Record<string, unknown>)['@type']
+              ).toBe('SearchAction');
             }
           }
-          
+
           // For game platform schema
           if (schemaData['@type'] === 'VideoGameSeries') {
             expect(schemaData.name).toBeTruthy();
             expect(schemaData.url).toBeTruthy();
           }
-          
+
           // For breadcrumb schema
           if (schemaData['@type'] === 'BreadcrumbList') {
             expect(schemaData.itemListElement).toBeTruthy();
@@ -292,7 +345,7 @@ test.describe('SEO & Meta Tags - Homepage', () => {
         }
       }
     }
-    
+
     // Should have found at least one valid schema
     expect(foundValidSchema).toBe(true);
   });
@@ -306,20 +359,24 @@ test.describe('SEO & Meta Tags - About Page', () => {
 
   test('should have unique title for about page', async ({ page }) => {
     const title = await page.title();
-    
+
     expect(title).toBeTruthy();
     expect(title.toLowerCase()).toContain('about');
     expect(title).toContain('Arcadia');
     expect(title.length).toBeLessThan(60);
   });
 
-  test('should have unique meta description for about page', async ({ page }) => {
-    const metaDescription = await page.locator('meta[name="description"]').getAttribute('content');
-    
+  test('should have unique meta description for about page', async ({
+    page,
+  }) => {
+    const metaDescription = await page
+      .locator('meta[name="description"]')
+      .getAttribute('content');
+
     expect(metaDescription).toBeTruthy();
     expect(metaDescription!.length).toBeGreaterThan(50);
     expect(metaDescription!.length).toBeLessThan(160);
-    
+
     // Should be different from homepage description
     const homepageDescription = await page.evaluate(async () => {
       const response = await fetch('/');
@@ -327,20 +384,26 @@ test.describe('SEO & Meta Tags - About Page', () => {
       const match = html.match(/<meta name="description" content="([^"]+)"/);
       return match ? match[1] : null;
     });
-    
+
     if (homepageDescription) {
       expect(metaDescription).not.toBe(homepageDescription);
     }
   });
 
-  test('should have proper Open Graph tags for about page', async ({ page }) => {
-    const ogTitle = await page.locator('meta[property="og:title"]').getAttribute('content');
-    const ogUrl = await page.locator('meta[property="og:url"]').getAttribute('content');
-    
+  test('should have proper Open Graph tags for about page', async ({
+    page,
+  }) => {
+    const ogTitle = await page
+      .locator('meta[property="og:title"]')
+      .getAttribute('content');
+    const ogUrl = await page
+      .locator('meta[property="og:url"]')
+      .getAttribute('content');
+
     if (ogTitle) {
       expect(ogTitle.toLowerCase()).toContain('about');
     }
-    
+
     if (ogUrl) {
       expect(ogUrl).toContain('/about');
     }
@@ -349,28 +412,28 @@ test.describe('SEO & Meta Tags - About Page', () => {
   test('should have structured data for organization', async ({ page }) => {
     const jsonLD = page.locator('script[type="application/ld+json"]');
     const jsonLDCount = await jsonLD.count();
-    
+
     if (jsonLDCount > 0) {
       let foundOrganization = false;
-      
+
       for (let i = 0; i < jsonLDCount; i++) {
         const scriptContent = await jsonLD.nth(i).textContent();
         const parsedData = JSON.parse(scriptContent!);
-        
+
         if (parsedData['@type'] === 'Organization') {
           foundOrganization = true;
-          
+
           expect(parsedData.name).toBe('Arcadia');
           expect(parsedData.url).toBeTruthy();
-          
+
           if (parsedData.description) {
             expect(parsedData.description.length).toBeGreaterThan(20);
           }
-          
+
           if (parsedData.foundingDate) {
             expect(parsedData.foundingDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
           }
-          
+
           if (parsedData.sameAs) {
             expect(Array.isArray(parsedData.sameAs)).toBe(true);
             parsedData.sameAs.forEach((url: string) => {
@@ -379,7 +442,7 @@ test.describe('SEO & Meta Tags - About Page', () => {
           }
         }
       }
-      
+
       // About page should have organization structured data
       expect(foundOrganization).toBe(true);
     }
@@ -389,15 +452,17 @@ test.describe('SEO & Meta Tags - About Page', () => {
 test.describe('SEO - Technical Requirements', () => {
   test('should have clean URLs', async ({ page }) => {
     await page.goto('/');
-    
+
     const currentUrl = page.url();
-    
+
     // Should not have unnecessary query parameters for main pages (excluding tracking params)
     const url = new URL(currentUrl);
     const suspiciousParams = ['sessionid', 'sid', 'jsessionid', 'phpsessid'];
-    const hasSuspiciousParams = suspiciousParams.some(param => url.searchParams.has(param));
+    const hasSuspiciousParams = suspiciousParams.some(param =>
+      url.searchParams.has(param)
+    );
     expect(hasSuspiciousParams).toBe(false);
-    
+
     // URL should be well-formed
     expect(currentUrl).toMatch(/^https?:\/\/.+/);
   });
@@ -406,33 +471,35 @@ test.describe('SEO - Technical Requirements', () => {
     // Test homepage trailing slash consistency
     await page.goto('/');
     const homepageUrl = page.url();
-    
+
     // Homepage should be accessible and consistent
     expect(homepageUrl).toMatch(/\/$/);
-    
+
     // Test that both formats work (even if they redirect)
     const response1 = await page.goto('/', { waitUntil: 'domcontentloaded' });
     expect(response1?.ok()).toBe(true);
-    
+
     // Don't require about page to exist for this test
     console.log('Trailing slash consistency verified for homepage');
   });
 
   test('should have proper heading hierarchy', async ({ page }) => {
     await page.goto('/');
-    
+
     // Should have exactly one h1
     const h1Count = await page.locator('h1').count();
     expect(h1Count).toBe(1);
-    
+
     // Should have h1 content
     const h1Text = await page.locator('h1').textContent();
     expect(h1Text?.trim().length).toBeGreaterThan(0);
-    
+
     // Check heading order (h1 → h2 → h3, etc.)
-    const headings = await page.locator('h1, h2, h3, h4, h5, h6').allTextContents();
+    const headings = await page
+      .locator('h1, h2, h3, h4, h5, h6')
+      .allTextContents();
     expect(headings.length).toBeGreaterThan(1);
-    
+
     // First heading should be h1
     const firstHeading = await page.locator('h1, h2, h3, h4, h5, h6').first();
     const firstHeadingTag = await firstHeading.evaluate(el => el.tagName);
@@ -441,18 +508,20 @@ test.describe('SEO - Technical Requirements', () => {
 
   test('should have proper internal linking', async ({ page }) => {
     await page.goto('/');
-    
+
     // Find internal links
-    const internalLinks = page.locator('a[href^="/"], a[href^="./"], a[href^="../"]');
+    const internalLinks = page.locator(
+      'a[href^="/"], a[href^="./"], a[href^="../"]'
+    );
     const internalLinkCount = await internalLinks.count();
-    
+
     expect(internalLinkCount).toBeGreaterThan(0);
-    
+
     // Test a few internal links
     for (let i = 0; i < Math.min(internalLinkCount, 3); i++) {
       const link = internalLinks.nth(i);
       const href = await link.getAttribute('href');
-      
+
       if (href && !href.includes('#') && !href.includes('?')) {
         // Link should have descriptive text
         const linkText = await link.textContent();
@@ -465,15 +534,15 @@ test.describe('SEO - Technical Requirements', () => {
 
   test('should have accessible images with alt text', async ({ page }) => {
     await page.goto('/');
-    
+
     const images = page.locator('img');
     const imageCount = await images.count();
-    
+
     for (let i = 0; i < imageCount; i++) {
       const image = images.nth(i);
       const alt = await image.getAttribute('alt');
       const role = await image.getAttribute('role');
-      
+
       // Decorative images should have empty alt or role="presentation"
       // Content images should have descriptive alt text
       if (role === 'presentation' || role === 'none') {
@@ -491,16 +560,17 @@ test.describe('SEO - Technical Requirements', () => {
   test('should load quickly for search engines', async ({ page, context }) => {
     // Simulate search engine crawler
     await context.setExtraHTTPHeaders({
-      'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+      'User-Agent':
+        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
     });
-    
+
     const startTime = Date.now();
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const loadTime = Date.now() - startTime;
-    
+
     // Should load quickly for crawlers
     expect(loadTime).toBeLessThan(3000); // 3s
-    
+
     // Content should be accessible
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('main')).toBeVisible();
@@ -512,21 +582,22 @@ test.describe('SEO - Technical Requirements', () => {
       const robotsResponse = await page.request.get('/robots.txt');
       if (robotsResponse.ok()) {
         const robotsContent = await robotsResponse.text();
-        
+
         // Verify robots.txt has basic structure
         expect(robotsContent).toContain('User-agent:');
-        
+
         if (robotsContent.includes('Sitemap:')) {
           // Check that sitemap URL is present
           const sitemapMatch = robotsContent.match(/Sitemap:\s*([^\s]+)/);
           expect(sitemapMatch).toBeTruthy();
-          
+
           if (sitemapMatch && sitemapMatch[1]) {
             console.log(`Found sitemap reference: ${sitemapMatch[1]}`);
-            
+
             // Try to access sitemap locally
             try {
-              const localSitemapResponse = await page.request.get('/sitemap.xml');
+              const localSitemapResponse =
+                await page.request.get('/sitemap.xml');
               if (localSitemapResponse.ok()) {
                 const sitemapContent = await localSitemapResponse.text();
                 expect(sitemapContent).toContain('<?xml');
@@ -546,24 +617,24 @@ test.describe('SEO - Technical Requirements', () => {
 
   test('should have proper SSL and security headers', async ({ page }) => {
     const response = await page.goto('/');
-    
+
     // Should use HTTPS in production
     const url = page.url();
     if (!url.includes('localhost')) {
       expect(url.startsWith('https://')).toBe(true);
     }
-    
+
     // Check security headers
     const headers = response?.headers();
     if (headers) {
       // Content-Type should be set
       expect(headers['content-type']).toContain('text/html');
-      
+
       // Security headers (if implemented)
       if (headers['x-frame-options']) {
         expect(['DENY', 'SAMEORIGIN']).toContain(headers['x-frame-options']);
       }
-      
+
       if (headers['x-content-type-options']) {
         expect(headers['x-content-type-options']).toBe('nosniff');
       }
@@ -573,32 +644,36 @@ test.describe('SEO - Technical Requirements', () => {
   test('should be mobile-friendly', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
-    
+
     // Check viewport meta tag
-    const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');
+    const viewport = await page
+      .locator('meta[name="viewport"]')
+      .getAttribute('content');
     expect(viewport).toContain('width=device-width');
-    
+
     // Content should fit in viewport
-    const hasHorizontalScroll = await page.evaluate(() => 
-      document.documentElement.scrollWidth > document.documentElement.clientWidth
+    const hasHorizontalScroll = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
     );
     expect(hasHorizontalScroll).toBe(false);
-    
+
     // Text should be readable
     const bodyFontSize = await page.evaluate(() => {
       const body = document.body;
       return parseInt(window.getComputedStyle(body).fontSize);
     });
     expect(bodyFontSize).toBeGreaterThanOrEqual(14);
-    
+
     // Touch targets should be large enough
     const buttons = page.locator('button, a[role="button"]');
     const buttonCount = await buttons.count();
-    
+
     if (buttonCount > 0) {
       const firstButton = buttons.first();
       const box = await firstButton.boundingBox();
-      
+
       if (box) {
         expect(box.height).toBeGreaterThanOrEqual(40);
       }

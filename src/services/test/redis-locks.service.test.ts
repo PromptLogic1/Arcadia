@@ -5,7 +5,10 @@
 import { redisLocksService } from '../redis-locks.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
-import type { DistributedLockOptions, LockExtensionOptions } from '../redis-locks.service';
+import type {
+  DistributedLockOptions,
+  LockExtensionOptions,
+} from '../redis-locks.service';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
@@ -22,7 +25,7 @@ describe('redisLocksService', () => {
     jest.clearAllMocks();
     (getRedisClient as jest.Mock).mockReturnValue(mockRedis);
     (isRedisConfigured as jest.Mock).mockReturnValue(true);
-    
+
     // Clear any active locks
     (redisLocksService as any).activeLocks.clear();
   });
@@ -78,7 +81,7 @@ describe('redisLocksService', () => {
       // First two attempts fail, third succeeds
       mockRedis.set
         .mockResolvedValueOnce(null) // First attempt fails
-        .mockResolvedValueOnce(null) // Second attempt fails  
+        .mockResolvedValueOnce(null) // Second attempt fails
         .mockResolvedValueOnce('OK'); // Third attempt succeeds
 
       const result = await redisLocksService.acquireLock(options);
@@ -222,7 +225,7 @@ describe('redisLocksService', () => {
 
     it('should use active lock holder if not provided', async () => {
       const lockId = 'test-lock-1';
-      
+
       // Set up an active lock
       const activeLocks = (redisLocksService as any).activeLocks;
       activeLocks.set(lockId, {
@@ -248,13 +251,15 @@ describe('redisLocksService', () => {
       const result = await redisLocksService.releaseLock(lockId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Lock holder not specified and not found in active locks');
+      expect(result.error).toBe(
+        'Lock holder not specified and not found in active locks'
+      );
     });
 
     it('should clean up auto-extend timer', async () => {
       const lockId = 'test-lock-1';
       const holder = 'test-holder';
-      
+
       // Set up an active lock with auto-extend timer
       const mockTimeout = setTimeout(() => {}, 1000);
       const activeLocks = (redisLocksService as any).activeLocks;
@@ -286,7 +291,11 @@ describe('redisLocksService', () => {
       // Mock successful extension (lua script returns 1)
       mockRedis.eval.mockResolvedValueOnce(1);
 
-      const result = await redisLocksService.extendLock(lockId, holder, options);
+      const result = await redisLocksService.extendLock(
+        lockId,
+        holder,
+        options
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toBe(true);
@@ -338,7 +347,7 @@ describe('redisLocksService', () => {
     it('should update active lock tracking on successful extension', async () => {
       const lockId = 'test-lock-1';
       const holder = 'test-holder';
-      
+
       // Set up an active lock
       const activeLocks = (redisLocksService as any).activeLocks;
       const originalExpiresAt = Date.now() + 10000;
@@ -441,8 +450,13 @@ describe('redisLocksService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toBe('success result');
       expect(testFunction).toHaveBeenCalledTimes(1);
-      expect(redisLocksService.acquireLock).toHaveBeenCalledWith({ id: lockId });
-      expect(redisLocksService.releaseLock).toHaveBeenCalledWith(lockId, 'test-holder');
+      expect(redisLocksService.acquireLock).toHaveBeenCalledWith({
+        id: lockId,
+      });
+      expect(redisLocksService.releaseLock).toHaveBeenCalledWith(
+        lockId,
+        'test-holder'
+      );
     });
 
     it('should handle lock acquisition failure', async () => {
@@ -463,7 +477,9 @@ describe('redisLocksService', () => {
 
     it('should handle function execution failure and still release lock', async () => {
       const lockId = 'test-lock-1';
-      const testFunction = jest.fn().mockRejectedValue(new Error('Function failed'));
+      const testFunction = jest
+        .fn()
+        .mockRejectedValue(new Error('Function failed'));
 
       jest.spyOn(redisLocksService, 'acquireLock').mockResolvedValueOnce({
         success: true,
@@ -485,7 +501,10 @@ describe('redisLocksService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Function failed');
       expect(testFunction).toHaveBeenCalledTimes(1);
-      expect(redisLocksService.releaseLock).toHaveBeenCalledWith(lockId, 'test-holder');
+      expect(redisLocksService.releaseLock).toHaveBeenCalledWith(
+        lockId,
+        'test-holder'
+      );
       expect(log.error).toHaveBeenCalledWith(
         'Function execution failed in withLock',
         expect.any(Error),
@@ -500,7 +519,7 @@ describe('redisLocksService', () => {
     it('should clean up expired locks from local tracking', async () => {
       const activeLocks = (redisLocksService as any).activeLocks;
       const now = Date.now();
-      
+
       // Add some locks - some expired, some active
       activeLocks.set('expired-1', {
         holder: 'holder-1',
@@ -537,7 +556,7 @@ describe('redisLocksService', () => {
   describe('getActiveLocks', () => {
     it('should return all active locks', () => {
       const activeLocks = (redisLocksService as any).activeLocks;
-      
+
       activeLocks.set('lock-1', {
         holder: 'holder-1',
         expiresAt: Date.now() + 30000,

@@ -52,7 +52,7 @@ export class RecommendationEngine {
       maxRecommendations = 10,
       includeNewGames = true,
       diversityWeight = 0.3,
-      personalizedWeight = 0.7
+      personalizedWeight = 0.7,
     } = config;
 
     const scores = this.calculateRecommendationScores(
@@ -76,7 +76,7 @@ export class RecommendationEngine {
       maxRecommendations = 10,
       includeNewGames = true,
       diversityWeight = 0.3,
-      personalizedWeight = 0.7
+      personalizedWeight = 0.7,
     } = config;
 
     const scores = this.calculateRecommendationScoresIncludingLiked(
@@ -135,8 +135,10 @@ export class RecommendationEngine {
 
     for (const [gameId, game] of this.games) {
       // Skip already played games unless they're liked
-      if (this.userPreferences.playedGames.includes(gameId) &&
-          !this.userPreferences.likedGames.includes(gameId)) {
+      if (
+        this.userPreferences.playedGames.includes(gameId) &&
+        !this.userPreferences.likedGames.includes(gameId)
+      ) {
         continue;
       }
 
@@ -214,7 +216,7 @@ export class RecommendationEngine {
     return {
       gameId: game.id,
       score: finalScore,
-      reasons
+      reasons,
     };
   }
 
@@ -225,12 +227,12 @@ export class RecommendationEngine {
     }
     // Partial score for related categories
     const relatedCategories: Record<string, string[]> = {
-      'puzzle': ['strategy', 'educational'],
-      'strategy': ['puzzle', 'educational'],
-      'entertainment': ['social'],
-      'educational': ['puzzle', 'strategy']
+      puzzle: ['strategy', 'educational'],
+      strategy: ['puzzle', 'educational'],
+      entertainment: ['social'],
+      educational: ['puzzle', 'strategy'],
     };
-    
+
     const related = relatedCategories[game.category] || [];
     const hasRelated = related.some(cat => favoriteCategories.includes(cat));
     return hasRelated ? 15 : 0;
@@ -238,56 +240,56 @@ export class RecommendationEngine {
 
   private calculateDifficultyScore(game: Game): number {
     const preferred = this.userPreferences.preferredDifficulty;
-    
+
     if (preferred === 'mixed') {
       return 15; // All difficulties are acceptable
     }
-    
+
     if (game.difficulty === preferred) {
       return 20;
     }
-    
+
     // Adjacent difficulty gets partial score
     const difficultyMap = { easy: 0, medium: 1, hard: 2 };
     const gameDiff = difficultyMap[game.difficulty];
     const prefDiff = difficultyMap[preferred];
-    
+
     return Math.abs(gameDiff - prefDiff) === 1 ? 10 : 0;
   }
 
   private calculatePlayTimeScore(game: Game): number {
     const avgPlayTime = this.userPreferences.averagePlayTime;
     const gameDuration = game.average_duration;
-    
+
     // Perfect match
     if (Math.abs(gameDuration - avgPlayTime) <= 5) {
       return 15;
     }
-    
+
     // Within reasonable range (±50%)
     const lowerBound = avgPlayTime * 0.5;
     const upperBound = avgPlayTime * 1.5;
-    
+
     if (gameDuration >= lowerBound && gameDuration <= upperBound) {
       return 10;
     }
-    
+
     return 0;
   }
 
   private calculatePopularityScore(game: Game): number {
     let score = 0;
-    
+
     // Rating component
     if (game.rating >= 4.5) score += 10;
     else if (game.rating >= 4.0) score += 7;
     else if (game.rating >= 3.5) score += 4;
-    
+
     // Player count component
     if (game.player_count >= 1000) score += 10;
     else if (game.player_count >= 500) score += 7;
     else if (game.player_count >= 100) score += 4;
-    
+
     return score;
   }
 
@@ -295,19 +297,19 @@ export class RecommendationEngine {
     const likedGames = this.userPreferences.likedGames
       .map(id => this.games.get(id))
       .filter((g): g is Game => g !== undefined);
-    
+
     if (likedGames.length === 0) return 0;
-    
+
     // Get all tags from liked games
     const likedTags = new Set<string>();
     likedGames.forEach(g => g.tags.forEach(tag => likedTags.add(tag)));
-    
+
     // Calculate overlap
     const overlap = game.tags.filter(tag => likedTags.has(tag)).length;
     const maxOverlap = Math.min(game.tags.length, likedTags.size);
-    
+
     if (maxOverlap === 0) return 0;
-    
+
     const similarity = overlap / maxOverlap;
     return Math.round(similarity * 25);
   }
@@ -317,22 +319,23 @@ export class RecommendationEngine {
     const playedGames = this.userPreferences.playedGames
       .map(id => this.games.get(id))
       .filter((g): g is Game => g !== undefined);
-    
+
     const categoryCounts = new Map<string, number>();
     playedGames.forEach(g => {
       categoryCounts.set(g.category, (categoryCounts.get(g.category) || 0) + 1);
     });
-    
+
     const totalPlayed = playedGames.length;
     if (totalPlayed === 0) return 0;
-    
-    const categoryRatio = (categoryCounts.get(game.category) || 0) / totalPlayed;
-    
+
+    const categoryRatio =
+      (categoryCounts.get(game.category) || 0) / totalPlayed;
+
     // Higher score for underrepresented categories
     if (categoryRatio < 0.1) return 10;
     if (categoryRatio < 0.2) return 7;
     if (categoryRatio < 0.3) return 4;
-    
+
     return 0;
   }
 
@@ -348,7 +351,7 @@ export class RecommendationEngine {
   getCollaborativeRecommendations(userId: string, limit = 5): Game[] {
     const userLikedGames = new Set(this.userPreferences.likedGames);
     const similarUsers = new Set<string>();
-    
+
     // Find users who liked the same games
     for (const gameId of userLikedGames) {
       const users = this.collaborativeData.get(gameId) || new Set();
@@ -356,28 +359,28 @@ export class RecommendationEngine {
         if (u !== userId) similarUsers.add(u);
       });
     }
-    
+
     // Find games liked by similar users
     const recommendedGames = new Map<string, number>();
-    
+
     for (const [gameId, users] of this.collaborativeData) {
       if (userLikedGames.has(gameId)) continue;
-      
+
       let score = 0;
       users.forEach(u => {
         if (similarUsers.has(u)) score++;
       });
-      
+
       if (score > 0) {
         recommendedGames.set(gameId, score);
       }
     }
-    
+
     // Sort by score and return top games
     const sorted = Array.from(recommendedGames.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit);
-    
+
     return sorted
       .map(([gameId]) => this.games.get(gameId))
       .filter((g): g is Game => g !== undefined);
@@ -400,7 +403,7 @@ describe('Recommendation Engine', () => {
         average_duration: 20,
         rating: 4.5,
         tags: ['classic', 'family', 'casual'],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'game-2',
@@ -411,7 +414,7 @@ describe('Recommendation Engine', () => {
         average_duration: 45,
         rating: 4.8,
         tags: ['strategy', 'competitive', 'thinking'],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'game-3',
@@ -422,7 +425,7 @@ describe('Recommendation Engine', () => {
         average_duration: 30,
         rating: 4.3,
         tags: ['action', 'adventure', 'exciting'],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'game-4',
@@ -433,7 +436,7 @@ describe('Recommendation Engine', () => {
         average_duration: 25,
         rating: 4.6,
         tags: ['educational', 'brain', 'learning'],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'game-5',
@@ -444,8 +447,8 @@ describe('Recommendation Engine', () => {
         average_duration: 40,
         rating: 4.7,
         tags: ['puzzle', 'challenging', 'thinking'],
-        created_at: new Date().toISOString()
-      }
+        created_at: new Date().toISOString(),
+      },
     ];
 
     userPreferences = {
@@ -454,7 +457,7 @@ describe('Recommendation Engine', () => {
       averagePlayTime: 30,
       playedGames: ['game-1'],
       likedGames: ['game-1'],
-      dislikedGames: []
+      dislikedGames: [],
     };
 
     engine = new RecommendationEngine(games, userPreferences);
@@ -462,53 +465,63 @@ describe('Recommendation Engine', () => {
 
   describe('Basic Recommendations', () => {
     test('should recommend games based on favorite categories', () => {
-      const recommendations = engine.getRecommendations({ maxRecommendations: 3 });
-      
+      const recommendations = engine.getRecommendations({
+        maxRecommendations: 3,
+      });
+
       expect(recommendations.length).toBeLessThanOrEqual(3);
-      expect(recommendations.some(g => g.category === 'puzzle' || g.category === 'strategy')).toBe(true);
+      expect(
+        recommendations.some(
+          g => g.category === 'puzzle' || g.category === 'strategy'
+        )
+      ).toBe(true);
     });
 
     test('should not recommend already played games', () => {
       const recommendations = engine.getRecommendations();
-      
+
       expect(recommendations.every(g => g.id !== 'game-1')).toBe(true);
     });
 
     test('should recommend liked games even if played', () => {
       userPreferences.playedGames = ['game-1', 'game-2'];
       userPreferences.likedGames = ['game-1'];
-      
+
       const newEngine = new RecommendationEngine(games, userPreferences);
       const recommendations = newEngine.getRecommendationsIncludingLiked();
-      
+
       expect(recommendations.some(g => g.id === 'game-1')).toBe(true);
       expect(recommendations.every(g => g.id !== 'game-2')).toBe(true);
     });
 
     test('should not recommend disliked games', () => {
       userPreferences.dislikedGames = ['game-2', 'game-3'];
-      
+
       const newEngine = new RecommendationEngine(games, userPreferences);
       const recommendations = newEngine.getRecommendations();
-      
-      expect(recommendations.every(g => g.id !== 'game-2' && g.id !== 'game-3')).toBe(true);
+
+      expect(
+        recommendations.every(g => g.id !== 'game-2' && g.id !== 'game-3')
+      ).toBe(true);
     });
   });
 
   describe('Difficulty Preferences', () => {
     test('should prioritize preferred difficulty', () => {
-      const recommendations = engine.getRecommendations({ maxRecommendations: 2 });
-      
+      const recommendations = engine.getRecommendations({
+        maxRecommendations: 2,
+      });
+
       // Should include medium difficulty games
       expect(recommendations.some(g => g.difficulty === 'medium')).toBe(true);
     });
 
     test('should handle mixed difficulty preference', () => {
       userPreferences.preferredDifficulty = 'mixed';
-      
+
       const newEngine = new RecommendationEngine(games, userPreferences);
       const recommendations = newEngine.getRecommendations();
-      
+
       // Should include games of various difficulties
       const difficulties = new Set(recommendations.map(g => g.difficulty));
       expect(difficulties.size).toBeGreaterThan(1);
@@ -518,21 +531,25 @@ describe('Recommendation Engine', () => {
   describe('Play Time Compatibility', () => {
     test('should recommend games matching average play time', () => {
       userPreferences.averagePlayTime = 25;
-      
+
       const newEngine = new RecommendationEngine(games, userPreferences);
-      const recommendations = newEngine.getRecommendations({ maxRecommendations: 3 });
-      
+      const recommendations = newEngine.getRecommendations({
+        maxRecommendations: 3,
+      });
+
       // Should prioritize games around 25 minutes
-      expect(recommendations.some(g => 
-        g.average_duration >= 20 && g.average_duration <= 30
-      )).toBe(true);
+      expect(
+        recommendations.some(
+          g => g.average_duration >= 20 && g.average_duration <= 30
+        )
+      ).toBe(true);
     });
   });
 
   describe('Tag Similarity', () => {
     test('should recommend games with similar tags to liked games', () => {
       userPreferences.likedGames = ['game-1']; // Has tags: classic, family, casual
-      
+
       games.push({
         id: 'game-6',
         title: 'Family Fun',
@@ -542,12 +559,12 @@ describe('Recommendation Engine', () => {
         average_duration: 25,
         rating: 4.4,
         tags: ['family', 'casual', 'fun'],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
-      
+
       const newEngine = new RecommendationEngine(games, userPreferences);
       const recommendations = newEngine.getRecommendations();
-      
+
       // Should rank game-6 high due to tag overlap
       expect(recommendations.some(g => g.id === 'game-6')).toBe(true);
     });
@@ -556,13 +573,17 @@ describe('Recommendation Engine', () => {
   describe('Diversity Scoring', () => {
     test('should promote diversity when user plays mostly one category', () => {
       userPreferences.playedGames = ['game-1', 'game-5']; // Both puzzle games
-      userPreferences.favoriteCategories = ['puzzle', 'strategy', 'educational'];
-      
+      userPreferences.favoriteCategories = [
+        'puzzle',
+        'strategy',
+        'educational',
+      ];
+
       const newEngine = new RecommendationEngine(games, userPreferences);
       const recommendations = newEngine.getRecommendations({
-        diversityWeight: 0.5
+        diversityWeight: 0.5,
       });
-      
+
       // Should include non-puzzle games for variety
       expect(recommendations.some(g => g.category !== 'puzzle')).toBe(true);
     });
@@ -572,15 +593,15 @@ describe('Recommendation Engine', () => {
     test('should recommend games liked by similar users', () => {
       // User likes game-1
       engine.addCollaborativeData('game-1', 'user-1');
-      
+
       // Other users who liked game-1 also liked game-4
       engine.addCollaborativeData('game-1', 'user-2');
       engine.addCollaborativeData('game-1', 'user-3');
       engine.addCollaborativeData('game-4', 'user-2');
       engine.addCollaborativeData('game-4', 'user-3');
-      
+
       const collaborative = engine.getCollaborativeRecommendations('user-1');
-      
+
       expect(collaborative.some(g => g.id === 'game-4')).toBe(true);
     });
   });
@@ -591,21 +612,29 @@ describe('Recommendation Engine', () => {
       const largeGameSet = Array.from({ length: 1000 }, (_, i) => ({
         id: `game-${i}`,
         title: `Game ${i}`,
-        category: ['puzzle', 'strategy', 'entertainment', 'educational'][i % 4] ?? 'puzzle',
-        difficulty: (['easy', 'medium', 'hard'][i % 3] ?? 'medium') as 'easy' | 'medium' | 'hard',
+        category:
+          ['puzzle', 'strategy', 'entertainment', 'educational'][i % 4] ??
+          'puzzle',
+        difficulty: (['easy', 'medium', 'hard'][i % 3] ?? 'medium') as
+          | 'easy'
+          | 'medium'
+          | 'hard',
         player_count: Math.floor(Math.random() * 2000),
         average_duration: 15 + Math.floor(Math.random() * 60),
         rating: 3 + Math.random() * 2,
         tags: [`tag-${i % 10}`, `tag-${i % 20}`, `tag-${i % 30}`],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       }));
-      
-      const largeEngine = new RecommendationEngine(largeGameSet, userPreferences);
-      
+
+      const largeEngine = new RecommendationEngine(
+        largeGameSet,
+        userPreferences
+      );
+
       const startTime = performance.now();
       const recommendations = largeEngine.getRecommendations();
       const endTime = performance.now();
-      
+
       expect(endTime - startTime).toBeLessThan(100); // Should complete within 100ms
       expect(recommendations.length).toBeGreaterThan(0);
     });

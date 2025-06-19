@@ -1,6 +1,6 @@
 /**
  * Login Page Object
- * 
+ *
  * Encapsulates all login page interactions and selectors.
  * This follows the Page Object Model pattern for better test organization.
  */
@@ -50,13 +50,17 @@ export class LoginPage extends BasePage {
   /**
    * Login with credentials
    */
-  async login(email: string, password: string, rememberMe = false): Promise<void> {
+  async login(
+    email: string,
+    password: string,
+    rememberMe = false
+  ): Promise<void> {
     await this.fillLoginForm(email, password);
-    
+
     if (rememberMe) {
       await this.toggleRememberMe();
     }
-    
+
     await this.submitLogin();
   }
 
@@ -100,7 +104,7 @@ export class LoginPage extends BasePage {
    */
   async getErrorMessage(): Promise<string | null> {
     const errorElement = this.getLocator(this.selectors.errorMessage);
-    
+
     try {
       await errorElement.waitFor({ state: 'visible', timeout: 5000 });
       return errorElement.textContent();
@@ -137,8 +141,10 @@ export class LoginPage extends BasePage {
    */
   async getFormValues(): Promise<{ email: string; password: string }> {
     const email = await this.getLocator(this.selectors.emailInput).inputValue();
-    const password = await this.getLocator(this.selectors.passwordInput).inputValue();
-    
+    const password = await this.getLocator(
+      this.selectors.passwordInput
+    ).inputValue();
+
     return { email, password };
   }
 
@@ -146,19 +152,33 @@ export class LoginPage extends BasePage {
    * Check if specific form validation error is shown
    */
   async hasValidationError(fieldName: 'email' | 'password'): Promise<boolean> {
-    const input = fieldName === 'email' ? this.selectors.emailInput : this.selectors.passwordInput;
-    const fieldContainer = this.page.locator(input).locator('..').locator('[role="alert"]');
-    
+    const input =
+      fieldName === 'email'
+        ? this.selectors.emailInput
+        : this.selectors.passwordInput;
+    const fieldContainer = this.page
+      .locator(input)
+      .locator('..')
+      .locator('[role="alert"]');
+
     return fieldContainer.isVisible();
   }
 
   /**
    * Get validation error message for a field
    */
-  async getValidationError(fieldName: 'email' | 'password'): Promise<string | null> {
-    const input = fieldName === 'email' ? this.selectors.emailInput : this.selectors.passwordInput;
-    const fieldContainer = this.page.locator(input).locator('..').locator('[role="alert"]');
-    
+  async getValidationError(
+    fieldName: 'email' | 'password'
+  ): Promise<string | null> {
+    const input =
+      fieldName === 'email'
+        ? this.selectors.emailInput
+        : this.selectors.passwordInput;
+    const fieldContainer = this.page
+      .locator(input)
+      .locator('..')
+      .locator('[role="alert"]');
+
     try {
       await fieldContainer.waitFor({ state: 'visible', timeout: 2000 });
       return fieldContainer.textContent();
@@ -171,7 +191,10 @@ export class LoginPage extends BasePage {
    * Focus on a form field
    */
   async focusField(fieldName: 'email' | 'password'): Promise<void> {
-    const selector = fieldName === 'email' ? this.selectors.emailInput : this.selectors.passwordInput;
+    const selector =
+      fieldName === 'email'
+        ? this.selectors.emailInput
+        : this.selectors.passwordInput;
     await this.getLocator(selector).focus();
   }
 
@@ -179,7 +202,10 @@ export class LoginPage extends BasePage {
    * Blur from a form field
    */
   async blurField(fieldName: 'email' | 'password'): Promise<void> {
-    const selector = fieldName === 'email' ? this.selectors.emailInput : this.selectors.passwordInput;
+    const selector =
+      fieldName === 'email'
+        ? this.selectors.emailInput
+        : this.selectors.passwordInput;
     await this.getLocator(selector).blur();
   }
 

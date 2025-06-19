@@ -27,18 +27,21 @@ jest.mock('crypto', () => ({
         let hash = 0;
         for (let i = 0; i < data.length; i++) {
           const char = data.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
+          hash = (hash << 5) - hash + char;
           hash = hash & hash; // Convert to 32bit integer
         }
-        hashValue = Math.abs(hash).toString(16).padStart(8, '0').substring(0, 8);
-        return { 
-          update: jest.fn(), 
+        hashValue = Math.abs(hash)
+          .toString(16)
+          .padStart(8, '0')
+          .substring(0, 8);
+        return {
+          update: jest.fn(),
           digest: jest.fn((encoding: string) => {
             if (encoding === 'hex') {
               return hashValue + '00000000'; // Make it 16 chars like MD5
             }
             return hashValue + '00000000';
-          })
+          }),
         };
       }),
       digest: jest.fn((encoding: string) => {
@@ -55,12 +58,14 @@ jest.mock('crypto', () => ({
 // Mock Date.now for consistent timestamps in tests
 const mockDate = new Date('2024-01-15T10:00:00Z');
 const OriginalDate = Date;
-jest.spyOn(global, 'Date').mockImplementation((date?: string | number | Date) => {
-  if (date !== undefined) {
-    return new OriginalDate(date);
-  }
-  return new OriginalDate(mockDate);
-});
+jest
+  .spyOn(global, 'Date')
+  .mockImplementation((date?: string | number | Date) => {
+    if (date !== undefined) {
+      return new OriginalDate(date);
+    }
+    return new OriginalDate(mockDate);
+  });
 Date.now = jest.fn(() => mockDate.getTime());
 
 // Mock console methods to reduce noise in tests

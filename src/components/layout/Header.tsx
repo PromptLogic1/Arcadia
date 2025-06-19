@@ -385,7 +385,7 @@ const Header: React.FC = () => {
           >
             Download
           </Link>
-          
+
           {/* Theme Toggle for Mobile */}
           <div className="flex items-center justify-center py-2">
             <ThemeToggle variant="toggle" />

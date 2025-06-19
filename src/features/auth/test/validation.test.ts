@@ -1,6 +1,6 @@
 /**
  * Auth Validation Tests
- * 
+ *
  * Tests for authentication validation logic including:
  * - Email validation
  * - Password validation
@@ -29,11 +29,17 @@ describe('Email Validation', () => {
 
   test('should validate email format', () => {
     // Invalid formats
-    expect(validateEmail('plaintext')).toBe('Please enter a valid email address');
-    expect(validateEmail('@example.com')).toBe('Please enter a valid email address');
+    expect(validateEmail('plaintext')).toBe(
+      'Please enter a valid email address'
+    );
+    expect(validateEmail('@example.com')).toBe(
+      'Please enter a valid email address'
+    );
     expect(validateEmail('user@')).toBe('Please enter a valid email address');
-    expect(validateEmail('user name@example.com')).toBe('Please enter a valid email address');
-    
+    expect(validateEmail('user name@example.com')).toBe(
+      'Please enter a valid email address'
+    );
+
     // Note: The email regex used is quite comprehensive and may accept some edge cases
     // Let's test what we know should definitely be invalid
     const definitelyInvalid = [
@@ -42,7 +48,7 @@ describe('Email Validation', () => {
       'user@',
       'user name@example.com',
     ];
-    
+
     definitelyInvalid.forEach(email => {
       expect(validateEmail(email)).toBe('Please enter a valid email address');
     });
@@ -79,11 +85,21 @@ describe('Password Requirements', () => {
   });
 
   test('should identify missing requirements', () => {
-    expect(checkPasswordRequirements('test123!')).toMatchObject({ uppercase: false });
-    expect(checkPasswordRequirements('TEST123!')).toMatchObject({ lowercase: false });
-    expect(checkPasswordRequirements('Testing!')).toMatchObject({ number: false });
-    expect(checkPasswordRequirements('Testing123')).toMatchObject({ special: false });
-    expect(checkPasswordRequirements('Test1!')).toMatchObject({ length: false });
+    expect(checkPasswordRequirements('test123!')).toMatchObject({
+      uppercase: false,
+    });
+    expect(checkPasswordRequirements('TEST123!')).toMatchObject({
+      lowercase: false,
+    });
+    expect(checkPasswordRequirements('Testing!')).toMatchObject({
+      number: false,
+    });
+    expect(checkPasswordRequirements('Testing123')).toMatchObject({
+      special: false,
+    });
+    expect(checkPasswordRequirements('Test1!')).toMatchObject({
+      length: false,
+    });
   });
 
   test('should respect custom requirements', () => {
@@ -94,11 +110,14 @@ describe('Password Requirements', () => {
       requireNumber: true,
       requireSpecial: false,
     };
-    
-    const requirements = checkPasswordRequirements('TestPassword123', customConfig);
+
+    const requirements = checkPasswordRequirements(
+      'TestPassword123',
+      customConfig
+    );
     expect(requirements.special).toBe(true); // Not required, so always true
     expect(requirements.length).toBe(true);
-    
+
     const shortPassword = checkPasswordRequirements('Test123', customConfig);
     expect(shortPassword.length).toBe(false);
   });
@@ -141,11 +160,21 @@ describe('Password Validation', () => {
   });
 
   test('should enforce password requirements', () => {
-    expect(validatePassword('weak')).toBe('Password does not meet all requirements');
-    expect(validatePassword('NoNumbers!')).toBe('Password does not meet all requirements');
-    expect(validatePassword('nouppercase123!')).toBe('Password does not meet all requirements');
-    expect(validatePassword('NOLOWERCASE123!')).toBe('Password does not meet all requirements');
-    expect(validatePassword('NoSpecialChar123')).toBe('Password does not meet all requirements');
+    expect(validatePassword('weak')).toBe(
+      'Password does not meet all requirements'
+    );
+    expect(validatePassword('NoNumbers!')).toBe(
+      'Password does not meet all requirements'
+    );
+    expect(validatePassword('nouppercase123!')).toBe(
+      'Password does not meet all requirements'
+    );
+    expect(validatePassword('NOLOWERCASE123!')).toBe(
+      'Password does not meet all requirements'
+    );
+    expect(validatePassword('NoSpecialChar123')).toBe(
+      'Password does not meet all requirements'
+    );
   });
 
   test('should accept valid passwords', () => {
@@ -156,20 +185,32 @@ describe('Password Validation', () => {
 
   test('should prevent passwords containing username', () => {
     const context: Partial<FormData> = { username: 'testuser' };
-    expect(validatePassword('testuser123!A', context)).toBe('Password cannot contain your username');
-    expect(validatePassword('Testuser123!', context)).toBe('Password cannot contain your username');
-    expect(validatePassword('123testuser!A', context)).toBe('Password cannot contain your username');
+    expect(validatePassword('testuser123!A', context)).toBe(
+      'Password cannot contain your username'
+    );
+    expect(validatePassword('Testuser123!', context)).toBe(
+      'Password cannot contain your username'
+    );
+    expect(validatePassword('123testuser!A', context)).toBe(
+      'Password cannot contain your username'
+    );
   });
 
   test('should detect predictable patterns', () => {
     // Test patterns that meet all requirements but are still predictable
     // Pattern 1: All same character (but meets length/complexity)
-    expect(validatePassword('aaaaaaaa')).toBe('Password does not meet all requirements'); // First fails on requirements
-    
+    expect(validatePassword('aaaaaaaa')).toBe(
+      'Password does not meet all requirements'
+    ); // First fails on requirements
+
     // Pattern 2: Sequential patterns
-    expect(validatePassword('123PasswordA!')).toBe('Password is too predictable');
-    expect(validatePassword('abcPasswordA1!')).toBe('Password is too predictable');
-    
+    expect(validatePassword('123PasswordA!')).toBe(
+      'Password is too predictable'
+    );
+    expect(validatePassword('abcPasswordA1!')).toBe(
+      'Password is too predictable'
+    );
+
     // Valid complex passwords should not be flagged
     expect(validatePassword('MyComplex!Pass2024')).toBeUndefined();
     expect(validatePassword('Secure#Password$789')).toBeUndefined();
@@ -183,15 +224,25 @@ describe('Username Validation', () => {
   });
 
   test('should enforce length requirements', () => {
-    expect(validateUsername('ab')).toBe('Username must be at least 3 characters long');
-    expect(validateUsername('a'.repeat(31))).toBe('Username must be less than 30 characters');
+    expect(validateUsername('ab')).toBe(
+      'Username must be at least 3 characters long'
+    );
+    expect(validateUsername('a'.repeat(31))).toBe(
+      'Username must be less than 30 characters'
+    );
     expect(validateUsername('validuser')).toBeUndefined();
   });
 
   test('should enforce character requirements', () => {
-    expect(validateUsername('user@name')).toBe('Username can only contain letters, numbers, underscores, and hyphens');
-    expect(validateUsername('user name')).toBe('Username can only contain letters, numbers, underscores, and hyphens');
-    expect(validateUsername('user.name')).toBe('Username can only contain letters, numbers, underscores, and hyphens');
+    expect(validateUsername('user@name')).toBe(
+      'Username can only contain letters, numbers, underscores, and hyphens'
+    );
+    expect(validateUsername('user name')).toBe(
+      'Username can only contain letters, numbers, underscores, and hyphens'
+    );
+    expect(validateUsername('user.name')).toBe(
+      'Username can only contain letters, numbers, underscores, and hyphens'
+    );
     expect(validateUsername('user-name_123')).toBeUndefined();
   });
 
@@ -211,13 +262,17 @@ describe('Confirm Password Validation', () => {
   });
 
   test('should require original password', () => {
-    expect(validateConfirmPassword('test', {})).toBe('Original password is required');
+    expect(validateConfirmPassword('test', {})).toBe(
+      'Original password is required'
+    );
   });
 
   test('should match passwords', () => {
     const context: Partial<FormData> = { password: 'Test123!' };
     expect(validateConfirmPassword('Test123!', context)).toBeUndefined();
-    expect(validateConfirmPassword('Different123!', context)).toBe('Passwords do not match');
+    expect(validateConfirmPassword('Different123!', context)).toBe(
+      'Passwords do not match'
+    );
   });
 });
 
@@ -254,7 +309,7 @@ describe('Form Validation', () => {
 
   test('should support custom validators', () => {
     const customValidation = {
-      username: (value: string) => 
+      username: (value: string) =>
         value.includes('test') ? 'Username cannot contain "test"' : undefined,
     };
 
@@ -282,7 +337,9 @@ describe('XSS Prevention', () => {
     xssPayloads.forEach(payload => {
       // Validation should treat these as invalid inputs, not execute them
       expect(validateEmail(payload)).toBe('Please enter a valid email address');
-      expect(validateUsername(payload)).toBe('Username can only contain letters, numbers, underscores, and hyphens');
+      expect(validateUsername(payload)).toBe(
+        'Username can only contain letters, numbers, underscores, and hyphens'
+      );
       // Password validation allows special characters but won't execute scripts
       const passwordError = validatePassword(payload);
       expect(passwordError).toBeTruthy();
@@ -302,7 +359,9 @@ describe('SQL Injection Prevention', () => {
     sqlPayloads.forEach(payload => {
       // Validation should treat these as invalid inputs
       expect(validateEmail(payload)).toBe('Please enter a valid email address');
-      expect(validateUsername(payload)).toBe('Username can only contain letters, numbers, underscores, and hyphens');
+      expect(validateUsername(payload)).toBe(
+        'Username can only contain letters, numbers, underscores, and hyphens'
+      );
     });
   });
 });

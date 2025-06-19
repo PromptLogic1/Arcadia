@@ -9,8 +9,11 @@ import type { BoardCell } from '../../../src/features/bingo-boards/types';
 // CARD LIBRARY FIXTURES
 // =============================================================================
 
-export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_cards'>[]> = {
-  'Valorant': [
+export const TYPED_CARD_FIXTURES: Record<
+  Enums<'game_category'>,
+  Tables<'bingo_cards'>[]
+> = {
+  Valorant: [
     {
       id: 'card-val-ace',
       title: 'Get an ace',
@@ -22,7 +25,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-clutch',
@@ -35,7 +38,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-spike',
@@ -48,7 +51,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-defuse',
@@ -61,7 +64,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-headshot',
@@ -74,7 +77,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-economy',
@@ -87,7 +90,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-flawless',
@@ -100,7 +103,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-wallbang',
@@ -113,7 +116,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-val-knife',
@@ -126,10 +129,10 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
+      updated_at: '2024-01-01T00:00:00Z',
+    },
   ],
-  'Minecraft': [
+  Minecraft: [
     {
       id: 'card-mc-diamond',
       title: 'Find diamonds',
@@ -141,7 +144,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-nether',
@@ -154,7 +157,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-dragon',
@@ -167,7 +170,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-enchant',
@@ -180,7 +183,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-village',
@@ -193,7 +196,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-farm',
@@ -206,7 +209,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-tame',
@@ -219,7 +222,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-elytra',
@@ -232,7 +235,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-mc-beacon',
@@ -245,8 +248,8 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
+      updated_at: '2024-01-01T00:00:00Z',
+    },
   ],
   'League of Legends': [
     {
@@ -260,7 +263,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-first-blood',
@@ -273,7 +276,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-baron',
@@ -286,7 +289,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-dragon-soul',
@@ -299,7 +302,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-perfect-cs',
@@ -312,7 +315,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-ward-score',
@@ -325,7 +328,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-steal',
@@ -338,7 +341,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-tower-dive',
@@ -351,7 +354,7 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      updated_at: '2024-01-01T00:00:00Z',
     },
     {
       id: 'card-lol-backdoor',
@@ -364,15 +367,15 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
       creator_id: null,
       votes: 0,
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
+      updated_at: '2024-01-01T00:00:00Z',
+    },
   ],
   'All Games': [],
   'World of Warcraft': [],
-  'Fortnite': [],
+  Fortnite: [],
   'Among Us': [],
   'Apex Legends': [],
-  'Overwatch': [],
+  Overwatch: [],
   'Call of Duty: Warzone': [],
   'CS:GO': [],
   'Dota 2': [],
@@ -383,24 +386,24 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
   'The Witcher 3': [],
   'Elden Ring': [],
   'Dark Souls': [],
-  'Bloodborne': [],
-  'Sekiro': [],
+  Bloodborne: [],
+  Sekiro: [],
   'Hollow Knight': [],
-  'Celeste': [],
-  'Hades': [],
+  Celeste: [],
+  Hades: [],
   'The Binding of Isaac': [],
   'Risk of Rain 2': [],
   'Deep Rock Galactic': [],
-  'Valheim': [],
-  'Subnautica': [],
+  Valheim: [],
+  Subnautica: [],
   "No Man's Sky": [],
-  'Terraria': [],
+  Terraria: [],
   'Stardew Valley': [],
   'Animal Crossing': [],
   'Splatoon 3': [],
   'Super Mario Odyssey': [],
   'The Legend of Zelda: Breath of the Wild': [],
-  'Super Smash Bros. Ultimate': []
+  'Super Smash Bros. Ultimate': [],
 };
 
 // =============================================================================
@@ -408,7 +411,10 @@ export const TYPED_CARD_FIXTURES: Record<Enums<'game_category'>, Tables<'bingo_c
 // =============================================================================
 
 export interface BoardTemplateFixture {
-  board: Omit<Tables<'bingo_boards'>, 'id' | 'created_at' | 'updated_at' | 'creator_id'>;
+  board: Omit<
+    Tables<'bingo_boards'>,
+    'id' | 'created_at' | 'updated_at' | 'creator_id'
+  >;
   cards: Tables<'bingo_cards'>[];
   layout: BoardCell[][];
 }
@@ -424,17 +430,31 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
       is_public: true,
       board_state: null,
       settings: {
-        winConditions: { line: true, diagonal: false, corners: false, majority: false },
-        sessionSettings: { max_players: 4, allow_spectators: true, auto_start: false, time_limit: null, require_approval: false, password: null }
+        winConditions: {
+          line: true,
+          diagonal: false,
+          corners: false,
+          majority: false,
+        },
+        sessionSettings: {
+          max_players: 4,
+          allow_spectators: true,
+          auto_start: false,
+          time_limit: null,
+          require_approval: false,
+          password: null,
+        },
       },
       status: 'draft',
       cloned_from: null,
       version: 1,
       votes: 0,
-      bookmarked_count: 0
+      bookmarked_count: 0,
     },
-    cards: TYPED_CARD_FIXTURES['Valorant'].filter(card => ['easy', 'beginner'].includes(card.difficulty)).slice(0, 9),
-    layout: [] // Would be populated based on cards
+    cards: TYPED_CARD_FIXTURES['Valorant']
+      .filter(card => ['easy', 'beginner'].includes(card.difficulty))
+      .slice(0, 9),
+    layout: [], // Would be populated based on cards
   },
   'minecraft-speedrun': {
     board: {
@@ -446,17 +466,29 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
       is_public: true,
       board_state: null,
       settings: {
-        winConditions: { line: true, diagonal: true, corners: false, majority: false },
-        sessionSettings: { max_players: 8, allow_spectators: true, auto_start: false, time_limit: 3600, require_approval: false, password: null }
+        winConditions: {
+          line: true,
+          diagonal: true,
+          corners: false,
+          majority: false,
+        },
+        sessionSettings: {
+          max_players: 8,
+          allow_spectators: true,
+          auto_start: false,
+          time_limit: 3600,
+          require_approval: false,
+          password: null,
+        },
       },
       status: 'draft',
       cloned_from: null,
       version: 1,
       votes: 0,
-      bookmarked_count: 0
+      bookmarked_count: 0,
     },
     cards: TYPED_CARD_FIXTURES['Minecraft'],
-    layout: []
+    layout: [],
   },
   'lol-teamfight': {
     board: {
@@ -468,18 +500,30 @@ export const BOARD_TEMPLATES: Record<string, BoardTemplateFixture> = {
       is_public: true,
       board_state: null,
       settings: {
-        winConditions: { line: true, diagonal: true, corners: true, majority: false },
-        sessionSettings: { max_players: 5, allow_spectators: false, auto_start: true, time_limit: null, require_approval: false, password: null }
+        winConditions: {
+          line: true,
+          diagonal: true,
+          corners: true,
+          majority: false,
+        },
+        sessionSettings: {
+          max_players: 5,
+          allow_spectators: false,
+          auto_start: true,
+          time_limit: null,
+          require_approval: false,
+          password: null,
+        },
       },
       status: 'draft',
       cloned_from: null,
       version: 1,
       votes: 0,
-      bookmarked_count: 0
+      bookmarked_count: 0,
     },
     cards: TYPED_CARD_FIXTURES['League of Legends'].slice(0, 16),
-    layout: []
-  }
+    layout: [],
+  },
 };
 
 // =============================================================================
@@ -504,104 +548,110 @@ export interface MultiplayerScenarioFixture {
   testObjectives: string[];
 }
 
-export const MULTIPLAYER_SCENARIOS: Record<string, MultiplayerScenarioFixture> = {
-  quickDuel: {
-    name: 'Quick Duel',
-    description: '2-player competitive race on a small board',
-    playerCount: 2,
-    boardSize: 3,
-    gameType: 'Valorant',
-    difficulty: 'easy',
-    winConditions: { line: true, diagonal: false },
-    sessionSettings: {
-      max_players: 2,
-      allow_spectators: false,
-      auto_start: true,
-      time_limit: 300, // 5 minutes
-      require_approval: false,
-      password: null
+export const MULTIPLAYER_SCENARIOS: Record<string, MultiplayerScenarioFixture> =
+  {
+    quickDuel: {
+      name: 'Quick Duel',
+      description: '2-player competitive race on a small board',
+      playerCount: 2,
+      boardSize: 3,
+      gameType: 'Valorant',
+      difficulty: 'easy',
+      winConditions: { line: true, diagonal: false },
+      sessionSettings: {
+        max_players: 2,
+        allow_spectators: false,
+        auto_start: true,
+        time_limit: 300, // 5 minutes
+        require_approval: false,
+        password: null,
+      },
+      expectedDuration: 180000, // 3 minutes average
+      testObjectives: [
+        'Fast-paced gameplay',
+        'Real-time sync under pressure',
+        'Win detection accuracy',
+        'Connection stability',
+      ],
     },
-    expectedDuration: 180000, // 3 minutes average
-    testObjectives: [
-      'Fast-paced gameplay',
-      'Real-time sync under pressure',
-      'Win detection accuracy',
-      'Connection stability'
-    ]
-  },
-  teamChallenge: {
-    name: 'Team Challenge',
-    description: '4-player team-based competition',
-    playerCount: 4,
-    boardSize: 5,
-    gameType: 'Minecraft',
-    difficulty: 'medium',
-    winConditions: { line: true, diagonal: true, corners: false },
-    sessionSettings: {
-      max_players: 4,
-      allow_spectators: true,
-      auto_start: false,
-      time_limit: 1800, // 30 minutes
-      require_approval: false,
-      password: null
+    teamChallenge: {
+      name: 'Team Challenge',
+      description: '4-player team-based competition',
+      playerCount: 4,
+      boardSize: 5,
+      gameType: 'Minecraft',
+      difficulty: 'medium',
+      winConditions: { line: true, diagonal: true, corners: false },
+      sessionSettings: {
+        max_players: 4,
+        allow_spectators: true,
+        auto_start: false,
+        time_limit: 1800, // 30 minutes
+        require_approval: false,
+        password: null,
+      },
+      expectedDuration: 900000, // 15 minutes average
+      testObjectives: [
+        'Team coordination',
+        'Spectator functionality',
+        'Extended session stability',
+        'Complex win patterns',
+      ],
     },
-    expectedDuration: 900000, // 15 minutes average
-    testObjectives: [
-      'Team coordination',
-      'Spectator functionality',
-      'Extended session stability',
-      'Complex win patterns'
-    ]
-  },
-  chaosMode: {
-    name: 'Chaos Mode',
-    description: 'Maximum players on a large board',
-    playerCount: 8,
-    boardSize: 6,
-    gameType: 'League of Legends',
-    difficulty: 'hard',
-    winConditions: { line: true, diagonal: true, corners: true, majority: true },
-    sessionSettings: {
-      max_players: 20,
-      allow_spectators: true,
-      auto_start: false,
-      time_limit: null,
-      require_approval: true,
-      password: null
+    chaosMode: {
+      name: 'Chaos Mode',
+      description: 'Maximum players on a large board',
+      playerCount: 8,
+      boardSize: 6,
+      gameType: 'League of Legends',
+      difficulty: 'hard',
+      winConditions: {
+        line: true,
+        diagonal: true,
+        corners: true,
+        majority: true,
+      },
+      sessionSettings: {
+        max_players: 20,
+        allow_spectators: true,
+        auto_start: false,
+        time_limit: null,
+        require_approval: true,
+        password: null,
+      },
+      expectedDuration: 1800000, // 30 minutes average
+      testObjectives: [
+        'High player count handling',
+        'Queue management',
+        'Performance under load',
+        'Concurrent marking conflicts',
+      ],
     },
-    expectedDuration: 1800000, // 30 minutes average
-    testObjectives: [
-      'High player count handling',
-      'Queue management',
-      'Performance under load',
-      'Concurrent marking conflicts'
-    ]
-  },
-  privateMatch: {
-    name: 'Private Match',
-    description: 'Password-protected friends-only game',
-    playerCount: 3,
-    boardSize: 4,
-    gameType: 'All Games',
-    difficulty: 'medium',
-    winConditions: { line: true, diagonal: false, corners: true },
-    sessionSettings: {
-      max_players: 4,
-      allow_spectators: false,
-      auto_start: false,
-      time_limit: null,
-      require_approval: false,
-      password: 'test123'
+    privateMatch: {
+      name: 'Private Match',
+      description: 'Password-protected friends-only game',
+      playerCount: 3,
+      boardSize: 4,
+      gameType: 'All Games',
+      difficulty: 'medium',
+      winConditions: { line: true, diagonal: false, corners: true },
+      sessionSettings: {
+        max_players: 4,
+        allow_spectators: false,
+        auto_start: false,
+        time_limit: null,
+        require_approval: false,
+        password: 'test123',
+      },
+      expectedDuration: 600000, // 10 minutes average
+      testObjectives: [
+        'Password protection',
+        'Private session isolation',
+        'Custom content support',
+        'Friend invite flow',
+      ],
     },
-    expectedDuration: 600000, // 10 minutes average
-    testObjectives: [
-      'Password protection',
-      'Private session isolation',
-      'Custom content support',
-      'Friend invite flow'
-    ]
-  }
-};
+  };
 
 // =============================================================================
 // GAME STATE FIXTURES
@@ -632,8 +682,8 @@ export const GAME_STATE_FIXTURES: GameStateFixture[] = [
       { position: 8, playerId: 'player1', color: '#06b6d4' },
       // Missing position 9 for complete line
       { position: 12, playerId: 'player2', color: '#8b5cf6' },
-      { position: 17, playerId: 'player2', color: '#8b5cf6' }
-    ]
+      { position: 17, playerId: 'player2', color: '#8b5cf6' },
+    ],
   },
   {
     name: 'Diagonal conflict',
@@ -644,8 +694,8 @@ export const GAME_STATE_FIXTURES: GameStateFixture[] = [
       { position: 6, playerId: 'player1', color: '#06b6d4' },
       { position: 12, playerId: 'player2', color: '#8b5cf6' },
       { position: 18, playerId: 'player1', color: '#06b6d4' },
-      { position: 24, playerId: 'player2', color: '#8b5cf6' }
-    ]
+      { position: 24, playerId: 'player2', color: '#8b5cf6' },
+    ],
   },
   {
     name: 'Four corners achieved',
@@ -655,10 +705,10 @@ export const GAME_STATE_FIXTURES: GameStateFixture[] = [
       { position: 0, playerId: 'player1', color: '#06b6d4' },
       { position: 4, playerId: 'player1', color: '#06b6d4' },
       { position: 20, playerId: 'player1', color: '#06b6d4' },
-      { position: 24, playerId: 'player1', color: '#06b6d4' }
+      { position: 24, playerId: 'player1', color: '#06b6d4' },
     ],
     expectedWinner: 'player1',
-    expectedPattern: 'four-corners'
+    expectedPattern: 'four-corners',
   },
   {
     name: 'Complex multi-pattern',
@@ -674,9 +724,9 @@ export const GAME_STATE_FIXTURES: GameStateFixture[] = [
       { position: 4, playerId: 'player2', color: '#8b5cf6' }, // Conflict!
       { position: 5, playerId: 'player2', color: '#8b5cf6' },
       { position: 6, playerId: 'player2', color: '#8b5cf6' },
-      { position: 7, playerId: 'player2', color: '#8b5cf6' }
-    ]
-  }
+      { position: 7, playerId: 'player2', color: '#8b5cf6' },
+    ],
+  },
 ];
 
 // =============================================================================
@@ -687,25 +737,30 @@ export const PERFORMANCE_BENCHMARKS = {
   boardCreation: {
     small: { size: 3, p50: 800, p95: 1500, p99: 2000 },
     medium: { size: 5, p50: 1200, p95: 2000, p99: 2500 },
-    large: { size: 6, p50: 1500, p95: 2500, p99: 3000 }
+    large: { size: 6, p50: 1500, p95: 2500, p99: 3000 },
   },
   cellMarking: {
     local: { p50: 30, p95: 80, p99: 100 },
-    remote: { p50: 80, p95: 150, p99: 200 }
+    remote: { p50: 80, p95: 150, p99: 200 },
   },
   winDetection: {
     simple: { patterns: ['line'], p50: 10, p95: 25, p99: 40 },
-    complex: { patterns: ['line', 'diagonal', 'corners', 'majority'], p50: 20, p95: 40, p99: 50 }
+    complex: {
+      patterns: ['line', 'diagonal', 'corners', 'majority'],
+      p50: 20,
+      p95: 40,
+      p99: 50,
+    },
   },
   realtimeSync: {
     optimal: { playerCount: 2, p50: 50, p95: 100, p99: 150 },
     normal: { playerCount: 4, p50: 80, p95: 150, p99: 180 },
-    stress: { playerCount: 20, p50: 150, p95: 250, p99: 300 }
+    stress: { playerCount: 20, p50: 150, p95: 250, p99: 300 },
   },
   sessionJoin: {
     direct: { p50: 800, p95: 1200, p99: 1500 },
-    queued: { p50: 1000, p95: 1500, p99: 2000 }
-  }
+    queued: { p50: 1000, p95: 1500, p99: 2000 },
+  },
 };
 
 // =============================================================================
@@ -719,7 +774,7 @@ export const COMPLEX_GAME_STATES = {
     boardSize: 5,
     players: [
       { id: 'player1', color: '#06b6d4', name: 'Host' },
-      { id: 'player2', color: '#8b5cf6', name: 'Challenger' }
+      { id: 'player2', color: '#8b5cf6', name: 'Challenger' },
     ],
     markedCells: [
       // Player 1: 4/5 horizontal (row 0)
@@ -741,17 +796,17 @@ export const COMPLEX_GAME_STATES = {
       'Race condition handling',
       'Optimistic UI updates',
       'Conflict resolution timing',
-      'State reconciliation'
-    ]
+      'State reconciliation',
+    ],
   },
-  
+
   teamVersusTeam: {
     name: 'Team vs team scenario',
     description: 'Team-based victory conditions',
     boardSize: 4,
     teams: [
       { id: 'red', players: ['player1', 'player2'], color: '#ef4444' },
-      { id: 'blue', players: ['player3', 'player4'], color: '#3b82f6' }
+      { id: 'blue', players: ['player3', 'player4'], color: '#3b82f6' },
     ],
     markedCells: [
       // Red team controls row 0
@@ -770,8 +825,8 @@ export const COMPLEX_GAME_STATES = {
       'Team win detection',
       'Shared victory celebration',
       'Team score aggregation',
-      'Cross-team coordination'
-    ]
+      'Cross-team coordination',
+    ],
   },
 
   maxPlayerChaos: {
@@ -787,8 +842,8 @@ export const COMPLEX_GAME_STATES = {
       'Memory usage under load',
       'Network throughput limits',
       'UI performance degradation',
-      'Database connection pooling'
-    ]
+      'Database connection pooling',
+    ],
   },
 
   spectatorHeavy: {
@@ -801,9 +856,9 @@ export const COMPLEX_GAME_STATES = {
       'Spectator state sync efficiency',
       'Bandwidth optimization',
       'Read-only session handling',
-      'Broadcast performance'
-    ]
-  }
+      'Broadcast performance',
+    ],
+  },
 };
 
 // =============================================================================
@@ -818,15 +873,15 @@ export const SECURITY_TEST_SCENARIOS = {
       'Legitimate user starts session',
       'Attacker attempts to join with forged credentials',
       'Attacker tries to mark cells as legitimate user',
-      'System should reject unauthorized actions'
+      'System should reject unauthorized actions',
     ],
     expectedBehavior: 'All malicious actions rejected',
     securityChecks: [
       'Authentication validation',
       'Session token verification',
       'User ID consistency',
-      'Action authorization'
-    ]
+      'Action authorization',
+    ],
   },
 
   inputValidation: {
@@ -836,16 +891,16 @@ export const SECURITY_TEST_SCENARIOS = {
       { type: 'sql_injection', payload: "'; DROP TABLE bingo_sessions; --" },
       { type: 'xss_attempt', payload: '<script>alert("xss")</script>' },
       { type: 'buffer_overflow', payload: 'A'.repeat(10000) },
-      { type: 'command_injection', payload: '$(rm -rf /)' }
+      { type: 'command_injection', payload: '$(rm -rf /)' },
     ],
     testTargets: [
       'Board title input',
       'Card text input',
       'Player display name',
       'Session code',
-      'Chat messages'
+      'Chat messages',
     ],
-    expectedBehavior: 'All inputs sanitized and validated'
+    expectedBehavior: 'All inputs sanitized and validated',
   },
 
   rateLimiting: {
@@ -854,14 +909,14 @@ export const SECURITY_TEST_SCENARIOS = {
     scenarios: [
       { action: 'cell_marking', rate: '100/second', expected: 'throttled' },
       { action: 'board_creation', rate: '10/minute', expected: 'limited' },
-      { action: 'session_join', rate: '50/minute', expected: 'queued' }
+      { action: 'session_join', rate: '50/minute', expected: 'queued' },
     ],
     testObjectives: [
       'DDoS protection',
       'Resource conservation',
       'Fair gameplay',
-      'System stability'
-    ]
+      'System stability',
+    ],
   },
 
   gameStateTampering: {
@@ -872,10 +927,10 @@ export const SECURITY_TEST_SCENARIOS = {
       'Forge WebSocket messages',
       'Manipulate local storage',
       'Intercept and modify API calls',
-      'Time travel attacks (replay old states)'
+      'Time travel attacks (replay old states)',
     ],
-    expectedBehavior: 'Server-side validation rejects all tampering'
-  }
+    expectedBehavior: 'Server-side validation rejects all tampering',
+  },
 };
 
 // =============================================================================
@@ -894,49 +949,71 @@ export const ERROR_SCENARIOS: ErrorScenarioFixture[] = [
   {
     name: 'Invalid session code',
     description: 'Attempting to join with non-existent code',
-    trigger: async () => { /* Implementation in test */ },
-    expectedError: /session not found/i
+    trigger: async () => {
+      /* Implementation in test */
+    },
+    expectedError: /session not found/i,
   },
   {
     name: 'Session full',
     description: 'Attempting to join a full session',
-    trigger: async () => { /* Implementation in test */ },
-    expectedError: /session is full/i
+    trigger: async () => {
+      /* Implementation in test */
+    },
+    expectedError: /session is full/i,
   },
   {
     name: 'Network timeout',
     description: 'Operation timing out due to network issues',
-    trigger: async () => { /* Implementation in test */ },
+    trigger: async () => {
+      /* Implementation in test */
+    },
     expectedError: /network timeout/i,
-    recovery: async () => { /* Reconnect logic */ }
+    recovery: async () => {
+      /* Reconnect logic */
+    },
   },
   {
     name: 'Concurrent modification',
     description: 'Multiple players modifying same cell',
-    trigger: async () => { /* Implementation in test */ },
+    trigger: async () => {
+      /* Implementation in test */
+    },
     expectedError: /conflict/i,
-    recovery: async () => { /* State reconciliation */ }
+    recovery: async () => {
+      /* State reconciliation */
+    },
   },
   {
     name: 'Permission denied',
     description: 'Attempting unauthorized action',
-    trigger: async () => { /* Implementation in test */ },
-    expectedError: /permission denied/i
+    trigger: async () => {
+      /* Implementation in test */
+    },
+    expectedError: /permission denied/i,
   },
   {
     name: 'Database connection lost',
     description: 'Database becomes temporarily unavailable',
-    trigger: async () => { /* Implementation in test */ },
+    trigger: async () => {
+      /* Implementation in test */
+    },
     expectedError: /database connection/i,
-    recovery: async () => { /* Reconnection with backoff */ }
+    recovery: async () => {
+      /* Reconnection with backoff */
+    },
   },
   {
     name: 'Memory pressure',
     description: 'System under high memory load',
-    trigger: async () => { /* Implementation in test */ },
+    trigger: async () => {
+      /* Implementation in test */
+    },
     expectedError: /resource exhausted/i,
-    recovery: async () => { /* Graceful degradation */ }
-  }
+    recovery: async () => {
+      /* Graceful degradation */
+    },
+  },
 ];
 
 // =============================================================================
@@ -952,7 +1029,7 @@ export function generateBoardLayout(
 ): BoardCell[][] {
   const layout: BoardCell[][] = [];
   let cardIndex = 0;
-  
+
   for (let row = 0; row < boardSize; row++) {
     const rowCells: BoardCell[] = [];
     for (let col = 0; col < boardSize; col++) {
@@ -968,7 +1045,7 @@ export function generateBoardLayout(
           cell_id: '',
           version: 1,
           last_updated: Date.now(),
-          last_modified_by: null
+          last_modified_by: null,
         });
       } else {
         rowCells.push({
@@ -980,14 +1057,14 @@ export function generateBoardLayout(
           cell_id: card.id,
           version: 1,
           last_updated: Date.now(),
-          last_modified_by: null
+          last_modified_by: null,
         });
       }
       cardIndex++;
     }
     layout.push(rowCells);
   }
-  
+
   return layout;
 }
 
@@ -1000,15 +1077,15 @@ export function getCardsForCriteria(
   count?: number
 ): Tables<'bingo_cards'>[] {
   let cards = TYPED_CARD_FIXTURES[gameType] || [];
-  
+
   if (difficulty) {
     cards = cards.filter(card => card?.difficulty === difficulty);
   }
-  
+
   if (count && cards.length > count) {
     cards = cards.slice(0, count);
   }
-  
+
   return cards;
 }
 
@@ -1024,27 +1101,28 @@ export function createRandomBoardState(
   const cellsToMark = Math.floor(totalCells * markPercentage);
   const markedCells: GameStateFixture['markedCells'] = [];
   const usedPositions = new Set<number>();
-  
+
   for (let i = 0; i < cellsToMark; i++) {
     let position: number;
     do {
       position = Math.floor(Math.random() * totalCells);
     } while (usedPositions.has(position));
-    
+
     usedPositions.add(position);
     const playerIndex = Math.floor(Math.random() * playerIds.length);
     const playerId = playerIds[playerIndex];
     if (!playerId) continue; // Skip if no player ID
-    
-    const color = ['#06b6d4', '#8b5cf6', '#ec4899', '#10b981'][playerIndex] ?? '#06b6d4';
-    
+
+    const color =
+      ['#06b6d4', '#8b5cf6', '#ec4899', '#10b981'][playerIndex] ?? '#06b6d4';
+
     markedCells.push({ position, playerId, color });
   }
-  
+
   return {
     name: 'Random board state',
     description: `Random state with ${markPercentage * 100}% cells marked`,
     boardSize,
-    markedCells
+    markedCells,
   };
 }
