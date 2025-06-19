@@ -2,14 +2,14 @@
 
 ## Community Tests
 - ✅ moderation.test.ts
-- ✅ notification-triggers.test.ts
-- ✅ permissions.test.ts
-- ✅ search-service.test.ts
+- [ ] notification-triggers.test.ts
+- [ ] permissions.test.ts
+- [ ] search-service.test.ts
 
 ## Auth Tests
-- ✅ auth-service.test.ts
-- ✅ oauth.test.ts
-- ✅ rate-limiting.test.ts
+- [ ] auth-service.test.ts
+- [ ] oauth.test.ts
+- [ ] rate-limiting.test.ts
 - [ ] session-token.test.ts
 - [ ] useAuth.test.tsx
 - [ ] validation.test.ts
