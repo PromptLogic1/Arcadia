@@ -2,10 +2,9 @@
  * @jest-environment node
  */
 
-import { redisPubSubService, PUBSUB_CONSTANTS } from '../redis-pubsub.service';
+import { redisPubSubService } from '../redis-pubsub.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
-import type { EventMessage, ChatMessage } from '../redis-pubsub.service';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
@@ -14,9 +13,10 @@ jest.mock('@/lib/logger');
 describe('RedisPubSubService - Enhanced Coverage', () => {
   const mockRedis = {
     publish: jest.fn(),
-    lpush: jest.fn(),
-    ltrim: jest.fn(),
-    lrange: jest.fn(),
+    zadd: jest.fn(),
+    zrange: jest.fn(),
+    zcard: jest.fn(),
+    zremrangebyrank: jest.fn(),
     expire: jest.fn(),
     setex: jest.fn(),
     get: jest.fn(),
@@ -31,28 +31,35 @@ describe('RedisPubSubService - Enhanced Coverage', () => {
   >;
   const mockLog = log as jest.Mocked<typeof log>;
 
-  const channel = 'test-channel';
+  const gameId = 'game-123';
   const userId = 'user-123';
-  const content = 'Test message';
+  const username = 'TestUser';
+  const message = 'Test message';
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
     mockIsRedisConfigured.mockReturnValue(true);
     mockGetRedisClient.mockReturnValue(mockRedis as any);
+    mockRedis.publish.mockResolvedValue(1);
+    mockRedis.zadd.mockResolvedValue(1);
+    mockRedis.zcard.mockResolvedValue(1);
+    mockRedis.expire.mockResolvedValue(1);
   });
 
   describe('Enhanced coverage for uncovered lines', () => {
-    // Test for lines 163, 169-170 (server-side check in publishChatMessage)
+    // Test for server-side check in publishChatMessage
     it('should reject client-side publishChatMessage operations', async () => {
       const originalWindow = (global as any).window;
       (global as any).window = {};
 
-      const result = await redisPubSubService.publishChatMessage(
-        channel,
+      const result = await redisPubSubService.publishChatMessage({
         userId,
-        content
-      );
+        username,
+        message,
+        gameId,
+        type: 'user',
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('PubSub operations are only available on the server');
@@ -60,203 +67,212 @@ describe('RedisPubSubService - Enhanced Coverage', () => {
       (global as any).window = originalWindow;
     });
 
-    // Test for lines 251, 257-258 (publishBoardEvent error handling)
-    it('should handle Redis error in publishBoardEvent', async () => {
+    // Test for publishGameEvent error handling
+    it('should handle Redis error in publishGameEvent', async () => {
       mockRedis.publish.mockRejectedValueOnce(new Error('PUBLISH failed'));
 
-      const event: EventMessage = {
-        type: 'board:update',
-        payload: { boardId: 'board-123', data: 'test' },
-      };
-
-      const result = await redisPubSubService.publishBoardEvent(channel, event);
+      const result = await redisPubSubService.publishGameEvent({
+        type: 'board_update',
+        gameId,
+        userId,
+        boardId: 'board-123',
+        data: { test: 'data' },
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('PUBLISH failed');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Failed to publish board event',
-        expect.any(Error),
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Failed to publish game event',
         expect.objectContaining({
-          metadata: { channel, eventType: 'board:update' },
+          metadata: expect.objectContaining({
+            gameId,
+            type: 'board_update',
+            error: 'PUBLISH failed',
+          }),
         })
       );
     });
 
-    it('should handle non-Error objects in publishBoardEvent', async () => {
+    it('should handle non-Error objects in publishGameEvent', async () => {
       mockRedis.publish.mockRejectedValueOnce('String error');
 
-      const event: EventMessage = {
-        type: 'board:update',
-        payload: { boardId: 'board-123' },
-      };
-
-      const result = await redisPubSubService.publishBoardEvent(channel, event);
+      const result = await redisPubSubService.publishGameEvent({
+        type: 'board_update',
+        gameId,
+        userId,
+        boardId: 'board-123',
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to publish board event');
+      expect(result.error).toBe('Failed to publish game event');
     });
 
-    // Test for lines 318, 324-325 (getChatHistory error handling)
+    // Test for getChatHistory error handling
     it('should handle Redis error in getChatHistory', async () => {
-      mockRedis.lrange.mockRejectedValueOnce(new Error('LRANGE failed'));
+      mockRedis.zrange.mockRejectedValueOnce(new Error('ZRANGE failed'));
 
-      const result = await redisPubSubService.getChatHistory(channel);
+      const result = await redisPubSubService.getChatHistory(gameId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('LRANGE failed');
+      expect(result.error).toBe('ZRANGE failed');
       expect(mockLog.error).toHaveBeenCalledWith(
         'Failed to get chat history',
         expect.any(Error),
         expect.objectContaining({
-          metadata: { channel },
+          metadata: { gameId, limit: 50, before: undefined },
         })
       );
     });
 
     it('should handle invalid JSON in chat history', async () => {
-      mockRedis.lrange.mockResolvedValueOnce([
+      mockRedis.zrange.mockResolvedValueOnce([
         'invalid-json',
+        '123456',
         '{"broken": json}',
-        JSON.stringify({ id: '1', userId: 'user1', content: 'Valid', timestamp: Date.now() }),
+        '123457',
+        JSON.stringify({
+          id: '1',
+          userId: 'user1',
+          username: 'User1',
+          message: 'Valid',
+          timestamp: Date.now(),
+          gameId,
+          type: 'user',
+        }),
+        '123458',
       ]);
 
-      const result = await redisPubSubService.getChatHistory(channel);
+      const result = await redisPubSubService.getChatHistory(gameId);
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1); // Only valid message
       expect(mockLog.warn).toHaveBeenCalledTimes(2); // Two invalid messages
     });
 
-    // Test for lines 361-368 (getBoardEvents error handling)
-    it('should handle polling timeout in getBoardEvents', async () => {
-      jest.useFakeTimers();
+    // Test for getRecentEvents error handling
+    it('should handle Redis error in getRecentEvents', async () => {
+      mockRedis.zrange.mockRejectedValueOnce(new Error('ZRANGE failed'));
 
-      mockRedis.get.mockResolvedValue(null); // No events
+      const result = await redisPubSubService.getRecentEvents(gameId);
 
-      const resultPromise = redisPubSubService.getBoardEvents(channel, {
-        pollInterval: 100,
-        maxWaitTime: 500,
-      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('ZRANGE failed');
+    });
 
-      // Advance timers to trigger timeout
-      await jest.advanceTimersByTimeAsync(600);
+    it('should handle invalid event data in getRecentEvents', async () => {
+      mockRedis.zrange.mockResolvedValueOnce([
+        'invalid-json',
+        '123456',
+        JSON.stringify({
+          type: 'board_update',
+          gameId,
+          userId,
+          timestamp: Date.now(),
+          eventId: 'event-123',
+        }),
+        '123457',
+      ]);
 
-      const result = await resultPromise;
+      const result = await redisPubSubService.getRecentEvents(gameId);
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
-
-      jest.useRealTimers();
-    });
-
-    it('should handle Redis error during event polling', async () => {
-      mockRedis.get.mockRejectedValueOnce(new Error('GET failed'));
-
-      const result = await redisPubSubService.getBoardEvents(channel);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('GET failed');
-    });
-
-    // Test for lines 465, 471-472 (publishSessionEvent error handling)
-    it('should handle Redis error in publishSessionEvent', async () => {
-      mockRedis.publish.mockRejectedValueOnce(new Error('PUBLISH failed'));
-
-      const event: EventMessage = {
-        type: 'session:update',
-        payload: { sessionId: 'session-123' },
-      };
-
-      const result = await redisPubSubService.publishSessionEvent('session-123', event);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('PUBLISH failed');
-    });
-
-    // Test for lines 524, 530-531 (publishUserEvent error handling)
-    it('should handle Redis error in publishUserEvent', async () => {
-      mockRedis.publish.mockRejectedValueOnce(new Error('PUBLISH failed'));
-
-      const event: EventMessage = {
-        type: 'user:status',
-        payload: { status: 'online' },
-      };
-
-      const result = await redisPubSubService.publishUserEvent(userId, event);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('PUBLISH failed');
-    });
-
-    // Test for lines 591, 597-598 (clearChatHistory error handling)
-    it('should handle Redis error in clearChatHistory', async () => {
-      mockRedis.del.mockRejectedValueOnce(new Error('DEL failed'));
-
-      const result = await redisPubSubService.clearChatHistory(channel);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('DEL failed');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Failed to clear chat history',
-        expect.any(Error),
+      expect(result.data).toHaveLength(1); // Only valid event
+      expect(mockLog.warn).toHaveBeenCalledWith(
+        'Invalid event data found in history',
         expect.objectContaining({
-          metadata: { channel },
+          metadata: expect.objectContaining({ gameId }),
         })
       );
     });
 
-    it('should handle non-Error objects in clearChatHistory', async () => {
-      mockRedis.del.mockRejectedValueOnce({ code: 'REDIS_ERROR' });
+    // Test for publishSystemAnnouncement
+    it('should handle Redis error in publishSystemAnnouncement', async () => {
+      mockRedis.publish.mockRejectedValueOnce(new Error('PUBLISH failed'));
 
-      const result = await redisPubSubService.clearChatHistory(channel);
+      const result = await redisPubSubService.publishSystemAnnouncement(
+        gameId,
+        'Server maintenance in 5 minutes',
+        { priority: 'high' }
+      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to clear chat history');
+      expect(result.error).toBe('PUBLISH failed');
+    });
+
+    // Test for clearGameHistory error handling
+    it('should handle Redis error in clearGameHistory', async () => {
+      mockRedis.del.mockRejectedValueOnce(new Error('DEL failed'));
+
+      const result = await redisPubSubService.clearGameHistory(gameId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('DEL failed');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Failed to clear game history',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: { gameId },
+        })
+      );
+    });
+
+    it('should handle non-Error objects in clearGameHistory', async () => {
+      mockRedis.del.mockRejectedValueOnce({ code: 'REDIS_ERROR' });
+
+      const result = await redisPubSubService.clearGameHistory(gameId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to clear game history');
     });
   });
 
   describe('Additional edge cases', () => {
     it('should handle very long messages in chat', async () => {
-      const longContent = 'x'.repeat(10000);
+      const longMessage = 'x'.repeat(10000);
 
-      const result = await redisPubSubService.publishChatMessage(
-        channel,
+      const result = await redisPubSubService.publishChatMessage({
         userId,
-        longContent
-      );
-
-      expect(result.success).toBe(true);
-      expect(mockRedis.lpush).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.stringContaining(longContent)
-      );
-    });
-
-    it('should handle special characters in messages', async () => {
-      const specialContent = '{"test": "value"}\n\t<script>alert("xss")</script>';
-
-      const result = await redisPubSubService.publishChatMessage(
-        channel,
-        userId,
-        specialContent,
-        { username: 'Test User' }
-      );
+        username,
+        message: longMessage,
+        gameId,
+        type: 'user',
+      });
 
       expect(result.success).toBe(true);
       expect(mockRedis.publish).toHaveBeenCalledWith(
         expect.any(String),
-        expect.stringContaining(JSON.stringify(specialContent).slice(1, -1))
+        expect.stringContaining(longMessage)
+      );
+    });
+
+    it('should handle special characters in messages', async () => {
+      const specialMessage = '{"test": "value"}\n\t<script>alert("xss")</script>';
+
+      const result = await redisPubSubService.publishChatMessage({
+        userId,
+        username,
+        message: specialMessage,
+        gameId,
+        type: 'user',
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockRedis.publish).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining(specialMessage)
       );
     });
 
     it('should handle concurrent event publishing', async () => {
       const events = Array.from({ length: 10 }, (_, i) => ({
-        type: 'board:update' as const,
-        payload: { index: i },
+        type: 'board_update' as const,
+        gameId,
+        userId,
+        data: { index: i },
       }));
 
       const results = await Promise.all(
-        events.map(event => redisPubSubService.publishBoardEvent(channel, event))
+        events.map(event => redisPubSubService.publishGameEvent(event))
       );
 
       expect(results.every(r => r.success)).toBe(true);
@@ -266,81 +282,92 @@ describe('RedisPubSubService - Enhanced Coverage', () => {
     it('should handle Redis unavailable during operations', async () => {
       mockIsRedisConfigured.mockReturnValue(false);
 
-      const chatResult = await redisPubSubService.publishChatMessage(
-        channel,
+      const chatResult = await redisPubSubService.publishChatMessage({
         userId,
-        content
-      );
+        username,
+        message,
+        gameId,
+        type: 'user',
+      });
 
       expect(chatResult.success).toBe(false);
       expect(chatResult.error).toBe('PubSub service unavailable');
 
-      const eventResult = await redisPubSubService.publishBoardEvent(channel, {
-        type: 'board:update',
-        payload: {},
+      const eventResult = await redisPubSubService.publishGameEvent({
+        type: 'board_update',
+        gameId,
+        userId,
       });
 
       expect(eventResult.success).toBe(false);
       expect(eventResult.error).toBe('PubSub service unavailable');
     });
 
-    it('should handle event polling with malformed stored data', async () => {
-      let callCount = 0;
-      mockRedis.get.mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve('invalid-json');
-        }
-        return Promise.resolve(null);
-      });
-
-      const result = await redisPubSubService.getBoardEvents(channel, {
-        pollInterval: 10,
-        maxWaitTime: 50,
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
-      expect(mockLog.warn).toHaveBeenCalledWith(
-        'Invalid board events data',
-        expect.any(Object)
-      );
-    });
-
-    it('should handle ltrim errors gracefully', async () => {
-      mockRedis.ltrim.mockRejectedValueOnce(new Error('LTRIM failed'));
-
-      const result = await redisPubSubService.publishChatMessage(
-        channel,
+    it('should handle bulk event publishing', async () => {
+      const events = Array.from({ length: 5 }, (_, i) => ({
+        type: 'cell_marked' as const,
+        gameId,
         userId,
-        content
-      );
+        data: { cellIndex: i },
+      }));
 
-      // Should still succeed even if trim fails
+      const result = await redisPubSubService.publishBulkEvents(events);
+
       expect(result.success).toBe(true);
-      expect(mockLog.warn).toHaveBeenCalledWith(
-        'Failed to trim chat history',
-        expect.objectContaining({
-          metadata: { channel, error: 'LTRIM failed' },
-        })
-      );
+      expect(result.data).toHaveLength(5);
+      expect(mockRedis.publish).toHaveBeenCalledTimes(5);
     });
 
-    it('should handle expire errors gracefully', async () => {
+    it('should handle bulk event publishing errors', async () => {
+      mockRedis.publish.mockRejectedValueOnce(new Error('Bulk publish failed'));
+
+      const events = [
+        {
+          type: 'game_start' as const,
+          gameId,
+          userId,
+        },
+      ];
+
+      const result = await redisPubSubService.publishBulkEvents(events);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Bulk publish failed');
+    });
+
+    it('should handle getChannelStats', async () => {
+      mockRedis.zcard.mockResolvedValueOnce(10).mockResolvedValueOnce(20);
+      mockRedis.zrange
+        .mockResolvedValueOnce(['event1', '123456'])
+        .mockResolvedValueOnce(['message1', '789012']);
+
+      const result = await redisPubSubService.getChannelStats(gameId);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        eventCount: 10,
+        chatMessageCount: 20,
+        oldestEventTimestamp: 123456,
+        newestEventTimestamp: 789012,
+      });
+    });
+
+    it('should handle expire errors gracefully when persisting events', async () => {
       mockRedis.expire.mockRejectedValueOnce(new Error('EXPIRE failed'));
 
-      const result = await redisPubSubService.publishChatMessage(
-        channel,
+      const result = await redisPubSubService.publishGameEvent({
+        type: 'board_update',
+        gameId,
         userId,
-        content
-      );
+      });
 
       // Should still succeed even if expire fails
       expect(result.success).toBe(true);
-      expect(mockLog.warn).toHaveBeenCalledWith(
-        'Failed to set chat history expiration',
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Failed to persist event for polling',
+        expect.any(Error),
         expect.objectContaining({
-          metadata: { channel, error: 'EXPIRE failed' },
+          metadata: expect.objectContaining({ gameId }),
         })
       );
     });

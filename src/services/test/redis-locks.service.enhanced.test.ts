@@ -9,7 +9,6 @@ import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type {
   DistributedLockOptions,
-  LockExtensionOptions,
 } from '../redis-locks.service';
 
 // Mock dependencies

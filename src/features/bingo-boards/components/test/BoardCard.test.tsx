@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import BoardCard from '../BoardCard';
@@ -17,8 +17,15 @@ jest.mock('@/lib/sanitization', () => ({
 
 const mockRouter = {
   push: jest.fn(),
+  replace: jest.fn(),
+  prefetch: jest.fn(),
+  back: jest.fn(),
+  forward: jest.fn(),
+  refresh: jest.fn(),
 };
-const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
+
+(useRouter as jest.MockedFunction<typeof useRouter>).mockReturnValue(mockRouter as any);
+
 const mockNotifications = notifications as jest.Mocked<typeof notifications>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
 
@@ -27,22 +34,24 @@ describe('BoardCard', () => {
     id: 'board-123',
     title: 'Test Bingo Board',
     description: 'A test board for unit testing',
+    board_state: null,
+    bookmarked_count: null,
+    cloned_from: null,
     status: 'active',
     is_public: true,
     difficulty: 'medium',
     size: 5,
     game_type: 'Valorant',
-    settings: {},
+    settings: null,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     creator_id: 'user-123',
-    tags: [],
-    metadata: null,
+    version: null,
+    votes: null,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseRouter.mockReturnValue(mockRouter as any);
   });
 
   describe('rendering', () => {
@@ -98,7 +107,7 @@ describe('BoardCard', () => {
     });
 
     it('hides game type badge for "All Games"', () => {
-      const allGamesBoard = { ...mockBoard, game_type: 'All Games' };
+      const allGamesBoard = { ...mockBoard, game_type: 'All Games' as const };
       render(<BoardCard board={allGamesBoard} />);
 
       expect(screen.queryByText('All Games')).not.toBeInTheDocument();

@@ -25,18 +25,20 @@ describe('Privacy Settings', () => {
         public: 3,
         friends: 2,
         private: 1,
-      };
+      } as const;
+
+      type VisibilityLevel = keyof typeof visibilityLevels;
 
       const canViewProfile = (
-        profileVisibility: keyof typeof visibilityLevels,
+        profileVisibility: VisibilityLevel,
         viewerRelation: 'owner' | 'friend' | 'stranger'
       ): boolean => {
         if (viewerRelation === 'owner') return true;
-        if (profileVisibility === 'private') return false;
-        if (profileVisibility === 'friends' && viewerRelation === 'friend')
-          return true;
-        if (profileVisibility === 'public') return true;
-        return false;
+        
+        const profileLevel = visibilityLevels[profileVisibility];
+        const viewerLevel = viewerRelation === 'friend' ? 2 : 1; // stranger = 1, friend = 2
+        
+        return profileLevel >= viewerLevel;
       };
 
       // Public profile

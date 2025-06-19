@@ -11,6 +11,7 @@ import {
   setupSupabaseMock,
   createSupabaseSuccessResponse,
   createSupabaseErrorResponse,
+  mockSupabaseUser,
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
@@ -18,10 +19,11 @@ import {
   bingoSessionSchema,
   bingoSessionPlayerSchema,
 } from '@/lib/validation/schemas/bingo';
+import { AuthError } from '@supabase/auth-js';
 import { 
-  transformBoardState, 
-  transformSessionSettings 
+  transformBoardState
 } from '@/lib/validation/transforms';
+import type { Tables } from '@/types/database.types';
 
 // Mock the logger
 jest.mock('@/lib/logger', () => ({
@@ -89,7 +91,14 @@ describe('SessionJoinService - Additional Coverage', () => {
     const mockSession = factories.bingoSession({
       id: 'session-123',
       status: 'waiting',
-      settings: { max_players: 4 },
+      settings: {
+        max_players: 4,
+        allow_spectators: null,
+        auto_start: null,
+        time_limit: null,
+        require_approval: null,
+        password: null,
+      },
     });
 
     const mockBoard = factories.bingoBoard({
@@ -392,7 +401,7 @@ describe('SessionJoinService - Additional Coverage', () => {
   });
 
   describe('joinSession - Missing Branch Coverage', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
     const joinData = {
       sessionId: 'session-123',
       playerName: 'TestPlayer',
@@ -405,7 +414,7 @@ describe('SessionJoinService - Additional Coverage', () => {
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
-        error: { message: 'Auth error' },
+        error: new AuthError('Auth error', 401),
       });
 
       const result = await sessionJoinService.joinSession(joinData);
@@ -670,14 +679,14 @@ describe('SessionJoinService - Additional Coverage', () => {
   });
 
   describe('checkUserInSession - Missing Branch Coverage', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
 
     it('should handle auth error during user check', async () => {
       const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
-        error: { message: 'Auth failed' },
+        error: new AuthError('Auth failed', 401),
       });
 
       const result = await sessionJoinService.checkUserInSession('session-123');
@@ -803,7 +812,7 @@ describe('SessionJoinService - Additional Coverage', () => {
 
       const playersWithNullColors = [
         factories.bingoSessionPlayer({ color: '#06b6d4' }),
-        factories.bingoSessionPlayer({ color: null }), // Should be filtered out
+        { ...factories.bingoSessionPlayer({ color: '#000000' }), color: null } as unknown as Tables<'bingo_session_players'>, // Should be filtered out
         factories.bingoSessionPlayer({ color: '#8b5cf6' }),
         factories.bingoSessionPlayer({ color: '' }), // Should be filtered out (falsy)
       ];
@@ -892,7 +901,7 @@ describe('SessionJoinService - Additional Coverage', () => {
       const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
 
       mockAuth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } },
+        data: { user: mockSupabaseUser({ id: 'user-123' }) },
         error: null,
       });
 

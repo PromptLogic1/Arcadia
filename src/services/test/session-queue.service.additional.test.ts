@@ -17,7 +17,9 @@ import {
   setupSupabaseMock,
   createSupabaseSuccessResponse,
   createSupabaseErrorResponse,
+  mockSupabaseUser,
 } from '@/lib/test/mocks/supabase.mock';
+import { AuthError } from '@supabase/auth-js';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
 import type {
@@ -66,7 +68,7 @@ describe('SessionQueueService - Additional Coverage', () => {
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
-        error: { message: 'Auth session expired', name: 'AuthError' },
+        error: new AuthError('Auth session expired', 401),
       });
 
       const result = await sessionQueueService.addToQueue(
@@ -84,7 +86,7 @@ describe('SessionQueueService - Additional Coverage', () => {
       >;
 
       mockAuth.getUser.mockResolvedValue({
-        data: { user: null },
+        data: { user: null } as any,
         error: null,
       });
 
@@ -98,7 +100,7 @@ describe('SessionQueueService - Additional Coverage', () => {
     });
 
     it('handles database error when checking existing entry', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;
@@ -124,7 +126,7 @@ describe('SessionQueueService - Additional Coverage', () => {
         })),
       });
 
-      const result = await sessionQueueService.addToQueue(
+      await sessionQueueService.addToQueue(
         'session-123',
         playerData
       );
@@ -134,7 +136,7 @@ describe('SessionQueueService - Additional Coverage', () => {
     });
 
     it('handles insert operation failure', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;

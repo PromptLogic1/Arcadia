@@ -223,8 +223,8 @@ describe('Account Deletion Workflows', () => {
 
       const policies = getRetentionPolicies();
       expect(policies).toHaveLength(2);
-      expect(policies[0].category).toBe('activityLogs');
-      expect(policies[0].retentionDays).toBe(90);
+      expect(policies[0]!.category).toBe('activityLogs');
+      expect(policies[0]!.retentionDays).toBe(90);
     });
 
     it('should anonymize data instead of deletion where required', () => {
@@ -278,7 +278,7 @@ describe('Account Deletion Workflows', () => {
         });
       };
 
-      const executeInOrder = async () => {
+      const _executeInOrder = async () => {
         const results: boolean[] = [];
         for (const step of deletionSteps) {
           const result = await executeDeletionStep(step);
@@ -395,7 +395,7 @@ describe('Account Deletion Workflows', () => {
 
       // Verify reminders are in correct order (earliest first)
       for (let i = 1; i < reminders.length; i++) {
-        expect(reminders[i]).toBeGreaterThan(reminders[i - 1]);
+        expect(reminders[i]!).toBeGreaterThan(reminders[i - 1]!);
       }
     });
   });

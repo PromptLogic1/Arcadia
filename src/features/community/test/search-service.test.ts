@@ -8,7 +8,6 @@ import {
   parseSearchTerms,
   type SearchFilters,
   type SearchResult,
-  type SortOption,
 } from '../services/search-service';
 
 // Mock data generators
@@ -188,9 +187,9 @@ describe('Search Service', () => {
       ];
 
       const ranked = rankSearchResults(results, 'pokemon');
-      expect(ranked[0].discussion.id).toBe(2); // Highest score
-      expect(ranked[1].discussion.id).toBe(3);
-      expect(ranked[2].discussion.id).toBe(1); // Lowest score
+      expect(ranked[0]?.discussion.id).toBe(2); // Highest score
+      expect(ranked[1]?.discussion.id).toBe(3);
+      expect(ranked[2]?.discussion.id).toBe(1); // Lowest score
     });
 
     it('should boost title matches over content matches', () => {
@@ -218,7 +217,7 @@ describe('Search Service', () => {
       ];
 
       const ranked = rankSearchResults(results, 'speedrun');
-      expect(ranked[0].discussion.id).toBe(2); // Title match should rank higher
+      expect(ranked[0]?.discussion.id).toBe(2); // Title match should rank higher
     });
 
     it('should consider recency for tie-breaking', () => {
@@ -248,7 +247,7 @@ describe('Search Service', () => {
       ];
 
       const ranked = rankSearchResults(results, 'pokemon');
-      expect(ranked[0].discussion.id).toBe(2); // More recent should rank higher
+      expect(ranked[0]?.discussion.id).toBe(2); // More recent should rank higher
     });
 
     it('should handle exact phrase matches', () => {
@@ -274,7 +273,8 @@ describe('Search Service', () => {
       ];
 
       const ranked = rankSearchResults(results, '"frame perfect"');
-      expect(ranked[0].discussion.id).toBe(2); // Exact phrase match
+      expect(ranked).toHaveLength(2);
+      expect(ranked[0]!.discussion.id).toBe(2); // Exact phrase match
     });
   });
 
@@ -328,7 +328,7 @@ describe('Search Service', () => {
         tags: ['strategy', 'tips'],
       });
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].id).toBe(1);
+      expect(filtered[0]!.id).toBe(1);
     });
 
     it('should combine multiple filters', () => {
@@ -359,7 +359,7 @@ describe('Search Service', () => {
         tags: ['strategy'],
       });
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].id).toBe(1);
+      expect(filtered[0]?.id).toBe(1);
     });
 
     it('should sort by newest without pinned support', () => {
@@ -379,9 +379,9 @@ describe('Search Service', () => {
       ];
 
       const sorted = filterDiscussions(discussions, {}, 'newest');
-      expect(sorted[0].id).toBe(3); // Newest first
-      expect(sorted[1].id).toBe(1); // Then middle
-      expect(sorted[2].id).toBe(2); // Then oldest
+      expect(sorted[0]!.id).toBe(3); // Newest first
+      expect(sorted[1]!.id).toBe(1); // Then middle
+      expect(sorted[2]!.id).toBe(2); // Then oldest
     });
   });
 
@@ -491,7 +491,7 @@ describe('Search Service', () => {
       searches.forEach(search => {
         const results = searchDiscussions([discussion], search);
         expect(results).toHaveLength(1);
-        expect(results[0].score).toBeGreaterThan(0);
+        expect(results[0]!.score).toBeGreaterThan(0);
       });
     });
 
@@ -505,7 +505,7 @@ describe('Search Service', () => {
       searches.forEach(search => {
         const results = searchDiscussions([discussion], search);
         expect(results).toHaveLength(1);
-        expect(results[0].score).toBeGreaterThan(0);
+        expect(results[0]!.score).toBeGreaterThan(0);
       });
     });
   });

@@ -437,12 +437,14 @@ describe('redisLocksService', () => {
           holder: 'test-holder',
           expiresAt: Date.now() + 30000,
         },
+        error: null,
       });
 
       // Mock successful lock release
       jest.spyOn(redisLocksService, 'releaseLock').mockResolvedValueOnce({
         success: true,
         data: true,
+        error: null,
       });
 
       const result = await redisLocksService.withLock(lockId, testFunction);
@@ -466,6 +468,7 @@ describe('redisLocksService', () => {
       jest.spyOn(redisLocksService, 'acquireLock').mockResolvedValueOnce({
         success: false,
         error: 'Lock acquisition failed',
+        data: null,
       });
 
       const result = await redisLocksService.withLock(lockId, testFunction);
@@ -489,11 +492,13 @@ describe('redisLocksService', () => {
           holder: 'test-holder',
           expiresAt: Date.now() + 30000,
         },
+        error: null,
       });
 
       jest.spyOn(redisLocksService, 'releaseLock').mockResolvedValueOnce({
         success: true,
         data: true,
+        error: null,
       });
 
       const result = await redisLocksService.withLock(lockId, testFunction);

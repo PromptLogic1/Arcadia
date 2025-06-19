@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type {
   Discussion,
-  Comment,
   CreateDiscussionData,
   CreateCommentData,
   DiscussionFilters,
@@ -215,7 +214,7 @@ describe('communityService', () => {
   describe('getDiscussions', () => {
     it('should fetch discussions with filters', async () => {
       const filters: DiscussionFilters = {
-        gameCategory: 'Tetris',
+        gameCategory: 'Terraria',
         challengeType: 'sprint',
         search: 'test',
         sortBy: 'popular',
@@ -580,6 +579,7 @@ describe('communityService', () => {
           title: 'Test Discussion',
           upvotes: 6,
         } as Discussion,
+        error: null,
       });
 
       const result = await communityService.upvoteDiscussion('1');

@@ -7,10 +7,11 @@ import type {
   SignUpCredentials,
   UserUpdateData,
 } from '../auth.service';
-import type { Tables } from '@/types/database.types';
+import type { Tables } from '../../../types/database.types';
+import { AuthError } from '@supabase/auth-js';
 
 // Mock logger
-jest.mock('@/lib/logger', () => ({
+jest.mock('../../lib/logger', () => ({
   log: {
     error: jest.fn(),
     warn: jest.fn(),
@@ -20,14 +21,14 @@ jest.mock('@/lib/logger', () => ({
 }));
 
 // Mock validation schema
-jest.mock('@/lib/validation/schemas/users', () => ({
+jest.mock('../../lib/validation/schemas/users', () => ({
   userSchema: {
     safeParse: jest.fn(),
   },
 }));
 
 // Mock transform function
-jest.mock('@/lib/stores/auth-store', () => ({
+jest.mock('../../lib/stores/auth-store', () => ({
   transformDbUserToUserData: jest.fn(),
 }));
 
@@ -50,7 +51,7 @@ const mockSupabaseFrom = jest.fn().mockReturnValue({
   update: jest.fn().mockReturnThis(),
 });
 
-jest.mock('@/lib/supabase', () => ({
+jest.mock('../../lib/supabase', () => ({
   createClient: jest.fn(() => ({
     auth: mockSupabaseAuth,
     from: mockSupabaseFrom,
@@ -58,12 +59,12 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 // Clear the global auth service mock for this test file
-jest.unmock('@/services/auth.service');
+jest.unmock('../auth.service');
 
 import { authService } from '../auth.service';
-import { log } from '@/lib/logger';
-import { userSchema } from '@/lib/validation/schemas/users';
-import { transformDbUserToUserData } from '@/lib/stores/auth-store';
+import { log } from '../../lib/logger';
+import { userSchema } from '../../lib/validation/schemas/users';
+import { transformDbUserToUserData } from '../../lib/stores/auth-store';
 
 const mockLog = log as jest.Mocked<typeof log>;
 
@@ -153,7 +154,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle session retrieval errors', async () => {
-      const error = { message: 'Session error', code: 'SESSION_ERROR' };
+      const error = new AuthError('Session error', 400, 'SESSION_ERROR');
       mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error,
@@ -271,7 +272,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle authentication errors', async () => {
-      const error = { message: 'Auth error', code: 'AUTH_ERROR' };
+      const error = new AuthError('Auth error', 401, 'AUTH_ERROR');
       mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error,
@@ -352,7 +353,7 @@ describe('AuthService - Comprehensive Tests', () => {
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Database error', code: 'DB_ERROR' },
+          error: new AuthError('Database error', 500, 'DB_ERROR'),
         }),
       };
 
@@ -364,7 +365,7 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(result.error).toBe('Database error');
       expect(mockLog.error).toHaveBeenCalledWith(
         'Failed to get user data',
-        { message: 'Database error', code: 'DB_ERROR' },
+        new AuthError('Database error', 500, 'DB_ERROR'),
         { metadata: { service: 'auth.service', method: 'getUserData', userId: 'user-123' } }
       );
     });
@@ -482,7 +483,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle authentication errors', async () => {
-      const error = { message: 'Invalid credentials', code: 'INVALID_CREDS' };
+      const error = new AuthError('Invalid credentials', 401, 'INVALID_CREDS');
       mockSupabaseAuth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error,
@@ -608,7 +609,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle sign up errors', async () => {
-      const error = { message: 'Email already exists', code: 'EMAIL_EXISTS' };
+      const error = new AuthError('Email already exists', 409, 'EMAIL_EXISTS');
       mockSupabaseAuth.signUp.mockResolvedValue({
         data: { user: null, session: null },
         error,
@@ -663,7 +664,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle sign out errors', async () => {
-      const error = { message: 'Sign out failed', code: 'SIGNOUT_ERROR' };
+      const error = new AuthError('Sign out failed', 500, 'SIGNOUT_ERROR');
       mockSupabaseAuth.signOut.mockResolvedValue({ error });
 
       const result = await authService.signOut();
@@ -751,7 +752,7 @@ describe('AuthService - Comprehensive Tests', () => {
         select: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: null,
-          error: { message: 'Update failed', code: 'UPDATE_ERROR' },
+          error: new AuthError('Update failed', 500, 'UPDATE_ERROR'),
         }),
       };
 
@@ -763,7 +764,7 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(result.error).toBe('Update failed');
       expect(mockLog.error).toHaveBeenCalledWith(
         'Failed to update user data',
-        { message: 'Update failed', code: 'UPDATE_ERROR' },
+        new AuthError('Update failed', 500, 'UPDATE_ERROR'),
         {
           metadata: {
             service: 'auth.service',
@@ -848,7 +849,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle password reset errors', async () => {
-      const error = { message: 'Invalid email', code: 'INVALID_EMAIL' };
+      const error = new AuthError('Invalid email', 400, 'INVALID_EMAIL');
       mockSupabaseAuth.resetPasswordForEmail.mockResolvedValue({ 
         data: {},
         error 
@@ -909,7 +910,7 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle password update errors', async () => {
-      const error = { message: 'Password too weak', code: 'WEAK_PASSWORD' };
+      const error = new AuthError('Password too weak', 400, 'WEAK_PASSWORD');
       mockSupabaseAuth.updateUser.mockResolvedValue({ 
         data: { user: null },
         error 

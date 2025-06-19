@@ -147,7 +147,7 @@ describe('submissionsService', () => {
           user_id: 'user-1',
           code: 'test code 1',
           language: 'javascript',
-          status: 'accepted' as SubmissionStatus,
+          status: 'completed' as SubmissionStatus,
           challenge: {
             title: 'Two Sum',
             difficulty: 'easy',
@@ -159,7 +159,7 @@ describe('submissionsService', () => {
           user_id: 'user-2',
           code: 'test code 2',
           language: 'python',
-          status: 'rejected' as SubmissionStatus,
+          status: 'failed' as SubmissionStatus,
           challenge: {
             title: 'Reverse String',
             difficulty: 'medium',
@@ -178,7 +178,7 @@ describe('submissionsService', () => {
       expect(result.data).toHaveLength(2);
       expect(result.data?.[0]).toMatchObject({
         id: 'submission-1',
-        status: 'accepted',
+        status: 'completed',
         challenge: {
           title: 'Two Sum',
           difficulty: 'easy',
@@ -279,7 +279,7 @@ describe('submissionsService', () => {
       const result = await submissionsService.getSubmissions();
 
       expect(result.success).toBe(true);
-      expect(result.data?.[0].challenge).toBeUndefined();
+      expect(result.data?.[0]?.challenge).toBeUndefined();
     });
 
     it('should handle database errors', async () => {
@@ -310,7 +310,7 @@ describe('submissionsService', () => {
         user_id: 'user-789',
         code: 'function solve() { return true; }',
         language: 'javascript',
-        status: 'accepted' as SubmissionStatus,
+        status: 'completed' as SubmissionStatus,
         results: { score: 100, tests_passed: 10 },
         challenge: {
           title: 'Binary Search',
@@ -329,7 +329,7 @@ describe('submissionsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         id: 'submission-123',
-        status: 'accepted',
+        status: 'completed',
         challenge: {
           title: 'Binary Search',
           difficulty: 'medium',
@@ -385,7 +385,7 @@ describe('submissionsService', () => {
   describe('updateSubmissionResults', () => {
     it('should update submission status and results', async () => {
       const submissionId = 'submission-123';
-      const status: SubmissionStatus = 'accepted';
+      const status: SubmissionStatus = 'completed';
       const results: Json = {
         score: 100,
         tests_passed: 15,
@@ -413,7 +413,7 @@ describe('submissionsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         id: submissionId,
-        status: 'accepted',
+        status: 'completed',
         results,
       });
       expect(mockFrom.update).toHaveBeenCalledWith({
@@ -426,7 +426,7 @@ describe('submissionsService', () => {
 
     it('should update submission status without results', async () => {
       const submissionId = 'submission-456';
-      const status: SubmissionStatus = 'rejected';
+      const status: SubmissionStatus = 'failed';
 
       const updatedSubmission = {
         id: submissionId,
@@ -448,7 +448,7 @@ describe('submissionsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         id: submissionId,
-        status: 'rejected',
+        status: 'failed',
       });
       expect(mockFrom.update).toHaveBeenCalledWith({
         status,
@@ -465,7 +465,7 @@ describe('submissionsService', () => {
 
       const result = await submissionsService.updateSubmissionResults(
         'submission-123',
-        'accepted'
+        'completed'
       );
 
       expect(result.success).toBe(false);
@@ -476,7 +476,7 @@ describe('submissionsService', () => {
         expect.objectContaining({
           metadata: {
             submissionId: 'submission-123',
-            status: 'accepted',
+            status: 'completed',
           },
         })
       );
@@ -487,7 +487,7 @@ describe('submissionsService', () => {
 
       const result = await submissionsService.updateSubmissionResults(
         'submission-123',
-        'accepted'
+        'completed'
       );
 
       expect(result.success).toBe(false);
@@ -498,7 +498,7 @@ describe('submissionsService', () => {
         expect.objectContaining({
           metadata: {
             submissionId: 'submission-123',
-            status: 'accepted',
+            status: 'completed',
           },
         })
       );

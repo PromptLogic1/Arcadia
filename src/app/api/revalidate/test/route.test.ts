@@ -1,16 +1,16 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { POST } from '../route';
 import { getRuntimeConfig } from '@/lib/config';
 import { revalidatePath } from 'next/cache';
 import { log } from '@/lib/logger';
-import { withRateLimit } from '@/lib/rate-limiter-middleware';
 
 // Mock dependencies
 jest.mock('@/lib/config');
 jest.mock('next/cache');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn((handler) => handler),
+  withRateLimit: jest.fn(<T extends (...args: unknown[]) => unknown>(handler: T) => handler),
   RATE_LIMIT_CONFIGS: {
     gameAction: 'gameAction',
   },
@@ -33,20 +33,20 @@ jest.mock('next/server', () => ({
   },
 }));
 
-const mockValidationMiddleware = require('@/lib/validation/middleware');
+import * as validationMiddleware from '@/lib/validation/middleware';
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<typeof validationMiddleware>;
 
 describe('/api/revalidate route handler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Setup default mocks
-    (withRateLimit as jest.Mock).mockImplementation(handler => handler);
     (log.error as jest.Mock).mockImplementation(() => {});
     (revalidatePath as jest.Mock).mockImplementation(() => {});
   });
 
   describe('POST handler', () => {
-    const createMockRequest = (body: any) => {
+    const createMockRequest = (body: unknown) => {
       return {
         json: () => Promise.resolve(body),
         url: 'https://example.com/api/revalidate',
@@ -61,6 +61,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -93,6 +94,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -117,6 +119,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -143,6 +146,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -167,6 +171,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -193,6 +198,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -217,6 +223,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -240,7 +247,8 @@ describe('/api/revalidate route handler', () => {
     describe('validation middleware', () => {
       test('should return validation error for invalid request body', async () => {
         const validationError = {
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid request body' },
             { status: 400 }
           ),
@@ -265,6 +273,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -297,6 +306,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -330,6 +340,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -354,6 +365,7 @@ describe('/api/revalidate route handler', () => {
         };
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -411,7 +423,7 @@ describe('/api/revalidate route handler', () => {
   });
 
   describe('edge cases', () => {
-    const createMockRequest = (body: any) => {
+    const createMockRequest = (body: unknown) => {
       return {
         json: () => Promise.resolve(body),
         url: 'https://example.com/api/revalidate',
@@ -425,6 +437,7 @@ describe('/api/revalidate route handler', () => {
       };
 
       mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
         data: requestBody,
       });
       mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -448,6 +461,7 @@ describe('/api/revalidate route handler', () => {
       };
 
       mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
         data: requestBody,
       });
       mockValidationMiddleware.isValidationError.mockReturnValue(false);

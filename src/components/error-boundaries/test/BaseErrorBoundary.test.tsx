@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BaseErrorBoundary } from '../BaseErrorBoundary';
 import { reportError, reportMessage } from '@/lib/error-reporting';
 import { log } from '@/lib/logger';
@@ -141,20 +141,31 @@ describe('BaseErrorBoundary', () => {
 
   describe('error recovery', () => {
     it('resets error state when Try Again is clicked', () => {
+      let shouldThrow = true;
+      const TestComponent = () => {
+        if (shouldThrow) {
+          throw new Error('Test error');
+        }
+        return <div>No error</div>;
+      };
+
       const { rerender } = render(
         <BaseErrorBoundary>
-          <ThrowError shouldThrow={true} />
+          <TestComponent />
         </BaseErrorBoundary>
       );
 
       expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
 
+      // Update the flag before clicking Try Again
+      shouldThrow = false;
+      
       fireEvent.click(screen.getByText('Try Again'));
 
-      // After reset, error boundary should allow re-rendering
+      // Force a re-render to see the reset
       rerender(
         <BaseErrorBoundary>
-          <ThrowError shouldThrow={false} />
+          <TestComponent />
         </BaseErrorBoundary>
       );
 
@@ -249,14 +260,14 @@ describe('BaseErrorBoundary', () => {
   });
 
   describe('error details in development', () => {
-    const originalEnv = process.env.NODE_ENV;
+    const originalEnv = process.env;
 
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
     });
 
     afterEach(() => {
-      process.env.NODE_ENV = originalEnv;
+      process.env = originalEnv;
     });
 
     it('shows error details when showDetails is true in development', () => {
@@ -279,7 +290,8 @@ describe('BaseErrorBoundary', () => {
     });
 
     it('hides error details in production even when showDetails is true', () => {
-      process.env.NODE_ENV = 'production';
+      const originalEnv = process.env;
+      process.env = { ...originalEnv, NODE_ENV: 'production' };
 
       render(
         <BaseErrorBoundary showDetails={true}>
@@ -290,6 +302,8 @@ describe('BaseErrorBoundary', () => {
       expect(
         screen.queryByText('Error Details (Development Only)')
       ).not.toBeInTheDocument();
+
+      process.env = originalEnv;
     });
   });
 
@@ -301,20 +315,28 @@ describe('BaseErrorBoundary', () => {
     });
 
     it('schedules page reload after too many errors', () => {
-      const { rerender } = render(
+      // Mock window.location.reload
+      const originalReload = window.location.reload;
+      Object.defineProperty(window.location, 'reload', {
+        configurable: true,
+        value: jest.fn(),
+      });
+
+      let errorCount = 0;
+      const TestComponent = () => {
+        errorCount++;
+        throw new Error(`Test error ${errorCount}`);
+      };
+
+      render(
         <BaseErrorBoundary>
-          <ThrowError shouldThrow={true} />
+          <TestComponent />
         </BaseErrorBoundary>
       );
 
-      // Trigger multiple errors by resetting and throwing again
+      // Trigger multiple errors by clicking Try Again
       for (let i = 0; i < 3; i++) {
         fireEvent.click(screen.getByText('Try Again'));
-        rerender(
-          <BaseErrorBoundary>
-            <ThrowError shouldThrow={true} />
-          </BaseErrorBoundary>
-        );
       }
 
       expect(mockReportMessage).toHaveBeenCalledWith(
@@ -326,25 +348,31 @@ describe('BaseErrorBoundary', () => {
       );
 
       // Verify reload is scheduled but not called immediately
-      const reloadSpy = jest
-        .spyOn(window.location, 'reload')
-        .mockImplementation(() => {});
-
-      expect(reloadSpy).not.toHaveBeenCalled();
+      expect(window.location.reload).not.toHaveBeenCalled();
 
       jest.advanceTimersByTime(5000);
 
-      expect(reloadSpy).toHaveBeenCalled();
+      expect(window.location.reload).toHaveBeenCalled();
 
-      reloadSpy.mockRestore();
+      // Restore original reload
+      Object.defineProperty(window.location, 'reload', {
+        configurable: true,
+        value: originalReload,
+      });
     });
 
     it('clears timeout on unmount', () => {
       const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
 
+      let errorCount = 0;
+      const TestComponent = () => {
+        errorCount++;
+        throw new Error(`Test error ${errorCount}`);
+      };
+
       const { unmount } = render(
         <BaseErrorBoundary>
-          <ThrowError shouldThrow={true} />
+          <TestComponent />
         </BaseErrorBoundary>
       );
 
@@ -356,6 +384,8 @@ describe('BaseErrorBoundary', () => {
       unmount();
 
       expect(clearTimeoutSpy).toHaveBeenCalled();
+      
+      clearTimeoutSpy.mockRestore();
     });
   });
 });

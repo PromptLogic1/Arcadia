@@ -14,7 +14,6 @@ import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type { BingoBoard, BingoCard } from '@/types';
 import type {
-  BoardEditData,
   CardInsertData,
 } from '../bingo-board-edit.service';
 import {
@@ -75,8 +74,7 @@ const mockFrom = {
 describe('bingoBoardEditService - Additional Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (createClient as jest.Mock).mockReturnValue(mockSupabase);
-
+    
     // Reset all mock functions
     mockSupabase.from.mockClear();
     mockFrom.select.mockClear();
@@ -86,7 +84,16 @@ describe('bingoBoardEditService - Additional Coverage', () => {
     mockFrom.single.mockClear();
     mockFrom.order.mockClear();
 
-    // Setup default chaining behavior
+    // Reset the mock implementations completely
+    mockSupabase.from.mockReset();
+    mockFrom.select.mockReset();
+    mockFrom.insert.mockReset();
+    mockFrom.update.mockReset();
+    mockFrom.eq.mockReset();
+    mockFrom.single.mockReset();
+    mockFrom.order.mockReset();
+
+    // Setup fresh default chaining behavior
     mockSupabase.from.mockReturnValue(mockFrom);
     mockFrom.select.mockReturnValue(mockFrom);
     mockFrom.insert.mockReturnValue(mockFrom);
@@ -95,7 +102,17 @@ describe('bingoBoardEditService - Additional Coverage', () => {
     mockFrom.single.mockReturnValue(mockFrom);
     mockFrom.order.mockReturnValue(mockFrom);
 
-    // Mock validation and transform functions
+    (createClient as jest.Mock).mockReturnValue(mockSupabase);
+
+    // Reset and setup validation and transform functions
+    (bingoBoardSchema.safeParse as jest.Mock).mockReset();
+    (bingoCardSchema.safeParse as jest.Mock).mockReset();
+    (bingoCardsArraySchema.safeParse as jest.Mock).mockReset();
+    (zBoardState.safeParse as jest.Mock).mockReset();
+    (zBoardSettings.safeParse as jest.Mock).mockReset();
+    (transformBoardState as jest.Mock).mockReset();
+    (transformBoardSettings as jest.Mock).mockReset();
+
     (bingoBoardSchema.safeParse as jest.Mock).mockReturnValue({
       success: true,
       data: {},
@@ -249,11 +266,11 @@ describe('bingoBoardEditService - Additional Coverage', () => {
       // Mock successful cards fetch
       const mockCards = [{ id: 'card-1', title: 'Test Card' }];
       
-      // Setup board fetch chain
+      // Setup board fetch chain - first call to from()
       mockSupabase.from.mockReturnValueOnce(mockFrom);
 
-      // Setup cards fetch chain - second call to from()
-      mockSupabase.from.mockReturnValueOnce({
+      // Setup cards fetch chain - second call to from() with proper method chaining
+      const mockCardsChain = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -264,7 +281,8 @@ describe('bingoBoardEditService - Additional Coverage', () => {
             }),
           }),
         }),
-      });
+      };
+      mockSupabase.from.mockReturnValueOnce(mockCardsChain);
 
       // Mock cards validation failure
       (bingoCardsArraySchema.safeParse as jest.Mock).mockReturnValueOnce({
@@ -338,14 +356,20 @@ describe('bingoBoardEditService - Additional Coverage', () => {
 
       const savedCard = {
         id: 'card-1',
-        ...cardsData[1],
+        title: 'Valid Card',
+        description: 'Valid description',
+        game_type: 'All Games',
+        difficulty: 'easy',
+        tags: null,
+        creator_id: 'user-123',
+        is_public: false,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
         votes: null,
       };
 
       // Setup mock for only the valid card insert (first card is skipped)
-      mockSupabase.from.mockReturnValueOnce({
+      const mockInsertChain = {
         insert: jest.fn().mockReturnValue({
           select: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -354,7 +378,9 @@ describe('bingoBoardEditService - Additional Coverage', () => {
             }),
           }),
         }),
-      });
+      };
+      
+      mockSupabase.from.mockReturnValueOnce(mockInsertChain);
 
       // Mock card validation to return the saved card
       (bingoCardSchema.safeParse as jest.Mock).mockReturnValueOnce({
@@ -366,7 +392,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].title).toBe('Valid Card');
+      expect(result.data?.[0]?.title).toBe('Valid Card');
       expect(mockSupabase.from).toHaveBeenCalledTimes(1); // Only valid card processed
     });
 
@@ -383,7 +409,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
         },
       ];
 
-      const mockCardFrom = {
+      const mockInsertChain = {
         insert: jest.fn().mockReturnValue({
           select: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -394,7 +420,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
         }),
       };
 
-      mockSupabase.from.mockReturnValueOnce(mockCardFrom);
+      mockSupabase.from.mockReturnValueOnce(mockInsertChain);
 
       const result = await bingoBoardEditService.saveCards(cardsData);
 
@@ -420,7 +446,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
         title: 'Test Card',
       };
 
-      const mockCardFrom = {
+      const mockInsertChain = {
         insert: jest.fn().mockReturnValue({
           select: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -431,7 +457,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
         }),
       };
 
-      mockSupabase.from.mockReturnValueOnce(mockCardFrom);
+      mockSupabase.from.mockReturnValueOnce(mockInsertChain);
 
       // Mock card validation failure
       (bingoCardSchema.safeParse as jest.Mock).mockReturnValueOnce({

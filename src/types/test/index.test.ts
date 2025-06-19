@@ -22,9 +22,7 @@ import {
   type Optional,
   type RequiredFields,
   // Re-exported types
-  type Difficulty,
   type GameCategory,
-  type BingoCard,
 } from '../index';
 
 // Mock the database types import

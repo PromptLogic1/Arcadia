@@ -15,7 +15,7 @@ export interface SEOConfig {
     title?: string;
     description?: string;
     image?: string;
-    type?: 'website' | 'article' | 'game';
+    type?: 'website' | 'article';
   };
   twitter?: {
     title?: string;

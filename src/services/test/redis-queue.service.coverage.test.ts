@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { redisQueueService, QUEUE_CONSTANTS } from '../redis-queue.service';
+import { redisQueueService } from '../redis-queue.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { JobData, JobOptions, JobProcessor } from '../redis-queue.service';
@@ -230,15 +230,15 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       jest.spyOn(redisQueueService, 'getNextJob').mockImplementation(async () => {
         callCount++;
         if (callCount === 1) {
-          return { success: true, data: jobData };
+          return { success: true, data: jobData, error: null };
         }
         // Stop the loop
         (redisQueueService as any).activePolling.set(queueName, false);
-        return { success: true, data: null };
+        return { success: true, data: null, error: null };
       });
 
       // Mock failJob
-      jest.spyOn(redisQueueService, 'failJob').mockResolvedValue({ success: true, data: undefined });
+      jest.spyOn(redisQueueService, 'failJob').mockResolvedValue({ success: true, data: undefined, error: null });
 
       // Start processing loop
       await (redisQueueService as any).startProcessingLoop(queueName, { name: queueName });
@@ -450,12 +450,12 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       (redisQueueService as any).activePolling.set(queueName, true);
 
       // Mock getNextJob to return no jobs then stop immediately
-      let callCount = 0;
+      let _callCount = 0;
       jest.spyOn(redisQueueService, 'getNextJob').mockImplementation(async () => {
-        callCount++;
+        _callCount++;
         // Stop the loop after first call
         (redisQueueService as any).activePolling.set(queueName, false);
-        return { success: true, data: null }; // No jobs available
+        return { success: true, data: null, error: null }; // No jobs available
       });
 
       await (redisQueueService as any).startProcessingLoop(queueName, {

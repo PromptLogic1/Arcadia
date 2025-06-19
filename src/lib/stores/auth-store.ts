@@ -23,27 +23,11 @@ import {
   AuthError as _AuthError,
 } from '@supabase/supabase-js';
 import { authService } from '@/services/auth.service';
+import { createClient } from '@/lib/supabase';
 import type { AuthUser, UserData } from './types';
 import type { Tables } from '../../../types/database.types';
 import { logger } from '@/lib/logger';
 import { notifications } from '@/lib/notifications';
-import {
-  trackUserSession,
-  blacklistAllUserSessions,
-} from '@/lib/session-blacklist';
-
-/**
- * Type guard for validating user role values
- * Follows RULE T2: ZERO TYPE ASSERTIONS
- */
-function isValidUserRole(
-  role: unknown
-): role is 'user' | 'admin' | 'moderator' | 'premium' {
-  return (
-    typeof role === 'string' &&
-    ['user', 'admin', 'moderator', 'premium'].includes(role)
-  );
-}
 
 /**
  * Type-safe transformation function: Database Users -> UserData
@@ -72,7 +56,10 @@ export interface AuthResponse {
   error?: string | null;
   needsVerification?: boolean;
   user?: AuthUser;
-  data?: any;
+  data?: {
+    user?: AuthUser;
+    needsVerification?: boolean;
+  } | null;
 }
 
 interface UpdateUserDataParams {
@@ -229,7 +216,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
         setupAuthListener: () => {
           try {
-            return authService.onAuthStateChange(async ({ event, session }) => {
+            return authService.onAuthStateChange(async (event, session) => {
               if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
                 if (session?.user) {
                   await get().initializeApp();
@@ -323,14 +310,14 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
 
             if (error) {
-              return { error: new Error(error.message) };
+              return { error: error.message };
             }
 
             return {};
           } catch (error) {
             return {
               error:
-                error instanceof Error ? error : new Error('Unknown error'),
+                error instanceof Error ? error.message : 'Unknown error',
             };
           }
         },
@@ -442,7 +429,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
             return {
               error:
-                error instanceof Error ? error : new Error('Unknown error'),
+                error instanceof Error ? error.message : 'Unknown error',
             };
           } finally {
             get().setLoading(false);
@@ -644,7 +631,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               });
               return {
                 error:
-                  error instanceof Error ? error : new Error('Unknown error'),
+                  error instanceof Error ? error.message : 'Unknown error',
               };
             }
 
@@ -668,7 +655,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             });
             return {
               error:
-                error instanceof Error ? error : new Error('Unknown error'),
+                error instanceof Error ? error.message : 'Unknown error',
             };
           }
         },

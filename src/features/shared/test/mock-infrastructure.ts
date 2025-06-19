@@ -66,7 +66,8 @@ export class MockRedisClient {
     if (!this.subscribers.has(channel)) {
       this.subscribers.set(channel, new Set());
     }
-    this.subscribers.get(channel)!.add(callback);
+    const subscribers = this.subscribers.get(channel);
+    subscribers?.add(callback);
   }
 
   unsubscribe(channel: string, callback: (message: string) => void): void {
@@ -96,7 +97,7 @@ export class MockRedisClient {
 export function createMockFetch() {
   const responses = new Map<
     string,
-    { status: number; data: any; delay?: number }
+    { status: number; data: unknown; delay?: number }
   >();
   const callHistory: Array<{
     url: string;
@@ -126,7 +127,7 @@ export function createMockFetch() {
 
   return {
     fetch: mockFetch,
-    mockResponse(url: string, status: number, data: any, delay?: number) {
+    mockResponse(url: string, status: number, data: unknown, delay?: number) {
       responses.set(url, { status, data, delay });
     },
     getCallHistory() {
@@ -208,12 +209,12 @@ export class TimeTravelHelper {
 export class MockSentryClient {
   private events: Array<{
     type: 'exception' | 'message' | 'transaction';
-    data: any;
-    context?: any;
+    data: unknown;
+    context?: Record<string, unknown>;
     timestamp: number;
   }> = [];
 
-  captureException(error: Error, context?: any): string {
+  captureException(error: Error, context?: Record<string, unknown>): string {
     const eventId = Math.random().toString(36).substring(2);
     this.events.push({
       type: 'exception',
@@ -238,7 +239,12 @@ export class MockSentryClient {
     return eventId;
   }
 
-  withScope(callback: (scope: any) => void): void {
+  withScope(callback: (scope: {
+    setTag: jest.Mock;
+    setContext: jest.Mock;
+    setUser: jest.Mock;
+    setLevel: jest.Mock;
+  }) => void): void {
     const scope = {
       setTag: jest.fn(),
       setContext: jest.fn(),
@@ -263,7 +269,7 @@ export class PerformanceMetricsCollector {
     name: string;
     duration: number;
     timestamp: number;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }> = [];
 
   startMeasure(name: string): () => void {

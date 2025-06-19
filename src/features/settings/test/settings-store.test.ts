@@ -4,7 +4,7 @@
  * Tests for Zustand store updates and persistence logic
  */
 
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react';
 import {
   useSettingsState,

@@ -306,7 +306,7 @@ export class ProgressTracker {
     winRateChange: number;
     streakTrend: number;
   } {
-    const progress = this.getUserProgress(userId);
+    const _progress = this.getUserProgress(userId);
     const now = Date.now();
     const cutoff = now - days * 24 * 60 * 60 * 1000;
 

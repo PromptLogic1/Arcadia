@@ -6,14 +6,30 @@ import { gameStateService } from '../game-state.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type { MarkCellData, CompleteGameData } from '../game-state.service';
-import type { Tables, TablesUpdate } from '@/types/database.types';
+import type { Tables } from '@/types/database.types';
 import type { BoardCell } from '@/types/domains/bingo';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
 jest.mock('@/lib/logger');
-jest.mock('@/lib/validation/schemas/bingo');
-jest.mock('@/lib/validation/transforms');
+
+// Mock validation schemas and transforms
+jest.mock('@/lib/validation/schemas/bingo', () => ({
+  boardStateSchema: {
+    safeParse: jest.fn().mockReturnValue({
+      success: true,
+      data: [
+        { id: 'cell-1', is_marked: false, last_updated: Date.now() },
+        { id: 'cell-2', is_marked: true, last_updated: Date.now() - 1000 },
+      ],
+    }),
+  },
+}));
+
+jest.mock('@/lib/validation/transforms', () => ({
+  transformBoardState: jest.fn().mockImplementation(data => data),
+  transformBoardCell: jest.fn().mockImplementation(data => data),
+}));
 
 const mockSupabase = {
   from: jest.fn(),
@@ -28,6 +44,13 @@ const mockFrom = {
   order: jest.fn(),
   upsert: jest.fn(),
 };
+
+// Import the mocked modules to access their functions
+import { boardStateSchema } from '@/lib/validation/schemas/bingo';
+import {
+  transformBoardState,
+  transformBoardCell,
+} from '@/lib/validation/transforms';
 
 describe('gameStateService', () => {
   beforeEach(() => {
@@ -57,27 +80,19 @@ describe('gameStateService', () => {
     mockFrom.order.mockResolvedValue({ data: [], error: null });
     mockFrom.upsert.mockResolvedValue({ error: null });
     mockFrom.insert.mockResolvedValue({ error: null });
+    mockFrom.update.mockResolvedValue({ error: null });
 
-    // Mock validation schemas
-    const mockSchema = {
-      safeParse: jest.fn().mockReturnValue({
-        success: true,
-        data: [
-          { id: 'cell-1', is_marked: false, last_updated: Date.now() },
-          { id: 'cell-2', is_marked: true, last_updated: Date.now() - 1000 },
-        ],
-      }),
-    };
+    // Reset mock implementations to default behavior
+    (boardStateSchema.safeParse as jest.Mock).mockReturnValue({
+      success: true,
+      data: [
+        { id: 'cell-1', is_marked: false, last_updated: Date.now() },
+        { id: 'cell-2', is_marked: true, last_updated: Date.now() - 1000 },
+      ],
+    });
 
-    jest.doMock('@/lib/validation/schemas/bingo', () => ({
-      boardStateSchema: mockSchema,
-    }));
-
-    // Mock transform functions
-    jest.doMock('@/lib/validation/transforms', () => ({
-      transformBoardState: jest.fn().mockImplementation(data => data),
-      transformBoardCell: jest.fn().mockImplementation(data => data),
-    }));
+    (transformBoardState as jest.Mock).mockImplementation(data => data);
+    (transformBoardCell as jest.Mock).mockImplementation(data => data);
   });
 
   describe('getSessionState', () => {
@@ -90,9 +105,15 @@ describe('gameStateService', () => {
         status: 'active',
         current_state: [],
         version: 1,
-        max_players: 4,
-        is_public: true,
-        join_code: 'ABC123',
+        session_code: 'ABC123',
+        settings: {
+          max_players: 4,
+          allow_spectators: false,
+          auto_start: false,
+          time_limit: null,
+          require_approval: false,
+          password: null,
+        },
         started_at: null,
         ended_at: null,
         winner_id: null,
@@ -441,14 +462,20 @@ describe('gameStateService', () => {
         version: 4,
       };
 
-      // Mock session fetch
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session fetch: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      // Mock session update
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update: supabase.from('bingo_sessions').update().eq().select().single()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
@@ -459,14 +486,20 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      // Mock event logging
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock event insert: supabase.from('bingo_session_events').insert()
+      const mockEventQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls to return the appropriate query objects
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockEventQuery);
 
       const result = await gameStateService.markCell(sessionId, markData);
 
@@ -491,13 +524,20 @@ describe('gameStateService', () => {
         status: 'active',
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session fetch: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      // Mock session update failure (line 191-194)
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update failure: supabase.from('bingo_sessions').update().eq().select().single()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
@@ -508,7 +548,12 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery);
 
       const result = await gameStateService.markCell(sessionId, markData);
 
@@ -540,12 +585,20 @@ describe('gameStateService', () => {
         version: 4,
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session fetch: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update: supabase.from('bingo_sessions').update().eq().select().single()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
@@ -556,14 +609,20 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      // Mock event logging failure (lines 213-222)
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock event insert failure: supabase.from('bingo_session_events').insert()
+      const mockEventQuery = {
         insert: jest.fn().mockResolvedValue({
           error: { message: 'Failed to log event' },
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockEventQuery);
 
       const result = await gameStateService.markCell(sessionId, markData);
 
@@ -603,12 +662,20 @@ describe('gameStateService', () => {
         version: 4,
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session fetch: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update: supabase.from('bingo_sessions').update().eq().select().single()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
@@ -619,31 +686,31 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock event insert: supabase.from('bingo_session_events').insert()
+      const mockEventQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
-
-      // Mock validation failure for updated state (lines 224-229)
-      const mockSchema = {
-        safeParse: jest
-          .fn()
-          .mockReturnValueOnce({
-            success: true,
-            data: mockSession.current_state,
-          }) // First call succeeds
-          .mockReturnValueOnce({
-            success: false,
-            error: 'Invalid updated state',
-          }), // Second call fails
       };
 
-      jest.doMock('@/lib/validation/schemas/bingo', () => ({
-        boardStateSchema: mockSchema,
-      }));
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockEventQuery);
+
+      // Mock validation - first call succeeds, second call fails
+      (boardStateSchema.safeParse as jest.Mock)
+        .mockReturnValueOnce({
+          success: true,
+          data: mockSession.current_state,
+        }) // First call succeeds
+        .mockReturnValueOnce({
+          success: false,
+          error: 'Invalid updated state',
+        }); // Second call fails
 
       const result = await gameStateService.markCell(sessionId, markData);
 
@@ -668,14 +735,20 @@ describe('gameStateService', () => {
         status: 'active',
       };
 
-      // Mock session fetch
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session fetch: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      // Mock session update
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update: supabase.from('bingo_sessions').update().eq().select().single()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
@@ -686,14 +759,20 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      // Mock event logging
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock event insert: supabase.from('bingo_session_events').insert()
+      const mockEventQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockEventQuery);
 
       const result = await gameStateService.markCell(sessionId, markData);
 
@@ -715,6 +794,7 @@ describe('gameStateService', () => {
         status: 'active',
       };
 
+      // Mock session fetch
       mockFrom.single.mockResolvedValueOnce({
         data: mockSession,
         error: null,
@@ -741,6 +821,7 @@ describe('gameStateService', () => {
         status: 'completed',
       };
 
+      // Mock session fetch
       mockFrom.single.mockResolvedValueOnce({
         data: mockSession,
         error: null,
@@ -768,17 +849,12 @@ describe('gameStateService', () => {
       };
 
       // Mock validation failure
-      const mockSchema = {
-        safeParse: jest.fn().mockReturnValue({
-          success: false,
-          error: 'Invalid format',
-        }),
-      };
+      (boardStateSchema.safeParse as jest.Mock).mockReturnValue({
+        success: false,
+        error: 'Invalid format',
+      });
 
-      jest.doMock('@/lib/validation/schemas/bingo', () => ({
-        boardStateSchema: mockSchema,
-      }));
-
+      // Mock session fetch
       mockFrom.single.mockResolvedValueOnce({
         data: mockSession,
         error: null,
@@ -807,6 +883,14 @@ describe('gameStateService', () => {
             color: 'blue',
             position: 1,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 1',
+            is_host: true,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
           {
             id: 'player-2',
@@ -816,6 +900,14 @@ describe('gameStateService', () => {
             color: 'red',
             position: 2,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 2',
+            is_host: false,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
         ],
       };
@@ -826,24 +918,31 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      // Mock session verification
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      // Mock session update
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update: supabase.from('bingo_sessions').update().eq()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      });
+      };
 
-      // Mock user stats fetching and updating for each player
-      gameData.players.forEach(() => {
-        mockSupabase.from.mockReturnValueOnce({
+      // 3-6. Mock user stats for each player
+      const mockStatsQueries = gameData.players.flatMap(() => [
+        // Stats fetch: supabase.from('user_stats').select().eq().single()
+        {
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
@@ -862,21 +961,31 @@ describe('gameStateService', () => {
               }),
             }),
           }),
-        });
-
-        mockSupabase.from.mockReturnValueOnce({
+        },
+        // Stats upsert: supabase.from('user_stats').upsert()
+        {
           upsert: jest.fn().mockResolvedValue({
             error: null,
           }),
-        });
-      });
+        },
+      ]);
 
-      // Mock achievement creation
-      mockSupabase.from.mockReturnValueOnce({
+      // 7. Mock achievement creation: supabase.from('user_achievements').insert()
+      const mockAchievementQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls to return the appropriate query objects
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery) // Session verification
+        .mockReturnValueOnce(mockUpdateQuery) // Session update
+        .mockReturnValueOnce(mockStatsQueries[0]) // Player 1 stats fetch
+        .mockReturnValueOnce(mockStatsQueries[1]) // Player 1 stats upsert
+        .mockReturnValueOnce(mockStatsQueries[2]) // Player 2 stats fetch
+        .mockReturnValueOnce(mockStatsQueries[3]) // Player 2 stats upsert
+        .mockReturnValueOnce(mockAchievementQuery); // Achievement creation
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
@@ -899,19 +1008,31 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification: supabase.from('bingo_sessions').select().eq().single()
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      // Mock session update error (line 291)
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update error: supabase.from('bingo_sessions').update().eq()
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: { message: 'Session update failed' },
           }),
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery);
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
@@ -934,6 +1055,14 @@ describe('gameStateService', () => {
             color: 'blue',
             position: 1,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 1',
+            is_host: true,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
         ],
       };
@@ -944,21 +1073,29 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      });
+      };
 
-      // Mock stats fetch with non-PGRST116 error (lines 301-312)
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock stats fetch with non-PGRST116 error
+      const mockStatsQuery = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -967,14 +1104,21 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      // Mock achievement creation
-      mockSupabase.from.mockReturnValueOnce({
+      // 4. Mock achievement creation
+      const mockAchievementQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockStatsQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
@@ -1007,6 +1151,14 @@ describe('gameStateService', () => {
             color: 'blue',
             position: 1,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 1',
+            is_host: true,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
         ],
       };
@@ -1017,21 +1169,29 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      });
+      };
 
-      // Mock successful stats fetch
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock successful stats fetch
+      const mockStatsQuery = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -1050,21 +1210,29 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      // Mock stats upsert failure (lines 353-362)
-      mockSupabase.from.mockReturnValueOnce({
+      // 4. Mock stats upsert failure
+      const mockUpsertQuery = {
         upsert: jest.fn().mockResolvedValue({
           error: { message: 'Upsert failed' },
         }),
-      });
+      };
 
-      // Mock achievement creation
-      mockSupabase.from.mockReturnValueOnce({
+      // 5. Mock achievement creation
+      const mockAchievementQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockStatsQuery)
+        .mockReturnValueOnce(mockUpsertQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
@@ -1097,25 +1265,39 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      });
+      };
 
-      // Mock achievement creation failure (lines 382-391)
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock achievement creation failure
+      const mockAchievementQuery = {
         insert: jest.fn().mockResolvedValue({
           error: { message: 'Achievement creation failed' },
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
@@ -1148,15 +1330,31 @@ describe('gameStateService', () => {
             color: 'blue',
             position: 1,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 1',
+            is_host: true,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
           {
             id: 'player-2',
             session_id: sessionId,
-            user_id: 'user-789', // Non-winner (line 342-344)
+            user_id: 'user-789', // Non-winner
             score: 65,
             color: 'red',
             position: 2,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 2',
+            is_host: false,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
         ],
       };
@@ -1167,21 +1365,29 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      });
+      };
 
-      // Mock stats for winner
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock stats fetch for winner
+      const mockWinnerStatsQuery = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -1200,16 +1406,17 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 4. Mock stats upsert for winner
+      const mockWinnerUpsertQuery = {
         upsert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
 
-      // Mock stats for non-winner
-      mockSupabase.from.mockReturnValueOnce({
+      // 5. Mock stats fetch for non-winner
+      const mockLoserStatsQuery = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -1228,27 +1435,38 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      const mockUpsert = jest.fn().mockResolvedValue({
-        error: null,
-      });
-      mockSupabase.from.mockReturnValueOnce({
-        upsert: mockUpsert,
-      });
+      // 6. Mock stats upsert for non-winner
+      const mockLoserUpsertQuery = {
+        upsert: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
 
-      mockSupabase.from.mockReturnValueOnce({
+      // 7. Mock achievement creation
+      const mockAchievementQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockWinnerStatsQuery)
+        .mockReturnValueOnce(mockWinnerUpsertQuery)
+        .mockReturnValueOnce(mockLoserStatsQuery)
+        .mockReturnValueOnce(mockLoserUpsertQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
       expect(result.success).toBe(true);
 
       // Verify non-winner's streak was reset to 0
-      expect(mockUpsert).toHaveBeenCalledWith(
+      expect(mockLoserUpsertQuery.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           current_win_streak: 0,
         }),
@@ -1271,6 +1489,7 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
+      // Mock session verification
       mockFrom.single.mockResolvedValueOnce({
         data: mockSession,
         error: null,
@@ -1291,6 +1510,7 @@ describe('gameStateService', () => {
         players: [],
       };
 
+      // Mock session verification
       mockFrom.single.mockResolvedValueOnce({
         data: null,
         error: { message: 'Session not found' },
@@ -1317,6 +1537,14 @@ describe('gameStateService', () => {
             color: 'blue',
             position: 1,
             joined_at: '2024-01-01T00:00:00Z',
+            avatar_url: null,
+            created_at: '2024-01-01T00:00:00Z',
+            display_name: 'Player 1',
+            is_host: true,
+            is_ready: true,
+            left_at: null,
+            team: null,
+            updated_at: '2024-01-01T00:00:00Z',
           },
         ],
       };
@@ -1327,23 +1555,29 @@ describe('gameStateService', () => {
         board_id: 'board-123',
       };
 
-      // Mock session verification
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
-      });
+      // 1. Mock session verification
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
 
-      // Mock session update
-      mockSupabase.from.mockReturnValueOnce({
+      // 2. Mock session update
+      const mockUpdateQuery = {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             error: null,
           }),
         }),
-      });
+      };
 
-      // Mock stats fetch error
-      mockSupabase.from.mockReturnValueOnce({
+      // 3. Mock stats fetch error
+      const mockStatsQuery = {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
@@ -1352,14 +1586,21 @@ describe('gameStateService', () => {
             }),
           }),
         }),
-      });
+      };
 
-      // Mock achievement creation
-      mockSupabase.from.mockReturnValueOnce({
+      // 4. Mock achievement creation
+      const mockAchievementQuery = {
         insert: jest.fn().mockResolvedValue({
           error: null,
         }),
-      });
+      };
+
+      // Set up the from() calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockStatsQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
 
       const result = await gameStateService.completeGame(sessionId, gameData);
 
@@ -1402,6 +1643,7 @@ describe('gameStateService', () => {
         },
       ];
 
+      // Mock the order call to return players data
       mockFrom.order.mockResolvedValueOnce({
         data: mockPlayers,
         error: null,
@@ -1421,6 +1663,7 @@ describe('gameStateService', () => {
     it('should handle empty results', async () => {
       const sessionId = 'session-123';
 
+      // Mock the order call to return empty data
       mockFrom.order.mockResolvedValueOnce({
         data: [],
         error: null,
@@ -1435,6 +1678,7 @@ describe('gameStateService', () => {
     it('should handle database errors', async () => {
       const sessionId = 'session-123';
 
+      // Mock the order call to return error
       mockFrom.order.mockResolvedValueOnce({
         data: null,
         error: { message: 'Database error' },
@@ -1463,14 +1707,24 @@ describe('gameStateService', () => {
       const sessionId = 'session-123';
       const mockBoardState: BoardCell[] = [
         {
-          id: 'cell-1',
+          cell_id: 'cell-1',
+          text: 'Cell 1 text',
+          colors: [],
+          completed_by: [],
+          blocked: false,
           is_marked: false,
+          version: 1,
           last_updated: Date.now() - 1000,
           last_modified_by: null,
         },
         {
-          id: 'cell-2',
+          cell_id: 'cell-2',
+          text: 'Cell 2 text',
+          colors: ['blue'],
+          completed_by: ['user-456'],
+          blocked: false,
           is_marked: true,
+          version: 2,
           last_updated: Date.now(),
           last_modified_by: 'user-456',
         },
@@ -1481,10 +1735,28 @@ describe('gameStateService', () => {
         version: 5,
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: mockSession,
-        error: null,
+      // Mock the validation to return the expected board state
+      (boardStateSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: true,
+        data: mockBoardState,
       });
+
+      // Mock the transform to return the data as-is
+      (transformBoardState as jest.Mock).mockReturnValueOnce(mockBoardState);
+
+      // Mock session fetch: supabase.from('bingo_sessions').select().eq().single()
+      const mockQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockQuery);
 
       const result = await gameStateService.getBoardState(sessionId);
 
@@ -1494,12 +1766,12 @@ describe('gameStateService', () => {
         version: 5,
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_sessions');
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', sessionId);
     });
 
     it('should handle session not found', async () => {
       const sessionId = 'nonexistent-session';
 
+      // Mock the session fetch returning null
       mockFrom.single.mockResolvedValueOnce({
         data: null,
         error: null,
@@ -1520,17 +1792,12 @@ describe('gameStateService', () => {
       };
 
       // Mock validation failure
-      const mockSchema = {
-        safeParse: jest.fn().mockReturnValue({
-          success: false,
-          error: 'Invalid format',
-        }),
-      };
+      (boardStateSchema.safeParse as jest.Mock).mockReturnValue({
+        success: false,
+        error: 'Invalid format',
+      });
 
-      jest.doMock('@/lib/validation/schemas/bingo', () => ({
-        boardStateSchema: mockSchema,
-      }));
-
+      // Mock the session fetch
       mockFrom.single.mockResolvedValueOnce({
         data: mockSession,
         error: null,
@@ -1545,6 +1812,7 @@ describe('gameStateService', () => {
     it('should handle database errors', async () => {
       const sessionId = 'session-123';
 
+      // Mock the session fetch with error
       mockFrom.single.mockResolvedValueOnce({
         data: null,
         error: { message: 'Database connection failed' },

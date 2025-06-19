@@ -229,7 +229,7 @@ export class AnalyticsTracker {
  */
 export async function testConversionFunnel(
   page: Page,
-  funnel: ConversionFunnel,
+  funnel: any,
   analytics: AnalyticsTracker
 ): Promise<{
   completed: boolean;
@@ -241,7 +241,7 @@ export async function testConversionFunnel(
   const funnelEvents: AnalyticsEvent[] = [];
 
   try {
-    for (const stage of funnel.stages) {
+    for (const stage of funnel.steps) {
       // Navigate to stage URL
       await page.goto(stage.url);
       await page.waitForLoadState('networkidle');

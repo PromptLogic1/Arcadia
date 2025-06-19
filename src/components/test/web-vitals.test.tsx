@@ -28,7 +28,7 @@ const mockPerformance = {
 Object.defineProperty(global, 'window', {
   value: {
     performance: mockPerformance,
-    PerformanceObserver: jest.fn().mockImplementation(callback => ({
+    PerformanceObserver: jest.fn().mockImplementation(_callback => ({
       observe: jest.fn(),
       disconnect: jest.fn(),
     })),
@@ -37,7 +37,7 @@ Object.defineProperty(global, 'window', {
 });
 
 Object.defineProperty(global, 'PerformanceObserver', {
-  value: jest.fn().mockImplementation(callback => ({
+  value: jest.fn().mockImplementation(_callback => ({
     observe: jest.fn(),
     disconnect: jest.fn(),
   })),
@@ -74,7 +74,7 @@ describe('WebVitals', () => {
 
   describe('web vitals reporting', () => {
     test('should handle good metrics without warnings', () => {
-      const mockCallback = jest.fn();
+      const _mockCallback = jest.fn();
       (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'LCP',
@@ -239,7 +239,7 @@ describe('WebVitals', () => {
         disconnect: jest.fn(),
       };
 
-      (global.PerformanceObserver as jest.Mock).mockImplementation(
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
         () => mockObserver
       );
 
@@ -256,7 +256,7 @@ describe('WebVitals', () => {
     test('should warn about long tasks', () => {
       let observerCallback: (list: any) => void;
 
-      (global.PerformanceObserver as jest.Mock).mockImplementation(callback => {
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(callback => {
         observerCallback = callback;
         return {
           observe: jest.fn(),
@@ -285,7 +285,7 @@ describe('WebVitals', () => {
     test('should not warn about short tasks', () => {
       let observerCallback: (list: any) => void;
 
-      (global.PerformanceObserver as jest.Mock).mockImplementation(callback => {
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(callback => {
         observerCallback = callback;
         return {
           observe: jest.fn(),
@@ -309,7 +309,7 @@ describe('WebVitals', () => {
     });
 
     test('should handle PerformanceObserver errors gracefully', () => {
-      (global.PerformanceObserver as jest.Mock).mockImplementation(() => {
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(() => {
         throw new Error('PerformanceObserver not supported');
       });
 
@@ -327,7 +327,7 @@ describe('WebVitals', () => {
         disconnect: mockDisconnect,
       };
 
-      (global.PerformanceObserver as jest.Mock).mockImplementation(
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
         () => mockObserver
       );
 
@@ -352,7 +352,7 @@ describe('measurePerformance', () => {
 
   test('should not throw when window is not available', () => {
     const originalWindow = global.window;
-    // @ts-ignore
+    // @ts-expect-error - Testing missing window/performance
     delete global.window;
 
     expect(() => {
@@ -364,7 +364,7 @@ describe('measurePerformance', () => {
 
   test('should not throw when performance is not available', () => {
     const originalPerformance = global.window.performance;
-    // @ts-ignore
+    // @ts-expect-error - Testing missing window/performance
     global.window.performance = undefined;
 
     expect(() => {
@@ -425,7 +425,7 @@ describe('measureDuration', () => {
 
   test('should not throw when window is not available', () => {
     const originalWindow = global.window;
-    // @ts-ignore
+    // @ts-expect-error - Testing missing window/performance
     delete global.window;
 
     expect(() => {

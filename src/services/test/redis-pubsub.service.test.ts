@@ -5,11 +5,7 @@
 import { redisPubSubService } from '../redis-pubsub.service';
 import { getRedisClient, isRedisConfigured, createRedisKey } from '@/lib/redis';
 import { log } from '@/lib/logger';
-import type {
-  GameEvent,
-  ChatMessage,
-  PublishOptions,
-} from '../redis-pubsub.service';
+// Removed unused type imports
 
 // Mock dependencies
 jest.mock('@/lib/redis');
@@ -283,6 +279,7 @@ describe('RedisPubSubService', () => {
         username: 'TestUser',
         message: 'Hello!',
         gameId,
+        type: 'user' as const,
       };
 
       mockRedis.publish.mockResolvedValueOnce(1);
@@ -306,6 +303,7 @@ describe('RedisPubSubService', () => {
         username: 'TestUser',
         message: 'Hello!',
         gameId,
+        type: 'user' as const,
       };
 
       mockRedis.publish.mockResolvedValueOnce(1);
@@ -327,6 +325,7 @@ describe('RedisPubSubService', () => {
         username: 'TestUser',
         message: 'Hello!',
         gameId,
+        type: 'user' as const,
       };
 
       mockRedis.publish.mockRejectedValueOnce(new Error('Chat publish failed'));
@@ -354,6 +353,7 @@ describe('RedisPubSubService', () => {
       jest.spyOn(redisPubSubService, 'publishGameEvent').mockResolvedValueOnce({
         success: true,
         data: 'event-123',
+        error: null,
       });
 
       const result = await redisPubSubService.publishSystemAnnouncement(
@@ -791,6 +791,7 @@ describe('RedisPubSubService', () => {
         username: 'TestUser',
         message: 'Hello!',
         gameId,
+        type: 'user' as const,
       };
 
       mockRedis.publish.mockResolvedValueOnce(1);
@@ -831,6 +832,7 @@ describe('RedisPubSubService', () => {
         username: 'TestUser',
         message: 'Hello!',
         gameId,
+        type: 'user' as const,
       };
 
       mockRedis.publish.mockResolvedValue(1);

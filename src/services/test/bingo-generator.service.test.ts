@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import type { Tables, Enums } from '@/types/database.types';
 import type { CardCategory } from '@/features/bingo-boards/types/generator.types';
+import type { GenerateBoardParams } from '../bingo-generator.service';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -52,21 +53,21 @@ describe('bingoGeneratorService', () => {
       selectedCategories: [] as CardCategory[],
       cardSource: 'public' as const,
       gridSize: 25,
-      userId: 'user-123',
+      userId: '550e8400-e29b-41d4-a716-446655440123',
     };
 
     it('should generate board successfully with public cards', async () => {
       const mockCards: BingoBoardTemplate[] = Array.from(
         { length: 30 },
         (_, i) => ({
-          id: `card-${i}`,
+          id: `550e8400-e29b-41d4-a716-446655440${i.toString().padStart(3, '0')}`,
           title: `Test Card ${i}`,
           description: `Description ${i}`,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: true,
-          creator_id: 'user-456',
+          creator_id: '550e8400-e29b-41d4-a716-446655440456',
           votes: i,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -101,14 +102,14 @@ describe('bingoGeneratorService', () => {
 
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 25 }, (_, i) => ({
-          id: `private-card-${i}`,
+          id: `550e8400-e29b-41d4-a716-446655441${i.toString().padStart(3, '0')}`,
           title: `Private Card ${i}`,
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: false,
-          creator_id: 'user-123',
+          creator_id: '550e8400-e29b-41d4-a716-446655440123',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -119,7 +120,7 @@ describe('bingoGeneratorService', () => {
       const result = await bingoGeneratorService.generateBoard(privateParams);
 
       expect(result.success).toBe(true);
-      expect(mockFrom.eq).toHaveBeenCalledWith('creator_id', 'user-123');
+      expect(mockFrom.eq).toHaveBeenCalledWith('creator_id', '550e8400-e29b-41d4-a716-446655440123');
     });
 
     it('should handle mixed public/private card source', async () => {
@@ -130,14 +131,14 @@ describe('bingoGeneratorService', () => {
 
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 30 }, (_, i) => ({
-          id: `mixed-card-${i}`,
+          id: `550e8400-e29b-41d4-a716-446655442${i.toString().padStart(3, '0')}`,
           title: `Mixed Card ${i}`,
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: i % 2 === 0,
-          creator_id: i % 2 === 0 ? 'other-user' : 'user-123',
+          creator_id: i % 2 === 0 ? '550e8400-e29b-41d4-a716-446655440999' : '550e8400-e29b-41d4-a716-446655440123',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -149,7 +150,7 @@ describe('bingoGeneratorService', () => {
 
       expect(result.success).toBe(true);
       expect(mockFrom.or).toHaveBeenCalledWith(
-        'is_public.eq.true,creator_id.eq.user-123'
+        'is_public.eq.true,creator_id.eq.550e8400-e29b-41d4-a716-446655440123'
       );
     });
 
@@ -161,14 +162,14 @@ describe('bingoGeneratorService', () => {
 
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 25 }, () => ({
-          id: 'card-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           title: 'Test Card',
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: true,
-          creator_id: 'user-456',
+          creator_id: '550e8400-e29b-41d4-a716-446655440456',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -198,14 +199,14 @@ describe('bingoGeneratorService', () => {
 
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 25 }, () => ({
-          id: 'card-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           title: 'Test Card',
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: true,
-          creator_id: 'user-456',
+          creator_id: '550e8400-e29b-41d4-a716-446655440456',
           votes: 10,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -226,19 +227,19 @@ describe('bingoGeneratorService', () => {
     it('should warn about unimplemented category filter', async () => {
       const paramsWithCategories = {
         ...validParams,
-        selectedCategories: [{ name: 'Combat', count: 10 }] as CardCategory[],
+        selectedCategories: ['Combat'] as CardCategory[],
       };
 
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 25 }, () => ({
-          id: 'card-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           title: 'Test Card',
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: true,
-          creator_id: 'user-456',
+          creator_id: '550e8400-e29b-41d4-a716-446655440456',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -271,14 +272,14 @@ describe('bingoGeneratorService', () => {
     it('should return error when insufficient cards available', async () => {
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 10 }, (_, i) => ({
-          id: `card-${i}`,
+          id: `550e8400-e29b-41d4-a716-446655440${i.toString().padStart(3, '0')}`,
           title: `Test Card ${i}`,
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: true,
-          creator_id: 'user-456',
+          creator_id: '550e8400-e29b-41d4-a716-446655440456',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -334,14 +335,14 @@ describe('bingoGeneratorService', () => {
       const mockCards: BingoBoardTemplate[] = Array.from(
         { length: 100 },
         (_, i) => ({
-          id: `card-${i}`,
+          id: `550e8400-e29b-41d4-a716-446655440${i.toString().padStart(3, '0')}`,
           title: `Test Card ${i}`,
           description: null,
-          game_type: 'World of Warcraft' as any,
+          game_type: 'World of Warcraft',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: true,
-          creator_id: 'user-456',
+          creator_id: '550e8400-e29b-41d4-a716-446655440456',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
@@ -372,7 +373,7 @@ describe('bingoGeneratorService', () => {
         id: `card-${i}`,
         title: `Test Card ${i}`,
         description: null,
-        game_type: 'Fortnite' as any,
+        game_type: 'Fortnite',
         difficulty: 'easy' as DifficultyLevel,
         tags: [],
         is_public: true,
@@ -429,7 +430,7 @@ describe('bingoGeneratorService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      // Simulate error by passing invalid data that causes Math.random to throw
+      // Simulate error by passing invalid data
       const invalidCards = null as any;
 
       const result = await bingoGeneratorService.reshuffleCards(
@@ -438,8 +439,7 @@ describe('bingoGeneratorService', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Cannot read');
-      expect(logger.error).toHaveBeenCalled();
+      expect(result.error).toBe('Invalid cards array provided');
     });
 
     it('should produce different results on multiple calls', async () => {
@@ -458,8 +458,8 @@ describe('bingoGeneratorService', () => {
       expect(result2.success).toBe(true);
 
       // Results should be different (highly likely with 50 cards)
-      const ids1 = result1.data?.map(card => card.id).join(',') || '';
-      const ids2 = result2.data?.map(card => card.id).join(',') || '';
+      const _ids1 = result1.data?.map(card => card.id).join(',') || '';
+      const _ids2 = result2.data?.map(card => card.id).join(',') || '';
 
       // Restore original Math.random
       Math.random = originalRandom;
@@ -472,7 +472,10 @@ describe('bingoGeneratorService', () => {
       difficulty: 'medium' as DifficultyLevel,
       gridSize: 25,
       cardSource: 'public' as const,
-      userId: 'user-123',
+      userId: '550e8400-e29b-41d4-a716-446655440123',
+      cardPoolSize: 'Medium' as const,
+      minVotes: 0,
+      selectedCategories: [] as CardCategory[],
     };
 
     it('should return null for valid parameters', () => {
@@ -508,8 +511,8 @@ describe('bingoGeneratorService', () => {
       const params = {
         ...baseParams,
         cardSource: 'private' as const,
-        userId: undefined as any,
-      };
+        userId: undefined,
+      } as GenerateBoardParams;
       const result = bingoGeneratorService.validateGenerationParams(params);
       expect(result).toBe('User ID is required for private cards');
     });
@@ -518,8 +521,8 @@ describe('bingoGeneratorService', () => {
       const params = {
         ...baseParams,
         cardSource: 'public' as const,
-        userId: undefined as any,
-      };
+        userId: undefined,
+      } as GenerateBoardParams;
       const result = bingoGeneratorService.validateGenerationParams(params);
       expect(result).toBeNull();
     });
@@ -552,7 +555,7 @@ describe('bingoGeneratorService', () => {
     it('should be immutable', () => {
       expect(() => {
         (bingoGeneratorService.POOL_SIZE_LIMITS as any).Small = 999;
-      }).toThrow();
+      }).toThrow(TypeError);
     });
   });
 
@@ -617,12 +620,12 @@ describe('bingoGeneratorService', () => {
 
       mockFrom.limit.mockResolvedValueOnce({
         data: Array.from({ length: 25 }, () => ({
-          id: 'card-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           title: 'Test Card',
           description: null,
-          game_type: 'Cyberpunk 2077' as any,
+          game_type: 'Cyberpunk 2077',
           difficulty: 'medium' as DifficultyLevel,
-          tags: [],
+          tags: null,
           is_public: false,
           creator_id: null,
           votes: 0,

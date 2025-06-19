@@ -44,7 +44,7 @@ async function globalSetup(playwrightConfig: FullConfig): Promise<void> {
   }
   console.log('✅ Environment variables validated');
 
-  const { baseURL } = playwrightConfig.projects[0].use;
+  const { baseURL } = playwrightConfig.projects?.[0]?.use || {};
   const testUrl =
     baseURL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 

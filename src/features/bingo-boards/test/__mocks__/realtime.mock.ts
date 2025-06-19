@@ -302,10 +302,11 @@ export class MockRateLimiter {
     const validAttempts = attempts.filter(time => now - time < limit.window);
 
     if (validAttempts.length >= limit.count) {
+      const firstAttempt = validAttempts[0];
       return {
         allowed: false,
         remaining: 0,
-        reset: validAttempts[0]! + limit.window,
+        reset: (firstAttempt ?? now) + limit.window,
       };
     }
 

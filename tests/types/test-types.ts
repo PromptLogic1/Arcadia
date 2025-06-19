@@ -37,6 +37,36 @@ export interface TestWindow {
 
   // Test flags
   xssTest?: boolean;
+  
+  // Browser debugging methods (Chrome DevTools)
+  getEventListeners?: (target: EventTarget) => Record<string, EventListener[]>;
+  
+  // Test utilities and mocks
+  __memoryPressure?: any;
+  WebSocket?: any;
+  __realtimeEvents?: any[];
+  __realtimeCallback?: any;
+  __mockChannel?: any;
+  __listenerTracker?: any;
+  __performanceMonitor?: any;
+  testCircuitBreaker?: any;
+  retryRequest?: any;
+  __appState?: any;
+  recoveryResult?: any;
+  receivedStorageEvent?: any;
+  listenerCount?: any;
+  cleanup?: any;
+  testAtomicWrite?: any;
+  updateWithRollback?: any;
+  Date?: any;
+
+  // Additional properties for infrastructure tests
+  __rejectionTracker?: any;
+  __promiseChainTracker?: any;
+  __componentLifecycle?: any;
+  __asyncComponentTracker?: any;
+  __exponentialBackoff?: any;
+  __circuitBreaker?: any;
 }
 
 // Create a properly typed window interface that extends the global Window

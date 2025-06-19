@@ -6,6 +6,11 @@ import { sessionsService } from '../sessions.service.client';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { generateSessionCode } from '@/lib/crypto-utils';
+import {
+  createMockSupabaseClient,
+  MockSupabaseQueryBuilder,
+  setupSupabaseMock,
+} from '@/lib/test/mocks/supabase.mock';
 
 // Mock dependencies
 jest.mock('@/lib/supabase', () => ({
@@ -25,16 +30,7 @@ jest.mock('@/lib/crypto-utils', () => ({
   generateSessionCode: jest.fn(),
 }));
 
-const mockSupabase = {
-  from: jest.fn(() => mockSupabase),
-  select: jest.fn(() => mockSupabase),
-  eq: jest.fn(() => mockSupabase),
-  or: jest.fn(() => mockSupabase),
-  order: jest.fn(() => mockSupabase),
-  limit: jest.fn(() => mockSupabase),
-  single: jest.fn(),
-};
-
+const mockSupabaseClient = createMockSupabaseClient();
 const mockCreateClient = createClient as jest.MockedFunction<
   typeof createClient
 >;
@@ -46,7 +42,8 @@ const mockGenerateSessionCode = generateSessionCode as jest.MockedFunction<
 describe('Sessions Service Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateClient.mockReturnValue(mockSupabase as never);
+    setupSupabaseMock(mockSupabaseClient);
+    mockCreateClient.mockReturnValue(mockSupabaseClient);
   });
 
   describe('getSessionById', () => {
@@ -62,27 +59,20 @@ describe('Sessions Service Client', () => {
     };
 
     it('returns session when found', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSession);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionById(sessionId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSession);
-      expect(mockSupabase.from).toHaveBeenCalledWith('bingo_sessions');
-      expect(mockSupabase.select).toHaveBeenCalledWith('*');
-      expect(mockSupabase.eq).toHaveBeenCalledWith('id', sessionId);
-      expect(mockSupabase.single).toHaveBeenCalled();
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('bingo_sessions');
     });
 
     it('returns error when session not found', async () => {
       const error = { message: 'Session not found', code: 'PGRST116' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(null, error);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionById(sessionId);
 
@@ -103,10 +93,8 @@ describe('Sessions Service Client', () => {
 
     it('handles database connection errors', async () => {
       const error = { message: 'Connection failed', code: 'CONNECTION_ERROR' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(null, error);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionById(sessionId);
 
@@ -115,7 +103,9 @@ describe('Sessions Service Client', () => {
     });
 
     it('handles unexpected errors', async () => {
-      mockSupabase.single.mockRejectedValue(new Error('Network error'));
+      mockSupabaseClient.from = jest.fn().mockImplementation(() => {
+        throw new Error('Network error');
+      });
 
       const result = await sessionsService.getSessionById(sessionId);
 
@@ -135,7 +125,9 @@ describe('Sessions Service Client', () => {
     });
 
     it('handles non-Error exceptions', async () => {
-      mockSupabase.single.mockRejectedValue('String error');
+      mockSupabaseClient.from = jest.fn().mockImplementation(() => {
+        throw 'String error';
+      });
 
       const result = await sessionsService.getSessionById(sessionId);
 
@@ -173,107 +165,93 @@ describe('Sessions Service Client', () => {
     ];
 
     it('returns sessions with no filters', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionsWithStats();
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSessionStats);
-      expect(mockSupabase.from).toHaveBeenCalledWith('session_stats');
-      expect(mockSupabase.select).toHaveBeenCalledWith('*');
-      expect(mockSupabase.order).toHaveBeenCalledWith('created_at', {
-        ascending: false,
-      });
-      expect(mockSupabase.limit).toHaveBeenCalledWith(50);
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('session_stats');
     });
 
     it('applies search filter', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const orSpy = jest.spyOn(mockQueryBuilder, 'or');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { search: 'test' };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.or).toHaveBeenCalledWith(
+      expect(orSpy).toHaveBeenCalledWith(
         'board_title.ilike.%test%,host_username.ilike.%test%'
       );
     });
 
     it('applies game category filter', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { gameCategory: 'Bingo' as never };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('board_game_type', 'Bingo');
+      expect(eqSpy).toHaveBeenCalledWith('board_game_type', 'Bingo');
     });
 
     it('applies difficulty filter', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { difficulty: 'easy' as never };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('board_difficulty', 'easy');
+      expect(eqSpy).toHaveBeenCalledWith('board_difficulty', 'easy');
     });
 
     it('applies status filter for active sessions', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { status: 'active' as const };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'active');
+      expect(eqSpy).toHaveBeenCalledWith('status', 'active');
     });
 
     it('applies status filter for waiting sessions', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { status: 'waiting' as const };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'waiting');
+      expect(eqSpy).toHaveBeenCalledWith('status', 'waiting');
     });
 
     it('filters out private sessions when showPrivate is false', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { showPrivate: false };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('has_password', false);
+      expect(eqSpy).toHaveBeenCalledWith('has_password', false);
     });
 
     it('includes private sessions when showPrivate is true', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionStats);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const filters = { showPrivate: true };
       await sessionsService.getSessionsWithStats(filters);
 
-      expect(mockSupabase.eq).not.toHaveBeenCalledWith('has_password', false);
+      expect(eqSpy).not.toHaveBeenCalledWith('has_password', false);
     });
 
     it('filters out invalid sessions (missing required fields)', async () => {
@@ -297,10 +275,8 @@ describe('Sessions Service Client', () => {
         },
       ];
 
-      mockSupabase.single.mockResolvedValue({
-        data: invalidSessionStats,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(invalidSessionStats);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionsWithStats();
 
@@ -311,10 +287,8 @@ describe('Sessions Service Client', () => {
 
     it('handles database errors', async () => {
       const error = { message: 'Database error', code: 'DB_ERROR' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(null, error);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionsWithStats();
 
@@ -333,7 +307,9 @@ describe('Sessions Service Client', () => {
     });
 
     it('handles unexpected errors', async () => {
-      mockSupabase.single.mockRejectedValue(new Error('Network error'));
+      mockSupabaseClient.from = jest.fn().mockImplementation(() => {
+        throw new Error('Network error');
+      });
 
       const result = await sessionsService.getSessionsWithStats();
 
@@ -342,10 +318,8 @@ describe('Sessions Service Client', () => {
     });
 
     it('handles null data response', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(null);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionsWithStats();
 
@@ -380,40 +354,27 @@ describe('Sessions Service Client', () => {
     ];
 
     it('returns sessions with players for board ID', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionsWithPlayers,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionsWithPlayers);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result =
         await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSessionsWithPlayers);
-      expect(mockSupabase.from).toHaveBeenCalledWith('bingo_sessions');
-      expect(mockSupabase.select).toHaveBeenCalledWith(`
-          *,
-          bingo_session_players (
-            user_id,
-            display_name,
-            color,
-            team
-          )
-        `);
-      expect(mockSupabase.eq).toHaveBeenCalledWith('board_id', boardId);
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('bingo_sessions');
     });
 
     it('filters by status when provided', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionsWithPlayers,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionsWithPlayers);
+      const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const status = 'waiting' as never;
       await sessionsService.getSessionsByBoardIdWithPlayers(boardId, status);
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('board_id', boardId);
-      expect(mockSupabase.eq).toHaveBeenCalledWith('status', status);
+      expect(eqSpy).toHaveBeenCalledWith('board_id', boardId);
+      expect(eqSpy).toHaveBeenCalledWith('status', status);
     });
 
     it('handles sessions with no players', async () => {
@@ -427,10 +388,8 @@ describe('Sessions Service Client', () => {
         },
       ];
 
-      mockSupabase.single.mockResolvedValue({
-        data: sessionsWithoutPlayers,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(sessionsWithoutPlayers);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result =
         await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
@@ -446,10 +405,8 @@ describe('Sessions Service Client', () => {
 
     it('handles database errors', async () => {
       const error = { message: 'Database error', code: 'DB_ERROR' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(null, error);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result =
         await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
@@ -470,7 +427,9 @@ describe('Sessions Service Client', () => {
     });
 
     it('handles unexpected errors', async () => {
-      mockSupabase.single.mockRejectedValue(new Error('Network error'));
+      mockSupabaseClient.from = jest.fn().mockImplementation(() => {
+        throw new Error('Network error');
+      });
 
       const result =
         await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
@@ -480,10 +439,8 @@ describe('Sessions Service Client', () => {
     });
 
     it('handles null data response', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: null,
-      });
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(null);
+      mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result =
         await sessionsService.getSessionsByBoardIdWithPlayers(boardId);

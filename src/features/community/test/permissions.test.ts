@@ -450,7 +450,7 @@ describe('Permissions Service', () => {
 
   describe('Complex Permission Scenarios', () => {
     it('should handle temporary permission overrides', () => {
-      const user = createMockUser({
+      const _user = createMockUser({
         // temporary_permissions field doesn't exist in the database schema
         // This test case should be removed or refactored
       });

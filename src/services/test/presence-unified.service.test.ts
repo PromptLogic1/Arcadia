@@ -39,7 +39,12 @@ describe('presenceService (Unified)', () => {
         data: {
           cleanup: mockCleanup,
           updatePresence: jest.fn(),
+          getCurrentState: jest.fn().mockResolvedValue({
+            success: true,
+            data: undefined,
+          }),
         },
+        error: null,
       });
 
       const cleanupFn = await presenceService.trackPresence(
@@ -78,7 +83,12 @@ describe('presenceService (Unified)', () => {
         data: {
           cleanup: mockCleanup,
           updatePresence: jest.fn(),
+          getCurrentState: jest.fn().mockResolvedValue({
+            success: true,
+            data: undefined,
+          }),
         },
+        error: null,
       });
 
       await presenceService.trackPresence(
@@ -111,7 +121,12 @@ describe('presenceService (Unified)', () => {
         data: {
           cleanup: mockCleanup,
           updatePresence: jest.fn(),
+          getCurrentState: jest.fn().mockResolvedValue({
+            success: true,
+            data: undefined,
+          }),
         },
+        error: null,
       });
 
       await presenceService.trackPresence(
@@ -158,6 +173,7 @@ describe('presenceService (Unified)', () => {
     it('should handle redis service failure', async () => {
       mockRedisPresenceService.joinBoardPresence.mockResolvedValueOnce({
         success: false,
+        data: null,
         error: 'Redis connection failed',
       });
 
@@ -182,6 +198,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.joinBoardPresence.mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
 
       const cleanupFn = await presenceService.trackPresence(
@@ -210,7 +227,12 @@ describe('presenceService (Unified)', () => {
         data: {
           cleanup: mockCleanup,
           updatePresence: jest.fn(),
+          getCurrentState: jest.fn().mockResolvedValue({
+            success: true,
+            data: undefined,
+          }),
         },
+        error: null,
       });
 
       const cleanupFn = await presenceService.trackPresence(
@@ -257,7 +279,7 @@ describe('presenceService (Unified)', () => {
         'String error'
       );
 
-      const cleanupFn = await presenceService.trackPresence(
+      const _cleanupFn = await presenceService.trackPresence(
         channelName,
         userId,
         userInfo
@@ -275,7 +297,7 @@ describe('presenceService (Unified)', () => {
 
     it('should call onError callback when provided', async () => {
       const mockCleanup = jest.fn().mockResolvedValue({ success: true });
-      const mockOnError = jest.fn();
+      const _mockOnError = jest.fn();
 
       mockRedisPresenceService.joinBoardPresence.mockImplementationOnce(
         (boardId, userId, userInfo, metadata, options) => {
@@ -288,7 +310,12 @@ describe('presenceService (Unified)', () => {
             data: {
               cleanup: mockCleanup,
               updatePresence: jest.fn(),
+              getCurrentState: jest.fn().mockResolvedValue({
+                success: true,
+                data: undefined,
+              }),
             },
+            error: null,
           });
         }
       );
@@ -313,7 +340,8 @@ describe('presenceService (Unified)', () => {
     it('should update presence status successfully', async () => {
       mockRedisPresenceService.updateUserPresence.mockResolvedValueOnce({
         success: true,
-        data: {},
+        data: undefined,
+        error: null,
       });
 
       const result = await presenceService.updatePresence(
@@ -335,7 +363,8 @@ describe('presenceService (Unified)', () => {
     it('should map offline status to away', async () => {
       mockRedisPresenceService.updateUserPresence.mockResolvedValueOnce({
         success: true,
-        data: {},
+        data: undefined,
+        error: null,
       });
 
       await presenceService.updatePresence(channelName, userId, 'offline');
@@ -351,7 +380,8 @@ describe('presenceService (Unified)', () => {
     it('should handle activity parameter', async () => {
       mockRedisPresenceService.updateUserPresence.mockResolvedValueOnce({
         success: true,
-        data: {},
+        data: undefined,
+        error: null,
       });
 
       await presenceService.updatePresence(
@@ -380,6 +410,7 @@ describe('presenceService (Unified)', () => {
     it('should handle redis service failure', async () => {
       mockRedisPresenceService.updateUserPresence.mockResolvedValueOnce({
         success: false,
+        data: null,
         error: 'Update failed',
       });
 
@@ -437,6 +468,7 @@ describe('presenceService (Unified)', () => {
           avatar: 'avatar1.jpg',
           status: 'online' as const,
           lastSeen: Date.now(),
+          joinedAt: Date.now(),
           metadata: {
             activity: 'playing' as const,
             sessionId: 'session-1',
@@ -448,6 +480,7 @@ describe('presenceService (Unified)', () => {
           avatar: 'avatar2.jpg',
           status: 'busy' as const,
           lastSeen: Date.now(),
+          joinedAt: Date.now(),
           metadata: {
             activity: 'viewing' as const,
           },
@@ -457,6 +490,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.getBoardPresence.mockResolvedValueOnce({
         success: true,
         data: mockPresenceData,
+        error: null,
       });
 
       const result = await presenceService.getPresence(channelName);
@@ -516,6 +550,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.getBoardPresence.mockResolvedValueOnce({
         success: true,
         data: {},
+        error: null,
       });
 
       const result = await presenceService.getPresence(channelName);
@@ -541,6 +576,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.getBoardPresence.mockResolvedValueOnce({
         success: false,
         error: 'Get failed',
+        data: null,
       });
 
       const result = await presenceService.getPresence(channelName);
@@ -552,6 +588,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.getBoardPresence.mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
 
       const result = await presenceService.getPresence(channelName);
@@ -605,7 +642,13 @@ describe('presenceService (Unified)', () => {
         data: {
           updatePresence: mockUpdatePresence,
           cleanup: mockCleanup,
+          getCurrentState: jest.fn().mockResolvedValue({
+            success: true,
+            data: {},
+            error: null,
+          }),
         },
+        error: null,
       });
 
       const subscription = await presenceService.subscribeToPresence(boardId, {
@@ -649,7 +692,13 @@ describe('presenceService (Unified)', () => {
             data: {
               updatePresence: jest.fn(),
               cleanup: jest.fn(),
+              getCurrentState: jest.fn().mockResolvedValue({
+                success: true,
+                data: {},
+                error: null,
+              }),
             },
+            error: null,
           });
         }
       );
@@ -698,7 +747,13 @@ describe('presenceService (Unified)', () => {
             data: {
               updatePresence: jest.fn(),
               cleanup: jest.fn(),
+              getCurrentState: jest.fn().mockResolvedValue({
+                success: true,
+                data: {},
+                error: null,
+              }),
             },
+            error: null,
           });
         }
       );
@@ -746,7 +801,13 @@ describe('presenceService (Unified)', () => {
             data: {
               updatePresence: jest.fn(),
               cleanup: jest.fn(),
+              getCurrentState: jest.fn().mockResolvedValue({
+                success: true,
+                data: {},
+                error: null,
+              }),
             },
+            error: null,
           });
         }
       );
@@ -769,6 +830,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.joinBoardPresence.mockResolvedValueOnce({
         success: false,
         error: 'Subscription failed',
+        data: null,
       });
 
       await expect(
@@ -786,6 +848,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.joinBoardPresence.mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
 
       await expect(
@@ -823,7 +886,13 @@ describe('presenceService (Unified)', () => {
         data: {
           updatePresence: mockUpdatePresence,
           cleanup: jest.fn(),
+          getCurrentState: jest.fn().mockResolvedValue({
+            success: true,
+            data: {},
+            error: null,
+          }),
         },
+        error: null,
       });
 
       const subscription = await presenceService.subscribeToPresence(
@@ -840,6 +909,7 @@ describe('presenceService (Unified)', () => {
       mockRedisPresenceService.joinBoardPresence.mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
 
       await expect(

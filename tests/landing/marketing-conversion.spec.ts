@@ -18,7 +18,7 @@ interface TestConversionFunnel {
       action: string;
       label?: string;
       value?: number;
-      timestamp: number;
+      timestamp: Date;
     }>;
     expectedMetrics?: { dropoffRate?: number; averageTime?: number };
   }>;
@@ -80,11 +80,12 @@ const DEMO_FUNNEL: TestConversionFunnel = {
       events: [
         CONVERSION_EVENTS.ctaClick('navigation', 'demo'),
         {
-          eventName: 'scroll_to_section',
+          id: 'scroll-to-demo',
+          name: 'scroll_to_section',
           category: 'engagement',
           action: 'scroll',
           label: 'demo',
-          timestamp: 0,
+          timestamp: new Date(0),
         },
       ],
       expectedMetrics: { dropoffRate: 0.2 },
@@ -94,11 +95,12 @@ const DEMO_FUNNEL: TestConversionFunnel = {
       url: '/',
       events: [
         {
-          eventName: 'demo_start',
+          id: 'demo-start',
+          name: 'demo_start',
           category: 'engagement',
           action: 'start',
           label: 'homepage_demo',
-          timestamp: 0,
+          timestamp: new Date(0),
         },
       ],
       expectedMetrics: {},
@@ -318,7 +320,7 @@ test.describe('UTM Parameter Tracking', () => {
 
     // Verify UTM parameters are included in events
     const events = await analytics.getEvents();
-    const pageView = events.find(e => e.eventName === 'page_view');
+    const pageView = events.find(e => e.name === 'page_view');
 
     expect(pageView?.metadata).toMatchObject({
       utm_source: 'email',
@@ -359,7 +361,7 @@ test.describe('UTM Parameter Tracking', () => {
     // Check that UTM parameters are still tracked
     const events = await analytics.getEvents();
     const aboutPageView = events.find(
-      e => e.eventName === 'page_view' && e.label === '/about'
+      e => e.name === 'page_view' && e.label === '/about'
     );
 
     // UTM parameters should be associated with the session
@@ -432,8 +434,8 @@ test.describe('E-commerce Tracking', () => {
     const events = await analytics.getEvents();
     const productEvents = events.filter(
       e =>
-        e.eventName === 'view_item' ||
-        e.eventName === 'product_view' ||
+        e.name === 'view_item' ||
+        e.name === 'product_view' ||
         e.category === 'ecommerce'
     );
 
@@ -495,7 +497,7 @@ test.describe('Performance Marketing Metrics', () => {
     // Calculate engagement metrics
     const clickEvents = events.filter(e => e.action === 'click').length;
     const scrollEvents = events.filter(e =>
-      e.eventName.includes('scroll')
+      e.name.includes('scroll')
     ).length;
 
     console.log('Engagement metrics:');

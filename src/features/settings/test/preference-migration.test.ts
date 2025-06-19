@@ -5,18 +5,7 @@
  */
 
 // Using default Jest globals
-
-// Use global testUtils from jest.setup.ts
-declare global {
-  var testUtils: {
-    localStorage: {
-      getItem: jest.Mock;
-      setItem: jest.Mock;
-      removeItem: jest.Mock;
-      clear: jest.Mock;
-    };
-  };
-}
+// testUtils available from jest.setup.ts
 
 interface LegacySettings {
   theme?: string;

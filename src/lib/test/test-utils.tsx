@@ -5,17 +5,16 @@
  * These utilities ensure consistent testing patterns across the codebase.
  */
 
-import { render, RenderOptions, RenderResult } from '@testing-library/react';
-import { ReactElement, ReactNode } from 'react';
+import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
+import type { ReactNode, ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useShallow } from 'zustand/react/shallow';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/../../types/database.types';
 
 // Create a custom render function that includes providers
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   queryClient?: QueryClient;
-  supabaseClient?: SupabaseClient<Database>;
+  _supabaseClient?: SupabaseClient<Database>;
   initialRoute?: string;
 }
 
@@ -37,10 +36,10 @@ export const createTestQueryClient = () =>
 // Test wrapper component
 export const createWrapper = ({
   queryClient = createTestQueryClient(),
-  supabaseClient,
+  _supabaseClient,
 }: {
   queryClient?: QueryClient;
-  supabaseClient?: SupabaseClient<Database>;
+  _supabaseClient?: SupabaseClient<Database>;
 } = {}) => {
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -52,7 +51,7 @@ export const customRender = (
   ui: ReactElement,
   {
     queryClient = createTestQueryClient(),
-    supabaseClient,
+    _supabaseClient,
     initialRoute,
     ...renderOptions
   }: CustomRenderOptions = {}
@@ -62,7 +61,7 @@ export const customRender = (
     window.history.pushState({}, 'Test page', initialRoute);
   }
 
-  const Wrapper = createWrapper({ queryClient, supabaseClient });
+  const Wrapper = createWrapper({ queryClient, _supabaseClient });
 
   return render(ui, { wrapper: Wrapper, ...renderOptions });
 };
@@ -82,7 +81,7 @@ export const mockWindowMethods = () => {
   const originalSessionStorage = window.sessionStorage;
 
   // Mock location
-  delete (window as any).location;
+  delete (window as unknown as { location?: Location }).location;
   window.location = {
     ...originalLocation,
     assign: jest.fn(),
@@ -133,11 +132,11 @@ export const mockWindowMethods = () => {
 
 // Mock fetch
 export const mockFetch = (
-  responses: Array<{ url: string | RegExp; response: any; status?: number }>
+  responses: Array<{ url: string | RegExp; response: unknown; status?: number }>
 ) => {
   const originalFetch = global.fetch;
 
-  global.fetch = jest.fn(async (url: string | URL, options?: RequestInit) => {
+  global.fetch = jest.fn(async (url: string | URL, _options?: RequestInit) => {
     const urlString = typeof url === 'string' ? url : url.toString();
 
     for (const mock of responses) {
@@ -195,7 +194,7 @@ export const cleanupTestData = async (
 };
 
 // Assertion helpers
-export const expectServiceSuccess = <T extends unknown>(response: {
+export const expectServiceSuccess = <T,>(response: {
   success: boolean;
   data: T | null;
   error: string | null;
@@ -207,7 +206,7 @@ export const expectServiceSuccess = <T extends unknown>(response: {
 };
 
 export const expectServiceError = (
-  response: { success: boolean; data: any; error: string | null },
+  response: { success: boolean; data: unknown; error: string | null },
   errorMessage?: string
 ) => {
   expect(response.success).toBe(false);
@@ -297,39 +296,26 @@ export function assertType<T>(value: unknown): asserts value is T {
   // In tests, you might want to add runtime checks
 }
 
-// Mock date utility
+// Mock date utility  
 export const mockDate = (date: string | Date) => {
-  const RealDate = Date;
-  const mockDate = new Date(date);
-
+  const mockDateInstance = new Date(date);
+  
   beforeEach(() => {
-    global.Date = class extends RealDate {
-      constructor(...args: any[]) {
-        if (args.length === 0) {
-          super(mockDate);
-        } else {
-          // @ts-expect-error - spreading arguments to Date constructor
-          super(...args);
-        }
-      }
-
-      static now() {
-        return mockDate.getTime();
-      }
-    } as any;
+    jest.useFakeTimers();
+    jest.setSystemTime(mockDateInstance);
   });
-
+  
   afterEach(() => {
-    global.Date = RealDate;
+    jest.useRealTimers();
   });
-
-  return mockDate;
+  
+  return mockDateInstance;
 };
 
 // Performance testing utility
 export const measurePerformance = async (
   fn: () => Promise<void> | void,
-  iterations: number = 100
+  iterations = 100
 ) => {
   const times: number[] = [];
 

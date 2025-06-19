@@ -273,7 +273,7 @@ export async function getNotificationRecipients(
   // Remove excluded users
   if (context.exclude_users) {
     recipients = recipients.filter(
-      user => !context.exclude_users!.includes(user)
+      user => !context.exclude_users?.includes(user)
     );
   }
 

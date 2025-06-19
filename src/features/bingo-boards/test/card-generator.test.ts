@@ -114,21 +114,20 @@ class CardGeneratorService {
         }) satisfies BingoCard
     );
 
-    // Combine available and custom cards
-    const allCards = [...availableCards, ...customCards];
-
-    // Shuffle and select cards
-    const shuffled = this.shuffleArray(allCards);
-    const selectedCards = shuffled.slice(0, 25); // Default to 25 cards for 5x5 board
+    // Prioritize custom cards, then fill with available cards
+    const shuffledAvailable = this.shuffleArray(availableCards);
+    const neededFromAvailable = Math.max(0, 25 - customCards.length);
+    const selectedCards = [
+      ...customCards,
+      ...shuffledAvailable.slice(0, neededFromAvailable)
+    ];
 
     // Mark cards as used
     for (const card of selectedCards) {
       this.usedCards.add(card.id);
     }
 
-    const actualCustomCardsUsed = selectedCards.filter(card =>
-      customCards.some(custom => custom.id === card.id)
-    ).length;
+    const actualCustomCardsUsed = customCards.length;
 
     return {
       cards: selectedCards,
@@ -144,100 +143,61 @@ class CardGeneratorService {
   suggestCards(
     existingCards: BingoCard[],
     targetCount: number,
-    overrides: Partial<GeneratorOptions> = {}
+    options: Partial<GeneratorOptions> = {}
   ): BingoCard[] {
-    // If no existing cards, return empty array
-    if (existingCards.length === 0) {
+    const needed = Math.max(0, targetCount - existingCards.length);
+    if (needed === 0) {
       return [];
     }
 
-    // Determine the options from existing cards
-    const gameType =
-      overrides.gameCategory || existingCards[0]?.game_type || 'Valorant';
-    const difficulty =
-      overrides.difficulty || existingCards[0]?.difficulty || 'medium';
-    const tags = overrides.tags || [];
+    // Analyze existing cards
+    const categoryCount = new Map<GameCategory, number>();
+    const difficultyCount = new Map<Difficulty, number>();
+    const allTags = new Set<string>();
 
-    // Get available cards
-    const availableCards = this.cardPool.get(gameType) || [];
-    const filteredCards = availableCards.filter(
+    for (const card of existingCards) {
+      categoryCount.set(
+        card.game_type,
+        (categoryCount.get(card.game_type) ?? 0) + 1
+      );
+      difficultyCount.set(
+        card.difficulty,
+        (difficultyCount.get(card.difficulty) ?? 0) + 1
+      );
+      if (card.tags) {
+        for (const tag of card.tags) {
+          allTags.add(tag);
+        }
+      }
+    }
+
+    // Determine most common category and difficulty
+    const dominantCategory = this.getMaxEntry(categoryCount) || 'Valorant';
+    const dominantDifficulty = this.getMaxEntry(difficultyCount) || 'medium';
+
+    // Get the target game category
+    const gameCategory = options.gameCategory || dominantCategory;
+    const difficulty = options.difficulty || dominantDifficulty;
+
+    // Get available cards for the category
+    const categoryCards = this.cardPool.get(gameCategory) || [];
+    
+    // Filter by difficulty and exclude existing cards
+    const availableCards = categoryCards.filter(
       card =>
         card.difficulty === difficulty &&
         !existingCards.some(existing => existing.id === card.id)
     );
 
-    const needed = Math.max(0, targetCount - existingCards.length);
+    // Filter by tags if specified
+    let filteredCards = availableCards;
+    if (options.tags && options.tags.length > 0) {
+      filteredCards = availableCards.filter(card =>
+        options.tags!.some(tag => card.tags?.includes(tag))
+      );
+    }
+
     return this.shuffleArray(filteredCards).slice(0, needed);
-  }
-
-  validateCards(
-    cards: BingoCard[],
-    boardSize: number
-  ): {
-    valid: boolean;
-    errors: string[];
-    warnings: string[];
-  } {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const expectedCount = boardSize * boardSize;
-
-    if (cards.length !== expectedCount) {
-      errors.push(`Expected ${expectedCount} cards, got ${cards.length}`);
-    }
-
-    const gameTypes = new Set(cards.map(c => c.game_type));
-    if (gameTypes.size > 1) {
-      warnings.push('Mixed game types detected');
-    }
-
-    const difficulties = new Set(cards.map(c => c.difficulty));
-    if (difficulties.size > 2) {
-      warnings.push('Multiple difficulty levels detected');
-    }
-
-    const duplicateIds = cards
-      .map(c => c.id)
-      .filter((id, i, arr) => arr.indexOf(id) !== i);
-    if (duplicateIds.length > 0) {
-      errors.push(`Duplicate card IDs: ${duplicateIds.join(', ')}`);
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-    };
-  }
-
-  getUsedCardsCount(): number {
-    return this.usedCards.size;
-  }
-
-  resetUsedCards(): void {
-    this.usedCards.clear();
-  }
-
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = shuffled[i];
-      const jItem = shuffled[j];
-      if (temp !== undefined && jItem !== undefined) {
-        shuffled[i] = jItem;
-        shuffled[j] = temp;
-      }
-    }
-    return shuffled;
-  }
-
-  resetUsedCards() {
-    this.usedCards.clear();
-  }
-
-  getUsedCardsCount(): number {
-    return this.usedCards.size;
   }
 
   validateCards(
@@ -308,50 +268,28 @@ class CardGeneratorService {
     };
   }
 
-  suggestCards(
-    existingCards: BingoCard[],
-    targetCount: number,
-    options: Partial<GeneratorOptions>
-  ): BingoCard[] {
-    // Analyze existing cards
-    const categoryCount = new Map<GameCategory, number>();
-    const difficultyCount = new Map<Difficulty, number>();
-    const allTags = new Set<string>();
+  getUsedCardsCount(): number {
+    return this.usedCards.size;
+  }
 
-    for (const card of existingCards) {
-      categoryCount.set(
-        card.game_type,
-        (categoryCount.get(card.game_type) ?? 0) + 1
-      );
-      difficultyCount.set(
-        card.difficulty,
-        (difficultyCount.get(card.difficulty) ?? 0) + 1
-      );
-      if (card.tags) {
-        for (const tag of card.tags) {
-          allTags.add(tag);
-        }
+  resetUsedCards(): void {
+    this.usedCards.clear();
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = shuffled[i];
+      const jItem = shuffled[j];
+      if (temp !== undefined && jItem !== undefined) {
+        shuffled[i] = jItem;
+        shuffled[j] = temp;
       }
     }
-
-    // Determine most common category and difficulty
-    const dominantCategory = this.getMaxEntry(categoryCount) || 'All Games';
-    const dominantDifficulty = this.getMaxEntry(difficultyCount) || 'medium';
-
-    // Generate suggestions
-    const suggestOptions: GeneratorOptions = {
-      gameCategory: options.gameCategory || dominantCategory,
-      difficulty: options.difficulty || dominantDifficulty,
-      tags: options.tags || Array.from(allTags).slice(0, 3),
-      excludePrevious: true,
-      customPrompts: [],
-    };
-
-    const needed = targetCount - existingCards.length;
-    const { cards } = this.generateCards(suggestOptions);
-
-    return cards.slice(0, needed);
+    return shuffled;
   }
+
 
   private getMaxEntry<K, V extends number>(map: Map<K, V>): K | undefined {
     let maxKey: K | undefined;

@@ -467,7 +467,7 @@ test.describe('Real React Error Boundary Infrastructure', () => {
       const pageText = await page.textContent('body');
       const sentryIdPattern = /Sentry ID:\s*[a-f0-9]{32}/i;
 
-      if (sentryIdPattern.test(pageText)) {
+      if (pageText && sentryIdPattern.test(pageText)) {
         console.log('Sentry ID found in error boundary display');
       }
 

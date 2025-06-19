@@ -11,9 +11,7 @@ import {
   createMockSupabaseClient,
   setupSupabaseMock,
   createSupabaseSuccessResponse,
-  createSupabaseErrorResponse,
 } from '@/lib/test/mocks/supabase.mock';
-import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
 import type {
   DiscussionAPIFilters,
@@ -120,7 +118,7 @@ describe('CommunityService - Enhanced Coverage Tests', () => {
         { id: 'event-123', title: 'Test', participant_count: 'invalid' }, // wrong count type
       ];
 
-      invalidEvents.forEach((invalidEvent, index) => {
+      invalidEvents.forEach((invalidEvent, _index) => {
         // Test different validation failures for different invalid events
         let shouldFail = false;
         
@@ -365,7 +363,7 @@ describe('CommunityService - Enhanced Coverage Tests', () => {
     it('should handle unexpected errors in getDiscussions', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
       const filters: DiscussionFilters = {
-        gameCategory: 'RPG',
+        gameCategory: 'Elden Ring',
       };
 
       mockFrom.mockReturnValue({

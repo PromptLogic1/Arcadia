@@ -11,12 +11,18 @@ import {
   createMockSupabaseClient,
   setupSupabaseMock,
   createSupabaseSuccessResponse,
-  createSupabaseErrorResponse,
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
 import { userSchema } from '@/lib/validation/schemas/users';
 import { transformDbUserToUserData } from '@/lib/stores/auth-store';
+
+// Type for subscription mock
+type MockSubscription = {
+  id: string;
+  callback: () => void;
+  unsubscribe: jest.Mock;
+};
 
 // Mock all dependencies
 jest.mock('@/lib/logger', () => ({
@@ -71,7 +77,7 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;
-      const authError = new Error('Authentication failed');
+      const authError = new Error('Authentication failed') as any;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
@@ -96,7 +102,10 @@ describe('AuthService - Enhanced Coverage Tests', () => {
         typeof mockSupabase.auth
       >;
 
+      // Mock the getUser response to return null user
+      // This is valid runtime behavior despite strict TypeScript types
       mockAuth.getUser.mockResolvedValue({
+        // @ts-expect-error - Supabase types are strict but runtime allows null users
         data: { user: null },
         error: null,
       });
@@ -274,7 +283,10 @@ describe('AuthService - Enhanced Coverage Tests', () => {
         password: 'password123',
       };
 
+      // Mock signInWithPassword to return null user and session
+      // This represents a failed authentication scenario
       mockAuth.signInWithPassword.mockResolvedValue({
+        // @ts-expect-error - Supabase types are strict but runtime allows null users/sessions
         data: { user: null, session: null },
         error: null,
       });
@@ -305,6 +317,8 @@ describe('AuthService - Enhanced Coverage Tests', () => {
         app_metadata: {
           provider: 'email',
         },
+        aud: 'authenticated',
+        created_at: '2024-01-01T00:00:00Z',
       };
 
       mockAuth.signInWithPassword.mockResolvedValue({
@@ -338,7 +352,7 @@ describe('AuthService - Enhanced Coverage Tests', () => {
         password: 'wrongpassword',
       };
 
-      const authError = new Error('Invalid credentials');
+      const authError = new Error('Invalid credentials') as any;
       mockAuth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: authError,
@@ -418,7 +432,7 @@ describe('AuthService - Enhanced Coverage Tests', () => {
         username: 'testuser',
       };
 
-      const authError = new Error('Email already exists');
+      const authError = new Error('Email already exists') as any;
       mockAuth.signUp.mockResolvedValue({
         data: { user: null, session: null },
         error: authError,
@@ -470,9 +484,11 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       const unconfirmedUser = {
         id: 'user-123',
         email: 'test@example.com',
-        email_confirmed_at: null, // Email not confirmed
+        email_confirmed_at: undefined, // Email not confirmed
         user_metadata: { username: 'testuser' },
         app_metadata: { provider: 'email' },
+        aud: 'authenticated',
+        created_at: '2024-01-01T00:00:00Z',
       };
 
       mockAuth.signUp.mockResolvedValue({
@@ -523,7 +539,7 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;
-      const signOutError = new Error('Sign out failed');
+      const signOutError = new Error('Sign out failed') as any;
 
       mockAuth.signOut.mockResolvedValue({
         error: signOutError,
@@ -727,7 +743,7 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;
-      const resetError = new Error('Invalid email address');
+      const resetError = new Error('Invalid email address') as any;
 
       mockAuth.resetPasswordForEmail.mockResolvedValue({
         data: {},
@@ -799,7 +815,7 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;
-      const updateError = new Error('Password too weak');
+      const updateError = new Error('Password too weak') as any;
 
       mockAuth.updateUser.mockResolvedValue({
         data: { user: null },
@@ -865,7 +881,9 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       >;
       const mockCallback = jest.fn();
 
-      const mockSubscription = {
+      const mockSubscription: MockSubscription = {
+        id: 'subscription-123',
+        callback: jest.fn(),
         unsubscribe: jest.fn(),
       };
 
@@ -876,7 +894,10 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       const { unsubscribe } = authService.onAuthStateChange(mockCallback);
 
       // Simulate auth state change with session
-      const authStateCallback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const authStateCallback = mockAuth.onAuthStateChange.mock.calls[0]?.[0];
+      if (!authStateCallback) {
+        throw new Error('Auth state change callback not found');
+      }
       const mockSession = {
         user: {
           id: 'user-123',
@@ -904,7 +925,9 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       >;
       const mockCallback = jest.fn();
 
-      const mockSubscription = {
+      const mockSubscription: MockSubscription = {
+        id: 'subscription-456',
+        callback: jest.fn(),
         unsubscribe: jest.fn(),
       };
 
@@ -915,7 +938,10 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       authService.onAuthStateChange(mockCallback);
 
       // Simulate auth state change without session
-      const authStateCallback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const authStateCallback = mockAuth.onAuthStateChange.mock.calls[0]?.[0];
+      if (!authStateCallback) {
+        throw new Error('Auth state change callback not found');
+      }
       authStateCallback('SIGNED_OUT', null);
 
       expect(mockCallback).toHaveBeenCalledWith('SIGNED_OUT', null);
@@ -927,7 +953,9 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       >;
       const mockCallback = jest.fn();
 
-      const mockSubscription = {
+      const mockSubscription: MockSubscription = {
+        id: 'subscription-789',
+        callback: jest.fn(),
         unsubscribe: jest.fn(),
       };
 
@@ -938,7 +966,10 @@ describe('AuthService - Enhanced Coverage Tests', () => {
       authService.onAuthStateChange(mockCallback);
 
       // Simulate auth state change with session but no email
-      const authStateCallback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const authStateCallback = mockAuth.onAuthStateChange.mock.calls[0]?.[0];
+      if (!authStateCallback) {
+        throw new Error('Auth state change callback not found');
+      }
       const mockSession = {
         user: {
           id: 'user-123',

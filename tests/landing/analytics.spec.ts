@@ -9,7 +9,7 @@ import { AnalyticsTracker, CONVERSION_EVENTS } from './fixtures/analytics';
 import { buildUrlWithParams } from './types/routes';
 
 // Enhanced conversion funnels with realistic user journeys
-interface TestConversionFunnel {
+interface ConversionFunnel {
   name: string;
   stages: Array<{
     name: string;
@@ -21,14 +21,14 @@ interface TestConversionFunnel {
       action: string;
       label?: string;
       value?: number;
-      timestamp: number;
+      timestamp: Date;
     }>;
-    expectedMetrics: { dropoffRate: number; averageTime: number };
+    expectedMetrics: { dropoffRate?: number; averageTime?: number };
   }>;
   expectedDuration?: number;
 }
 
-const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
+const _ENHANCED_SIGNUP_FUNNEL: ConversionFunnel = {
   name: 'enhanced_signup',
   stages: [
     {
@@ -42,7 +42,7 @@ const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
           category: 'engagement',
           action: 'scroll',
           label: 'hero_section',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.1, averageTime: 10000 },
@@ -58,7 +58,7 @@ const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
           category: 'engagement',
           action: 'hover',
           label: 'start_playing',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.3, averageTime: 5000 },
@@ -74,7 +74,7 @@ const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
           category: 'form',
           action: 'focus',
           label: 'signup_form',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.4, averageTime: 30000 },
@@ -90,7 +90,7 @@ const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
           category: 'form',
           action: 'validate',
           label: 'signup_form',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.2, averageTime: 60000 },
@@ -107,10 +107,10 @@ const _ENHANCED_SIGNUP_FUNNEL: TestConversionFunnel = {
           category: 'onboarding',
           action: 'start',
           label: 'new_user',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
-      expectedMetrics: { averageTime: 10000 },
+      expectedMetrics: { averageTime: 10000, dropoffRate: 0.1 },
     },
   ],
   expectedDuration: 180000, // 3 minutes
@@ -130,7 +130,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'scroll_to',
           label: 'demo_section',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.2 },
@@ -145,7 +145,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'click',
           label: 'try_demo',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
         {
           id: 'test-8',
@@ -153,7 +153,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'load',
           label: 'demo_game',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.1 },
@@ -169,7 +169,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           action: 'complete',
           label: 'demo_game',
           value: 1,
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
         {
           id: 'test-10',
@@ -177,7 +177,7 @@ const _DEMO_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'rate',
           label: 'demo_experience',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { averageTime: 120000 },
@@ -200,7 +200,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'scroll',
           label: '25_percent',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.1 },
@@ -215,7 +215,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'scroll',
           label: '50_percent',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
         {
           id: 'test-13',
@@ -223,7 +223,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'click',
           label: 'feature_card',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { dropoffRate: 0.2 },
@@ -238,7 +238,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'scroll',
           label: '100_percent',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
         {
           id: 'test-15',
@@ -246,7 +246,7 @@ const _CONTENT_ENGAGEMENT_FUNNEL: ConversionFunnel = {
           category: 'engagement',
           action: 'complete',
           label: 'landing_page',
-          timestamp: Date.now(),
+          timestamp: new Date(),
         },
       ],
       expectedMetrics: { averageTime: 120000 },
@@ -572,7 +572,7 @@ test.describe('Enhanced Analytics & Conversion Tracking', () => {
 
     const journeyEvents: Array<{
       page: string;
-      timestamp: number;
+      timestamp: Date;
       sessionId: string;
     }> = [];
 

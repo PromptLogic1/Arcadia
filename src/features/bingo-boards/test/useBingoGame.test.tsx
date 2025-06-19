@@ -26,22 +26,16 @@ describe('useBingoGame Hook', () => {
 
   test('should export required types', async () => {
     // Test that the types file exists and exports work
-    expect(() => {
-      require('../types');
-    }).not.toThrow();
+    await expect(import('../types')).resolves.toBeDefined();
   });
 
   test('should have win detection service dependency', async () => {
     // Test that the win detection service can be imported
-    expect(() => {
-      require('../services/win-detection.service');
-    }).not.toThrow();
+    await expect(import('../services/win-detection.service')).resolves.toBeDefined();
   });
 
   test('should have game state query dependencies', async () => {
     // Test that the required query hooks can be imported
-    expect(() => {
-      require('@/hooks/queries/useGameStateQueries');
-    }).not.toThrow();
+    await expect(import('@/hooks/queries/useGameStateQueries')).resolves.toBeDefined();
   });
 });

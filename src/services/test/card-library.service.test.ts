@@ -5,7 +5,7 @@
 import { cardLibraryService } from '../card-library.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import type { Tables, TablesInsert, Enums } from '@/types/database.types';
+import type { Tables, Enums } from '@/types/database.types';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -339,6 +339,7 @@ describe('cardLibraryService', () => {
         difficulty: 'easy' as Difficulty,
         tags: ['building', 'creative'],
         is_public: true,
+        creator_id: 'user-123',
       },
       {
         title: 'Bulk Card 2',
@@ -347,6 +348,7 @@ describe('cardLibraryService', () => {
         difficulty: 'medium' as Difficulty,
         tags: ['survival'],
         is_public: false,
+        creator_id: 'user-123',
       },
     ];
 
@@ -805,8 +807,8 @@ describe('cardLibraryService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1); // Only medium collection returned
-      expect(result.data?.[0].difficulty).toBe('medium');
-      expect(result.data?.[0].cardCount).toBe(5);
+      expect(result.data?.[0]?.difficulty).toBe('medium');
+      expect(result.data?.[0]?.cardCount).toBe(5);
     });
 
     it('should handle database error in first query', async () => {
@@ -910,8 +912,8 @@ describe('cardLibraryService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].difficulty).toBe('expert');
-      expect(result.data?.[0].cardCount).toBe(3);
+      expect(result.data?.[0]?.difficulty).toBe('expert');
+      expect(result.data?.[0]?.cardCount).toBe(3);
     });
 
     it('should handle error with missing message', async () => {

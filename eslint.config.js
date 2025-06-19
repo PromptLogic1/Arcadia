@@ -20,6 +20,7 @@ module.exports = [
       'dist/**',
       'coverage/**',
       '**/jest/**/*.js',
+      '**/jest.config.js',
       '.vercel/**',
       'public/**',
     ],

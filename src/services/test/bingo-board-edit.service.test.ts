@@ -156,7 +156,17 @@ describe('bingoBoardEditService', () => {
         difficulty: 'easy',
         size: 5,
         board_state: [],
-        settings: {},
+        settings: {
+          team_mode: null,
+          lockout: null,
+          sound_enabled: null,
+          win_conditions: {
+            line: null,
+            majority: null,
+            diagonal: null,
+            corners: null,
+          },
+        },
         is_public: true,
         version: 1,
         created_at: '2024-01-01T00:00:00Z',
@@ -244,7 +254,17 @@ describe('bingoBoardEditService', () => {
         difficulty: 'easy',
         size: 5,
         board_state: [],
-        settings: {},
+        settings: {
+          team_mode: null,
+          lockout: null,
+          sound_enabled: null,
+          win_conditions: {
+            line: null,
+            majority: null,
+            diagonal: null,
+            corners: null,
+          },
+        },
         is_public: true,
         version: 1,
         created_at: '2024-01-01T00:00:00Z',
@@ -404,7 +424,7 @@ describe('bingoBoardEditService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].title).toBe('Valid Card');
+      expect(result.data?.[0]?.title).toBe('Valid Card');
     });
 
     it('should handle card save error', async () => {
@@ -466,7 +486,17 @@ describe('bingoBoardEditService', () => {
         game_type: 'All Games',
         size: 5,
         board_state: [],
-        settings: {},
+        settings: {
+          team_mode: null,
+          lockout: null,
+          sound_enabled: null,
+          win_conditions: {
+            line: null,
+            majority: null,
+            diagonal: null,
+            corners: null,
+          },
+        },
         created_at: '2024-01-01T00:00:00Z',
         ...updates,
         version: currentVersion + 1,
@@ -763,13 +793,34 @@ describe('bingoBoardEditService', () => {
 
   describe('initializeBoardData', () => {
     it('should initialize board data with grid cards', async () => {
-      const mockBoard: Partial<BingoBoard> = {
+      const mockBoard = {
         id: 'board-123',
         title: 'Test Board',
         creator_id: 'user-456',
-        game_type: 'All Games',
-        difficulty: 'easy',
+        game_type: 'All Games' as const,
+        difficulty: 'easy' as const,
         size: 3, // 3x3 grid for easier testing
+        board_state: [],
+        settings: {
+          team_mode: null,
+          lockout: null,
+          sound_enabled: null,
+          win_conditions: {
+            line: null,
+            majority: null,
+            diagonal: null,
+            corners: null,
+          },
+        },
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        description: 'Test board description',
+        is_public: true,
+        cloned_from: null,
+        status: null,
+        version: 1,
+        votes: 0,
+        bookmarked_count: 0,
       };
 
       const mockCards: BingoCard[] = [
@@ -794,9 +845,10 @@ describe('bingoBoardEditService', () => {
         .mockResolvedValueOnce({
           success: true,
           data: {
-            board: mockBoard as any,
+            board: mockBoard,
             cards: mockCards,
           },
+          error: null,
         });
 
       const result =
@@ -816,6 +868,7 @@ describe('bingoBoardEditService', () => {
         .mockResolvedValueOnce({
           success: false,
           error: 'Board not found',
+          data: null,
         });
 
       const result = await bingoBoardEditService.initializeBoardData('invalid');
@@ -825,12 +878,34 @@ describe('bingoBoardEditService', () => {
     });
 
     it('should filter out grid cards from private cards', async () => {
-      const mockBoard: Partial<BingoBoard> = {
+      const mockBoard = {
         id: 'board-123',
         size: 2, // 2x2 grid
-        game_type: 'All Games',
-        difficulty: 'easy',
+        game_type: 'All Games' as const,
+        difficulty: 'easy' as const,
         creator_id: 'user-456',
+        board_state: [],
+        settings: {
+          team_mode: null,
+          lockout: null,
+          sound_enabled: null,
+          win_conditions: {
+            line: null,
+            majority: null,
+            diagonal: null,
+            corners: null,
+          },
+        },
+        title: 'Test Board',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        description: 'Test board description',
+        is_public: true,
+        cloned_from: null,
+        status: null,
+        version: 1,
+        votes: 0,
+        bookmarked_count: 0,
       };
 
       const mockCards: BingoCard[] = [
@@ -867,9 +942,10 @@ describe('bingoBoardEditService', () => {
         .mockResolvedValueOnce({
           success: true,
           data: {
-            board: mockBoard as any,
+            board: mockBoard,
             cards: mockCards,
           },
+          error: null,
         });
 
       const result =
@@ -877,7 +953,7 @@ describe('bingoBoardEditService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.privateCards).toHaveLength(1);
-      expect(result.data?.privateCards[0].title).toBe('Private Card');
+      expect(result.data?.privateCards[0]?.title).toBe('Private Card');
       expect(result.data?.gridCards).toHaveLength(4); // 2x2 = 4 cells
     });
   });

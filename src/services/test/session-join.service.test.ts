@@ -11,6 +11,7 @@ import {
   setupSupabaseMock,
   createSupabaseSuccessResponse,
   createSupabaseErrorResponse,
+  mockSupabaseUser,
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
@@ -78,7 +79,14 @@ describe('SessionJoinService', () => {
     const mockSession = factories.bingoSession({
       id: 'session-123',
       status: 'waiting',
-      settings: { max_players: 4 },
+      settings: { 
+        max_players: 4,
+        allow_spectators: null,
+        auto_start: null,
+        time_limit: null,
+        require_approval: null,
+        password: null
+      },
     });
 
     const mockBoard = factories.bingoBoard({
@@ -263,7 +271,7 @@ describe('SessionJoinService', () => {
   });
 
   describe('joinSession', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
     const joinData = {
       sessionId: 'session-123',
       playerName: 'TestPlayer',
@@ -334,7 +342,7 @@ describe('SessionJoinService', () => {
       >;
 
       mockAuth.getUser.mockResolvedValue({
-        data: { user: null },
+        data: { user: null } as any,
         error: null,
       });
 
@@ -424,7 +432,7 @@ describe('SessionJoinService', () => {
   });
 
   describe('checkUserInSession', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
 
     it('should return user is in session', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
@@ -499,7 +507,7 @@ describe('SessionJoinService', () => {
       >;
 
       mockAuth.getUser.mockResolvedValue({
-        data: { user: null },
+        data: { user: null } as any,
         error: null,
       });
 

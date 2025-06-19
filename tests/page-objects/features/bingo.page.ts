@@ -72,8 +72,10 @@ export class BingoPage extends BasePage {
     const cells = await this.page.locator(this.selectors.cellInput).all();
 
     for (let i = 0; i < Math.min(content.length, cells.length); i++) {
-      if (cells[i] && content[i]) {
-        await cells[i].fill(content[i]);
+      const cell = cells[i];
+      const cellContent = content[i];
+      if (cell && cellContent) {
+        await cell.fill(cellContent);
       }
     }
   }

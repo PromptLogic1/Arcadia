@@ -18,6 +18,7 @@ import {
   transformBoardState,
   transformSessionSettings,
 } from '@/lib/validation/transforms';
+import { ZodError } from 'zod';
 
 // Mock dependencies
 jest.mock('@/lib/supabase', () => ({
@@ -53,26 +54,12 @@ jest.mock('@/lib/validation/transforms', () => ({
   transformSessionSettings: jest.fn(),
 }));
 
-const mockSupabase = {
-  from: jest.fn(() => mockSupabase),
-  select: jest.fn(() => mockSupabase),
-  eq: jest.fn(() => mockSupabase),
-  neq: jest.fn(() => mockSupabase),
-  not: jest.fn(() => mockSupabase),
-  in: jest.fn(() => mockSupabase),
-  or: jest.fn(() => mockSupabase),
-  ilike: jest.fn(() => mockSupabase),
-  gte: jest.fn(() => mockSupabase),
-  lte: jest.fn(() => mockSupabase),
-  order: jest.fn(() => mockSupabase),
-  range: jest.fn(() => mockSupabase),
-  limit: jest.fn(() => mockSupabase),
-  insert: jest.fn(() => mockSupabase),
-  update: jest.fn(() => mockSupabase),
-  delete: jest.fn(() => mockSupabase),
-  upsert: jest.fn(() => mockSupabase),
-  single: jest.fn(),
-};
+import {
+  createMockSupabaseClient,
+  setupSupabaseMock,
+  createSupabaseSuccessResponse,
+  createSupabaseErrorResponse,
+} from '@/lib/test/mocks/supabase.mock';
 
 const mockCreateClient = createClient as jest.MockedFunction<
   typeof createClient
@@ -102,14 +89,87 @@ const mockTransformSessionSettings =
   >;
 
 describe('Sessions Service Main', () => {
+  let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
+
+  // Helper to create a mock ZodError
+  const createMockZodError = (message = 'Validation failed') => {
+    const error = new ZodError([{
+      code: 'invalid_type',
+      expected: 'string',
+      received: 'number',
+      path: ['field'],
+      message,
+    }]);
+    return error;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateClient.mockReturnValue(mockSupabase as never);
-    mockTransformBoardState.mockImplementation(state => state as never);
-    mockTransformSessionSettings.mockImplementation(
-      settings => settings as never
-    );
+    mockSupabase = createMockSupabaseClient();
+    mockCreateClient.mockReturnValue(mockSupabase);
+    setupSupabaseMock(mockSupabase);
+    mockTransformBoardState.mockImplementation((cells) => {
+      if (!cells) return [];
+      return cells.map(cell => ({
+        cell_id: cell.cell_id ?? null,
+        text: cell.text ?? null,
+        colors: cell.colors ?? null,
+        completed_by: cell.completed_by ?? null,
+        blocked: cell.blocked ?? null,
+        is_marked: cell.is_marked ?? null,
+        version: cell.version ?? null,
+        last_updated: cell.last_updated ?? null,
+        last_modified_by: cell.last_modified_by ?? null,
+      }));
+    });
+    mockTransformSessionSettings.mockImplementation((settings) => {
+      if (!settings) return null;
+      return {
+        max_players: settings.max_players ?? null,
+        allow_spectators: settings.allow_spectators ?? null,
+        auto_start: settings.auto_start ?? null,
+        time_limit: settings.time_limit ?? null,
+        require_approval: settings.require_approval ?? null,
+        password: settings.password ?? null,
+      };
+    });
   });
+
+  // Helper to create a mock query builder with chainable methods
+  const createMockQueryBuilder = (responses: Array<{ data?: any; error?: any; count?: any }>) => {
+    let responseIndex = 0;
+    const mockBuilder = {
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      not: jest.fn().mockReturnThis(),
+      gt: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lt: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
+      like: jest.fn().mockReturnThis(),
+      ilike: jest.fn().mockReturnThis(),
+      is: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      single: jest.fn().mockImplementation(() => {
+        const response = responses[responseIndex] || { data: null, error: null };
+        responseIndex++;
+        return Promise.resolve(response);
+      }),
+      maybeSingle: jest.fn().mockImplementation(() => {
+        const response = responses[responseIndex] || { data: null, error: null };
+        responseIndex++;
+        return Promise.resolve(response);
+      }),
+    };
+    return mockBuilder;
+  };
 
   describe('getSessionById', () => {
     const sessionId = 'session-123';
@@ -117,15 +177,26 @@ describe('Sessions Service Main', () => {
       id: sessionId,
       board_id: 'board-123',
       host_id: 'user-123',
-      status: 'waiting',
+      status: 'waiting' as const,
+      winner_id: null,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      ended_at: null,
+      started_at: null,
+      session_code: 'ABC123',
+      version: 1,
       current_state: [{ row: 0, col: 0, marked: false }],
       settings: { max_players: 4 },
     };
 
     it('returns transformed session when validation passes', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse(mockSession)
+        ),
       });
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
@@ -149,14 +220,18 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when validation fails', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse(mockSession)
+        ),
       });
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
         success: false,
-        error: new Error('Validation failed'),
+        error: createMockZodError('Validation failed'),
       });
 
       const result = await sessionsService.getSessionById(sessionId);
@@ -181,9 +256,13 @@ describe('Sessions Service Main', () => {
         settings: null,
       };
 
-      mockSupabase.single.mockResolvedValue({
-        data: sessionWithNulls,
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse(sessionWithNulls)
+        ),
       });
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
@@ -203,14 +282,27 @@ describe('Sessions Service Main', () => {
     const mockSession = {
       id: 'session-123',
       session_code: sessionCode,
+      status: 'waiting' as const,
+      board_id: 'board-123',
+      host_id: 'host-123',
+      winner_id: null,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      ended_at: null,
+      started_at: null,
+      version: 1,
       current_state: [],
       settings: null,
     };
 
     it('returns session when found by code', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse(mockSession)
+        ),
       });
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
@@ -221,14 +313,18 @@ describe('Sessions Service Main', () => {
       const result = await sessionsService.getSessionByCode(sessionCode);
 
       expect(result.success).toBe(true);
-      expect(mockSupabase.eq).toHaveBeenCalledWith('session_code', sessionCode);
+      expect(mockFrom().eq).toHaveBeenCalledWith('session_code', sessionCode);
     });
 
     it('returns error when session not found', async () => {
       const error = { message: 'Session not found', code: 'PGRST116' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseErrorResponse(error.message, error.code)
+        ),
       });
 
       const result = await sessionsService.getSessionByCode(sessionCode);
@@ -242,17 +338,32 @@ describe('Sessions Service Main', () => {
     const mockSessionStats = [
       {
         id: 'session-1',
-        status: 'waiting',
+        status: 'waiting' as const,
+        board_id: 'board-1',
+        host_id: 'host-1',
+        winner_id: null,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+        ended_at: null,
+        started_at: null,
+        session_code: 'ABCD',
+        version: 1,
         current_state: [],
         settings: null,
       },
     ];
 
     it('returns active sessions with default filters', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -265,17 +376,23 @@ describe('Sessions Service Main', () => {
       expect(result.success).toBe(true);
       expect(result.data?.sessions).toEqual(mockSessionStats);
       expect(result.data?.totalCount).toBe(1);
-      expect(mockSupabase.in).toHaveBeenCalledWith('status', [
+      expect(mockFrom().in).toHaveBeenCalledWith('status', [
         'waiting',
         'active',
       ]);
     });
 
     it('filters by specific status when not "all"', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -285,14 +402,19 @@ describe('Sessions Service Main', () => {
 
       await sessionsService.getActiveSessions({ status: 'active' });
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('status', 'active');
+      expect(mockFrom().eq).toHaveBeenCalledWith('status', 'active');
     });
 
     it('includes all sessions when status is "all"', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -302,17 +424,24 @@ describe('Sessions Service Main', () => {
 
       await sessionsService.getActiveSessions({ status: 'all' });
 
-      expect(mockSupabase.in).not.toHaveBeenCalledWith('status', [
+      expect(mockFrom().in).not.toHaveBeenCalledWith('status', [
         'waiting',
         'active',
       ]);
     });
 
     it('filters out private sessions when showPrivate is false', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -322,14 +451,20 @@ describe('Sessions Service Main', () => {
 
       await sessionsService.getActiveSessions({ showPrivate: false });
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('has_password', false);
+      expect(mockFrom().eq).toHaveBeenCalledWith('has_password', false);
     });
 
     it('includes private sessions when showPrivate is true', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -339,14 +474,21 @@ describe('Sessions Service Main', () => {
 
       await sessionsService.getActiveSessions({ showPrivate: true });
 
-      expect(mockSupabase.eq).not.toHaveBeenCalledWith('has_password', false);
+      expect(mockFrom().eq).not.toHaveBeenCalledWith('has_password', false);
     });
 
     it('filters by game category when not "All Games"', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -358,14 +500,20 @@ describe('Sessions Service Main', () => {
         gameCategory: 'Bingo' as never,
       });
 
-      expect(mockSupabase.eq).toHaveBeenCalledWith('board_game_type', 'Bingo');
+      expect(mockFrom().eq).toHaveBeenCalledWith('board_game_type', 'Bingo');
     });
 
     it('skips game category filter when "All Games"', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -377,17 +525,24 @@ describe('Sessions Service Main', () => {
         gameCategory: 'All Games' as never,
       });
 
-      expect(mockSupabase.eq).not.toHaveBeenCalledWith(
+      expect(mockFrom().eq).not.toHaveBeenCalledWith(
         'board_game_type',
         'All Games'
       );
     });
 
     it('applies search filter', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        ilike: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -397,14 +552,20 @@ describe('Sessions Service Main', () => {
 
       await sessionsService.getActiveSessions({ search: 'test' });
 
-      expect(mockSupabase.ilike).toHaveBeenCalledWith('board_title', '%test%');
+      expect(mockFrom().ilike).toHaveBeenCalledWith('board_title', '%test%');
     });
 
     it('applies pagination correctly', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -418,19 +579,25 @@ describe('Sessions Service Main', () => {
 
       const start = (page - 1) * limit; // 10
       const end = start + limit - 1; // 19
-      expect(mockSupabase.range).toHaveBeenCalledWith(start, end);
+      expect(mockFrom().range).toHaveBeenCalledWith(start, end);
     });
 
     it('returns empty data when validation fails', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSessionStats,
-        error: null,
-        count: 1,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: mockSessionStats,
+          error: null,
+          count: 1,
+        }),
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
         success: false,
-        error: { issues: [{ message: 'Invalid' }] },
+        error: createMockZodError('Invalid session stats format'),
       });
 
       const result = await sessionsService.getActiveSessions();
@@ -464,7 +631,14 @@ describe('Sessions Service Main', () => {
       id: 'session-123',
       ...sessionData,
       session_code: 'ABC123',
-      status: 'waiting',
+      status: 'waiting' as const,
+      winner_id: null,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      ended_at: null,
+      started_at: null,
+      version: 1,
+      current_state: [],
     };
 
     beforeEach(() => {
@@ -473,17 +647,13 @@ describe('Sessions Service Main', () => {
     });
 
     it('creates session with password hashing', async () => {
-      // Mock user exists check
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: mockUser,
-          error: null,
-        })
-        // Mock session creation
-        .mockResolvedValueOnce({
-          data: mockCreatedSession,
-          error: null,
-        });
+      // Mock user exists check and session creation
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockUser, error: null }, // User check
+        { data: mockCreatedSession, error: null }, // Session creation
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
         success: true,
@@ -494,7 +664,7 @@ describe('Sessions Service Main', () => {
 
       expect(result.success).toBe(true);
       expect(mockHashPassword).toHaveBeenCalledWith('secret123');
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           settings: expect.objectContaining({
             password: 'hashed_secret123',
@@ -509,15 +679,12 @@ describe('Sessions Service Main', () => {
         settings: { max_players: 4 },
       };
 
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: mockUser,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: mockCreatedSession,
-          error: null,
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockUser, error: null }, // User check
+        { data: mockCreatedSession, error: null }, // Session creation
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
         success: true,
@@ -527,7 +694,7 @@ describe('Sessions Service Main', () => {
       await sessionsService.createSession(sessionDataNoPassword);
 
       expect(mockHashPassword).not.toHaveBeenCalled();
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           settings: expect.objectContaining({
             password: null,
@@ -542,15 +709,12 @@ describe('Sessions Service Main', () => {
         settings: { max_players: 4, password: '   ' },
       };
 
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: mockUser,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: mockCreatedSession,
-          error: null,
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockUser, error: null }, // User check
+        { data: mockCreatedSession, error: null }, // Session creation
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
         success: true,
@@ -577,10 +741,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when user does not exist', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error: null }, // User not found
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.createSession(sessionData);
 
@@ -592,10 +757,11 @@ describe('Sessions Service Main', () => {
 
     it('handles user lookup error', async () => {
       const error = { message: 'Database error', code: 'DB_ERROR' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error }, // Database error
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.createSession(sessionData);
 
@@ -626,28 +792,14 @@ describe('Sessions Service Main', () => {
     };
 
     it('successfully joins session', async () => {
-      mockSupabase.single
-        // Session check
-        .mockResolvedValueOnce({
-          data: mockSession,
-          error: null,
-        })
-        // Player insertion
-        .mockResolvedValueOnce({
-          data: mockPlayer,
-          error: null,
-        });
-
-      // Mock count queries
-      mockSupabase.select
-        .mockReturnValueOnce({
-          ...mockSupabase,
-          single: jest.fn().mockResolvedValue({ count: 0, error: null }),
-        })
-        .mockReturnValueOnce({
-          ...mockSupabase,
-          single: jest.fn().mockResolvedValue({ count: 0, error: null }),
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session check
+        { count: 0, error: null }, // Player count check
+        { count: 0, error: null }, // Team count check
+        { data: mockPlayer, error: null }, // Player insertion
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSession(joinData);
 
@@ -656,10 +808,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when session not found', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: { message: 'Not found' },
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error: { message: 'Not found' } },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSession(joinData);
 
@@ -669,10 +822,11 @@ describe('Sessions Service Main', () => {
 
     it('returns error when session is not waiting', async () => {
       const activeSession = { ...mockSession, status: 'active' };
-      mockSupabase.single.mockResolvedValue({
-        data: activeSession,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: activeSession, error: null }, // Session check with non-waiting status
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSession(joinData);
 
@@ -681,16 +835,12 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when player already exists', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
-
-      // Mock existing player count > 0
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 1, error: null }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session check
+        { count: 1, error: null }, // Player already exists
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSession(joinData);
 
@@ -699,21 +849,13 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when color is taken', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
-
-      // Mock player check returns 0, color check returns 1
-      mockSupabase.select
-        .mockReturnValueOnce({
-          ...mockSupabase,
-          single: jest.fn().mockResolvedValue({ count: 0, error: null }),
-        })
-        .mockReturnValueOnce({
-          ...mockSupabase,
-          single: jest.fn().mockResolvedValue({ count: 1, error: null }),
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session check
+        { count: 0, error: null }, // Player doesn't exist
+        { count: 1, error: null }, // Color already taken
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSession(joinData);
 
@@ -722,16 +864,13 @@ describe('Sessions Service Main', () => {
     });
 
     it('handles database errors during checks', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
-
       const dbError = { message: 'Database error', code: 'DB_ERROR' };
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: null, error: dbError }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session check
+        { count: null, error: dbError }, // Database error during count
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSession(joinData);
 
@@ -758,28 +897,14 @@ describe('Sessions Service Main', () => {
     };
 
     it('successfully joins session by code with correct password', async () => {
-      mockSupabase.single
-        // Session lookup
-        .mockResolvedValueOnce({
-          data: mockSession,
-          error: null,
-        })
-        // Existing player check
-        .mockResolvedValueOnce({
-          data: null,
-          error: null,
-        })
-        // New player insertion
-        .mockResolvedValueOnce({
-          data: { id: 'player-123', ...playerData },
-          error: null,
-        });
-
-      // Mock player count
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 2, error: null }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session lookup
+        { data: null, error: null }, // Existing player check
+        { count: 2, error: null }, // Player count
+        { data: { id: 'player-123', ...playerData }, error: null }, // New player insertion
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockVerifyPassword.mockResolvedValue(true);
 
@@ -799,10 +924,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when session not found', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: { message: 'Not found' },
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error: { message: 'Not found' } },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSessionByCode(
         sessionCode,
@@ -815,10 +941,11 @@ describe('Sessions Service Main', () => {
 
     it('returns error when session is not waiting', async () => {
       const activeSession = { ...mockSession, status: 'active' };
-      mockSupabase.single.mockResolvedValue({
-        data: activeSession,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: activeSession, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSessionByCode(
         sessionCode,
@@ -830,10 +957,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when password is required but not provided', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const playerDataNoPassword = { ...playerData, password: undefined };
 
@@ -847,10 +975,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when password is incorrect', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockVerifyPassword.mockResolvedValue(false);
 
@@ -866,15 +995,12 @@ describe('Sessions Service Main', () => {
     it('returns existing player when already in session', async () => {
       const existingPlayer = { id: 'existing-player-123', user_id: userId };
 
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: mockSession,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: existingPlayer,
-          error: null,
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session lookup
+        { data: existingPlayer, error: null }, // Existing player found
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockVerifyPassword.mockResolvedValue(true);
 
@@ -890,21 +1016,13 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when session is full', async () => {
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: mockSession,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: null,
-          error: null,
-        });
-
-      // Mock full session (4 players, max 4)
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 4, error: null }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session lookup
+        { data: null, error: null }, // Player doesn't exist
+        { count: 4, error: null }, // Session is full
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockVerifyPassword.mockResolvedValue(true);
 
@@ -923,24 +1041,14 @@ describe('Sessions Service Main', () => {
         settings: { ...mockSession.settings, password: null },
       };
 
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: sessionNoPassword,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: null,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: { id: 'player-123', ...playerData },
-          error: null,
-        });
-
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 2, error: null }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: sessionNoPassword, error: null }, // Session lookup
+        { data: null, error: null }, // Player doesn't exist
+        { count: 2, error: null }, // Player count
+        { data: { id: 'player-123', ...playerData }, error: null }, // Player insertion
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.joinSessionByCode(
         sessionCode,
@@ -955,32 +1063,58 @@ describe('Sessions Service Main', () => {
 
   describe('updateBoardState', () => {
     const sessionId = 'session-123';
-    const boardState = [{ row: 0, col: 0, marked: true }];
+    const boardState = [{
+      cell_id: 'cell-0-0',
+      text: 'Test cell',
+      colors: null,
+      completed_by: null,
+      blocked: null,
+      is_marked: true,
+      version: null,
+      last_updated: null,
+      last_modified_by: null,
+    }];
     const currentVersion = 1;
 
     const mockCurrentSession = {
+      id: sessionId,
+      status: 'active' as const,
+      board_id: 'board-123',
+      host_id: 'host-123',
+      winner_id: null,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      ended_at: null,
+      started_at: '2024-01-01T00:00:00Z',
+      session_code: 'ABC123',
       version: currentVersion,
       current_state: [],
+      settings: null,
     };
 
     const mockUpdatedSession = {
       id: sessionId,
+      board_id: 'board-123',
+      host_id: 'host-123',
+      status: 'active' as const,
+      winner_id: null,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      ended_at: null,
+      started_at: '2024-01-01T00:00:00Z',
+      session_code: 'ABC123',
       version: currentVersion + 1,
       current_state: boardState,
+      settings: null,
     };
 
     it('successfully updates board state with optimistic locking', async () => {
-      mockSupabase.single
-        // Version check
-        .mockResolvedValueOnce({
-          data: mockCurrentSession,
-          error: null,
-        })
-        // Update operation
-        .mockResolvedValueOnce({
-          data: mockUpdatedSession,
-          error: null,
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockCurrentSession, error: null }, // Version check
+        { data: mockUpdatedSession, error: null }, // Update operation
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       mockBingoSessionSchema.safeParse.mockReturnValue({
         success: true,
@@ -994,12 +1128,12 @@ describe('Sessions Service Main', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(mockSupabase.update).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         current_state: boardState,
         version: currentVersion + 1,
         updated_at: expect.any(String),
       });
-      expect(mockSupabase.eq).toHaveBeenCalledWith('version', currentVersion);
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('version', currentVersion);
     });
 
     it('returns error on version conflict during check', async () => {
@@ -1008,10 +1142,11 @@ describe('Sessions Service Main', () => {
         version: currentVersion + 1, // Different version
       };
 
-      mockSupabase.single.mockResolvedValue({
-        data: conflictedSession,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: conflictedSession, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.updateBoardState(
         sessionId,
@@ -1026,10 +1161,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when session not found during check', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.updateBoardState(
         sessionId,
@@ -1042,15 +1178,12 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when atomic update fails (version conflict)', async () => {
-      mockSupabase.single
-        .mockResolvedValueOnce({
-          data: mockCurrentSession,
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: null, // No data returned means version conflict
-          error: null,
-        });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockCurrentSession, error: null }, // Version check OK
+        { data: null, error: null }, // Update failed due to version conflict
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.updateBoardState(
         sessionId,
@@ -1066,10 +1199,11 @@ describe('Sessions Service Main', () => {
 
     it('handles database errors during version check', async () => {
       const error = { message: 'Database error', code: 'DB_ERROR' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.updateBoardState(
         sessionId,
@@ -1099,18 +1233,12 @@ describe('Sessions Service Main', () => {
     });
 
     it('successfully starts session when conditions are met', async () => {
-      mockSupabase.single
-        // Session check
-        .mockResolvedValueOnce({
-          data: mockSession,
-          error: null,
-        });
-
-      // Mock player count
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 3, error: null }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session check
+        { count: 3, error: null }, // Player count
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.startSession(sessionId, hostId);
 
@@ -1123,10 +1251,11 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when session not found', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: { message: 'Not found' },
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: null, error: { message: 'Not found' } },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.startSession(sessionId, hostId);
 
@@ -1139,10 +1268,11 @@ describe('Sessions Service Main', () => {
         host_id: 'different-user',
       };
 
-      mockSupabase.single.mockResolvedValue({
-        data: sessionDifferentHost,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: sessionDifferentHost, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.startSession(sessionId, hostId);
 
@@ -1155,10 +1285,11 @@ describe('Sessions Service Main', () => {
         status: 'active',
       };
 
-      mockSupabase.single.mockResolvedValue({
-        data: activeSession,
-        error: null,
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: activeSession, error: null },
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.startSession(sessionId, hostId);
 
@@ -1166,16 +1297,12 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns error when not enough players', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockSession,
-        error: null,
-      });
-
-      // Mock insufficient player count
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 1, error: null }),
-      });
+      const mockQueryBuilder = createMockQueryBuilder([
+        { data: mockSession, error: null }, // Session check
+        { count: 1, error: null }, // Not enough players
+      ]);
+      
+      (mockSupabase.from as jest.Mock).mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.startSession(sessionId, hostId);
 
@@ -1200,15 +1327,25 @@ describe('Sessions Service Main', () => {
     };
 
     it('successfully updates player', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: mockUpdatedPlayer,
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      
+      // Mock for color check query
+      mockFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        not: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: null, error: null, count: 0 }),
       });
-
-      // Mock color availability check
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 0, error: null }),
+      
+      // Mock for update query
+      mockFrom.mockReturnValueOnce({
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: mockUpdatedPlayer,
+          error: null,
+        }),
       });
 
       const result = await sessionsService.updatePlayer(
@@ -1253,12 +1390,17 @@ describe('Sessions Service Main', () => {
 
     it('returns error when color is already taken', async () => {
       const colorUpdate = { color: 'red' };
-
-      // Mock color taken
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 1, error: null }),
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      
+      // Mock for color check query - color is taken
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        not: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: null, error: null, count: 1 }),
+      };
+      
+      mockFrom.mockReturnValueOnce(mockQueryBuilder);
 
       const result = await sessionsService.updatePlayer(
         sessionId,
@@ -1268,16 +1410,20 @@ describe('Sessions Service Main', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Color already taken');
-      expect(mockSupabase.not).toHaveBeenCalledWith('user_id', 'eq', userId);
+      expect(mockQueryBuilder.not).toHaveBeenCalledWith('user_id', 'eq', userId);
     });
 
     it('handles database errors during color check', async () => {
       const colorUpdate = { color: 'red' };
       const dbError = { message: 'Database error', code: 'DB_ERROR' };
-
-      mockSupabase.select.mockReturnValue({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: null, error: dbError }),
+      const mockFrom = mockSupabase.from as jest.Mock;
+      
+      // Mock for color check query - database error
+      mockFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        not: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: null, error: dbError, count: null }),
       });
 
       const result = await sessionsService.updatePlayer(
@@ -1296,9 +1442,14 @@ describe('Sessions Service Main', () => {
     const userId = 'user-123';
 
     it('returns true when player exists', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: { id: 'player-123' },
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { id: 'player-123' },
+          error: null,
+        }),
       });
 
       const result = await sessionsService.checkPlayerExists(sessionId, userId);
@@ -1308,9 +1459,14 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns false when player does not exist (PGRST116)', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: { code: 'PGRST116', message: 'No rows found' },
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'No rows found' },
+        }),
       });
 
       const result = await sessionsService.checkPlayerExists(sessionId, userId);
@@ -1321,9 +1477,14 @@ describe('Sessions Service Main', () => {
 
     it('returns error for other database errors', async () => {
       const dbError = { code: 'DB_ERROR', message: 'Database error' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: dbError,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: dbError,
+        }),
       });
 
       const result = await sessionsService.checkPlayerExists(sessionId, userId);
@@ -1339,9 +1500,14 @@ describe('Sessions Service Main', () => {
     const excludeUserId = 'user-456';
 
     it('returns true when color is available', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: { code: 'PGRST116', message: 'No rows found' },
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'No rows found' },
+        }),
       });
 
       const result = await sessionsService.checkColorAvailable(
@@ -1354,9 +1520,14 @@ describe('Sessions Service Main', () => {
     });
 
     it('returns false when color is taken', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: { color: 'blue' },
-        error: null,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { color: 'blue' },
+          error: null,
+        }),
       });
 
       const result = await sessionsService.checkColorAvailable(
@@ -1369,10 +1540,18 @@ describe('Sessions Service Main', () => {
     });
 
     it('excludes specific user when provided', async () => {
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: { code: 'PGRST116', message: 'No rows found' },
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'No rows found' },
+        }),
+      };
+      
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       await sessionsService.checkColorAvailable(
         sessionId,
@@ -1380,14 +1559,19 @@ describe('Sessions Service Main', () => {
         excludeUserId
       );
 
-      expect(mockSupabase.neq).toHaveBeenCalledWith('user_id', excludeUserId);
+      expect(mockQueryBuilder.neq).toHaveBeenCalledWith('user_id', excludeUserId);
     });
 
     it('returns error for database errors other than PGRST116', async () => {
       const dbError = { code: 'DB_ERROR', message: 'Database error' };
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error: dbError,
+      const mockFrom = mockSupabase.from as jest.Mock;
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: dbError,
+        }),
       });
 
       const result = await sessionsService.checkColorAvailable(

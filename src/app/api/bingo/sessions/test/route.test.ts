@@ -1,5 +1,9 @@
-import { POST, PATCH, GET } from './route';
-import { NextRequest, NextResponse } from 'next/server';
+/**
+ * @jest-environment node
+ */
+
+import { POST, PATCH, GET } from '../route';
+import { NextRequest } from 'next/server';
 import { authService } from '@/services/auth.service';
 import { userService } from '@/services/user.service';
 import { bingoBoardsService } from '@/services/bingo-boards.service';
@@ -13,7 +17,7 @@ jest.mock('@/services/bingo-boards.service');
 jest.mock('@/services/sessions.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: (handler: any) => handler,
+  withRateLimit: <T extends (...args: unknown[]) => unknown>(handler: T) => handler,
   RATE_LIMIT_CONFIGS: {
     create: {},
     gameAction: {},
@@ -34,25 +38,66 @@ describe('Bingo Sessions API Route', () => {
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
+    phone: null,
+    auth_username: null,
+    provider: 'email',
+    userRole: 'user' as const,
   };
 
   const mockProfile = {
     id: 'user-123',
     username: 'testuser',
+    full_name: null,
+    bio: null,
+    avatar_url: null,
+    city: null,
+    region: null,
+    land: null,
+    role: 'user' as const,
+    experience_points: null,
+    profile_visibility: 'public' as const,
+    achievements_visibility: 'public' as const,
+    submissions_visibility: 'public' as const,
+    auth_id: null,
+    last_login_at: null,
+    created_at: null,
+    updated_at: null,
   };
 
   const mockBoard = {
     id: 'board-123',
-    name: 'Test Board',
+    title: 'Test Board',
+    description: null,
+    game_type: 'All Games' as const,
+    difficulty: 'medium' as const,
+    size: 5,
+    board_state: [],
+    settings: null,
     status: 'active' as const,
+    is_public: true,
     creator_id: 'user-123',
+    cloned_from: null,
+    votes: 0,
+    bookmarked_count: 0,
+    version: 1,
+    created_at: null,
+    updated_at: null,
   };
 
   const mockSession = {
     id: 'session-123',
     board_id: 'board-123',
     host_id: 'user-123',
+    session_code: 'ABC123',
     status: 'waiting' as const,
+    settings: null,
+    current_state: null,
+    started_at: null,
+    ended_at: null,
+    winner_id: null,
+    version: 1,
+    created_at: null,
+    updated_at: null,
   };
 
   const mockPlayer = {
@@ -61,6 +106,16 @@ describe('Bingo Sessions API Route', () => {
     user_id: 'user-123',
     display_name: 'testuser',
     color: '#3B82F6',
+    avatar_url: null,
+    position: null,
+    team: null,
+    score: null,
+    is_host: false,
+    is_ready: false,
+    joined_at: null,
+    left_at: null,
+    created_at: null,
+    updated_at: null,
   };
 
   beforeEach(() => {
@@ -72,31 +127,35 @@ describe('Bingo Sessions API Route', () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
+        error: null,
       });
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
         data: mockProfile,
+        error: null,
       });
 
       mockBingoBoardsService.getBoardById.mockResolvedValue({
         success: true,
         data: mockBoard,
+        error: null,
       });
 
       mockSessionsService.createSession.mockResolvedValue({
         success: true,
         data: mockSession,
+        error: null,
       });
 
       mockSessionsService.joinSession.mockResolvedValue({
         success: true,
         data: mockPlayer,
+        error: null,
       });
 
       mockSessionsService.updatePlayerReady.mockResolvedValue({
-        success: true,
-        data: undefined,
+        player: mockPlayer,
       });
 
       const mockBody = {
@@ -137,6 +196,7 @@ describe('Bingo Sessions API Route', () => {
     it('returns 401 when user is not authenticated', async () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Not authenticated',
       });
 
@@ -156,15 +216,18 @@ describe('Bingo Sessions API Route', () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
+        error: null,
       });
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
         data: mockProfile,
+        error: null,
       });
 
       mockBingoBoardsService.getBoardById.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Board not found',
       });
 
@@ -184,11 +247,13 @@ describe('Bingo Sessions API Route', () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
+        error: null,
       });
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
         data: mockProfile,
+        error: null,
       });
 
       mockBingoBoardsService.getBoardById.mockResolvedValue({
@@ -198,6 +263,7 @@ describe('Bingo Sessions API Route', () => {
           status: 'draft' as const,
           creator_id: 'other-user',
         },
+        error: null,
       });
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
@@ -216,25 +282,30 @@ describe('Bingo Sessions API Route', () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
+        error: null,
       });
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
         data: mockProfile,
+        error: null,
       });
 
       mockBingoBoardsService.getBoardById.mockResolvedValue({
         success: true,
         data: mockBoard,
+        error: null,
       });
 
       mockSessionsService.createSession.mockResolvedValue({
         success: true,
         data: mockSession,
+        error: null,
       });
 
       mockSessionsService.joinSession.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Failed to join',
       });
 
@@ -257,11 +328,11 @@ describe('Bingo Sessions API Route', () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
+        error: null,
       });
 
       mockSessionsService.updateSession.mockResolvedValue({
         session: { ...mockSession, status: 'active' as const },
-        error: null,
       });
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
@@ -290,6 +361,7 @@ describe('Bingo Sessions API Route', () => {
     it('returns 401 when user is not authenticated', async () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Not authenticated',
       });
 
@@ -309,6 +381,7 @@ describe('Bingo Sessions API Route', () => {
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
+        error: null,
       });
 
       mockSessionsService.updateSession.mockResolvedValue({
@@ -337,13 +410,19 @@ describe('Bingo Sessions API Route', () => {
       const mockSessionsWithPlayers = [
         {
           ...mockSession,
-          players: [mockPlayer],
+          bingo_session_players: [{
+            user_id: mockPlayer.user_id,
+            display_name: mockPlayer.display_name,
+            color: mockPlayer.color,
+            team: mockPlayer.team,
+          }],
         },
       ];
 
       mockSessionsService.getSessionsByBoardIdWithPlayers.mockResolvedValue({
         success: true,
         data: mockSessionsWithPlayers,
+        error: null,
       });
 
       const request = new NextRequest(
@@ -364,6 +443,7 @@ describe('Bingo Sessions API Route', () => {
       mockSessionsService.getSessionsByBoardIdWithPlayers.mockResolvedValue({
         success: true,
         data: [],
+        error: null,
       });
 
       const request = new NextRequest(
@@ -380,6 +460,7 @@ describe('Bingo Sessions API Route', () => {
     it('returns 500 when service fails', async () => {
       mockSessionsService.getSessionsByBoardIdWithPlayers.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Database error',
       });
 

@@ -47,7 +47,7 @@ export class MockSupabaseQueryBuilder<T> {
     this._error = error || null;
   }
 
-  select(columns?: string) {
+  select(_columns?: string) {
     // Store the columns for potential filtering
     return this;
   }
@@ -112,6 +112,11 @@ export class MockSupabaseQueryBuilder<T> {
     return this;
   }
 
+  or(filter: string) {
+    this._filters['or'] = filter;
+    return this;
+  }
+
   order(column: string, options?: { ascending?: boolean }) {
     this._orderBy.push({ column, ascending: options?.ascending ?? true });
     return this;
@@ -143,8 +148,8 @@ export class MockSupabaseQueryBuilder<T> {
   }
 
   async then(
-    onfulfilled?: (value: any) => any,
-    onrejected?: (reason: any) => any
+    onfulfilled?: ((value: unknown) => unknown) | null,
+    _onrejected?: ((reason: unknown) => unknown) | null
   ) {
     const result = this._error
       ? createSupabaseErrorResponse(this._error.message, this._error.code)
@@ -157,7 +162,7 @@ export class MockSupabaseQueryBuilder<T> {
   }
 
   // Make it thenable
-  catch(onrejected: (reason: any) => any) {
+  catch(onrejected?: ((reason: unknown) => unknown) | null) {
     return this.then(undefined, onrejected);
   }
 }
@@ -172,15 +177,15 @@ export class MockSupabaseMutationBuilder<T> {
     this._error = error || null;
   }
 
-  select(columns?: string) {
+  select(_columns?: string) {
     return this;
   }
 
-  eq(column: string, value: unknown) {
+  eq(_column: string, _value: unknown) {
     return this;
   }
 
-  match(query: Record<string, unknown>) {
+  match(_query: Record<string, unknown>) {
     return this;
   }
 
@@ -196,8 +201,8 @@ export class MockSupabaseMutationBuilder<T> {
   }
 
   async then(
-    onfulfilled?: (value: any) => any,
-    onrejected?: (reason: any) => any
+    onfulfilled?: ((value: unknown) => unknown) | null,
+    _onrejected?: ((reason: unknown) => unknown) | null
   ) {
     const result = this._error
       ? createSupabaseErrorResponse(this._error.message, this._error.code)
@@ -209,7 +214,7 @@ export class MockSupabaseMutationBuilder<T> {
     return result;
   }
 
-  catch(onrejected: (reason: any) => any) {
+  catch(onrejected?: ((reason: unknown) => unknown) | null) {
     return this.then(undefined, onrejected);
   }
 }
@@ -255,7 +260,7 @@ export const createMockSupabaseClient = (
         .mockResolvedValue({ data: { user: null }, error: null }),
       resetPasswordForEmail: jest.fn().mockResolvedValue({ error: null }),
     },
-    from: jest.fn((table: string) => {
+    from: jest.fn((_table: string) => {
       // Return a query builder for the table
       return {
         select: jest.fn().mockReturnThis(),
@@ -275,6 +280,7 @@ export const createMockSupabaseClient = (
         in: jest.fn().mockReturnThis(),
         contains: jest.fn().mockReturnThis(),
         containedBy: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         range: jest.fn().mockReturnThis(),
@@ -289,7 +295,7 @@ export const createMockSupabaseClient = (
       };
     }),
     storage: {
-      from: jest.fn((bucket: string) => ({
+      from: jest.fn((_bucket: string) => ({
         upload: jest
           .fn()
           .mockResolvedValue({ data: { path: '' }, error: null }),
@@ -300,7 +306,7 @@ export const createMockSupabaseClient = (
       })),
     },
     realtime: {
-      channel: jest.fn((name: string) => ({
+      channel: jest.fn((_name: string) => ({
         on: jest.fn().mockReturnThis(),
         subscribe: jest.fn().mockReturnThis(),
         unsubscribe: jest.fn().mockResolvedValue(undefined),

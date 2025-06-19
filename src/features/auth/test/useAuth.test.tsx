@@ -15,6 +15,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { authService } from '@/services/auth.service';
+import type { UserData, AuthUser } from '@/lib/stores/types';
 
 // Mock Supabase client
 jest.mock('@/lib/supabase', () => ({
@@ -116,18 +117,20 @@ describe('Auth Store', () => {
         updated_at: new Date().toISOString(),
       };
 
+      const mockAuthUser: AuthUser = {
+        id: 'auth-123',
+        email: 'test@example.com',
+        phone: null,
+        auth_username: 'testuser',
+        username: 'testuser',
+        avatar_url: null,
+        provider: 'email',
+        userRole: 'user',
+      };
+
       jest.mocked(authService.getCurrentUser).mockResolvedValue({
         success: true,
-        data: {
-          id: 'auth-123',
-          email: 'test@example.com',
-          phone: null,
-          auth_username: 'testuser',
-          username: 'testuser',
-          avatar_url: null,
-          provider: 'email',
-          userRole: 'user',
-        },
+        data: mockAuthUser,
         error: null,
       });
 
@@ -148,7 +151,7 @@ describe('Auth Store', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.userData).toMatchObject(mockUser);
+      expect(result.current.userData).toEqual(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
     });
   });
@@ -176,9 +179,20 @@ describe('Auth Store', () => {
         updated_at: new Date().toISOString(),
       };
 
+      const mockAuthUser: AuthUser = {
+        id: 'auth-123',
+        email: 'test@example.com',
+        phone: null,
+        auth_username: 'testuser',
+        username: 'testuser',
+        avatar_url: null,
+        provider: 'email',
+        userRole: 'user',
+      };
+
       jest.mocked(authService.signIn).mockResolvedValue({
         success: true,
-        data: { user: mockUser as any, session: {} as any },
+        data: { user: mockAuthUser },
         error: null,
       });
 
@@ -194,7 +208,7 @@ describe('Auth Store', () => {
         await result.current.signIn(credentials);
       });
 
-      expect(result.current.userData).toMatchObject(mockUser);
+      expect(result.current.userData).toEqual(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.error).toBeNull();
     });
@@ -251,6 +265,7 @@ describe('Auth Store', () => {
       jest.mocked(authService.signUp).mockResolvedValue({
         success: true,
         data: { needsVerification: true },
+        error: null,
       });
 
       const { result } = renderHook(() => useAuthStore(), { wrapper });
@@ -271,20 +286,47 @@ describe('Auth Store', () => {
         username: 'confirmeduser',
       };
 
-      const mockUser = {
+      const mockAuthUser: AuthUser = {
         id: 'user-123',
         email: 'confirmed@example.com',
+        phone: null,
+        auth_username: 'confirmeduser',
         username: 'confirmeduser',
+        avatar_url: null,
+        provider: 'email',
+        userRole: 'user',
+      };
+
+      const mockUserData: UserData = {
+        id: 'user-123',
+        username: 'confirmeduser',
+        auth_id: 'user-123',
+        avatar_url: null,
+        bio: null,
+        city: null,
+        created_at: new Date().toISOString(),
+        experience_points: 0,
+        full_name: 'Confirmed User',
+        land: null,
+        last_login_at: null,
+        profile_visibility: 'public',
+        achievements_visibility: 'public',
+        submissions_visibility: 'public',
+        region: null,
+        role: 'user',
+        updated_at: new Date().toISOString(),
       };
 
       jest.mocked(authService.signUp).mockResolvedValue({
         success: true,
-        data: { user: mockUser },
+        data: { user: mockAuthUser },
+        error: null,
       });
 
       jest.mocked(authService.getUserData).mockResolvedValue({
         success: true,
-        data: { ...mockUser, role: 'user' } as any,
+        data: mockUserData,
+        error: null,
       });
 
       const { result } = renderHook(() => useAuthStore(), { wrapper });
@@ -519,7 +561,8 @@ describe('Auth Store', () => {
 
       jest.mocked(authService.signIn).mockResolvedValue({
         success: true,
-        data: { user: { id: 'user-123' } as any, session: {} as any },
+        data: { user: { id: 'user-123' } as AuthUser },
+        error: null,
       });
 
       const { result } = renderHook(() => useAuthStore(), { wrapper });
@@ -556,8 +599,7 @@ describe('Auth Store', () => {
 
       act(() => {
         // Simulate session expiration
-        result.current.setAuthUser(null);
-        result.current.setUserData(null);
+        result.current.clearUser();
         result.current.setError(
           'Your session has expired. Please sign in again.'
         );

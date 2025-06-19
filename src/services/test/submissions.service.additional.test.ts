@@ -31,7 +31,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-const mockSupabase = {
+const mockSupabase: any = {
   from: jest.fn(() => mockSupabase),
   select: jest.fn(() => mockSupabase),
   insert: jest.fn(() => mockSupabase),
@@ -139,8 +139,8 @@ describe('Submissions Service - Additional Coverage', () => {
     it('handles null pointer exceptions during query execution', async () => {
       // Mock chain that throws when accessing properties
       mockSupabase.select.mockImplementation(() => {
-        const obj = null;
-        return obj.something; // Will throw TypeError
+        const obj: any = null;
+        return obj!.something; // Will throw TypeError
       });
 
       const result =
@@ -281,7 +281,7 @@ describe('Submissions Service - Additional Coverage', () => {
 
     it('handles serialization errors with complex results', async () => {
       // Create a circular reference that would cause JSON serialization issues
-      const circularResults = { test: 'data' };
+      const circularResults: any = { test: 'data' };
       circularResults.self = circularResults;
 
       mockSupabase.from.mockImplementation(() => {

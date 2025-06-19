@@ -1,5 +1,5 @@
 import { beforeEach, afterEach } from '@jest/globals';
-import { resetAllMocks } from './mocks';
+import { resetAllMocks, mockSupabase, mockRateLimiter, mockCache } from './mocks';
 import { resetFactoryCounters } from './factories';
 
 // Global test setup for Community feature tests
@@ -16,9 +16,11 @@ beforeEach(() => {
     window.sessionStorage.clear();
   }
 
-  // Reset timers
-  if ((jest as any).isFakeTimers?.()) {
+  // Reset timers if they exist
+  try {
     jest.clearAllTimers();
+  } catch {
+    // Ignore if timers are not fake
   }
 
   // Setup console spy to suppress logs during tests
@@ -31,22 +33,27 @@ afterEach(() => {
   // Clean up any side effects
   jest.restoreAllMocks();
 
-  // Clear any remaining timers
-  if ((jest as any).isFakeTimers?.()) {
+  // Clear any remaining timers if they exist
+  try {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
+  } catch {
+    // Ignore if timers are not fake
   }
 });
 
-// Global test utilities
+// Global test utilities - Jest custom matchers
+interface CustomMatchers<R = unknown> {
+  toBeValidDiscussion(): R;
+  toBeValidComment(): R;
+  toHaveSpamScore(expected: number): R;
+  toBeWithinRateLimit(): R;
+}
+
 declare global {
-  namespace Vi {
-    interface CustomMatchers<R = unknown> {
-      toBeValidDiscussion(): R;
-      toBeValidComment(): R;
-      toHaveSpamScore(expected: number): R;
-      toBeWithinRateLimit(): R;
-    }
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace jest {
+    interface Matchers<R> extends CustomMatchers<R> {}
   }
 }
 
@@ -198,14 +205,14 @@ export const mockDate = (date: string | Date) => {
 };
 
 export const expectToThrowAsync = async (
-  fn: () => Promise<any>,
+  fn: () => Promise<unknown>,
   errorMessage?: string
 ) => {
   try {
     await fn();
     throw new Error('Expected function to throw');
   } catch (error) {
-    if (errorMessage && !error.message.includes(errorMessage)) {
+    if (errorMessage && error instanceof Error && !error.message.includes(errorMessage)) {
       throw new Error(
         `Expected error message to contain "${errorMessage}", got: ${error.message}`
       );
@@ -214,47 +221,18 @@ export const expectToThrowAsync = async (
   }
 };
 
-export const createTestTable = (name: string, data: any[]) => {
+export const createTestTable = (name: string, data: unknown[]) => {
   const table = new Map();
   data.forEach((item, index) => {
-    table.set(item.id || index, item);
+    const record = item as Record<string, unknown>;
+    table.set(record.id || index, item);
   });
   return table;
 };
 
 // Mock services setup
 export const setupMockServices = () => {
-  // Setup default mock behaviors
-  const { mockSupabase, mockRateLimiter, mockCache } = require('./mocks');
-
-  // Configure Supabase mock
-  mockSupabase.from.mockImplementation((table: string) => ({
-    select: jest.fn().mockReturnValue({
-      eq: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-        data: [],
-        error: null,
-      }),
-      order: jest.fn().mockReturnValue({
-        limit: jest.fn().mockResolvedValue({ data: [], error: null }),
-      }),
-    }),
-    insert: jest.fn().mockResolvedValue({ data: [], error: null }),
-    update: jest.fn().mockResolvedValue({ data: [], error: null }),
-    delete: jest.fn().mockResolvedValue({ data: [], error: null }),
-  }));
-
-  // Configure rate limiter mock
-  mockRateLimiter.checkLimit.mockResolvedValue({
-    allowed: true,
-    remaining: 10,
-    reset: Date.now() + 3600000,
-  });
-
-  // Configure cache mock
-  mockCache.get.mockResolvedValue(null);
-  mockCache.set.mockResolvedValue(true);
-
+  // All mocks are already configured with default values in the mocks module
   return {
     mockSupabase,
     mockRateLimiter,

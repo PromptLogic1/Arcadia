@@ -1,0 +1,329 @@
+
+> arcadia@0.2.0 lint
+> next lint
+
+
+./src/components/error-boundaries/test/BaseErrorBoundary.test.tsx
+163:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+285:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+339:9  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+381:9  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+
+./src/components/error-boundaries/test/RootErrorBoundary.test.tsx
+146:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+165:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+315:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+
+./src/components/test/analytics-wrapper.test.tsx
+118:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+
+./src/components/test/web-vitals.test.tsx
+65:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+
+./src/components/ui/test/CyberpunkBackground.test.tsx
+25:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+26:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+45:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+51:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+61:28  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+61:38  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+61:38  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+71:27  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+71:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+71:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+78:27  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+78:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+78:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+90:27  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+90:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+90:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+101:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+101:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+101:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+110:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+110:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+110:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+126:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+126:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+126:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+133:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+133:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+133:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+140:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+140:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+140:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+150:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+150:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+150:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+159:33  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+159:43  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+159:43  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+173:27  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+173:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+173:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+184:27  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+184:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+184:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+195:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+195:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+195:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+208:31  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+208:41  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+208:41  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+218:31  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+218:41  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+218:41  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+227:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+227:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+227:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+239:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+239:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+239:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+248:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+248:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+248:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+257:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+257:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+257:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+272:32  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+272:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+272:42  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+298:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+299:34  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+299:44  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+299:44  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+313:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+313:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+314:26  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+314:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+314:37  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+322:9  Warning: Use toHaveAttribute instead of asserting on getAttribute  jest-dom/prefer-to-have-attribute
+
+./src/components/ui/test/LoadingSpinner.test.tsx
+45:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+45:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+45:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+52:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+52:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+52:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+59:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+59:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+59:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+66:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+66:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+66:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+75:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+75:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+75:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+82:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+82:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+82:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+89:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+89:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+89:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+96:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+96:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+96:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+103:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+103:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+103:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+135:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+135:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+135:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+195:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+195:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+195:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+211:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+211:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+211:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+243:15  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+253:30  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+253:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+253:40  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+278:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+279:14  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+279:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+280:14  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+280:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+
+./src/components/ui/test/NeonButton.test.tsx
+32:20  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+32:30  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+32:30  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+148:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+
+./src/components/ui/test/ThemeToggle.test.tsx
+76:23  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+76:33  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+76:33  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+121:68  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+121:68  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+175:9  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+182:9  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+189:9  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+261:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+279:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+299:22  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+299:32  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+299:32  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+315:22  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+315:32  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+315:32  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+363:66  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+363:66  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+382:66  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+382:66  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+399:7  Warning: Prefer using userEvent.click, userEvent.type, userEvent.selectOptions, or userEvent.deselectOptions over fireEvent.click  testing-library/prefer-user-event
+
+./src/features/auth/components/test/LoginForm.test.tsx
+2:37  Warning: 'waitFor' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+172:20  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+172:30  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+172:30  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+299:13  Warning: 'user' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+334:39  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+334:39  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+342:20  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+342:30  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+342:30  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+
+./src/features/auth/test/auth-service.test.ts
+32:11  Warning: 'MockSupabaseClient' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/auth/test/oauth.test.ts
+15:10  Warning: 'factories' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+23:11  Warning: 'OAuthError' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/auth/test/rate-limiting.test.ts
+52:11  Warning: 'MockRateLimitResult' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/auth/test/session-token.test.ts
+61:31  Warning: 'callback' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/bingo-boards/components/test/BoardCard.test.tsx
+2:26  Warning: 'fireEvent' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+193:9  Error: Avoid using multiple assertions within `waitFor` callback  testing-library/no-wait-for-multiple-assertions
+253:14  Warning: Avoid using container methods. Prefer using the methods from Testing Library, such as "getByRole()"  testing-library/no-container
+253:24  Warning: Avoid direct Node access. Prefer using the methods from Testing Library.  testing-library/no-node-access
+
+./src/features/bingo-boards/test/__mocks__/game-state.mock.ts
+8:3  Warning: 'createBoardCell' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+9:3  Warning: 'createBingoSession' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+10:3  Warning: 'createGamePlayer' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/bingo-boards/test/__mocks__/realtime.mock.ts
+308:16  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+
+./src/features/bingo-boards/test/useBingoGame.test.tsx
+30:7  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+37:7  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+44:7  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+
+./src/features/community/services/moderation-service.ts
+91:15  Error: Unnecessary escape character: \*.  no-useless-escape
+92:15  Error: Unnecessary escape character: \*.  no-useless-escape
+93:15  Error: Unnecessary escape character: \*.  no-useless-escape
+94:15  Error: Unnecessary escape character: \*.  no-useless-escape
+
+./src/features/community/services/notification-service.ts
+276:16  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+
+./src/features/community/services/permissions-service.ts
+133:9  Warning: 'effectiveReputation' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+134:9  Warning: 'violationPenalty' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/community/test/notification-triggers.test.ts
+13:8  Warning: 'NotificationBatch' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+14:8  Warning: 'NotificationForFormatting' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/community/test/permissions.test.ts
+453:13  Warning: 'user' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/community/test/search-service.test.ts
+11:8  Warning: 'SortOption' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/community/test/setup.ts
+20:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+35:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:3  Error: ES2015 module syntax is preferred over namespaces.  @typescript-eslint/no-namespace
+201:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+217:53  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+228:56  Error: A `require()` style import is forbidden.  @typescript-eslint/no-require-imports
+231:41  Warning: 'table' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/play-area/test/achievements/achievement-engine.test.ts
+28:11  Warning: 'AchievementCondition' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+306:9  Error: Unexpected lexical declaration in case block.  no-case-declarations
+
+./src/features/play-area/test/achievements/progress-tracker.test.ts
+309:11  Warning: 'progress' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/play-area/test/games/game-filters.test.ts
+2:15  Warning: 'Tables' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+10:6  Warning: 'Difficulty' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+11:6  Warning: 'SessionStatus' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/settings/test/account-deletion.test.ts
+281:13  Warning: 'executeInOrder' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/settings/test/data-export.test.ts
+119:13  Warning: 'data' is assigned a value but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/settings/test/jest.config.js
+Error: Parsing error: ESLint was configured to run on `<tsconfigRootDir>/src/features/settings/test/jest.config.js` using `parserOptions.project`: <tsconfigRootDir>/tsconfig.json
+However, that TSConfig does not include this file. Either:
+- Change ESLint's list of included files to not include this file
+- Change that TSConfig to include this file
+- Create a new TSConfig that includes this file and include it in your parserOptions.project
+See the typescript-eslint docs for more info: https://typescript-eslint.io/troubleshooting/typed-linting#i-get-errors-telling-me-eslint-was-configured-to-run--however-that-tsconfig-does-not--none-of-those-tsconfigs-include-this-file
+
+./src/features/settings/test/privacy-settings.test.ts
+24:13  Warning: 'visibilityLevels' is assigned a value but only used as a type. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/settings/test/settings-store.test.ts
+7:44  Warning: 'jest' is defined but never used. Allowed unused vars must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/features/shared/test/mock-infrastructure.ts
+69:5  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+99:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+129:53  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+211:11  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+212:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+216:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+241:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+266:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/lib/test/factories/index.ts
+28:21  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+29:21  Warning: Forbidden non-null assertion.  @typescript-eslint/no-non-null-assertion
+
+./src/lib/test/mocks/supabase.mock.ts
+50:10  Warning: 'columns' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+151:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+151:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+152:5  Warning: 'onrejected' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+152:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+152:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+165:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+165:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+180:10  Warning: 'columns' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+184:6  Warning: 'column' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+184:22  Warning: 'value' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+188:9  Warning: 'query' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+204:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+204:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+205:5  Warning: 'onrejected' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+205:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+205:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+217:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+217:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+263:20  Warning: 'table' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+298:22  Warning: 'bucket' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+309:25  Warning: 'name' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+
+./src/lib/test/test-utils.tsx
+84:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+139:52  Warning: 'options' is defined but never used. Allowed unused args must match /^_/u.  @typescript-eslint/no-unused-vars
+306:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

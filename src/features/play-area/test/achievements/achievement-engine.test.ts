@@ -25,7 +25,7 @@ interface AchievementUnlockResult {
   isDuplicate?: boolean;
 }
 
-interface AchievementCondition {
+interface _AchievementCondition {
   type:
     | 'game_win'
     | 'speedrun_time'
@@ -302,7 +302,7 @@ export class AchievementEngine {
       case 'points':
         return sorted.sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
 
-      case 'rarity':
+      case 'rarity': {
         const rarityOrder = {
           common: 0,
           uncommon: 1,
@@ -315,6 +315,7 @@ export class AchievementEngine {
             (rarityOrder[b.metadata.rarity] || 0) -
             (rarityOrder[a.metadata.rarity] || 0)
         );
+      }
 
       case 'progress':
         return sorted.sort((a, b) => {

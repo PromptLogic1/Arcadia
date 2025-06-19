@@ -9,7 +9,7 @@ import {
   createRedisKey,
   REDIS_PREFIXES,
 } from '@/lib/redis';
-import { redisCircuitBreaker } from '@/lib/circuit-breaker';
+import { redisCircuitBreaker, CircuitState } from '@/lib/circuit-breaker';
 import { log } from '@/lib/logger';
 
 // Mock dependencies
@@ -50,7 +50,7 @@ describe('redisService', () => {
     mockGetRedisClient.mockReturnValue(mockRedisClient as any);
     mockIsRedisConfigured.mockReturnValue(true);
     mockRedisCircuitBreaker.execute.mockImplementation(fn => fn());
-    mockRedisCircuitBreaker.getState.mockReturnValue('CLOSED');
+    mockRedisCircuitBreaker.getState.mockReturnValue(CircuitState.CLOSED);
 
     // Ensure we're in server-side environment by default
     delete (global as any).window;
@@ -225,9 +225,9 @@ describe('redisService', () => {
     });
 
     it('should use circuit breaker with fallback', async () => {
-      const fallbackFn = jest.fn().mockReturnValue(null);
-      mockRedisCircuitBreaker.execute.mockImplementationOnce((fn, fallback) => {
-        return fallback!();
+      const _fallbackFn = jest.fn().mockReturnValue(null);
+      mockRedisCircuitBreaker.execute.mockImplementationOnce((_fn, fallback) => {
+        return Promise.resolve(fallback!());
       });
 
       const result = await redisService.get('test-key');
@@ -288,6 +288,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: rawData,
+        error: null,
       });
 
       mockSchema.parse.mockReturnValueOnce(parsedData);
@@ -305,6 +306,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: objectData,
+        error: null,
       });
 
       mockSchema.parse.mockReturnValueOnce(objectData);
@@ -320,6 +322,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
 
       const result = await redisService.getWithSchema('test-key', mockSchema);
@@ -333,6 +336,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: false,
         error: 'Get failed',
+        data: null,
       });
 
       const result = await redisService.getWithSchema('test-key', mockSchema);
@@ -345,6 +349,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: 'invalid-json{',
+        error: null,
       });
 
       const result = await redisService.getWithSchema('test-key', mockSchema);
@@ -364,6 +369,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: '{"invalid":"data"}',
+        error: null,
       });
 
       mockSchema.parse.mockImplementationOnce(() => {
@@ -382,6 +388,7 @@ describe('redisService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: '{"test":"data"}',
+        error: null,
       });
 
       mockSchema.parse.mockImplementationOnce(() => {
@@ -631,6 +638,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'set').mockResolvedValueOnce({
         success: true,
         data: undefined,
+        error: null,
       });
 
       const result = await cacheService.set('test-key', 'test-value');
@@ -647,6 +655,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'set').mockResolvedValueOnce({
         success: true,
         data: undefined,
+        error: null,
       });
 
       await cacheService.set('test-key', 'test-value', 600);
@@ -664,6 +673,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: 'test-value',
+        error: null,
       });
 
       const result = await cacheService.get('test-key');
@@ -677,6 +687,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: false,
         error: 'Get failed',
+        data: null,
       });
 
       const result = await cacheService.get('test-key');
@@ -694,6 +705,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'getWithSchema').mockResolvedValueOnce({
         success: true,
         data: testData,
+        error: null,
       });
 
       const result = await cacheService.getWithSchema('test-key', mockSchema);
@@ -723,10 +735,12 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: cachedData,
+        error: null,
       });
       jest.spyOn(redisService, 'set').mockResolvedValueOnce({
         success: true,
         data: undefined,
+        error: null,
       });
       mockFetcher.mockResolvedValueOnce(freshData);
 
@@ -749,10 +763,12 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
       jest.spyOn(redisService, 'set').mockResolvedValueOnce({
         success: true,
         data: undefined,
+        error: null,
       });
       mockFetcher.mockResolvedValueOnce(freshData);
 
@@ -775,6 +791,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: cachedData,
+        error: null,
       });
       mockSchema.parse.mockReturnValueOnce(validatedData);
 
@@ -798,10 +815,12 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: cachedData,
+        error: null,
       });
       jest.spyOn(redisService, 'set').mockResolvedValueOnce({
         success: true,
         data: undefined,
+        error: null,
       });
       mockSchema.parse.mockImplementationOnce(() => {
         throw new Error('Validation failed');
@@ -896,10 +915,12 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
       jest.spyOn(redisService, 'set').mockResolvedValueOnce({
         success: false,
         error: 'Set failed',
+        data: null,
       });
       mockFetcher.mockResolvedValueOnce(freshData);
 
@@ -917,6 +938,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
       jest
         .spyOn(redisService, 'set')
@@ -937,6 +959,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
       mockFetcher.mockRejectedValueOnce(new Error('Fetch failed'));
 
@@ -953,6 +976,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'get').mockResolvedValueOnce({
         success: true,
         data: null,
+        error: null,
       });
       mockFetcher.mockRejectedValueOnce('String error');
 
@@ -968,6 +992,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'delete').mockResolvedValueOnce({
         success: true,
         data: 1,
+        error: null,
       });
 
       const result = await cacheService.invalidate('test-key');
@@ -983,6 +1008,7 @@ describe('cacheService', () => {
       jest.spyOn(redisService, 'delete').mockResolvedValueOnce({
         success: false,
         error: 'Delete failed',
+        data: null,
       });
 
       const result = await cacheService.invalidate('test-key');

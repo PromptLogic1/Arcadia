@@ -4,7 +4,7 @@
  * Tests for theme calculation and preference logic
  */
 
-import { describe, it, expect, beforeEach, vi } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
 // Mock localStorage with actual storage behavior
 const localStorageData: { [key: string]: string } = {};
@@ -206,28 +206,13 @@ describe('Theme Engine', () => {
 
   describe('Theme Persistence and Sync', () => {
     it('should sync theme across tabs', () => {
-      // Create a mock storage event without using the StorageEvent constructor
-      const mockStorageEvent = {
+      // Create a mock storage event with minimal required properties
+      const mockStorageEvent: Pick<StorageEvent, 'key' | 'newValue'> = {
         key: 'theme-preference',
         newValue: 'dark',
-        oldValue: 'light',
-        storageArea: localStorage,
-        type: 'storage',
-        url: 'http://localhost',
-        target: window,
-        currentTarget: window,
-        bubbles: false,
-        cancelable: false,
-        defaultPrevented: false,
-        eventPhase: 0,
-        isTrusted: false,
-        timeStamp: Date.now(),
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        stopImmediatePropagation: jest.fn(),
-      } as StorageEvent;
+      };
 
-      const handleStorageChange = (event: StorageEvent) => {
+      const handleStorageChange = (event: Pick<StorageEvent, 'key' | 'newValue'>) => {
         if (event.key === 'theme-preference' && event.newValue) {
           return event.newValue;
         }

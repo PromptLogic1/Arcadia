@@ -8,8 +8,6 @@ import {
   validateUserData,
   validateBingoBoard,
   validateBingoBoardArray,
-  validateBingoCard,
-  validateBingoCardArray,
   validateBingoSession,
   validatePresenceData,
   validateSupabaseResponse,

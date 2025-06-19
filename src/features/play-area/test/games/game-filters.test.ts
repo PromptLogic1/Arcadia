@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
-import type { Tables, Enums } from '@/types/database.types';
+import type { Enums } from '@/types/database.types';
 import type {
   SessionFilters,
   SessionWithStats,
@@ -7,8 +7,9 @@ import type {
 
 // Types for session filtering (aligned with actual implementation)
 type GameCategory = Enums<'game_category'>;
-type Difficulty = Enums<'difficulty_level'>;
-type SessionStatus = Enums<'session_status'>;
+// Keeping for potential future use
+// type _Difficulty = Enums<'difficulty_level'>;
+// type _SessionStatus = Enums<'session_status'>;
 
 interface SessionSortOptions {
   sortBy: 'created_at' | 'current_player_count' | 'board_title';

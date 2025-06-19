@@ -10,11 +10,9 @@ import {
   createMockSupabaseClient,
   setupSupabaseMock,
   createSupabaseSuccessResponse,
-  createSupabaseErrorResponse,
 } from '@/lib/test/mocks/supabase.mock';
-import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
-import type { ActivityLogRequest, ActivityOptions } from '../user.service';
+import type { ActivityOptions } from '../user.service';
 
 // Mock all dependencies
 jest.mock('@/lib/logger', () => ({
@@ -406,14 +404,22 @@ describe('UserService - Enhanced Coverage Tests', () => {
       };
 
       const activities = [
-        factories.createActivity({
+        {
+          id: 'activity-1',
           user_id: userId,
-          activity_type: 'board_join',
-        }),
-        factories.createActivity({
+          activity_type: 'board_join' as const,
+          data: { board_id: 'board-1' },
+          timestamp: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'activity-2',
           user_id: userId,
-          activity_type: 'achievement_unlock',
-        }),
+          activity_type: 'achievement_unlock' as const,
+          data: { achievement_id: 'achievement-1' },
+          timestamp: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
       ];
 
       const mockQuery = {
@@ -541,8 +547,22 @@ describe('UserService - Enhanced Coverage Tests', () => {
       const mockFrom = mockSupabase.from as jest.Mock;
       const userId = 'user-123';
       const recentActivities = [
-        factories.createActivity({ user_id: userId }),
-        factories.createActivity({ user_id: userId }),
+        {
+          id: 'activity-5',
+          user_id: userId,
+          activity_type: 'login' as const,
+          data: {},
+          timestamp: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'activity-6',
+          user_id: userId,
+          activity_type: 'board_create' as const,
+          data: { board_id: 'board-3' },
+          timestamp: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
       ];
 
       mockFrom
@@ -778,7 +798,7 @@ describe('UserService - Enhanced Coverage Tests', () => {
       const followerId = 'user-123';
       const followingId = 'user-456';
 
-      const notFoundError = new Error('No rows returned');
+      const notFoundError = new Error('No rows returned') as Error & { code: string };
       notFoundError.code = 'PGRST116';
 
       mockFrom.mockReturnValue({

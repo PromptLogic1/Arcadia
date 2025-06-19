@@ -1,16 +1,16 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { POST, GET } from '../route';
 import { createServerComponentClient } from '@/lib/supabase';
 import { submissionsService } from '@/services/submissions.service';
 import { log } from '@/lib/logger';
-import { withRateLimit } from '@/lib/rate-limiter-middleware';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
 jest.mock('@/services/submissions.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn((handler) => handler),
+  withRateLimit: jest.fn(<T extends (...args: unknown[]) => unknown>(handler: T) => handler),
   RATE_LIMIT_CONFIGS: {
     read: 'read',
     create: 'create',
@@ -55,7 +55,8 @@ const mockSubmissionData = {
   created_at: '2024-01-01T00:00:00Z',
 };
 
-const mockValidationMiddleware = require('@/lib/validation/middleware');
+import * as validationMiddleware from '@/lib/validation/middleware';
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<typeof validationMiddleware>;
 
 describe('/api/submissions route handlers', () => {
   beforeEach(() => {
@@ -63,12 +64,11 @@ describe('/api/submissions route handlers', () => {
 
     // Setup default mocks
     (createServerComponentClient as jest.Mock).mockResolvedValue(mockSupabase);
-    (withRateLimit as jest.Mock).mockImplementation(handler => handler);
     (log.error as jest.Mock).mockImplementation(() => {});
   });
 
   describe('POST handler', () => {
-    const createMockRequest = (body: any) => {
+    const createMockRequest = (body: unknown) => {
       return {
         json: () => Promise.resolve(body),
         url: 'https://example.com/api/submissions',
@@ -88,6 +88,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -135,7 +136,8 @@ describe('/api/submissions route handlers', () => {
         });
 
         const validationError = {
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid request body' },
             { status: 400 }
           ),
@@ -166,6 +168,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -206,6 +209,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -271,6 +275,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: { challenge_id: 'challenge-456' },
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -301,6 +306,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: {},
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -346,7 +352,8 @@ describe('/api/submissions route handlers', () => {
         });
 
         const validationError = {
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid query parameters' },
             { status: 400 }
           ),
@@ -371,6 +378,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: { challenge_id: 'challenge-456' },
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -406,6 +414,7 @@ describe('/api/submissions route handlers', () => {
         });
 
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: {},
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);

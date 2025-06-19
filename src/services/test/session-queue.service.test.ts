@@ -11,6 +11,7 @@ import {
   setupSupabaseMock,
   createSupabaseSuccessResponse,
   createSupabaseErrorResponse,
+  mockSupabaseUser,
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
@@ -133,7 +134,7 @@ describe('SessionQueueService', () => {
   });
 
   describe('addToQueue', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
     const playerData: PlayerQueueData = {
       playerName: 'TestPlayer',
       color: '#06b6d4',
@@ -169,7 +170,7 @@ describe('SessionQueueService', () => {
         user_id: mockUser.id,
         player_name: playerData.playerName,
         color: playerData.color,
-        team: playerData.team,
+        team: playerData.team ?? null,
         status: 'waiting',
         requested_at: new Date().toISOString(),
         processed_at: null,
@@ -200,7 +201,7 @@ describe('SessionQueueService', () => {
       >;
 
       mockAuth.getUser.mockResolvedValue({
-        data: { user: null },
+        data: { user: null } as any,
         error: null,
       });
 

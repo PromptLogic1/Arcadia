@@ -4,14 +4,8 @@
  * Comprehensive unit tests for settings business logic
  */
 
-// Export all test modules for potential programmatic access
-export * from './preference-validation.test';
-export * from './theme-engine.test';
-export * from './privacy-settings.test';
-export * from './data-export.test';
-export * from './settings-store.test';
-export * from './preference-migration.test';
-export * from './account-deletion.test';
+// Test modules - no exports needed for test files
+// These files contain Jest test suites and are not meant to be imported
 
 /**
  * Test Coverage Areas:

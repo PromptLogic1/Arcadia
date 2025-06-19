@@ -1,16 +1,16 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { GET, POST } from '../route';
 import { bingoBoardsService } from '@/services/bingo-boards.service';
 import { authService } from '@/services/auth.service';
 import { log } from '@/lib/logger';
-import { withRateLimit } from '@/lib/rate-limiter-middleware';
 
 // Mock dependencies
 jest.mock('@/services/bingo-boards.service');
 jest.mock('@/services/auth.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn((handler) => handler),
+  withRateLimit: jest.fn(<T extends (...args: unknown[]) => unknown>(handler: T) => handler),
   RATE_LIMIT_CONFIGS: {
     read: 'read',
     create: 'create',
@@ -34,7 +34,8 @@ jest.mock('next/server', () => ({
   },
 }));
 
-const mockValidationMiddleware = require('@/lib/validation/middleware');
+import * as validationMiddleware from '@/lib/validation/middleware';
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<typeof validationMiddleware>;
 
 const mockUser = {
   id: 'user-123',
@@ -155,8 +156,8 @@ describe('/api/bingo route handlers', () => {
     describe('validation', () => {
       test('should return validation error for invalid query parameters', async () => {
         const validationError = {
-          success: false,
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid query parameters' },
             { status: 400 }
           ),
@@ -357,7 +358,7 @@ describe('/api/bingo route handlers', () => {
         });
 
         const request = createMockRequest(requestBody);
-        const response = await POST(request);
+        const _response = await POST(request);
 
         expect(bingoBoardsService.createBoardFromAPI).toHaveBeenCalledWith({
           title: 'Test Board',
@@ -422,8 +423,8 @@ describe('/api/bingo route handlers', () => {
         });
 
         const validationError = {
-          success: false,
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid request body' },
             { status: 400 }
           ),

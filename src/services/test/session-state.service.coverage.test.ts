@@ -17,8 +17,9 @@ import {
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
 import { safeRealtimeManager } from '@/lib/realtime-manager';
-import { isError, getErrorMessage } from '@/lib/error-guards';
+// Removed unused imports
 import type { Player } from '../session-state.service';
+import type { Database } from '@/../../types/database.types';
 
 // Mock the logger
 jest.mock('@/lib/logger', () => ({
@@ -71,7 +72,7 @@ describe('SessionStateService - Additional Coverage', () => {
       is_active: true,
     };
 
-    const mockSessionStats = {
+    const _mockSessionStats = {
       id: 'session-123',
       board_id: 'board-123',
       board_title: 'Test Board',
@@ -357,7 +358,7 @@ describe('SessionStateService - Additional Coverage', () => {
       expect(result.success).toBe(true);
       // Player with null joined_at is filtered out, so only 1 player remains
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].id).toBe('player-2');
+      expect(result.data?.[0]?.id).toBe('player-2');
     });
 
     it('should handle players with valid joined_at timestamp', async () => {
@@ -392,7 +393,7 @@ describe('SessionStateService - Additional Coverage', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data?.[0].joined_at).toBe('2024-01-01T00:00:00Z');
+      expect(result.data?.[0]?.joined_at).toBe('2024-01-01T00:00:00Z');
     });
 
     it('should handle non-Error exceptions in catch block', async () => {
@@ -457,12 +458,14 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
-      let sessionUpdateCallback: Function;
+      let sessionUpdateCallback: (...args: unknown[]) => unknown = () => {};
       
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: any) => {
+        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
           if (channelName.includes('_sessions')) {
-            sessionUpdateCallback = config.onUpdate;
+            if (config.onUpdate) {
+              sessionUpdateCallback = config.onUpdate;
+            }
           }
           return mockUnsubscribe;
         }
@@ -504,12 +507,14 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
-      let sessionUpdateCallback: Function;
+      let sessionUpdateCallback: (...args: unknown[]) => unknown = () => {};
       
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: any) => {
+        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
           if (channelName.includes('_sessions')) {
-            sessionUpdateCallback = config.onUpdate;
+            if (config.onUpdate) {
+              sessionUpdateCallback = config.onUpdate;
+            }
           }
           return mockUnsubscribe;
         }
@@ -552,12 +557,14 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
-      let playerUpdateCallback: Function;
+      let playerUpdateCallback: (...args: unknown[]) => unknown = () => {};
       
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: any) => {
+        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
           if (channelName.includes('_players')) {
-            playerUpdateCallback = config.onUpdate;
+            if (config.onUpdate) {
+              playerUpdateCallback = config.onUpdate;
+            }
           }
           return mockUnsubscribe;
         }
@@ -599,12 +606,14 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
-      let playerUpdateCallback: Function;
+      let playerUpdateCallback: (...args: unknown[]) => unknown = () => {};
       
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: any) => {
+        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
           if (channelName.includes('_players')) {
-            playerUpdateCallback = config.onUpdate;
+            if (config.onUpdate) {
+              playerUpdateCallback = config.onUpdate;
+            }
           }
           return mockUnsubscribe;
         }
@@ -647,15 +656,19 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
-      let sessionErrorCallback: Function;
-      let playerErrorCallback: Function;
+      let sessionErrorCallback: (...args: unknown[]) => unknown = () => {};
+      let playerErrorCallback: (...args: unknown[]) => unknown = () => {};
       
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: any) => {
+        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
           if (channelName.includes('_sessions')) {
-            sessionErrorCallback = config.onError;
+            if (config.onError) {
+              sessionErrorCallback = config.onError;
+            }
           } else if (channelName.includes('_players')) {
-            playerErrorCallback = config.onError;
+            if (config.onError) {
+              playerErrorCallback = config.onError;
+            }
           }
           return mockUnsubscribe;
         }
@@ -695,17 +708,28 @@ describe('SessionStateService - Additional Coverage', () => {
       },
     ];
 
-    const mockBoardState = [
-      factories.bingoCard({ id: 'card-1', text: 'Test Card' }),
+    const mockBoardState: Database['public']['CompositeTypes']['board_cell'][] = [
+      {
+        cell_id: 'cell-1',
+        text: 'Test Card',
+        colors: [],
+        completed_by: [],
+        blocked: false,
+        is_marked: false,
+        version: 1,
+        last_updated: Date.now(),
+        last_modified_by: null,
+      },
     ];
 
     it('should handle session with undefined version (fallback to 0)', () => {
-      const sessionWithoutVersion = {
+      const sessionWithoutVersion = factories.bingoSession({
         id: 'session-123',
-        status: 'active' as const,
+        status: 'active',
         started_at: new Date().toISOString(),
-        // version is undefined
-      };
+      });
+      // Remove version to test fallback
+      delete (sessionWithoutVersion as any).version;
 
       const result = sessionStateService.transformSessionState(
         sessionWithoutVersion,
@@ -734,13 +758,13 @@ describe('SessionStateService - Additional Coverage', () => {
     });
 
     it('should handle session stats object with ended_at', () => {
-      const sessionStatsWithEndedAt = {
+      const sessionStatsWithEndedAt = factories.bingoSession({
         id: 'session-123',
-        status: 'completed' as const,
+        status: 'completed',
         started_at: new Date().toISOString(),
         ended_at: new Date().toISOString(),
         version: 1,
-      };
+      });
 
       const result = sessionStateService.transformSessionState(
         sessionStatsWithEndedAt,
@@ -753,13 +777,13 @@ describe('SessionStateService - Additional Coverage', () => {
     });
 
     it('should handle session stats object without ended_at', () => {
-      const sessionStatsWithoutEndedAt = {
+      const sessionStatsWithoutEndedAt = factories.bingoSession({
         id: 'session-123',
-        status: 'active' as const,
+        status: 'active',
         started_at: new Date().toISOString(),
-        // No ended_at property
+        ended_at: null,
         version: 1,
-      };
+      });
 
       const result = sessionStateService.transformSessionState(
         sessionStatsWithoutEndedAt,

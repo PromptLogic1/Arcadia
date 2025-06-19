@@ -1,4 +1,5 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { GET, POST } from '../route';
 import { createServerComponentClient } from '@/lib/supabase';
 import { communityService } from '@/services/community.service';
@@ -10,7 +11,7 @@ jest.mock('@/lib/supabase');
 jest.mock('@/services/community.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn((handler) => handler),
+  withRateLimit: jest.fn(<T extends (...args: unknown[]) => unknown>(handler: T) => handler),
   RATE_LIMIT_CONFIGS: {
     read: 'read',
     create: 'create',
@@ -61,7 +62,8 @@ const mockDiscussion = {
   comments_count: 0,
 };
 
-const mockValidationMiddleware = require('@/lib/validation/middleware');
+import * as validationMiddleware from '@/lib/validation/middleware';
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<typeof validationMiddleware>;
 
 describe('/api/discussions route handlers', () => {
   beforeEach(() => {
@@ -93,6 +95,7 @@ describe('/api/discussions route handlers', () => {
         };
 
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: {},
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -134,6 +137,7 @@ describe('/api/discussions route handlers', () => {
         };
 
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: {
             page: 2,
             limit: 10,
@@ -185,7 +189,8 @@ describe('/api/discussions route handlers', () => {
     describe('validation', () => {
       test('should return validation error for invalid query parameters', async () => {
         const validationError = {
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid query parameters' },
             { status: 400 }
           ),
@@ -206,6 +211,7 @@ describe('/api/discussions route handlers', () => {
     describe('service errors', () => {
       test('should handle service failure', async () => {
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: {},
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -235,6 +241,7 @@ describe('/api/discussions route handlers', () => {
 
       test('should handle service success with no data', async () => {
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: {},
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -303,6 +310,7 @@ describe('/api/discussions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -342,6 +350,7 @@ describe('/api/discussions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -352,7 +361,7 @@ describe('/api/discussions route handlers', () => {
         });
 
         const request = createMockRequest(requestBody);
-        const response = await POST(request);
+        await POST(request);
 
         expect(communityService.createDiscussion).toHaveBeenCalledWith({
           title: 'Test Discussion',
@@ -431,7 +440,8 @@ describe('/api/discussions route handlers', () => {
         });
 
         const validationError = {
-          error: Response.json(
+          success: false as const,
+          error: NextResponse.json(
             { error: 'Invalid request body' },
             { status: 400 }
           ),
@@ -463,6 +473,7 @@ describe('/api/discussions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -505,6 +516,7 @@ describe('/api/discussions route handlers', () => {
         });
 
         mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
           data: requestBody,
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);
@@ -563,6 +575,7 @@ describe('/api/discussions route handlers', () => {
 
       for (const { total, limit, expectedPages } of testCases) {
         mockValidationMiddleware.validateQueryParams.mockReturnValue({
+          success: true,
           data: { limit },
         });
         mockValidationMiddleware.isValidationError.mockReturnValue(false);

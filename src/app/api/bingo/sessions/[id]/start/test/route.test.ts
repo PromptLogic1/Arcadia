@@ -1,11 +1,9 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { POST } from '../route';
 import { gameStateService } from '@/services/game-state.service';
 import { sessionsService } from '@/services/sessions.service';
 import { authService } from '@/services/auth.service';
 import { log } from '@/lib/logger';
-import { withRateLimit } from '@/lib/rate-limiter-middleware';
-import { withErrorHandling } from '@/lib/error-handler';
 
 // Mock dependencies
 jest.mock('@/services/game-state.service');
@@ -66,7 +64,7 @@ describe('/api/bingo/sessions/[id]/start route handler', () => {
       } as NextRequest;
     };
 
-    const createMockParams = (id: string = 'session-123') => ({
+    const createMockParams = (id = 'session-123') => ({
       params: { id },
     });
 

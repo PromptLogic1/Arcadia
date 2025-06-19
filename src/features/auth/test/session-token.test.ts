@@ -26,18 +26,18 @@ import {
 
 // Mock Redis for session blacklisting tests
 const mockRedisClient = {
-  setex: jest.fn().mockResolvedValue('OK'),
-  srem: jest.fn().mockResolvedValue(1),
-  get: jest.fn().mockResolvedValue(null),
-  sadd: jest.fn().mockResolvedValue(1),
-  expire: jest.fn().mockResolvedValue(1),
-  smembers: jest.fn().mockResolvedValue([]),
-  del: jest.fn().mockResolvedValue(1),
+  setex: (jest.fn() as any).mockResolvedValue('OK'),
+  srem: (jest.fn() as any).mockResolvedValue(1),
+  get: (jest.fn() as any).mockResolvedValue(null),
+  sadd: (jest.fn() as any).mockResolvedValue(1),
+  expire: (jest.fn() as any).mockResolvedValue(1),
+  smembers: (jest.fn() as any).mockResolvedValue([]),
+  del: (jest.fn() as any).mockResolvedValue(1),
 };
 
 // Mock the underlying @upstash/redis module
 jest.mock('@upstash/redis', () => ({
-  Redis: jest.fn().mockImplementation(() => mockRedisClient),
+  Redis: (jest.fn() as any).mockImplementation(() => mockRedisClient),
 }));
 
 jest.mock('@/lib/redis', () => ({
@@ -46,8 +46,8 @@ jest.mock('@/lib/redis', () => ({
 }));
 
 // Mock crypto module with dynamic import support
-const mockCreateHash = jest.fn(() => ({
-  update: jest.fn().mockReturnThis(),
+const mockCreateHash = (jest.fn() as any)(() => ({
+  update: (jest.fn() as any).mockReturnThis(),
   digest: jest.fn(() => 'mocked-hash-value'),
 }));
 
@@ -58,7 +58,7 @@ jest.mock('crypto', () => ({
 // Mock authService - need to import and re-export
 const mockAuthService = {
   getSession: jest.fn(),
-  onAuthStateChange: jest.fn((callback: Function) => ({
+  onAuthStateChange: jest.fn((_callback: (event: string, session: unknown) => void) => ({
     unsubscribe: jest.fn(),
   })),
 };
@@ -88,17 +88,17 @@ describe('Session and Token Handling', () => {
     
     jest.clearAllMocks();
     // Reset Redis mock responses to successful defaults
-    mockRedisClient.get.mockResolvedValue(null);
-    mockRedisClient.smembers.mockResolvedValue([]);
-    mockRedisClient.setex.mockResolvedValue('OK');
-    mockRedisClient.srem.mockResolvedValue(1);
-    mockRedisClient.sadd.mockResolvedValue(1);
-    mockRedisClient.expire.mockResolvedValue(1);
-    mockRedisClient.del.mockResolvedValue(1);
+    (mockRedisClient.get as any).mockResolvedValue(null);
+    (mockRedisClient.smembers as any).mockResolvedValue([]);
+    (mockRedisClient.setex as any).mockResolvedValue('OK');
+    (mockRedisClient.srem as any).mockResolvedValue(1);
+    (mockRedisClient.sadd as any).mockResolvedValue(1);
+    (mockRedisClient.expire as any).mockResolvedValue(1);
+    (mockRedisClient.del as any).mockResolvedValue(1);
     
     // Reset auth service mocks
-    mockAuthService.getSession.mockClear();
-    mockAuthService.onAuthStateChange.mockClear();
+    (mockAuthService.getSession as any).mockClear();
+    (mockAuthService.onAuthStateChange as any).mockClear();
   });
 
   describe('Supabase Session Structure', () => {
@@ -158,7 +158,7 @@ describe('Session and Token Handling', () => {
       const { isSessionBlacklisted } = await import('@/lib/session-blacklist');
       
       // Mock blacklisted session
-      mockRedisClient.get.mockResolvedValueOnce(
+      (mockRedisClient.get as any).mockResolvedValueOnce(
         JSON.stringify({
           userId: 'user-123',
           reason: 'Security policy',
@@ -175,7 +175,7 @@ describe('Session and Token Handling', () => {
     test('should handle non-blacklisted session', async () => {
       const { isSessionBlacklisted } = await import('@/lib/session-blacklist');
       
-      mockRedisClient.get.mockResolvedValueOnce(null);
+      (mockRedisClient.get as any).mockResolvedValueOnce(null);
 
       const result = await isSessionBlacklisted('valid-token');
 
@@ -200,7 +200,7 @@ describe('Session and Token Handling', () => {
       const { blacklistAllUserSessions } = await import('@/lib/session-blacklist');
       
       // Mock existing sessions
-      mockRedisClient.smembers.mockResolvedValueOnce([
+      (mockRedisClient.smembers as any).mockResolvedValueOnce([
         'hash1',
         'hash2',
         'hash3',
@@ -223,7 +223,7 @@ describe('Session and Token Handling', () => {
       // Import the mocked redis module and modify its behavior
       const redisModule = await import('@/lib/redis');
       const mockIsRedisConfigured = redisModule.isRedisConfigured as jest.MockedFunction<typeof redisModule.isRedisConfigured>;
-      mockIsRedisConfigured.mockReturnValueOnce(false);
+      (mockIsRedisConfigured as any).mockReturnValueOnce(false);
 
       const result = await blacklistSession('token', 'user-123');
 
@@ -241,7 +241,7 @@ describe('Session and Token Handling', () => {
         user: { id: 'user-123', email: 'test@example.com' },
       };
 
-      mockAuthService.getSession.mockResolvedValueOnce({
+      (mockAuthService.getSession as any).mockResolvedValueOnce({
         success: true,
         data: mockSession,
         error: null,
@@ -256,7 +256,7 @@ describe('Session and Token Handling', () => {
     test('should handle no session case', async () => {
       const { authService } = await import('@/services/auth.service');
       
-      mockAuthService.getSession.mockResolvedValueOnce({
+      (mockAuthService.getSession as any).mockResolvedValueOnce({
         success: true,
         data: null,
         error: null,
@@ -271,7 +271,7 @@ describe('Session and Token Handling', () => {
     test('should handle session retrieval errors', async () => {
       const { authService } = await import('@/services/auth.service');
       
-      mockAuthService.getSession.mockResolvedValueOnce({
+      (mockAuthService.getSession as any).mockResolvedValueOnce({
         success: false,
         data: null,
         error: 'Network error',
@@ -291,7 +291,7 @@ describe('Session and Token Handling', () => {
       const mockCallback = jest.fn();
       const mockSubscription = { unsubscribe: jest.fn() };
       
-      mockAuthService.onAuthStateChange.mockReturnValueOnce(mockSubscription);
+      (mockAuthService.onAuthStateChange as any).mockReturnValueOnce(mockSubscription);
 
       const subscription = authService.onAuthStateChange(mockCallback);
 
@@ -305,9 +305,9 @@ describe('Session and Token Handling', () => {
       const { authService } = await import('@/services/auth.service');
       
       const callback = jest.fn();
-      let storedCallback: Function;
+      let storedCallback: any;
       
-      mockAuthService.onAuthStateChange.mockImplementationOnce((cb: Function) => {
+      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce((cb: any) => {
         storedCallback = cb;
         return { unsubscribe: jest.fn() };
       });
@@ -325,9 +325,9 @@ describe('Session and Token Handling', () => {
       const { authService } = await import('@/services/auth.service');
       
       const callback = jest.fn();
-      let storedCallback: Function;
+      let storedCallback: any;
       
-      mockAuthService.onAuthStateChange.mockImplementationOnce((cb: Function) => {
+      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce((cb: any) => {
         storedCallback = cb;
         return { unsubscribe: jest.fn() };
       });
@@ -344,9 +344,9 @@ describe('Session and Token Handling', () => {
       const { authService } = await import('@/services/auth.service');
       
       const callback = jest.fn();
-      let storedCallback: Function;
+      let storedCallback: any;
       
-      mockAuthService.onAuthStateChange.mockImplementationOnce((cb: Function) => {
+      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce((cb: any) => {
         storedCallback = cb;
         return { unsubscribe: jest.fn() };
       });

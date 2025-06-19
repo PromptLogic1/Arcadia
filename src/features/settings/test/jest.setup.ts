@@ -36,10 +36,17 @@ global.console = {
   error: jest.fn(),
 };
 
-// Global test utilities
-global.testUtils = {
-  localStorage: localStorageMock,
-};
+// Test utilities interface
+interface TestUtils {
+  localStorage: typeof localStorageMock;
+}
+
+// Global test utilities - extend globalThis
+Object.assign(globalThis, {
+  testUtils: {
+    localStorage: localStorageMock,
+  } satisfies TestUtils,
+});
 
 // Reset mocks before each test
 beforeEach(() => {

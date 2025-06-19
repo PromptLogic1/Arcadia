@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 
 // Mock Supabase client
 export const mockSupabase = {
-  from: jest.fn(() => ({
+  from: jest.fn((_table: string) => ({
     select: jest.fn(() => ({
       eq: jest.fn(() => ({
         single: jest.fn(() => ({ data: null, error: null })),
@@ -142,21 +142,25 @@ export const mockNotificationService = {
 
 // Mock rate limiter
 export const mockRateLimiter = {
-  checkLimit: jest.fn(() => ({
+  checkLimit: jest.fn<() => Promise<{
+    allowed: boolean;
+    remaining: number;
+    reset: number;
+  }>>().mockResolvedValue({
     allowed: true,
     remaining: 10,
     reset: Date.now() + 3600000,
-  })),
-  consume: jest.fn(),
-  reset: jest.fn(),
+  }),
+  consume: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  reset: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
 };
 
 // Mock cache service
 export const mockCache = {
-  get: jest.fn(),
-  set: jest.fn(),
-  delete: jest.fn(),
-  clear: jest.fn(),
+  get: jest.fn<() => Promise<unknown>>().mockResolvedValue(null),
+  set: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+  delete: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+  clear: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
 };
 
 // Mock search service

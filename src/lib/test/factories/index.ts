@@ -25,8 +25,8 @@ export const generateUuid = (): string => {
   );
 
   // Set version (4) and variant bits
-  randomBytes[6] = (randomBytes[6]! & 0x0f) | 0x40;
-  randomBytes[8] = (randomBytes[8]! & 0x3f) | 0x80;
+  randomBytes[6] = (randomBytes[6] ?? 0 & 0x0f) | 0x40;
+  randomBytes[8] = (randomBytes[8] ?? 0 & 0x3f) | 0x80;
 
   const uuid = [
     randomBytes.slice(0, 4),

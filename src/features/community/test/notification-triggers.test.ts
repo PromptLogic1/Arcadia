@@ -10,8 +10,8 @@ import {
   type NotificationPreferences,
   type NotificationContext,
   type Notification as ServiceNotification,
-  type NotificationBatch,
-  type NotificationForFormatting,
+  type NotificationBatch as _NotificationBatch,
+  type NotificationForFormatting as _NotificationForFormatting,
 } from '../services/notification-service';
 
 // Mock data
@@ -693,11 +693,10 @@ describe('Notification Service', () => {
 
     it('should handle notification failures gracefully', async () => {
       const emailQueue = jest
-        .fn()
+        .fn<() => Promise<void>>()
         .mockRejectedValue(new Error('Email service down'));
 
       const trigger: NotificationTrigger = {
-        id: 'notif-1',
         type: 'comment_reply',
         actor_id: 'user-1',
         target_id: 'user-2',

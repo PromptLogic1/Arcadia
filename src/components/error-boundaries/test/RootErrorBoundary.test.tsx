@@ -42,7 +42,7 @@ const ThrowError: React.FC<{ shouldThrow?: boolean; errorMessage?: string }> = (
 
 describe('RootErrorBoundary', () => {
   const originalConsoleError = console.error;
-  const originalEnv = process.env.NODE_ENV;
+  const originalEnv = process.env;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -52,7 +52,7 @@ describe('RootErrorBoundary', () => {
 
   afterEach(() => {
     console.error = originalConsoleError;
-    process.env.NODE_ENV = originalEnv;
+    process.env = originalEnv;
   });
 
   describe('normal operation', () => {
@@ -151,7 +151,7 @@ describe('RootErrorBoundary', () => {
 
   describe('development mode', () => {
     test('should show developer info in development mode', () => {
-      process.env.NODE_ENV = 'development';
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
       
       render(
         <RootErrorBoundary>
@@ -169,7 +169,7 @@ describe('RootErrorBoundary', () => {
     });
 
     test('should log additional development info', () => {
-      process.env.NODE_ENV = 'development';
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
       
       render(
         <RootErrorBoundary>
@@ -189,7 +189,7 @@ describe('RootErrorBoundary', () => {
     });
 
     test('should not show developer info in production mode', () => {
-      process.env.NODE_ENV = 'production';
+      process.env = { ...originalEnv, NODE_ENV: 'production' };
       
       render(
         <RootErrorBoundary>

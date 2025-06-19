@@ -6,6 +6,7 @@ import { bingoCardsService } from '../bingo-cards.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type { Tables, Enums } from '@/types/database.types';
+import { bingoCardSchema, bingoCardsArraySchema } from '@/lib/validation/schemas/bingo';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -154,10 +155,7 @@ describe('bingoCardsService', () => {
         error: null,
       });
 
-      const {
-        bingoCardsArraySchema,
-      } = require('@/lib/validation/schemas/bingo');
-      bingoCardsArraySchema.safeParse.mockReturnValueOnce({
+      (bingoCardsArraySchema.safeParse as jest.Mock).mockReturnValueOnce({
         success: false,
         error: new Error('Validation failed'),
       });
@@ -276,10 +274,7 @@ describe('bingoCardsService', () => {
         count: 1,
       });
 
-      const {
-        bingoCardsArraySchema,
-      } = require('@/lib/validation/schemas/bingo');
-      bingoCardsArraySchema.safeParse.mockReturnValueOnce({
+      (bingoCardsArraySchema.safeParse as jest.Mock).mockReturnValueOnce({
         success: false,
         error: new Error('Validation failed'),
       });
@@ -494,8 +489,7 @@ describe('bingoCardsService', () => {
         error: null,
       });
 
-      const { bingoCardSchema } = require('@/lib/validation/schemas/bingo');
-      bingoCardSchema.safeParse.mockReturnValueOnce({
+      (bingoCardSchema.safeParse as jest.Mock).mockReturnValueOnce({
         success: false,
         error: new Error('Validation failed'),
       });
@@ -847,10 +841,7 @@ describe('bingoCardsService', () => {
         error: null,
       });
 
-      const {
-        bingoCardsArraySchema,
-      } = require('@/lib/validation/schemas/bingo');
-      bingoCardsArraySchema.safeParse.mockReturnValueOnce({
+      (bingoCardsArraySchema.safeParse as jest.Mock).mockReturnValueOnce({
         success: false,
         error: new Error('Validation failed'),
       });

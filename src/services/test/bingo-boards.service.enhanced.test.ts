@@ -12,6 +12,7 @@ import {
   setupSupabaseMock,
   createSupabaseSuccessResponse,
   createSupabaseErrorResponse,
+  mockSupabaseUser,
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';
@@ -98,7 +99,7 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
 
       // Mock auth for createBoard
       mockAuth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123', email: 'test@example.com' } },
+        data: { user: mockSupabaseUser({ id: 'user-123', email: 'test@example.com' }) },
         error: null,
       });
 
@@ -226,7 +227,10 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
 
     it('should handle transformation errors in development mode', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        configurable: true,
+      });
 
       const mockFrom = mockSupabase.from as jest.Mock;
 
@@ -258,7 +262,10 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
         })
       );
 
-      process.env.NODE_ENV = originalEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        configurable: true,
+      });
     });
   });
 
@@ -326,7 +333,17 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
         difficulty: 'medium',
         size: 5,
         board_state: [
-          { cell_id: 'cell-1', text: 'Test', checked: false },
+          { 
+            cell_id: 'cell-1', 
+            text: 'Test', 
+            colors: null,
+            completed_by: null,
+            blocked: null,
+            is_marked: false,
+            version: null,
+            last_updated: null,
+            last_modified_by: null
+          },
         ] as BoardCell[],
         settings: { team_mode: false },
       });
@@ -850,7 +867,10 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
   describe('Environment-aware Logging - Lines 202-204, 296-298', () => {
     it('should use debug logging in development', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        configurable: true,
+      });
 
       const mockFrom = mockSupabase.from as jest.Mock;
       mockFrom.mockReturnValue({
@@ -876,12 +896,18 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
         })
       );
 
-      process.env.NODE_ENV = originalEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        configurable: true,
+      });
     });
 
     it('should use error logging in production', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        configurable: true,
+      });
 
       const mockFrom = mockSupabase.from as jest.Mock;
       mockFrom.mockReturnValue({
@@ -907,7 +933,10 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
         })
       );
 
-      process.env.NODE_ENV = originalEnv;
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        configurable: true,
+      });
     });
   });
 

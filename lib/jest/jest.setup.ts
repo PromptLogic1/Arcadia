@@ -201,23 +201,31 @@ if (typeof window !== 'undefined') {
 
 // Mock Web APIs that might not be available in Jest environment
 global.Request = global.Request || class Request {};
-global.Response = global.Response || class Response {
-  static json = jest.fn((data: any, options?: ResponseInit) => {
-    return new Response(JSON.stringify(data), {
-      ...options,
-      headers: {
-        'content-type': 'application/json',
-        ...options?.headers,
-      },
-    });
-  });
-};
+// Create a proper Response mock if it doesn't exist
+if (!global.Response) {
+  class MockResponse {
+    static json(data: unknown, options?: ResponseInit) {
+      return new MockResponse(JSON.stringify(data), {
+        ...options,
+        headers: {
+          'content-type': 'application/json',
+          ...options?.headers,
+        },
+      } as ResponseInit);
+    }
+
+    constructor(public body?: BodyInit | null, public init?: ResponseInit) {}
+  }
+  
+  global.Response = MockResponse as unknown as typeof Response;
+}
 global.Headers = global.Headers || class Headers {};
 global.fetch = global.fetch || jest.fn();
 
 // Add TextEncoder/TextDecoder polyfills for Node.js environment
-global.TextEncoder = global.TextEncoder || require('util').TextEncoder;
-global.TextDecoder = global.TextDecoder || require('util').TextDecoder;
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = global.TextEncoder || TextEncoder;
+global.TextDecoder = global.TextDecoder || TextDecoder;
 
 // Mock crypto for UUID generation
 global.crypto =
@@ -230,7 +238,8 @@ global.crypto =
       return arr;
     }),
     randomUUID: jest.fn(() => '123e4567-e89b-12d3-a456-426614174000'),
-  } as any);
+    subtle: {} as SubtleCrypto,
+  } as unknown as Crypto);
 
 // Mock Upstash Redis
 jest.mock('@upstash/redis', () => ({
@@ -276,11 +285,18 @@ const MockRatelimit = jest.fn().mockImplementation(() => ({
 }));
 
 // Add static methods to the constructor
-MockRatelimit.slidingWindow = jest
+interface MockRatelimitConstructor {
+  new (): ReturnType<typeof MockRatelimit>;
+  slidingWindow: jest.Mock;
+  fixedWindow: jest.Mock;
+  tokenBucket: jest.Mock;
+}
+
+(MockRatelimit as unknown as MockRatelimitConstructor).slidingWindow = jest
   .fn()
   .mockReturnValue('sliding-window-limiter');
-MockRatelimit.fixedWindow = jest.fn().mockReturnValue('fixed-window-limiter');
-MockRatelimit.tokenBucket = jest.fn().mockReturnValue('token-bucket-limiter');
+(MockRatelimit as unknown as MockRatelimitConstructor).fixedWindow = jest.fn().mockReturnValue('fixed-window-limiter');
+(MockRatelimit as unknown as MockRatelimitConstructor).tokenBucket = jest.fn().mockReturnValue('token-bucket-limiter');
 
 jest.mock('@upstash/ratelimit', () => ({
   Ratelimit: MockRatelimit,
@@ -324,6 +340,58 @@ jest.mock('@/services/auth.service', () => ({
     getUserData: jest.fn().mockResolvedValue({ success: true, data: null }),
   },
 }));
+
+// Mock lucide-react icons
+jest.mock('lucide-react', () => {
+  const actual = jest.requireActual('lucide-react') as Record<string, unknown>;
+  return {
+    ...actual,
+    // Mock all icon exports as simple components
+    __esModule: true,
+  };
+});
+
+// Mock Icons module  
+jest.mock('@/components/ui/Icons', () => {
+  const React = jest.requireActual('react');
+  
+  interface MockIconProps {
+    className?: string;
+    'data-testid'?: string;
+    [key: string]: unknown;
+  }
+  
+  const MockIcon = ({ className, ...props }: MockIconProps) => 
+    React.createElement('span', { className, 'data-testid': props['data-testid'] || 'icon', ...props });
+  
+  return {
+    Sun: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'sun-icon' }),
+    Moon: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'moon-icon' }),
+    Monitor: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'monitor-icon' }),
+    Globe: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'globe-icon' }),
+    Check: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'check-icon' }),
+    X: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'x-icon' }),
+    AlertCircle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'alert-circle-icon' }),
+    AlertTriangle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'alert-triangle-icon' }),
+    Info: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'info-icon' }),
+    CheckCircle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'check-circle-icon' }),
+    XCircle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'x-circle-icon' }),
+    Loader2: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'loader2-icon' }),
+    Play: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'play-icon' }),
+    Edit: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'edit-icon' }),
+    Home: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'home-icon' }),
+    RefreshCw: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'refresh-cw-icon' }),
+    ChevronRight: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'chevron-right-icon' }),
+    ChevronDown: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'chevron-down-icon' }),
+    Grid3x3: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'grid3x3-icon' }),
+    Users: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'users-icon' }),
+    Trophy: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'trophy-icon' }),
+    Gamepad2: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'gamepad2-icon' }),
+    Mail: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'mail-icon' }),
+    Edit3: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'edit3-icon' }),
+    Activity: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'activity-icon' }),
+  };
+});
 
 // Set up test timeout
 jest.setTimeout(10000);

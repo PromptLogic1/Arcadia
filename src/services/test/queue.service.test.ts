@@ -8,7 +8,6 @@ import { log } from '@/lib/logger';
 import type {
   QueueEntry,
   JoinQueueData,
-  QueuePreferences,
 } from '../queue.service';
 
 // Mock dependencies
@@ -259,30 +258,39 @@ describe('queueService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      // Create a spy that will throw during execution
-      const mockThrow = jest.fn().mockImplementation(async () => {
-        throw new Error('Network error');
-      });
-
-      // Replace the service method temporarily
-      const originalLeaveQueue = queueService.leaveQueue;
-      queueService.leaveQueue = mockThrow;
+      // Create a custom mock chain that throws an error at the end
+      const mockUpdateChain = {
+        eq: jest.fn(),
+      };
+      
+      // First eq() returns self, second eq() rejects
+      mockUpdateChain.eq
+        .mockReturnValueOnce(mockUpdateChain) // First .eq('user_id', userId)
+        .mockRejectedValueOnce(new Error('Network error')); // Second .eq('status', 'waiting')
+      
+      mockFrom.update.mockReturnValueOnce(mockUpdateChain);
 
       const result = await queueService.leaveQueue(userId);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network error');
-
-      // Restore original method
-      queueService.leaveQueue = originalLeaveQueue;
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error in leaveQueue',
+        expect.any(Error),
+        { metadata: { userId } }
+      );
     });
 
     it('should handle non-Error objects', async () => {
-      // Mock the chain to return the update function, then mock it to reject
+      // Mock the chain to return the update function, then mock it to reject  
       const mockUpdateChain = {
-        eq: jest.fn().mockReturnThis(),
+        eq: jest.fn(),
       };
-      mockUpdateChain.eq.mockRejectedValueOnce('String error');
+      
+      // First eq() returns self, second eq() rejects with string
+      mockUpdateChain.eq
+        .mockReturnValueOnce(mockUpdateChain) // First .eq('user_id', userId)
+        .mockRejectedValueOnce('String error'); // Second .eq('status', 'waiting')
 
       mockFrom.update.mockReturnValueOnce(mockUpdateChain);
 

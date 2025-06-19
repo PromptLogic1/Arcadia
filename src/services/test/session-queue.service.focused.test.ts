@@ -169,7 +169,7 @@ describe('SessionQueueService - Focused Coverage', () => {
   describe('rejectPlayer - Error Propagation', () => {
     it('handles unexpected errors in catch block', async () => {
       // Mock updateQueueEntry to throw an error
-      const originalUpdateQueueEntry = sessionQueueService.updateQueueEntry;
+      const _originalUpdateQueueEntry = sessionQueueService.updateQueueEntry;
       jest
         .spyOn(sessionQueueService, 'updateQueueEntry')
         .mockImplementation(() => {

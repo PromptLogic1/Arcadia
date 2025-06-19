@@ -116,7 +116,7 @@ describe('Data Export Formatting', () => {
     });
 
     it('should handle special characters in CSV export', () => {
-      const data = [
+      const _data = [
         { name: 'User, Name', description: 'Contains "quotes"' },
         { name: 'Line\nBreak', description: 'Tab\there' },
       ];
@@ -268,8 +268,8 @@ describe('Data Export Formatting', () => {
       const chunks = calculateChunks(fileSize);
 
       expect(chunks).toHaveLength(3);
-      expect(chunks[0].size).toBe(10 * 1024 * 1024);
-      expect(chunks[2].size).toBe(5 * 1024 * 1024);
+      expect(chunks[0]!.size).toBe(10 * 1024 * 1024);
+      expect(chunks[2]!.size).toBe(5 * 1024 * 1024);
     });
   });
 
@@ -408,10 +408,10 @@ describe('Data Export Formatting', () => {
 
       const exportId = recordExport('full', 'json', 1024000);
       expect(exportRecords).toHaveLength(1);
-      expect(exportRecords[0].status).toBe('pending');
+      expect(exportRecords[0]!.status).toBe('pending');
 
       updateExportStatus(exportId, 'completed');
-      expect(exportRecords[0].status).toBe('completed');
+      expect(exportRecords[0]!.status).toBe('completed');
     });
   });
 });

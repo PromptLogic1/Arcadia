@@ -88,10 +88,10 @@ export const SPAM_PATTERNS = {
 export const INAPPROPRIATE_PATTERNS = {
   profanity: {
     patterns: [
-      /\bf[*@#\*]{2,}/i,
-      /\bs[*@#\*]{2,}/i,
-      /\ba[*@#\*]{2,}/i,
-      /\bd[*@#\*]{2,}/i,
+      /\bf[*@#*]{2,}/i,
+      /\bs[*@#*]{2,}/i,
+      /\ba[*@#*]{2,}/i,
+      /\bd[*@#*]{2,}/i,
     ],
     weight: 0.9,
     reason: 'Contains profanity',

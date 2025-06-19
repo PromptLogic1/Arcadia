@@ -320,7 +320,7 @@ describe('CyberpunkBackground', () => {
       particles1.forEach((particle1, index) => {
         const particle2 = particles2[index];
         expect(particle1.getAttribute('style')).toBe(
-          particle2.getAttribute('style')
+          particle2?.getAttribute('style')
         );
       });
     });

@@ -53,7 +53,6 @@ export type {
   TestUser,
   AuthSession,
   TestAuthState,
-  PerformanceMetrics,
   A11yViolation,
   TestUserRole,
   OAuthProvider,

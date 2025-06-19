@@ -209,16 +209,15 @@ export const isAuthError = (error: unknown): boolean => {
   }
 
   // Check for auth error markers
-  return (
+  return Boolean(
     error &&
     typeof error === 'object' &&
     '__isAuthError' in error &&
-    error.__isAuthError === true
+    (error as { __isAuthError?: boolean }).__isAuthError === true
   );
 };
 
-// Export SupabaseError type for tests and type guards
-export type { SupabaseError };
+// SupabaseError class already exports both the class and type
 
 // Feature flags
 export const features = {

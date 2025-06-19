@@ -107,11 +107,11 @@ export interface GenerateBoardResult {
 /**
  * Pool size limits for card generation
  */
-const POOL_SIZE_LIMITS = {
+const POOL_SIZE_LIMITS = Object.freeze({
   Small: 50,
   Medium: 100,
   Large: 200,
-} as const;
+} as const);
 
 /**
  * Generate a new bingo board based on specified criteria
@@ -240,6 +240,10 @@ async function reshuffleCards(
   gridSize: number
 ): Promise<ServiceResponse<BingoBoardTemplate[]>> {
   try {
+    if (!cards || !Array.isArray(cards)) {
+      return createServiceError('Invalid cards array provided');
+    }
+
     if (cards.length < gridSize) {
       return createServiceError(
         `Not enough cards to reshuffle. Have ${cards.length} but need ${gridSize}`
@@ -266,7 +270,7 @@ async function reshuffleCards(
       {
         component: 'BingoGeneratorService',
         metadata: {
-          cardCount: cards.length,
+          cardCount: cards?.length ?? 0,
           gridSize,
         },
       }

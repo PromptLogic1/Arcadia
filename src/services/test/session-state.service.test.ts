@@ -312,7 +312,7 @@ describe('SessionStateService', () => {
         id: 'player-1',
         display_name: 'Player 1',
         avatar_url: undefined,
-        joined_at: mockPlayers[0].joined_at,
+        joined_at: mockPlayers[0]!.joined_at,
         is_active: true,
         color: '#06b6d4',
         is_host: true,
@@ -504,7 +504,17 @@ describe('SessionStateService', () => {
     ];
 
     const mockBoardState = [
-      factories.bingoCard({ id: 'card-1', text: 'Test Card' }),
+      {
+        cell_id: 'cell-1',
+        text: 'Test Card',
+        colors: null,
+        completed_by: null,
+        blocked: false,
+        is_marked: false,
+        version: 1,
+        last_updated: Date.now(),
+        last_modified_by: null,
+      },
     ];
 
     it('should transform session state correctly', () => {

@@ -5,9 +5,9 @@ import type {
   GamePlayer,
 } from '../../types';
 import {
-  createBoardCell,
-  createBingoSession,
-  createGamePlayer,
+  createBoardCell as _createBoardCell,
+  createBingoSession as _createBingoSession,
+  createGamePlayer as _createGamePlayer,
 } from '../factories';
 
 export const createMockBoardCell = (

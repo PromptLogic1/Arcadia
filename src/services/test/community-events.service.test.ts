@@ -5,13 +5,13 @@
 import { communityEventsService } from '../community-events.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import type { Tables, Enums } from '@/types/database.types';
+import type { Enums } from '@/types/database.types';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
 jest.mock('@/lib/logger');
 
-type CommunityEvent = Tables<'community_events'>;
+// type CommunityEvent = Tables<'community_events'>; // Unused - commented out
 type GameCategory = Enums<'game_category'>;
 type EventStatus = Enums<'event_status'>;
 
@@ -256,8 +256,8 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents();
 
       expect(result.success).toBe(true);
-      expect(result.data?.items[0].organizer).toBeUndefined();
-      expect(result.data?.items[0].participant_count).toBe(5);
+      expect(result.data?.items[0]?.organizer).toBeUndefined();
+      expect(result.data?.items[0]?.participant_count).toBe(5);
     });
 
     it('should handle events without participants data', async () => {
@@ -291,7 +291,7 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents();
 
       expect(result.success).toBe(true);
-      expect(result.data?.items[0].participant_count).toBe(0);
+      expect(result.data?.items[0]?.participant_count).toBe(0);
     });
 
     it('should handle non-array participants data', async () => {
@@ -325,7 +325,7 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents();
 
       expect(result.success).toBe(true);
-      expect(result.data?.items[0].participant_count).toBe(0);
+      expect(result.data?.items[0]?.participant_count).toBe(0);
     });
 
     it('should handle participants with missing count', async () => {
@@ -359,7 +359,7 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents();
 
       expect(result.success).toBe(true);
-      expect(result.data?.items[0].participant_count).toBe(0);
+      expect(result.data?.items[0]?.participant_count).toBe(0);
     });
 
     it('should handle unexpected error', async () => {
@@ -478,7 +478,7 @@ describe('communityEventsService', () => {
         start_date: '2024-02-01T18:00:00Z',
         end_date: '2024-02-01T20:00:00Z',
         max_participants: 32,
-        creator_id: 'user-detail',
+        organizer_id: 'user-detail',
         created_at: '2024-01-25T00:00:00Z',
         updated_at: '2024-01-26T12:00:00Z',
         custom_field: 'custom_value', // Additional field
@@ -511,7 +511,7 @@ describe('communityEventsService', () => {
       expect(transformedEvent?.max_participants).toBe(
         mockEvent.max_participants
       );
-      expect(transformedEvent?.creator_id).toBe(mockEvent.creator_id);
+      expect(transformedEvent?.organizer_id).toBe(mockEvent.organizer_id);
       expect(transformedEvent?.created_at).toBe(mockEvent.created_at);
       expect(transformedEvent?.updated_at).toBe(mockEvent.updated_at);
       expect((transformedEvent as any)?.custom_field).toBe(
@@ -593,8 +593,8 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents();
 
       expect(result.success).toBe(true);
-      expect(result.data?.items[0].organizer).toEqual(mockEvents[0].organizer);
-      expect(result.data?.items[0].participant_count).toBe(42);
+      expect(result.data?.items[0]?.organizer).toEqual(mockEvents[0]?.organizer);
+      expect(result.data?.items[0]?.participant_count).toBe(42);
     });
   });
 });

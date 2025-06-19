@@ -7,6 +7,14 @@ import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { zBoardSettings } from '@/lib/validation/schemas/bingo';
 import { transformBoardSettings } from '@/lib/validation/transforms';
+import {
+  createMockSupabaseClient,
+  setupSupabaseMock,
+  createSupabaseSuccessResponse,
+  createSupabaseErrorResponse,
+} from '@/lib/test/mocks/supabase.mock';
+import type { BoardSettings } from '@/types';
+import { ZodError } from 'zod';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -14,37 +22,44 @@ jest.mock('@/lib/logger');
 jest.mock('@/lib/validation/schemas/bingo');
 jest.mock('@/lib/validation/transforms');
 
-const mockSupabase = {
-  from: jest.fn(),
-};
-
-const mockFrom = {
-  select: jest.fn(),
-  update: jest.fn(),
-  eq: jest.fn(),
-  single: jest.fn(),
-  abortSignal: jest.fn(),
-};
-
 const mockZBoardSettings = zBoardSettings as jest.Mocked<typeof zBoardSettings>;
 const mockTransformBoardSettings =
   transformBoardSettings as jest.MockedFunction<typeof transformBoardSettings>;
 
 describe('gameSettingsService', () => {
+  let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
+
+  // Helper to create a mock query builder
+  const createMockQueryBuilder = (response: ReturnType<typeof createSupabaseSuccessResponse> | ReturnType<typeof createSupabaseErrorResponse>) => ({
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    abortSignal: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue(response),
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSupabase = createMockSupabaseClient();
     (createClient as jest.Mock).mockReturnValue(mockSupabase);
-    mockSupabase.from.mockReturnValue(mockFrom);
+    setupSupabaseMock(mockSupabase);
 
-    // Setup default chaining behavior
-    mockFrom.select.mockReturnValue(mockFrom);
-    mockFrom.update.mockReturnValue(mockFrom);
-    mockFrom.eq.mockReturnValue(mockFrom);
-    mockFrom.single.mockReturnValue(mockFrom);
-    mockFrom.abortSignal.mockReturnValue(mockFrom);
-
-    // Mock transform function
-    mockTransformBoardSettings.mockImplementation(settings => settings);
+    // Mock transform function - properly transform to database format
+    mockTransformBoardSettings.mockImplementation((settings) => {
+      if (!settings) return null;
+      const transformed: BoardSettings = {
+        team_mode: settings.team_mode ?? false,
+        lockout: settings.lockout ?? false,
+        sound_enabled: settings.sound_enabled ?? true,
+        win_conditions: settings.win_conditions ? {
+          line: settings.win_conditions.line ?? false,
+          majority: settings.win_conditions.majority ?? false,
+          diagonal: settings.win_conditions.diagonal ?? false,
+          corners: settings.win_conditions.corners ?? false,
+        } : null,
+      };
+      return transformed;
+    });
   });
 
   describe('getSettings', () => {
@@ -52,6 +67,7 @@ describe('gameSettingsService', () => {
     const mockSettings = {
       team_mode: false,
       lockout: true,
+      sound_enabled: true,
       win_conditions: {
         line: true,
         majority: false,
@@ -61,10 +77,17 @@ describe('gameSettingsService', () => {
     };
 
     it('should return board settings when found and valid', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: mockSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        abortSignal: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse({ settings: mockSettings })
+        ),
+      };
+      
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: true,
@@ -76,16 +99,18 @@ describe('gameSettingsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSettings);
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_boards');
-      expect(mockFrom.select).toHaveBeenCalledWith('settings');
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', boardId);
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('settings');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', boardId);
       expect(mockZBoardSettings.safeParse).toHaveBeenCalledWith(mockSettings);
     });
 
     it('should return null when settings do not exist', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: null },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: null })
+      );
+      
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getSettings(boardId);
 
@@ -94,10 +119,11 @@ describe('gameSettingsService', () => {
     });
 
     it('should return null when data is null', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse(null)
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getSettings(boardId);
 
@@ -106,11 +132,11 @@ describe('gameSettingsService', () => {
     });
 
     it('should handle database error', async () => {
-      const error = { message: 'Database error' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseErrorResponse('Database error')
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getSettings(boardId);
 
@@ -118,21 +144,36 @@ describe('gameSettingsService', () => {
       expect(result.error).toBe('Database error');
       expect(log.error).toHaveBeenCalledWith(
         'Failed to fetch game settings',
-        error,
+        {
+          message: 'Database error',
+          details: null,
+          hint: null,
+          code: 'UNKNOWN'
+        },
         { metadata: { boardId } }
       );
     });
 
     it('should handle validation error', async () => {
       const invalidSettings = { invalid: 'data' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: invalidSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: invalidSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
+
+      const zodError = new Error('Validation failed') as any;
+      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.errors = zodError.issues;
+      zodError.format = () => ({ _errors: ['Validation failed'] });
+      zodError.message = 'Validation failed';
+      zodError.isEmpty = false;
+      zodError.addIssue = () => {};
+      zodError.addIssues = () => {};
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: false,
-        error: new Error('Validation failed'),
+        error: zodError,
       });
 
       const result = await gameSettingsService.getSettings(boardId);
@@ -150,10 +191,11 @@ describe('gameSettingsService', () => {
       const abortController = new AbortController();
       const signal = abortController.signal;
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: mockSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: mockSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: true,
@@ -162,11 +204,16 @@ describe('gameSettingsService', () => {
 
       await gameSettingsService.getSettings(boardId, { signal });
 
-      expect(mockFrom.abortSignal).toHaveBeenCalledWith(signal);
+      expect(mockQueryBuilder.abortSignal).toHaveBeenCalledWith(signal);
     });
 
     it('should handle unexpected error', async () => {
-      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({})
+      );
+      mockQueryBuilder.single.mockRejectedValueOnce(new Error('Network error'));
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getSettings(boardId);
 
@@ -185,6 +232,7 @@ describe('gameSettingsService', () => {
     const settings = {
       team_mode: true,
       lockout: true,
+      sound_enabled: true,
       win_conditions: {
         line: true,
         majority: false,
@@ -194,13 +242,24 @@ describe('gameSettingsService', () => {
     };
 
     it('should update settings successfully', async () => {
-      const transformedSettings = { ...settings, transformed: true };
+      const transformedSettings = {
+        team_mode: true,
+        lockout: true,
+        sound_enabled: true,
+        win_conditions: {
+          line: true,
+          majority: false,
+          diagonal: true,
+          corners: false,
+        },
+      };
       mockTransformBoardSettings.mockReturnValueOnce(transformedSettings);
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: transformedSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: transformedSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: true,
@@ -215,18 +274,19 @@ describe('gameSettingsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(transformedSettings);
       expect(mockTransformBoardSettings).toHaveBeenCalledWith(settings);
-      expect(mockFrom.update).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         settings: transformedSettings,
       });
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', boardId);
-      expect(mockFrom.select).toHaveBeenCalledWith('settings');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', boardId);
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('settings');
     });
 
     it('should handle update with null settings in response', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: null },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: null })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.updateSettings(
         boardId,
@@ -238,11 +298,11 @@ describe('gameSettingsService', () => {
     });
 
     it('should handle database error during update', async () => {
-      const error = { message: 'Update failed' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseErrorResponse('Update failed')
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.updateSettings(
         boardId,
@@ -253,21 +313,36 @@ describe('gameSettingsService', () => {
       expect(result.error).toBe('Update failed');
       expect(log.error).toHaveBeenCalledWith(
         'Failed to update game settings',
-        error,
+        {
+          message: 'Update failed',
+          details: null,
+          hint: null,
+          code: 'UNKNOWN'
+        },
         { metadata: { boardId, settings } }
       );
     });
 
     it('should handle validation error after update', async () => {
       const invalidSettings = { invalid: 'data' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: invalidSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: invalidSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
+
+      const zodError = new Error('Validation failed') as any;
+      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.errors = zodError.issues;
+      zodError.format = () => ({ _errors: ['Validation failed'] });
+      zodError.message = 'Validation failed';
+      zodError.isEmpty = false;
+      zodError.addIssue = () => {};
+      zodError.addIssues = () => {};
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: false,
-        error: new Error('Validation failed'),
+        error: zodError,
       });
 
       const result = await gameSettingsService.updateSettings(
@@ -288,10 +363,11 @@ describe('gameSettingsService', () => {
       const abortController = new AbortController();
       const signal = abortController.signal;
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: true,
@@ -300,11 +376,16 @@ describe('gameSettingsService', () => {
 
       await gameSettingsService.updateSettings(boardId, settings, { signal });
 
-      expect(mockFrom.abortSignal).toHaveBeenCalledWith(signal);
+      expect(mockQueryBuilder.abortSignal).toHaveBeenCalledWith(signal);
     });
 
     it('should handle unexpected error during update', async () => {
-      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({})
+      );
+      mockQueryBuilder.single.mockRejectedValueOnce(new Error('Network error'));
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.updateSettings(
         boardId,
@@ -492,6 +573,7 @@ describe('gameSettingsService', () => {
     const mockSettings = {
       team_mode: false,
       lockout: true,
+      sound_enabled: true,
       win_conditions: {
         line: true,
         majority: false,
@@ -501,10 +583,11 @@ describe('gameSettingsService', () => {
     };
 
     it('should return board settings successfully', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: mockSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: mockSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: true,
@@ -516,15 +599,16 @@ describe('gameSettingsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockSettings);
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_boards');
-      expect(mockFrom.select).toHaveBeenCalledWith('settings');
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', boardId);
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('settings');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', boardId);
     });
 
     it('should return null when settings are null', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: null },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: null })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getBoardSettings(boardId);
 
@@ -534,7 +618,12 @@ describe('gameSettingsService', () => {
 
     it('should handle database error', async () => {
       const error = new Error('Database error');
-      mockFrom.single.mockRejectedValueOnce(error);
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({})
+      );
+      mockQueryBuilder.single.mockRejectedValueOnce(error);
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getBoardSettings(boardId);
 
@@ -549,14 +638,24 @@ describe('gameSettingsService', () => {
 
     it('should handle validation error', async () => {
       const invalidSettings = { invalid: 'data' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: invalidSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: invalidSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
+
+      const zodError = new Error('Validation failed') as any;
+      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.errors = zodError.issues;
+      zodError.format = () => ({ _errors: ['Validation failed'] });
+      zodError.message = 'Validation failed';
+      zodError.isEmpty = false;
+      zodError.addIssue = () => {};
+      zodError.addIssues = () => {};
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: false,
-        error: new Error('Validation failed'),
+        error: zodError,
       });
 
       const result = await gameSettingsService.getBoardSettings(boardId);
@@ -571,11 +670,12 @@ describe('gameSettingsService', () => {
     });
 
     it('should handle Supabase error thrown directly', async () => {
-      const error = { message: 'Supabase error', code: 'PGRST116' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const _error = { message: 'Supabase error', code: 'PGRST116' };
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseErrorResponse('Supabase error', 'PGRST116')
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getBoardSettings(boardId);
 
@@ -585,7 +685,12 @@ describe('gameSettingsService', () => {
 
     it('should handle non-Error objects', async () => {
       const errorString = 'String error';
-      mockFrom.single.mockRejectedValueOnce(errorString);
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({})
+      );
+      mockQueryBuilder.single.mockRejectedValueOnce(errorString);
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getBoardSettings(boardId);
 
@@ -604,6 +709,7 @@ describe('gameSettingsService', () => {
     const settings = {
       team_mode: true,
       lockout: true,
+      sound_enabled: true,
       win_conditions: {
         line: true,
         majority: false,
@@ -613,13 +719,24 @@ describe('gameSettingsService', () => {
     };
 
     it('should update board settings successfully', async () => {
-      const transformedSettings = { ...settings, transformed: true };
+      const transformedSettings = {
+        team_mode: true,
+        lockout: true,
+        sound_enabled: true,
+        win_conditions: {
+          line: true,
+          majority: false,
+          diagonal: true,
+          corners: false,
+        },
+      };
       mockTransformBoardSettings.mockReturnValueOnce(transformedSettings);
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: transformedSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: transformedSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: true,
@@ -634,16 +751,21 @@ describe('gameSettingsService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(transformedSettings);
       expect(mockTransformBoardSettings).toHaveBeenCalledWith(settings);
-      expect(mockFrom.update).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith({
         settings: transformedSettings,
       });
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', boardId);
-      expect(mockFrom.select).toHaveBeenCalledWith('settings');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('id', boardId);
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('settings');
     });
 
     it('should handle database error during update', async () => {
       const error = new Error('Update failed');
-      mockFrom.single.mockRejectedValueOnce(error);
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({})
+      );
+      mockQueryBuilder.single.mockRejectedValueOnce(error);
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.updateBoardSettings(
         boardId,
@@ -661,14 +783,24 @@ describe('gameSettingsService', () => {
 
     it('should handle validation error after update', async () => {
       const invalidSettings = { invalid: 'data' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: { settings: invalidSettings },
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({ settings: invalidSettings })
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
+
+      const zodError = new Error('Validation failed') as any;
+      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.errors = zodError.issues;
+      zodError.format = () => ({ _errors: ['Validation failed'] });
+      zodError.message = 'Validation failed';
+      zodError.isEmpty = false;
+      zodError.addIssue = () => {};
+      zodError.addIssues = () => {};
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: false,
-        error: new Error('Validation failed'),
+        error: zodError,
       });
 
       const result = await gameSettingsService.updateBoardSettings(
@@ -686,11 +818,12 @@ describe('gameSettingsService', () => {
     });
 
     it('should handle Supabase error thrown directly', async () => {
-      const error = { message: 'Supabase error', code: 'PGRST302' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const _error = { message: 'Supabase error', code: 'PGRST302' };
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseErrorResponse('Supabase error', 'PGRST302')
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.updateBoardSettings(
         boardId,
@@ -703,7 +836,12 @@ describe('gameSettingsService', () => {
 
     it('should handle non-Error objects', async () => {
       const errorString = 'String error';
-      mockFrom.single.mockRejectedValueOnce(errorString);
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse({})
+      );
+      mockQueryBuilder.single.mockRejectedValueOnce(errorString);
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.updateBoardSettings(
         boardId,
@@ -720,14 +858,21 @@ describe('gameSettingsService', () => {
     });
 
     it('should handle null data response', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
+      const mockFrom = mockSupabase.from as jest.Mock;
+      const mockQueryBuilder = createMockQueryBuilder(
+        createSupabaseSuccessResponse(null)
+      );
+      mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
         success: false,
-        error: new Error('Cannot parse null'),
+        error: new ZodError([
+          {
+            code: 'custom',
+            message: 'Cannot parse null',
+            path: [],
+          },
+        ]),
       });
 
       const result = await gameSettingsService.updateBoardSettings(

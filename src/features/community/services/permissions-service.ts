@@ -130,8 +130,8 @@ export function getUserTrustLevel(user: Tables<'users'>): UserTrustData {
   const permissions: string[] = ['read'];
 
   // Downgrade for violations
-  const effectiveReputation = Math.max(0, reputation - violations * 50);
-  const violationPenalty = violations > 2;
+  const _effectiveReputation = Math.max(0, reputation - violations * 50);
+  const _violationPenalty = violations > 2;
 
   if (accountAge >= 365) {
     level = 'trusted';

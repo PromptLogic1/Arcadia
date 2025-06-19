@@ -41,7 +41,7 @@ const customJestConfig = {
   },
   // Fix ESM module support for Supabase, Upstash and other ES modules
   transformIgnorePatterns: [
-    'node_modules/(?!(@supabase|@upstash|@testing-library|uncrypto|.*\\.mjs$))',
+    'node_modules/(?!(@supabase|@upstash|@testing-library|uncrypto|jose|.*\\.mjs$))',
   ],
   // Support for ES modules in tests
   extensionsToTreatAsEsm: ['.ts', '.tsx'],

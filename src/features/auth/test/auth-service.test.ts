@@ -18,7 +18,7 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
 // Define proper mock types
-interface MockAuthClient {
+interface _MockAuthClient {
   getSession: jest.Mock;
   getUser: jest.Mock;
   signInWithPassword: jest.Mock;
@@ -27,11 +27,6 @@ interface MockAuthClient {
   resetPasswordForEmail: jest.Mock;
   updateUser: jest.Mock;
   onAuthStateChange: jest.Mock;
-}
-
-interface MockSupabaseClient {
-  auth: MockAuthClient;
-  from: jest.Mock;
 }
 
 describe('Auth Service', () => {
@@ -138,7 +133,7 @@ describe('Auth Service', () => {
       const mockUser: User = {
         id: 'user-123',
         email: 'test@example.com',
-        phone: null as string | null,
+        phone: undefined,
         user_metadata: {
           username: 'testuser',
           avatar_url: 'https://example.com/avatar.jpg',
@@ -201,8 +196,8 @@ describe('Auth Service', () => {
     test('should handle user with missing metadata', async () => {
       const mockUser: User = {
         id: 'user-123',
-        email: null,
-        phone: null,
+        email: undefined,
+        phone: undefined,
         user_metadata: {},
         app_metadata: {},
         aud: 'authenticated',
@@ -357,8 +352,9 @@ describe('Auth Service', () => {
       const mockUser: User = {
         id: 'user-789',
         email: 'unverified@example.com',
-        email_confirmed_at: null, // Email not confirmed
+        email_confirmed_at: undefined, // Email not confirmed
         user_metadata: { username: 'unverified' },
+        app_metadata: {},
         aud: 'authenticated',
         created_at: '2024-01-01T00:00:00Z',
       };
@@ -444,13 +440,7 @@ describe('Auth Service', () => {
     });
 
     test('should handle sign out errors', async () => {
-      const mockError = {
-        message: 'Failed to sign out',
-        status: 500,
-        name: 'AuthError',
-        code: 'signout_error',
-        __isAuthError: true,
-      } as AuthError;
+      const mockError = new Error('Failed to sign out') as AuthError;
 
       global.mockSupabaseClient.auth.signOut.mockResolvedValue({
         error: mockError,
@@ -506,12 +496,12 @@ describe('Auth Service', () => {
       };
 
       const mockFromChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        select: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.resolve({
           data: mockUserData,
           error: null,
-        }),
+        })),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -526,12 +516,12 @@ describe('Auth Service', () => {
 
     test('should handle user not found', async () => {
       const mockFromChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        select: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.resolve({
           data: null,
           error: new Error('User not found'),
-        }),
+        })),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -544,12 +534,12 @@ describe('Auth Service', () => {
 
     test('should handle validation errors', async () => {
       const mockFromChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        select: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.resolve({
           data: { invalid: 'data' },
           error: null,
-        }),
+        })),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -576,9 +566,9 @@ describe('Auth Service', () => {
 
     test('should handle unexpected errors', async () => {
       const mockFromChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockRejectedValue(new Error('Database error')),
+        select: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.reject(new Error('Database error'))),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -627,13 +617,13 @@ describe('Auth Service', () => {
       };
 
       const mockFromChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        update: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        select: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.resolve({
           data: mockUpdatedData,
           error: null,
-        }),
+        })),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -651,13 +641,13 @@ describe('Auth Service', () => {
     test('should handle update errors', async () => {
       const updates = { username: 'taken' };
       const mockFromChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        update: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        select: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.resolve({
           data: null,
           error: new Error('Username already taken'),
-        }),
+        })),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -671,13 +661,13 @@ describe('Auth Service', () => {
     test('should handle validation errors after update', async () => {
       const updates = { username: 'newusername' };
       const mockFromChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        update: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        select: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.resolve({
           data: { invalid: 'data' },
           error: null,
-        }),
+        })),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -705,10 +695,10 @@ describe('Auth Service', () => {
     test('should handle unexpected errors during update', async () => {
       const updates = { username: 'newusername' };
       const mockFromChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockRejectedValue(new Error('Database error')),
+        update: jest.fn(() => mockFromChain),
+        eq: jest.fn(() => mockFromChain),
+        select: jest.fn(() => mockFromChain),
+        single: jest.fn(() => Promise.reject(new Error('Database error'))),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);

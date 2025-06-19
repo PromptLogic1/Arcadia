@@ -310,7 +310,7 @@ test.describe('Network Failure Simulation', () => {
       expect(retryResult.attempts.length).toBeGreaterThan(1);
 
       // Verify exponential backoff pattern
-      const delays = retryResult.attempts.map(a => a.delay);
+      const delays = retryResult.attempts.map((a: any) => a.delay);
       for (let i = 1; i < delays.length; i++) {
         expect(delays[i]).toBeGreaterThanOrEqual(delays[i - 1]);
       }

@@ -75,7 +75,7 @@ class RealtimeBoardService {
           },
           payload => {
             try {
-              if (payload.eventType === 'UPDATE' && payload.new) {
+              if ((payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') && payload.new) {
                 // Validate that the payload has the expected structure
                 if (
                   typeof payload.new === 'object' &&
@@ -97,7 +97,8 @@ class RealtimeBoardService {
                   // Call custom update handler (skip for now due to type complexity)
                   // onUpdate?.(updatedBoard);
 
-                  logger.debug('Board updated via real-time', {
+                  const action = payload.eventType === 'INSERT' ? 'created' : 'updated';
+                  logger.debug(`Board ${action} via real-time`, {
                     metadata: { boardId },
                   });
                 }
@@ -160,6 +161,14 @@ class RealtimeBoardService {
               metadata: { boardId },
             });
             onError?.(new Error('Real-time channel error'));
+          } else if (status === 'TIMED_OUT') {
+            logger.warn('Board real-time connection timed out', {
+              metadata: { boardId },
+            });
+          } else if (status === 'CLOSED') {
+            logger.warn('Board real-time connection closed', {
+              metadata: { boardId },
+            });
           }
         });
 

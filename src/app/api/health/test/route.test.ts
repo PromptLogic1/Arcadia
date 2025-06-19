@@ -1,10 +1,16 @@
+/**
+ * @jest-environment node
+ */
+
 import { GET } from '../route';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
+jest.mock('@/lib/supabase', () => ({
+  createClient: jest.fn(),
+}));
 jest.mock('@supabase/supabase-js');
 jest.mock('next/server', () => ({
   NextResponse: {

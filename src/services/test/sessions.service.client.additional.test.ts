@@ -28,8 +28,8 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-const mockSupabase = {
-  from: jest.fn(() => mockSupabase),
+const mockSupabase: any = {
+  from: jest.fn((): any => mockSupabase),
   select: jest.fn(() => mockSupabase),
   eq: jest.fn(() => mockSupabase),
   or: jest.fn(() => mockSupabase),
@@ -149,7 +149,9 @@ describe('Sessions Service Client - Additional Coverage', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1); // Only session-1 should pass validation
-      expect(result.data![0].id).toBe('session-1');
+      if (result.success && result.data) {
+        expect(result.data[0]!.id).toBe('session-1');
+      }
     });
 
     it('handles unexpected exceptions in catch block (lines 248-259)', async () => {
@@ -327,10 +329,12 @@ describe('Sessions Service Client - Additional Coverage', () => {
       expect(result.data).toHaveLength(4);
 
       // Check that null and undefined are converted to empty arrays
-      expect(result.data![0].bingo_session_players).toEqual([]);
-      expect(result.data![1].bingo_session_players).toEqual([]);
-      expect(result.data![2].bingo_session_players).toEqual([]);
-      expect(result.data![3].bingo_session_players).toHaveLength(1);
+      if (result.success && result.data) {
+        expect(result.data[0]!.bingo_session_players).toEqual([]);
+        expect(result.data[1]!.bingo_session_players).toEqual([]);
+        expect(result.data[2]!.bingo_session_players).toEqual([]);
+        expect(result.data[3]!.bingo_session_players).toHaveLength(1);
+      }
     });
 
     it('handles TypeError from query chain', async () => {
@@ -441,7 +445,7 @@ describe('Sessions Service Client - Additional Coverage', () => {
     it('handles concurrent query modifications', async () => {
       // Simulate a race condition where the query object is modified during execution
       let callCount = 0;
-      mockSupabase.eq.mockImplementation((field, value) => {
+      mockSupabase.eq.mockImplementation((_field: string, _value: any) => {
         callCount++;
         if (callCount === 3) {
           throw new Error('Concurrent modification detected');

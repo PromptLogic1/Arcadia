@@ -2,8 +2,7 @@
  * @jest-environment node
  */
 
-import { redisService, cacheService } from '../redis.service';
-import { createServiceSuccess, createServiceError } from '@/lib/service-types';
+import { cacheService } from '../redis.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
@@ -209,7 +208,7 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
       const result = await cacheService.getOrSet(
         'schema-test-key',
         fetcher,
-        { ttl: 300 },
+        300,
         schema
       );
 

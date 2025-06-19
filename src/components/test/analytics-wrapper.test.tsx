@@ -1,11 +1,11 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import dynamic from 'next/dynamic';
 import { AnalyticsWrapper } from '../analytics-wrapper';
 
 // Mock next/dynamic
 jest.mock('next/dynamic', () => {
-  return jest.fn(importFn => {
+  return jest.fn(_importFn => {
     // Return a mock component that can be rendered
     const MockComponent = ({ children, ...props }: any) => (
       <div data-testid="mock-dynamic-component" {...props}>
@@ -83,7 +83,7 @@ describe('AnalyticsWrapper', () => {
 
   describe('import modules', () => {
     test('should import Analytics from correct module', async () => {
-      const mockImportFn = jest.fn().mockResolvedValue({
+      const _mockImportFn = jest.fn().mockResolvedValue({
         Analytics: () => <div data-testid="analytics" />,
       });
 
@@ -96,7 +96,7 @@ describe('AnalyticsWrapper', () => {
     });
 
     test('should import SpeedInsights from correct module', async () => {
-      const mockImportFn = jest.fn().mockResolvedValue({
+      const _mockImportFn = jest.fn().mockResolvedValue({
         SpeedInsights: () => <div data-testid="speed-insights" />,
       });
 

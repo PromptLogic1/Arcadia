@@ -237,7 +237,8 @@ describe('RedisCache', () => {
       mockCacheService.getWithSchema.mockResolvedValue(
         createServiceSuccess(null)
       );
-      mockCacheService.set.mockRejectedValue(new Error('Cache write failed'));
+      mockCacheService.set.mockResolvedValue(createServiceError('Cache write failed'));
+      mockFallback.mockResolvedValue(fallbackData);
 
       const result = await cache.getWithFallback(
         'test-key',
@@ -250,10 +251,17 @@ describe('RedisCache', () => {
       expect(result.data).toEqual(fallbackData);
 
       // Wait for async cache attempt
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 10));
+      // The warning is logged inside the set method when it fails
       expect(mockLog.warn).toHaveBeenCalledWith(
-        'Failed to cache fresh data',
-        expect.any(Object)
+        'Cache set operation failed',
+        expect.objectContaining({
+          metadata: expect.objectContaining({ 
+            key: 'test-key',
+            ttl: CACHE_TTL.USER_PROFILE,
+            error: 'Cache write failed'
+          })
+        })
       );
     });
   });
@@ -376,6 +384,19 @@ describe('RedisCache', () => {
       );
       expect(CACHE_KEYS.USER_BOARDS('user-123', 'active')).toBe(
         '@arcadia/cache:user-boards:user-123:active'
+      );
+      // Test the remaining key generators for coverage
+      expect(CACHE_KEYS.QUERY_RESULT('search-query')).toBe(
+        '@arcadia/cache:query:search-query'
+      );
+      expect(CACHE_KEYS.PUBLIC_BOARDS('recent')).toBe(
+        '@arcadia/cache:public-boards:recent'
+      );
+      expect(CACHE_KEYS.LEADERBOARD('weekly')).toBe(
+        '@arcadia/cache:leaderboard:weekly'
+      );
+      expect(CACHE_KEYS.USER_STATS('user-999')).toBe(
+        '@arcadia/cache:user-stats:user-999'
       );
     });
   });
