@@ -55,7 +55,7 @@ describe('Type System Constants', () => {
     });
 
     test('contains no duplicates', () => {
-      const uniqueValues = [...new Set(DIFFICULTIES)];
+      const uniqueValues = Array.from(new Set(DIFFICULTIES));
       expect(uniqueValues).toHaveLength(DIFFICULTIES.length);
     });
   });
@@ -85,7 +85,7 @@ describe('Type System Constants', () => {
     });
 
     test('contains no duplicates', () => {
-      const uniqueValues = [...new Set(GAME_CATEGORIES)];
+      const uniqueValues = Array.from(new Set(GAME_CATEGORIES));
       expect(uniqueValues).toHaveLength(GAME_CATEGORIES.length);
     });
   });
@@ -490,6 +490,21 @@ describe('Application Interfaces', () => {
 
   describe('BingoCardStats', () => {
     test('has correct structure', () => {
+      // Create a minimal valid stats object for testing
+      const byGameType: Record<GameCategory, number> = {} as Record<GameCategory, number>;
+      
+      // Add some sample game types
+      byGameType['All Games'] = 50;
+      byGameType['Minecraft'] = 25;
+      byGameType['Fortnite'] = 25;
+      
+      // Fill in the rest with 0s to satisfy the Record type
+      GAME_CATEGORIES.forEach(category => {
+        if (!(category in byGameType)) {
+          byGameType[category] = 0;
+        }
+      });
+
       const stats: BingoCardStats = {
         total: 100,
         completed: 25,
@@ -500,27 +515,7 @@ describe('Application Interfaces', () => {
           hard: 25,
           expert: 15,
         },
-        byGameType: {
-          'All Games': 50,
-          'Minecraft': 25,
-          'Fortnite': 25,
-          'World of Warcraft': 0,
-          'Among Us': 0,
-          'Apex Legends': 0,
-          'League of Legends': 0,
-          'Overwatch': 0,
-          'Call of Duty: Warzone': 0,
-          'Valorant': 0,
-          'CS:GO': 0,
-          'Dota 2': 0,
-          'Rocket League': 0,
-          'Fall Guys': 0,
-          'Dead by Daylight': 0,
-          'Cyberpunk 2077': 0,
-          'The Witcher 3': 0,
-          'Elden Ring': 0,
-          'Dark Souls': 0,
-        },
+        byGameType,
       };
 
       expect(stats.total).toBe(100);

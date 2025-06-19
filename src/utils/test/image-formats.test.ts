@@ -16,7 +16,7 @@ class MockImage {
   public onload: (() => void) | null = null;
   public onerror: (() => void) | null = null;
   public height = 0;
-  private _src = '';
+  public _src = ''; // Make public for test access
 
   set src(value: string) {
     this._src = value;
