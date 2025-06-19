@@ -3,8 +3,8 @@
 ## Community Tests
 - ✅ moderation.test.ts
 - ✅ notification-triggers.test.ts
-- [ ] permissions.test.ts
-- [ ] search-service.test.ts
+- ✅ permissions.test.ts
+- ✅ search-service.test.ts
 
 ## Auth Tests
 - [ ] auth-service.test.ts
