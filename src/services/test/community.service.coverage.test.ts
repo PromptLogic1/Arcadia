@@ -7,7 +7,6 @@
 
 import { communityService } from '../community.service';
 import { createClient } from '@/lib/supabase';
-import { log } from '@/lib/logger';
 import type { DiscussionAPIFilters } from '../community.service';
 
 // Mock dependencies

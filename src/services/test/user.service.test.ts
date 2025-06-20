@@ -840,13 +840,14 @@ describe('userService', () => {
       });
 
       // Mock game results with streak pattern: win, win, loss, win, win, win
+      // Note: Service expects oldest first, then uses slice(-10) to get last 10
       const gameResults = [
-        { final_score: 100, placement: 1, created_at: '2024-01-06' }, // Most recent - win
-        { final_score: 90, placement: 1, created_at: '2024-01-05' }, // Win
-        { final_score: 80, placement: 1, created_at: '2024-01-04' }, // Win
-        { final_score: 70, placement: 2, created_at: '2024-01-03' }, // Loss - breaks streak
+        { final_score: 85, placement: 1, created_at: '2024-01-01' }, // Oldest - win
         { final_score: 95, placement: 1, created_at: '2024-01-02' }, // Win
-        { final_score: 85, placement: 1, created_at: '2024-01-01' }, // Win
+        { final_score: 70, placement: 2, created_at: '2024-01-03' }, // Loss - breaks streak
+        { final_score: 80, placement: 1, created_at: '2024-01-04' }, // Win
+        { final_score: 90, placement: 1, created_at: '2024-01-05' }, // Win
+        { final_score: 100, placement: 1, created_at: '2024-01-06' }, // Most recent - win
       ];
 
       resultsQueryBuilder.eq.mockResolvedValueOnce({
@@ -1390,7 +1391,11 @@ describe('userService', () => {
       mockStorageBucket.getPublicUrl.mockReturnValueOnce({
         data: { publicUrl: 'https://example.com/avatar.jpg' },
       });
-      mockQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+      // Mock the update query chain
+      mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.uploadAvatar('user-123', file);
 
@@ -1419,12 +1424,16 @@ describe('userService', () => {
         data: { publicUrl: 'https://example.com/avatar.jpg' },
       });
 
-      mockQueryBuilder.eq.mockResolvedValueOnce({
-        error: {
-          code: '23502',
-          message:
-            'null value in column "avatar_url" violates not-null constraint',
-        },
+      // Mock the update query chain to fail with validation error
+      mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = {
+          error: {
+            code: '23502',
+            message:
+              'null value in column "avatar_url" violates not-null constraint',
+          },
+        };
+        return onfulfilled ? onfulfilled(result) : result;
       });
 
       const result = await userService.uploadAvatar('user-123', file);
@@ -1464,7 +1473,11 @@ describe('userService', () => {
       });
 
       mockStorageBucket.remove.mockResolvedValueOnce({ error: null });
-      updateQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+      // Mock the update query chain
+      updateQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.removeAvatar('user-123');
 
@@ -1493,7 +1506,11 @@ describe('userService', () => {
       mockStorageBucket.remove.mockResolvedValueOnce({
         error: { message: 'Storage removal failed' },
       });
-      updateQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+      // Mock the update query chain
+      updateQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.removeAvatar('user-123');
 

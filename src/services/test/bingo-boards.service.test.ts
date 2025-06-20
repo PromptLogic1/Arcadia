@@ -39,6 +39,7 @@ import type {
   DifficultyLevel,
 } from '../bingo-boards.service';
 import type { BoardCell } from '@/types/domains/bingo';
+import { AuthError } from '@supabase/auth-js';
 
 // Mock the logger
 jest.mock('@/lib/logger', () => ({
@@ -207,7 +208,7 @@ describe('BingoBoardsService', () => {
         typeof mockSupabase.auth
       >;
 
-      const authError = new Error('Auth service unavailable');
+      const authError = new AuthError('Auth service unavailable', 500, 'AUTH_ERROR');
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: authError,
@@ -1055,7 +1056,7 @@ describe('BingoBoardsService', () => {
 
     it('should handle error with debug logging in non-production', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      Object.assign(process.env, { NODE_ENV: 'development' });
 
       const mockFrom = mockSupabase.from as jest.Mock;
 
@@ -1068,12 +1069,8 @@ describe('BingoBoardsService', () => {
 
       (cacheService.getOrSet as jest.Mock).mockImplementation(
         async (key, fetchFn) => {
-          try {
-            const data = await fetchFn();
-            return { success: true, data };
-          } catch (error) {
-            throw error;
-          }
+          const data = await fetchFn();
+          return { success: true, data };
         }
       );
 
@@ -1083,12 +1080,12 @@ describe('BingoBoardsService', () => {
       expect(result.error).toBe('Database error');
       expect(log.debug).toHaveBeenCalled();
 
-      process.env.NODE_ENV = originalEnv;
+      Object.assign(process.env, { NODE_ENV: originalEnv });
     });
 
     it('should handle error with error logging in production', async () => {
       const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      Object.assign(process.env, { NODE_ENV: 'production' });
 
       const mockFrom = mockSupabase.from as jest.Mock;
 
@@ -1101,12 +1098,8 @@ describe('BingoBoardsService', () => {
 
       (cacheService.getOrSet as jest.Mock).mockImplementation(
         async (key, fetchFn) => {
-          try {
-            const data = await fetchFn();
-            return { success: true, data };
-          } catch (error) {
-            throw error;
-          }
+          const data = await fetchFn();
+          return { success: true, data };
         }
       );
 
@@ -1116,7 +1109,7 @@ describe('BingoBoardsService', () => {
       expect(result.error).toBe('Database error');
       expect(log.error).toHaveBeenCalled();
 
-      process.env.NODE_ENV = originalEnv;
+      Object.assign(process.env, { NODE_ENV: originalEnv });
     });
 
     it('should apply game type filter', async () => {

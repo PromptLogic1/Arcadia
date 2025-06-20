@@ -26,6 +26,15 @@ jest.mock('@/lib/rate-limiter-middleware', () => ({
   },
 }));
 
+// Mock validation middleware
+jest.mock('@/lib/validation/middleware', () => ({
+  validateRequestBody: jest.fn(),
+  validateQueryParams: jest.fn(),
+  isValidationError: jest.fn(),
+}));
+
+import * as validationMiddleware from '@/lib/validation/middleware';
+
 const mockAuthService = authService as jest.Mocked<typeof authService>;
 const mockUserService = userService as jest.Mocked<typeof userService>;
 const mockBingoBoardsService = bingoBoardsService as jest.Mocked<
@@ -33,6 +42,9 @@ const mockBingoBoardsService = bingoBoardsService as jest.Mocked<
 >;
 const mockSessionsService = sessionsService as jest.Mocked<
   typeof sessionsService
+>;
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<
+  typeof validationMiddleware
 >;
 
 describe('Bingo Sessions API Route', () => {
@@ -125,11 +137,25 @@ describe('Bingo Sessions API Route', () => {
 
   describe('POST /api/bingo/sessions', () => {
     it('creates a session successfully when user is authenticated', async () => {
+      const mockBody = {
+        boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // Valid UUID
+        settings: {
+          max_players: 8,
+          allow_spectators: true,
+        },
+      };
+
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
         error: null,
       });
+
+      mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
+        data: mockBody,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
@@ -159,14 +185,6 @@ describe('Bingo Sessions API Route', () => {
         player: mockPlayer,
       });
 
-      const mockBody = {
-        boardId: 'board-123',
-        settings: {
-          max_players: 8,
-          allow_spectators: true,
-        },
-      };
-
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'POST',
         body: JSON.stringify(mockBody),
@@ -181,7 +199,7 @@ describe('Bingo Sessions API Route', () => {
         player: mockPlayer,
       });
       expect(mockSessionsService.createSession).toHaveBeenCalledWith({
-        board_id: 'board-123',
+        board_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
         host_id: 'user-123',
         settings: {
           max_players: 8,
@@ -203,7 +221,9 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'POST',
-        body: JSON.stringify({ boardId: 'board-123' }),
+        body: JSON.stringify({
+          boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        }),
       });
 
       const response = await POST(request);
@@ -214,11 +234,19 @@ describe('Bingo Sessions API Route', () => {
     });
 
     it('returns 404 when board is not found', async () => {
+      const mockBody = { boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
         error: null,
       });
+
+      mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
+        data: mockBody,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
@@ -234,7 +262,7 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'POST',
-        body: JSON.stringify({ boardId: 'board-123' }),
+        body: JSON.stringify(mockBody),
       });
 
       const response = await POST(request);
@@ -245,11 +273,19 @@ describe('Bingo Sessions API Route', () => {
     });
 
     it('returns 400 when board is not active and user is not creator', async () => {
+      const mockBody = { boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
         error: null,
       });
+
+      mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
+        data: mockBody,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
@@ -269,7 +305,7 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'POST',
-        body: JSON.stringify({ boardId: 'board-123' }),
+        body: JSON.stringify(mockBody),
       });
 
       const response = await POST(request);
@@ -280,11 +316,19 @@ describe('Bingo Sessions API Route', () => {
     });
 
     it('cleans up session when joining as host fails', async () => {
+      const mockBody = { boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' };
+
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
         error: null,
       });
+
+      mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
+        data: mockBody,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
 
       mockUserService.getUserProfile.mockResolvedValue({
         success: true,
@@ -312,7 +356,7 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'POST',
-        body: JSON.stringify({ boardId: 'board-123' }),
+        body: JSON.stringify(mockBody),
       });
 
       const response = await POST(request);
@@ -326,11 +370,22 @@ describe('Bingo Sessions API Route', () => {
 
   describe('PATCH /api/bingo/sessions', () => {
     it('updates session successfully', async () => {
+      const mockBody = {
+        sessionId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        status: 'active' as const,
+      };
+
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
         error: null,
       });
+
+      mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
+        data: mockBody,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
 
       mockSessionsService.updateSession.mockResolvedValue({
         session: { ...mockSession, status: 'active' as const },
@@ -338,10 +393,7 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'PATCH',
-        body: JSON.stringify({
-          sessionId: 'session-123',
-          status: 'active',
-        }),
+        body: JSON.stringify(mockBody),
       });
 
       const response = await PATCH(request);
@@ -350,7 +402,7 @@ describe('Bingo Sessions API Route', () => {
       expect(response.status).toBe(200);
       expect(data.status).toBe('active');
       expect(mockSessionsService.updateSession).toHaveBeenCalledWith(
-        'session-123',
+        'f47ac10b-58cc-4372-a567-0e02b2c3d479',
         {
           current_state: undefined,
           winner_id: undefined,
@@ -368,7 +420,9 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'PATCH',
-        body: JSON.stringify({ sessionId: 'session-123' }),
+        body: JSON.stringify({
+          sessionId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        }),
       });
 
       const response = await PATCH(request);
@@ -379,11 +433,22 @@ describe('Bingo Sessions API Route', () => {
     });
 
     it('returns 500 when update fails', async () => {
+      const mockBody = {
+        sessionId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        status: 'active' as const,
+      };
+
       mockAuthService.getCurrentUser.mockResolvedValue({
         success: true,
         data: mockUser,
         error: null,
       });
+
+      mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+        success: true,
+        data: mockBody,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
 
       mockSessionsService.updateSession.mockResolvedValue({
         session: null,
@@ -392,10 +457,7 @@ describe('Bingo Sessions API Route', () => {
 
       const request = new NextRequest('http://localhost/api/bingo/sessions', {
         method: 'PATCH',
-        body: JSON.stringify({
-          sessionId: 'session-123',
-          status: 'active',
-        }),
+        body: JSON.stringify(mockBody),
       });
 
       const response = await PATCH(request);
@@ -408,6 +470,11 @@ describe('Bingo Sessions API Route', () => {
 
   describe('GET /api/bingo/sessions', () => {
     it('retrieves sessions successfully', async () => {
+      const mockQuery = {
+        boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        status: 'active' as const,
+      };
+
       const mockSessionsWithPlayers = [
         {
           ...mockSession,
@@ -422,6 +489,12 @@ describe('Bingo Sessions API Route', () => {
         },
       ];
 
+      mockValidationMiddleware.validateQueryParams.mockReturnValue({
+        success: true,
+        data: mockQuery,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
+
       mockSessionsService.getSessionsByBoardIdWithPlayers.mockResolvedValue({
         success: true,
         data: mockSessionsWithPlayers,
@@ -429,7 +502,7 @@ describe('Bingo Sessions API Route', () => {
       });
 
       const request = new NextRequest(
-        'http://localhost/api/bingo/sessions?boardId=board-123&status=active'
+        'http://localhost/api/bingo/sessions?boardId=f47ac10b-58cc-4372-a567-0e02b2c3d479&status=active'
       );
 
       const response = await GET(request);
@@ -439,10 +512,20 @@ describe('Bingo Sessions API Route', () => {
       expect(data).toEqual(mockSessionsWithPlayers);
       expect(
         mockSessionsService.getSessionsByBoardIdWithPlayers
-      ).toHaveBeenCalledWith('board-123', 'active');
+      ).toHaveBeenCalledWith('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'active');
     });
 
     it('uses default status when not provided', async () => {
+      const mockQuery = {
+        boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      };
+
+      mockValidationMiddleware.validateQueryParams.mockReturnValue({
+        success: true,
+        data: mockQuery,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
+
       mockSessionsService.getSessionsByBoardIdWithPlayers.mockResolvedValue({
         success: true,
         data: [],
@@ -450,17 +533,27 @@ describe('Bingo Sessions API Route', () => {
       });
 
       const request = new NextRequest(
-        'http://localhost/api/bingo/sessions?boardId=board-123'
+        'http://localhost/api/bingo/sessions?boardId=f47ac10b-58cc-4372-a567-0e02b2c3d479'
       );
 
       await GET(request);
 
       expect(
         mockSessionsService.getSessionsByBoardIdWithPlayers
-      ).toHaveBeenCalledWith('board-123', undefined);
+      ).toHaveBeenCalledWith('f47ac10b-58cc-4372-a567-0e02b2c3d479', undefined);
     });
 
     it('returns 500 when service fails', async () => {
+      const mockQuery = {
+        boardId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      };
+
+      mockValidationMiddleware.validateQueryParams.mockReturnValue({
+        success: true,
+        data: mockQuery,
+      });
+      mockValidationMiddleware.isValidationError.mockReturnValue(false);
+
       mockSessionsService.getSessionsByBoardIdWithPlayers.mockResolvedValue({
         success: false,
         data: null,
@@ -468,7 +561,7 @@ describe('Bingo Sessions API Route', () => {
       });
 
       const request = new NextRequest(
-        'http://localhost/api/bingo/sessions?boardId=board-123'
+        'http://localhost/api/bingo/sessions?boardId=f47ac10b-58cc-4372-a567-0e02b2c3d479'
       );
 
       const response = await GET(request);
