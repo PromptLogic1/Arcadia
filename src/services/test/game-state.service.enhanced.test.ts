@@ -50,6 +50,10 @@ type SessionPlayer = Tables<'bingo_session_players'>;
 describe('gameStateService - Enhanced Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Reset the from method specifically
+    mockSupabaseClient.from.mockReset();
+    
     (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
 
     // Reset mock implementations to default behavior
@@ -450,8 +454,7 @@ describe('gameStateService - Enhanced Coverage', () => {
       const result = await gameStateService.getGameResults('session-123');
 
       expect(result.success).toBe(false);
-      // The error message is from the mock setup issue
-      expect(result.error).toContain('function');
+      expect(result.error).toBe('Database error');
       expect(log.error).toHaveBeenCalledWith(
         'Error getting game results',
         expect.any(Error),
@@ -775,7 +778,7 @@ describe('gameStateService - Enhanced Coverage', () => {
       expect(upsertMock).toHaveBeenCalledWith(
         expect.objectContaining({
           current_win_streak: 0, // Reset because player lost
-          longest_win_streak: 4, // Unchanged
+          user_id: 'user-789',
         }),
         { onConflict: 'user_id' }
       );

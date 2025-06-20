@@ -158,11 +158,9 @@ describe('LoginForm', () => {
 
   describe('form submission', () => {
     it('calls handleSubmit when form is submitted', async () => {
-      const mockHandleSubmit = jest.fn().mockImplementation(async e => {
-        if (e && e.preventDefault) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
+      const mockHandleSubmit = jest.fn().mockImplementation((e?: React.FormEvent) => {
+        e?.preventDefault?.();
+        return Promise.resolve();
       });
 
       mockUseLoginSubmission.mockReturnValue({
@@ -173,9 +171,21 @@ describe('LoginForm', () => {
       const user = userEvent.setup();
       render(<LoginForm />);
 
-      // Submit the form by clicking the submit button
+      // Fill in the form with valid data
+      const emailInput = screen.getByTestId('auth-email-input');
+      const passwordInput = screen.getByTestId('auth-password-input');
+      
+      await user.type(emailInput, 'test@example.com');
+      await user.type(passwordInput, 'password123');
+
+      // Find the submit button
       const submitButton = screen.getByTestId('auth-submit-button');
+      expect(submitButton).toBeInTheDocument();
+
+      // Click the submit button to trigger form submission
       await user.click(submitButton);
+      
+      // Check if handleSubmit was called at least once (might be called multiple times)
       expect(mockHandleSubmit).toHaveBeenCalled();
     });
 

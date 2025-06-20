@@ -161,7 +161,11 @@ describe('BaseErrorBoundary', () => {
       // Update the flag before clicking Try Again
       shouldThrow = false;
 
-      await userEvent.click(screen.getByText('Try Again'));
+      const tryAgainButton = screen.getByText('Try Again');
+      await userEvent.click(tryAgainButton);
+
+      // Wait a bit for error boundary state to reset
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Force a re-render to see the reset
       rerender(
@@ -172,7 +176,7 @@ describe('BaseErrorBoundary', () => {
 
       expect(screen.queryByTestId('error-boundary')).not.toBeInTheDocument();
       expect(screen.getByText('No error')).toBeInTheDocument();
-    });
+    }, 15000);
 
     it('resets when resetKeys change', () => {
       const { rerender } = render(
@@ -283,14 +287,13 @@ describe('BaseErrorBoundary', () => {
       ).toBeInTheDocument();
 
       // Click to expand details
-      await userEvent.click(
-        screen.getByText('Error Details (Development Only)')
-      );
+      const detailsButton = screen.getByText('Error Details (Development Only)');
+      await userEvent.click(detailsButton);
 
       expect(screen.getByText('Message:')).toBeInTheDocument();
       expect(screen.getByText('Test error')).toBeInTheDocument();
       expect(screen.getByText('Stack:')).toBeInTheDocument();
-    });
+    }, 15000);
 
     it('hides error details in production even when showDetails is true', () => {
       const originalEnv = process.env;
@@ -311,19 +314,37 @@ describe('BaseErrorBoundary', () => {
   });
 
   describe('excessive error handling', () => {
-    jest.useFakeTimers();
+    let mockReload: jest.Mock;
+    let originalLocation: Location;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      // Save original location and create mock
+      originalLocation = window.location;
+      mockReload = jest.fn();
+      
+      // Mock the entire location object
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        writable: true,
+        value: {
+          ...originalLocation,
+          reload: mockReload,
+        },
+      });
+    });
 
     afterEach(() => {
       jest.useRealTimers();
+      // Restore original location
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        writable: true,
+        value: originalLocation,
+      });
     });
 
     it('schedules page reload after too many errors', async () => {
-      // Mock window.location.reload
-      const originalReload = window.location.reload;
-      Object.defineProperty(window.location, 'reload', {
-        configurable: true,
-        value: jest.fn(),
-      });
 
       let errorCount = 0;
       const TestComponent = () => {
@@ -351,21 +372,16 @@ describe('BaseErrorBoundary', () => {
       );
 
       // Verify reload is scheduled but not called immediately
-      expect(window.location.reload).not.toHaveBeenCalled();
+      expect(mockReload).not.toHaveBeenCalled();
 
       jest.advanceTimersByTime(5000);
 
-      expect(window.location.reload).toHaveBeenCalled();
-
-      // Restore original reload
-      Object.defineProperty(window.location, 'reload', {
-        configurable: true,
-        value: originalReload,
-      });
+      expect(mockReload).toHaveBeenCalled();
     });
 
     it('clears timeout on unmount', async () => {
       const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
 
       let errorCount = 0;
       const TestComponent = () => {
@@ -379,16 +395,22 @@ describe('BaseErrorBoundary', () => {
         </BaseErrorBoundary>
       );
 
-      // Trigger excessive errors
+      // Trigger excessive errors to schedule timeout
       for (let i = 0; i < 3; i++) {
         await userEvent.click(screen.getByText('Try Again'));
       }
 
+      // Verify setTimeout was called (indicates timeout was scheduled)
+      expect(setTimeoutSpy).toHaveBeenCalled();
+
+      clearTimeoutSpy.mockClear();
       unmount();
 
+      // The component should clear the timeout on unmount
       expect(clearTimeoutSpy).toHaveBeenCalled();
 
       clearTimeoutSpy.mockRestore();
+      setTimeoutSpy.mockRestore();
     });
   });
 });

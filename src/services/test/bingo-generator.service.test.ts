@@ -258,7 +258,7 @@ describe('bingoGeneratorService', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         'Category filter not implemented - tags column missing',
         expect.objectContaining({
-          metadata: { categories: [{ name: 'Combat', count: 10 }] },
+          metadata: { categories: ['Combat'] },
         })
       );
     });

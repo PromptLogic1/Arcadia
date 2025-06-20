@@ -1,5 +1,5 @@
 /**
- * @jest-environment node
+ * @jest-environment jsdom
  */
 
 import type {
@@ -42,6 +42,8 @@ const mockSupabaseAuth = {
   updateUser: jest.fn(),
   resetPasswordForEmail: jest.fn(),
   onAuthStateChange: jest.fn(),
+  signInWithOAuth: jest.fn(),
+  exchangeCodeForSession: jest.fn(),
 };
 
 const mockSupabaseFrom = jest.fn().mockReturnValue({
@@ -71,6 +73,12 @@ const mockLog = log as jest.Mocked<typeof log>;
 describe('AuthService - Comprehensive Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock window.location for OAuth tests  
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'http://localhost:3000' },
+      writable: true,
+    });
 
     // Reset all auth mocks to default null state
     mockSupabaseAuth.getSession.mockResolvedValue({
@@ -102,6 +110,14 @@ describe('AuthService - Comprehensive Tests', () => {
     });
     mockSupabaseAuth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: jest.fn() } },
+    });
+    mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
+      data: { url: null },
+      error: null,
+    });
+    mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
+      data: { user: null, session: null },
+      error: null,
     });
 
     // Reset database query mocks
@@ -1159,6 +1175,223 @@ describe('AuthService - Comprehensive Tests', () => {
         expect.any(Error), // isError converts non-Error to Error
         { metadata: { service: 'auth.service', method: 'updatePassword' } }
       );
+    });
+  });
+
+  describe('signInWithOAuth', () => {
+    it('should initiate OAuth sign in successfully', async () => {
+      const mockOAuthUrl = 'https://accounts.google.com/oauth/authorize?client_id=test';
+
+      mockSupabaseAuth.signInWithOAuth = jest.fn().mockResolvedValue({
+        data: { url: mockOAuthUrl },
+        error: null,
+      });
+
+      const result = await authService.signInWithOAuth('google');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.url).toBe(mockOAuthUrl);
+      expect(result.data?.provider).toBe('google');
+      expect(mockSupabaseAuth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: 'http://localhost:3000/auth/callback/google',
+        },
+      });
+    });
+
+    it('should handle OAuth errors', async () => {
+      mockSupabaseAuth.signInWithOAuth = jest.fn().mockResolvedValue({
+        data: { url: null },
+        error: new AuthError('OAuth provider error', 400, 'OAUTH_ERROR'),
+      });
+
+      const result = await authService.signInWithOAuth('github');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('OAuth provider error');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'OAuth sign in failed',
+        expect.any(AuthError),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'signInWithOAuth',
+            provider: 'github',
+          },
+        }
+      );
+    });
+
+    it('should handle missing OAuth URL', async () => {
+      mockSupabaseAuth.signInWithOAuth = jest.fn().mockResolvedValue({
+        data: { url: null },
+        error: null,
+      });
+
+      const result = await authService.signInWithOAuth('discord');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No OAuth URL returned');
+    });
+
+    it('should handle unexpected errors during OAuth', async () => {
+      mockSupabaseAuth.signInWithOAuth = jest.fn().mockRejectedValue(new Error('Network error'));
+
+      const result = await authService.signInWithOAuth('google');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error during OAuth sign in',
+        expect.any(Error),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'signInWithOAuth',
+            provider: 'google',
+          },
+        }
+      );
+    });
+
+    it('should handle non-Error objects during OAuth', async () => {
+      mockSupabaseAuth.signInWithOAuth = jest.fn().mockRejectedValue('String error');
+
+      const result = await authService.signInWithOAuth('github');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('String error');
+    });
+  });
+
+  describe('exchangeCodeForSession', () => {
+    it('should exchange OAuth code for session successfully', async () => {
+      const mockUser = {
+        id: 'oauth-user-123',
+        email: 'oauth@example.com',
+        phone: '+1234567890',
+        user_metadata: {
+          username: 'oauthuser',
+          avatar_url: 'https://provider.com/avatar.jpg',
+        },
+        app_metadata: {
+          provider: 'google',
+        },
+      };
+
+      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockResolvedValue({
+        data: { user: mockUser, session: {} },
+        error: null,
+      });
+
+      const result = await authService.exchangeCodeForSession('oauth-code-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.user).toEqual({
+        id: 'oauth-user-123',
+        email: 'oauth@example.com',
+        phone: '+1234567890',
+        auth_username: 'oauthuser',
+        username: 'oauthuser',
+        avatar_url: 'https://provider.com/avatar.jpg',
+        provider: 'google',
+        userRole: 'user',
+      });
+    });
+
+    it('should handle code exchange errors', async () => {
+      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockResolvedValue({
+        data: { user: null, session: null },
+        error: new AuthError('Invalid authorization code', 400, 'INVALID_CODE'),
+      });
+
+      const result = await authService.exchangeCodeForSession('invalid-code');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid authorization code');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'OAuth code exchange failed',
+        expect.any(AuthError),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'exchangeCodeForSession',
+            code: 'invalid-co...',
+          },
+        }
+      );
+    });
+
+    it('should handle missing user in code exchange', async () => {
+      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockResolvedValue({
+        data: { user: null, session: null },
+        error: null,
+      });
+
+      const result = await authService.exchangeCodeForSession('valid-code');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No user returned from OAuth code exchange');
+    });
+
+    it('should handle unexpected errors during code exchange', async () => {
+      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockRejectedValue(
+        new Error('Session error')
+      );
+
+      const result = await authService.exchangeCodeForSession('valid-code');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Session error');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error during OAuth code exchange',
+        expect.any(Error),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'exchangeCodeForSession',
+          },
+        }
+      );
+    });
+
+    it('should handle OAuth user with missing metadata', async () => {
+      const mockUser = {
+        id: 'oauth-user-123',
+        email: null,
+        phone: null,
+        user_metadata: {},
+        app_metadata: {},
+      };
+
+      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockResolvedValue({
+        data: { user: mockUser, session: {} },
+        error: null,
+      });
+
+      const result = await authService.exchangeCodeForSession('oauth-code-minimal');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.user).toEqual({
+        id: 'oauth-user-123',
+        email: null,
+        phone: null,
+        auth_username: null,
+        username: null,
+        avatar_url: null,
+        provider: null,
+        userRole: 'user',
+      });
+    });
+
+    it('should handle non-Error objects during code exchange', async () => {
+      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockRejectedValue({ message: 'Object error' });
+
+      const result = await authService.exchangeCodeForSession('valid-code');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Object error');
     });
   });
 

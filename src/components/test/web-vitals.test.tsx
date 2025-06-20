@@ -25,6 +25,12 @@ const mockPerformance = {
   now: jest.fn(() => 1000),
 };
 
+// Setup global performance mock
+Object.defineProperty(global, 'performance', {
+  value: mockPerformance,
+  writable: true,
+});
+
 Object.defineProperty(global, 'window', {
   value: {
     performance: mockPerformance,
@@ -373,14 +379,19 @@ describe('measurePerformance', () => {
 
   test('should not throw when performance is not available', () => {
     const originalPerformance = global.window.performance;
+    const originalGlobalPerformance = global.performance;
+    
     // @ts-expect-error - Testing missing window/performance
     global.window.performance = undefined;
+    // @ts-expect-error - Testing missing global performance
+    global.performance = undefined;
 
     expect(() => {
       measurePerformance('test-mark');
     }).not.toThrow();
 
     global.window.performance = originalPerformance;
+    global.performance = originalGlobalPerformance;
   });
 });
 

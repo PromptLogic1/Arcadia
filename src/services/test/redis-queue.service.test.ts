@@ -1354,4 +1354,760 @@ describe('RedisQueueService - Enhanced Tests', () => {
       }
     });
   });
+
+  describe('Enhanced Coverage for Uncovered Lines', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockIsRedisConfigured.mockReturnValue(true);
+      mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+      // Clear processors and active polling
+      (redisQueueService as any).processors.clear();
+      (redisQueueService as any).activePolling.clear();
+
+      // Ensure we're in server environment by default
+      delete (global as any).window;
+    });
+
+    describe('Error handling scenarios', () => {
+      it('should handle Redis errors in addJob (lines 185-196)', async () => {
+        mockRedis.zadd.mockRejectedValueOnce(new Error('Redis connection failed'));
+
+        const result = await redisQueueService.addJob(
+          queueName,
+          jobType,
+          payload
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Redis connection failed');
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to add job to queue',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: { queueName, jobType },
+          })
+        );
+      });
+
+      it('should handle Redis errors in completeJob (lines 464-475)', async () => {
+        mockRedis.del.mockRejectedValueOnce(new Error('Redis del failed'));
+
+        const result = await redisQueueService.completeJob('job-123');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Redis del failed');
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to complete job',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: { jobId: 'job-123' },
+          })
+        );
+      });
+
+      it('should handle Redis errors in failJob (lines 589-604)', async () => {
+        const jobData: JobData = {
+          id: 'job-123',
+          type: 'test-job',
+          payload: { data: 'test' },
+          priority: 5,
+          attempts: 1,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        mockRedis.del.mockRejectedValueOnce(new Error('Redis del failed'));
+
+        const result = await redisQueueService.failJob(jobData, 'Original error');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Redis del failed');
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to handle job failure',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              jobId: 'job-123',
+              originalError: 'Original error',
+            }),
+          })
+        );
+      });
+
+      it('should handle Redis errors in getQueueStats (lines 660-671)', async () => {
+        mockRedis.zcard.mockRejectedValueOnce(new Error('Redis stats failed'));
+
+        const result = await redisQueueService.getQueueStats(queueName);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Redis stats failed');
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to get queue stats',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: { queueName },
+          })
+        );
+      });
+
+      it('should handle Redis errors in cleanupExpiredJobs (lines 899-909)', async () => {
+        mockRedis.keys.mockRejectedValueOnce(new Error('Redis keys failed'));
+
+        const result = await redisQueueService.cleanupExpiredJobs();
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Redis keys failed');
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to cleanup expired jobs',
+          expect.any(Error)
+        );
+      });
+
+      it('should handle Redis errors during getNextJob (lines 394-405)', async () => {
+        // Don't mock moveDelayedJobsToQueue for this test to test full getNextJob flow
+        jest.restoreAllMocks();
+        mockIsRedisConfigured.mockReturnValue(true);
+        mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+        mockRedis.zrange.mockRejectedValueOnce(new Error('Redis zrange failed'));
+
+        const result = await redisQueueService.getNextJob(queueName);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Redis zrange failed');
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to get next job',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: { queueName },
+          })
+        );
+      });
+    });
+
+    describe('Edge cases for server environment checks', () => {
+      it('should handle getQueueStats client-side check (lines 621-625)', async () => {
+        Object.defineProperty(global, 'window', {
+          value: {},
+          writable: true,
+          configurable: true,
+        });
+
+        const result = await redisQueueService.getQueueStats(queueName);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(
+          'Queue operations are only available on the server'
+        );
+
+        delete (global as any).window;
+      });
+
+      it('should handle Redis not configured in getQueueStats (lines 627-630)', async () => {
+        mockIsRedisConfigured.mockReturnValue(false);
+
+        const result = await redisQueueService.getQueueStats(queueName);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Queue service unavailable');
+        expect(mockLog.warn).toHaveBeenCalledWith(
+          'Redis not configured - queue operations unavailable'
+        );
+      });
+
+      it('should handle Redis not configured in cleanupExpiredJobs (lines 838-841)', async () => {
+        mockIsRedisConfigured.mockReturnValue(false);
+
+        const result = await redisQueueService.cleanupExpiredJobs();
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Queue service unavailable');
+        expect(mockLog.warn).toHaveBeenCalledWith(
+          'Redis not configured - queue operations unavailable'
+        );
+      });
+
+      it('should handle cleanupExpiredJobs client-side check (lines 832-836)', async () => {
+        Object.defineProperty(global, 'window', {
+          value: {},
+          writable: true,
+          configurable: true,
+        });
+
+        const result = await redisQueueService.cleanupExpiredJobs();
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(
+          'Queue operations are only available on the server'
+        );
+
+        delete (global as any).window;
+      });
+
+      it('should handle failJob client-side check (lines 484-488)', async () => {
+        Object.defineProperty(global, 'window', {
+          value: {},
+          writable: true,
+          configurable: true,
+        });
+
+        const jobData: JobData = {
+          id: 'job-123',
+          type: 'test-job',
+          payload: { data: 'test' },
+          priority: 5,
+          attempts: 1,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        const result = await redisQueueService.failJob(jobData, 'Error');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(
+          'Queue operations are only available on the server'
+        );
+
+        delete (global as any).window;
+      });
+
+      it('should handle failJob Redis not configured (lines 490-493)', async () => {
+        mockIsRedisConfigured.mockReturnValue(false);
+
+        const jobData: JobData = {
+          id: 'job-123',
+          type: 'test-job',
+          payload: { data: 'test' },
+          priority: 5,
+          attempts: 1,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        const result = await redisQueueService.failJob(jobData, 'Error');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Queue service unavailable');
+        expect(mockLog.warn).toHaveBeenCalledWith(
+          'Redis not configured - queue operations unavailable'
+        );
+      });
+    });
+
+    describe('Private method coverage for moveDelayedJobsToQueue', () => {
+      it('should handle errors in moveDelayedJobsToQueue gracefully (lines 735-744)', async () => {
+        // Don't mock moveDelayedJobsToQueue so we can test error handling
+        jest.restoreAllMocks();
+        mockIsRedisConfigured.mockReturnValue(true);
+        mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+        // Make zrange fail in moveDelayedJobsToQueue
+        mockRedis.zrange.mockRejectedValueOnce(new Error('Delayed jobs fetch failed'));
+
+        // getNextJob calls moveDelayedJobsToQueue internally
+        const result = await redisQueueService.getNextJob(queueName);
+
+        // Should still succeed because moveDelayedJobsToQueue errors are caught and logged
+        expect(result.success).toBe(true);
+        expect(result.data).toBeNull(); // No jobs available since we only mocked delayed queue
+
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Failed to move delayed jobs',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: { queueName },
+          })
+        );
+      });
+
+      it('should handle invalid JSON in moveDelayedJobsToQueue (lines 708-721)', async () => {
+        // Don't mock moveDelayedJobsToQueue so we can test it
+        jest.restoreAllMocks();
+        mockIsRedisConfigured.mockReturnValue(true);
+        mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+        // Mock delayed jobs with invalid JSON
+        mockRedis.zrange.mockResolvedValueOnce(['invalid-json-data']);
+
+        // getNextJob calls moveDelayedJobsToQueue internally
+        const result = await redisQueueService.getNextJob(queueName);
+
+        expect(result.success).toBe(true);
+        expect(result.data).toBeNull();
+
+        expect(mockLog.warn).toHaveBeenCalledWith(
+          'Invalid JSON data in delayed queue, skipping job',
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              queueName,
+              jobData: 'invalid-json-data',
+            }),
+          })
+        );
+
+        expect(mockRedis.zrem).toHaveBeenCalledWith(
+          expect.stringContaining('@arcadia/queue:delayed:'),
+          'invalid-json-data'
+        );
+      });
+    });
+
+    describe('Processing loop coverage', () => {
+      it('should handle missing processor in startProcessingLoop (lines 754-757)', async () => {
+        // Set up queue but don't set processor
+        (redisQueueService as any).activePolling.set(queueName, true);
+
+        // Call startProcessingLoop directly with missing processor
+        const startProcessingLoop = (redisQueueService as any).startProcessingLoop.bind(redisQueueService);
+        const result = await startProcessingLoop(queueName, { name: queueName });
+
+        expect(result).toBeUndefined(); // Should return early
+      });
+
+      it('should handle job processing success and error scenarios (lines 759-821)', async () => {
+        const processor: JobProcessor = jest.fn()
+          .mockResolvedValueOnce('success-result')
+          .mockRejectedValueOnce(new Error('Processing failed'));
+
+        // Set up processing
+        (redisQueueService as any).processors.set(queueName, processor);
+        (redisQueueService as any).activePolling.set(queueName, true);
+
+        const jobData = {
+          id: 'job-123',
+          type: jobType,
+          payload,
+          priority: 5,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        // Mock successful job retrieval followed by no more jobs
+        const mockGetNextJob = jest
+          .spyOn(redisQueueService, 'getNextJob')
+          .mockResolvedValueOnce({
+            success: true,
+            data: jobData,
+            error: null,
+          })
+          .mockResolvedValueOnce({
+            success: true,
+            data: jobData,
+            error: null,
+          })
+          .mockResolvedValue({
+            success: true,
+            data: null,
+            error: null,
+          });
+
+        const mockCompleteJob = jest
+          .spyOn(redisQueueService, 'completeJob')
+          .mockResolvedValue({
+            success: true,
+            data: undefined,
+            error: null,
+          });
+
+        const mockFailJob = jest
+          .spyOn(redisQueueService, 'failJob')
+          .mockResolvedValue({
+            success: true,
+            data: undefined,
+            error: null,
+          });
+
+        // Start processing loop
+        const startProcessingLoop = (redisQueueService as any).startProcessingLoop.bind(redisQueueService);
+        const loopPromise = startProcessingLoop(queueName, { 
+          name: queueName, 
+          pollInterval: 10 // Very short interval for testing
+        });
+
+        // Wait a bit for jobs to be processed
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Stop processing
+        (redisQueueService as any).activePolling.set(queueName, false);
+
+        await loopPromise;
+
+        // Verify job processing flow
+        expect(mockGetNextJob).toHaveBeenCalled();
+        expect(processor).toHaveBeenCalledWith(jobData);
+        expect(mockCompleteJob).toHaveBeenCalledWith('job-123', 'success-result');
+        expect(mockFailJob).toHaveBeenCalledWith(jobData, 'Processing failed');
+
+        expect(mockLog.debug).toHaveBeenCalledWith(
+          'Job processed successfully',
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              jobId: 'job-123',
+              jobType,
+            }),
+          })
+        );
+
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Job processing failed',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              jobId: 'job-123',
+              jobType,
+            }),
+          })
+        );
+
+        // Cleanup
+        mockGetNextJob.mockRestore();
+        mockCompleteJob.mockRestore();
+        mockFailJob.mockRestore();
+      });
+
+      it('should handle processing loop errors and recovery (lines 807-821)', async () => {
+        const processor: JobProcessor = jest.fn();
+
+        (redisQueueService as any).processors.set(queueName, processor);
+        (redisQueueService as any).activePolling.set(queueName, true);
+
+        // Mock getNextJob to fail first, then succeed with no jobs
+        const mockGetNextJob = jest
+          .spyOn(redisQueueService, 'getNextJob')
+          .mockRejectedValueOnce(new Error('Loop error'))
+          .mockResolvedValue({
+            success: true,
+            data: null,
+            error: null,
+          });
+
+        const startProcessingLoop = (redisQueueService as any).startProcessingLoop.bind(redisQueueService);
+        const loopPromise = startProcessingLoop(queueName, { 
+          name: queueName, 
+          pollInterval: 10
+        });
+
+        // Wait for error to be handled
+        await new Promise(resolve => setTimeout(resolve, 20));
+
+        // Stop processing
+        (redisQueueService as any).activePolling.set(queueName, false);
+
+        await loopPromise;
+
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Error in processing loop',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: { queueName },
+          })
+        );
+
+        expect(mockLog.info).toHaveBeenCalledWith(
+          'Processing loop stopped',
+          expect.objectContaining({
+            metadata: { queueName },
+          })
+        );
+
+        mockGetNextJob.mockRestore();
+      });
+    });
+
+    describe('Edge cases for cleanup scenarios', () => {
+      it('should handle invalid job data gracefully during cleanup (lines 886-889)', async () => {
+        mockRedis.keys.mockResolvedValueOnce([
+          '@arcadia/queue:processing:invalid-job',
+        ]);
+        mockRedis.ttl.mockResolvedValueOnce(-1); // Expired
+        mockRedis.get.mockResolvedValueOnce('{}'); // Invalid job data (missing required fields)
+
+        const result = await redisQueueService.cleanupExpiredJobs();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toBe(1); // One job cleaned up
+
+        // Should delete the invalid job directly
+        expect(mockRedis.del).toHaveBeenCalledWith(
+          '@arcadia/queue:processing:invalid-job'
+        );
+      });
+    });
+
+    describe('Additional edge case scenarios', () => {
+      it('should handle delayed job processing without existing jobs (covers empty zrange)', async () => {
+        // Test moveDelayedJobsToQueue when no delayed jobs exist
+        jest.restoreAllMocks();
+        mockIsRedisConfigured.mockReturnValue(true);
+        mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+        // Mock empty delayed jobs
+        mockRedis.zrange
+          .mockResolvedValueOnce([]) // No delayed jobs
+          .mockResolvedValueOnce([]); // No pending jobs
+
+        const result = await redisQueueService.getNextJob(queueName);
+
+        expect(result.success).toBe(true);
+        expect(result.data).toBeNull();
+      });
+
+      it('should handle processing with invalid job Zod schema (covers parseData validation)', async () => {
+        // Test when job data doesn't match JobData schema
+        jest.restoreAllMocks();
+        mockIsRedisConfigured.mockReturnValue(true);
+        mockGetRedisClient.mockReturnValue(mockRedis as any);
+
+        const invalidJobData = {
+          id: 'job-123',
+          // Missing required fields like 'type', 'payload', etc.
+          invalid: true,
+        };
+
+        mockRedis.zrange
+          .mockResolvedValueOnce([]) // No delayed jobs to move
+          .mockResolvedValueOnce([JSON.stringify(invalidJobData)]); // Invalid job in pending
+
+        const result = await redisQueueService.getNextJob(queueName);
+
+        // Should handle Zod validation error gracefully
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Required'); // Zod validation error message
+      });
+
+      it('should handle TTL active processing jobs during cleanup', async () => {
+        // Test cleanup when processing jobs are still active (TTL > 0)
+        mockRedis.keys.mockResolvedValueOnce([
+          '@arcadia/queue:processing:active-job-1',
+          '@arcadia/queue:processing:active-job-2',
+        ]);
+
+        mockRedis.ttl
+          .mockResolvedValueOnce(120) // Active job with TTL
+          .mockResolvedValueOnce(60); // Another active job
+
+        const result = await redisQueueService.cleanupExpiredJobs();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toBe(0); // No jobs cleaned up (all still active)
+
+        // Should not call get() or del() for active jobs
+        expect(mockRedis.get).not.toHaveBeenCalled();
+        expect(mockRedis.del).not.toHaveBeenCalled();
+      });
+
+      it('should handle job without data during cleanup', async () => {
+        // Test cleanup when processing key exists but has no data
+        mockRedis.keys.mockResolvedValueOnce([
+          '@arcadia/queue:processing:empty-job',
+        ]);
+        mockRedis.ttl.mockResolvedValueOnce(-1); // Expired
+        mockRedis.get.mockResolvedValueOnce(null); // No data
+
+        const result = await redisQueueService.cleanupExpiredJobs();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toBe(0); // No jobs cleaned up (no data to process)
+      });
+    });
+
+    describe('Defensive check scenarios for edge cases', () => {
+      it('should test defensive scheduledFor check (line 146) via error injection', async () => {
+        // This tests the defensive check by manipulating the job creation process
+        const options: JobOptions = {
+          delay: 5000,
+        };
+
+        // Temporarily override the Date.now to cause undefined scheduledFor
+        const originalDateNow = Date.now;
+        let callCount = 0;
+        Date.now = jest.fn(() => {
+          callCount++;
+          if (callCount === 1) {
+            return originalDateNow(); // First call for job creation
+          }
+          return undefined as any; // Second call for scheduledFor calculation
+        });
+
+        const result = await redisQueueService.addJob(
+          queueName,
+          jobType,
+          payload,
+          options
+        );
+
+        // Should handle the edge case gracefully
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('scheduledFor is required for delayed jobs');
+
+        // Restore
+        Date.now = originalDateNow;
+      });
+
+      it('should test defensive scheduledFor check (line 529) via manipulation', async () => {
+        // Test the retry job scheduledFor defensive check
+        const jobData: JobData = {
+          id: 'job-123',
+          type: 'test-job',
+          payload: { data: 'test' },
+          priority: 5,
+          attempts: 1,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        // Mock the internal job manipulation to trigger the edge case
+        // Override the private calculation to make scheduledFor undefined
+        const originalMathMin = Math.min;
+        Math.min = jest.fn(() => undefined as any);
+
+        const result = await redisQueueService.failJob(jobData, 'Test error');
+
+        // Should handle the edge case
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('scheduledFor is required for retry jobs');
+
+        // Restore
+        Math.min = originalMathMin;
+      });
+    });
+
+    describe('Complete processing loop scenario (lines 759-821)', () => {
+      it('should exercise full processing loop with job success/failure cycle', async () => {
+        // Create a more comprehensive test that exercises the full processing loop
+        const processor: JobProcessor = jest.fn()
+          .mockResolvedValueOnce('first-success')
+          .mockRejectedValueOnce(new Error('second-failure'))
+          .mockResolvedValueOnce('third-success');
+
+        // Set up processing
+        (redisQueueService as any).processors.set(queueName, processor);
+        (redisQueueService as any).activePolling.set(queueName, true);
+
+        const jobData1 = {
+          id: 'job-1',
+          type: jobType,
+          payload: { data: 'job1' },
+          priority: 5,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        const jobData2 = {
+          id: 'job-2',
+          type: jobType,
+          payload: { data: 'job2' },
+          priority: 3,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        const jobData3 = {
+          id: 'job-3',
+          type: jobType,
+          payload: { data: 'job3' },
+          priority: 7,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now(),
+        };
+
+        // Mock job retrieval sequence: success, failure, success, then no more jobs
+        const mockGetNextJob = jest
+          .spyOn(redisQueueService, 'getNextJob')
+          .mockResolvedValueOnce({ success: true, data: jobData1, error: null })
+          .mockResolvedValueOnce({ success: true, data: jobData2, error: null })
+          .mockResolvedValueOnce({ success: true, data: jobData3, error: null })
+          .mockResolvedValue({ success: true, data: null, error: null });
+
+        const mockCompleteJob = jest
+          .spyOn(redisQueueService, 'completeJob')
+          .mockResolvedValue({ success: true, data: undefined, error: null });
+
+        const mockFailJob = jest
+          .spyOn(redisQueueService, 'failJob')
+          .mockResolvedValue({ success: true, data: undefined, error: null });
+
+        // Start processing loop
+        const startProcessingLoop = (redisQueueService as any).startProcessingLoop.bind(redisQueueService);
+        const loopPromise = startProcessingLoop(queueName, { 
+          name: queueName, 
+          pollInterval: 5 // Very short interval for testing
+        });
+
+        // Wait for jobs to be processed
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Stop processing
+        (redisQueueService as any).activePolling.set(queueName, false);
+
+        await loopPromise;
+
+        // Verify full processing cycle
+        expect(processor).toHaveBeenCalledTimes(3);
+        expect(processor).toHaveBeenNthCalledWith(1, jobData1);
+        expect(processor).toHaveBeenNthCalledWith(2, jobData2);
+        expect(processor).toHaveBeenNthCalledWith(3, jobData3);
+
+        expect(mockCompleteJob).toHaveBeenCalledTimes(2);
+        expect(mockCompleteJob).toHaveBeenCalledWith('job-1', 'first-success');
+        expect(mockCompleteJob).toHaveBeenCalledWith('job-3', 'third-success');
+
+        expect(mockFailJob).toHaveBeenCalledTimes(1);
+        expect(mockFailJob).toHaveBeenCalledWith(jobData2, 'second-failure');
+
+        // Verify logging calls
+        expect(mockLog.debug).toHaveBeenCalledWith(
+          'Job processed successfully',
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              jobId: 'job-1',
+              processingTime: expect.any(Number),
+            }),
+          })
+        );
+
+        expect(mockLog.error).toHaveBeenCalledWith(
+          'Job processing failed',
+          expect.any(Error),
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              jobId: 'job-2',
+              jobType,
+            }),
+          })
+        );
+
+        // Cleanup
+        mockGetNextJob.mockRestore();
+        mockCompleteJob.mockRestore();
+        mockFailJob.mockRestore();
+      });
+    });
+
+    describe('Missing processor scenario (line 756)', () => {
+      it('should handle early return when processor is missing', async () => {
+        // Test the specific early return case when no processor is found
+        (redisQueueService as any).processors.clear(); // Ensure no processor
+
+        const startProcessingLoop = (redisQueueService as any).startProcessingLoop.bind(redisQueueService);
+        const result = await startProcessingLoop(queueName, { name: queueName });
+
+        // Should return early (undefined) when no processor
+        expect(result).toBeUndefined();
+      });
+    });
+  });
 });

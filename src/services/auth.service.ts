@@ -13,6 +13,7 @@ import { createServiceSuccess, createServiceError } from '@/lib/service-types';
 import { isError, getErrorMessage } from '@/lib/error-guards';
 import { userSchema } from '@/lib/validation/schemas/users';
 import { log } from '@/lib/logger';
+import type { Provider } from '@supabase/supabase-js';
 
 export interface SignInCredentials {
   email: string;
@@ -37,6 +38,11 @@ export interface UserUpdateData {
   land?: string;
   region?: string;
   city?: string;
+}
+
+export interface OAuthResponseData {
+  url: string;
+  provider: Provider;
 }
 
 export const authService = {
@@ -432,6 +438,109 @@ export const authService = {
         isError(error) ? error : new Error(String(error)),
         {
           metadata: { service: 'auth.service', method: 'updatePassword' },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Sign in with OAuth provider
+   */
+  async signInWithOAuth(
+    provider: Provider
+  ): Promise<ServiceResponse<OAuthResponseData>> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback/${provider}`,
+        },
+      });
+
+      if (error) {
+        log.error('OAuth sign in failed', error, {
+          metadata: {
+            service: 'auth.service',
+            method: 'signInWithOAuth',
+            provider,
+          },
+        });
+        return createServiceError(error.message);
+      }
+
+      if (!data.url) {
+        return createServiceError('No OAuth URL returned');
+      }
+
+      return createServiceSuccess({
+        url: data.url,
+        provider,
+      });
+    } catch (error) {
+      log.error(
+        'Unexpected error during OAuth sign in',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'signInWithOAuth',
+            provider,
+          },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Exchange OAuth code for session
+   */
+  async exchangeCodeForSession(
+    code: string,
+    _state?: string
+  ): Promise<ServiceResponse<AuthResponseData>> {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        log.error('OAuth code exchange failed', error, {
+          metadata: {
+            service: 'auth.service',
+            method: 'exchangeCodeForSession',
+            code: code.substring(0, 10) + '...',
+          },
+        });
+        return createServiceError(error.message);
+      }
+
+      if (!data.user) {
+        return createServiceError('No user returned from OAuth code exchange');
+      }
+
+      const authUser: AuthUser = {
+        id: data.user.id,
+        email: data.user.email || null,
+        phone: data.user.phone || null,
+        auth_username: data.user.user_metadata?.username || null,
+        username: data.user.user_metadata?.username || null,
+        avatar_url: data.user.user_metadata?.avatar_url || null,
+        provider: data.user.app_metadata?.provider || null,
+        userRole: 'user',
+      };
+
+      return createServiceSuccess({ user: authUser });
+    } catch (error) {
+      log.error(
+        'Unexpected error during OAuth code exchange',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'exchangeCodeForSession',
+          },
         }
       );
       return createServiceError(getErrorMessage(error));

@@ -401,6 +401,10 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
 
             const result = await authService.signOut();
 
+            // Always clear the user data from store, even if server call fails
+            // This ensures user is signed out locally for security
+            get().clearUser();
+
             if (!result.success) {
               get().setError(result.error || 'Sign out failed');
               return {
@@ -408,9 +412,6 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
                 error: result.error || 'Sign out failed',
               };
             }
-
-            // Clear the user data from store
-            get().clearUser();
 
             return {
               success: true,

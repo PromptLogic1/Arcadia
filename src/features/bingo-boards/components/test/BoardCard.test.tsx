@@ -8,7 +8,9 @@ import { logger } from '@/lib/logger';
 import type { Tables } from '@/types';
 
 // Mock dependencies
-jest.mock('next/navigation');
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
 jest.mock('@/lib/notifications');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/sanitization', () => ({
@@ -24,9 +26,7 @@ const mockRouter = {
   refresh: jest.fn(),
 };
 
-(useRouter as jest.MockedFunction<typeof useRouter>).mockReturnValue(
-  mockRouter as any
-);
+const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
 
 const mockNotifications = notifications as jest.Mocked<typeof notifications>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
@@ -54,6 +54,11 @@ describe('BoardCard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock router.push to be async and take some time
+    mockRouter.push.mockImplementation(() => 
+      new Promise(resolve => setTimeout(resolve, 100))
+    );
+    mockUseRouter.mockReturnValue(mockRouter as any);
   });
 
   describe('rendering', () => {
@@ -170,7 +175,10 @@ describe('BoardCard', () => {
       const playButton = screen.getByRole('button', { name: /play board/i });
       await user.click(playButton);
 
-      expect(screen.getByText('Starting...')).toBeInTheDocument();
+      // Wait for the loading state to update
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /starting/i })).toBeInTheDocument();
+      });
       expect(playButton).toBeDisabled();
     });
 
@@ -220,7 +228,9 @@ describe('BoardCard', () => {
       const playButton = screen.getByRole('button', { name: /play board/i });
       await user.click(playButton);
 
-      expect(screen.getByText('Starting...')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /starting/i })).toBeInTheDocument();
+      });
     });
   });
 
@@ -256,7 +266,7 @@ describe('BoardCard', () => {
 
       // The card should render its main content
       expect(screen.getByText('Test Bingo Board')).toBeInTheDocument();
-      expect(screen.getByText('Test board description')).toBeInTheDocument();
+      expect(screen.getByText('A test board for unit testing')).toBeInTheDocument();
     });
   });
 });
