@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 
 // Mock next/dynamic to return immediate components
 jest.mock('next/dynamic', () => {
-  return jest.fn((_importFn: any) => {
+  return jest.fn((_importFn: () => Promise<React.ComponentType>) => {
     // Return a component that mimics the dynamic loading
     const DynamicComponent = () => <div data-testid="mock-dynamic-component" />;
     DynamicComponent.displayName = 'MockDynamicComponent';
@@ -74,10 +74,6 @@ describe('AnalyticsWrapper', () => {
 
   describe('import modules', () => {
     test('should import Analytics from correct module', async () => {
-      const _mockImportFn = jest.fn().mockResolvedValue({
-        Analytics: () => <div data-testid="analytics" />,
-      });
-
       // Mock the import function that would be passed to dynamic
       const analyticsImportFn = () =>
         import('@vercel/analytics/react').then(mod => mod.Analytics);
@@ -87,10 +83,6 @@ describe('AnalyticsWrapper', () => {
     });
 
     test('should import SpeedInsights from correct module', async () => {
-      const _mockImportFn = jest.fn().mockResolvedValue({
-        SpeedInsights: () => <div data-testid="speed-insights" />,
-      });
-
       // Mock the import function that would be passed to dynamic
       const speedInsightsImportFn = () =>
         import('@vercel/speed-insights/next').then(mod => mod.SpeedInsights);

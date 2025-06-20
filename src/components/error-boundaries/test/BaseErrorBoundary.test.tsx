@@ -34,16 +34,18 @@ const ThrowError: React.FC<{ shouldThrow: boolean }> = ({ shouldThrow }) => {
 };
 
 describe('BaseErrorBoundary', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockReportError.mockReturnValue('sentry-event-id-123');
 
     // Suppress console.error for error boundary tests
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    (console.error as jest.Mock).mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   describe('when no error occurs', () => {
@@ -287,7 +289,9 @@ describe('BaseErrorBoundary', () => {
       ).toBeInTheDocument();
 
       // Click to expand details
-      const detailsButton = screen.getByText('Error Details (Development Only)');
+      const detailsButton = screen.getByText(
+        'Error Details (Development Only)'
+      );
       await userEvent.click(detailsButton);
 
       expect(screen.getByText('Message:')).toBeInTheDocument();
@@ -322,7 +326,7 @@ describe('BaseErrorBoundary', () => {
       // Save original location and create mock
       originalLocation = window.location;
       mockReload = jest.fn();
-      
+
       // Mock the entire location object
       Object.defineProperty(window, 'location', {
         configurable: true,
@@ -344,24 +348,28 @@ describe('BaseErrorBoundary', () => {
       });
     });
 
-    it('schedules page reload after too many errors', async () => {
+    it('schedules page reload after too many errors', () => {
+      // Test that excessive errors trigger a reload
+      const error = new Error('Test error');
+      const errorInfo = { componentStack: 'test stack' };
 
-      let errorCount = 0;
-      const TestComponent = () => {
-        errorCount++;
-        throw new Error(`Test error ${errorCount}`);
+      // Create an instance of BaseErrorBoundary to test directly
+      const instance = new BaseErrorBoundary({ children: null });
+
+      // Manually set the error counter to 3 (just before the threshold)
+      // @ts-expect-error - accessing private property for testing
+      instance.errorCounter = 3;
+
+      // Set the state first (getDerivedStateFromError would normally do this)
+      instance.state = {
+        hasError: true,
+        error,
+        errorInfo: null,
+        errorId: '123',
       };
 
-      render(
-        <BaseErrorBoundary>
-          <TestComponent />
-        </BaseErrorBoundary>
-      );
-
-      // Trigger multiple errors by clicking Try Again
-      for (let i = 0; i < 3; i++) {
-        await userEvent.click(screen.getByText('Try Again'));
-      }
+      // Trigger componentDidCatch with another error (4th error)
+      instance.componentDidCatch(error, errorInfo);
 
       expect(mockReportMessage).toHaveBeenCalledWith(
         'Excessive errors detected, scheduling reload',
@@ -379,38 +387,42 @@ describe('BaseErrorBoundary', () => {
       expect(mockReload).toHaveBeenCalled();
     });
 
-    it('clears timeout on unmount', async () => {
+    it('clears timeout on unmount', () => {
       const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-      const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
 
-      let errorCount = 0;
-      const TestComponent = () => {
-        errorCount++;
-        throw new Error(`Test error ${errorCount}`);
+      // Create an instance and set up a reload timeout
+      const instance = new BaseErrorBoundary({ children: null });
+
+      // Set error counter high and trigger error to schedule reload
+      // @ts-expect-error - accessing private property for testing
+      instance.errorCounter = 3;
+
+      const error = new Error('Test error');
+      const errorInfo = { componentStack: 'test stack' };
+
+      // Set the state first (getDerivedStateFromError would normally do this)
+      instance.state = {
+        hasError: true,
+        error,
+        errorInfo: null,
+        errorId: '123',
       };
 
-      const { unmount } = render(
-        <BaseErrorBoundary>
-          <TestComponent />
-        </BaseErrorBoundary>
-      );
+      instance.componentDidCatch(error, errorInfo);
 
-      // Trigger excessive errors to schedule timeout
-      for (let i = 0; i < 3; i++) {
-        await userEvent.click(screen.getByText('Try Again'));
-      }
-
-      // Verify setTimeout was called (indicates timeout was scheduled)
-      expect(setTimeoutSpy).toHaveBeenCalled();
+      // Verify timeout was scheduled
+      // @ts-expect-error - accessing private property for testing
+      expect(instance.resetTimeoutId).not.toBeNull();
 
       clearTimeoutSpy.mockClear();
-      unmount();
+
+      // Call unmount lifecycle
+      instance.componentWillUnmount();
 
       // The component should clear the timeout on unmount
       expect(clearTimeoutSpy).toHaveBeenCalled();
 
       clearTimeoutSpy.mockRestore();
-      setTimeoutSpy.mockRestore();
     });
   });
 });

@@ -1,12 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { UseFormReturn } from 'react-hook-form';
 import { LoginForm } from '../LoginForm';
 import { useLoginForm, type UseLoginFormReturn } from '../hooks/useLoginForm';
 import {
   useLoginSubmission,
   type UseLoginSubmissionReturn,
 } from '../hooks/useLoginSubmission';
+import type { LoginFormData } from '../../types/auth-schemas';
 
 // Mock dependencies
 jest.mock('../hooks/useLoginForm');
@@ -33,7 +35,7 @@ describe('LoginForm', () => {
       register: jest.fn(),
       unregister: jest.fn(),
       trigger: jest.fn(),
-      control: {} as any,
+      control: {} as UseFormReturn<LoginFormData>['control'],
       watch: jest.fn(),
       getValues: jest.fn(),
       getFieldState: jest.fn(),
@@ -44,6 +46,7 @@ describe('LoginForm', () => {
       reset: jest.fn(),
       resetField: jest.fn(),
       handleSubmit: jest.fn(),
+      subscribe: jest.fn(),
       formState: {
         errors: {},
         isDirty: false,
@@ -58,8 +61,10 @@ describe('LoginForm', () => {
         dirtyFields: {},
         validatingFields: {},
         defaultValues: undefined,
+        disabled: false,
+        isReady: true,
       },
-    } as any, // Form type is too complex for test mocking
+    } satisfies UseFormReturn<LoginFormData>,
     formData: {
       email: '',
       password: '',
@@ -158,11 +163,23 @@ describe('LoginForm', () => {
 
   describe('form submission', () => {
     it('calls handleSubmit when form is submitted', async () => {
-      const mockHandleSubmit = jest.fn().mockImplementation((e?: React.FormEvent) => {
-        e?.preventDefault?.();
-        return Promise.resolve();
+      const mockHandleSubmit = jest
+        .fn()
+        .mockImplementation((e?: React.BaseSyntheticEvent) => {
+          e?.preventDefault?.();
+          return Promise.resolve();
+        });
+
+      // Set up form state with valid data that allows submission
+      const validFormState = createFormStateMock({
+        formData: {
+          email: 'test@example.com',
+          password: 'password123',
+        },
+        canSubmit: true,
       });
 
+      mockUseLoginForm.mockReturnValue(validFormState);
       mockUseLoginSubmission.mockReturnValue({
         ...defaultSubmission,
         handleSubmit: mockHandleSubmit,
@@ -171,21 +188,19 @@ describe('LoginForm', () => {
       const user = userEvent.setup();
       render(<LoginForm />);
 
-      // Fill in the form with valid data
-      const emailInput = screen.getByTestId('auth-email-input');
-      const passwordInput = screen.getByTestId('auth-password-input');
-      
-      await user.type(emailInput, 'test@example.com');
-      await user.type(passwordInput, 'password123');
+      // Find the form element using Testing Library
+      const form = screen.getByRole('form');
+      expect(form).toBeInTheDocument();
 
       // Find the submit button
       const submitButton = screen.getByTestId('auth-submit-button');
       expect(submitButton).toBeInTheDocument();
+      expect(submitButton).toBeEnabled();
 
-      // Click the submit button to trigger form submission
+      // Submit the form directly through the button click
       await user.click(submitButton);
-      
-      // Check if handleSubmit was called at least once (might be called multiple times)
+
+      // Check if handleSubmit was called
       expect(mockHandleSubmit).toHaveBeenCalled();
     });
 
@@ -311,7 +326,6 @@ describe('LoginForm', () => {
 
   describe('OAuth integration', () => {
     it('handles OAuth login when provider is clicked', async () => {
-      const _user = userEvent.setup();
       render(<LoginForm />);
 
       // This depends on LoginOAuthSection implementation

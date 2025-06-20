@@ -4,14 +4,17 @@
 
 /**
  * Enhanced Bingo Game Logic Tests
- * 
+ *
  * Focus on testing complex game logic scenarios without heavy mocking.
  * Tests real win detection, scoring, and game state logic.
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import { WinDetectionService } from '@/features/bingo-boards/services/win-detection.service';
-import { ScoringService } from '@/features/bingo-boards/services/scoring.service';
+import {
+  ScoringService,
+  type ScoreCalculation,
+} from '@/features/bingo-boards/services/scoring.service';
 import { bingoGeneratorService } from '../bingo-generator.service';
 import type { BoardCell } from '@/types/domains/bingo';
 import type { WinPattern } from '@/features/bingo-boards/types/win-patterns.types';
@@ -31,7 +34,10 @@ function createBoardCell(index: number, marked = false): BoardCell {
   };
 }
 
-function createBoardState(size: number, markedPositions: number[] = []): BoardCell[] {
+function createBoardState(
+  size: number,
+  markedPositions: number[] = []
+): BoardCell[] {
   return Array.from({ length: size * size }, (_, i) =>
     createBoardCell(i, markedPositions.includes(i))
   );
@@ -94,7 +100,9 @@ class GameLogicEngine {
       cell.last_modified_by = move.playerId;
     } else if (move.action === 'unmark') {
       cell.is_marked = false;
-      cell.completed_by = (cell.completed_by || []).filter(id => id !== move.playerId);
+      cell.completed_by = (cell.completed_by || []).filter(
+        id => id !== move.playerId
+      );
       cell.last_modified_by = move.playerId;
     }
 
@@ -103,9 +111,9 @@ class GameLogicEngine {
 
     // Check for wins
     const winResult = this.winDetector.detectWin(newBoardState);
-    
+
     // Calculate score if win detected
-    let score: any = null;
+    let score: ScoreCalculation | null = null;
     if (winResult.hasWin) {
       score = this.scorer.calculateScore(
         winResult.patterns,
@@ -143,9 +151,15 @@ class GameLogicEngine {
 
       if (pattern.type === 'single-line' && pattern.name.includes('Row')) {
         complexity.simpleLines++;
-      } else if (pattern.type === 'single-line' && pattern.name.includes('Column')) {
+      } else if (
+        pattern.type === 'single-line' &&
+        pattern.name.includes('Column')
+      ) {
         complexity.simpleLines++;
-      } else if (pattern.type === 'single-line' && pattern.name.includes('Diagonal')) {
+      } else if (
+        pattern.type === 'single-line' &&
+        pattern.name.includes('Diagonal')
+      ) {
         complexity.diagonals++;
       } else {
         complexity.specialPatterns++;
@@ -173,7 +187,7 @@ interface MoveResult {
   newBoardState: BoardCell[];
   winDetected: boolean;
   winPatterns: WinPattern[];
-  score: any;
+  score: ScoreCalculation | null;
   totalPoints: number;
 }
 
@@ -202,21 +216,29 @@ describe('Enhanced Bingo Game Logic Tests', () => {
   describe('Complex Win Detection Scenarios', () => {
     test('should detect multiple simultaneous wins correctly', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // Create board state with both a row and column win
       const boardState = createBoardState(5, [
-        0, 1, 2, 3, 4,  // First row
-        0, 5, 10, 15, 20 // First column (0 is shared)
+        0,
+        1,
+        2,
+        3,
+        4, // First row
+        0,
+        5,
+        10,
+        15,
+        20, // First column (0 is shared)
       ]);
 
       const result = winDetector.detectWin(boardState);
 
       expect(result.hasWin).toBe(true);
       expect(result.patterns.length).toBeGreaterThanOrEqual(2);
-      
+
       const rowPattern = result.patterns.find(p => p.name === 'Row 1');
       const columnPattern = result.patterns.find(p => p.name === 'Column 1');
-      
+
       expect(rowPattern).toBeTruthy();
       expect(columnPattern).toBeTruthy();
       expect(result.totalPoints).toBe(200); // 100 + 100
@@ -224,7 +246,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
     test('should handle complex overlapping diagonal wins', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // Create X pattern (both diagonals)
       const xPositions = [0, 4, 6, 8, 12, 16, 18, 20, 24];
       const boardState = createBoardState(5, xPositions);
@@ -233,10 +255,10 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
       expect(result.hasWin).toBe(true);
       expect(result.patterns.length).toBeGreaterThanOrEqual(2);
-      
+
       const diagonal1 = result.patterns.find(p => p.name === 'Diagonal (↘)');
       const diagonal2 = result.patterns.find(p => p.name === 'Diagonal (↙)');
-      
+
       expect(diagonal1).toBeTruthy();
       expect(diagonal2).toBeTruthy();
       expect(result.totalPoints).toBe(500); // 150 + 150 + 200 (four corners)
@@ -244,12 +266,12 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
     test('should correctly identify special pattern Letter T', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // T pattern: top row + middle column
       const tPositions = [0, 1, 2, 3, 4, 7, 12, 17, 22];
-      
+
       const tPattern = winDetector.checkLetterT(tPositions);
-      
+
       expect(tPattern).toBeTruthy();
       expect(tPattern!.type).toBe('letter-t');
       expect(tPattern!.name).toBe('Letter T');
@@ -258,7 +280,10 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
     test('should handle performance for large board sizes', () => {
       const largeWinDetector = new WinDetectionService(10);
-      const largeBoardState = createBoardState(10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      const largeBoardState = createBoardState(
+        10,
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      );
 
       const startTime = performance.now();
       const result = largeWinDetector.detectWin(largeBoardState);
@@ -277,7 +302,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
           // Player 1 going for top row
           { position: 0, playerId: 'player1', action: 'mark' },
           { position: 1, playerId: 'player1', action: 'mark' },
-          // Player 2 going for left column  
+          // Player 2 going for left column
           { position: 0, playerId: 'player2', action: 'mark' }, // Shared cell
           { position: 5, playerId: 'player2', action: 'mark' },
           // Continue race
@@ -294,7 +319,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
       expect(result.gameEnded).toBe(true);
       expect(result.winner).toBe('player1');
       expect(result.moves.some(m => m.winDetected)).toBe(true);
-      
+
       const winningMove = result.moves.find(m => m.winDetected);
       expect(winningMove?.winPatterns[0]?.name).toBe('Row 1');
     });
@@ -322,7 +347,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
       expect(result.gameEnded).toBe(true);
       expect(result.winner).toBe('player1');
-      
+
       const winningMove = result.moves.find(m => m.winDetected);
       expect(winningMove?.winPatterns[0]?.name).toBe('Diagonal (↘)');
     });
@@ -347,7 +372,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
       expect(result.gameEnded).toBe(true);
       expect(result.winner).toBe('player1');
-      
+
       // Check that center cell has multiple completers
       const centerCell = result.finalBoardState[12];
       expect(centerCell?.completed_by).toContain('player1');
@@ -360,11 +385,11 @@ describe('Enhanced Bingo Game Logic Tests', () => {
     test('should calculate complex pattern scoring correctly', () => {
       const winDetector = new WinDetectionService(5);
       const scorer = new ScoringService();
-      
+
       // Create full house scenario
       const allPositions = Array.from({ length: 25 }, (_, i) => i);
       const boardState = createBoardState(5, allPositions);
-      
+
       const winResult = winDetector.detectWin(boardState);
       const score = scorer.calculateScore(
         winResult.patterns,
@@ -381,18 +406,32 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
     test('should analyze pattern complexity correctly', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // Create complex overlapping patterns
       const complexPositions = [
-        0, 1, 2, 3, 4,    // Row 1
-        0, 5, 10, 15, 20, // Column 1  
-        0, 6, 12, 18, 24  // Diagonal
+        0,
+        1,
+        2,
+        3,
+        4, // Row 1
+        0,
+        5,
+        10,
+        15,
+        20, // Column 1
+        0,
+        6,
+        12,
+        18,
+        24, // Diagonal
       ];
       const uniquePositions = [...new Set(complexPositions)];
       const boardState = createBoardState(5, uniquePositions);
-      
+
       const winResult = winDetector.detectWin(boardState);
-      const complexity = gameEngine.analyzePatternComplexity(winResult.patterns);
+      const complexity = gameEngine.analyzePatternComplexity(
+        winResult.patterns
+      );
 
       expect(complexity.simpleLines).toBeGreaterThanOrEqual(2); // Row + Column
       expect(complexity.diagonals).toBeGreaterThanOrEqual(1); // Diagonal
@@ -402,11 +441,11 @@ describe('Enhanced Bingo Game Logic Tests', () => {
     test('should handle edge case of minimal win patterns', () => {
       const winDetector = new WinDetectionService(5);
       const scorer = new ScoringService();
-      
+
       // Just a simple row win
       const minimalPositions = [0, 1, 2, 3, 4];
       const boardState = createBoardState(5, minimalPositions);
-      
+
       const winResult = winDetector.detectWin(boardState);
       const score = scorer.calculateScore(
         winResult.patterns,
@@ -425,36 +464,42 @@ describe('Enhanced Bingo Game Logic Tests', () => {
   describe('Game Logic Validation', () => {
     test('should validate parameter constraints correctly', () => {
       // Test grid size validation
-      expect(bingoGeneratorService.validateGenerationParams({
-        gameCategory: 'Valorant',
-        difficulty: 'medium' as any,
-        cardPoolSize: 'Medium' as const,
-        minVotes: 0,
-        selectedCategories: [],
-        cardSource: 'public' as const,
-        gridSize: 8, // Too small
-      })).toBe('Grid size must be between 9 and 49');
+      expect(
+        bingoGeneratorService.validateGenerationParams({
+          gameCategory: 'Valorant',
+          difficulty: 'medium' as any,
+          cardPoolSize: 'Medium' as const,
+          minVotes: 0,
+          selectedCategories: [],
+          cardSource: 'public' as const,
+          gridSize: 8, // Too small
+        })
+      ).toBe('Grid size must be between 9 and 49');
 
-      expect(bingoGeneratorService.validateGenerationParams({
-        gameCategory: 'Valorant',
-        difficulty: 'medium' as any,
-        cardPoolSize: 'Medium' as const,
-        minVotes: 0,
-        selectedCategories: [],
-        cardSource: 'public' as const,
-        gridSize: 50, // Too large
-      })).toBe('Grid size must be between 9 and 49');
+      expect(
+        bingoGeneratorService.validateGenerationParams({
+          gameCategory: 'Valorant',
+          difficulty: 'medium' as any,
+          cardPoolSize: 'Medium' as const,
+          minVotes: 0,
+          selectedCategories: [],
+          cardSource: 'public' as const,
+          gridSize: 50, // Too large
+        })
+      ).toBe('Grid size must be between 9 and 49');
 
       // Test valid parameters
-      expect(bingoGeneratorService.validateGenerationParams({
-        gameCategory: 'Valorant',
-        difficulty: 'medium' as any,
-        cardPoolSize: 'Medium' as const,
-        minVotes: 0,
-        selectedCategories: [],
-        cardSource: 'public' as const,
-        gridSize: 25, // Valid
-      })).toBeNull();
+      expect(
+        bingoGeneratorService.validateGenerationParams({
+          gameCategory: 'Valorant',
+          difficulty: 'medium' as any,
+          cardPoolSize: 'Medium' as const,
+          minVotes: 0,
+          selectedCategories: [],
+          cardSource: 'public' as const,
+          gridSize: 25, // Valid
+        })
+      ).toBeNull();
     });
 
     test('should handle different board sizes consistently', () => {
@@ -462,7 +507,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
       const small = new WinDetectionService(3);
       const smallBoard = createBoardState(3, [0, 1, 2]); // Top row
       const smallResult = small.detectWin(smallBoard);
-      
+
       expect(smallResult.hasWin).toBe(true);
       expect(smallResult.patterns[0]?.positions).toEqual([0, 1, 2]);
 
@@ -470,14 +515,16 @@ describe('Enhanced Bingo Game Logic Tests', () => {
       const large = new WinDetectionService(7);
       const largeBoard = createBoardState(7, [0, 7, 14, 21, 28, 35, 42]); // Left column
       const largeResult = large.detectWin(largeBoard);
-      
+
       expect(largeResult.hasWin).toBe(true);
-      expect(largeResult.patterns[0]?.positions).toEqual([0, 7, 14, 21, 28, 35, 42]);
+      expect(largeResult.patterns[0]?.positions).toEqual([
+        0, 7, 14, 21, 28, 35, 42,
+      ]);
     });
 
     test('should maintain performance under stress conditions', () => {
       const stressEngine = new GameLogicEngine(7);
-      
+
       // Create large game with many moves
       const stressMoves: GameMove[] = [];
       for (let i = 0; i < 100; i++) {
@@ -505,7 +552,7 @@ describe('Enhanced Bingo Game Logic Tests', () => {
   describe('Edge Cases and Error Handling', () => {
     test('should handle malformed board states gracefully', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // Create board with some invalid cells
       const malformedBoard = Array.from({ length: 25 }, (_, i) => {
         if (i % 7 === 0) {
@@ -522,11 +569,11 @@ describe('Enhanced Bingo Game Logic Tests', () => {
 
     test('should handle empty and sparse boards', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // Empty board
       const emptyBoard = createBoardState(5, []);
       const emptyResult = winDetector.detectWin(emptyBoard);
-      
+
       expect(emptyResult.hasWin).toBe(false);
       expect(emptyResult.patterns).toHaveLength(0);
       expect(emptyResult.totalPoints).toBe(0);
@@ -534,22 +581,22 @@ describe('Enhanced Bingo Game Logic Tests', () => {
       // Sparse board (only one cell marked)
       const sparseBoard = createBoardState(5, [12]);
       const sparseResult = winDetector.detectWin(sparseBoard);
-      
+
       expect(sparseResult.hasWin).toBe(false);
       expect(sparseResult.patterns).toHaveLength(0);
     });
 
     test('should validate win patterns against actual board state', () => {
       const winDetector = new WinDetectionService(5);
-      
+
       // Test that patterns match actual marked cells
       const positions = [0, 6, 12, 18, 24]; // Diagonal
       const boardState = createBoardState(5, positions);
       const result = winDetector.detectWin(boardState);
-      
+
       expect(result.hasWin).toBe(true);
       expect(result.patterns[0]?.positions).toEqual(positions);
-      
+
       // Verify all pattern positions are actually marked
       const firstPattern = result.patterns[0];
       if (firstPattern) {

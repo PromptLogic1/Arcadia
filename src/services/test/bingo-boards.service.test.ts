@@ -65,7 +65,8 @@ jest.mock('@/services/redis.service', () => ({
     invalidate: jest.fn(),
     invalidatePattern: jest.fn(),
     createKey: jest.fn(
-      (prefix: string, ...args: any[]) => `${prefix}:${args.join(':')}`
+      (prefix: string, ...args: Array<string | number>) =>
+        `${prefix}:${args.join(':')}`
     ),
     getOrSet: jest.fn(),
   },
@@ -125,8 +126,27 @@ describe('BingoBoardsService', () => {
       success: true,
       data: {},
     });
-    (transformBoardState as jest.Mock).mockImplementation(data => data);
-    (transformBoardSettings as jest.Mock).mockImplementation(data => data);
+
+    // Mock the .catch() methods used in the service
+    (zBoardState.catch as jest.Mock).mockReturnValue({
+      parse: jest.fn().mockImplementation(data => data || []),
+    });
+    (zBoardSettings.catch as jest.Mock).mockReturnValue({
+      parse: jest.fn().mockImplementation(
+        data =>
+          data || {
+            team_mode: null,
+            lockout: null,
+            sound_enabled: null,
+            win_conditions: null,
+          }
+      ),
+    });
+
+    (transformBoardState as jest.Mock).mockImplementation(data => data || []);
+    (transformBoardSettings as jest.Mock).mockImplementation(
+      data => data || {}
+    );
 
     // Mock window for server-side tests
     delete (global as any).window;
@@ -192,9 +212,14 @@ describe('BingoBoardsService', () => {
         typeof mockSupabase.auth
       >;
 
+      const authError = new AuthError(
+        'Not authenticated',
+        401,
+        'UNAUTHENTICATED'
+      );
       mockAuth.getUser.mockResolvedValue({
-        data: { user: mockSupabaseUser() },
-        error: null,
+        data: { user: null },
+        error: authError,
       });
 
       const result = await bingoBoardsService.createBoard(createData);
@@ -208,7 +233,11 @@ describe('BingoBoardsService', () => {
         typeof mockSupabase.auth
       >;
 
-      const authError = new AuthError('Auth service unavailable', 500, 'AUTH_ERROR');
+      const authError = new AuthError(
+        'Auth service unavailable',
+        500,
+        'AUTH_ERROR'
+      );
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: authError,
@@ -857,7 +886,17 @@ describe('BingoBoardsService', () => {
             const result = await fetchFn();
             return result;
           } catch (error) {
-            return { success: false, error: (error as Error).message };
+            // Handle Supabase error objects properly
+            if (error && typeof error === 'object' && 'message' in error) {
+              return {
+                success: false,
+                error: error.message,
+              };
+            }
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            };
           }
         }
       );
@@ -893,7 +932,10 @@ describe('BingoBoardsService', () => {
             const result = await fetchFn();
             return result;
           } catch (error) {
-            return { success: false, error: (error as Error).message };
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            };
           }
         }
       );
@@ -1836,8 +1878,8 @@ describe('BingoBoardsService', () => {
   describe('getBoards (API method)', () => {
     it('should fetch boards with API parameters', async () => {
       const params = {
-        game: 'Pokemon' as GameCategory, // Use a specific game, not 'All Games'
-        difficulty: 'medium' as DifficultyLevel,
+        game: 'Minecraft' as const, // Use a specific game, not 'All Games'
+        difficulty: 'medium' as const,
         limit: 5,
         offset: 10,
       };
@@ -1941,8 +1983,8 @@ describe('BingoBoardsService', () => {
           sound_enabled: null,
           win_conditions: null,
         },
-        game_type: 'All Games' as GameCategory,
-        difficulty: 'easy' as DifficultyLevel,
+        game_type: 'All Games' as const,
+        difficulty: 'easy' as const,
         is_public: true,
         board_state: [],
         userId: 'user-123',
@@ -1983,8 +2025,8 @@ describe('BingoBoardsService', () => {
         title: 'API Board',
         size: 5,
         settings: {},
-        game_type: 'All Games' as GameCategory,
-        difficulty: 'easy' as DifficultyLevel,
+        game_type: 'All Games' as const,
+        difficulty: 'easy' as const,
         is_public: true,
         board_state: [],
         userId: 'user-123',

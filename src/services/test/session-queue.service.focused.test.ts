@@ -99,7 +99,14 @@ describe('SessionQueueService - Focused Coverage', () => {
 
   describe('acceptPlayer - Database Error Scenarios', () => {
     it('handles error when checking session capacity', async () => {
-      // Mock successful queue entry fetch
+      // Mock successful queue entry fetch (first query chain)
+      mockSupabase.eq
+        .mockReturnValueOnce(mockSupabase) // First eq() call returns mockSupabase
+        .mockResolvedValueOnce({
+          count: null,
+          error: { message: 'Count query failed', code: 'QUERY_ERROR' },
+        }); // Second eq() call returns error
+
       mockSupabase.single.mockResolvedValueOnce({
         data: {
           id: 'entry-123',
@@ -111,12 +118,6 @@ describe('SessionQueueService - Focused Coverage', () => {
           status: 'waiting',
         },
         error: null,
-      });
-
-      // Mock error when checking session capacity
-      mockSupabase.eq.mockResolvedValueOnce({
-        count: null,
-        error: { message: 'Count query failed', code: 'QUERY_ERROR' },
       });
 
       const result = await sessionQueueService.acceptPlayer(

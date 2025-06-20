@@ -1,6 +1,6 @@
 /**
  * Advanced Bingo Engine Tests
- * 
+ *
  * Focuses on complex game logic scenarios, performance optimizations,
  * and edge cases in the bingo game engine integration.
  */
@@ -8,7 +8,12 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import { WinDetectionService } from '../services/win-detection.service';
 import { ScoringService } from '../services/scoring.service';
-import type { BoardCell, GameState, WinPattern } from '../types';
+import type {
+  BoardCell,
+  GameState,
+  WinPattern,
+  WinDetectionResult,
+} from '../types';
 
 // Advanced Bingo Engine with additional complexity
 class AdvancedBingoEngine {
@@ -29,7 +34,7 @@ class AdvancedBingoEngine {
     move: AdvancedMove
   ): AdvancedMoveResult {
     const startTime = performance.now();
-    
+
     try {
       // Validate move
       const validation = this.validateAdvancedMove(gameState, move);
@@ -42,12 +47,15 @@ class AdvancedBingoEngine {
       }
 
       // Apply move with transaction-like behavior
-      const { newState, rollback } = this.applyMoveWithRollback(gameState, move);
-      
+      const { newState, rollback } = this.applyMoveWithRollback(
+        gameState,
+        move
+      );
+
       try {
         // Detect wins
         const winResult = this.winDetector.detectWin(newState.currentState);
-        
+
         // Calculate advanced scoring
         const scoreResult = this.calculateAdvancedScore(
           winResult,
@@ -93,9 +101,9 @@ class AdvancedBingoEngine {
   analyzeGamePerformance(): GamePerformanceAnalysis {
     const totalMoves = this.gameHistory.length;
     const winMoves = this.gameHistory.filter(h => h.winDetected).length;
-    const averageProcessingTime = this.gameHistory.reduce(
-      (sum, h) => sum + (h.timestamp || 0), 0
-    ) / totalMoves;
+    const averageProcessingTime =
+      this.gameHistory.reduce((sum, h) => sum + (h.timestamp || 0), 0) /
+      totalMoves;
 
     const patternFrequency = new Map<string, number>();
     this.gameHistory.forEach(h => {
@@ -115,11 +123,12 @@ class AdvancedBingoEngine {
           streak: this.streakTracker.get(playerId) || 0,
         });
       }
-      
+
       const stats = playerPerformance.get(playerId)!;
       stats.totalMoves++;
       if (h.winDetected) stats.wins++;
-      stats.averageScore = (stats.averageScore + (h.score || 0)) / stats.totalMoves;
+      stats.averageScore =
+        (stats.averageScore + (h.score || 0)) / stats.totalMoves;
     });
 
     return {
@@ -132,21 +141,19 @@ class AdvancedBingoEngine {
     };
   }
 
-  simulateComplexGameScenario(
-    scenario: GameScenario
-  ): ScenarioResult {
+  simulateComplexGameScenario(scenario: GameScenario): ScenarioResult {
     const startTime = performance.now();
     let gameState = this.createGameState(scenario.boardSize);
     const results: AdvancedMoveResult[] = [];
-    
+
     for (const move of scenario.moves) {
       const result = this.processAdvancedMove(gameState, move);
       results.push(result);
-      
+
       if (result.success && result.newState) {
         gameState = result.newState;
       }
-      
+
       if (result.winDetected) {
         break; // Game ends on first win
       }
@@ -154,7 +161,10 @@ class AdvancedBingoEngine {
 
     const endTime = performance.now();
     const winnerIndex = results.findIndex(r => r.winDetected);
-    const winner = winnerIndex !== -1 ? scenario.moves[winnerIndex]?.playerId ?? null : null;
+    const winner =
+      winnerIndex !== -1
+        ? (scenario.moves[winnerIndex]?.playerId ?? null)
+        : null;
 
     return {
       totalTime: endTime - startTime,
@@ -171,7 +181,7 @@ class AdvancedBingoEngine {
   ): { valid: boolean; reason?: string } {
     // Enhanced validation logic
     const cell = gameState.currentState[move.cellPosition];
-    
+
     if (!cell) {
       return { valid: false, reason: 'Invalid cell position' };
     }
@@ -217,18 +227,20 @@ class AdvancedBingoEngine {
     };
 
     const cell = newState.currentState[move.cellPosition];
-    
+
     if (!cell) {
       throw new Error(`Invalid cell position: ${move.cellPosition}`);
     }
-    
+
     if (move.action === 'mark') {
       cell.is_marked = true;
       cell.completed_by = [...(cell.completed_by || []), move.playerId];
       cell.last_modified_by = move.playerId;
     } else {
       cell.is_marked = false;
-      cell.completed_by = (cell.completed_by || []).filter(id => id !== move.playerId);
+      cell.completed_by = (cell.completed_by || []).filter(
+        id => id !== move.playerId
+      );
       cell.last_modified_by = move.playerId;
     }
 
@@ -247,7 +259,7 @@ class AdvancedBingoEngine {
   }
 
   private calculateAdvancedScore(
-    winResult: any,
+    winResult: WinDetectionResult,
     move: AdvancedMove,
     playerHistory: GameHistoryEntry[]
   ): AdvancedScore {
@@ -299,8 +311,10 @@ class AdvancedBingoEngine {
     }
 
     const totalScore = Math.floor(
-      (baseScoreCalc.totalScore + Object.values(bonuses).reduce((a, b) => a + b, 0) -
-       Object.values(penalties).reduce((a, b) => a + b, 0)) * multiplier
+      (baseScoreCalc.totalScore +
+        Object.values(bonuses).reduce((a, b) => a + b, 0) -
+        Object.values(penalties).reduce((a, b) => a + b, 0)) *
+        multiplier
     );
 
     return {
@@ -314,7 +328,10 @@ class AdvancedBingoEngine {
 
   private updateStreakTracking(playerId: string, won: boolean): void {
     if (won) {
-      this.streakTracker.set(playerId, (this.streakTracker.get(playerId) || 0) + 1);
+      this.streakTracker.set(
+        playerId,
+        (this.streakTracker.get(playerId) || 0) + 1
+      );
     } else {
       this.streakTracker.set(playerId, 0);
     }
@@ -322,7 +339,7 @@ class AdvancedBingoEngine {
 
   private recordGameHistory(entry: GameHistoryEntry): void {
     this.gameHistory.push(entry);
-    
+
     // Keep only last 1000 entries to prevent memory bloat
     if (this.gameHistory.length > 1000) {
       this.gameHistory = this.gameHistory.slice(-1000);
@@ -338,20 +355,17 @@ class AdvancedBingoEngine {
   }
 
   private createGameState(size: number): GameState {
-    const cells: BoardCell[] = Array.from(
-      { length: size * size },
-      (_, i) => ({
-        text: `Cell ${i}`,
-        colors: null,
-        completed_by: [],
-        blocked: false,
-        is_marked: false,
-        cell_id: `cell-${i}`,
-        version: 1,
-        last_updated: Date.now(),
-        last_modified_by: null,
-      })
-    );
+    const cells: BoardCell[] = Array.from({ length: size * size }, (_, i) => ({
+      text: `Cell ${i}`,
+      colors: null,
+      completed_by: [],
+      blocked: false,
+      is_marked: false,
+      cell_id: `cell-${i}`,
+      version: 1,
+      last_updated: Date.now(),
+      last_modified_by: null,
+    }));
 
     return {
       currentState: cells,
@@ -365,7 +379,7 @@ class AdvancedBingoEngine {
     const historySize = this.gameHistory.length * 200; // ~200 bytes per entry
     const stateSize = this.boardSize * this.boardSize * 100; // ~100 bytes per cell
     const trackerSize = this.streakTracker.size * 50; // ~50 bytes per player
-    
+
     return historySize + stateSize + trackerSize;
   }
 }
@@ -471,7 +485,7 @@ describe('Advanced Bingo Engine Tests', () => {
       for (const move of moves) {
         const result = engine.processAdvancedMove(currentState, move);
         expect(result.success).toBe(true);
-        
+
         if (result.newState) {
           currentState = result.newState;
         }
@@ -554,9 +568,11 @@ describe('Advanced Bingo Engine Tests', () => {
       const player1 = 'player-rollback-test';
 
       // Mock the win detector to throw an error
-      jest.spyOn(engine['winDetector'], 'detectWin').mockImplementationOnce(() => {
-        throw new Error('Win detection failed');
-      });
+      jest
+        .spyOn(engine['winDetector'], 'detectWin')
+        .mockImplementationOnce(() => {
+          throw new Error('Win detection failed');
+        });
 
       const move: AdvancedMove = {
         cellPosition: 12,
@@ -568,7 +584,7 @@ describe('Advanced Bingo Engine Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Win detection failed');
-      
+
       // Processing time should still be recorded even on error
       expect(result.processingTime).toBeGreaterThan(0);
     });
@@ -610,15 +626,16 @@ describe('Advanced Bingo Engine Tests', () => {
 
     test('should maintain memory efficiency with history limits', () => {
       const gameState = engine['createGameState'](5);
-      
+
       // Generate many moves to test memory management
-      for (let i = 0; i < 1200; i++) { // More than the 1000 limit
+      for (let i = 0; i < 1200; i++) {
+        // More than the 1000 limit
         const move: AdvancedMove = {
           cellPosition: i % 25,
           playerId: `player-${i % 10}`,
           action: 'mark',
         };
-        
+
         engine.processAdvancedMove(gameState, move);
       }
 
@@ -688,10 +705,10 @@ describe('Advanced Bingo Engine Tests', () => {
         boardSize: 5,
         moves: [
           // Player sets up for Letter X pattern (both diagonals)
-          { cellPosition: 0, playerId: 'xplayer', action: 'mark' },  // TL
-          { cellPosition: 4, playerId: 'xplayer', action: 'mark' },  // TR
-          { cellPosition: 6, playerId: 'xplayer', action: 'mark' },  // Diagonal 1
-          { cellPosition: 8, playerId: 'xplayer', action: 'mark' },  // Diagonal 2
+          { cellPosition: 0, playerId: 'xplayer', action: 'mark' }, // TL
+          { cellPosition: 4, playerId: 'xplayer', action: 'mark' }, // TR
+          { cellPosition: 6, playerId: 'xplayer', action: 'mark' }, // Diagonal 1
+          { cellPosition: 8, playerId: 'xplayer', action: 'mark' }, // Diagonal 2
           { cellPosition: 12, playerId: 'xplayer', action: 'mark' }, // Center
           { cellPosition: 16, playerId: 'xplayer', action: 'mark' }, // Diagonal 2
           { cellPosition: 18, playerId: 'xplayer', action: 'mark' }, // Diagonal 1
@@ -720,7 +737,7 @@ describe('Advanced Bingo Engine Tests', () => {
           // Player 2 sabotages by unmarking
           { cellPosition: 1, playerId: 'player1', action: 'unmark' },
           // Player 1 recovers and completes a different pattern
-          { cellPosition: 5, playerId: 'player1', action: 'mark' },  // Start column
+          { cellPosition: 5, playerId: 'player1', action: 'mark' }, // Start column
           { cellPosition: 10, playerId: 'player1', action: 'mark' },
           { cellPosition: 15, playerId: 'player1', action: 'mark' },
           { cellPosition: 20, playerId: 'player1', action: 'mark' }, // Complete column
@@ -763,11 +780,11 @@ describe('Advanced Bingo Engine Tests', () => {
 
     test('should handle invalid move sequences gracefully', () => {
       const gameState = engine['createGameState'](5);
-      
+
       const invalidMoves: AdvancedMove[] = [
-        { cellPosition: -1, playerId: 'player1', action: 'mark' },    // Invalid position
-        { cellPosition: 25, playerId: 'player1', action: 'mark' },   // Out of bounds
-        { cellPosition: 0, playerId: 'player1', action: 'unmark' },  // Unmark non-marked cell
+        { cellPosition: -1, playerId: 'player1', action: 'mark' }, // Invalid position
+        { cellPosition: 25, playerId: 'player1', action: 'mark' }, // Out of bounds
+        { cellPosition: 0, playerId: 'player1', action: 'unmark' }, // Unmark non-marked cell
       ];
 
       for (const move of invalidMoves) {
@@ -779,7 +796,7 @@ describe('Advanced Bingo Engine Tests', () => {
 
     test('should maintain performance under memory pressure', () => {
       const gameState = engine['createGameState'](7); // Larger board
-      
+
       // Simulate memory pressure with large move history
       for (let round = 0; round < 5; round++) {
         for (let i = 0; i < 49; i++) {
@@ -791,11 +808,11 @@ describe('Advanced Bingo Engine Tests', () => {
               points: Math.floor(Math.random() * 100),
             },
           };
-          
+
           const startTime = performance.now();
           engine.processAdvancedMove(gameState, move);
           const endTime = performance.now();
-          
+
           // Each move should still process quickly
           expect(endTime - startTime).toBeLessThan(10);
         }

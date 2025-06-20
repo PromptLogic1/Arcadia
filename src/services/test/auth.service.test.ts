@@ -74,7 +74,7 @@ describe('AuthService - Comprehensive Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mock window.location for OAuth tests  
+    // Mock window.location for OAuth tests
     Object.defineProperty(window, 'location', {
       value: { origin: 'http://localhost:3000' },
       writable: true,
@@ -1180,7 +1180,8 @@ describe('AuthService - Comprehensive Tests', () => {
 
   describe('signInWithOAuth', () => {
     it('should initiate OAuth sign in successfully', async () => {
-      const mockOAuthUrl = 'https://accounts.google.com/oauth/authorize?client_id=test';
+      const mockOAuthUrl =
+        'https://accounts.google.com/oauth/authorize?client_id=test';
 
       mockSupabaseAuth.signInWithOAuth = jest.fn().mockResolvedValue({
         data: { url: mockOAuthUrl },
@@ -1236,7 +1237,9 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle unexpected errors during OAuth', async () => {
-      mockSupabaseAuth.signInWithOAuth = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockSupabaseAuth.signInWithOAuth = jest
+        .fn()
+        .mockRejectedValue(new Error('Network error'));
 
       const result = await authService.signInWithOAuth('google');
 
@@ -1256,7 +1259,9 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle non-Error objects during OAuth', async () => {
-      mockSupabaseAuth.signInWithOAuth = jest.fn().mockRejectedValue('String error');
+      mockSupabaseAuth.signInWithOAuth = jest
+        .fn()
+        .mockRejectedValue('String error');
 
       const result = await authService.signInWithOAuth('github');
 
@@ -1336,9 +1341,9 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle unexpected errors during code exchange', async () => {
-      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockRejectedValue(
-        new Error('Session error')
-      );
+      mockSupabaseAuth.exchangeCodeForSession = jest
+        .fn()
+        .mockRejectedValue(new Error('Session error'));
 
       const result = await authService.exchangeCodeForSession('valid-code');
 
@@ -1370,7 +1375,8 @@ describe('AuthService - Comprehensive Tests', () => {
         error: null,
       });
 
-      const result = await authService.exchangeCodeForSession('oauth-code-minimal');
+      const result =
+        await authService.exchangeCodeForSession('oauth-code-minimal');
 
       expect(result.success).toBe(true);
       expect(result.data?.user).toEqual({
@@ -1386,7 +1392,9 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle non-Error objects during code exchange', async () => {
-      mockSupabaseAuth.exchangeCodeForSession = jest.fn().mockRejectedValue({ message: 'Object error' });
+      mockSupabaseAuth.exchangeCodeForSession = jest
+        .fn()
+        .mockRejectedValue({ message: 'Object error' });
 
       const result = await authService.exchangeCodeForSession('valid-code');
 

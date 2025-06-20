@@ -3,7 +3,7 @@
  */
 
 import { redisLocksService } from '../redis-locks.service';
-import { getRedisClient, isRedisConfigured } from '@/lib/redis';
+import { getRedisClient, isRedisConfigured, createRedisKey } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type {
   DistributedLockOptions,
@@ -11,7 +11,14 @@ import type {
 } from '../redis-locks.service';
 
 // Mock dependencies
-jest.mock('@/lib/redis');
+jest.mock('@/lib/redis', () => ({
+  getRedisClient: jest.fn(),
+  isRedisConfigured: jest.fn(),
+  createRedisKey: jest.fn((...parts) => parts.join(':')),
+  REDIS_PREFIXES: {
+    QUEUE: '@arcadia/queue',
+  },
+}));
 jest.mock('@/lib/logger');
 
 const mockRedis = {
@@ -25,6 +32,7 @@ describe('redisLocksService', () => {
     jest.clearAllMocks();
     (getRedisClient as jest.Mock).mockReturnValue(mockRedis);
     (isRedisConfigured as jest.Mock).mockReturnValue(true);
+    (createRedisKey as jest.Mock).mockImplementation((...parts) => parts.join(':'));
 
     // Clear any active locks
     (redisLocksService as any).activeLocks.clear();
@@ -52,8 +60,8 @@ describe('redisLocksService', () => {
         expiresAt: expect.any(Number),
       });
       expect(mockRedis.set).toHaveBeenCalledWith(
-        expect.stringContaining('test-lock-1'),
-        expect.stringContaining('test-holder'),
+        '@arcadia/queue:lock:test-lock-1',
+        expect.stringMatching(/"holder":"test-holder"/),
         expect.objectContaining({
           ex: 30,
           nx: true,
@@ -176,8 +184,8 @@ describe('redisLocksService', () => {
       expect(result.data).toBe(true);
       expect(mockRedis.eval).toHaveBeenCalledWith(
         expect.stringContaining('lockData.holder == expectedHolder'),
-        expect.arrayContaining([expect.stringContaining(lockId)]),
-        expect.arrayContaining([holder])
+        ['@arcadia/queue:lock:test-lock-1'],
+        [holder]
       );
       expect(log.info).toHaveBeenCalledWith(
         'Distributed lock released',
@@ -301,8 +309,8 @@ describe('redisLocksService', () => {
       expect(result.data).toBe(true);
       expect(mockRedis.eval).toHaveBeenCalledWith(
         expect.stringContaining('lockData.holder == expectedHolder'),
-        expect.arrayContaining([expect.stringContaining(lockId)]),
-        expect.arrayContaining([holder, '30000'])
+        ['@arcadia/queue:lock:test-lock-1'],
+        [holder, '30000']
       );
       expect(log.debug).toHaveBeenCalledWith(
         'Lock extended successfully',

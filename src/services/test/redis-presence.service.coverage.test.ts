@@ -11,33 +11,44 @@ import type { PresenceState } from '../redis-presence.service';
 jest.mock('@/lib/redis');
 jest.mock('@/lib/logger');
 
-// Mock window to ensure server-side behavior
-const originalWindow = global.window;
-beforeAll(() => {
-  // Ensure window is undefined for server-side tests
-  // @ts-expect-error - We're intentionally setting window to undefined
-  delete global.window;
-});
-
-afterAll(() => {
-  global.window = originalWindow;
-});
+// Define a type for our mock Redis client
+type MockRedisClient = {
+  setex: jest.Mock;
+  sadd: jest.Mock;
+  expire: jest.Mock;
+  get: jest.Mock;
+  del: jest.Mock;
+  srem: jest.Mock;
+  smembers: jest.Mock;
+  publish: jest.Mock;
+};
 
 describe('redisPresenceService coverage tests', () => {
-  let mockRedis: any;
+  let mockRedis: MockRedisClient;
 
   afterEach(async () => {
     // Clean up any running intervals/timers
     jest.clearAllTimers();
     jest.useRealTimers();
-    
+
     // Clear the service's internal subscriptions map
-    // Access the private subscriptions property via any type casting
-    (redisPresenceService as any).subscriptions.clear();
+    // Access the private subscriptions property via type assertion
+    (
+      redisPresenceService as unknown as { subscriptions: Map<string, unknown> }
+    ).subscriptions.clear();
+
+    // Ensure window remains undefined after each test
+    // @ts-expect-error - We're intentionally setting window to undefined
+    delete global.window;
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetAllMocks();
+
+    // Ensure window is undefined for server-side tests
+    // @ts-expect-error - We're intentionally setting window to undefined
+    delete global.window;
 
     // Default mock setup
     mockRedis = {
@@ -53,15 +64,18 @@ describe('redisPresenceService coverage tests', () => {
 
     (getRedisClient as jest.Mock).mockReturnValue(mockRedis);
     (isRedisConfigured as jest.Mock).mockReturnValue(true);
-    (createRedisKey as jest.Mock).mockImplementation((prefix: string, ...parts: string[]) => {
-      return `${prefix}:${parts.join(':')}`;
-    });
+    (createRedisKey as jest.Mock).mockImplementation(
+      (prefix: string, ...parts: string[]) => {
+        return `${prefix}:${parts.join(':')}`;
+      }
+    );
   });
 
   describe('updateUserPresence edge cases', () => {
     it('should handle client-side execution', async () => {
       // Temporarily restore window for this test
-      global.window = {} as any;
+      // @ts-expect-error - Mocking window for test purposes
+      global.window = {};
 
       const result = await redisPresenceService.updateUserPresence(
         'board-123',
@@ -74,8 +88,9 @@ describe('redisPresenceService coverage tests', () => {
         'Presence operations are only available on the server'
       );
 
-      // Clean up
-      delete (global as any).window;
+      // Clean up - MUST delete window
+      // @ts-expect-error - We're intentionally setting window to undefined
+      delete global.window;
     });
 
     it('should handle Redis not configured', async () => {
@@ -217,7 +232,8 @@ describe('redisPresenceService coverage tests', () => {
   describe('leaveBoardPresence edge cases', () => {
     it('should handle client-side execution', async () => {
       // Temporarily restore window for this test
-      global.window = {} as any;
+      // @ts-expect-error - Mocking window for test purposes
+      global.window = {};
 
       const result = await redisPresenceService.leaveBoardPresence(
         'board-123',
@@ -229,8 +245,9 @@ describe('redisPresenceService coverage tests', () => {
         'Presence operations are only available on the server'
       );
 
-      // Clean up
-      delete (global as any).window;
+      // Clean up - MUST delete window
+      // @ts-expect-error - We're intentionally setting window to undefined
+      delete global.window;
     });
 
     it('should successfully leave board presence', async () => {
@@ -583,16 +600,6 @@ describe('redisPresenceService coverage tests', () => {
         { sessionId: 'session-123' }
       );
 
-      if (!result.success) {
-        console.log('JOIN FAILED:', result.error);
-        // Log the state of all mocks
-        console.log('Mock states:', {
-          isRedisConfigured: (isRedisConfigured as jest.Mock).mock.calls,
-          getRedisClient: (getRedisClient as jest.Mock).mock.calls,
-          createRedisKey: (createRedisKey as jest.Mock).mock.calls,
-        });
-      }
-
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       expect(typeof result.data?.updatePresence).toBe('function');
@@ -752,9 +759,13 @@ describe('redisPresenceService coverage tests', () => {
 
     it('should handle cleanup of subscriptions with error handling', async () => {
       // Create a subscription
-      const joinResult = await redisPresenceService.joinBoardPresence('board-123', 'user-456', {
-        displayName: 'Test User',
-      });
+      const joinResult = await redisPresenceService.joinBoardPresence(
+        'board-123',
+        'user-456',
+        {
+          displayName: 'Test User',
+        }
+      );
 
       expect(joinResult.success).toBe(true);
 

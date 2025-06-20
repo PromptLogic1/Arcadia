@@ -46,6 +46,16 @@ const mockLog = log as jest.Mocked<typeof log>;
 describe('Sessions Service Client - Additional Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Reset all mock implementations to ensure clean state
+    mockSupabase.from.mockReturnValue(mockSupabase);
+    mockSupabase.select.mockReturnValue(mockSupabase);
+    mockSupabase.eq.mockReturnValue(mockSupabase);
+    mockSupabase.or.mockReturnValue(mockSupabase);
+    mockSupabase.order.mockReturnValue(mockSupabase);
+    mockSupabase.limit.mockReturnValue(mockSupabase);
+    mockSupabase.single.mockResolvedValue({ data: null, error: null });
+    
     mockCreateClient.mockReturnValue(mockSupabase as never);
   });
 
@@ -213,10 +223,16 @@ describe('Sessions Service Client - Additional Coverage', () => {
       };
 
       // Mock the final query resolution to return an error
-      mockSupabase.eq.mockResolvedValue({
-        data: null,
-        error,
-      });
+      // The method does: query = query.eq('status', status); then await query;
+      // So the last eq() call should return a promise that resolves to error
+      const mockQuery = {
+        eq: jest.fn().mockResolvedValue({
+          data: null,
+          error,
+        }),
+      };
+      
+      mockSupabase.eq.mockReturnValueOnce(mockQuery as any);
 
       const result = await sessionsService.getSessionsByBoardIdWithPlayers(
         boardId,
@@ -255,7 +271,7 @@ describe('Sessions Service Client - Additional Coverage', () => {
         await sessionsService.getSessionsByBoardIdWithPlayers(boardId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('[object Object]'); // getErrorMessage converts objects
+      expect(result.error).toBe('Complex error object'); // getErrorMessage extracts message from objects
       expect(mockLog.error).toHaveBeenCalledWith(
         'Unexpected error getting sessions with players by board ID',
         expect.any(Error), // Should be wrapped in Error

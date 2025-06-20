@@ -1,6 +1,6 @@
 /**
  * @jest-environment node
- * 
+ *
  * Community Service Coverage Tests
  * Target coverage gaps in lines: 71-84, 127-138, 175-186, 249-260, 296-307
  */

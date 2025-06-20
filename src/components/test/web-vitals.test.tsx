@@ -34,7 +34,7 @@ Object.defineProperty(global, 'performance', {
 Object.defineProperty(global, 'window', {
   value: {
     performance: mockPerformance,
-    PerformanceObserver: jest.fn().mockImplementation(_callback => ({
+    PerformanceObserver: jest.fn().mockImplementation(() => ({
       observe: jest.fn(),
       disconnect: jest.fn(),
     })),
@@ -43,7 +43,7 @@ Object.defineProperty(global, 'window', {
 });
 
 Object.defineProperty(global, 'PerformanceObserver', {
-  value: jest.fn().mockImplementation(_callback => ({
+  value: jest.fn().mockImplementation(() => ({
     observe: jest.fn(),
     disconnect: jest.fn(),
   })),
@@ -83,7 +83,6 @@ describe('WebVitals', () => {
 
   describe('web vitals reporting', () => {
     test('should handle good metrics without warnings', () => {
-      const _mockCallback = jest.fn();
       (useReportWebVitals as jest.Mock).mockImplementation(callback => {
         callback({
           name: 'LCP',
@@ -263,7 +262,9 @@ describe('WebVitals', () => {
     });
 
     test('should warn about long tasks', () => {
-      let observerCallback: (list: any) => void;
+      let observerCallback: (list: {
+        getEntries: () => PerformanceEntry[];
+      }) => void;
 
       (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
         callback => {
@@ -283,6 +284,14 @@ describe('WebVitals', () => {
           {
             duration: 75, // Above 50ms threshold
             startTime: 1000,
+            name: 'long-task',
+            entryType: 'longtask',
+            toJSON: () => ({
+              duration: 75,
+              startTime: 1000,
+              name: 'long-task',
+              entryType: 'longtask',
+            }),
           },
         ],
       });
@@ -294,7 +303,9 @@ describe('WebVitals', () => {
     });
 
     test('should not warn about short tasks', () => {
-      let observerCallback: (list: any) => void;
+      let observerCallback: (list: {
+        getEntries: () => PerformanceEntry[];
+      }) => void;
 
       (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
         callback => {
@@ -314,6 +325,14 @@ describe('WebVitals', () => {
           {
             duration: 30, // Below 50ms threshold
             startTime: 1000,
+            name: 'short-task',
+            entryType: 'longtask',
+            toJSON: () => ({
+              duration: 30,
+              startTime: 1000,
+              name: 'short-task',
+              entryType: 'longtask',
+            }),
           },
         ],
       });
@@ -380,7 +399,7 @@ describe('measurePerformance', () => {
   test('should not throw when performance is not available', () => {
     const originalPerformance = global.window.performance;
     const originalGlobalPerformance = global.performance;
-    
+
     // @ts-expect-error - Testing missing window/performance
     global.window.performance = undefined;
     // @ts-expect-error - Testing missing global performance

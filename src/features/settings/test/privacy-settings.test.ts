@@ -36,7 +36,7 @@ describe('Privacy Settings', () => {
         if (viewerRelation === 'owner') return true;
 
         const profileLevel = visibilityLevels[profileVisibility];
-        const viewerLevel = viewerRelation === 'friend' ? 2 : 1; // stranger = 1, friend = 2
+        const viewerLevel = viewerRelation === 'friend' ? 2 : 3; // stranger = 3, friend = 2
 
         return profileLevel >= viewerLevel;
       };

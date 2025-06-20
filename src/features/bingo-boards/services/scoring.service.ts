@@ -22,7 +22,7 @@ interface ScoringConfig {
   };
 }
 
-interface ScoreCalculation {
+export interface ScoreCalculation {
   baseScore: number;
   timeBonus: number;
   speedMultiplier: number;

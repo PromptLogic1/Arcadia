@@ -5,7 +5,7 @@
 import { bingoCardsService } from '../bingo-cards.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import type { Tables, Enums } from '@/types/database.types';
+import type { Tables } from '@/types/database.types';
 import {
   bingoCardSchema,
   bingoCardsArraySchema,
@@ -30,8 +30,6 @@ jest.mock('@/lib/validation/schemas/bingo', () => ({
 }));
 
 type BingoCard = Tables<'bingo_cards'>;
-type GameCategory = Enums<'game_category'>;
-type DifficultyLevel = Enums<'difficulty_level'>;
 
 const mockSupabase = {
   from: jest.fn(),
@@ -76,8 +74,8 @@ describe('bingoCardsService', () => {
           id: 'card-1',
           title: 'Test Card 1',
           description: 'Description 1',
-          game_type: 'World of Warcraft' as GameCategory,
-          difficulty: 'easy' as DifficultyLevel,
+          game_type: 'World of Warcraft' as const,
+          difficulty: 'easy' as const,
           tags: ['tag1'],
           is_public: true,
           creator_id: 'user-1',
@@ -89,8 +87,8 @@ describe('bingoCardsService', () => {
           id: 'card-2',
           title: 'Test Card 2',
           description: 'Description 2',
-          game_type: 'Fortnite' as GameCategory,
-          difficulty: 'medium' as DifficultyLevel,
+          game_type: 'Fortnite' as const,
+          difficulty: 'medium' as const,
           tags: ['tag2'],
           is_public: false,
           creator_id: 'user-2',
@@ -124,7 +122,11 @@ describe('bingoCardsService', () => {
     });
 
     it('should return empty array when all IDs are empty/null after filtering', async () => {
-      const result = await bingoCardsService.getCardsByIds(['', null as any, undefined as any]);
+      const result = await bingoCardsService.getCardsByIds([
+        '',
+        null as any,
+        undefined as any,
+      ]);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
@@ -196,8 +198,8 @@ describe('bingoCardsService', () => {
           id: 'card-1',
           title: 'Public Card',
           description: 'Description',
-          game_type: 'World of Warcraft' as GameCategory,
-          difficulty: 'easy' as DifficultyLevel,
+          game_type: 'World of Warcraft' as const,
+          difficulty: 'easy' as const,
           tags: [],
           is_public: true,
           creator_id: 'user-1',
@@ -214,8 +216,8 @@ describe('bingoCardsService', () => {
       });
 
       const filters = {
-        gameType: 'World of Warcraft' as GameCategory,
-        difficulty: 'easy' as DifficultyLevel,
+        gameType: 'World of Warcraft' as const,
+        difficulty: 'easy' as const,
         search: 'public',
       };
 
@@ -304,8 +306,8 @@ describe('bingoCardsService', () => {
           id: 'card-1',
           title: 'User Card',
           description: 'Private card',
-          game_type: 'Minecraft' as GameCategory,
-          difficulty: 'medium' as DifficultyLevel,
+          game_type: 'Minecraft' as const,
+          difficulty: 'medium' as const,
           tags: [],
           is_public: false,
           creator_id: 'user-123',
@@ -345,8 +347,8 @@ describe('bingoCardsService', () => {
       });
 
       const filters = {
-        gameType: 'Fortnite' as GameCategory,
-        difficulty: 'hard' as DifficultyLevel,
+        gameType: 'Fortnite' as const,
+        difficulty: 'hard' as const,
         search: 'test',
       };
 
@@ -442,8 +444,8 @@ describe('bingoCardsService', () => {
       const cardData = {
         title: 'New Card',
         description: 'New description',
-        game_type: 'Valorant' as GameCategory,
-        difficulty: 'expert' as DifficultyLevel,
+        game_type: 'Valorant' as const,
+        difficulty: 'expert' as const,
         tags: ['new', 'test'],
         is_public: true,
         creator_id: 'user-456',
@@ -489,8 +491,8 @@ describe('bingoCardsService', () => {
     it('should handle optional fields correctly', async () => {
       const cardData = {
         title: 'Minimal Card',
-        game_type: 'CS:GO' as GameCategory,
-        difficulty: 'beginner' as DifficultyLevel,
+        game_type: 'CS:GO' as const,
+        difficulty: 'beginner' as const,
         creator_id: 'user-456',
       };
 
@@ -514,8 +516,8 @@ describe('bingoCardsService', () => {
     it('should handle database error', async () => {
       const cardData = {
         title: 'Test Card',
-        game_type: 'Dota 2' as GameCategory,
-        difficulty: 'medium' as DifficultyLevel,
+        game_type: 'Dota 2' as const,
+        difficulty: 'medium' as const,
         creator_id: 'user-456',
       };
 
@@ -534,8 +536,8 @@ describe('bingoCardsService', () => {
     it('should handle null data response', async () => {
       const cardData = {
         title: 'Test Card',
-        game_type: 'Apex Legends' as GameCategory,
-        difficulty: 'hard' as DifficultyLevel,
+        game_type: 'Apex Legends' as const,
+        difficulty: 'hard' as const,
         creator_id: 'user-456',
       };
 
@@ -553,8 +555,8 @@ describe('bingoCardsService', () => {
     it('should handle validation failure', async () => {
       const cardData = {
         title: 'Test Card',
-        game_type: 'League of Legends' as GameCategory,
-        difficulty: 'easy' as DifficultyLevel,
+        game_type: 'League of Legends' as const,
+        difficulty: 'easy' as const,
         creator_id: 'user-456',
       };
 
@@ -580,7 +582,7 @@ describe('bingoCardsService', () => {
       const updates = {
         title: 'Updated Title',
         description: 'Updated description',
-        difficulty: 'expert' as DifficultyLevel,
+        difficulty: 'expert' as const,
         tags: ['updated'],
         is_public: true,
       };
@@ -589,7 +591,7 @@ describe('bingoCardsService', () => {
         id: 'card-123',
         title: updates.title,
         description: updates.description,
-        game_type: 'Overwatch' as GameCategory,
+        game_type: 'Overwatch' as const,
         difficulty: updates.difficulty,
         tags: updates.tags,
         is_public: updates.is_public,
@@ -765,8 +767,8 @@ describe('bingoCardsService', () => {
         id: 'card-123',
         title: 'Test Card',
         description: 'Description',
-        game_type: 'Fall Guys' as GameCategory,
-        difficulty: 'easy' as DifficultyLevel,
+        game_type: 'Fall Guys' as const,
+        difficulty: 'easy' as const,
         tags: [],
         is_public: true,
         creator_id: 'user-456',
@@ -931,14 +933,14 @@ describe('bingoCardsService', () => {
       const cardsData = [
         {
           title: 'Bulk Card 1',
-          game_type: 'Deep Rock Galactic' as GameCategory,
-          difficulty: 'medium' as DifficultyLevel,
+          game_type: 'Deep Rock Galactic' as const,
+          difficulty: 'medium' as const,
           creator_id: 'user-456',
         },
         {
           title: 'Bulk Card 2',
-          game_type: 'Valheim' as GameCategory,
-          difficulty: 'hard' as DifficultyLevel,
+          game_type: 'Valheim' as const,
+          difficulty: 'hard' as const,
           creator_id: 'user-456',
         },
       ];
@@ -984,8 +986,8 @@ describe('bingoCardsService', () => {
       const cardsData = [
         {
           title: 'Test Card',
-          game_type: 'Subnautica' as GameCategory,
-          difficulty: 'easy' as DifficultyLevel,
+          game_type: 'Subnautica' as const,
+          difficulty: 'easy' as const,
           creator_id: 'user-456',
         },
       ];
@@ -1006,8 +1008,8 @@ describe('bingoCardsService', () => {
       const cardsData = [
         {
           title: 'Test Card',
-          game_type: 'Terraria' as GameCategory,
-          difficulty: 'medium' as DifficultyLevel,
+          game_type: 'Terraria' as const,
+          difficulty: 'medium' as const,
           creator_id: 'user-456',
         },
       ];
@@ -1032,8 +1034,8 @@ describe('bingoCardsService', () => {
       const cardsData = [
         {
           title: 'Test Card',
-          game_type: 'Stardew Valley' as GameCategory,
-          difficulty: 'beginner' as DifficultyLevel,
+          game_type: 'Stardew Valley' as const,
+          difficulty: 'beginner' as const,
           creator_id: 'user-456',
         },
       ];

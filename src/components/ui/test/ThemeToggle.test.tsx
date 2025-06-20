@@ -11,7 +11,17 @@ jest.mock('next-themes', () => ({
 
 // Mock UI components
 jest.mock('@/components/ui/Button', () => ({
-  Button: ({ children, className, onClick, disabled, ...props }: any) => (
+  Button: ({
+    children,
+    className,
+    onClick,
+    disabled,
+    ...props
+  }: React.PropsWithChildren<{
+    className?: string;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    disabled?: boolean;
+  }>) => (
     <button
       className={className}
       onClick={onClick}
@@ -24,18 +34,28 @@ jest.mock('@/components/ui/Button', () => ({
 }));
 
 jest.mock('@/components/ui/DropdownMenu', () => ({
-  DropdownMenu: ({ children }: any) => (
+  DropdownMenu: ({ children }: React.PropsWithChildren) => (
     <div data-testid="dropdown-menu">{children}</div>
   ),
-  DropdownMenuTrigger: ({ children }: any) => (
+  DropdownMenuTrigger: ({ children }: React.PropsWithChildren) => (
     <div data-testid="dropdown-trigger">{children}</div>
   ),
-  DropdownMenuContent: ({ children, className }: any) => (
+  DropdownMenuContent: ({
+    children,
+    className,
+  }: React.PropsWithChildren<{ className?: string }>) => (
     <div data-testid="dropdown-content" className={className}>
       {children}
     </div>
   ),
-  DropdownMenuItem: ({ children, onClick, className }: any) => (
+  DropdownMenuItem: ({
+    children,
+    onClick,
+    className,
+  }: React.PropsWithChildren<{
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    className?: string;
+  }>) => (
     <button onClick={onClick} className={className} data-testid="dropdown-item">
       {children}
     </button>
@@ -43,13 +63,13 @@ jest.mock('@/components/ui/DropdownMenu', () => ({
 }));
 
 jest.mock('@/components/ui/Icons', () => ({
-  Sun: ({ className }: any) => (
+  Sun: ({ className }: { className?: string }) => (
     <span className={className} data-testid="sun-icon" />
   ),
-  Moon: ({ className }: any) => (
+  Moon: ({ className }: { className?: string }) => (
     <span className={className} data-testid="moon-icon" />
   ),
-  Monitor: ({ className }: any) => (
+  Monitor: ({ className }: { className?: string }) => (
     <span className={className} data-testid="monitor-icon" />
   ),
 }));
@@ -359,8 +379,8 @@ describe('ThemeToggle', () => {
       const triggerIcons = screen.getAllByTestId('moon-icon');
       expect(triggerIcons.length).toBeGreaterThanOrEqual(1);
       // At least one should have the h-5 w-5 classes
-      const hasCorrectClasses = triggerIcons.some(icon => 
-        icon.classList.contains('h-5') && icon.classList.contains('w-5')
+      const hasCorrectClasses = triggerIcons.some(
+        icon => icon.classList.contains('h-5') && icon.classList.contains('w-5')
       );
       expect(hasCorrectClasses).toBe(true);
     });
@@ -421,9 +441,15 @@ describe('ThemeToggle', () => {
       expect(dropdownItems).toHaveLength(3);
 
       // Check that all icons are present in dropdown items
-      expect(screen.getAllByTestId('sun-icon').length).toBeGreaterThanOrEqual(1); // Light option
-      expect(screen.getAllByTestId('moon-icon').length).toBeGreaterThanOrEqual(1); // Dark option + trigger
-      expect(screen.getAllByTestId('monitor-icon').length).toBeGreaterThanOrEqual(1); // System option
+      expect(screen.getAllByTestId('sun-icon').length).toBeGreaterThanOrEqual(
+        1
+      ); // Light option
+      expect(screen.getAllByTestId('moon-icon').length).toBeGreaterThanOrEqual(
+        1
+      ); // Dark option + trigger
+      expect(
+        screen.getAllByTestId('monitor-icon').length
+      ).toBeGreaterThanOrEqual(1); // System option
     });
 
     test('should have proper text labels in dropdown items', () => {

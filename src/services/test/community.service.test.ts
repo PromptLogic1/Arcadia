@@ -6,7 +6,6 @@ import { communityService } from '../community.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type {
-  Discussion,
   CreateDiscussionData,
   CreateCommentData,
   DiscussionFilters,
@@ -214,7 +213,7 @@ describe('communityService', () => {
   describe('getDiscussions', () => {
     it('should fetch discussions with filters', async () => {
       const filters: DiscussionFilters = {
-        gameCategory: 'Terraria',
+        gameCategory: 'Minecraft',
         challengeType: 'sprint',
         search: 'test',
         sortBy: 'popular',
@@ -238,7 +237,7 @@ describe('communityService', () => {
       const result = await communityService.getDiscussions(filters);
 
       expect(result.success).toBe(true);
-      expect(mockFrom.eq).toHaveBeenCalledWith('game_category', 'Tetris');
+      expect(mockFrom.eq).toHaveBeenCalledWith('game_category', 'Minecraft');
       expect(mockFrom.eq).toHaveBeenCalledWith('challenge_type', 'sprint');
       expect(mockFrom.or).toHaveBeenCalledWith(
         'title.ilike.%test%,content.ilike.%test%'
@@ -578,7 +577,14 @@ describe('communityService', () => {
           id: 1,
           title: 'Test Discussion',
           upvotes: 6,
-        } as Discussion,
+          content: '',
+          game: '',
+          author_id: null,
+          challenge_type: null,
+          created_at: null,
+          tags: null,
+          updated_at: null,
+        },
         error: null,
       });
 

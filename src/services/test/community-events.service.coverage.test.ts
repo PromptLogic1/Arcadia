@@ -1,20 +1,15 @@
 /**
  * @jest-environment node
- * 
+ *
  * Community Events Service Coverage Tests
  * Target coverage gaps in lines: 69-80, 162-163, 245-246, 296
  */
 
 import { communityEventsService } from '../community-events.service';
 import { createClient } from '@/lib/supabase';
-import type { Enums } from '@/types/database.types';
-
 // Mock dependencies
 jest.mock('@/lib/supabase');
 jest.mock('@/lib/logger');
-
-type GameCategory = Enums<'game_category'>;
-type EventStatus = Enums<'event_status'>;
 
 const mockSupabase = {
   from: jest.fn(),
@@ -28,13 +23,13 @@ const createMockQuery = () => {
     range: jest.fn(),
     eq: jest.fn(),
   };
-  
+
   // Set up chaining - all methods return the same object
   mockQuery.select.mockReturnValue(mockQuery);
   mockQuery.order.mockReturnValue(mockQuery);
   mockQuery.range.mockReturnValue(mockQuery);
   mockQuery.eq.mockReturnValue(mockQuery);
-  
+
   return mockQuery;
 };
 
@@ -48,10 +43,10 @@ describe('communityEventsService - Coverage Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (createClient as jest.Mock).mockReturnValue(mockSupabase);
-    
+
     // Reset the mockQuery to a fresh state
     Object.assign(mockQuery, createMockQuery());
-    
+
     // Setup the mock chain
     mockSupabase.from.mockReturnValue(mockFrom);
     mockFrom.select.mockReturnValue(mockQuery);
@@ -64,8 +59,8 @@ describe('communityEventsService - Coverage Tests', () => {
           id: 'event-1',
           title: 'Minecraft Championship',
           description: 'Weekly Minecraft event',
-          game_type: 'Minecraft' as GameCategory,
-          status: 'active' as EventStatus,
+          game_type: 'Minecraft' as const,
+          status: 'active' as const,
           start_date: '2024-02-01T18:00:00Z',
           end_date: '2024-02-01T20:00:00Z',
           max_participants: 50,
@@ -86,12 +81,12 @@ describe('communityEventsService - Coverage Tests', () => {
         error: null,
         count: 1,
       });
-      
+
       // When .eq() is called, it should return a promise
       mockQuery.eq.mockReturnValueOnce(queryExecutionResult);
 
       const result = await communityEventsService.getCommunityEvents({
-        game_type: 'Minecraft' as GameCategory,
+        game_type: 'Minecraft' as const,
       });
 
       expect(result.success).toBe(true);
@@ -105,8 +100,8 @@ describe('communityEventsService - Coverage Tests', () => {
           id: 'event-2',
           title: 'Completed Tournament',
           description: 'Past tournament',
-          game_type: 'Valorant' as GameCategory,
-          status: 'completed' as EventStatus,
+          game_type: 'Valorant' as const,
+          status: 'completed' as const,
           start_date: '2024-01-01T18:00:00Z',
           end_date: '2024-01-01T20:00:00Z',
           max_participants: 32,
@@ -127,12 +122,12 @@ describe('communityEventsService - Coverage Tests', () => {
         error: null,
         count: 1,
       });
-      
+
       // When .eq() is called, it should return a promise
       mockQuery.eq.mockReturnValueOnce(queryExecutionResult);
 
       const result = await communityEventsService.getCommunityEvents({
-        status: 'completed' as EventStatus,
+        status: 'completed' as const,
       });
 
       expect(result.success).toBe(true);
@@ -147,13 +142,15 @@ describe('communityEventsService - Coverage Tests', () => {
         error: null,
         count: 0,
       });
-      
+
       // When the second .eq() is called, it should return a promise
-      mockQuery.eq.mockReturnValueOnce(mockQuery).mockReturnValueOnce(queryExecutionResult);
+      mockQuery.eq
+        .mockReturnValueOnce(mockQuery)
+        .mockReturnValueOnce(queryExecutionResult);
 
       const result = await communityEventsService.getCommunityEvents({
-        game_type: 'Fortnite' as GameCategory,
-        status: 'upcoming' as EventStatus,
+        game_type: 'Fortnite' as const,
+        status: 'upcoming' as const,
       });
 
       expect(result.success).toBe(true);
@@ -168,7 +165,7 @@ describe('communityEventsService - Coverage Tests', () => {
         error: null,
         count: 0,
       });
-      
+
       // Since tags filter is not implemented, .range() is the final call
       mockQuery.range.mockReturnValueOnce(queryExecutionResult);
 
@@ -189,8 +186,8 @@ describe('communityEventsService - Coverage Tests', () => {
           id: 'event-3',
           title: 'Event with invalid participants',
           description: 'Test event',
-          game_type: 'CS:GO' as GameCategory,
-          status: 'active' as EventStatus,
+          game_type: 'CS:GO' as const,
+          status: 'active' as const,
           start_date: '2024-02-05T18:00:00Z',
           end_date: '2024-02-05T20:00:00Z',
           max_participants: 20,
@@ -223,8 +220,8 @@ describe('communityEventsService - Coverage Tests', () => {
           id: 'event-4',
           title: 'Event with incomplete participants',
           description: 'Test event',
-          game_type: 'Apex Legends' as GameCategory,
-          status: 'active' as EventStatus,
+          game_type: 'Apex Legends' as const,
+          status: 'active' as const,
           start_date: '2024-02-06T18:00:00Z',
           end_date: '2024-02-06T20:00:00Z',
           max_participants: 60,
@@ -257,8 +254,8 @@ describe('communityEventsService - Coverage Tests', () => {
           id: 'event-5',
           title: 'Event with null count',
           description: 'Test event',
-          game_type: 'Overwatch' as GameCategory,
-          status: 'active' as EventStatus,
+          game_type: 'Overwatch' as const,
+          status: 'active' as const,
           start_date: '2024-02-07T18:00:00Z',
           end_date: '2024-02-07T20:00:00Z',
           max_participants: 12,
@@ -291,8 +288,8 @@ describe('communityEventsService - Coverage Tests', () => {
           id: 'event-6',
           title: 'Event with undefined count',
           description: 'Test event',
-          game_type: 'League of Legends' as GameCategory,
-          status: 'active' as EventStatus,
+          game_type: 'League of Legends' as const,
+          status: 'active' as const,
           start_date: '2024-02-08T18:00:00Z',
           end_date: '2024-02-08T20:00:00Z',
           max_participants: 10,
@@ -326,8 +323,8 @@ describe('communityEventsService - Coverage Tests', () => {
         id: 'event-full',
         title: 'Full Event Data',
         description: 'Event with complete data',
-        game_type: 'World of Warcraft' as GameCategory,
-        status: 'upcoming' as EventStatus,
+        game_type: 'World of Warcraft' as const,
+        status: 'upcoming' as const,
         start_date: '2024-03-01T18:00:00Z',
         end_date: '2024-03-01T22:00:00Z',
         max_participants: 40,
@@ -353,7 +350,7 @@ describe('communityEventsService - Coverage Tests', () => {
 
       expect(result.success).toBe(true);
       const transformed = result.data?.items[0];
-      
+
       // Verify all fields are preserved
       expect(transformed?.id).toBe(mockEvent.id);
       expect(transformed?.title).toBe(mockEvent.title);
@@ -367,7 +364,7 @@ describe('communityEventsService - Coverage Tests', () => {
       expect(transformed?.created_at).toBe(mockEvent.created_at);
       expect(transformed?.updated_at).toBe(mockEvent.updated_at);
       expect((transformed as any)?.custom_field).toBe(mockEvent.custom_field);
-      
+
       // Verify added fields
       expect(transformed?.organizer).toBe(mockEvent.organizer);
       expect(transformed?.participant_count).toBe(35);
@@ -378,8 +375,8 @@ describe('communityEventsService - Coverage Tests', () => {
         id: 'event-no-org',
         title: 'Event without organizer',
         description: 'No organizer data',
-        game_type: 'Terraria' as GameCategory,
-        status: 'active' as EventStatus,
+        game_type: 'Terraria' as const,
+        status: 'active' as const,
         start_date: '2024-02-20T18:00:00Z',
         end_date: '2024-02-20T20:00:00Z',
         max_participants: 8,
@@ -408,8 +405,8 @@ describe('communityEventsService - Coverage Tests', () => {
         id: 'event-undef-org',
         title: 'Event with undefined organizer',
         description: 'Undefined organizer',
-        game_type: 'Elden Ring' as GameCategory,
-        status: 'active' as EventStatus,
+        game_type: 'Elden Ring' as const,
+        status: 'active' as const,
         start_date: '2024-02-21T18:00:00Z',
         end_date: '2024-02-21T20:00:00Z',
         max_participants: 4,

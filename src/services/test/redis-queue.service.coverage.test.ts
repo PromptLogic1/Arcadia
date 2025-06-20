@@ -409,13 +409,13 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       const testCases = [
         { type: '', expected: 'default' },
         { type: 'simple', expected: 'simple' },
-        { type: '-leading', expected: 'default' },
+        { type: '-leading', expected: 'default' }, // Empty first part defaults to 'default'
         { type: 'queue-name-job', expected: 'queue' },
       ];
 
       for (const testCase of testCases) {
         const jobData: JobData = {
-          id: 'job-123',
+          id: `job-${testCase.type || 'empty'}`,
           type: testCase.type,
           payload: { data: 'test' },
           priority: 5,
@@ -425,13 +425,28 @@ describe('RedisQueueService - Coverage Enhancement', () => {
           createdAt: Date.now(),
         };
 
-        mockRedis.zadd.mockClear();
+        // Reset mocks for each test case
+        jest.clearAllMocks();
+        mockIsRedisConfigured.mockReturnValue(true);
+        mockGetRedisClient.mockReturnValue(mockRedis as any);
+        
+        // Mock del and setex to resolve successfully
+        mockRedis.del.mockResolvedValue(1);
+        mockRedis.setex.mockResolvedValue('OK');
+        mockRedis.zadd.mockResolvedValue(1);
+        
         await redisQueueService.failJob(jobData, 'Test error');
 
-        if (mockRedis.zadd.mock.calls.length > 0) {
-          const delayedKey = mockRedis.zadd.mock.calls[0][0];
-          expect(delayedKey).toContain(`queue:delayed:${testCase.expected}`);
-        }
+        // failJob will retry the job (add to delayed queue) since attempts < maxAttempts
+        expect(mockRedis.zadd).toHaveBeenCalled();
+        
+        // Check that zadd was called with the correct queue name
+        const zaddCalls = mockRedis.zadd.mock.calls;
+        const delayedCall = zaddCalls.find(call => call[0] && call[0].includes('delayed'));
+        expect(delayedCall).toBeDefined();
+        
+        const expectedQueue = testCase.expected;
+        expect(delayedCall![0]).toContain(`queue:delayed:${expectedQueue}`);
       }
     });
 
@@ -447,14 +462,27 @@ describe('RedisQueueService - Coverage Enhancement', () => {
         createdAt: Date.now(),
       };
 
+      // Reset mocks and setup
+      jest.clearAllMocks();
+      mockIsRedisConfigured.mockReturnValue(true);
+      mockGetRedisClient.mockReturnValue(mockRedis as any);
+      
+      // Mock Redis operations to resolve successfully
+      mockRedis.del.mockResolvedValue(1);
+      mockRedis.setex.mockResolvedValue('OK');
+      mockRedis.zadd.mockResolvedValue(1);
+
       await redisQueueService.failJob(jobData, 'Test error');
 
+      // Verify job retry was attempted (should add to delayed queue)
       expect(mockRedis.zadd).toHaveBeenCalled();
-      const addCall = mockRedis.zadd.mock.calls[0];
-      expect(addCall).toBeDefined();
-      expect(addCall[1]).toBeDefined();
+      
+      const zaddCalls = mockRedis.zadd.mock.calls;
+      const delayedCall = zaddCalls.find(call => call[0] && call[0].includes('delayed'));
+      expect(delayedCall).toBeDefined();
+      expect(delayedCall![1]).toBeDefined();
 
-      const member = JSON.parse(addCall[1].member);
+      const member = JSON.parse(delayedCall![1].member);
       const retryDelay = member.scheduledFor - Date.now();
 
       // Should be capped at 300000ms (5 minutes)

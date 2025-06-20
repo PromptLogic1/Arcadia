@@ -28,11 +28,61 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+// Type definitions for OAuth user data
+type OAuthUserMetadata = {
+  email?: string;
+  username?: string;
+  user_name?: string;
+  full_name?: string;
+  name?: string;
+  avatar_url?: string;
+  picture?: string;
+  bio?: string;
+  location?: string;
+  email_verified?: boolean;
+  custom_claims?: {
+    username?: string;
+  };
+};
+
+type OAuthUser = {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  email_confirmed_at?: string | null;
+  user_metadata?: OAuthUserMetadata;
+  app_metadata?: {
+    provider?: string;
+  };
+};
+
+type OAuthSession = {
+  access_token: string;
+  refresh_token: string;
+  user: OAuthUser;
+};
+
+// Type definitions for mock functions
+type SignInWithOAuthResponse = Promise<{
+  data: { url: string | null } | null;
+  error: AuthError | null;
+}>;
+
+type ExchangeCodeForSessionResponse = Promise<{
+  data: { user: OAuthUser | null; session: OAuthSession | null } | null;
+  error: AuthError | null;
+}>;
+
+type GetUserResponse = Promise<{
+  data: { user: OAuthUser | null } | null;
+  error: AuthError | null;
+}>;
+
 // Mock Supabase for OAuth tests
 const mockSupabaseAuth = {
-  signInWithOAuth: jest.fn<any>(),
-  exchangeCodeForSession: jest.fn<any>(),
-  getUser: jest.fn<any>(),
+  signInWithOAuth: jest.fn<() => SignInWithOAuthResponse>(),
+  exchangeCodeForSession: jest.fn<() => ExchangeCodeForSessionResponse>(),
+  getUser: jest.fn<() => GetUserResponse>(),
 };
 
 jest.mock('@/lib/supabase', () => ({
@@ -112,7 +162,8 @@ describe('OAuth Authentication', () => {
 
   describe('Google OAuth Flow', () => {
     test('should initiate Google OAuth authorization', async () => {
-      const mockOAuthUrl = 'https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=test';
+      const mockOAuthUrl =
+        'https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=test';
 
       mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
         data: { url: mockOAuthUrl },
@@ -148,7 +199,14 @@ describe('OAuth Authentication', () => {
       };
 
       mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: {} },
+        data: {
+          user: mockUser,
+          session: {
+            access_token: 'mock-access-token',
+            refresh_token: 'mock-refresh-token',
+            user: mockUser,
+          },
+        },
         error: null,
       });
 
@@ -179,7 +237,8 @@ describe('OAuth Authentication', () => {
 
   describe('GitHub OAuth Flow', () => {
     test('should initiate GitHub OAuth authorization', async () => {
-      const mockOAuthUrl = 'https://github.com/login/oauth/authorize?client_id=test';
+      const mockOAuthUrl =
+        'https://github.com/login/oauth/authorize?client_id=test';
 
       mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
         data: { url: mockOAuthUrl },
@@ -215,11 +274,19 @@ describe('OAuth Authentication', () => {
       };
 
       mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: {} },
+        data: {
+          user: mockUser,
+          session: {
+            access_token: 'mock-github-access-token',
+            refresh_token: 'mock-github-refresh-token',
+            user: mockUser,
+          },
+        },
         error: null,
       });
 
-      const result = await authService.exchangeCodeForSession('github-code-123');
+      const result =
+        await authService.exchangeCodeForSession('github-code-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.user?.username).toBe('githubuser');
@@ -240,11 +307,20 @@ describe('OAuth Authentication', () => {
       };
 
       mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: {} },
+        data: {
+          user: mockUser,
+          session: {
+            access_token: 'mock-private-access-token',
+            refresh_token: 'mock-private-refresh-token',
+            user: mockUser,
+          },
+        },
         error: null,
       });
 
-      const result = await authService.exchangeCodeForSession('github-code-private');
+      const result = await authService.exchangeCodeForSession(
+        'github-code-private'
+      );
 
       expect(result.success).toBe(true);
       // Should handle null email gracefully
@@ -255,7 +331,8 @@ describe('OAuth Authentication', () => {
 
   describe('Discord OAuth Flow', () => {
     test('should initiate Discord OAuth authorization', async () => {
-      const mockOAuthUrl = 'https://discord.com/api/oauth2/authorize?client_id=test';
+      const mockOAuthUrl =
+        'https://discord.com/api/oauth2/authorize?client_id=test';
 
       mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
         data: { url: mockOAuthUrl },
@@ -290,11 +367,19 @@ describe('OAuth Authentication', () => {
       };
 
       mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: {} },
+        data: {
+          user: mockUser,
+          session: {
+            access_token: 'mock-discord-access-token',
+            refresh_token: 'mock-discord-refresh-token',
+            user: mockUser,
+          },
+        },
         error: null,
       });
 
-      const result = await authService.exchangeCodeForSession('discord-code-123');
+      const result =
+        await authService.exchangeCodeForSession('discord-code-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.user?.username).toBe('discorduser');
@@ -306,7 +391,11 @@ describe('OAuth Authentication', () => {
     test('should handle authorization denial', async () => {
       mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
         data: { url: null },
-        error: new AuthError('The user denied the request', 400, 'OAUTH_DENIED'),
+        error: new AuthError(
+          'The user denied the request',
+          400,
+          'OAUTH_DENIED'
+        ),
       });
 
       const result = await authService.signInWithOAuth('google');
@@ -328,7 +417,9 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle network errors', async () => {
-      mockSupabaseAuth.signInWithOAuth.mockRejectedValue(new Error('Network error'));
+      mockSupabaseAuth.signInWithOAuth.mockRejectedValue(
+        new Error('Network error')
+      );
 
       const result = await authService.signInWithOAuth('github');
 
@@ -339,7 +430,11 @@ describe('OAuth Authentication', () => {
     test('should handle rate limiting', async () => {
       mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
         data: { url: null },
-        error: new AuthError('Too many requests. Please try again later.', 429, 'RATE_LIMITED'),
+        error: new AuthError(
+          'Too many requests. Please try again later.',
+          429,
+          'RATE_LIMITED'
+        ),
       });
 
       const result = await authService.signInWithOAuth('github');
@@ -373,7 +468,9 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle unexpected errors during code exchange', async () => {
-      mockSupabaseAuth.exchangeCodeForSession.mockRejectedValue(new Error('Unexpected error'));
+      mockSupabaseAuth.exchangeCodeForSession.mockRejectedValue(
+        new Error('Unexpected error')
+      );
 
       const result = await authService.exchangeCodeForSession('valid-code');
 
@@ -392,7 +489,10 @@ describe('OAuth Authentication', () => {
       };
 
       // Transform function that would be in the auth service
-      const transformOAuthUser = (provider: Provider, metadata: any) => {
+      const transformOAuthUser = (
+        provider: Provider,
+        metadata: OAuthUserMetadata
+      ) => {
         return {
           email: metadata.email,
           username:
@@ -423,7 +523,10 @@ describe('OAuth Authentication', () => {
         location: 'San Francisco',
       };
 
-      const transformOAuthUser = (provider: Provider, metadata: any) => {
+      const transformOAuthUser = (
+        provider: Provider,
+        metadata: OAuthUserMetadata
+      ) => {
         return {
           email: metadata.email,
           username:
@@ -453,7 +556,10 @@ describe('OAuth Authentication', () => {
         },
       };
 
-      const transformOAuthUser = (provider: Provider, metadata: any) => {
+      const transformOAuthUser = (
+        provider: Provider,
+        metadata: OAuthUserMetadata
+      ) => {
         const username =
           metadata.custom_claims?.username ||
           metadata.user_name ||

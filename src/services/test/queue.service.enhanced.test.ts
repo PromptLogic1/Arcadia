@@ -202,11 +202,11 @@ describe('queueService - Enhanced Coverage Tests', () => {
       const originalMapHas = Map.prototype.has;
       const originalMapSet = Map.prototype.set;
       const originalMapGet = Map.prototype.get;
-      
+
       const hasSpied = jest.fn(originalMapHas);
       const setSpied = jest.fn(originalMapSet);
       const getSpied = jest.fn(originalMapGet);
-      
+
       Map.prototype.has = hasSpied;
       Map.prototype.set = setSpied;
       Map.prototype.get = getSpied;
@@ -427,7 +427,7 @@ describe('queueService - Enhanced Coverage Tests', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      
+
       // Verify session creation was called with full settings object
       expect(mockFrom.insert).toHaveBeenCalledWith([
         expect.objectContaining({
@@ -470,15 +470,22 @@ describe('queueService - Enhanced Coverage Tests', () => {
       expect(result.error).toBe('Failed to find matches');
 
       // Test undefined error case
-      jest.spyOn(queueService, 'getWaitingEntries').mockRejectedValueOnce(undefined);
+      jest
+        .spyOn(queueService, 'getWaitingEntries')
+        .mockRejectedValueOnce(undefined);
 
       result = await queueService.findMatches();
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to find matches');
 
       // Test object error case
-      const complexError = { code: 'QUEUE_ERROR', details: { reason: 'timeout' } };
-      jest.spyOn(queueService, 'getWaitingEntries').mockRejectedValueOnce(complexError);
+      const complexError = {
+        code: 'QUEUE_ERROR',
+        details: { reason: 'timeout' },
+      };
+      jest
+        .spyOn(queueService, 'getWaitingEntries')
+        .mockRejectedValueOnce(complexError);
 
       result = await queueService.findMatches();
       expect(result.success).toBe(false);

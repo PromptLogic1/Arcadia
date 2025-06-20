@@ -1,6 +1,6 @@
 /**
  * @jest-environment node
- * 
+ *
  * Game State Service Enhanced Coverage Tests
  * Target coverage gaps in lines: 256-278, 313, 344-347, 459-462, 524-541
  */
@@ -50,10 +50,10 @@ type SessionPlayer = Tables<'bingo_session_players'>;
 describe('gameStateService - Enhanced Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset the from method specifically
     mockSupabaseClient.from.mockReset();
-    
+
     (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
 
     // Reset mock implementations to default behavior
@@ -731,7 +731,8 @@ describe('gameStateService - Enhanced Coverage', () => {
 
       // Setup mocks
       mockSupabaseClient.from
-        .mockReturnValueOnce({ // Session verification
+        .mockReturnValueOnce({
+          // Session verification
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
@@ -741,14 +742,16 @@ describe('gameStateService - Enhanced Coverage', () => {
             }),
           }),
         })
-        .mockReturnValueOnce({ // Session update
+        .mockReturnValueOnce({
+          // Session update
           update: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               error: null,
             }),
           }),
         })
-        .mockReturnValueOnce({ // Stats fetch
+        .mockReturnValueOnce({
+          // Stats fetch
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
@@ -758,12 +761,14 @@ describe('gameStateService - Enhanced Coverage', () => {
             }),
           }),
         })
-        .mockReturnValueOnce({ // Stats upsert
+        .mockReturnValueOnce({
+          // Stats upsert
           upsert: jest.fn().mockResolvedValue({
             error: null,
           }),
         })
-        .mockReturnValueOnce({ // Achievement creation
+        .mockReturnValueOnce({
+          // Achievement creation
           insert: jest.fn().mockResolvedValue({
             error: null,
           }),
@@ -772,9 +777,10 @@ describe('gameStateService - Enhanced Coverage', () => {
       const result = await gameStateService.completeGame(sessionId, gameData);
 
       expect(result.success).toBe(true);
-      
+
       // Get the upsert mock from the fourth from() call
-      const upsertMock = (mockSupabaseClient.from as jest.Mock).mock.results[3]?.value.upsert;
+      const upsertMock = (mockSupabaseClient.from as jest.Mock).mock.results[3]
+        ?.value.upsert;
       expect(upsertMock).toHaveBeenCalledWith(
         expect.objectContaining({
           current_win_streak: 0, // Reset because player lost
@@ -821,7 +827,8 @@ describe('gameStateService - Enhanced Coverage', () => {
 
       // Setup mocks
       mockSupabaseClient.from
-        .mockReturnValueOnce({ // Session verification
+        .mockReturnValueOnce({
+          // Session verification
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
@@ -831,14 +838,16 @@ describe('gameStateService - Enhanced Coverage', () => {
             }),
           }),
         })
-        .mockReturnValueOnce({ // Session update
+        .mockReturnValueOnce({
+          // Session update
           update: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               error: null,
             }),
           }),
         })
-        .mockReturnValueOnce({ // Stats fetch with non-PGRST116 error
+        .mockReturnValueOnce({
+          // Stats fetch with non-PGRST116 error
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
@@ -848,7 +857,8 @@ describe('gameStateService - Enhanced Coverage', () => {
             }),
           }),
         })
-        .mockReturnValueOnce({ // Achievement creation
+        .mockReturnValueOnce({
+          // Achievement creation
           insert: jest.fn().mockResolvedValue({
             error: null,
           }),
@@ -866,7 +876,7 @@ describe('gameStateService - Enhanced Coverage', () => {
           }),
         })
       );
-      
+
       // Verify that we skipped to next player by checking upsert was not called
       const fromCalls = (mockSupabaseClient.from as jest.Mock).mock.calls;
       expect(fromCalls).toHaveLength(4); // No upsert call

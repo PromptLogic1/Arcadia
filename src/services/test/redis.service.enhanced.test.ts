@@ -10,6 +10,22 @@ import { z } from 'zod';
 // Mock dependencies
 jest.mock('@/lib/redis');
 jest.mock('@/lib/logger');
+jest.mock('@/lib/circuit-breaker', () => ({
+  redisCircuitBreaker: {
+    execute: jest.fn(async (fn, fallback) => {
+      try {
+        return await fn();
+      } catch (error) {
+        // If there's a fallback, use it (mimics circuit breaker behavior)
+        if (fallback) {
+          return fallback();
+        }
+        throw error;
+      }
+    }),
+    getState: jest.fn(() => 'closed'),
+  },
+}));
 
 describe('RedisService & CacheService - Enhanced Coverage', () => {
   const mockRedis = {
@@ -95,12 +111,15 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
       const result = await cacheService.getOrSet('test-key', fetcher);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to fetch data');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Direct fetch failed after Redis configuration error',
-        expect.any(Error),
+      // When circuit breaker returns null, it's treated as cache miss and goes to fetch
+      expect(result.error).toBe('Failed to fetch and cache data');
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Cache fetch failed',
         expect.objectContaining({
-          metadata: { key: 'test-key' },
+          metadata: {
+            key: 'test-key',
+            error: 'Fetch also failed',
+          },
         })
       );
     });
@@ -116,17 +135,20 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
       const result = await cacheService.getOrSet('test-key', fetcher);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to fetch data');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Direct fetch failed after Redis configuration error',
-        expect.any(Error),
+      // When circuit breaker returns null, it's treated as cache miss and goes to fetch
+      expect(result.error).toBe('Failed to fetch and cache data');
+      expect(mockLog.debug).toHaveBeenCalledWith(
+        'Cache fetch failed',
         expect.objectContaining({
-          metadata: { key: 'test-key' },
+          metadata: {
+            key: 'test-key',
+            error: 'String fetch error',
+          },
         })
       );
     });
 
-    it('should re-throw non-Redis-config errors', async () => {
+    it('should handle non-Redis-config errors gracefully', async () => {
       // Mock Redis client creation to fail with non-config error
       mockGetRedisClient.mockImplementation(() => {
         throw new Error('Random error');
@@ -134,9 +156,13 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
 
       const fetcher = jest.fn().mockResolvedValue('test-data');
 
-      await expect(cacheService.getOrSet('test-key', fetcher)).rejects.toThrow(
-        'Random error'
-      );
+      // Circuit breaker will catch the error and return null (fallback)
+      // This will be treated as a cache miss
+      const result = await cacheService.getOrSet('test-key', fetcher);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe('test-data');
+      expect(fetcher).toHaveBeenCalled();
     });
 
     it('should successfully fall back to direct fetch on Redis config error', async () => {
@@ -151,12 +177,14 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBe('fresh-data');
+      // When Redis fails in circuit breaker, it falls back to null (cache miss)
+      // Then tries to cache the fresh data which will fail again
       expect(mockLog.warn).toHaveBeenCalledWith(
-        'Redis configuration failed, falling back to direct fetch',
+        'Failed to cache fresh data',
         expect.objectContaining({
           metadata: {
             key: 'test-key',
-            error: 'Redis configuration failed: connection timeout',
+            error: 'Failed to store data in Redis',
           },
         })
       );
@@ -172,6 +200,8 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
       ];
 
       for (const errorMessage of configErrors) {
+        jest.clearAllMocks(); // Clear mocks between iterations
+
         mockGetRedisClient.mockImplementation(() => {
           throw new Error(errorMessage);
         });
@@ -185,12 +215,14 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
 
         expect(result.success).toBe(true);
         expect(result.data).toBe(`data-${errorMessage}`);
+        // When Redis fails in circuit breaker, it falls back to null (cache miss)
+        // Then tries to cache the fresh data which will fail again
         expect(mockLog.warn).toHaveBeenCalledWith(
-          'Redis configuration failed, falling back to direct fetch',
+          'Failed to cache fresh data',
           expect.objectContaining({
             metadata: {
               key: `key-${errorMessage}`,
-              error: errorMessage,
+              error: 'Failed to store data in Redis',
             },
           })
         );

@@ -262,7 +262,12 @@ describe('RedisPubSubService - Enhanced Coverage', () => {
       expect(result.success).toBe(true);
       expect(mockRedis.publish).toHaveBeenCalledWith(
         expect.any(String),
-        expect.stringContaining(specialMessage)
+        expect.stringMatching(
+          new RegExp(
+            `"message":"${specialMessage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '\\\\"').replace(/\n/g, '\\\\n').replace(/\t/g, '\\\\t')}"`,
+            'm'
+          )
+        )
       );
     });
 

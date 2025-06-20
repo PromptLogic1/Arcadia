@@ -907,8 +907,10 @@ describe('cacheService', () => {
       jest
         .spyOn(redisService, 'get')
         .mockRejectedValueOnce(new Error('Redis configuration'));
-      
-      mockFetcher.mockRejectedValueOnce(new Error('Fetch failed after Redis error'));
+
+      mockFetcher.mockRejectedValueOnce(
+        new Error('Fetch failed after Redis error')
+      );
 
       const result = await cacheService.getOrSet('test-key', mockFetcher);
 
@@ -929,7 +931,7 @@ describe('cacheService', () => {
       jest
         .spyOn(redisService, 'get')
         .mockRejectedValueOnce(new Error('Redis configuration'));
-      
+
       mockFetcher.mockRejectedValueOnce('String error in fetch');
 
       const result = await cacheService.getOrSet('test-key', mockFetcher);

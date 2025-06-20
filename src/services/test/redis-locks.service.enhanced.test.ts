@@ -20,6 +20,9 @@ const mockRedis = {
 };
 
 describe('redisLocksService - Enhanced Coverage', () => {
+  // Mock window existence tracking
+  const originalWindow = (global as any).window;
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getRedisClient as jest.Mock).mockReturnValue(mockRedis);
@@ -28,8 +31,23 @@ describe('redisLocksService - Enhanced Coverage', () => {
     // Clear any active locks
     (redisLocksService as any).activeLocks.clear();
 
-    // Ensure we're in server environment (no window)
-    if ('window' in global) {
+    // Forcefully remove window for server-side tests by using defineProperty
+    Object.defineProperty(global, 'window', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    // Restore window state after each test
+    if (originalWindow !== undefined) {
+      Object.defineProperty(global, 'window', {
+        value: originalWindow,
+        writable: true,
+        configurable: true,
+      });
+    } else {
       delete (global as any).window;
     }
   });
@@ -85,12 +103,6 @@ describe('redisLocksService - Enhanced Coverage', () => {
 
   describe('Redis not configured scenarios (lines 217-218, 311-312, 407-408)', () => {
     beforeEach(() => {
-      // Ensure we're in server environment first
-      Object.defineProperty(global, 'window', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
       (isRedisConfigured as jest.Mock).mockReturnValue(false);
     });
 
@@ -120,12 +132,6 @@ describe('redisLocksService - Enhanced Coverage', () => {
 
   describe('error handling in catch blocks (lines 281-288, 374-381)', () => {
     beforeEach(() => {
-      // Ensure server environment and Redis configured
-      if ('window' in global) {
-        delete (global as any).window;
-      }
-      // Explicitly check that window is undefined
-      expect(typeof window).toBe('undefined');
       (isRedisConfigured as jest.Mock).mockReturnValue(true);
     });
 
@@ -212,14 +218,6 @@ describe('redisLocksService - Enhanced Coverage', () => {
   });
 
   describe('withLock edge cases (lines 461, 473, 483)', () => {
-    beforeEach(() => {
-      // Ensure server environment
-      if ('window' in global) {
-        delete (global as any).window;
-      }
-      expect(typeof window).toBe('undefined');
-    });
-
     it('should handle lock acquisition returning null data (line 461)', async () => {
       mockRedis.set.mockResolvedValueOnce(null);
 
@@ -465,14 +463,6 @@ describe('redisLocksService - Enhanced Coverage', () => {
   });
 
   describe('edge cases in successful paths', () => {
-    beforeEach(() => {
-      // Ensure server environment
-      if ('window' in global) {
-        delete (global as any).window;
-      }
-      expect(typeof window).toBe('undefined');
-    });
-
     it('should handle successful auto-extension and schedule next extension', async () => {
       const activeLocks = (redisLocksService as any).activeLocks;
       const now = Date.now();

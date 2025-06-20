@@ -16,8 +16,6 @@ jest.mock('next/server', () => ({
     json: jest.fn((data, init) => ({
       json: async () => data,
       status: init?.status || 200,
-      _data: data,
-      _init: init,
     })),
   },
 }));
@@ -37,10 +35,11 @@ describe('Validation Middleware', () => {
 
     it('validates valid request body successfully', async () => {
       const validData = { name: 'John', age: 25 };
-      const request = new Request('http://localhost', {
-        method: 'POST',
-        body: JSON.stringify(validData),
-      });
+      
+      // Mock the request.json() method to return our valid data
+      const request = {
+        json: jest.fn().mockResolvedValue(validData),
+      } as any as Request;
 
       const result = await validateRequestBody(request, testSchema);
 
@@ -52,19 +51,21 @@ describe('Validation Middleware', () => {
 
     it('returns validation error for invalid data', async () => {
       const invalidData = { name: 'Jo', age: -5 };
-      const request = new Request('http://localhost', {
-        method: 'POST',
-        body: JSON.stringify(invalidData),
-      });
+      
+      // Mock the request.json() method to return our invalid data
+      const request = {
+        json: jest.fn().mockResolvedValue(invalidData),
+      } as any as Request;
 
       const result = await validateRequestBody(request, testSchema);
 
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
-        const errorResponse = result.error as any;
-        expect(errorResponse._init.status).toBe(400);
-        expect(errorResponse._data.error).toBe('Validation failed');
-        expect(errorResponse._data.details).toEqual([
+        const errorResponse = result.error;
+        expect(errorResponse.status).toBe(400);
+        const responseData = await errorResponse.json();
+        expect(responseData.error).toBe('Validation failed');
+        expect(responseData.details).toEqual([
           {
             path: 'name',
             message: 'String must contain at least 3 character(s)',
@@ -74,28 +75,29 @@ describe('Validation Middleware', () => {
       }
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Request validation failed',
-        expect.objectContaining({
+        {
           metadata: expect.objectContaining({
             validationType: 'body',
             validationErrors: expect.any(Array),
           }),
-        })
+        }
       );
     });
 
     it('handles JSON parsing errors', async () => {
-      const request = new Request('http://localhost', {
-        method: 'POST',
-        body: 'invalid json',
-      });
+      // Mock the request.json() method to throw a JSON parsing error
+      const request = {
+        json: jest.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+      } as any as Request;
 
       const result = await validateRequestBody(request, testSchema);
 
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
-        const errorResponse = result.error as any;
-        expect(errorResponse._init.status).toBe(400);
-        expect(errorResponse._data.error).toBe('Invalid request body');
+        const errorResponse = result.error;
+        expect(errorResponse.status).toBe(400);
+        const responseData = await errorResponse.json();
+        expect(responseData.error).toBe('Invalid request body');
       }
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Unexpected error during body validation',
@@ -105,23 +107,24 @@ describe('Validation Middleware', () => {
     });
 
     it('includes metadata in log messages', async () => {
-      const request = new Request('http://localhost', {
-        method: 'POST',
-        body: JSON.stringify({ name: 'Jo' }),
-      });
+      // Mock request with invalid data to trigger warning log
+      const request = {
+        json: jest.fn().mockResolvedValue({ name: 'Jo' }), // Invalid: too short
+      } as any as Request;
 
       const metadata = { userId: '123', endpoint: '/api/test' };
       await validateRequestBody(request, testSchema, metadata);
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Request validation failed',
-        expect.objectContaining({
+        {
           metadata: expect.objectContaining({
             userId: '123',
             endpoint: '/api/test',
             validationType: 'body',
+            validationErrors: expect.any(Array),
           }),
-        })
+        }
       );
     });
   });
@@ -169,7 +172,7 @@ describe('Validation Middleware', () => {
       }
     });
 
-    it('returns validation error for invalid query params', () => {
+    it('returns validation error for invalid query params', async () => {
       const searchParams = new URLSearchParams({
         page: '0',
         limit: '150',
@@ -180,10 +183,11 @@ describe('Validation Middleware', () => {
 
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
-        const errorResponse = result.error as any;
-        expect(errorResponse._init.status).toBe(400);
-        expect(errorResponse._data.error).toBe('Invalid query parameters');
-        expect(errorResponse._data.details.length).toBe(3);
+        const errorResponse = result.error;
+        expect(errorResponse.status).toBe(400);
+        const responseData = await errorResponse.json();
+        expect(responseData.error).toBe('Invalid query parameters');
+        expect(responseData.details.length).toBe(3);
       }
     });
 
@@ -243,7 +247,7 @@ describe('Validation Middleware', () => {
       }
     });
 
-    it('returns validation error for invalid route params', () => {
+    it('returns validation error for invalid route params', async () => {
       const params = {
         id: 'not-a-uuid',
         slug: 'Invalid Slug!',
@@ -253,10 +257,11 @@ describe('Validation Middleware', () => {
 
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
-        const errorResponse = result.error as any;
-        expect(errorResponse._init.status).toBe(400);
-        expect(errorResponse._data.error).toBe('Invalid route parameters');
-        expect(errorResponse._data.details).toEqual([
+        const errorResponse = result.error;
+        expect(errorResponse.status).toBe(400);
+        const responseData = await errorResponse.json();
+        expect(responseData.error).toBe('Invalid route parameters');
+        expect(responseData.details).toEqual([
           { path: 'id', message: 'Invalid uuid' },
           { path: 'slug', message: 'Invalid' },
         ]);
@@ -325,17 +330,18 @@ describe('Validation Middleware', () => {
         },
       };
 
-      const request = new Request('http://localhost', {
-        method: 'POST',
-        body: JSON.stringify(invalidData),
-      });
+      // Mock the request.json() method to return our nested invalid data
+      const request = {
+        json: jest.fn().mockResolvedValue(invalidData),
+      } as any as Request;
 
       const result = await validateRequestBody(request, nestedSchema);
 
       expect(isValidationError(result)).toBe(true);
       if (isValidationError(result)) {
-        const errorResponse = result.error as any;
-        expect(errorResponse._data.details).toEqual([
+        const errorResponse = result.error;
+        const responseData = await errorResponse.json();
+        expect(responseData.details).toEqual([
           {
             path: 'user.profile.name',
             message: 'String must contain at least 3 character(s)',
