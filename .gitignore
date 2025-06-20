@@ -77,9 +77,18 @@ next-env.d.ts
 
 # Editor specific files
 .cursor/
+*.sublime-*
+.fleet/
+
+# OS specific
+thumbs.db
+Thumbs.db
 
 # Backup files
 backups/
+*.bak
+*.orig
+*.patch
 
 # Development placeholder files
 public/images/placeholder*.jpg
@@ -101,7 +110,14 @@ logs/
 .sentryclirc
 
 # Playwright
-node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Additional caches
+.turbo/
+*.log
+!important.log
+
+# Temporary coverage directory
+/temp-coverage/
