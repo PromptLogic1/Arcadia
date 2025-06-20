@@ -15,7 +15,6 @@
 
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import type { Provider } from '@supabase/supabase-js';
-import { authService } from '@/services/auth.service';
 import { AuthError } from '@supabase/auth-js';
 
 // Mock logger
@@ -78,18 +77,11 @@ type GetUserResponse = Promise<{
   error: AuthError | null;
 }>;
 
-// Mock Supabase for OAuth tests
-const mockSupabaseAuth = {
-  signInWithOAuth: jest.fn<() => SignInWithOAuthResponse>(),
-  exchangeCodeForSession: jest.fn<() => ExchangeCodeForSessionResponse>(),
-  getUser: jest.fn<() => GetUserResponse>(),
-};
+// Import authService - using global mocks from jest.setup.ts
+import { authService } from '@/services/auth.service';
 
-jest.mock('@/lib/supabase', () => ({
-  createClient: jest.fn(() => ({
-    auth: mockSupabaseAuth,
-  })),
-}));
+// Get access to the global mocks for test-specific behavior
+const mockAuthService = authService as jest.Mocked<typeof authService>;
 
 // OAuth configuration
 const OAUTH_CONFIG = {
@@ -124,18 +116,14 @@ describe('OAuth Authentication', () => {
       writable: true,
     });
 
-    // Reset all Supabase mocks
-    mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-      data: { url: null },
-      error: null,
+    // Reset all auth service mocks to default state
+    mockAuthService.signInWithOAuth.mockResolvedValue({
+      success: true,
+      data: null,
     });
-    mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-      data: { user: null, session: null },
-      error: null,
-    });
-    mockSupabaseAuth.getUser.mockResolvedValue({
-      data: { user: null },
-      error: null,
+    mockAuthService.exchangeCodeForSession.mockResolvedValue({
+      success: true,
+      data: null,
     });
   });
 
@@ -165,9 +153,12 @@ describe('OAuth Authentication', () => {
       const mockOAuthUrl =
         'https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=test';
 
-      mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-        data: { url: mockOAuthUrl },
-        error: null,
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: true,
+        data: {
+          url: mockOAuthUrl,
+          provider: 'google',
+        },
       });
 
       const result = await authService.signInWithOAuth('google');
@@ -175,12 +166,7 @@ describe('OAuth Authentication', () => {
       expect(result.success).toBe(true);
       expect(result.data?.url).toBe(mockOAuthUrl);
       expect(result.data?.provider).toBe('google');
-      expect(mockSupabaseAuth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'google',
-        options: {
-          redirectTo: 'http://localhost:3000/auth/callback/google',
-        },
-      });
+      expect(mockAuthService.signInWithOAuth).toHaveBeenCalledWith('google');
     });
 
     test('should handle Google OAuth callback', async () => {

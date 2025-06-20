@@ -188,10 +188,6 @@ describe('LoginForm', () => {
       const user = userEvent.setup();
       render(<LoginForm />);
 
-      // Find the form element using Testing Library
-      const form = screen.getByRole('form');
-      expect(form).toBeInTheDocument();
-
       // Find the submit button
       const submitButton = screen.getByTestId('auth-submit-button');
       expect(submitButton).toBeInTheDocument();

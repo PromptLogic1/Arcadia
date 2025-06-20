@@ -62,6 +62,7 @@ interface MockSupabaseClient {
     signOut: jest.Mock;
     updateUser: jest.Mock;
     resetPasswordForEmail: jest.Mock;
+    exchangeCodeForSession: jest.Mock;
     onAuthStateChange: jest.Mock;
   };
   from: jest.Mock;
@@ -86,6 +87,7 @@ const mockSupabaseClient: MockSupabaseClient = {
     signOut: jest.fn(),
     updateUser: jest.fn(),
     resetPasswordForEmail: jest.fn(), // Add missing method
+    exchangeCodeForSession: jest.fn().mockResolvedValue({ data: { user: null, session: null }, error: null }),
     onAuthStateChange: jest
       .fn()
       .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
@@ -344,7 +346,10 @@ jest.mock('@/services/auth.service', () => ({
     resetPassword: jest.fn().mockResolvedValue({ success: true, data: null }),
     updateUser: jest.fn().mockResolvedValue({ success: true, data: null }),
     updatePassword: jest.fn().mockResolvedValue({ success: true, data: null }),
+    updateUserData: jest.fn().mockResolvedValue({ success: true, data: null }),
     getUserData: jest.fn().mockResolvedValue({ success: true, data: null }),
+    exchangeCodeForSession: jest.fn().mockResolvedValue({ success: true, data: null }),
+    onAuthStateChange: jest.fn().mockReturnValue({ unsubscribe: jest.fn() }),
   },
 }));
 
