@@ -345,6 +345,82 @@ describe('settingsService', () => {
       expect(result.data).toEqual(mockSettings);
     });
 
+    it('should handle null values with defaults', async () => {
+      // Return a settings object with some null values to test the ?? operators
+      const mockSettings = {
+        email_notifications: null,
+        push_notifications: null,
+        friend_requests: null,
+        friend_activity: null,
+        game_invites: null,
+        game_updates: null,
+        challenge_notifications: null,
+        achievement_notifications: null,
+        community_updates: null,
+        marketing_emails: null,
+        weekly_digest: null,
+        maintenance_alerts: null,
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: mockSettings,
+        error: null,
+      });
+
+      const result = await settingsService.getNotificationSettings('user-123');
+
+      expect(result.success).toBe(true);
+      // Should use default values when fields are null
+      expect(result.data).toEqual({
+        email_notifications: true,
+        push_notifications: false,
+        friend_requests: true,
+        friend_activity: true,
+        game_invites: true,
+        game_updates: true,
+        challenge_notifications: true,
+        achievement_notifications: true,
+        community_updates: true,
+        marketing_emails: false,
+        weekly_digest: true,
+        maintenance_alerts: true,
+      });
+    });
+
+    it('should handle undefined values with defaults', async () => {
+      // Return a partially empty settings object to test the ?? operators with undefined
+      const mockSettings = {
+        email_notifications: undefined,
+        push_notifications: false,
+        game_invites: undefined,
+        marketing_emails: undefined,
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: mockSettings,
+        error: null,
+      });
+
+      const result = await settingsService.getNotificationSettings('user-123');
+
+      expect(result.success).toBe(true);
+      // Should use default values when fields are undefined
+      expect(result.data).toEqual({
+        email_notifications: true,
+        push_notifications: false,
+        friend_requests: true,
+        friend_activity: true,
+        game_invites: true,
+        game_updates: true,
+        challenge_notifications: true,
+        achievement_notifications: true,
+        community_updates: true,
+        marketing_emails: false,
+        weekly_digest: true,
+        maintenance_alerts: true,
+      });
+    });
+
     it('should return default settings when none exist', async () => {
       mockFrom.single.mockResolvedValueOnce({
         data: null,
@@ -373,6 +449,38 @@ describe('settingsService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database error');
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should handle unexpected errors with Error instance', async () => {
+      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await settingsService.getNotificationSettings('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
+      expect(logger.error).toHaveBeenCalledWith(
+        'Unexpected error in getNotificationSettings',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: { userId: 'user-123' },
+        })
+      );
+    });
+
+    it('should handle unexpected errors with non-Error instance', async () => {
+      mockFrom.single.mockRejectedValueOnce('String error');
+
+      const result = await settingsService.getNotificationSettings('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to fetch notification settings');
+      expect(logger.error).toHaveBeenCalledWith(
+        'Unexpected error in getNotificationSettings',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: { userId: 'user-123' },
+        })
+      );
     });
   });
 
@@ -410,6 +518,101 @@ describe('settingsService', () => {
         user_id: 'user-123',
         ...settings,
         updated_at: expect.any(String),
+      });
+    });
+
+    it('should handle null values in updated settings with defaults', async () => {
+      const settings = {
+        email_notifications: false,
+      };
+
+      // Return data with some null values to test the ?? operators
+      const updatedData = {
+        user_id: 'user-123',
+        email_notifications: false,
+        push_notifications: null,
+        friend_requests: null,
+        friend_activity: null,
+        game_invites: null,
+        game_updates: null,
+        challenge_notifications: null,
+        achievement_notifications: null,
+        community_updates: null,
+        marketing_emails: null,
+        weekly_digest: null,
+        maintenance_alerts: null,
+        updated_at: expect.any(String),
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: updatedData,
+        error: null,
+      });
+
+      const result = await settingsService.updateNotificationSettings(
+        'user-123',
+        settings
+      );
+
+      expect(result.success).toBe(true);
+      // Should use default values when fields are null
+      expect(result.data).toEqual({
+        email_notifications: false,
+        push_notifications: false,
+        friend_requests: true,
+        friend_activity: true,
+        game_invites: true,
+        game_updates: true,
+        challenge_notifications: true,
+        achievement_notifications: true,
+        community_updates: true,
+        marketing_emails: false,
+        weekly_digest: true,
+        maintenance_alerts: true,
+      });
+    });
+
+    it('should handle undefined values in updated settings with defaults', async () => {
+      const settings = {
+        push_notifications: true,
+        marketing_emails: true,
+      };
+
+      // Return data with some undefined values to test the ?? operators
+      const updatedData = {
+        user_id: 'user-123',
+        email_notifications: undefined,
+        push_notifications: true,
+        game_invites: undefined,
+        marketing_emails: true,
+        updated_at: expect.any(String),
+      };
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: updatedData,
+        error: null,
+      });
+
+      const result = await settingsService.updateNotificationSettings(
+        'user-123',
+        settings
+      );
+
+      expect(result.success).toBe(true);
+      // Should use default values when fields are undefined
+      expect(result.data).toEqual({
+        email_notifications: true,
+        push_notifications: true,
+        friend_requests: true,
+        friend_activity: true,
+        game_invites: true,
+        game_updates: true,
+        challenge_notifications: true,
+        achievement_notifications: true,
+        community_updates: true,
+        marketing_emails: true,
+        weekly_digest: true,
+        maintenance_alerts: true,
       });
     });
 
