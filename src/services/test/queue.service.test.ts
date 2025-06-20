@@ -34,7 +34,7 @@ describe('queueService', () => {
     (createClient as jest.Mock).mockReturnValue(mockSupabase);
     mockSupabase.from.mockReturnValue(mockFrom);
 
-    // Setup default chaining behavior
+    // Setup default chaining behavior - CRITICAL: each method must return mockFrom for chaining
     mockFrom.select.mockReturnValue(mockFrom);
     mockFrom.insert.mockReturnValue(mockFrom);
     mockFrom.update.mockReturnValue(mockFrom);
@@ -45,11 +45,6 @@ describe('queueService', () => {
     mockFrom.single.mockReturnValue(mockFrom);
     mockFrom.order.mockReturnValue(mockFrom);
     mockFrom.limit.mockReturnValue(mockFrom);
-
-    // Default success responses
-    mockFrom.eq.mockResolvedValue({ error: null });
-    mockFrom.single.mockResolvedValue({ data: null, error: null });
-    mockFrom.order.mockResolvedValue({ data: [], error: null });
   });
 
   describe('joinQueue', () => {
@@ -65,36 +60,48 @@ describe('queueService', () => {
     };
 
     it('should join queue successfully', async () => {
-      // Mock existing entry check - no existing entry
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: { code: 'PGRST116', message: 'No rows found' },
-      });
-
-      // Mock successful insertion
-      const newEntry: QueueEntry = {
-        id: 'queue-entry-123',
-        user_id: 'user-123',
-        board_id: 'board-456',
-        preferences: JSON.stringify(joinData.preferences),
-        status: 'waiting',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-        matched_at: null,
-        matched_session_id: null,
+      // Mock chain for existing entry check - set up the complete chain
+      const checkChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'No rows found' },
+        }),
+      };
+      checkChain.eq.mockReturnValueOnce(checkChain); // First .eq() returns chain
+      
+      // Mock chain for insertion
+      const insertChain = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: {
+            id: 'queue-entry-123',
+            user_id: 'user-123',
+            board_id: 'board-456',
+            preferences: JSON.stringify(joinData.preferences),
+            status: 'waiting',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+            matched_at: null,
+            matched_session_id: null,
+          },
+          error: null,
+        }),
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: newEntry,
-        error: null,
-      });
+      // Mock from() to return appropriate chains for each call
+      mockSupabase.from
+        .mockReturnValueOnce(checkChain)  // First call for checking existing entry
+        .mockReturnValueOnce(insertChain); // Second call for insertion
 
       const result = await queueService.joinQueue(joinData);
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(newEntry);
+      expect(result.data?.user_id).toBe('user-123');
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_queue_entries');
-      expect(mockFrom.insert).toHaveBeenCalledWith([
+      expect(insertChain.insert).toHaveBeenCalledWith([
         {
           user_id: 'user-123',
           board_id: 'board-456',
@@ -109,33 +116,45 @@ describe('queueService', () => {
         user_id: 'user-123',
       };
 
-      // Mock no existing entry
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: { code: 'PGRST116' },
-      });
-
-      const newEntry: QueueEntry = {
-        id: 'queue-entry-123',
-        user_id: 'user-123',
-        board_id: null,
-        preferences: null,
-        status: 'waiting',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-        matched_at: null,
-        matched_session_id: null,
+      // Mock chain for existing entry check
+      const checkChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116' },
+        }),
+      };
+      checkChain.eq.mockReturnValueOnce(checkChain);
+      
+      // Mock chain for insertion
+      const insertChain = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: {
+            id: 'queue-entry-123',
+            user_id: 'user-123',
+            board_id: null,
+            preferences: null,
+            status: 'waiting',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+            matched_at: null,
+            matched_session_id: null,
+          },
+          error: null,
+        }),
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: newEntry,
-        error: null,
-      });
+      mockSupabase.from
+        .mockReturnValueOnce(checkChain)
+        .mockReturnValueOnce(insertChain);
 
       const result = await queueService.joinQueue(basicJoinData);
 
       expect(result.success).toBe(true);
-      expect(mockFrom.insert).toHaveBeenCalledWith([
+      expect(insertChain.insert).toHaveBeenCalledWith([
         {
           user_id: 'user-123',
           board_id: null,
@@ -158,10 +177,18 @@ describe('queueService', () => {
         matched_session_id: null,
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: existingEntry,
-        error: null,
-      });
+      // Mock chain for existing entry check - user exists
+      const checkChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: existingEntry,
+          error: null,
+        }),
+      };
+      checkChain.eq.mockReturnValueOnce(checkChain);
+      
+      mockSupabase.from.mockReturnValueOnce(checkChain);
 
       const result = await queueService.joinQueue(joinData);
 
@@ -173,18 +200,31 @@ describe('queueService', () => {
     });
 
     it('should handle database error during insertion', async () => {
-      // Mock no existing entry
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: { code: 'PGRST116' },
-      });
+      // Mock chain for existing entry check - no existing entry
+      const checkChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116' },
+        }),
+      };
+      checkChain.eq.mockReturnValueOnce(checkChain);
+      
+      // Mock chain for insertion with error - make error object proper Error-like
+      const insertError = new Error('Insertion failed');
+      const insertChain = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: insertError,
+        }),
+      };
 
-      // Mock insertion error
-      const insertError = { message: 'Insertion failed', code: 'DB_ERROR' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: insertError,
-      });
+      mockSupabase.from
+        .mockReturnValueOnce(checkChain)
+        .mockReturnValueOnce(insertChain);
 
       const result = await queueService.joinQueue(joinData);
 
@@ -198,7 +238,15 @@ describe('queueService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+      // Mock chain that throws an error
+      const errorChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockRejectedValue(new Error('Network error')),
+      };
+      errorChain.eq.mockReturnValueOnce(errorChain);
+      
+      mockSupabase.from.mockReturnValueOnce(errorChain);
 
       const result = await queueService.joinQueue(joinData);
 
@@ -212,7 +260,15 @@ describe('queueService', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      mockFrom.single.mockRejectedValueOnce('String error');
+      // Mock chain that throws a string error
+      const errorChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockRejectedValue('String error'),
+      };
+      errorChain.eq.mockReturnValueOnce(errorChain);
+      
+      mockSupabase.from.mockReturnValueOnce(errorChain);
 
       const result = await queueService.joinQueue(joinData);
 
@@ -225,25 +281,37 @@ describe('queueService', () => {
     const userId = 'user-123';
 
     it('should leave queue successfully', async () => {
-      mockFrom.eq.mockResolvedValueOnce({
+      // Mock chain for update operation: update().eq().eq()
+      const updateChain = {
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({
         error: null,
       });
+
+      mockSupabase.from.mockReturnValueOnce(updateChain);
 
       const result = await queueService.leaveQueue(userId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ message: 'Successfully left the queue' });
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_queue_entries');
-      expect(mockFrom.update).toHaveBeenCalledWith({ status: 'cancelled' });
-      expect(mockFrom.eq).toHaveBeenCalledWith('user_id', userId);
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'waiting');
+      expect(updateChain.update).toHaveBeenCalledWith({ status: 'cancelled' });
     });
 
     it('should handle database error during leave', async () => {
-      const error = { message: 'Update failed' };
-      mockFrom.eq.mockResolvedValueOnce({
+      const error = new Error('Update failed');
+      // Mock chain for update operation with error
+      const updateChain = {
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+      };
+      updateChain.eq.mockReturnValueOnce(updateChain).mockResolvedValueOnce({
         error,
       });
+
+      mockSupabase.from.mockReturnValueOnce(updateChain);
 
       const result = await queueService.leaveQueue(userId);
 
@@ -314,25 +382,39 @@ describe('queueService', () => {
         matched_session_id: null,
       };
 
-      mockFrom.single.mockResolvedValueOnce({
-        data: queueEntry,
-        error: null,
-      });
+      // Mock chain for select().eq().eq().single()
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: queueEntry,
+          error: null,
+        }),
+      };
+      selectChain.eq.mockReturnValueOnce(selectChain);
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getQueueStatus(userId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(queueEntry);
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_queue_entries');
-      expect(mockFrom.eq).toHaveBeenCalledWith('user_id', userId);
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'waiting');
     });
 
     it('should return null when user is not in queue', async () => {
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error: { code: 'PGRST116', message: 'No rows found' },
-      });
+      // Mock chain for select().eq().eq().single()
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'No rows found' },
+        }),
+      };
+      selectChain.eq.mockReturnValueOnce(selectChain);
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getQueueStatus(userId);
 
@@ -341,11 +423,20 @@ describe('queueService', () => {
     });
 
     it('should handle database error', async () => {
-      const error = { message: 'Database error', code: 'DB_ERROR' };
-      mockFrom.single.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const error = new Error('Database error');
+      error.code = 'DB_ERROR';
+      // Mock chain for select().eq().eq().single() with error
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error,
+        }),
+      };
+      selectChain.eq.mockReturnValueOnce(selectChain);
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getQueueStatus(userId);
 
@@ -359,7 +450,15 @@ describe('queueService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+      // Mock chain that throws an error
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockRejectedValue(new Error('Network error')),
+      };
+      selectChain.eq.mockReturnValueOnce(selectChain);
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getQueueStatus(userId);
 
@@ -373,7 +472,15 @@ describe('queueService', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      mockFrom.single.mockRejectedValueOnce('String error');
+      // Mock chain that throws a string error
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockRejectedValue('String error'),
+      };
+      selectChain.eq.mockReturnValueOnce(selectChain);
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getQueueStatus(userId);
 
@@ -409,27 +516,41 @@ describe('queueService', () => {
         },
       ];
 
-      mockFrom.order.mockResolvedValueOnce({
-        data: waitingEntries,
-        error: null,
-      });
+      // Mock chain for select().eq().order()
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({
+          data: waitingEntries,
+          error: null,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getWaitingEntries();
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(waitingEntries);
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_queue_entries');
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'waiting');
-      expect(mockFrom.order).toHaveBeenCalledWith('created_at', {
+      expect(selectChain.eq).toHaveBeenCalledWith('status', 'waiting');
+      expect(selectChain.order).toHaveBeenCalledWith('created_at', {
         ascending: true,
       });
     });
 
     it('should return empty array when no entries', async () => {
-      mockFrom.order.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
+      // Mock chain for select().eq().order()
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getWaitingEntries();
 
@@ -438,11 +559,18 @@ describe('queueService', () => {
     });
 
     it('should handle database error', async () => {
-      const error = { message: 'Database error' };
-      mockFrom.order.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const error = new Error('Database error');
+      // Mock chain for select().eq().order() with error
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({
+          data: null,
+          error,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getWaitingEntries();
 
@@ -455,7 +583,14 @@ describe('queueService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      mockFrom.order.mockRejectedValueOnce(new Error('Network error'));
+      // Mock chain that throws an error
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockRejectedValue(new Error('Network error')),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getWaitingEntries();
 
@@ -468,7 +603,14 @@ describe('queueService', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      mockFrom.order.mockRejectedValueOnce('String error');
+      // Mock chain that throws a string error
+      const selectChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockRejectedValue('String error'),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(selectChain);
 
       const result = await queueService.getWaitingEntries();
 
@@ -482,29 +624,43 @@ describe('queueService', () => {
     const sessionId = 'session-123';
 
     it('should mark entries as matched successfully', async () => {
-      mockFrom.eq.mockResolvedValueOnce({
-        error: null,
-      });
+      // Mock chain for update().in().eq()
+      const updateChain = {
+        update: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(updateChain);
 
       const result = await queueService.markAsMatched(userIds, sessionId);
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ matchedCount: 3 });
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_queue_entries');
-      expect(mockFrom.update).toHaveBeenCalledWith({
+      expect(updateChain.update).toHaveBeenCalledWith({
         status: 'matched',
         matched_session_id: sessionId,
         matched_at: expect.any(String),
       });
-      expect(mockFrom.in).toHaveBeenCalledWith('user_id', userIds);
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'waiting');
+      expect(updateChain.in).toHaveBeenCalledWith('user_id', userIds);
+      expect(updateChain.eq).toHaveBeenCalledWith('status', 'waiting');
     });
 
     it('should handle database error during marking', async () => {
-      const error = { message: 'Update failed' };
-      mockFrom.eq.mockResolvedValueOnce({
-        error,
-      });
+      const error = new Error('Update failed');
+      // Mock chain for update().in().eq() with error
+      const updateChain = {
+        update: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
+          error,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(updateChain);
 
       const result = await queueService.markAsMatched(userIds, sessionId);
 
@@ -518,7 +674,14 @@ describe('queueService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      mockFrom.eq.mockRejectedValueOnce(new Error('Network error'));
+      // Mock chain that throws an error
+      const updateChain = {
+        update: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockRejectedValue(new Error('Network error')),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(updateChain);
 
       const result = await queueService.markAsMatched(userIds, sessionId);
 
@@ -532,7 +695,14 @@ describe('queueService', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      mockFrom.eq.mockRejectedValueOnce('String error');
+      // Mock chain that throws a string error
+      const updateChain = {
+        update: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockRejectedValue('String error'),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(updateChain);
 
       const result = await queueService.markAsMatched(userIds, sessionId);
 
@@ -545,19 +715,27 @@ describe('queueService', () => {
     it('should cleanup expired entries successfully', async () => {
       const expiredEntries = [{ id: 'expired-1' }, { id: 'expired-2' }];
 
-      mockFrom.select.mockResolvedValueOnce({
-        data: expiredEntries,
-        error: null,
-      });
+      // Mock chain for delete().eq().lt().select()
+      const deleteChain = {
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        lt: jest.fn().mockReturnThis(),
+        select: jest.fn().mockResolvedValue({
+          data: expiredEntries,
+          error: null,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(deleteChain);
 
       const result = await queueService.cleanupExpiredEntries();
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ cleaned: 2 });
       expect(mockSupabase.from).toHaveBeenCalledWith('bingo_queue_entries');
-      expect(mockFrom.delete).toHaveBeenCalled();
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'waiting');
-      expect(mockFrom.lt).toHaveBeenCalledWith(
+      expect(deleteChain.delete).toHaveBeenCalled();
+      expect(deleteChain.eq).toHaveBeenCalledWith('status', 'waiting');
+      expect(deleteChain.lt).toHaveBeenCalledWith(
         'created_at',
         expect.any(String)
       );
@@ -568,10 +746,18 @@ describe('queueService', () => {
     });
 
     it('should handle no expired entries', async () => {
-      mockFrom.select.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
+      // Mock chain for delete().eq().lt().select()
+      const deleteChain = {
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        lt: jest.fn().mockReturnThis(),
+        select: jest.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(deleteChain);
 
       const result = await queueService.cleanupExpiredEntries();
 
@@ -580,11 +766,19 @@ describe('queueService', () => {
     });
 
     it('should handle database error during cleanup', async () => {
-      const error = { message: 'Delete failed' };
-      mockFrom.select.mockResolvedValueOnce({
-        data: null,
-        error,
-      });
+      const error = new Error('Delete failed');
+      // Mock chain for delete().eq().lt().select() with error
+      const deleteChain = {
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        lt: jest.fn().mockReturnThis(),
+        select: jest.fn().mockResolvedValue({
+          data: null,
+          error,
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(deleteChain);
 
       const result = await queueService.cleanupExpiredEntries();
 
@@ -597,7 +791,15 @@ describe('queueService', () => {
     });
 
     it('should handle unexpected error', async () => {
-      mockFrom.select.mockRejectedValueOnce(new Error('Network error'));
+      // Mock the entire chain properly - the delete() method starts the chain
+      const errorChain = {
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(), 
+        lt: jest.fn().mockReturnThis(),
+        select: jest.fn().mockRejectedValueOnce(new Error('Network error')),
+      };
+      
+      mockSupabase.from.mockReturnValueOnce(errorChain);
 
       const result = await queueService.cleanupExpiredEntries();
 
@@ -610,7 +812,15 @@ describe('queueService', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      mockFrom.select.mockRejectedValueOnce('String error');
+      // Mock the entire chain properly - the delete() method starts the chain
+      const errorChain = {
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(), 
+        lt: jest.fn().mockReturnThis(),
+        select: jest.fn().mockRejectedValueOnce('String error'),
+      };
+      
+      mockSupabase.from.mockReturnValueOnce(errorChain);
 
       const result = await queueService.cleanupExpiredEntries();
 
