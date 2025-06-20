@@ -7,9 +7,7 @@
 import { redisLocksService } from '../redis-locks.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
-import type {
-  DistributedLockOptions,
-} from '../redis-locks.service';
+import type { DistributedLockOptions } from '../redis-locks.service';
 
 // Mock dependencies
 jest.mock('@/lib/redis');

@@ -28,9 +28,15 @@ describe('RateLimitingService', () => {
 
   // Mock static methods on Ratelimit
   beforeAll(() => {
-    MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter');
-    MockRatelimit.fixedWindow = jest.fn().mockReturnValue('fixed-window-limiter');
-    MockRatelimit.tokenBucket = jest.fn().mockReturnValue('token-bucket-limiter');
+    MockRatelimit.slidingWindow = jest
+      .fn()
+      .mockReturnValue('sliding-window-limiter');
+    MockRatelimit.fixedWindow = jest
+      .fn()
+      .mockReturnValue('fixed-window-limiter');
+    MockRatelimit.tokenBucket = jest
+      .fn()
+      .mockReturnValue('token-bucket-limiter');
   });
 
   beforeEach(() => {
@@ -38,14 +44,14 @@ describe('RateLimitingService', () => {
     jest.isolateModules(() => {
       jest.resetModules();
     });
-    
+
     // Default mock setup
     mockIsRedisConfigured.mockReturnValue(true);
     mockGetRedisClient.mockReturnValue(mockRedisClient as any);
-    
+
     // Reset mock limit instance
     mockLimitInstance.limit.mockClear();
-    
+
     // Mock Ratelimit constructor to return our mock instance
     MockRatelimit.mockImplementation(() => mockLimitInstance as any);
   });
@@ -57,10 +63,12 @@ describe('RateLimitingService', () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
         jest.mock('@/lib/logger');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -70,12 +78,16 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkApiLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -93,7 +105,9 @@ describe('RateLimitingService', () => {
         const { isRedisConfigured } = await import('@/lib/redis');
         (isRedisConfigured as jest.Mock).mockReturnValue(false);
 
-        const { rateLimitingService } = await import('../rate-limiting.service');
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkApiLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -107,19 +121,25 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockRejectedValue(new Error('Redis error')),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkApiLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -134,11 +154,13 @@ describe('RateLimitingService', () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
         jest.mock('@/lib/logger');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
         const { log } = await import('@/lib/logger');
-        
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -148,12 +170,16 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         await rateLimitingService.checkApiLimit('user:123');
 
         expect((log as jest.Mocked<typeof log>).debug).toHaveBeenCalled();
@@ -166,10 +192,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -179,13 +207,18 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
-        const result = await rateLimitingService.checkAuthLimit('ip:192.168.1.1');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
+        const result =
+          await rateLimitingService.checkAuthLimit('ip:192.168.1.1');
 
         expect(result.success).toBe(true);
         expect(result.data?.limit).toBe(5);
@@ -197,17 +230,23 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementationOnce(() => {
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
+        (
+          Ratelimit as jest.MockedClass<typeof Ratelimit>
+        ).mockImplementationOnce(() => {
           throw new Error('Initialization failed');
         });
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkAuthLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -221,7 +260,9 @@ describe('RateLimitingService', () => {
         const { isRedisConfigured } = await import('@/lib/redis');
         (isRedisConfigured as jest.Mock).mockReturnValue(false);
 
-        const { rateLimitingService } = await import('../rate-limiting.service');
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkAuthLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -235,19 +276,25 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockRejectedValue(new Error('Auth Redis error')),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkAuthLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -261,10 +308,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -274,12 +323,16 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkUploadLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -293,17 +346,23 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementationOnce(() => {
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
+        (
+          Ratelimit as jest.MockedClass<typeof Ratelimit>
+        ).mockImplementationOnce(() => {
           throw new Error('Upload initialization failed');
         });
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const result = await rateLimitingService.checkUploadLimit('user:123');
 
         expect(result.success).toBe(true);
@@ -317,10 +376,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -330,13 +391,18 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
-        const result = await rateLimitingService.checkGameSessionLimit('user:123');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
+        const result =
+          await rateLimitingService.checkGameSessionLimit('user:123');
 
         expect(result.success).toBe(true);
         expect(result.data?.limit).toBe(10);
@@ -348,18 +414,25 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementationOnce(() => {
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
+        (
+          Ratelimit as jest.MockedClass<typeof Ratelimit>
+        ).mockImplementationOnce(() => {
           throw new Error('Game session initialization failed');
         });
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
-        const result = await rateLimitingService.checkGameSessionLimit('user:123');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
+        const result =
+          await rateLimitingService.checkGameSessionLimit('user:123');
 
         expect(result.success).toBe(true);
         expect(result.data?.allowed).toBe(true);
@@ -372,10 +445,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -385,13 +460,18 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
-        const result = await rateLimitingService.checkGameActionLimit('user:123');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
+        const result =
+          await rateLimitingService.checkGameActionLimit('user:123');
 
         expect(result.success).toBe(true);
         expect(result.data?.limit).toBe(30);
@@ -404,18 +484,25 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementationOnce(() => {
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
+        (
+          Ratelimit as jest.MockedClass<typeof Ratelimit>
+        ).mockImplementationOnce(() => {
           throw new Error('Game action initialization failed');
         });
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
-        const result = await rateLimitingService.checkGameActionLimit('user:123');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
+        const result =
+          await rateLimitingService.checkGameActionLimit('user:123');
 
         expect(result.success).toBe(true);
         expect(result.data?.allowed).toBe(true);
@@ -436,7 +523,7 @@ describe('RateLimitingService', () => {
       const { rateLimitingService } = await import('../rate-limiting.service');
       const request = {
         headers: {
-          get: jest.fn((header) => {
+          get: jest.fn(header => {
             if (header === 'x-forwarded-for') return '192.168.1.1, 10.0.0.1';
             return null;
           }),
@@ -451,7 +538,7 @@ describe('RateLimitingService', () => {
       const { rateLimitingService } = await import('../rate-limiting.service');
       const request = {
         headers: {
-          get: jest.fn((header) => {
+          get: jest.fn(header => {
             if (header === 'x-real-ip') return '192.168.1.2';
             return null;
           }),
@@ -466,7 +553,7 @@ describe('RateLimitingService', () => {
       const { rateLimitingService } = await import('../rate-limiting.service');
       const request = {
         headers: {
-          get: jest.fn((header) => {
+          get: jest.fn(header => {
             if (header === 'cf-connecting-ip') return '192.168.1.3';
             return null;
           }),
@@ -493,8 +580,9 @@ describe('RateLimitingService', () => {
       const { rateLimitingService } = await import('../rate-limiting.service');
       const request = {
         headers: {
-          get: jest.fn((header) => {
-            if (header === 'x-forwarded-for') return '  192.168.1.100  , 10.0.0.1';
+          get: jest.fn(header => {
+            if (header === 'x-forwarded-for')
+              return '  192.168.1.100  , 10.0.0.1';
             return null;
           }),
         },
@@ -508,7 +596,7 @@ describe('RateLimitingService', () => {
       const { rateLimitingService } = await import('../rate-limiting.service');
       const request = {
         headers: {
-          get: jest.fn((header) => {
+          get: jest.fn(header => {
             if (header === 'x-forwarded-for') return '192.168.1.1';
             if (header === 'x-real-ip') return '192.168.1.2';
             if (header === 'cf-connecting-ip') return '192.168.1.3';
@@ -527,7 +615,7 @@ describe('RateLimitingService', () => {
     const mockHandler = jest.fn();
     const mockRequest = {
       headers: {
-        get: jest.fn((header) => {
+        get: jest.fn(header => {
           if (header === 'x-real-ip') return '192.168.1.1';
           return null;
         }),
@@ -543,10 +631,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -556,11 +646,13 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(
           mockRequest,
@@ -579,10 +671,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: false,
@@ -592,11 +686,13 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
 
@@ -610,10 +706,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -623,13 +721,15 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
-        
+
         await withRateLimit(mockRequest, mockHandler, 'auth');
         await withRateLimit(mockRequest, mockHandler, 'upload');
         await withRateLimit(mockRequest, mockHandler, 'gameSession');
@@ -643,10 +743,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: true,
@@ -656,15 +758,17 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const errorHandler = jest
           .fn()
           .mockRejectedValue(new Error('Handler error'));
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(mockRequest, errorHandler, 'api');
 
@@ -678,7 +782,7 @@ describe('RateLimitingService', () => {
         jest.mock('@/lib/redis');
         const { isRedisConfigured } = await import('@/lib/redis');
         (isRedisConfigured as jest.Mock).mockReturnValue(false);
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
 
@@ -693,16 +797,20 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => {
-          throw new Error('Rate limit service unavailable');
-        });
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => {
+            throw new Error('Rate limit service unavailable');
+          }
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
 
@@ -717,21 +825,27 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         // First setup normal mock
         const mockLimitInstance = {
           limit: jest.fn(),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService, withRateLimit } = await import('../rate-limiting.service');
-        
+
+        const { rateLimitingService, withRateLimit } = await import(
+          '../rate-limiting.service'
+        );
+
         // Override the checkApiLimit method to return null data
         const originalCheckApiLimit = rateLimitingService.checkApiLimit;
         rateLimitingService.checkApiLimit = jest.fn().mockResolvedValueOnce({
@@ -755,10 +869,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const resetTime = Date.now() + 90000; // 90 seconds from now
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
@@ -769,11 +885,13 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
 
@@ -792,10 +910,12 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockResolvedValue({
             success: false,
@@ -805,16 +925,20 @@ describe('RateLimitingService', () => {
             reason: undefined,
           }),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
+
         const { withRateLimit } = await import('../rate-limiting.service');
         const result = await withRateLimit(mockRequest, mockHandler, 'api');
 
         expect(result.success).toBe(false);
-        expect(result.error).toBe('Rate limit exceeded. Try again in 60 seconds.');
+        expect(result.error).toBe(
+          'Rate limit exceeded. Try again in 60 seconds.'
+        );
         expect(mockHandler).not.toHaveBeenCalled();
       });
     });
@@ -825,17 +949,23 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => {
-          throw new Error('API limiter init failed');
-        });
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => {
+            throw new Error('API limiter init failed');
+          }
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
         const apiResult = await rateLimitingService.checkApiLimit('test:123');
         expect(apiResult.success).toBe(true);
         expect(apiResult.data?.allowed).toBe(true);
@@ -848,9 +978,12 @@ describe('RateLimitingService', () => {
         const { isRedisConfigured } = await import('@/lib/redis');
         (isRedisConfigured as jest.Mock).mockReturnValue(false);
 
-        const { rateLimitingService } = await import('../rate-limiting.service');
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
 
-        const authResult = await rateLimitingService.checkAuthLimit('test:auth');
+        const authResult =
+          await rateLimitingService.checkAuthLimit('test:auth');
         expect(authResult.success).toBe(true);
         expect(authResult.data?.allowed).toBe(true);
 
@@ -875,20 +1008,27 @@ describe('RateLimitingService', () => {
       await jest.isolateModules(async () => {
         jest.mock('@upstash/ratelimit');
         jest.mock('@/lib/redis');
-        
+
         const { Ratelimit } = await import('@upstash/ratelimit');
-        const { getRedisClient, isRedisConfigured } = await import('@/lib/redis');
-        
+        const { getRedisClient, isRedisConfigured } = await import(
+          '@/lib/redis'
+        );
+
         const mockLimitInstance = {
           limit: jest.fn().mockRejectedValue(new Error('Auth Redis error')),
         };
-        
-        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockLimitInstance as any);
+
+        (Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+          () => mockLimitInstance as any
+        );
         (isRedisConfigured as jest.Mock).mockReturnValue(true);
         (getRedisClient as jest.Mock).mockReturnValue({ ping: jest.fn() });
-        
-        const { rateLimitingService } = await import('../rate-limiting.service');
-        const authResult = await rateLimitingService.checkAuthLimit('test:auth');
+
+        const { rateLimitingService } = await import(
+          '../rate-limiting.service'
+        );
+        const authResult =
+          await rateLimitingService.checkAuthLimit('test:auth');
         expect(authResult.success).toBe(true);
         expect(authResult.data?.allowed).toBe(true);
       });

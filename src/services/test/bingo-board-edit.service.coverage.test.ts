@@ -4,7 +4,7 @@
 
 /**
  * Additional Coverage Tests for Bingo Board Edit Service
- * 
+ *
  * Focusing on uncovered branches and edge cases to improve coverage
  * from 86.93% lines, 57.44% branches to 95%+ coverage.
  */
@@ -13,9 +13,7 @@ import { bingoBoardEditService } from '../bingo-board-edit.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type { BingoBoard, BingoCard } from '@/types';
-import type {
-  CardInsertData,
-} from '../bingo-board-edit.service';
+import type { CardInsertData } from '../bingo-board-edit.service';
 import {
   bingoBoardSchema,
   bingoCardSchema,
@@ -53,7 +51,7 @@ jest.mock('@/lib/validation/transforms', () => ({
   transformBoardSettings: jest.fn(),
 }));
 jest.mock('@/lib/error-guards', () => ({
-  getErrorMessage: jest.fn((error) => 
+  getErrorMessage: jest.fn(error =>
     error instanceof Error ? error.message : String(error)
   ),
 }));
@@ -74,7 +72,7 @@ const mockFrom = {
 describe('bingoBoardEditService - Additional Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset all mock functions
     mockSupabase.from.mockClear();
     mockFrom.select.mockClear();
@@ -265,7 +263,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
 
       // Mock successful cards fetch
       const mockCards = [{ id: 'card-1', title: 'Test Card' }];
-      
+
       // Setup board fetch chain - first call to from()
       mockSupabase.from.mockReturnValueOnce(mockFrom);
 
@@ -308,7 +306,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
 
     it('should handle unexpected error during fetch', async () => {
       const error = new Error('Unexpected database error');
-      
+
       // Make the first supabase.from call throw an error
       mockSupabase.from.mockImplementationOnce(() => {
         throw error;
@@ -379,7 +377,7 @@ describe('bingoBoardEditService - Additional Coverage', () => {
           }),
         }),
       };
-      
+
       mockSupabase.from.mockReturnValueOnce(mockInsertChain);
 
       // Mock card validation to return the saved card
@@ -889,7 +887,8 @@ describe('bingoBoardEditService - Additional Coverage', () => {
           error: 'Board not found',
         });
 
-      const result = await bingoBoardEditService.initializeBoardData('board-123');
+      const result =
+        await bingoBoardEditService.initializeBoardData('board-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Board not found');
@@ -904,7 +903,8 @@ describe('bingoBoardEditService - Additional Coverage', () => {
           error: null,
         });
 
-      const result = await bingoBoardEditService.initializeBoardData('board-123');
+      const result =
+        await bingoBoardEditService.initializeBoardData('board-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Board not found');
@@ -933,7 +933,8 @@ describe('bingoBoardEditService - Additional Coverage', () => {
           error: null,
         });
 
-      const result = await bingoBoardEditService.initializeBoardData('board-123');
+      const result =
+        await bingoBoardEditService.initializeBoardData('board-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.gridCards).toHaveLength(25); // 5x5 = 25 cells (default)
@@ -945,7 +946,8 @@ describe('bingoBoardEditService - Additional Coverage', () => {
         .spyOn(bingoBoardEditService, 'getBoardForEdit')
         .mockRejectedValueOnce(error);
 
-      const result = await bingoBoardEditService.initializeBoardData('board-123');
+      const result =
+        await bingoBoardEditService.initializeBoardData('board-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Unexpected initialization error');

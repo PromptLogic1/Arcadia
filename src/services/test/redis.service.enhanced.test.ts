@@ -88,7 +88,9 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
         throw new Error('Redis configuration error: invalid URL');
       });
 
-      const fetcher = jest.fn().mockRejectedValue(new Error('Fetch also failed'));
+      const fetcher = jest
+        .fn()
+        .mockRejectedValue(new Error('Fetch also failed'));
 
       const result = await cacheService.getOrSet('test-key', fetcher);
 
@@ -132,9 +134,9 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
 
       const fetcher = jest.fn().mockResolvedValue('test-data');
 
-      await expect(
-        cacheService.getOrSet('test-key', fetcher)
-      ).rejects.toThrow('Random error');
+      await expect(cacheService.getOrSet('test-key', fetcher)).rejects.toThrow(
+        'Random error'
+      );
     });
 
     it('should successfully fall back to direct fetch on Redis config error', async () => {
@@ -176,7 +178,10 @@ describe('RedisService & CacheService - Enhanced Coverage', () => {
 
         const fetcher = jest.fn().mockResolvedValue(`data-${errorMessage}`);
 
-        const result = await cacheService.getOrSet(`key-${errorMessage}`, fetcher);
+        const result = await cacheService.getOrSet(
+          `key-${errorMessage}`,
+          fetcher
+        );
 
         expect(result.success).toBe(true);
         expect(result.data).toBe(`data-${errorMessage}`);

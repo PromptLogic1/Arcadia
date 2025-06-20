@@ -11,7 +11,10 @@ import {
   generateSessionCode,
 } from '@/lib/crypto-utils';
 import type { SessionStatus, GameCategory } from '../sessions.service';
-import { bingoSessionSchema, sessionStatsArraySchema } from '@/lib/validation/schemas/bingo';
+import {
+  bingoSessionSchema,
+  sessionStatsArraySchema,
+} from '@/lib/validation/schemas/bingo';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -2549,9 +2552,8 @@ describe('sessionsService', () => {
 
       mockSupabase.from.mockReturnValue(mockQuery);
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(
-        'board-123'
-      );
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers('board-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockData);
@@ -2616,9 +2618,8 @@ describe('sessionsService', () => {
 
       mockSupabase.from.mockReturnValue(mockQuery);
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(
-        'board-123'
-      );
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers('board-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.[0]?.bingo_session_players).toEqual([]);
@@ -2636,9 +2637,8 @@ describe('sessionsService', () => {
 
       mockSupabase.from.mockReturnValue(mockQuery);
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(
-        'board-123'
-      );
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers('board-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Join failed');
@@ -2650,9 +2650,8 @@ describe('sessionsService', () => {
         throw new Error('Database error');
       });
 
-      const result = await sessionsService.getSessionsByBoardIdWithPlayers(
-        'board-123'
-      );
+      const result =
+        await sessionsService.getSessionsByBoardIdWithPlayers('board-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database error');
@@ -2663,17 +2662,19 @@ describe('sessionsService', () => {
   describe('updateSession', () => {
     it('should update session state', async () => {
       const updates = {
-        current_state: [{
-          cell_id: 'cell-1',
-          text: 'Test',
-          colors: null,
-          completed_by: null,
-          blocked: null,
-          is_marked: true,
-          version: null,
-          last_updated: null,
-          last_modified_by: null,
-        }],
+        current_state: [
+          {
+            cell_id: 'cell-1',
+            text: 'Test',
+            colors: null,
+            completed_by: null,
+            blocked: null,
+            is_marked: true,
+            version: null,
+            last_updated: null,
+            last_modified_by: null,
+          },
+        ],
         status: 'active' as SessionStatus,
       };
 
@@ -3222,17 +3223,19 @@ describe('sessionsService', () => {
   describe('updateBoardState', () => {
     it('should update board state with optimistic locking', async () => {
       const sessionId = 'session-123';
-      const newBoardState = [{
-        cell_id: 'cell-1',
-        text: 'Test',
-        colors: null,
-        completed_by: null,
-        blocked: null,
-        is_marked: true,
-        version: null,
-        last_updated: null,
-        last_modified_by: null,
-      }];
+      const newBoardState = [
+        {
+          cell_id: 'cell-1',
+          text: 'Test',
+          colors: null,
+          completed_by: null,
+          blocked: null,
+          is_marked: true,
+          version: null,
+          last_updated: null,
+          last_modified_by: null,
+        },
+      ];
       const currentVersion = 1;
 
       // Mock version check

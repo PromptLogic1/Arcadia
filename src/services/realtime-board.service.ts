@@ -75,7 +75,11 @@ class RealtimeBoardService {
           },
           payload => {
             try {
-              if ((payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') && payload.new) {
+              if (
+                (payload.eventType === 'UPDATE' ||
+                  payload.eventType === 'INSERT') &&
+                payload.new
+              ) {
                 // Validate that the payload has the expected structure
                 if (
                   typeof payload.new === 'object' &&
@@ -97,7 +101,8 @@ class RealtimeBoardService {
                   // Call custom update handler (skip for now due to type complexity)
                   // onUpdate?.(updatedBoard);
 
-                  const action = payload.eventType === 'INSERT' ? 'created' : 'updated';
+                  const action =
+                    payload.eventType === 'INSERT' ? 'created' : 'updated';
                   logger.debug(`Board ${action} via real-time`, {
                     metadata: { boardId },
                   });

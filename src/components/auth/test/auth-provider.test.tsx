@@ -65,19 +65,21 @@ const mockAuthStateListener = {
 
 describe('AuthProvider', () => {
   let originalLocation: Location;
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Setup default mocks
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
     (useAuthActions as jest.Mock).mockReturnValue(mockAuthActions);
-    (authService.onAuthStateChange as jest.Mock).mockReturnValue(mockAuthStateListener);
+    (authService.onAuthStateChange as jest.Mock).mockReturnValue(
+      mockAuthStateListener
+    );
     (useAuthSessionQuery as jest.Mock).mockReturnValue({
       data: null,
       isLoading: false,
     });
-    
+
     // Mock window.location.pathname
     originalLocation = window.location;
     delete (window as any).location;
@@ -94,7 +96,7 @@ describe('AuthProvider', () => {
       // In React, useContext returns the default value when used outside a provider
       // It doesn't throw an error by default
       const { result } = renderHook(() => useAuthContext());
-      
+
       // The hook returns the default context value
       expect(result.current).toEqual({
         user: null,
@@ -129,7 +131,7 @@ describe('AuthProvider', () => {
 
     it('should not initialize app for public pages', async () => {
       window.location.pathname = '/';
-      
+
       renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
@@ -141,7 +143,7 @@ describe('AuthProvider', () => {
 
     it('should initialize app for non-public pages', async () => {
       window.location.pathname = '/dashboard';
-      
+
       renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
@@ -149,7 +151,7 @@ describe('AuthProvider', () => {
       await waitFor(() => {
         expect(mockAuthActions.initializeApp).toHaveBeenCalledTimes(1);
       });
-      
+
       expect(mockAuthActions.setLoading).toHaveBeenCalledWith(true);
       expect(mockAuthActions.setLoading).toHaveBeenCalledWith(false);
     });
@@ -157,7 +159,7 @@ describe('AuthProvider', () => {
     it('should handle initialization errors gracefully', async () => {
       window.location.pathname = '/dashboard';
       mockAuthActions.initializeApp.mockRejectedValue(new Error('Init failed'));
-      
+
       renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
@@ -169,7 +171,7 @@ describe('AuthProvider', () => {
           { metadata: { component: 'AuthProvider' } }
         );
       });
-      
+
       expect(mockAuthActions.setLoading).toHaveBeenCalledWith(false);
     });
   });
@@ -177,9 +179,9 @@ describe('AuthProvider', () => {
   describe('Session handling', () => {
     it('should return session data in context when available', () => {
       const mockSession = {
-        user: { id: 'user-123', email: 'test@example.com' }
+        user: { id: 'user-123', email: 'test@example.com' },
       };
-      
+
       (useAuthSessionQuery as jest.Mock).mockReturnValue({
         data: mockSession,
         isLoading: false,
@@ -196,9 +198,9 @@ describe('AuthProvider', () => {
 
     it('should handle session without email in context', () => {
       const mockSession = {
-        user: { id: 'user-123', email: null }
+        user: { id: 'user-123', email: null },
       };
-      
+
       (useAuthSessionQuery as jest.Mock).mockReturnValue({
         data: mockSession,
         isLoading: false,
@@ -234,7 +236,7 @@ describe('AuthProvider', () => {
     let authStateCallback: (event: string, session: any) => void;
 
     beforeEach(() => {
-      (authService.onAuthStateChange as jest.Mock).mockImplementation((cb) => {
+      (authService.onAuthStateChange as jest.Mock).mockImplementation(cb => {
         authStateCallback = cb;
         return mockAuthStateListener;
       });
@@ -246,7 +248,7 @@ describe('AuthProvider', () => {
       });
 
       const session = { user: { id: 'user-123', email: 'test@example.com' } };
-      
+
       await act(async () => {
         await authStateCallback('SIGNED_IN', session);
       });
@@ -284,12 +286,14 @@ describe('AuthProvider', () => {
       });
 
       const session = { user: { id: 'user-123', email: 'test@example.com' } };
-      
+
       await act(async () => {
         await authStateCallback('TOKEN_REFRESHED', session);
       });
 
-      expect(logger.info).toHaveBeenCalledWith('Auth token refreshed successfully');
+      expect(logger.info).toHaveBeenCalledWith(
+        'Auth token refreshed successfully'
+      );
     });
 
     it('should handle USER_UPDATED event', async () => {
@@ -298,7 +302,7 @@ describe('AuthProvider', () => {
       });
 
       const session = { user: { id: 'user-123', email: 'test@example.com' } };
-      
+
       await act(async () => {
         await authStateCallback('USER_UPDATED', session);
       });
@@ -308,13 +312,13 @@ describe('AuthProvider', () => {
 
     it('should handle errors during SIGNED_IN event', async () => {
       mockAuthActions.initializeApp.mockRejectedValue(new Error('Init failed'));
-      
+
       renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
 
       const session = { user: { id: 'user-123', email: 'test@example.com' } };
-      
+
       await act(async () => {
         await authStateCallback('SIGNED_IN', session);
       });
@@ -327,14 +331,16 @@ describe('AuthProvider', () => {
     });
 
     it('should handle errors during USER_UPDATED event', async () => {
-      mockAuthActions.initializeApp.mockRejectedValue(new Error('Update failed'));
-      
+      mockAuthActions.initializeApp.mockRejectedValue(
+        new Error('Update failed')
+      );
+
       renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
 
       const session = { user: { id: 'user-123', email: 'test@example.com' } };
-      
+
       await act(async () => {
         await authStateCallback('USER_UPDATED', session);
       });
@@ -362,9 +368,9 @@ describe('AuthProvider', () => {
   describe('Context value memoization', () => {
     it('should memoize context value based on session and loading state', () => {
       const mockSession = {
-        user: { id: 'user-123', email: 'test@example.com' }
+        user: { id: 'user-123', email: 'test@example.com' },
       };
-      
+
       const { result, rerender } = renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
@@ -373,7 +379,7 @@ describe('AuthProvider', () => {
 
       // Rerender with same values
       rerender();
-      
+
       expect(result.current).toBe(initialValue);
 
       // Update session
@@ -381,9 +387,9 @@ describe('AuthProvider', () => {
         data: mockSession,
         isLoading: false,
       });
-      
+
       rerender();
-      
+
       expect(result.current).not.toBe(initialValue);
       expect(result.current.user).toEqual(mockSession.user);
     });
@@ -402,7 +408,7 @@ describe('AuthProvider', () => {
       const { result } = renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
-      
+
       // Should render without errors even in SSR-like scenario
       expect(result.current).toEqual({
         user: null,
@@ -413,13 +419,13 @@ describe('AuthProvider', () => {
 
     it('should prevent multiple initializations', async () => {
       window.location.pathname = '/dashboard';
-      
+
       // Start with loading state
       (useAuthSessionQuery as jest.Mock).mockReturnValueOnce({
         data: null,
         isLoading: true,
       });
-      
+
       const { rerender } = renderHook(() => useAuthContext(), {
         wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
       });
@@ -429,7 +435,7 @@ describe('AuthProvider', () => {
         data: null,
         isLoading: false,
       });
-      
+
       rerender();
 
       await waitFor(() => {
@@ -437,7 +443,7 @@ describe('AuthProvider', () => {
       });
 
       const callCount = mockAuthActions.initializeApp.mock.calls.length;
-      
+
       // Force multiple rerenders
       rerender();
       rerender();

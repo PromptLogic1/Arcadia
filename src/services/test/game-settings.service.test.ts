@@ -30,7 +30,11 @@ describe('gameSettingsService', () => {
   let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
 
   // Helper to create a mock query builder
-  const createMockQueryBuilder = (response: ReturnType<typeof createSupabaseSuccessResponse> | ReturnType<typeof createSupabaseErrorResponse>) => ({
+  const createMockQueryBuilder = (
+    response:
+      | ReturnType<typeof createSupabaseSuccessResponse>
+      | ReturnType<typeof createSupabaseErrorResponse>
+  ) => ({
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
@@ -45,18 +49,20 @@ describe('gameSettingsService', () => {
     setupSupabaseMock(mockSupabase);
 
     // Mock transform function - properly transform to database format
-    mockTransformBoardSettings.mockImplementation((settings) => {
+    mockTransformBoardSettings.mockImplementation(settings => {
       if (!settings) return null;
       const transformed: BoardSettings = {
         team_mode: settings.team_mode ?? false,
         lockout: settings.lockout ?? false,
         sound_enabled: settings.sound_enabled ?? true,
-        win_conditions: settings.win_conditions ? {
-          line: settings.win_conditions.line ?? false,
-          majority: settings.win_conditions.majority ?? false,
-          diagonal: settings.win_conditions.diagonal ?? false,
-          corners: settings.win_conditions.corners ?? false,
-        } : null,
+        win_conditions: settings.win_conditions
+          ? {
+              line: settings.win_conditions.line ?? false,
+              majority: settings.win_conditions.majority ?? false,
+              diagonal: settings.win_conditions.diagonal ?? false,
+              corners: settings.win_conditions.corners ?? false,
+            }
+          : null,
       };
       return transformed;
     });
@@ -82,11 +88,13 @@ describe('gameSettingsService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         abortSignal: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createSupabaseSuccessResponse({ settings: mockSettings })
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse({ settings: mockSettings })
+          ),
       };
-      
+
       mockFrom.mockReturnValue(mockQueryBuilder);
 
       mockZBoardSettings.safeParse.mockReturnValueOnce({
@@ -109,7 +117,7 @@ describe('gameSettingsService', () => {
       const mockQueryBuilder = createMockQueryBuilder(
         createSupabaseSuccessResponse({ settings: null })
       );
-      
+
       mockFrom.mockReturnValue(mockQueryBuilder);
 
       const result = await gameSettingsService.getSettings(boardId);
@@ -148,7 +156,7 @@ describe('gameSettingsService', () => {
           message: 'Database error',
           details: null,
           hint: null,
-          code: 'UNKNOWN'
+          code: 'UNKNOWN',
         },
         { metadata: { boardId } }
       );
@@ -163,7 +171,15 @@ describe('gameSettingsService', () => {
       mockFrom.mockReturnValue(mockQueryBuilder);
 
       const zodError = new Error('Validation failed') as any;
-      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.issues = [
+        {
+          code: 'invalid_type',
+          path: [],
+          message: 'Validation failed',
+          expected: 'object',
+          received: 'undefined',
+        },
+      ];
       zodError.errors = zodError.issues;
       zodError.format = () => ({ _errors: ['Validation failed'] });
       zodError.message = 'Validation failed';
@@ -317,7 +333,7 @@ describe('gameSettingsService', () => {
           message: 'Update failed',
           details: null,
           hint: null,
-          code: 'UNKNOWN'
+          code: 'UNKNOWN',
         },
         { metadata: { boardId, settings } }
       );
@@ -332,7 +348,15 @@ describe('gameSettingsService', () => {
       mockFrom.mockReturnValue(mockQueryBuilder);
 
       const zodError = new Error('Validation failed') as any;
-      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.issues = [
+        {
+          code: 'invalid_type',
+          path: [],
+          message: 'Validation failed',
+          expected: 'object',
+          received: 'undefined',
+        },
+      ];
       zodError.errors = zodError.issues;
       zodError.format = () => ({ _errors: ['Validation failed'] });
       zodError.message = 'Validation failed';
@@ -645,7 +669,15 @@ describe('gameSettingsService', () => {
       mockFrom.mockReturnValue(mockQueryBuilder);
 
       const zodError = new Error('Validation failed') as any;
-      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.issues = [
+        {
+          code: 'invalid_type',
+          path: [],
+          message: 'Validation failed',
+          expected: 'object',
+          received: 'undefined',
+        },
+      ];
       zodError.errors = zodError.issues;
       zodError.format = () => ({ _errors: ['Validation failed'] });
       zodError.message = 'Validation failed';
@@ -790,7 +822,15 @@ describe('gameSettingsService', () => {
       mockFrom.mockReturnValue(mockQueryBuilder);
 
       const zodError = new Error('Validation failed') as any;
-      zodError.issues = [{ code: 'invalid_type', path: [], message: 'Validation failed', expected: 'object', received: 'undefined' }];
+      zodError.issues = [
+        {
+          code: 'invalid_type',
+          path: [],
+          message: 'Validation failed',
+          expected: 'object',
+          received: 'undefined',
+        },
+      ];
       zodError.errors = zodError.issues;
       zodError.format = () => ({ _errors: ['Validation failed'] });
       zodError.message = 'Validation failed';

@@ -71,7 +71,7 @@ const mockLog = log as jest.Mocked<typeof log>;
 describe('AuthService - Comprehensive Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset all auth mocks to default null state
     mockSupabaseAuth.getSession.mockResolvedValue({
       data: { session: null },
@@ -153,6 +153,25 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(result.data).toBeNull();
     });
 
+    it('should handle session with null email', async () => {
+      const mockSession = {
+        user: { id: 'user-123', email: null },
+        access_token: 'token',
+      };
+
+      mockSupabaseAuth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+
+      const result = await authService.getSession();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        user: { id: 'user-123', email: null },
+      });
+    });
+
     it('should handle session retrieval errors', async () => {
       const error = new AuthError('Session error', 400, 'SESSION_ERROR');
       mockSupabaseAuth.getSession.mockResolvedValue({
@@ -192,6 +211,11 @@ describe('AuthService - Comprehensive Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('String error');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error getting session',
+        expect.any(Error), // isError converts non-Error to Error
+        { metadata: { service: 'auth.service', method: 'getSession' } }
+      );
     });
   });
 
@@ -302,6 +326,20 @@ describe('AuthService - Comprehensive Tests', () => {
         { metadata: { service: 'auth.service', method: 'getCurrentUser' } }
       );
     });
+
+    it('should handle non-Error objects when getting current user', async () => {
+      mockSupabaseAuth.getUser.mockRejectedValue({ message: 'Object error' });
+
+      const result = await authService.getCurrentUser();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Object error'); // getErrorMessage extracts message property
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error getting current user',
+        expect.any(Error), // isError converts non-Error to Error
+        { metadata: { service: 'auth.service', method: 'getCurrentUser' } }
+      );
+    });
   });
 
   describe('getUserData', () => {
@@ -329,7 +367,9 @@ describe('AuthService - Comprehensive Tests', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUserData, error: null }),
+        single: jest
+          .fn()
+          .mockResolvedValue({ data: mockUserData, error: null }),
       };
 
       mockSupabaseFrom.mockReturnValue(mockFrom);
@@ -337,7 +377,9 @@ describe('AuthService - Comprehensive Tests', () => {
         success: true,
         data: mockUserData,
       });
-      (transformDbUserToUserData as jest.Mock).mockReturnValue(mockUserData as any);
+      (transformDbUserToUserData as jest.Mock).mockReturnValue(
+        mockUserData as any
+      );
 
       const result = await authService.getUserData('user-123');
 
@@ -366,7 +408,13 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'Failed to get user data',
         new AuthError('Database error', 500, 'DB_ERROR'),
-        { metadata: { service: 'auth.service', method: 'getUserData', userId: 'user-123' } }
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'getUserData',
+            userId: 'user-123',
+          },
+        }
       );
     });
 
@@ -374,7 +422,9 @@ describe('AuthService - Comprehensive Tests', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: { invalid: 'data' }, error: null }),
+        single: jest
+          .fn()
+          .mockResolvedValue({ data: { invalid: 'data' }, error: null }),
       };
 
       mockSupabaseFrom.mockReturnValue(mockFrom);
@@ -390,7 +440,13 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'User data validation failed',
         expect.any(Error),
-        { metadata: { service: 'auth.service', method: 'getUserData', userId: 'user-123' } }
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'getUserData',
+            userId: 'user-123',
+          },
+        }
       );
     });
 
@@ -410,7 +466,13 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'Unexpected error getting user data',
         expect.any(Error),
-        { metadata: { service: 'auth.service', method: 'getUserData', userId: 'user-123' } }
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'getUserData',
+            userId: 'user-123',
+          },
+        }
       );
     });
 
@@ -482,6 +544,35 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(result.error).toBe('No user returned from sign in');
     });
 
+    it('should handle user with undefined optional properties', async () => {
+      const mockUser = {
+        id: 'user-123',
+        email: undefined,
+        phone: undefined,
+        user_metadata: {},
+        app_metadata: {},
+      };
+
+      mockSupabaseAuth.signInWithPassword.mockResolvedValue({
+        data: { user: mockUser, session: {} },
+        error: null,
+      });
+
+      const result = await authService.signIn(credentials);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.user).toEqual({
+        id: 'user-123',
+        email: null,
+        phone: null,
+        auth_username: null,
+        username: null,
+        avatar_url: null,
+        provider: null,
+        userRole: 'user',
+      });
+    });
+
     it('should handle authentication errors', async () => {
       const error = new AuthError('Invalid credentials', 401, 'INVALID_CREDS');
       mockSupabaseAuth.signInWithPassword.mockResolvedValue({
@@ -493,21 +584,19 @@ describe('AuthService - Comprehensive Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Invalid credentials');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Sign in failed',
-        error,
-        {
-          metadata: {
-            service: 'auth.service',
-            method: 'signIn',
-            email: 'test@example.com',
-          },
-        }
-      );
+      expect(mockLog.error).toHaveBeenCalledWith('Sign in failed', error, {
+        metadata: {
+          service: 'auth.service',
+          method: 'signIn',
+          email: 'test@example.com',
+        },
+      });
     });
 
     it('should handle unexpected errors', async () => {
-      mockSupabaseAuth.signInWithPassword.mockRejectedValue(new Error('Network error'));
+      mockSupabaseAuth.signInWithPassword.mockRejectedValue(
+        new Error('Network error')
+      );
 
       const result = await authService.signIn(credentials);
 
@@ -596,6 +685,36 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(result.data?.user).toBeUndefined();
     });
 
+    it('should handle confirmed user with undefined optional properties', async () => {
+      const mockUser = {
+        id: 'user-123',
+        email: undefined,
+        phone: undefined,
+        email_confirmed_at: '2024-01-01T00:00:00Z',
+        user_metadata: {},
+        app_metadata: {},
+      };
+
+      mockSupabaseAuth.signUp.mockResolvedValue({
+        data: { user: mockUser, session: {} },
+        error: null,
+      });
+
+      const result = await authService.signUp(credentials);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.user).toEqual({
+        id: 'user-123',
+        email: null,
+        phone: null,
+        auth_username: null,
+        username: null,
+        avatar_url: null,
+        provider: null,
+        userRole: 'user',
+      });
+    });
+
     it('should handle missing user in response', async () => {
       mockSupabaseAuth.signUp.mockResolvedValue({
         data: { user: null, session: null },
@@ -619,17 +738,13 @@ describe('AuthService - Comprehensive Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Email already exists');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Sign up failed',
-        error,
-        {
-          metadata: {
-            service: 'auth.service',
-            method: 'signUp',
-            email: 'test@example.com',
-          },
-        }
-      );
+      expect(mockLog.error).toHaveBeenCalledWith('Sign up failed', error, {
+        metadata: {
+          service: 'auth.service',
+          method: 'signUp',
+          email: 'test@example.com',
+        },
+      });
     });
 
     it('should handle unexpected errors during sign up', async () => {
@@ -642,6 +757,26 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'Unexpected error during sign up',
         expect.any(Error),
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'signUp',
+            email: 'test@example.com',
+          },
+        }
+      );
+    });
+
+    it('should handle non-Error objects during sign up', async () => {
+      mockSupabaseAuth.signUp.mockRejectedValue('String error');
+
+      const result = await authService.signUp(credentials);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('String error');
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error during sign up',
+        expect.any(Error), // isError converts non-Error to Error
         {
           metadata: {
             service: 'auth.service',
@@ -671,11 +806,9 @@ describe('AuthService - Comprehensive Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Sign out failed');
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Sign out failed',
-        error,
-        { metadata: { service: 'auth.service', method: 'signOut' } }
-      );
+      expect(mockLog.error).toHaveBeenCalledWith('Sign out failed', error, {
+        metadata: { service: 'auth.service', method: 'signOut' },
+      });
     });
 
     it('should handle unexpected errors during sign out', async () => {
@@ -688,6 +821,20 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'Unexpected error during sign out',
         expect.any(Error),
+        { metadata: { service: 'auth.service', method: 'signOut' } }
+      );
+    });
+
+    it('should handle non-Error objects during sign out', async () => {
+      mockSupabaseAuth.signOut.mockRejectedValue(123);
+
+      const result = await authService.signOut();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('An unexpected error occurred'); // getErrorMessage returns this for numbers
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error during sign out',
+        expect.any(Error), // isError converts non-Error to Error
         { metadata: { service: 'auth.service', method: 'signOut' } }
       );
     });
@@ -725,7 +872,9 @@ describe('AuthService - Comprehensive Tests', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUserData, error: null }),
+        single: jest
+          .fn()
+          .mockResolvedValue({ data: mockUserData, error: null }),
       };
 
       mockSupabaseFrom.mockReturnValue(mockFrom);
@@ -733,7 +882,9 @@ describe('AuthService - Comprehensive Tests', () => {
         success: true,
         data: mockUserData,
       });
-      (transformDbUserToUserData as jest.Mock).mockReturnValue(mockUserData as any);
+      (transformDbUserToUserData as jest.Mock).mockReturnValue(
+        mockUserData as any
+      );
 
       const result = await authService.updateUserData('user-123', updates);
 
@@ -780,7 +931,9 @@ describe('AuthService - Comprehensive Tests', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: { invalid: 'data' }, error: null }),
+        single: jest
+          .fn()
+          .mockResolvedValue({ data: { invalid: 'data' }, error: null }),
       };
 
       mockSupabaseFrom.mockReturnValue(mockFrom);
@@ -832,27 +985,56 @@ describe('AuthService - Comprehensive Tests', () => {
         }
       );
     });
+
+    it('should handle non-Error objects during update', async () => {
+      const mockFrom = {
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockRejectedValue(null),
+      };
+
+      mockSupabaseFrom.mockReturnValue(mockFrom);
+
+      const result = await authService.updateUserData('user-123', updates);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('An unexpected error occurred'); // getErrorMessage returns this for null
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error updating user data',
+        expect.any(Error), // isError converts non-Error to Error
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'updateUserData',
+            userId: 'user-123',
+          },
+        }
+      );
+    });
   });
 
   describe('resetPassword', () => {
     it('should send password reset email successfully', async () => {
-      mockSupabaseAuth.resetPasswordForEmail.mockResolvedValue({ 
+      mockSupabaseAuth.resetPasswordForEmail.mockResolvedValue({
         data: {},
-        error: null 
+        error: null,
       });
 
       const result = await authService.resetPassword('test@example.com');
 
       expect(result.success).toBe(true);
       expect(result.data).toBeUndefined();
-      expect(mockSupabaseAuth.resetPasswordForEmail).toHaveBeenCalledWith('test@example.com');
+      expect(mockSupabaseAuth.resetPasswordForEmail).toHaveBeenCalledWith(
+        'test@example.com'
+      );
     });
 
     it('should handle password reset errors', async () => {
       const error = new AuthError('Invalid email', 400, 'INVALID_EMAIL');
-      mockSupabaseAuth.resetPasswordForEmail.mockResolvedValue({ 
+      mockSupabaseAuth.resetPasswordForEmail.mockResolvedValue({
         data: {},
-        error 
+        error,
       });
 
       const result = await authService.resetPassword('invalid@example.com');
@@ -873,7 +1055,9 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle unexpected errors during password reset', async () => {
-      mockSupabaseAuth.resetPasswordForEmail.mockRejectedValue(new Error('Network error'));
+      mockSupabaseAuth.resetPasswordForEmail.mockRejectedValue(
+        new Error('Network error')
+      );
 
       const result = await authService.resetPassword('test@example.com');
 
@@ -891,13 +1075,33 @@ describe('AuthService - Comprehensive Tests', () => {
         }
       );
     });
+
+    it('should handle non-Error objects during password reset', async () => {
+      mockSupabaseAuth.resetPasswordForEmail.mockRejectedValue(undefined);
+
+      const result = await authService.resetPassword('test@example.com');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('An unexpected error occurred'); // getErrorMessage returns this for undefined
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error during password reset',
+        expect.any(Error), // isError converts non-Error to Error
+        {
+          metadata: {
+            service: 'auth.service',
+            method: 'resetPassword',
+            email: 'test@example.com',
+          },
+        }
+      );
+    });
   });
 
   describe('updatePassword', () => {
     it('should update password successfully', async () => {
-      mockSupabaseAuth.updateUser.mockResolvedValue({ 
+      mockSupabaseAuth.updateUser.mockResolvedValue({
         data: { user: {} },
-        error: null 
+        error: null,
       });
 
       const result = await authService.updatePassword('newpassword123');
@@ -911,9 +1115,9 @@ describe('AuthService - Comprehensive Tests', () => {
 
     it('should handle password update errors', async () => {
       const error = new AuthError('Password too weak', 400, 'WEAK_PASSWORD');
-      mockSupabaseAuth.updateUser.mockResolvedValue({ 
+      mockSupabaseAuth.updateUser.mockResolvedValue({
         data: { user: null },
-        error 
+        error,
       });
 
       const result = await authService.updatePassword('weak');
@@ -928,7 +1132,9 @@ describe('AuthService - Comprehensive Tests', () => {
     });
 
     it('should handle unexpected errors during password update', async () => {
-      mockSupabaseAuth.updateUser.mockRejectedValue(new Error('Session expired'));
+      mockSupabaseAuth.updateUser.mockRejectedValue(
+        new Error('Session expired')
+      );
 
       const result = await authService.updatePassword('newpassword123');
 
@@ -937,6 +1143,20 @@ describe('AuthService - Comprehensive Tests', () => {
       expect(mockLog.error).toHaveBeenCalledWith(
         'Unexpected error updating password',
         expect.any(Error),
+        { metadata: { service: 'auth.service', method: 'updatePassword' } }
+      );
+    });
+
+    it('should handle non-Error objects during password update', async () => {
+      mockSupabaseAuth.updateUser.mockRejectedValue([]);
+
+      const result = await authService.updatePassword('newpassword123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('An unexpected error occurred'); // getErrorMessage returns this for arrays
+      expect(mockLog.error).toHaveBeenCalledWith(
+        'Unexpected error updating password',
+        expect.any(Error), // isError converts non-Error to Error
         { metadata: { service: 'auth.service', method: 'updatePassword' } }
       );
     });

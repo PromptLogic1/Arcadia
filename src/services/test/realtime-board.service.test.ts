@@ -41,31 +41,35 @@ import { realtimeBoardService } from '../realtime-board.service';
 describe('realtimeBoardService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Clear handlers
     postgresHandler = undefined;
     systemHandler = undefined;
     statusHandler = undefined;
-    
+
     (createClient as jest.Mock).mockReturnValue(mockSupabase);
     mockSupabase.channel.mockReturnValue(mockChannel);
 
     // Setup proper handler capture
-    mockChannel.on.mockImplementation((type: string, config: any, handler?: any) => {
-      if (type === 'postgres_changes' && handler) {
-        postgresHandler = handler;
-      } else if (type === 'system' && config === 'disconnect' && handler) {
-        systemHandler = handler;
+    mockChannel.on.mockImplementation(
+      (type: string, config: any, handler?: any) => {
+        if (type === 'postgres_changes' && handler) {
+          postgresHandler = handler;
+        } else if (type === 'system' && config === 'disconnect' && handler) {
+          systemHandler = handler;
+        }
+        return mockChannel;
       }
-      return mockChannel;
-    });
+    );
 
-    mockChannel.subscribe.mockImplementation((handler: (status: string) => void) => {
-      statusHandler = handler;
-      return mockChannel;
-    });
+    mockChannel.subscribe.mockImplementation(
+      (handler: (status: string) => void) => {
+        statusHandler = handler;
+        return mockChannel;
+      }
+    );
 
-    // Override the private supabase client 
+    // Override the private supabase client
     (realtimeBoardService as any).supabase = mockSupabase;
   });
 
@@ -286,7 +290,11 @@ describe('realtimeBoardService', () => {
       const boardId = 'board-123';
       const options = { onError: jest.fn() };
 
-      realtimeBoardService.subscribeToBoardUpdates(boardId, mockQueryClient, options);
+      realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        mockQueryClient,
+        options
+      );
 
       // Test SUBSCRIBED status
       expect(statusHandler).toBeDefined();
@@ -367,10 +375,10 @@ describe('realtimeBoardService', () => {
       // Simulate multiple disconnects
       expect(systemHandler).toBeDefined();
       systemHandler!(); // First disconnect
-      
+
       // Fast forward past first reconnection attempt
       jest.advanceTimersByTime(10);
-      
+
       systemHandler!(); // Second disconnect - should exceed max attempts
 
       // Fast forward past second attempt
@@ -388,7 +396,7 @@ describe('realtimeBoardService', () => {
           message: 'Real-time connection failed',
         })
       );
-      
+
       jest.useRealTimers();
       done();
     });
@@ -531,7 +539,9 @@ describe('realtimeBoardService', () => {
       const nonErrorObject = 'string error';
 
       // Create a fresh mock query client for this test
-      const invalidateQueriesMock = jest.fn().mockRejectedValueOnce(nonErrorObject);
+      const invalidateQueriesMock = jest
+        .fn()
+        .mockRejectedValueOnce(nonErrorObject);
       const testQueryClient = {
         ...mockQueryClient,
         invalidateQueries: invalidateQueriesMock,
@@ -547,7 +557,7 @@ describe('realtimeBoardService', () => {
         expect(invalidateQueriesMock).toHaveBeenCalledTimes(1);
         expect(error).toEqual(nonErrorObject);
       }
-      
+
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to refresh board',
         expect.any(Error),
@@ -627,7 +637,7 @@ describe('realtimeBoardService', () => {
 
     it('should handle INSERT events for boards', () => {
       const boardId = 'board-insert-test';
-      
+
       // Create a fresh mock specifically for this test to avoid state pollution
       const insertTestQueryClient = {
         setQueryData: jest.fn(),
@@ -635,7 +645,10 @@ describe('realtimeBoardService', () => {
         invalidateQueries: jest.fn(),
       } as unknown as QueryClient;
 
-      realtimeBoardService.subscribeToBoardUpdates(boardId, insertTestQueryClient);
+      realtimeBoardService.subscribeToBoardUpdates(
+        boardId,
+        insertTestQueryClient
+      );
 
       const newBoard: BingoBoardRow = {
         id: boardId,
@@ -755,7 +768,7 @@ describe('realtimeBoardService', () => {
 
       // Fast forward to trigger first reconnection
       jest.advanceTimersByTime(10);
-      
+
       expect(logger.info).toHaveBeenCalledWith(
         'Attempting board real-time reconnection',
         expect.objectContaining({
@@ -766,7 +779,7 @@ describe('realtimeBoardService', () => {
       // Trigger another disconnect (second attempt)
       systemHandler!();
       jest.advanceTimersByTime(20);
-      
+
       expect(logger.info).toHaveBeenCalledWith(
         'Attempting board real-time reconnection',
         expect.objectContaining({
@@ -790,7 +803,7 @@ describe('realtimeBoardService', () => {
           message: 'Real-time connection failed',
         })
       );
-      
+
       jest.useRealTimers();
       done();
     });
@@ -858,7 +871,9 @@ describe('realtimeBoardService', () => {
       const stringError = 'String error message';
 
       // Create a fresh mock query client for this test
-      const invalidateQueriesMock = jest.fn().mockRejectedValueOnce(stringError);
+      const invalidateQueriesMock = jest
+        .fn()
+        .mockRejectedValueOnce(stringError);
       const testQueryClient = {
         ...mockQueryClient,
         invalidateQueries: invalidateQueriesMock,

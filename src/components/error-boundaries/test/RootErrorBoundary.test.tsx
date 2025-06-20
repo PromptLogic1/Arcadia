@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { RootErrorBoundary } from '../RootErrorBoundary';
 import { logger } from '@/lib/logger';
 import { shouldSendToSentry } from '@/lib/error-deduplication';
@@ -8,13 +9,15 @@ import { shouldSendToSentry } from '@/lib/error-deduplication';
 jest.mock('@/lib/logger');
 jest.mock('@/lib/error-deduplication');
 jest.mock('@sentry/nextjs', () => ({
-  withScope: jest.fn((callback) => callback({
-    setLevel: jest.fn(),
-    setContext: jest.fn(),
-    setTag: jest.fn(),
-    setFingerprint: jest.fn(),
-    addBreadcrumb: jest.fn(),
-  })),
+  withScope: jest.fn(callback =>
+    callback({
+      setLevel: jest.fn(),
+      setContext: jest.fn(),
+      setTag: jest.fn(),
+      setFingerprint: jest.fn(),
+      addBreadcrumb: jest.fn(),
+    })
+  ),
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
@@ -30,10 +33,10 @@ Object.defineProperty(window, 'location', {
 });
 
 // Component that throws an error for testing
-const ThrowError: React.FC<{ shouldThrow?: boolean; errorMessage?: string }> = ({ 
-  shouldThrow = false, 
-  errorMessage = 'Test error' 
-}) => {
+const ThrowError: React.FC<{
+  shouldThrow?: boolean;
+  errorMessage?: string;
+}> = ({ shouldThrow = false, errorMessage = 'Test error' }) => {
   if (shouldThrow) {
     throw new Error(errorMessage);
   }
@@ -76,7 +79,9 @@ describe('RootErrorBoundary', () => {
       );
 
       expect(screen.getByText('Critical Error')).toBeInTheDocument();
-      expect(screen.getByText(/The application encountered a critical error/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/The application encountered a critical error/)
+      ).toBeInTheDocument();
       expect(screen.getByText('Reload Application')).toBeInTheDocument();
     });
 
@@ -135,7 +140,7 @@ describe('RootErrorBoundary', () => {
   });
 
   describe('user interactions', () => {
-    test('should reload page when reload button is clicked', () => {
+    test('should reload page when reload button is clicked', async () => {
       render(
         <RootErrorBoundary>
           <ThrowError shouldThrow={true} />
@@ -143,16 +148,16 @@ describe('RootErrorBoundary', () => {
       );
 
       const reloadButton = screen.getByText('Reload Application');
-      fireEvent.click(reloadButton);
+      await userEvent.click(reloadButton);
 
       expect(mockReload).toHaveBeenCalled();
     });
   });
 
   describe('development mode', () => {
-    test('should show developer info in development mode', () => {
+    test('should show developer info in development mode', async () => {
       process.env = { ...originalEnv, NODE_ENV: 'development' };
-      
+
       render(
         <RootErrorBoundary>
           <ThrowError shouldThrow={true} errorMessage="Dev error" />
@@ -160,17 +165,17 @@ describe('RootErrorBoundary', () => {
       );
 
       expect(screen.getByText('Developer Info')).toBeInTheDocument();
-      
+
       // Click to expand details
-      fireEvent.click(screen.getByText('Developer Info'));
-      
+      await userEvent.click(screen.getByText('Developer Info'));
+
       // Should show error stack
       expect(screen.getByText(/Error: Dev error/)).toBeInTheDocument();
     });
 
     test('should log additional development info', () => {
       process.env = { ...originalEnv, NODE_ENV: 'development' };
-      
+
       render(
         <RootErrorBoundary>
           <ThrowError shouldThrow={true} errorMessage="Dev error" />
@@ -190,7 +195,7 @@ describe('RootErrorBoundary', () => {
 
     test('should not show developer info in production mode', () => {
       process.env = { ...originalEnv, NODE_ENV: 'production' };
-      
+
       render(
         <RootErrorBoundary>
           <ThrowError shouldThrow={true} />
@@ -281,7 +286,7 @@ describe('RootErrorBoundary', () => {
 
       // Should still show error UI
       expect(screen.getByText('Critical Error')).toBeInTheDocument();
-      
+
       // Should check deduplication
       expect(shouldSendToSentry).toHaveBeenCalled();
     });
@@ -297,12 +302,12 @@ describe('RootErrorBoundary', () => {
 
       const heading = screen.getByRole('heading', { level: 1 });
       expect(heading).toHaveTextContent('Critical Error');
-      
+
       const button = screen.getByRole('button', { name: 'Reload Application' });
       expect(button).toBeInTheDocument();
     });
 
-    test('should have clickable reload button', () => {
+    test('should have clickable reload button', async () => {
       render(
         <RootErrorBoundary>
           <ThrowError shouldThrow={true} />
@@ -310,9 +315,9 @@ describe('RootErrorBoundary', () => {
       );
 
       const button = screen.getByRole('button', { name: 'Reload Application' });
-      
+
       // Should be clickable
-      fireEvent.click(button);
+      await userEvent.click(button);
       expect(mockReload).toHaveBeenCalled();
     });
   });

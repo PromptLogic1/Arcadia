@@ -927,7 +927,9 @@ describe('cardLibraryService', () => {
       expect(result.success).toBe(false);
       // This test shows that the service has a bug where it doesn't handle missing message gracefully
       // The error is thrown when createServiceError tries to access .message on undefined
-      expect(result.error).toBe('Cannot read properties of undefined (reading \'message\')');
+      expect(result.error).toBe(
+        "Cannot read properties of undefined (reading 'message')"
+      );
     });
   });
 

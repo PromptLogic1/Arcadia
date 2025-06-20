@@ -356,6 +356,7 @@ When responding to queries:
    - Confirm pattern compliance
 
 ## Response to Feature Requests
+
 **Remember**: Quality over speed. Pattern compliance mandatory. Fix it right the first time.
 
 ## CLEAN UP

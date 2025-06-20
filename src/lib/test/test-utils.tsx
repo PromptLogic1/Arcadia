@@ -5,7 +5,11 @@
  * These utilities ensure consistent testing patterns across the codebase.
  */
 
-import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
+import {
+  render,
+  type RenderOptions,
+  type RenderResult,
+} from '@testing-library/react';
 import type { ReactNode, ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -296,19 +300,19 @@ export function assertType<T>(value: unknown): asserts value is T {
   // In tests, you might want to add runtime checks
 }
 
-// Mock date utility  
+// Mock date utility
 export const mockDate = (date: string | Date) => {
   const mockDateInstance = new Date(date);
-  
+
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(mockDateInstance);
   });
-  
+
   afterEach(() => {
     jest.useRealTimers();
   });
-  
+
   return mockDateInstance;
 };
 

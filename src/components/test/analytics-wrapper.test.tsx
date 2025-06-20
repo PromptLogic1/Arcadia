@@ -111,11 +111,11 @@ describe('AnalyticsWrapper', () => {
 
   describe('component structure', () => {
     test('should render components within React Fragment', () => {
-      const { container } = render(<AnalyticsWrapper />);
+      render(<AnalyticsWrapper />);
 
-      // The wrapper should not add any extra DOM elements (React Fragment)
-      // Check that we have direct children without wrapper divs
-      expect(container.children).toHaveLength(1);
+      // Should render both dynamic components directly without wrapper elements
+      const dynamicComponents = screen.getAllByTestId('mock-dynamic-component');
+      expect(dynamicComponents).toHaveLength(2);
     });
 
     test('should maintain rendering order', () => {

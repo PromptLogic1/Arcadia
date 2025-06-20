@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BaseErrorBoundary } from '../BaseErrorBoundary';
 import { reportError, reportMessage } from '@/lib/error-reporting';
 import { log } from '@/lib/logger';
@@ -140,7 +141,7 @@ describe('BaseErrorBoundary', () => {
   });
 
   describe('error recovery', () => {
-    it('resets error state when Try Again is clicked', () => {
+    it('resets error state when Try Again is clicked', async () => {
       let shouldThrow = true;
       const TestComponent = () => {
         if (shouldThrow) {
@@ -159,8 +160,8 @@ describe('BaseErrorBoundary', () => {
 
       // Update the flag before clicking Try Again
       shouldThrow = false;
-      
-      fireEvent.click(screen.getByText('Try Again'));
+
+      await userEvent.click(screen.getByText('Try Again'));
 
       // Force a re-render to see the reset
       rerender(
@@ -270,7 +271,7 @@ describe('BaseErrorBoundary', () => {
       process.env = originalEnv;
     });
 
-    it('shows error details when showDetails is true in development', () => {
+    it('shows error details when showDetails is true in development', async () => {
       render(
         <BaseErrorBoundary showDetails={true}>
           <ThrowError shouldThrow={true} />
@@ -282,7 +283,9 @@ describe('BaseErrorBoundary', () => {
       ).toBeInTheDocument();
 
       // Click to expand details
-      fireEvent.click(screen.getByText('Error Details (Development Only)'));
+      await userEvent.click(
+        screen.getByText('Error Details (Development Only)')
+      );
 
       expect(screen.getByText('Message:')).toBeInTheDocument();
       expect(screen.getByText('Test error')).toBeInTheDocument();
@@ -314,7 +317,7 @@ describe('BaseErrorBoundary', () => {
       jest.useRealTimers();
     });
 
-    it('schedules page reload after too many errors', () => {
+    it('schedules page reload after too many errors', async () => {
       // Mock window.location.reload
       const originalReload = window.location.reload;
       Object.defineProperty(window.location, 'reload', {
@@ -336,7 +339,7 @@ describe('BaseErrorBoundary', () => {
 
       // Trigger multiple errors by clicking Try Again
       for (let i = 0; i < 3; i++) {
-        fireEvent.click(screen.getByText('Try Again'));
+        await userEvent.click(screen.getByText('Try Again'));
       }
 
       expect(mockReportMessage).toHaveBeenCalledWith(
@@ -361,7 +364,7 @@ describe('BaseErrorBoundary', () => {
       });
     });
 
-    it('clears timeout on unmount', () => {
+    it('clears timeout on unmount', async () => {
       const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
 
       let errorCount = 0;
@@ -378,13 +381,13 @@ describe('BaseErrorBoundary', () => {
 
       // Trigger excessive errors
       for (let i = 0; i < 3; i++) {
-        fireEvent.click(screen.getByText('Try Again'));
+        await userEvent.click(screen.getByText('Try Again'));
       }
 
       unmount();
 
       expect(clearTimeoutSpy).toHaveBeenCalled();
-      
+
       clearTimeoutSpy.mockRestore();
     });
   });

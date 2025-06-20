@@ -5,10 +5,7 @@
 import { queueService } from '../queue.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
-import type {
-  QueueEntry,
-  JoinQueueData,
-} from '../queue.service';
+import type { QueueEntry, JoinQueueData } from '../queue.service';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -262,12 +259,12 @@ describe('queueService', () => {
       const mockUpdateChain = {
         eq: jest.fn(),
       };
-      
+
       // First eq() returns self, second eq() rejects
       mockUpdateChain.eq
         .mockReturnValueOnce(mockUpdateChain) // First .eq('user_id', userId)
         .mockRejectedValueOnce(new Error('Network error')); // Second .eq('status', 'waiting')
-      
+
       mockFrom.update.mockReturnValueOnce(mockUpdateChain);
 
       const result = await queueService.leaveQueue(userId);
@@ -282,11 +279,11 @@ describe('queueService', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      // Mock the chain to return the update function, then mock it to reject  
+      // Mock the chain to return the update function, then mock it to reject
       const mockUpdateChain = {
         eq: jest.fn(),
       };
-      
+
       // First eq() returns self, second eq() rejects with string
       mockUpdateChain.eq
         .mockReturnValueOnce(mockUpdateChain) // First .eq('user_id', userId)

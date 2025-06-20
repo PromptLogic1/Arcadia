@@ -17,7 +17,8 @@ jest.mock('@/services/bingo-boards.service');
 jest.mock('@/services/sessions.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: <T extends (...args: unknown[]) => unknown>(handler: T) => handler,
+  withRateLimit: <T extends (...args: unknown[]) => unknown>(handler: T) =>
+    handler,
   RATE_LIMIT_CONFIGS: {
     create: {},
     gameAction: {},
@@ -410,12 +411,14 @@ describe('Bingo Sessions API Route', () => {
       const mockSessionsWithPlayers = [
         {
           ...mockSession,
-          bingo_session_players: [{
-            user_id: mockPlayer.user_id,
-            display_name: mockPlayer.display_name,
-            color: mockPlayer.color,
-            team: mockPlayer.team,
-          }],
+          bingo_session_players: [
+            {
+              user_id: mockPlayer.user_id,
+              display_name: mockPlayer.display_name,
+              color: mockPlayer.color,
+              team: mockPlayer.team,
+            },
+          ],
         },
       ];
 

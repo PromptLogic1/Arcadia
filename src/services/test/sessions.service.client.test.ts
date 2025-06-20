@@ -275,7 +275,9 @@ describe('Sessions Service Client', () => {
         },
       ];
 
-      const mockQueryBuilder = new MockSupabaseQueryBuilder(invalidSessionStats);
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(
+        invalidSessionStats
+      );
       mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result = await sessionsService.getSessionsWithStats();
@@ -354,7 +356,9 @@ describe('Sessions Service Client', () => {
     ];
 
     it('returns sessions with players for board ID', async () => {
-      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionsWithPlayers);
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(
+        mockSessionsWithPlayers
+      );
       mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result =
@@ -366,7 +370,9 @@ describe('Sessions Service Client', () => {
     });
 
     it('filters by status when provided', async () => {
-      const mockQueryBuilder = new MockSupabaseQueryBuilder(mockSessionsWithPlayers);
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(
+        mockSessionsWithPlayers
+      );
       const eqSpy = jest.spyOn(mockQueryBuilder, 'eq');
       mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
@@ -388,7 +394,9 @@ describe('Sessions Service Client', () => {
         },
       ];
 
-      const mockQueryBuilder = new MockSupabaseQueryBuilder(sessionsWithoutPlayers);
+      const mockQueryBuilder = new MockSupabaseQueryBuilder(
+        sessionsWithoutPlayers
+      );
       mockSupabaseClient.from = jest.fn().mockReturnValue(mockQueryBuilder);
 
       const result =

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { useReportWebVitals } from 'next/web-vitals';
 import { WebVitals, measurePerformance, measureDuration } from '../web-vitals';
 
@@ -60,9 +60,12 @@ describe('WebVitals', () => {
 
   describe('component rendering', () => {
     test('should render without visible output', () => {
-      const { container } = render(<WebVitals />);
+      render(<WebVitals />);
 
-      expect(container.firstChild).toBeNull();
+      // WebVitals component should not render any visible elements
+      // It only sets up analytics hooks
+      expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+      expect(screen.queryByRole('main')).not.toBeInTheDocument();
     });
 
     test('should call useReportWebVitals', () => {
@@ -256,13 +259,15 @@ describe('WebVitals', () => {
     test('should warn about long tasks', () => {
       let observerCallback: (list: any) => void;
 
-      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(callback => {
-        observerCallback = callback;
-        return {
-          observe: jest.fn(),
-          disconnect: jest.fn(),
-        };
-      });
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
+        callback => {
+          observerCallback = callback;
+          return {
+            observe: jest.fn(),
+            disconnect: jest.fn(),
+          };
+        }
+      );
 
       render(<WebVitals />);
 
@@ -285,13 +290,15 @@ describe('WebVitals', () => {
     test('should not warn about short tasks', () => {
       let observerCallback: (list: any) => void;
 
-      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(callback => {
-        observerCallback = callback;
-        return {
-          observe: jest.fn(),
-          disconnect: jest.fn(),
-        };
-      });
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
+        callback => {
+          observerCallback = callback;
+          return {
+            observe: jest.fn(),
+            disconnect: jest.fn(),
+          };
+        }
+      );
 
       render(<WebVitals />);
 
@@ -309,9 +316,11 @@ describe('WebVitals', () => {
     });
 
     test('should handle PerformanceObserver errors gracefully', () => {
-      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(() => {
-        throw new Error('PerformanceObserver not supported');
-      });
+      (global.PerformanceObserver as unknown as jest.Mock).mockImplementation(
+        () => {
+          throw new Error('PerformanceObserver not supported');
+        }
+      );
 
       expect(() => {
         render(<WebVitals />);

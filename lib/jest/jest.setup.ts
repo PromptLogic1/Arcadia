@@ -106,7 +106,9 @@ const mockSupabaseClient: MockSupabaseClient = {
 
 jest.mock('@/lib/supabase', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
-  createServerComponentClient: jest.fn(() => Promise.resolve(mockSupabaseClient)),
+  createServerComponentClient: jest.fn(() =>
+    Promise.resolve(mockSupabaseClient)
+  ),
   isSupabaseError: (error: unknown): boolean => {
     if (!error || typeof error !== 'object') {
       return false;
@@ -214,9 +216,12 @@ if (!global.Response) {
       } as ResponseInit);
     }
 
-    constructor(public body?: BodyInit | null, public init?: ResponseInit) {}
+    constructor(
+      public body?: BodyInit | null,
+      public init?: ResponseInit
+    ) {}
   }
-  
+
   global.Response = MockResponse as unknown as typeof Response;
 }
 global.Headers = global.Headers || class Headers {};
@@ -295,8 +300,12 @@ interface MockRatelimitConstructor {
 (MockRatelimit as unknown as MockRatelimitConstructor).slidingWindow = jest
   .fn()
   .mockReturnValue('sliding-window-limiter');
-(MockRatelimit as unknown as MockRatelimitConstructor).fixedWindow = jest.fn().mockReturnValue('fixed-window-limiter');
-(MockRatelimit as unknown as MockRatelimitConstructor).tokenBucket = jest.fn().mockReturnValue('token-bucket-limiter');
+(MockRatelimit as unknown as MockRatelimitConstructor).fixedWindow = jest
+  .fn()
+  .mockReturnValue('fixed-window-limiter');
+(MockRatelimit as unknown as MockRatelimitConstructor).tokenBucket = jest
+  .fn()
+  .mockReturnValue('token-bucket-limiter');
 
 jest.mock('@upstash/ratelimit', () => ({
   Ratelimit: MockRatelimit,
@@ -323,12 +332,10 @@ jest.mock('@/services/auth.service', () => ({
   authService: {
     getSession: jest.fn().mockResolvedValue({ success: true, data: null }),
     getCurrentUser: jest.fn().mockResolvedValue({ success: true, data: null }),
-    signIn: jest
-      .fn()
-      .mockResolvedValue({
-        success: true,
-        data: { user: null, session: null },
-      }),
+    signIn: jest.fn().mockResolvedValue({
+      success: true,
+      data: { user: null, session: null },
+    }),
     signInWithOAuth: jest.fn().mockResolvedValue({ success: true, data: null }),
     signUp: jest
       .fn()
@@ -351,45 +358,110 @@ jest.mock('lucide-react', () => {
   };
 });
 
-// Mock Icons module  
+// Mock Icons module
 jest.mock('@/components/ui/Icons', () => {
   const React = jest.requireActual('react');
-  
+
   interface MockIconProps {
     className?: string;
     'data-testid'?: string;
     [key: string]: unknown;
   }
-  
-  const MockIcon = ({ className, ...props }: MockIconProps) => 
-    React.createElement('span', { className, 'data-testid': props['data-testid'] || 'icon', ...props });
-  
+
+  const MockIcon = ({ className, ...props }: MockIconProps) =>
+    React.createElement('span', {
+      className,
+      'data-testid': props['data-testid'] || 'icon',
+      ...props,
+    });
+
   return {
-    Sun: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'sun-icon' }),
-    Moon: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'moon-icon' }),
-    Monitor: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'monitor-icon' }),
-    Globe: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'globe-icon' }),
-    Check: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'check-icon' }),
-    X: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'x-icon' }),
-    AlertCircle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'alert-circle-icon' }),
-    AlertTriangle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'alert-triangle-icon' }),
-    Info: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'info-icon' }),
-    CheckCircle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'check-circle-icon' }),
-    XCircle: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'x-circle-icon' }),
-    Loader2: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'loader2-icon' }),
-    Play: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'play-icon' }),
-    Edit: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'edit-icon' }),
-    Home: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'home-icon' }),
-    RefreshCw: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'refresh-cw-icon' }),
-    ChevronRight: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'chevron-right-icon' }),
-    ChevronDown: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'chevron-down-icon' }),
-    Grid3x3: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'grid3x3-icon' }),
-    Users: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'users-icon' }),
-    Trophy: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'trophy-icon' }),
-    Gamepad2: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'gamepad2-icon' }),
-    Mail: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'mail-icon' }),
-    Edit3: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'edit3-icon' }),
-    Activity: (props: MockIconProps) => React.createElement(MockIcon, { ...props, 'data-testid': 'activity-icon' }),
+    Sun: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'sun-icon' }),
+    Moon: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'moon-icon' }),
+    Monitor: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'monitor-icon',
+      }),
+    Globe: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'globe-icon' }),
+    Check: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'check-icon' }),
+    X: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'x-icon' }),
+    AlertCircle: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'alert-circle-icon',
+      }),
+    AlertTriangle: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'alert-triangle-icon',
+      }),
+    Info: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'info-icon' }),
+    CheckCircle: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'check-circle-icon',
+      }),
+    XCircle: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'x-circle-icon',
+      }),
+    Loader2: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'loader2-icon',
+      }),
+    Play: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'play-icon' }),
+    Edit: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'edit-icon' }),
+    Home: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'home-icon' }),
+    RefreshCw: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'refresh-cw-icon',
+      }),
+    ChevronRight: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'chevron-right-icon',
+      }),
+    ChevronDown: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'chevron-down-icon',
+      }),
+    Grid3x3: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'grid3x3-icon',
+      }),
+    Users: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'users-icon' }),
+    Trophy: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'trophy-icon' }),
+    Gamepad2: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'gamepad2-icon',
+      }),
+    Mail: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'mail-icon' }),
+    Edit3: (props: MockIconProps) =>
+      React.createElement(MockIcon, { ...props, 'data-testid': 'edit3-icon' }),
+    Activity: (props: MockIconProps) =>
+      React.createElement(MockIcon, {
+        ...props,
+        'data-testid': 'activity-icon',
+      }),
   };
 });
 

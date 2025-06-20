@@ -24,7 +24,9 @@ const mockRouter = {
   refresh: jest.fn(),
 };
 
-(useRouter as jest.MockedFunction<typeof useRouter>).mockReturnValue(mockRouter as any);
+(useRouter as jest.MockedFunction<typeof useRouter>).mockReturnValue(
+  mockRouter as any
+);
 
 const mockNotifications = notifications as jest.Mocked<typeof notifications>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
@@ -190,6 +192,9 @@ describe('BoardCard', () => {
             boardId: 'board-123',
           })
         );
+      });
+
+      await waitFor(() => {
         expect(mockNotifications.error).toHaveBeenCalledWith(
           'Failed to start session'
         );
@@ -244,13 +249,14 @@ describe('BoardCard', () => {
   });
 
   describe('error boundary integration', () => {
-    it('wraps content in BaseErrorBoundary', () => {
-      // This test verifies the component structure includes error boundary
+    it('renders board card content successfully', () => {
+      // This test verifies the component renders correctly within error boundary
       // Actual error boundary behavior is tested in BaseErrorBoundary.test.tsx
-      const { container } = render(<BoardCard board={mockBoard} />);
+      render(<BoardCard board={mockBoard} />);
 
-      // The card should be rendered within the error boundary
-      expect(container.querySelector('.group')).toBeInTheDocument();
+      // The card should render its main content
+      expect(screen.getByText('Test Bingo Board')).toBeInTheDocument();
+      expect(screen.getByText('Test board description')).toBeInTheDocument();
     });
   });
 });

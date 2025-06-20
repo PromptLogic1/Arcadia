@@ -60,7 +60,9 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       global.window = originalWindow;
     });
@@ -75,7 +77,9 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       global.window = originalWindow;
     });
@@ -87,7 +91,9 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       const result = await redisPresenceService.getBoardPresence(boardId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       global.window = originalWindow;
     });
@@ -99,7 +105,9 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       const result = await redisPresenceService.getUserPresence(userId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       global.window = originalWindow;
     });
@@ -111,7 +119,9 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       const result = await redisPresenceService.cleanupUserPresence(userId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       global.window = originalWindow;
     });
@@ -207,7 +217,10 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
     it('should handle Redis error during leaveBoardPresence', async () => {
       mockRedis.del.mockRejectedValueOnce(new Error('DEL failed'));
 
-      const result = await redisPresenceService.leaveBoardPresence(boardId, userId);
+      const result = await redisPresenceService.leaveBoardPresence(
+        boardId,
+        userId
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('DEL failed');
@@ -217,7 +230,10 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       mockRedis.del.mockResolvedValueOnce(1);
       mockRedis.srem.mockRejectedValueOnce(new Error('SREM failed'));
 
-      const result = await redisPresenceService.leaveBoardPresence(boardId, userId);
+      const result = await redisPresenceService.leaveBoardPresence(
+        boardId,
+        userId
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('SREM failed');
@@ -235,7 +251,9 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       // Mock del to fail during cleanup
       mockRedis.del.mockRejectedValueOnce(new Error('DEL failed'));
 
-      const cleanupResult = await redisPresenceService.cleanup(`${boardId}:${userId}`);
+      const cleanupResult = await redisPresenceService.cleanup(
+        `${boardId}:${userId}`
+      );
 
       expect(cleanupResult.success).toBe(false);
       expect(cleanupResult.error).toBe('DEL failed');
@@ -429,13 +447,15 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
       mockRedis.get
         .mockResolvedValueOnce('invalid-json{')
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(JSON.stringify({
-          userId,
-          displayName: 'Test User',
-          status: 'online',
-          lastSeen: Date.now(),
-          joinedAt: Date.now(),
-        }));
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            userId,
+            displayName: 'Test User',
+            status: 'online',
+            lastSeen: Date.now(),
+            joinedAt: Date.now(),
+          })
+        );
 
       const result = await redisPresenceService.getUserPresence(userId);
 
@@ -467,19 +487,19 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
 
     it('should handle non-Error exceptions in cleanup', async () => {
       // Create a subscription
-      await redisPresenceService.joinBoardPresence(
-        boardId,
-        userId,
-        userInfo
-      );
+      await redisPresenceService.joinBoardPresence(boardId, userId, userInfo);
 
       // Mock string error
       mockRedis.del.mockRejectedValue('String cleanup error');
 
-      const cleanupResult = await redisPresenceService.cleanup(`${boardId}:${userId}`);
+      const cleanupResult = await redisPresenceService.cleanup(
+        `${boardId}:${userId}`
+      );
 
       expect(cleanupResult.success).toBe(false);
-      expect(cleanupResult.error).toBe('Failed to cleanup presence subscription');
+      expect(cleanupResult.error).toBe(
+        'Failed to cleanup presence subscription'
+      );
       expect(mockLog.error).toHaveBeenCalledWith(
         'Failed to cleanup presence subscription',
         expect.any(Error),
@@ -519,7 +539,11 @@ describe('RedisPresenceService - Enhanced Coverage', () => {
     });
 
     it('should handle subscription with optional metadata', async () => {
-      const metadata = { sessionId: 'session-123', role: 'admin', isHost: true };
+      const metadata = {
+        sessionId: 'session-123',
+        role: 'admin',
+        isHost: true,
+      };
       const options: PresenceSubscriptionOptions = {
         onPresenceUpdate: jest.fn(),
         onUserJoin: jest.fn(),

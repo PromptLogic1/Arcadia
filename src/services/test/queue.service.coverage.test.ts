@@ -161,7 +161,9 @@ describe('queueService - Coverage Enhancement', () => {
 
     it('should calculate correct expiration timestamp in cleanupExpiredEntries', async () => {
       const mockNow = new Date('2024-01-01T12:00:00Z').getTime();
-      const expectedExpiration = new Date(mockNow - 10 * 60 * 1000).toISOString();
+      const expectedExpiration = new Date(
+        mockNow - 10 * 60 * 1000
+      ).toISOString();
 
       jest.spyOn(Date, 'now').mockReturnValue(mockNow);
 
@@ -198,9 +200,12 @@ describe('queueService - Coverage Enhancement', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ cleaned: 0 });
-      expect(log.info).toHaveBeenCalledWith('Cleaned up expired queue entries', {
-        metadata: { cleaned: 0 },
-      });
+      expect(log.info).toHaveBeenCalledWith(
+        'Cleaned up expired queue entries',
+        {
+          metadata: { cleaned: 0 },
+        }
+      );
     });
   });
 

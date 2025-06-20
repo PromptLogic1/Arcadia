@@ -134,7 +134,10 @@ describe('SessionQueueService', () => {
   });
 
   describe('addToQueue', () => {
-    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+    const mockUser = mockSupabaseUser({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
     const playerData: PlayerQueueData = {
       playerName: 'TestPlayer',
       color: '#06b6d4',

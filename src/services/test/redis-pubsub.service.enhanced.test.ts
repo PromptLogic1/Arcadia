@@ -62,7 +62,9 @@ describe('RedisPubSubService - Enhanced Coverage', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('PubSub operations are only available on the server');
+      expect(result.error).toBe(
+        'PubSub operations are only available on the server'
+      );
 
       (global as any).window = originalWindow;
     });
@@ -246,7 +248,8 @@ describe('RedisPubSubService - Enhanced Coverage', () => {
     });
 
     it('should handle special characters in messages', async () => {
-      const specialMessage = '{"test": "value"}\n\t<script>alert("xss")</script>';
+      const specialMessage =
+        '{"test": "value"}\n\t<script>alert("xss")</script>';
 
       const result = await redisPubSubService.publishChatMessage({
         userId,

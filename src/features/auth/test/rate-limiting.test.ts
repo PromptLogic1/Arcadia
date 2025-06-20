@@ -189,7 +189,6 @@ describe('Rate Limiting', () => {
       expect(remainingTime).toBe(RATE_LIMITS.login.blockDuration);
       expect(remainingTime).toBe(60 * 60 * 1000); // 1 hour in milliseconds
     });
-
   });
 
   describe('Password Reset Rate Limiting', () => {

@@ -10,7 +10,9 @@ jest.mock('@/lib/config');
 jest.mock('next/cache');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn(<T extends (...args: unknown[]) => unknown>(handler: T) => handler),
+  withRateLimit: jest.fn(
+    <T extends (...args: unknown[]) => unknown>(handler: T) => handler
+  ),
   RATE_LIMIT_CONFIGS: {
     gameAction: 'gameAction',
   },
@@ -34,7 +36,9 @@ jest.mock('next/server', () => ({
 }));
 
 import * as validationMiddleware from '@/lib/validation/middleware';
-const mockValidationMiddleware = validationMiddleware as jest.Mocked<typeof validationMiddleware>;
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<
+  typeof validationMiddleware
+>;
 
 describe('/api/revalidate route handler', () => {
   beforeEach(() => {
@@ -419,7 +423,6 @@ describe('/api/revalidate route handler', () => {
         );
       });
     });
-
   });
 
   describe('edge cases', () => {

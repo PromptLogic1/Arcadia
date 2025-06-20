@@ -79,13 +79,13 @@ describe('SessionJoinService', () => {
     const mockSession = factories.bingoSession({
       id: 'session-123',
       status: 'waiting',
-      settings: { 
+      settings: {
         max_players: 4,
         allow_spectators: null,
         auto_start: null,
         time_limit: null,
         require_approval: null,
-        password: null
+        password: null,
       },
     });
 
@@ -271,7 +271,10 @@ describe('SessionJoinService', () => {
   });
 
   describe('joinSession', () => {
-    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+    const mockUser = mockSupabaseUser({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
     const joinData = {
       sessionId: 'session-123',
       playerName: 'TestPlayer',
@@ -432,7 +435,10 @@ describe('SessionJoinService', () => {
   });
 
   describe('checkUserInSession', () => {
-    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+    const mockUser = mockSupabaseUser({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
 
     it('should return user is in session', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;

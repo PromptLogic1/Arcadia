@@ -38,7 +38,7 @@ describe('communityEventsService', () => {
     mockFrom.eq.mockReturnValue(mockFrom);
     mockFrom.order.mockReturnValue(mockFrom);
     mockFrom.range.mockReturnValue(mockFrom);
-    
+
     // Default successful response
     mockFrom.range.mockResolvedValue({
       data: [],
@@ -131,7 +131,7 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents({
         game_type: 'Minecraft' as GameCategory,
       });
-      
+
       // Verify basic service response structure
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('data');
@@ -593,7 +593,9 @@ describe('communityEventsService', () => {
       const result = await communityEventsService.getCommunityEvents();
 
       expect(result.success).toBe(true);
-      expect(result.data?.items[0]?.organizer).toEqual(mockEvents[0]?.organizer);
+      expect(result.data?.items[0]?.organizer).toEqual(
+        mockEvents[0]?.organizer
+      );
       expect(result.data?.items[0]?.participant_count).toBe(42);
     });
   });

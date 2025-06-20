@@ -37,10 +37,10 @@ export interface TestWindow {
 
   // Test flags
   xssTest?: boolean;
-  
+
   // Browser debugging methods (Chrome DevTools)
   getEventListeners?: (target: EventTarget) => Record<string, EventListener[]>;
-  
+
   // Test utilities and mocks
   __memoryPressure?: any;
   WebSocket?: any;

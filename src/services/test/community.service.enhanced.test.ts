@@ -121,19 +121,32 @@ describe('CommunityService - Enhanced Coverage Tests', () => {
       invalidEvents.forEach((invalidEvent, _index) => {
         // Test different validation failures for different invalid events
         let shouldFail = false;
-        
-        if (typeof invalidEvent !== 'object' || invalidEvent === null || Array.isArray(invalidEvent)) {
+
+        if (
+          typeof invalidEvent !== 'object' ||
+          invalidEvent === null ||
+          Array.isArray(invalidEvent)
+        ) {
           shouldFail = true;
-        } else if ('id' in invalidEvent && typeof (invalidEvent as any).id !== 'string') {
+        } else if (
+          'id' in invalidEvent &&
+          typeof (invalidEvent as any).id !== 'string'
+        ) {
           shouldFail = true; // Wrong id type
-        } else if ('title' in invalidEvent && typeof (invalidEvent as any).title !== 'string') {
+        } else if (
+          'title' in invalidEvent &&
+          typeof (invalidEvent as any).title !== 'string'
+        ) {
           shouldFail = true; // Wrong title type
-        } else if ('participant_count' in invalidEvent && typeof (invalidEvent as any).participant_count !== 'number') {
+        } else if (
+          'participant_count' in invalidEvent &&
+          typeof (invalidEvent as any).participant_count !== 'number'
+        ) {
           shouldFail = true; // Wrong participant_count type
         } else if (!('id' in invalidEvent) || !('title' in invalidEvent)) {
           shouldFail = true; // Missing required fields
         }
-        
+
         expect(shouldFail).toBeTruthy();
       });
     });

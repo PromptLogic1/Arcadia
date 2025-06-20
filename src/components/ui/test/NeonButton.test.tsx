@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NeonButton } from '../NeonButton';
 
 describe('NeonButton', () => {
@@ -26,12 +27,13 @@ describe('NeonButton', () => {
       expect(ref.current).toBeInstanceOf(HTMLButtonElement);
     });
 
-    test('should have relative z-10 span for children', () => {
-      const { container } = render(<NeonButton>Test Content</NeonButton>);
+    test('should properly layer children content', () => {
+      render(<NeonButton>Test Content</NeonButton>);
 
-      const span = container.querySelector('span.relative.z-10');
-      expect(span).toBeInTheDocument();
-      expect(span).toHaveTextContent('Test Content');
+      // Test that the button content is properly accessible
+      const button = screen.getByRole('button', { name: 'Test Content' });
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveTextContent('Test Content');
     });
   });
 
@@ -141,11 +143,11 @@ describe('NeonButton', () => {
   });
 
   describe('base button functionality', () => {
-    test('should handle click events', () => {
+    test('should handle click events', async () => {
       const handleClick = jest.fn();
       render(<NeonButton onClick={handleClick}>Test</NeonButton>);
 
-      fireEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button'));
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 

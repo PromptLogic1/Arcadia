@@ -239,12 +239,14 @@ export class MockSentryClient {
     return eventId;
   }
 
-  withScope(callback: (scope: {
-    setTag: jest.Mock;
-    setContext: jest.Mock;
-    setUser: jest.Mock;
-    setLevel: jest.Mock;
-  }) => void): void {
+  withScope(
+    callback: (scope: {
+      setTag: jest.Mock;
+      setContext: jest.Mock;
+      setUser: jest.Mock;
+      setLevel: jest.Mock;
+    }) => void
+  ): void {
     const scope = {
       setTag: jest.fn(),
       setContext: jest.fn(),

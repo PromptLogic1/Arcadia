@@ -226,9 +226,11 @@ describe('redisService', () => {
 
     it('should use circuit breaker with fallback', async () => {
       const _fallbackFn = jest.fn().mockReturnValue(null);
-      mockRedisCircuitBreaker.execute.mockImplementationOnce((_fn, fallback) => {
-        return Promise.resolve(fallback!());
-      });
+      mockRedisCircuitBreaker.execute.mockImplementationOnce(
+        (_fn, fallback) => {
+          return Promise.resolve(fallback!());
+        }
+      );
 
       const result = await redisService.get('test-key');
 
@@ -897,6 +899,47 @@ describe('cacheService', () => {
       expect(log.warn).toHaveBeenCalledWith(
         'Redis configuration failed, falling back to direct fetch',
         { metadata: { key: 'test-key', error: 'Redis configuration' } }
+      );
+    });
+
+    it('should handle fetch error after Redis configuration error (lines 430-439)', async () => {
+      // Test the specific error handling path in getOrSet when both Redis config fails AND fetch fails
+      jest
+        .spyOn(redisService, 'get')
+        .mockRejectedValueOnce(new Error('Redis configuration'));
+      
+      mockFetcher.mockRejectedValueOnce(new Error('Fetch failed after Redis error'));
+
+      const result = await cacheService.getOrSet('test-key', mockFetcher);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to fetch data');
+      expect(log.warn).toHaveBeenCalledWith(
+        'Redis configuration failed, falling back to direct fetch',
+        { metadata: { key: 'test-key', error: 'Redis configuration' } }
+      );
+      expect(log.error).toHaveBeenCalledWith(
+        'Direct fetch failed after Redis configuration error',
+        expect.any(Error),
+        { metadata: { key: 'test-key' } }
+      );
+    });
+
+    it('should handle non-Error object in fetch after Redis config error', async () => {
+      jest
+        .spyOn(redisService, 'get')
+        .mockRejectedValueOnce(new Error('Redis configuration'));
+      
+      mockFetcher.mockRejectedValueOnce('String error in fetch');
+
+      const result = await cacheService.getOrSet('test-key', mockFetcher);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to fetch data');
+      expect(log.error).toHaveBeenCalledWith(
+        'Direct fetch failed after Redis configuration error',
+        expect.any(Error), // Will be converted to Error object
+        { metadata: { key: 'test-key' } }
       );
     });
 

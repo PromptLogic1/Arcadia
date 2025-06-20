@@ -1,12 +1,14 @@
 # Jest Test Suite Audit Checklist
 
 ## Community Tests
+
 - ✅ moderation.test.ts
-- ✅ notification-triggers.test.ts  
+- ✅ notification-triggers.test.ts
 - ✅ permissions.test.ts
 - ✅ search-service.test.ts
 
 ## Auth Tests
+
 - ✅ auth.service.test.ts (FIXED: All 40 tests passing - resolved import paths and mock setup)
 - ❌ oauth.test.ts (tests non-existent functionality)
 - ✅ rate-limiting.test.ts (FIXED: All 33 tests passing - resolved module-level state persistence issues using jest.isolateModules)
@@ -15,6 +17,7 @@
 - ✅ validation.test.ts
 
 ## Bingo Boards Tests
+
 - ✅ bingo-engine.test.ts
 - ⚠️ card-generator.test.ts (3 failing tests)
 - ✅ scoring.test.ts
@@ -22,12 +25,14 @@
 - ✅ win-detection.test.ts
 
 ## Landing Tests
+
 - ✅ ab-testing.test.ts
 - ✅ analytics-events.test.ts
 - ✅ feature-flags.test.ts
 - ✅ seo-meta.test.ts
 
 ## Play Area Tests
+
 - ✅ achievement-engine.test.ts
 - ✅ progress-tracker.test.ts
 - ✅ game-filters.test.ts
@@ -35,8 +40,9 @@
 - ✅ speedrun-timer.test.ts
 
 ## Settings Tests
+
 - ❌ account-deletion.test.ts (tests non-existent functionality)
-- ❌ data-export.test.ts (tests non-existent functionality) 
+- ❌ data-export.test.ts (tests non-existent functionality)
 - ❌ preference-migration.test.ts (tests non-existent functionality)
 - ✅ preference-validation.test.ts
 - ✅ privacy-settings.test.ts
@@ -44,6 +50,7 @@
 - ❌ theme-engine.test.ts (tests non-existent functionality)
 
 ## User Tests
+
 - ✅ activity-tracker.test.ts
 - ✅ badge-engine.test.ts
 - ❌ profile-score.test.ts (tests non-existent functionality)
@@ -51,6 +58,7 @@
 - ✅ user-profile-integration.test.ts
 
 ## Library Tests
+
 - ✅ api-handlers.test.ts
 - ✅ date-utils.test.ts
 - ✅ infrastructure.test.ts
@@ -61,12 +69,13 @@
 - ✅ validation/middleware.test.ts
 
 ## Services Tests
+
 - ✅ service-response.test.ts
 - ✅ auth.service.test.ts (FIXED: All 40 tests passing - resolved mock conflicts)
-- ✅ bingo-cards.service.test.ts
+- ✅ bingo-cards.service.test.ts (ENHANCED: Added comprehensive edge case tests for error handling, validation failures, and filtering scenarios)
 - ✅ bingo-generator.service.test.ts (FIXED: All 30 tests passing - resolved UUID validation, immutability, and null handling issues)
-- ✅ bingo-boards.service.test.ts (FIXED: All 50 tests passing - resolved mock setup issues for getBoardById client-side, getPublicBoards, and getBoards API tests)
-- ✅ bingo-board-edit.service.test.ts
+- ✅ bingo-boards.service.test.ts (ENHANCED: Added tests for missing coverage lines including auth errors, cache failures, transformation errors, and logging levels)
+- ✅ bingo-board-edit.service.test.ts (ENHANCED: Added tests for updateBoard error paths, createCard validation failures, and transformation edge cases)
 - ✅ bingo-board-edit.service.coverage.test.ts (FIXED: All 25 tests passing - resolved Supabase mock chain issues)
 - ✅ board-collections.service.test.ts
 - ✅ card-library.service.test.ts
@@ -104,6 +113,7 @@
 - ✅ user.service.coverage.test.ts (NEW: 5 passing tests - covers getUserProfile error handling, database errors, null data, unexpected errors, and various error conditions)
 
 ## API Route Tests
+
 - ⚠️ health/route.test.ts (1 failing test - ES module compatibility issues)
 - ⚠️ bingo/sessions/route.test.ts (1 failing test - ES module compatibility issues)
 - ✅ discussions/route.test.ts
@@ -113,6 +123,7 @@
 - ✅ bingo/sessions/[id]/start/route.test.ts
 
 ## Component Tests
+
 - ✅ auth/components/LoginForm.test.tsx (FIXED: All 16 tests passing - resolved import paths and comprehensive icon mocking)
 - ✅ auth/auth-provider.test.tsx (NEW: 19 tests passing - comprehensive coverage of auth context, initialization, session handling, auth events, and edge cases)
 - ⚠️ error-boundaries/BaseErrorBoundary.test.tsx (3 failing tests - window.location.reload mocking complexity)
@@ -126,12 +137,15 @@
 - ✅ web-vitals.test.tsx
 
 ## Styles Tests
+
 - ✅ cyberpunk.styles.test.ts
 
 ## Utils Tests
+
 - ✅ image-formats.test.ts
 
 ## Types Tests
+
 - ✅ css-properties.test.ts
 - ✅ index.test.ts
 

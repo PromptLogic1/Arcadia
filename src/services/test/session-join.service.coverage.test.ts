@@ -1,6 +1,6 @@
 /**
  * Additional Coverage Tests for Session Join Service
- * 
+ *
  * Focusing on uncovered branches and edge cases to improve coverage
  * from 87% lines, 63.46% branches to 95%+ coverage.
  */
@@ -20,9 +20,7 @@ import {
   bingoSessionPlayerSchema,
 } from '@/lib/validation/schemas/bingo';
 import { AuthError } from '@supabase/auth-js';
-import { 
-  transformBoardState
-} from '@/lib/validation/transforms';
+import { transformBoardState } from '@/lib/validation/transforms';
 import type { Tables } from '@/types/database.types';
 
 // Mock the logger
@@ -58,7 +56,7 @@ jest.mock('@/lib/validation/transforms', () => ({
 
 // Mock error guards
 jest.mock('@/lib/error-guards', () => ({
-  getErrorMessage: jest.fn((error) => 
+  getErrorMessage: jest.fn(error =>
     error instanceof Error ? error.message : String(error)
   ),
 }));
@@ -122,7 +120,8 @@ describe('SessionJoinService - Additional Coverage', () => {
           .mockResolvedValue(createSupabaseSuccessResponse(null)),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Session not found');
@@ -159,7 +158,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.canJoin).toBe(true);
@@ -174,7 +174,9 @@ describe('SessionJoinService - Additional Coverage', () => {
         eq: jest.fn().mockReturnThis(),
         single: jest
           .fn()
-          .mockResolvedValue(createSupabaseSuccessResponse(mockSessionWithBoard)),
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(mockSessionWithBoard)
+          ),
       });
 
       // Mock player count error
@@ -186,7 +188,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to check player count');
@@ -206,7 +209,9 @@ describe('SessionJoinService - Additional Coverage', () => {
         eq: jest.fn().mockReturnThis(),
         single: jest
           .fn()
-          .mockResolvedValue(createSupabaseSuccessResponse(mockSessionWithBoard)),
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(mockSessionWithBoard)
+          ),
       });
 
       // Mock null player count (should default to 0)
@@ -218,7 +223,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.currentPlayerCount).toBe(0);
@@ -239,7 +245,9 @@ describe('SessionJoinService - Additional Coverage', () => {
         eq: jest.fn().mockReturnThis(),
         single: jest
           .fn()
-          .mockResolvedValue(createSupabaseSuccessResponse(sessionWithNullSettings)),
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(sessionWithNullSettings)
+          ),
       });
 
       // Mock player count
@@ -251,7 +259,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.currentPlayerCount).toBe(3);
@@ -272,7 +281,9 @@ describe('SessionJoinService - Additional Coverage', () => {
         eq: jest.fn().mockReturnThis(),
         single: jest
           .fn()
-          .mockResolvedValue(createSupabaseSuccessResponse(sessionWithoutMaxPlayers)),
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(sessionWithoutMaxPlayers)
+          ),
       });
 
       // Mock player count at max (4)
@@ -284,7 +295,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.currentPlayerCount).toBe(4);
@@ -305,7 +317,8 @@ describe('SessionJoinService - Additional Coverage', () => {
           ),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database error');
@@ -342,10 +355,13 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
-      expect(transformBoardState).toHaveBeenCalledWith([{ id: 'cell-1', marked: false }]);
+      expect(transformBoardState).toHaveBeenCalledWith([
+        { id: 'cell-1', marked: false },
+      ]);
     });
 
     it('should handle session transform with null current_state', async () => {
@@ -362,7 +378,9 @@ describe('SessionJoinService - Additional Coverage', () => {
         eq: jest.fn().mockReturnThis(),
         single: jest
           .fn()
-          .mockResolvedValue(createSupabaseSuccessResponse(sessionWithNullState)),
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(sessionWithNullState)
+          ),
       });
 
       // Mock player count
@@ -374,7 +392,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         }),
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(true);
       expect(result.data?.session.current_state).toBeNull();
@@ -388,7 +407,8 @@ describe('SessionJoinService - Additional Coverage', () => {
         throw error;
       });
 
-      const result = await sessionJoinService.getSessionJoinDetails('session-123');
+      const result =
+        await sessionJoinService.getSessionJoinDetails('session-123');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Unexpected fetch error');
@@ -401,7 +421,10 @@ describe('SessionJoinService - Additional Coverage', () => {
   });
 
   describe('joinSession - Missing Branch Coverage', () => {
-    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+    const mockUser = mockSupabaseUser({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
     const joinData = {
       sessionId: 'session-123',
       playerName: 'TestPlayer',
@@ -410,7 +433,9 @@ describe('SessionJoinService - Additional Coverage', () => {
     };
 
     it('should handle auth user error', async () => {
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
@@ -430,7 +455,9 @@ describe('SessionJoinService - Additional Coverage', () => {
 
     it('should handle session verification failure', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -463,7 +490,9 @@ describe('SessionJoinService - Additional Coverage', () => {
 
     it('should handle session not joinable after verification', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -497,15 +526,16 @@ describe('SessionJoinService - Additional Coverage', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Session is full');
-      expect(log.warn).toHaveBeenCalledWith(
-        'Session not joinable',
-        { metadata: { sessionId: 'session-123', reason: 'Session is full' } }
-      );
+      expect(log.warn).toHaveBeenCalledWith('Session not joinable', {
+        metadata: { sessionId: 'session-123', reason: 'Session is full' },
+      });
     });
 
     it('should handle session not joinable without reason', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -548,7 +578,9 @@ describe('SessionJoinService - Additional Coverage', () => {
       };
 
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -602,7 +634,9 @@ describe('SessionJoinService - Additional Coverage', () => {
 
     it('should handle new player validation failure', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -660,7 +694,9 @@ describe('SessionJoinService - Additional Coverage', () => {
 
     it('should handle unexpected error during join', async () => {
       const error = new Error('Unexpected join error');
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockImplementation(() => {
         throw error;
@@ -679,10 +715,15 @@ describe('SessionJoinService - Additional Coverage', () => {
   });
 
   describe('checkUserInSession - Missing Branch Coverage', () => {
-    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+    const mockUser = mockSupabaseUser({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
 
     it('should handle auth error during user check', async () => {
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: null },
@@ -702,7 +743,9 @@ describe('SessionJoinService - Additional Coverage', () => {
 
     it('should handle non-PGRST116 database errors', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -734,7 +777,9 @@ describe('SessionJoinService - Additional Coverage', () => {
 
     it('should handle player validation failure', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -770,7 +815,9 @@ describe('SessionJoinService - Additional Coverage', () => {
     });
 
     it('should handle unexpected non-Error exceptions', async () => {
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockImplementation(() => {
         throw 'String error'; // Non-Error exception
@@ -812,7 +859,10 @@ describe('SessionJoinService - Additional Coverage', () => {
 
       const playersWithNullColors = [
         factories.bingoSessionPlayer({ color: '#06b6d4' }),
-        { ...factories.bingoSessionPlayer({ color: '#000000' }), color: null } as unknown as Tables<'bingo_session_players'>, // Should be filtered out
+        {
+          ...factories.bingoSessionPlayer({ color: '#000000' }),
+          color: null,
+        } as unknown as Tables<'bingo_session_players'>, // Should be filtered out
         factories.bingoSessionPlayer({ color: '#8b5cf6' }),
         factories.bingoSessionPlayer({ color: '' }), // Should be filtered out (falsy)
       ];
@@ -898,7 +948,9 @@ describe('SessionJoinService - Additional Coverage', () => {
     it('should handle service response structure validation', async () => {
       // Mock a successful response to verify structure
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<typeof mockSupabase.auth>;
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
 
       mockAuth.getUser.mockResolvedValue({
         data: { user: mockSupabaseUser({ id: 'user-123' }) },

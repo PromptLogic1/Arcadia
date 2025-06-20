@@ -29,8 +29,18 @@ const createMockQueryBuilder = () => {
     single: jest.fn(),
   };
 
-  // Note: Don't set default return values here, 
-  // they should be set explicitly in each test
+  // Set up method chaining by default - each method returns the builder
+  builder.select.mockReturnValue(builder);
+  builder.insert.mockReturnValue(builder);
+  builder.update.mockReturnValue(builder);
+  builder.delete.mockReturnValue(builder);
+  builder.eq.mockReturnValue(builder);
+  builder.neq.mockReturnValue(builder);
+  builder.gte.mockReturnValue(builder);
+  builder.lte.mockReturnValue(builder);
+  builder.order.mockReturnValue(builder);
+  builder.range.mockReturnValue(builder);
+  builder.limit.mockReturnValue(builder);
 
   // Make the query builder thenable
   builder.then = jest.fn((onfulfilled: any) => {
@@ -54,17 +64,17 @@ describe('userService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockStorageBucket = createMockStorageBucket();
     mockQueryBuilder = createMockQueryBuilder();
-    
+
     mockSupabase = {
       from: jest.fn(() => mockQueryBuilder),
       storage: {
         from: jest.fn(() => mockStorageBucket),
       },
     };
-    
+
     (createClient as jest.Mock).mockReturnValue(mockSupabase);
   });
 
@@ -189,9 +199,9 @@ describe('userService', () => {
 
       // Mock .from() to return different builders for each call
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // 1st call: users table
-        .mockReturnValueOnce(statsQueryBuilder)     // 2nd call: user_statistics table 
-        .mockReturnValueOnce(resultsQueryBuilder)   // 3rd call: game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // 1st call: users table
+        .mockReturnValueOnce(statsQueryBuilder) // 2nd call: user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // 3rd call: game_results table
         .mockReturnValueOnce(activityQueryBuilder); // 4th call: user_activity table
 
       // 1. Profile query: .from('users').select('created_at, last_login_at').eq('id', userId).single()
@@ -228,12 +238,12 @@ describe('userService', () => {
 
       // 4. Activity query: .from('user_activity').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('activity_type', 'achievement_unlock')
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 10,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 10, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -259,9 +269,9 @@ describe('userService', () => {
 
       // Mock the from calls to return different builders
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // users table
-        .mockReturnValueOnce(statsQueryBuilder)     // user_statistics table
-        .mockReturnValueOnce(resultsQueryBuilder)   // game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // users table
+        .mockReturnValueOnce(statsQueryBuilder) // user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // game_results table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       // 1. Profile query: .select().eq().single()
@@ -297,12 +307,12 @@ describe('userService', () => {
 
       // 4. Activity query: .select().eq().eq()
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 5,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 5, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -321,12 +331,12 @@ describe('userService', () => {
 
     it('should handle errors gracefully', async () => {
       const profileQueryBuilder = createMockQueryBuilder();
-      
+
       // Setup query chain that will fail on the first query
       profileQueryBuilder.select.mockReturnValue(profileQueryBuilder);
       profileQueryBuilder.eq.mockReturnValue(profileQueryBuilder);
       profileQueryBuilder.single.mockRejectedValue(new Error('Database error'));
-      
+
       mockSupabase.from.mockReturnValueOnce(profileQueryBuilder);
 
       const result = await userService.getUserStats('user-123');
@@ -348,7 +358,6 @@ describe('userService', () => {
         },
       ];
 
-
       // Override then to return our activities
       mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
         const result = { data: activities, error: null };
@@ -360,12 +369,13 @@ describe('userService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(activities);
       expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
-      expect(mockQueryBuilder.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockQueryBuilder.order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      });
       expect(mockQueryBuilder.range).toHaveBeenCalledWith(0, 19);
     });
 
     it('should apply filters when provided', async () => {
-
       // Override then to return empty array
       mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
         const result = { data: [], error: null };
@@ -382,9 +392,18 @@ describe('userService', () => {
 
       expect(result.success).toBe(true);
       expect(mockQueryBuilder.eq).toHaveBeenCalledWith('user_id', 'user-123');
-      expect(mockQueryBuilder.eq).toHaveBeenCalledWith('activity_type', 'board_join');
-      expect(mockQueryBuilder.gte).toHaveBeenCalledWith('created_at', '2024-01-01');
-      expect(mockQueryBuilder.lte).toHaveBeenCalledWith('created_at', '2024-01-31');
+      expect(mockQueryBuilder.eq).toHaveBeenCalledWith(
+        'activity_type',
+        'board_join'
+      );
+      expect(mockQueryBuilder.gte).toHaveBeenCalledWith(
+        'created_at',
+        '2024-01-01'
+      );
+      expect(mockQueryBuilder.lte).toHaveBeenCalledWith(
+        'created_at',
+        '2024-01-31'
+      );
       expect(mockQueryBuilder.range).toHaveBeenCalledWith(5, 14);
     });
   });
@@ -402,7 +421,6 @@ describe('userService', () => {
           difficulty: 'easy' as Database['public']['Enums']['difficulty_level'],
         },
       };
-
 
       mockQueryBuilder.single.mockResolvedValueOnce({
         data: { id: 'activity-123' },
@@ -472,12 +490,15 @@ describe('userService', () => {
       const publicUrl =
         'https://storage.example.com/avatars/user-123-12345.jpg';
 
-
       mockStorageBucket.upload.mockResolvedValueOnce({ error: null });
       mockStorageBucket.getPublicUrl.mockReturnValueOnce({
         data: { publicUrl },
       });
-      mockQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+      // Mock the update query chain - update().eq() resolves to { error: null }
+      mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.uploadAvatar('user-123', file);
 
@@ -504,8 +525,10 @@ describe('userService', () => {
       mockStorageBucket.getPublicUrl.mockReturnValueOnce({
         data: { publicUrl: 'https://example.com/avatar.jpg' },
       });
-      mockQueryBuilder.eq.mockResolvedValueOnce({
-        error: { message: 'Update failed' },
+      // Mock the update query chain to fail
+      mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: { message: 'Update failed' } };
+        return onfulfilled ? onfulfilled(result) : result;
       });
 
       const result = await userService.uploadAvatar('user-123', file);
@@ -527,16 +550,20 @@ describe('userService', () => {
       const updateQueryBuilder = createMockQueryBuilder();
 
       mockSupabase.from
-        .mockReturnValueOnce(getQueryBuilder)   // select query
+        .mockReturnValueOnce(getQueryBuilder) // select query
         .mockReturnValueOnce(updateQueryBuilder); // update query
 
       getQueryBuilder.single.mockResolvedValueOnce({
         data: { avatar_url: avatarUrl },
         error: null,
       });
-      
+
       mockStorageBucket.remove.mockResolvedValueOnce({ error: null });
-      updateQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+      // Mock the update query chain - update().eq() resolves to { error: null }
+      updateQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.removeAvatar('user-123');
 
@@ -559,7 +586,7 @@ describe('userService', () => {
       const activityQueryBuilder = createMockQueryBuilder();
 
       mockSupabase.from
-        .mockReturnValueOnce(followQueryBuilder)   // user_friends table
+        .mockReturnValueOnce(followQueryBuilder) // user_friends table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       followQueryBuilder.insert.mockResolvedValueOnce({ error: null });
@@ -649,7 +676,9 @@ describe('userService', () => {
     });
 
     it('should handle unexpected errors in isFollowing', async () => {
-      mockQueryBuilder.single.mockRejectedValueOnce(new Error('Unexpected error'));
+      mockQueryBuilder.single.mockRejectedValueOnce(
+        new Error('Unexpected error')
+      );
 
       const result = await userService.isFollowing('user-123', 'user-456');
 
@@ -669,9 +698,9 @@ describe('userService', () => {
 
       // Mock the from calls to return different builders
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // users table
-        .mockReturnValueOnce(statsQueryBuilder)     // user_statistics table
-        .mockReturnValueOnce(resultsQueryBuilder)   // game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // users table
+        .mockReturnValueOnce(statsQueryBuilder) // user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // game_results table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       // 1. Profile query: .select().eq().single()
@@ -702,12 +731,12 @@ describe('userService', () => {
 
       // Mock activity count - set up chain (.select().eq().eq())
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 0,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 0, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -733,9 +762,9 @@ describe('userService', () => {
 
       // Mock the from calls to return different builders
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // users table
-        .mockReturnValueOnce(statsQueryBuilder)     // user_statistics table
-        .mockReturnValueOnce(resultsQueryBuilder)   // game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // users table
+        .mockReturnValueOnce(statsQueryBuilder) // user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // game_results table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       // Mock profile data
@@ -767,12 +796,12 @@ describe('userService', () => {
 
       // Mock activity count - set up chain (.select().eq().eq())
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 15,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 15, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -790,9 +819,9 @@ describe('userService', () => {
 
       // Mock the from calls to return different builders
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // users table
-        .mockReturnValueOnce(statsQueryBuilder)     // user_statistics table
-        .mockReturnValueOnce(resultsQueryBuilder)   // game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // users table
+        .mockReturnValueOnce(statsQueryBuilder) // user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // game_results table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       // Mock profile data
@@ -827,12 +856,12 @@ describe('userService', () => {
 
       // Mock activity count - set up chain (.select().eq().eq())
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 8,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 8, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -851,9 +880,9 @@ describe('userService', () => {
 
       // Mock the from calls to return different builders
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // users table
-        .mockReturnValueOnce(statsQueryBuilder)     // user_statistics table
-        .mockReturnValueOnce(resultsQueryBuilder)   // game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // users table
+        .mockReturnValueOnce(statsQueryBuilder) // user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // game_results table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       // Mock null profile data
@@ -882,12 +911,12 @@ describe('userService', () => {
 
       // Mock activity count - set up chain (.select().eq().eq())
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 3,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 3, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -915,9 +944,9 @@ describe('userService', () => {
 
       // Mock the from calls to return different builders
       mockSupabase.from
-        .mockReturnValueOnce(profileQueryBuilder)   // users table
-        .mockReturnValueOnce(statsQueryBuilder)     // user_statistics table
-        .mockReturnValueOnce(resultsQueryBuilder)   // game_results table
+        .mockReturnValueOnce(profileQueryBuilder) // users table
+        .mockReturnValueOnce(statsQueryBuilder) // user_statistics table
+        .mockReturnValueOnce(resultsQueryBuilder) // game_results table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       // Mock profile data with error (but service doesn't check for profile errors)
@@ -946,12 +975,12 @@ describe('userService', () => {
 
       // Mock activity count - set up chain (.select().eq().eq())
       activityQueryBuilder.select.mockReturnValue(activityQueryBuilder);
-      activityQueryBuilder.eq
-        .mockReturnValueOnce(activityQueryBuilder) // First .eq() call
-        .mockResolvedValueOnce({                    // Second .eq() call
-          count: 2,
-          error: null,
-        });
+      activityQueryBuilder.eq.mockReturnValue(activityQueryBuilder);
+      // Override the final result when the query executes
+      activityQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { count: 2, error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.getUserStats('user-123');
 
@@ -990,7 +1019,11 @@ describe('userService', () => {
       mockStorageBucket.getPublicUrl.mockReturnValueOnce({
         data: { publicUrl: 'https://example.com/avatar.undefined' },
       });
-      mockQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+      // Mock the update query chain
+      mockQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.uploadAvatar('user-123', file);
 
@@ -1005,7 +1038,9 @@ describe('userService', () => {
     it('should handle unexpected error during upload', async () => {
       const file = new File(['test'], 'avatar.jpg', { type: 'image/jpeg' });
 
-      mockStorageBucket.upload.mockRejectedValueOnce(new Error('Network error'));
+      mockStorageBucket.upload.mockRejectedValueOnce(
+        new Error('Network error')
+      );
 
       const result = await userService.uploadAvatar('user-123', file);
 
@@ -1041,8 +1076,12 @@ describe('userService', () => {
         data: { avatar_url: 'https://external.com/avatar.jpg' },
         error: null,
       });
-      
-      updateQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+
+      // Mock the update query chain
+      updateQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.removeAvatar('user-123');
 
@@ -1064,8 +1103,12 @@ describe('userService', () => {
         data: { avatar_url: null },
         error: null,
       });
-      
-      updateQueryBuilder.eq.mockResolvedValueOnce({ error: null });
+
+      // Mock the update query chain
+      updateQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: null };
+        return onfulfilled ? onfulfilled(result) : result;
+      });
 
       const result = await userService.removeAvatar('user-123');
 
@@ -1090,8 +1133,10 @@ describe('userService', () => {
       });
 
       mockStorageBucket.remove.mockResolvedValueOnce({ error: null });
-      updateQueryBuilder.eq.mockResolvedValueOnce({
-        error: { message: 'Update failed' },
+      // Mock the update query chain to fail
+      updateQueryBuilder.then = jest.fn((onfulfilled: any) => {
+        const result = { error: { message: 'Update failed' } };
+        return onfulfilled ? onfulfilled(result) : result;
       });
 
       const result = await userService.removeAvatar('user-123');
@@ -1121,7 +1166,7 @@ describe('userService', () => {
       const activityQueryBuilder = createMockQueryBuilder();
 
       mockSupabase.from
-        .mockReturnValueOnce(followQueryBuilder)   // user_friends table
+        .mockReturnValueOnce(followQueryBuilder) // user_friends table
         .mockReturnValueOnce(activityQueryBuilder); // user_activity table
 
       followQueryBuilder.insert.mockResolvedValueOnce({ error: null });
@@ -1300,9 +1345,9 @@ describe('userService', () => {
 
       // Mock some queries succeeding and others failing
       todayQueryBuilder.gte.mockResolvedValueOnce({ count: 5, error: null });
-      weekQueryBuilder.gte.mockResolvedValueOnce({ 
-        count: null, 
-        error: { message: 'Query failed' } 
+      weekQueryBuilder.gte.mockResolvedValueOnce({
+        count: null,
+        error: { message: 'Query failed' },
       });
       monthQueryBuilder.gte.mockResolvedValueOnce({ count: 5, error: null });
       recentQueryBuilder.limit.mockResolvedValueOnce({
@@ -1417,7 +1462,7 @@ describe('userService', () => {
         data: { avatar_url: complexAvatarUrl },
         error: null,
       });
-      
+
       mockStorageBucket.remove.mockResolvedValueOnce({ error: null });
       updateQueryBuilder.eq.mockResolvedValueOnce({ error: null });
 
@@ -1444,7 +1489,7 @@ describe('userService', () => {
         data: { avatar_url: avatarUrl },
         error: null,
       });
-      
+
       mockStorageBucket.remove.mockResolvedValueOnce({
         error: { message: 'Storage removal failed' },
       });

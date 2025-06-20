@@ -120,7 +120,10 @@ describe('bingoGeneratorService', () => {
       const result = await bingoGeneratorService.generateBoard(privateParams);
 
       expect(result.success).toBe(true);
-      expect(mockFrom.eq).toHaveBeenCalledWith('creator_id', '550e8400-e29b-41d4-a716-446655440123');
+      expect(mockFrom.eq).toHaveBeenCalledWith(
+        'creator_id',
+        '550e8400-e29b-41d4-a716-446655440123'
+      );
     });
 
     it('should handle mixed public/private card source', async () => {
@@ -138,7 +141,10 @@ describe('bingoGeneratorService', () => {
           difficulty: 'medium' as DifficultyLevel,
           tags: null,
           is_public: i % 2 === 0,
-          creator_id: i % 2 === 0 ? '550e8400-e29b-41d4-a716-446655440999' : '550e8400-e29b-41d4-a716-446655440123',
+          creator_id:
+            i % 2 === 0
+              ? '550e8400-e29b-41d4-a716-446655440999'
+              : '550e8400-e29b-41d4-a716-446655440123',
           votes: 0,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',

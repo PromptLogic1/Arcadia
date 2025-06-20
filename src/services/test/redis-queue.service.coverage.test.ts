@@ -86,8 +86,9 @@ describe('RedisQueueService - Coverage Enhancement', () => {
     // Test for lines 215-243 (processJobs error handling)
     it('should handle startProcessingLoop throwing error', async () => {
       const processor: JobProcessor = jest.fn();
-      
-      jest.spyOn(redisQueueService as any, 'startProcessingLoop')
+
+      jest
+        .spyOn(redisQueueService as any, 'startProcessingLoop')
         .mockImplementationOnce(() => {
           throw new Error('Processing loop error');
         });
@@ -207,7 +208,8 @@ describe('RedisQueueService - Coverage Enhancement', () => {
 
     // Test for lines 750-824 (startProcessingLoop)
     it('should handle job processing with string error', async () => {
-      const processor: JobProcessor = jest.fn()
+      const processor: JobProcessor = jest
+        .fn()
         .mockRejectedValueOnce('String error in processor');
 
       // Set up processor and active polling
@@ -227,41 +229,54 @@ describe('RedisQueueService - Coverage Enhancement', () => {
 
       // Mock getNextJob to return one job then stop
       let callCount = 0;
-      jest.spyOn(redisQueueService, 'getNextJob').mockImplementation(async () => {
-        callCount++;
-        if (callCount === 1) {
-          return { success: true, data: jobData, error: null };
-        }
-        // Stop the loop
-        (redisQueueService as any).activePolling.set(queueName, false);
-        return { success: true, data: null, error: null };
-      });
+      jest
+        .spyOn(redisQueueService, 'getNextJob')
+        .mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            return { success: true, data: jobData, error: null };
+          }
+          // Stop the loop
+          (redisQueueService as any).activePolling.set(queueName, false);
+          return { success: true, data: null, error: null };
+        });
 
       // Mock failJob
-      jest.spyOn(redisQueueService, 'failJob').mockResolvedValue({ success: true, data: undefined, error: null });
+      jest
+        .spyOn(redisQueueService, 'failJob')
+        .mockResolvedValue({ success: true, data: undefined, error: null });
 
       // Start processing loop
-      await (redisQueueService as any).startProcessingLoop(queueName, { name: queueName });
+      await (redisQueueService as any).startProcessingLoop(queueName, {
+        name: queueName,
+      });
 
       expect(processor).toHaveBeenCalledTimes(1);
-      expect(redisQueueService.failJob).toHaveBeenCalledWith(jobData, 'String error in processor');
+      expect(redisQueueService.failJob).toHaveBeenCalledWith(
+        jobData,
+        'String error in processor'
+      );
     }, 15000); // Increase timeout
 
     it('should handle getNextJob failure in processing loop', async () => {
       const processor: JobProcessor = jest.fn();
-      
+
       // Set up processor and active polling
       (redisQueueService as any).processors.set(queueName, processor);
       (redisQueueService as any).activePolling.set(queueName, true);
 
       // Mock getNextJob to fail then stop immediately
-      jest.spyOn(redisQueueService, 'getNextJob').mockImplementation(async () => {
-        // Stop the loop immediately
-        (redisQueueService as any).activePolling.set(queueName, false);
-        throw new Error('Redis error in getNextJob');
-      });
+      jest
+        .spyOn(redisQueueService, 'getNextJob')
+        .mockImplementation(async () => {
+          // Stop the loop immediately
+          (redisQueueService as any).activePolling.set(queueName, false);
+          throw new Error('Redis error in getNextJob');
+        });
 
-      await (redisQueueService as any).startProcessingLoop(queueName, { name: queueName });
+      await (redisQueueService as any).startProcessingLoop(queueName, {
+        name: queueName,
+      });
 
       expect(mockLog.error).toHaveBeenCalledWith(
         'Error in processing loop',
@@ -288,10 +303,12 @@ describe('RedisQueueService - Coverage Enhancement', () => {
     it('should handle Zod validation error in cleanup', async () => {
       mockRedis.keys.mockResolvedValueOnce(['queue:processing:job-1']);
       mockRedis.ttl.mockResolvedValueOnce(-1);
-      mockRedis.get.mockResolvedValueOnce(JSON.stringify({
-        id: 'job-1',
-        // Missing required fields
-      }));
+      mockRedis.get.mockResolvedValueOnce(
+        JSON.stringify({
+          id: 'job-1',
+          // Missing required fields
+        })
+      );
 
       const result = await redisQueueService.cleanupExpiredJobs();
 
@@ -317,7 +334,9 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       mockRedis.get.mockResolvedValueOnce(JSON.stringify(validJobData));
 
       // Mock failJob to throw
-      jest.spyOn(redisQueueService, 'failJob').mockRejectedValueOnce(new Error('Fail error'));
+      jest
+        .spyOn(redisQueueService, 'failJob')
+        .mockRejectedValueOnce(new Error('Fail error'));
 
       const result = await redisQueueService.cleanupExpiredJobs();
 
@@ -331,8 +350,10 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       // Mock delayed jobs with invalid JSON
       mockRedis.zrange
         .mockResolvedValueOnce([
-          'invalid-json', '1000',
-          '{"broken": json}', '2000'
+          'invalid-json',
+          '1000',
+          '{"broken": json}',
+          '2000',
         ])
         .mockResolvedValueOnce([]); // No pending jobs
 
@@ -345,9 +366,9 @@ describe('RedisQueueService - Coverage Enhancement', () => {
     });
 
     it('should handle error in moveDelayedJobsToQueue', async () => {
-      // Mock zrange to return invalid data to see error handling in moveDelayedJobsToQueue  
+      // Mock zrange to return invalid data to see error handling in moveDelayedJobsToQueue
       mockRedis.zrange
-        .mockResolvedValueOnce([])  // Empty delayed jobs, no error
+        .mockResolvedValueOnce([]) // Empty delayed jobs, no error
         .mockResolvedValueOnce([]); // Empty pending jobs
 
       const result = await redisQueueService.getNextJob(queueName);
@@ -432,7 +453,7 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       const addCall = mockRedis.zadd.mock.calls[0];
       expect(addCall).toBeDefined();
       expect(addCall[1]).toBeDefined();
-      
+
       const member = JSON.parse(addCall[1].member);
       const retryDelay = member.scheduledFor - Date.now();
 
@@ -441,22 +462,23 @@ describe('RedisQueueService - Coverage Enhancement', () => {
       expect(retryDelay).toBeGreaterThan(100000); // Allow wider variance for high attempt count
     });
 
-
     it('should handle polling interval in processing loop', async () => {
       const processor: JobProcessor = jest.fn();
-      
+
       // Set up processor and active polling
       (redisQueueService as any).processors.set(queueName, processor);
       (redisQueueService as any).activePolling.set(queueName, true);
 
       // Mock getNextJob to return no jobs then stop immediately
       let _callCount = 0;
-      jest.spyOn(redisQueueService, 'getNextJob').mockImplementation(async () => {
-        _callCount++;
-        // Stop the loop after first call
-        (redisQueueService as any).activePolling.set(queueName, false);
-        return { success: true, data: null, error: null }; // No jobs available
-      });
+      jest
+        .spyOn(redisQueueService, 'getNextJob')
+        .mockImplementation(async () => {
+          _callCount++;
+          // Stop the loop after first call
+          (redisQueueService as any).activePolling.set(queueName, false);
+          return { success: true, data: null, error: null }; // No jobs available
+        });
 
       await (redisQueueService as any).startProcessingLoop(queueName, {
         name: queueName,

@@ -10,7 +10,9 @@ jest.mock('@/lib/supabase');
 jest.mock('@/services/submissions.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn(<T extends (...args: unknown[]) => unknown>(handler: T) => handler),
+  withRateLimit: jest.fn(
+    <T extends (...args: unknown[]) => unknown>(handler: T) => handler
+  ),
   RATE_LIMIT_CONFIGS: {
     read: 'read',
     create: 'create',
@@ -56,7 +58,9 @@ const mockSubmissionData = {
 };
 
 import * as validationMiddleware from '@/lib/validation/middleware';
-const mockValidationMiddleware = validationMiddleware as jest.Mocked<typeof validationMiddleware>;
+const mockValidationMiddleware = validationMiddleware as jest.Mocked<
+  typeof validationMiddleware
+>;
 
 describe('/api/submissions route handlers', () => {
   beforeEach(() => {
@@ -458,5 +462,4 @@ describe('/api/submissions route handlers', () => {
       });
     });
   });
-
 });

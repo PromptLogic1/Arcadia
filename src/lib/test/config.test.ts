@@ -2,7 +2,11 @@
  * @jest-environment node
  */
 
-import { getRuntimeConfig, getApiRuntimeConfig, validateServerEnv } from '../config';
+import {
+  getRuntimeConfig,
+  getApiRuntimeConfig,
+  validateServerEnv,
+} from '../config';
 import { get } from '@vercel/edge-config';
 
 // Mock dependencies
@@ -73,7 +77,9 @@ describe('config', () => {
       setTestEnv({ NODE_ENV: 'production' });
       (get as jest.Mock).mockRejectedValue(new Error('Edge config error'));
 
-      await expect(getRuntimeConfig('test-key')).rejects.toThrow('Edge config error');
+      await expect(getRuntimeConfig('test-key')).rejects.toThrow(
+        'Edge config error'
+      );
     });
   });
 
@@ -179,7 +185,9 @@ describe('config', () => {
       setTestEnv({ NODE_ENV: 'test' });
 
       expect(() => validateServerEnv()).toThrow();
-      expect(console.error).toHaveBeenCalledWith('❌ Environment validation failed:');
+      expect(console.error).toHaveBeenCalledWith(
+        '❌ Environment validation failed:'
+      );
     });
 
     it('should throw error for invalid URL format', () => {
@@ -382,8 +390,12 @@ describe('config', () => {
       expect(errorCalls.length).toBeGreaterThan(1);
       // Check that we have errors for the invalid fields
       const errorMessages = errorCalls.slice(1).map(call => call[0]);
-      expect(errorMessages.some(msg => msg.includes('NEXT_PUBLIC_SUPABASE_URL'))).toBe(true);
-      expect(errorMessages.some(msg => msg.includes('NEXT_PUBLIC_SUPABASE_ANON_KEY'))).toBe(true);
+      expect(
+        errorMessages.some(msg => msg.includes('NEXT_PUBLIC_SUPABASE_URL'))
+      ).toBe(true);
+      expect(
+        errorMessages.some(msg => msg.includes('NEXT_PUBLIC_SUPABASE_ANON_KEY'))
+      ).toBe(true);
     });
   });
 });

@@ -316,8 +316,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
             return {};
           } catch (error) {
             return {
-              error:
-                error instanceof Error ? error.message : 'Unknown error',
+              error: error instanceof Error ? error.message : 'Unknown error',
             };
           }
         },
@@ -428,8 +427,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               description: 'Please try again or contact support.',
             });
             return {
-              error:
-                error instanceof Error ? error.message : 'Unknown error',
+              error: error instanceof Error ? error.message : 'Unknown error',
             };
           } finally {
             get().setLoading(false);
@@ -630,8 +628,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
                 description: error.message,
               });
               return {
-                error:
-                  error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : 'Unknown error',
               };
             }
 
@@ -654,8 +651,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
               description: 'Please try again or contact support.',
             });
             return {
-              error:
-                error instanceof Error ? error.message : 'Unknown error',
+              error: error instanceof Error ? error.message : 'Unknown error',
             };
           }
         },

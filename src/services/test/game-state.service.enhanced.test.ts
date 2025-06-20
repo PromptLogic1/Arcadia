@@ -1,11 +1,15 @@
 /**
  * @jest-environment node
+ * 
+ * Game State Service Enhanced Coverage Tests
+ * Target coverage gaps in lines: 256-278, 313, 344-347, 459-462, 524-541
  */
 
 import { gameStateService } from '../game-state.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type { MarkCellData, CompleteGameData } from '../game-state.service';
+import type { Tables } from '@/types/database.types';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -39,6 +43,9 @@ import {
   transformBoardState,
   transformBoardCell,
 } from '@/lib/validation/transforms';
+
+// Type for bingo_session_players
+type SessionPlayer = Tables<'bingo_session_players'>;
 
 describe('gameStateService - Enhanced Coverage', () => {
   beforeEach(() => {
@@ -545,6 +552,392 @@ describe('gameStateService - Enhanced Coverage', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockPlayers);
+    });
+  });
+
+  describe('completeGame - Time calculation and win streak (lines 275-278, 344-347)', () => {
+    it('should calculate time to win correctly when started_at is present', async () => {
+      const sessionId = 'session-123';
+      const startTime = new Date('2024-01-01T10:00:00Z');
+      const mockNow = startTime.getTime() + 5 * 60 * 1000; // 5 minutes later
+      jest.spyOn(Date, 'now').mockReturnValue(mockNow);
+
+      const gameData: CompleteGameData = {
+        winner_id: 'user-456',
+        winning_patterns: ['row-1'],
+        final_score: 100,
+        players: [],
+      };
+
+      const mockSession = {
+        status: 'active',
+        started_at: startTime.toISOString(),
+        board_id: 'board-123',
+      };
+
+      // Mock session verification
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      // Mock session update
+      const mockUpdateQuery = {
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            error: null,
+          }),
+        }),
+      };
+
+      // Mock achievement creation
+      const mockAchievementQuery = {
+        insert: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
+
+      mockSupabaseClient.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
+
+      const result = await gameStateService.completeGame(sessionId, gameData);
+
+      expect(result.success).toBe(true);
+      expect(mockAchievementQuery.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            timeToWin: 300, // 5 minutes = 300 seconds
+          }),
+        })
+      );
+
+      jest.restoreAllMocks();
+    });
+
+    it('should handle null started_at gracefully', async () => {
+      const sessionId = 'session-123';
+      const gameData: CompleteGameData = {
+        winner_id: 'user-456',
+        winning_patterns: ['row-1'],
+        final_score: 100,
+        players: [],
+      };
+
+      const mockSession = {
+        status: 'active',
+        started_at: null, // No start time
+        board_id: 'board-123',
+      };
+
+      // Setup mocks
+      const mockSessionQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      const mockUpdateQuery = {
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockResolvedValue({
+            error: null,
+          }),
+        }),
+      };
+
+      const mockAchievementQuery = {
+        insert: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
+
+      mockSupabaseClient.from
+        .mockReturnValueOnce(mockSessionQuery)
+        .mockReturnValueOnce(mockUpdateQuery)
+        .mockReturnValueOnce(mockAchievementQuery);
+
+      const result = await gameStateService.completeGame(sessionId, gameData);
+
+      expect(result.success).toBe(true);
+      expect(mockAchievementQuery.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            timeToWin: 0, // Default to 0 when no start time
+          }),
+        })
+      );
+    });
+
+    it('should reset win streak for non-winner (lines 343-344)', async () => {
+      const sessionId = 'session-123';
+      const losingPlayer: SessionPlayer = {
+        id: 'player-2',
+        session_id: sessionId,
+        user_id: 'user-789',
+        score: 60,
+        color: 'red',
+        position: 2,
+        joined_at: '2024-01-01T00:00:00Z',
+        avatar_url: null,
+        created_at: '2024-01-01T00:00:00Z',
+        display_name: 'Losing Player',
+        is_host: false,
+        is_ready: true,
+        left_at: null,
+        team: null,
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+
+      const gameData: CompleteGameData = {
+        winner_id: 'user-456', // Different user wins
+        winning_patterns: ['row-1'],
+        final_score: 100,
+        players: [losingPlayer],
+      };
+
+      const mockSession = {
+        status: 'active',
+        started_at: '2024-01-01T10:00:00Z',
+        board_id: 'board-123',
+      };
+
+      const existingStats = {
+        total_games: 10,
+        total_score: 500,
+        games_completed: 9,
+        games_won: 3,
+        current_win_streak: 2, // Had a streak
+        longest_win_streak: 4,
+        fastest_win: 180,
+        total_playtime: 3600,
+        highest_score: 80,
+      };
+
+      // Setup mocks
+      mockSupabaseClient.from
+        .mockReturnValueOnce({ // Session verification
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: mockSession,
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({ // Session update
+          update: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              error: null,
+            }),
+          }),
+        })
+        .mockReturnValueOnce({ // Stats fetch
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: existingStats,
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({ // Stats upsert
+          upsert: jest.fn().mockResolvedValue({
+            error: null,
+          }),
+        })
+        .mockReturnValueOnce({ // Achievement creation
+          insert: jest.fn().mockResolvedValue({
+            error: null,
+          }),
+        });
+
+      const result = await gameStateService.completeGame(sessionId, gameData);
+
+      expect(result.success).toBe(true);
+      
+      // Get the upsert mock from the fourth from() call
+      const upsertMock = (mockSupabaseClient.from as jest.Mock).mock.results[3].value.upsert;
+      expect(upsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current_win_streak: 0, // Reset because player lost
+          longest_win_streak: 4, // Unchanged
+        }),
+        { onConflict: 'user_id' }
+      );
+    });
+  });
+
+  describe('completeGame - Stats error handling (line 313)', () => {
+    it('should skip player when stats fetch fails with non-PGRST116 error', async () => {
+      const sessionId = 'session-123';
+      const player: SessionPlayer = {
+        id: 'player-1',
+        session_id: sessionId,
+        user_id: 'user-456',
+        score: 85,
+        color: 'blue',
+        position: 1,
+        joined_at: '2024-01-01T00:00:00Z',
+        avatar_url: null,
+        created_at: '2024-01-01T00:00:00Z',
+        display_name: 'Player 1',
+        is_host: true,
+        is_ready: true,
+        left_at: null,
+        team: null,
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+
+      const gameData: CompleteGameData = {
+        winner_id: 'user-456',
+        winning_patterns: ['row-1'],
+        final_score: 85,
+        players: [player],
+      };
+
+      const mockSession = {
+        status: 'active',
+        started_at: '2024-01-01T10:00:00Z',
+        board_id: 'board-123',
+      };
+
+      // Setup mocks
+      mockSupabaseClient.from
+        .mockReturnValueOnce({ // Session verification
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: mockSession,
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({ // Session update
+          update: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              error: null,
+            }),
+          }),
+        })
+        .mockReturnValueOnce({ // Stats fetch with non-PGRST116 error
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: null,
+                error: { code: 'NETWORK_ERROR', message: 'Network failed' },
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({ // Achievement creation
+          insert: jest.fn().mockResolvedValue({
+            error: null,
+          }),
+        });
+
+      const result = await gameStateService.completeGame(sessionId, gameData);
+
+      expect(result.success).toBe(true);
+      expect(log.warn).toHaveBeenCalledWith(
+        'Failed to fetch user stats',
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            error: { code: 'NETWORK_ERROR', message: 'Network failed' },
+            userId: 'user-456',
+          }),
+        })
+      );
+      
+      // Verify that we skipped to next player by checking upsert was not called
+      const fromCalls = (mockSupabaseClient.from as jest.Mock).mock.calls;
+      expect(fromCalls).toHaveLength(4); // No upsert call
+    });
+  });
+
+  describe('getBoardState - Version handling (lines 471-472)', () => {
+    it('should handle missing version in session data', async () => {
+      const sessionId = 'session-123';
+      const mockBoardState = [
+        { id: 'cell-1', is_marked: false, last_updated: Date.now() },
+      ];
+
+      const mockSession = {
+        current_state: mockBoardState,
+        version: null, // Missing version
+      };
+
+      (boardStateSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: true,
+        data: mockBoardState,
+      });
+
+      const mockQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      mockSupabaseClient.from.mockReturnValueOnce(mockQuery);
+
+      const result = await gameStateService.getBoardState(sessionId);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.version).toBe(0); // Should default to 0
+    });
+
+    it('should handle undefined version in session data', async () => {
+      const sessionId = 'session-123';
+      const mockBoardState = [
+        { id: 'cell-1', is_marked: false, last_updated: Date.now() },
+      ];
+
+      const mockSession = {
+        current_state: mockBoardState,
+        version: undefined, // Undefined version
+      };
+
+      (boardStateSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: true,
+        data: mockBoardState,
+      });
+
+      const mockQuery = {
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockSession,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      mockSupabaseClient.from.mockReturnValueOnce(mockQuery);
+
+      const result = await gameStateService.getBoardState(sessionId);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.version).toBe(0); // Should default to 0
     });
   });
 });

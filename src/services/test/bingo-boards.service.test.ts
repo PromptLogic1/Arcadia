@@ -63,7 +63,9 @@ jest.mock('@/services/redis.service', () => ({
     delete: jest.fn(),
     invalidate: jest.fn(),
     invalidatePattern: jest.fn(),
-    createKey: jest.fn((prefix: string, ...args: any[]) => `${prefix}:${args.join(':')}`),
+    createKey: jest.fn(
+      (prefix: string, ...args: any[]) => `${prefix}:${args.join(':')}`
+    ),
     getOrSet: jest.fn(),
   },
 }));
@@ -73,33 +75,39 @@ jest.mock('@/lib/validation/schemas/bingo', () => ({
   zBoardState: {
     safeParse: jest.fn(),
     catch: jest.fn(() => ({
-      parse: jest.fn((data) => data || []),
+      parse: jest.fn(data => data || []),
     })),
   },
   zBoardSettings: {
     safeParse: jest.fn(),
     catch: jest.fn(() => ({
-      parse: jest.fn((data) => data || {
-        team_mode: null,
-        lockout: null,
-        sound_enabled: null,
-        win_conditions: null,
-      }),
+      parse: jest.fn(
+        data =>
+          data || {
+            team_mode: null,
+            lockout: null,
+            sound_enabled: null,
+            win_conditions: null,
+          }
+      ),
     })),
   },
 }));
 
 // Mock transforms
 jest.mock('@/lib/validation/transforms', () => ({
-  transformBoardState: jest.fn((data) => data),
-  transformBoardSettings: jest.fn((data) => data),
+  transformBoardState: jest.fn(data => data),
+  transformBoardSettings: jest.fn(data => data),
 }));
 
 import { createClient } from '@/lib/supabase';
 
 describe('BingoBoardsService', () => {
   let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
-  const _mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+  const _mockUser = mockSupabaseUser({
+    id: 'user-123',
+    email: 'test@example.com',
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -124,7 +132,10 @@ describe('BingoBoardsService', () => {
   });
 
   describe('createBoard', () => {
-    const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+    const mockUser = mockSupabaseUser({
+      id: 'user-123',
+      email: 'test@example.com',
+    });
     const createData: CreateBoardData = {
       title: 'Test Board',
       description: 'A test board',
@@ -189,6 +200,33 @@ describe('BingoBoardsService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Must be authenticated to create board');
+    });
+
+    it('should handle auth error', async () => {
+      const mockAuth = mockSupabase.auth as jest.Mocked<
+        typeof mockSupabase.auth
+      >;
+
+      const authError = new Error('Auth service unavailable');
+      mockAuth.getUser.mockResolvedValue({
+        data: { user: null },
+        error: authError,
+      });
+
+      const result = await bingoBoardsService.createBoard(createData);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Must be authenticated to create board');
+      expect(log.error).toHaveBeenCalledWith(
+        'User authentication failed for board creation',
+        authError,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'bingo-boards',
+            method: 'createBoard',
+          }),
+        })
+      );
     });
 
     it('should handle database errors', async () => {
@@ -264,27 +302,27 @@ describe('BingoBoardsService', () => {
     it('should handle board state updates', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
       const boardState = [
-        { 
-          cell_id: 'cell-1', 
-          text: 'Test', 
+        {
+          cell_id: 'cell-1',
+          text: 'Test',
           colors: null,
           completed_by: null,
           blocked: null,
           is_marked: false,
           version: null,
           last_updated: null,
-          last_modified_by: null
+          last_modified_by: null,
         },
-        { 
-          cell_id: 'cell-2', 
-          text: 'Test 2', 
+        {
+          cell_id: 'cell-2',
+          text: 'Test 2',
           colors: null,
           completed_by: null,
           blocked: null,
           is_marked: true,
           version: null,
           last_updated: null,
-          last_modified_by: null
+          last_modified_by: null,
         },
       ];
 
@@ -323,7 +361,7 @@ describe('BingoBoardsService', () => {
 
     it('should handle validation errors', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      
+
       mockFrom.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -333,10 +371,7 @@ describe('BingoBoardsService', () => {
           .mockResolvedValue(createSupabaseErrorResponse('Update failed')),
       });
 
-      const result = await bingoBoardsService.updateBoard(
-        boardId,
-        updateData
-      );
+      const result = await bingoBoardsService.updateBoard(boardId, updateData);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Update failed');
@@ -413,7 +448,8 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      const result = await bingoBoardsService.getBoardsBySection(myBoardsParams);
+      const result =
+        await bingoBoardsService.getBoardsBySection(myBoardsParams);
 
       expect(result.success).toBe(true);
       expect(mockFrom().eq).toHaveBeenCalledWith('creator_id', 'user-123');
@@ -465,9 +501,15 @@ describe('BingoBoardsService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBeUndefined();
-      expect(cacheService.invalidate).toHaveBeenCalledWith(`bingo-board:${boardId}`);
-      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('public-boards:*');
-      expect(cacheService.invalidatePattern).toHaveBeenCalledWith('user-boards:*');
+      expect(cacheService.invalidate).toHaveBeenCalledWith(
+        `bingo-board:${boardId}`
+      );
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith(
+        'public-boards:*'
+      );
+      expect(cacheService.invalidatePattern).toHaveBeenCalledWith(
+        'user-boards:*'
+      );
     });
 
     it('should handle delete errors', async () => {
@@ -511,25 +553,31 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
       });
 
       // Second call for inserting cloned board
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(clonedBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(clonedBoard)),
       });
 
       const result = await bingoBoardsService.cloneBoard(boardId, userId);
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(expect.objectContaining({
-        id: 'cloned-board-id',
-        title: 'Original Board (Copy)',
-        creator_id: userId,
-        is_public: false,
-      }));
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          id: 'cloned-board-id',
+          title: 'Original Board (Copy)',
+          creator_id: userId,
+          is_public: false,
+        })
+      );
     });
 
     it('should clone board with custom title', async () => {
@@ -540,20 +588,28 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
       });
 
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({
-          ...originalBoard,
-          id: 'new-id',
-          title: customTitle,
-        })),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse({
+            ...originalBoard,
+            id: 'new-id',
+            title: customTitle,
+          })
+        ),
       });
 
-      const result = await bingoBoardsService.cloneBoard(boardId, userId, customTitle);
+      const result = await bingoBoardsService.cloneBoard(
+        boardId,
+        userId,
+        customTitle
+      );
 
       expect(result.success).toBe(true);
       expect(result.data?.title).toBe(customTitle);
@@ -565,7 +621,9 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('Board not found')),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Board not found')),
       });
 
       const result = await bingoBoardsService.cloneBoard(boardId, userId);
@@ -581,19 +639,64 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
       });
 
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('Insert failed')),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Insert failed')),
       });
 
       const result = await bingoBoardsService.cloneBoard(boardId, userId);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Insert failed');
+    });
+
+    it('should handle transformation failure on cloned board', async () => {
+      const originalBoard = factories.bingoBoard({ id: boardId });
+      const mockFrom = mockSupabase.from as jest.Mock;
+
+      // First call for fetching original board
+      mockFrom.mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
+      });
+
+      // Second call for inserting cloned board
+      const clonedBoard = {
+        ...originalBoard,
+        id: 'cloned-id',
+        title: `${originalBoard.title} (Copy)`,
+        creator_id: userId,
+      };
+      mockFrom.mockReturnValueOnce({
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(clonedBoard)),
+      });
+
+      // Mock transformation to fail
+      (zBoardState.catch as jest.Mock).mockReturnValue({
+        parse: jest.fn().mockImplementation(() => {
+          throw new Error('Invalid board state');
+        }),
+      });
+
+      const result = await bingoBoardsService.cloneBoard(boardId, userId);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to transform cloned board');
     });
   });
 
@@ -648,12 +751,13 @@ describe('BingoBoardsService', () => {
         },
         {
           name: 'getBoardsBySection',
-          method: () => bingoBoardsService.getBoardsBySection({
-            section: 'all',
-            filters: {},
-            page: 1,
-            limit: 10,
-          }),
+          method: () =>
+            bingoBoardsService.getBoardsBySection({
+              section: 'all',
+              filters: {},
+              page: 1,
+              limit: 10,
+            }),
         },
         {
           name: 'getBoards',
@@ -661,16 +765,17 @@ describe('BingoBoardsService', () => {
         },
         {
           name: 'createBoardFromAPI',
-          method: () => bingoBoardsService.createBoardFromAPI({
-            title: 'API Board',
-            size: 5,
-            settings: {},
-            game_type: 'All Games',
-            difficulty: 'easy',
-            is_public: true,
-            board_state: [],
-            userId: 'user-123',
-          }),
+          method: () =>
+            bingoBoardsService.createBoardFromAPI({
+              title: 'API Board',
+              size: 5,
+              settings: {},
+              game_type: 'All Games',
+              difficulty: 'easy',
+              is_public: true,
+              board_state: [],
+              userId: 'user-123',
+            }),
         },
       ];
 
@@ -696,14 +801,18 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(mockBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(mockBoard)),
       });
 
       // Mock cache service to simulate no cache
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       const result = await bingoBoardsService.getBoardById(boardId);
 
@@ -715,7 +824,7 @@ describe('BingoBoardsService', () => {
 
     it('should return cached board when available', async () => {
       const cachedBoard = factories.bingoBoard({ id: boardId });
-      
+
       (cacheService.getOrSet as jest.Mock).mockResolvedValue({
         success: true,
         data: cachedBoard,
@@ -734,17 +843,23 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('Board not found', 'PGRST116')),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('Board not found', 'PGRST116')
+          ),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        try {
-          const result = await fetchFn();
-          return result;
-        } catch (error) {
-          return { success: false, error: (error as Error).message };
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          try {
+            const result = await fetchFn();
+            return result;
+          } catch (error) {
+            return { success: false, error: (error as Error).message };
+          }
         }
-      });
+      );
 
       const result = await bingoBoardsService.getBoardById(boardId);
 
@@ -759,7 +874,9 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(invalidBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(invalidBoard)),
       });
 
       // Mock transformation to fail
@@ -769,14 +886,16 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        try {
-          const result = await fetchFn();
-          return result;
-        } catch (error) {
-          return { success: false, error: (error as Error).message };
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          try {
+            const result = await fetchFn();
+            return result;
+          } catch (error) {
+            return { success: false, error: (error as Error).message };
+          }
         }
-      });
+      );
 
       const result = await bingoBoardsService.getBoardById(boardId);
 
@@ -806,8 +925,10 @@ describe('BingoBoardsService', () => {
       // Mock the full chain with proper return values
       const mockSelect = jest.fn().mockReturnThis();
       const mockEq = jest.fn().mockReturnThis();
-      const mockSingle = jest.fn().mockResolvedValue(createSupabaseSuccessResponse(mockBoard));
-      
+      const mockSingle = jest
+        .fn()
+        .mockResolvedValue(createSupabaseSuccessResponse(mockBoard));
+
       mockFrom.mockReturnValue({
         select: mockSelect,
         eq: mockEq,
@@ -816,15 +937,18 @@ describe('BingoBoardsService', () => {
 
       // Ensure board transformation works
       (zBoardState.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn().mockImplementation((data) => data || []),
+        parse: jest.fn().mockImplementation(data => data || []),
       });
       (zBoardSettings.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn().mockImplementation((data) => data || {
-          team_mode: null,
-          lockout: null,
-          sound_enabled: null,
-          win_conditions: null,
-        }),
+        parse: jest.fn().mockImplementation(
+          data =>
+            data || {
+              team_mode: null,
+              lockout: null,
+              sound_enabled: null,
+              win_conditions: null,
+            }
+        ),
       });
       (transformBoardState as jest.Mock).mockImplementation(data => data);
       (transformBoardSettings as jest.Mock).mockImplementation(data => data);
@@ -866,23 +990,28 @@ describe('BingoBoardsService', () => {
 
       // Ensure board transformation works correctly
       (zBoardState.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn().mockImplementation((data) => data || []),
+        parse: jest.fn().mockImplementation(data => data || []),
       });
       (zBoardSettings.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn().mockImplementation((data) => data || {
-          team_mode: null,
-          lockout: null,
-          sound_enabled: null,
-          win_conditions: null,
-        }),
+        parse: jest.fn().mockImplementation(
+          data =>
+            data || {
+              team_mode: null,
+              lockout: null,
+              sound_enabled: null,
+              win_conditions: null,
+            }
+        ),
       });
       (transformBoardState as jest.Mock).mockImplementation(data => data);
       (transformBoardSettings as jest.Mock).mockImplementation(data => data);
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       const result = await bingoBoardsService.getPublicBoards({}, 1, 20);
 
@@ -893,6 +1022,101 @@ describe('BingoBoardsService', () => {
         hasMore: false,
       });
       expect(result.data?.boards).toHaveLength(2);
+    });
+
+    it('should skip difficulty filter when set to all', async () => {
+      const mockFrom = mockSupabase.from as jest.Mock;
+
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0,
+        }),
+      });
+
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
+
+      await bingoBoardsService.getPublicBoards({ difficulty: 'all' }, 1, 20);
+
+      // Should only call eq for is_public, not for difficulty
+      const eqCalls = (mockFrom().eq as jest.Mock).mock.calls;
+      expect(eqCalls).toHaveLength(1);
+      expect(eqCalls[0]).toEqual(['is_public', true]);
+    });
+
+    it('should handle error with debug logging in non-production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+
+      const mockFrom = mockSupabase.from as jest.Mock;
+
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
+
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          try {
+            const data = await fetchFn();
+            return { success: true, data };
+          } catch (error) {
+            throw error;
+          }
+        }
+      );
+
+      const result = await bingoBoardsService.getPublicBoards();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Database error');
+      expect(log.debug).toHaveBeenCalled();
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should handle error with error logging in production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      const mockFrom = mockSupabase.from as jest.Mock;
+
+      mockFrom.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
+
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          try {
+            const data = await fetchFn();
+            return { success: true, data };
+          } catch (error) {
+            throw error;
+          }
+        }
+      );
+
+      const result = await bingoBoardsService.getPublicBoards();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Database error');
+      expect(log.error).toHaveBeenCalled();
+
+      process.env.NODE_ENV = originalEnv;
     });
 
     it('should apply game type filter', async () => {
@@ -910,10 +1134,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       await bingoBoardsService.getPublicBoards({ gameType }, 1, 20);
 
@@ -935,10 +1161,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       await bingoBoardsService.getPublicBoards({ difficulty }, 1, 20);
 
@@ -961,10 +1189,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       await bingoBoardsService.getPublicBoards({ search }, 1, 20);
 
@@ -989,10 +1219,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       const result = await bingoBoardsService.getPublicBoards({}, page, limit);
 
@@ -1021,7 +1253,7 @@ describe('BingoBoardsService', () => {
 
       let callCount = 0;
       (zBoardState.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn().mockImplementation((data) => {
+        parse: jest.fn().mockImplementation(data => {
           callCount++;
           if (callCount === 2) {
             throw new Error('Invalid board');
@@ -1030,10 +1262,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       const result = await bingoBoardsService.getPublicBoards();
 
@@ -1064,10 +1298,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       const result = await bingoBoardsService.getUserBoards(userId);
 
@@ -1090,10 +1326,12 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       await bingoBoardsService.getUserBoards(userId, { isPublic: false });
 
@@ -1114,14 +1352,46 @@ describe('BingoBoardsService', () => {
         }),
       });
 
-      (cacheService.getOrSet as jest.Mock).mockImplementation(async (key, fetchFn) => {
-        const data = await fetchFn();
-        return { success: true, data };
-      });
+      (cacheService.getOrSet as jest.Mock).mockImplementation(
+        async (key, fetchFn) => {
+          const data = await fetchFn();
+          return { success: true, data };
+        }
+      );
 
       await bingoBoardsService.getUserBoards(userId);
 
-      expect(mockFrom().order).toHaveBeenCalledWith('updated_at', { ascending: false });
+      expect(mockFrom().order).toHaveBeenCalledWith('updated_at', {
+        ascending: false,
+      });
+    });
+
+    it('should handle cache operation failure', async () => {
+      (cacheService.getOrSet as jest.Mock).mockResolvedValue({
+        success: false,
+        error: 'Cache operation failed',
+      });
+
+      const result = await bingoBoardsService.getUserBoards('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Cache operation failed');
+    });
+
+    it('should handle empty data from cache gracefully', async () => {
+      (cacheService.getOrSet as jest.Mock).mockResolvedValue({
+        success: true,
+        data: null,
+      });
+
+      const result = await bingoBoardsService.getUserBoards('user-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        boards: [],
+        totalCount: 0,
+        hasMore: false,
+      });
     });
   });
 
@@ -1136,7 +1406,11 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({ votes: currentVotes })),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse({ votes: currentVotes })
+          ),
       });
 
       // Second call to update votes
@@ -1144,10 +1418,12 @@ describe('BingoBoardsService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({
-          ...factories.bingoBoard({ id: boardId }),
-          votes: currentVotes + 1,
-        })),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse({
+            ...factories.bingoBoard({ id: boardId }),
+            votes: currentVotes + 1,
+          })
+        ),
       };
       mockFrom.mockReturnValueOnce(updateMock);
 
@@ -1155,7 +1431,9 @@ describe('BingoBoardsService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.votes).toBe(currentVotes + 1);
-      expect(updateMock.update).toHaveBeenCalledWith({ votes: currentVotes + 1 });
+      expect(updateMock.update).toHaveBeenCalledWith({
+        votes: currentVotes + 1,
+      });
     });
 
     it('should handle board not found', async () => {
@@ -1164,7 +1442,9 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('Board not found')),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Board not found')),
       });
 
       const result = await bingoBoardsService.voteBoard(boardId);
@@ -1179,17 +1459,21 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({ votes: null })),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse({ votes: null })),
       });
 
       const updateMock = {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({
-          ...factories.bingoBoard({ id: boardId }),
-          votes: 1,
-        })),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse({
+            ...factories.bingoBoard({ id: boardId }),
+            votes: 1,
+          })
+        ),
       };
       mockFrom.mockReturnValueOnce(updateMock);
 
@@ -1225,14 +1509,20 @@ describe('BingoBoardsService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({
-          ...factories.bingoBoard({ id: boardId }),
-          board_state: boardState,
-          version: currentVersion + 1,
-        })),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse({
+            ...factories.bingoBoard({ id: boardId }),
+            board_state: boardState,
+            version: currentVersion + 1,
+          })
+        ),
       });
 
-      const result = await bingoBoardsService.updateBoardState(boardId, boardState, currentVersion);
+      const result = await bingoBoardsService.updateBoardState(
+        boardId,
+        boardState,
+        currentVersion
+      );
 
       expect(result.success).toBe(true);
       expect(result.data?.board_state).toEqual(boardState);
@@ -1252,14 +1542,27 @@ describe('BingoBoardsService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('No rows returned', 'PGRST116')),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseErrorResponse('No rows returned', 'PGRST116')
+          ),
       });
 
-      const result = await bingoBoardsService.updateBoardState(boardId, boardState, currentVersion);
+      const result = await bingoBoardsService.updateBoardState(
+        boardId,
+        boardState,
+        currentVersion
+      );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Board was modified by another user. Please refresh and try again.');
-      expect(log.warn).toHaveBeenCalledWith('Board state version conflict', expect.any(Object));
+      expect(result.error).toBe(
+        'Board was modified by another user. Please refresh and try again.'
+      );
+      expect(log.warn).toHaveBeenCalledWith(
+        'Board state version conflict',
+        expect.any(Object)
+      );
     });
 
     it('should update without version check when version not provided', async () => {
@@ -1269,13 +1572,18 @@ describe('BingoBoardsService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse({
-          ...factories.bingoBoard({ id: boardId }),
-          board_state: boardState,
-        })),
+        single: jest.fn().mockResolvedValue(
+          createSupabaseSuccessResponse({
+            ...factories.bingoBoard({ id: boardId }),
+            board_state: boardState,
+          })
+        ),
       });
 
-      const result = await bingoBoardsService.updateBoardState(boardId, boardState);
+      const result = await bingoBoardsService.updateBoardState(
+        boardId,
+        boardState
+      );
 
       expect(result.success).toBe(true);
       // Should only call eq once for boardId, not for version
@@ -1304,14 +1612,18 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(boardWithCreator)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(boardWithCreator)),
       });
 
       const result = await bingoBoardsService.getBoardWithCreator(boardId);
 
       expect(result.success).toBe(true);
       expect(result.data?.creator).toEqual(creatorInfo);
-      expect(mockFrom().select).toHaveBeenCalledWith('*, creator:creator_id(id, username, avatar_url)');
+      expect(mockFrom().select).toHaveBeenCalledWith(
+        '*, creator:creator_id(id, username, avatar_url)'
+      );
     });
 
     it('should handle board without creator', async () => {
@@ -1325,7 +1637,11 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(boardWithoutCreator)),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(boardWithoutCreator)
+          ),
       });
 
       const result = await bingoBoardsService.getBoardWithCreator(boardId);
@@ -1345,7 +1661,11 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(boardWithInvalidCreator)),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(boardWithInvalidCreator)
+          ),
       });
 
       const result = await bingoBoardsService.getBoardWithCreator(boardId);
@@ -1416,7 +1736,7 @@ describe('BingoBoardsService', () => {
         page: 1,
         limit: 10,
       };
-      
+
       // Need to mock from to prevent null reference errors
       const mockFrom = mockSupabase.from as jest.Mock;
       mockFrom.mockReturnValue({
@@ -1443,7 +1763,7 @@ describe('BingoBoardsService', () => {
         page: 1,
         limit: 10,
       };
-      
+
       // Need to mock from to prevent null reference errors
       const mockFrom = mockSupabase.from as jest.Mock;
       mockFrom.mockReturnValue({
@@ -1486,7 +1806,9 @@ describe('BingoBoardsService', () => {
 
       await bingoBoardsService.getBoardsBySection(params);
 
-      expect(mockFrom().order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockFrom().order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      });
     });
 
     it('should apply sort by popular', async () => {
@@ -1512,7 +1834,9 @@ describe('BingoBoardsService', () => {
 
       await bingoBoardsService.getBoardsBySection(params);
 
-      expect(mockFrom().order).toHaveBeenCalledWith('votes', { ascending: false });
+      expect(mockFrom().order).toHaveBeenCalledWith('votes', {
+        ascending: false,
+      });
     });
   });
 
@@ -1540,15 +1864,18 @@ describe('BingoBoardsService', () => {
 
       // Mock Zod to return proper parsed data
       (zBoardState.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn((data) => data || []),
+        parse: jest.fn(data => data || []),
       });
       (zBoardSettings.catch as jest.Mock).mockReturnValue({
-        parse: jest.fn((data) => data || {
-          team_mode: null,
-          lockout: null,
-          sound_enabled: null,
-          win_conditions: null,
-        }),
+        parse: jest.fn(
+          data =>
+            data || {
+              team_mode: null,
+              lockout: null,
+              sound_enabled: null,
+              win_conditions: null,
+            }
+        ),
       });
       (transformBoardState as jest.Mock).mockImplementation(data => data);
       (transformBoardSettings as jest.Mock).mockImplementation(data => data);
@@ -1560,7 +1887,7 @@ describe('BingoBoardsService', () => {
         order: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         range: jest.fn().mockReturnThis(),
-        then: jest.fn().mockImplementation((resolve) => {
+        then: jest.fn().mockImplementation(resolve => {
           return Promise.resolve(resolve({ data: mockBoards, error: null }));
         }),
       });
@@ -1642,16 +1969,20 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseSuccessResponse(createdBoard)),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseSuccessResponse(createdBoard)),
       });
 
       const result = await bingoBoardsService.createBoardFromAPI(params);
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(expect.objectContaining({
-        title: params.title,
-        creator_id: params.userId,
-      }));
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          title: params.title,
+          creator_id: params.userId,
+        })
+      );
     });
 
     it('should handle insert error', async () => {
@@ -1671,7 +2002,9 @@ describe('BingoBoardsService', () => {
       mockFrom.mockReturnValue({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(createSupabaseErrorResponse('Insert failed')),
+        single: jest
+          .fn()
+          .mockResolvedValue(createSupabaseErrorResponse('Insert failed')),
       });
 
       const result = await bingoBoardsService.createBoardFromAPI(params);

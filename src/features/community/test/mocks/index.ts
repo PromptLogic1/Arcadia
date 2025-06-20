@@ -142,15 +142,19 @@ export const mockNotificationService = {
 
 // Mock rate limiter
 export const mockRateLimiter = {
-  checkLimit: jest.fn<() => Promise<{
-    allowed: boolean;
-    remaining: number;
-    reset: number;
-  }>>().mockResolvedValue({
-    allowed: true,
-    remaining: 10,
-    reset: Date.now() + 3600000,
-  }),
+  checkLimit: jest
+    .fn<
+      () => Promise<{
+        allowed: boolean;
+        remaining: number;
+        reset: number;
+      }>
+    >()
+    .mockResolvedValue({
+      allowed: true,
+      remaining: 10,
+      reset: Date.now() + 3600000,
+    }),
   consume: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
   reset: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
 };

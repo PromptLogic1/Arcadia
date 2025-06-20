@@ -31,11 +31,15 @@ describe('useBingoGame Hook', () => {
 
   test('should have win detection service dependency', async () => {
     // Test that the win detection service can be imported
-    await expect(import('../services/win-detection.service')).resolves.toBeDefined();
+    await expect(
+      import('../services/win-detection.service')
+    ).resolves.toBeDefined();
   });
 
   test('should have game state query dependencies', async () => {
     // Test that the required query hooks can be imported
-    await expect(import('@/hooks/queries/useGameStateQueries')).resolves.toBeDefined();
+    await expect(
+      import('@/hooks/queries/useGameStateQueries')
+    ).resolves.toBeDefined();
   });
 });

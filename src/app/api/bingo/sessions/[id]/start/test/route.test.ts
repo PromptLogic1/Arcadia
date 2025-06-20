@@ -11,13 +11,13 @@ jest.mock('@/services/sessions.service');
 jest.mock('@/services/auth.service');
 jest.mock('@/lib/logger');
 jest.mock('@/lib/rate-limiter-middleware', () => ({
-  withRateLimit: jest.fn((handler) => handler),
+  withRateLimit: jest.fn(handler => handler),
   RATE_LIMIT_CONFIGS: {
     gameAction: 'gameAction',
   },
 }));
 jest.mock('@/lib/error-handler', () => ({
-  withErrorHandling: jest.fn((handler) => handler),
+  withErrorHandling: jest.fn(handler => handler),
 }));
 
 // Mock NextResponse
@@ -231,7 +231,10 @@ describe('/api/bingo/sessions/[id]/start route handler', () => {
         });
 
         const request = createMockRequest();
-        const response = await POST(request, createMockParams('nonexistent-session'));
+        const response = await POST(
+          request,
+          createMockParams('nonexistent-session')
+        );
         const result = await response.json();
 
         expect(response.status).toBe(404);
@@ -302,7 +305,10 @@ describe('/api/bingo/sessions/[id]/start route handler', () => {
         });
 
         const request = createMockRequest();
-        const response = await POST(request, createMockParams('different-session'));
+        const response = await POST(
+          request,
+          createMockParams('different-session')
+        );
         const result = await response.json();
 
         expect(response.status).toBe(200);
@@ -317,7 +323,6 @@ describe('/api/bingo/sessions/[id]/start route handler', () => {
         );
       });
     });
-
 
     describe('logging', () => {
       test('should log appropriate messages for different scenarios', async () => {

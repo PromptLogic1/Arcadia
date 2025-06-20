@@ -36,7 +36,9 @@ jest.mock('@/lib/validation/transforms', () => ({
 type DBBingoBoard = Database['public']['Tables']['bingo_boards']['Row'];
 
 // Helper function to create properly typed mock boards
-const createMockBoard = (overrides: Partial<DBBingoBoard> = {}): DBBingoBoard => ({
+const createMockBoard = (
+  overrides: Partial<DBBingoBoard> = {}
+): DBBingoBoard => ({
   id: 'board-123',
   title: 'Test Board',
   description: 'Test description',
@@ -53,16 +55,16 @@ const createMockBoard = (overrides: Partial<DBBingoBoard> = {}): DBBingoBoard =>
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   board_state: [
-    { 
-      cell_id: 'cell-1', 
-      text: 'Test cell', 
+    {
+      cell_id: 'cell-1',
+      text: 'Test cell',
       colors: null,
       completed_by: null,
       blocked: null,
       is_marked: false,
       version: null,
       last_updated: null,
-      last_modified_by: null
+      last_modified_by: null,
     },
   ],
   settings: {
@@ -127,27 +129,27 @@ describe('boardCollectionsService', () => {
           difficulty: 'medium',
           is_public: true,
           board_state: [
-            { 
-              cell_id: 'cell-1', 
-              text: 'Test cell', 
+            {
+              cell_id: 'cell-1',
+              text: 'Test cell',
               colors: null,
               completed_by: null,
               blocked: null,
               is_marked: false,
               version: null,
               last_updated: null,
-              last_modified_by: null
+              last_modified_by: null,
             },
-            { 
-              cell_id: 'cell-2', 
-              text: 'Another cell', 
+            {
+              cell_id: 'cell-2',
+              text: 'Another cell',
               colors: null,
               completed_by: null,
               blocked: null,
               is_marked: false,
               version: null,
               last_updated: null,
-              last_modified_by: null
+              last_modified_by: null,
             },
           ],
           votes: 15,
@@ -161,27 +163,27 @@ describe('boardCollectionsService', () => {
           difficulty: 'medium',
           is_public: true,
           board_state: [
-            { 
-              cell_id: 'cell-3', 
-              text: 'Cell 1', 
+            {
+              cell_id: 'cell-3',
+              text: 'Cell 1',
               colors: null,
               completed_by: null,
               blocked: null,
               is_marked: false,
               version: null,
               last_updated: null,
-              last_modified_by: null
+              last_modified_by: null,
             },
-            { 
-              cell_id: 'cell-4', 
-              text: 'Cell 2', 
+            {
+              cell_id: 'cell-4',
+              text: 'Cell 2',
               colors: null,
               completed_by: null,
               blocked: null,
               is_marked: true,
               version: null,
               last_updated: null,
-              last_modified_by: null
+              last_modified_by: null,
             },
           ],
           creator_id: 'user-456',
@@ -367,7 +369,10 @@ describe('boardCollectionsService', () => {
 
       // Mock validation to fail for the second board
       (zBoardState.safeParse as jest.Mock)
-        .mockReturnValueOnce({ success: true, data: mockBoards[0]?.board_state })
+        .mockReturnValueOnce({
+          success: true,
+          data: mockBoards[0]?.board_state,
+        })
         .mockReturnValueOnce({
           success: false,
           error: new Error('Invalid state'),
@@ -504,27 +509,27 @@ describe('boardCollectionsService', () => {
         difficulty: 'expert',
         is_public: true,
         board_state: [
-          { 
-            cell_id: 'cell-5', 
-            text: 'Test cell', 
+          {
+            cell_id: 'cell-5',
+            text: 'Test cell',
             colors: null,
             completed_by: null,
             blocked: null,
             is_marked: false,
             version: null,
             last_updated: null,
-            last_modified_by: null
+            last_modified_by: null,
           },
-          { 
-            cell_id: 'cell-6', 
-            text: 'Another cell', 
+          {
+            cell_id: 'cell-6',
+            text: 'Another cell',
             colors: null,
             completed_by: null,
             blocked: null,
             is_marked: true,
             version: null,
             last_updated: null,
-            last_modified_by: null
+            last_modified_by: null,
           },
         ],
         creator_id: 'user-789',
@@ -656,17 +661,19 @@ describe('boardCollectionsService', () => {
         game_type: 'Overwatch',
         difficulty: 'easy',
         is_public: true,
-        board_state: [{ 
-          cell_id: 'cell-7', 
-          text: 'Cell', 
-          colors: null,
-          completed_by: null,
-          blocked: null,
-          is_marked: false,
-          version: null,
-          last_updated: null,
-          last_modified_by: null
-        }],
+        board_state: [
+          {
+            cell_id: 'cell-7',
+            text: 'Cell',
+            colors: null,
+            completed_by: null,
+            blocked: null,
+            is_marked: false,
+            version: null,
+            last_updated: null,
+            last_modified_by: null,
+          },
+        ],
         creator_id: 'user-123',
         votes: 3,
         bookmarked_count: 1,
@@ -692,17 +699,19 @@ describe('boardCollectionsService', () => {
         game_type: 'Fall Guys',
         difficulty: 'beginner',
         is_public: true,
-        board_state: [{ 
-          cell_id: 'cell-8', 
-          text: 'Simple', 
-          colors: null,
-          completed_by: null,
-          blocked: null,
-          is_marked: false,
-          version: null,
-          last_updated: null,
-          last_modified_by: null
-        }],
+        board_state: [
+          {
+            cell_id: 'cell-8',
+            text: 'Simple',
+            colors: null,
+            completed_by: null,
+            blocked: null,
+            is_marked: false,
+            version: null,
+            last_updated: null,
+            last_modified_by: null,
+          },
+        ],
         settings: null, // Null settings
         creator_id: 'user-123',
         votes: 1,

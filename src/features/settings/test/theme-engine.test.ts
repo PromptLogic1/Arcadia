@@ -212,7 +212,9 @@ describe('Theme Engine', () => {
         newValue: 'dark',
       };
 
-      const handleStorageChange = (event: Pick<StorageEvent, 'key' | 'newValue'>) => {
+      const handleStorageChange = (
+        event: Pick<StorageEvent, 'key' | 'newValue'>
+      ) => {
         if (event.key === 'theme-preference' && event.newValue) {
           return event.newValue;
         }

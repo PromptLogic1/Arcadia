@@ -211,9 +211,9 @@ export const isAuthError = (error: unknown): boolean => {
   // Check for auth error markers
   return Boolean(
     error &&
-    typeof error === 'object' &&
-    '__isAuthError' in error &&
-    (error as { __isAuthError?: boolean }).__isAuthError === true
+      typeof error === 'object' &&
+      '__isAuthError' in error &&
+      (error as { __isAuthError?: boolean }).__isAuthError === true
   );
 };
 

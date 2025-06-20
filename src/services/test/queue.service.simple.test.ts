@@ -19,7 +19,9 @@ import { queueService } from '../queue.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+const mockCreateClient = createClient as jest.MockedFunction<
+  typeof createClient
+>;
 const mockLog = log as jest.Mocked<typeof log>;
 
 describe('queueService - Simple Test', () => {
@@ -27,7 +29,7 @@ describe('queueService - Simple Test', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockSupabaseClient = {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),

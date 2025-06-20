@@ -99,7 +99,9 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
 
       // Mock auth for createBoard
       mockAuth.getUser.mockResolvedValue({
-        data: { user: mockSupabaseUser({ id: 'user-123', email: 'test@example.com' }) },
+        data: {
+          user: mockSupabaseUser({ id: 'user-123', email: 'test@example.com' }),
+        },
         error: null,
       });
 
@@ -333,16 +335,16 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
         difficulty: 'medium',
         size: 5,
         board_state: [
-          { 
-            cell_id: 'cell-1', 
-            text: 'Test', 
+          {
+            cell_id: 'cell-1',
+            text: 'Test',
             colors: null,
             completed_by: null,
             blocked: null,
             is_marked: false,
             version: null,
             last_updated: null,
-            last_modified_by: null
+            last_modified_by: null,
           },
         ] as BoardCell[],
         settings: { team_mode: false },

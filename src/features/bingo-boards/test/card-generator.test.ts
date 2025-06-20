@@ -119,7 +119,7 @@ class CardGeneratorService {
     const neededFromAvailable = Math.max(0, 25 - customCards.length);
     const selectedCards = [
       ...customCards,
-      ...shuffledAvailable.slice(0, neededFromAvailable)
+      ...shuffledAvailable.slice(0, neededFromAvailable),
     ];
 
     // Mark cards as used
@@ -181,7 +181,7 @@ class CardGeneratorService {
 
     // Get available cards for the category
     const categoryCards = this.cardPool.get(gameCategory) || [];
-    
+
     // Filter by difficulty and exclude existing cards
     const availableCards = categoryCards.filter(
       card =>
@@ -289,7 +289,6 @@ class CardGeneratorService {
     }
     return shuffled;
   }
-
 
   private getMaxEntry<K, V extends number>(map: Map<K, V>): K | undefined {
     let maxKey: K | undefined;

@@ -6,7 +6,10 @@ import { bingoCardsService } from '../bingo-cards.service';
 import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import type { Tables, Enums } from '@/types/database.types';
-import { bingoCardSchema, bingoCardsArraySchema } from '@/lib/validation/schemas/bingo';
+import {
+  bingoCardSchema,
+  bingoCardsArraySchema,
+} from '@/lib/validation/schemas/bingo';
 
 // Mock dependencies
 jest.mock('@/lib/supabase');
@@ -118,6 +121,14 @@ describe('bingoCardsService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
+    });
+
+    it('should return empty array when all IDs are empty/null after filtering', async () => {
+      const result = await bingoCardsService.getCardsByIds(['', null as any, undefined as any]);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
+      expect(mockSupabase.from).not.toHaveBeenCalled();
     });
 
     it('should filter out empty/null IDs', async () => {
@@ -361,6 +372,69 @@ describe('bingoCardsService', () => {
       expect(result.error).toBe('Access denied');
       expect(log.error).toHaveBeenCalled();
     });
+
+    it('should handle validation failure', async () => {
+      mockFrom.range.mockResolvedValueOnce({
+        data: [{ invalid: 'data' }],
+        error: null,
+        count: 1,
+      });
+
+      (bingoCardsArraySchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: false,
+        error: new Error('Validation failed'),
+      });
+
+      const result = await bingoCardsService.getUserCards('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid cards data format');
+      expect(log.error).toHaveBeenCalledWith(
+        'User cards data validation failed',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            userId: 'user-123',
+            service: 'bingoCardsService',
+          }),
+        })
+      );
+    });
+
+    it('should handle unexpected error', async () => {
+      mockFrom.range.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await bingoCardsService.getUserCards('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error in getUserCards',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            userId: 'user-123',
+            service: 'bingoCardsService',
+          }),
+        })
+      );
+    });
+
+    it('should skip difficulty filter when set to all', async () => {
+      mockFrom.range.mockResolvedValueOnce({
+        data: [],
+        error: null,
+        count: 0,
+      });
+
+      await bingoCardsService.getUserCards('user-123', { difficulty: 'all' });
+
+      // Should call eq for creator_id and is_public, but not for difficulty
+      const eqCalls = (mockFrom.eq as jest.Mock).mock.calls;
+      expect(eqCalls).toContainEqual(['creator_id', 'user-123']);
+      expect(eqCalls).toContainEqual(['is_public', false]);
+      expect(eqCalls).not.toContainEqual(['difficulty', expect.anything()]);
+    });
   });
 
   describe('createCard', () => {
@@ -591,6 +665,57 @@ describe('bingoCardsService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Card update failed - no data returned');
     });
+
+    it('should handle validation failure', async () => {
+      mockFrom.single.mockResolvedValueOnce({
+        data: { invalid: 'data' },
+        error: null,
+      });
+
+      (bingoCardSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: false,
+        error: new Error('Validation failed'),
+      });
+
+      const result = await bingoCardsService.updateCard('card-123', {
+        title: 'Test',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid card data format');
+      expect(log.error).toHaveBeenCalledWith(
+        'Updated card data validation failed',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            data: { invalid: 'data' },
+            service: 'bingoCardsService',
+          }),
+        })
+      );
+    });
+
+    it('should handle unexpected error', async () => {
+      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await bingoCardsService.updateCard('card-123', {
+        title: 'Test',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error in updateCard',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            cardId: 'card-123',
+            updates: { title: 'Test' },
+            service: 'bingoCardsService',
+          }),
+        })
+      );
+    });
   });
 
   describe('deleteCard', () => {
@@ -747,6 +872,57 @@ describe('bingoCardsService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Vote update failed - no data returned');
+    });
+
+    it('should handle validation failure', async () => {
+      mockFrom.single.mockResolvedValueOnce({
+        data: { votes: 5 },
+        error: null,
+      });
+
+      mockFrom.single.mockResolvedValueOnce({
+        data: { invalid: 'data' },
+        error: null,
+      });
+
+      (bingoCardSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: false,
+        error: new Error('Validation failed'),
+      });
+
+      const result = await bingoCardsService.voteCard('card-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid card data format');
+      expect(log.error).toHaveBeenCalledWith(
+        'Voted card data validation failed',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            data: { invalid: 'data' },
+            service: 'bingoCardsService',
+          }),
+        })
+      );
+    });
+
+    it('should handle unexpected error', async () => {
+      mockFrom.single.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await bingoCardsService.voteCard('card-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Network error');
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error in voteCard',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            cardId: 'card-123',
+            service: 'bingoCardsService',
+          }),
+        })
+      );
     });
   });
 

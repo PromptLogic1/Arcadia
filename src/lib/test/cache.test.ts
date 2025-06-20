@@ -237,7 +237,9 @@ describe('RedisCache', () => {
       mockCacheService.getWithSchema.mockResolvedValue(
         createServiceSuccess(null)
       );
-      mockCacheService.set.mockResolvedValue(createServiceError('Cache write failed'));
+      mockCacheService.set.mockResolvedValue(
+        createServiceError('Cache write failed')
+      );
       mockFallback.mockResolvedValue(fallbackData);
 
       const result = await cache.getWithFallback(
@@ -256,11 +258,11 @@ describe('RedisCache', () => {
       expect(mockLog.warn).toHaveBeenCalledWith(
         'Cache set operation failed',
         expect.objectContaining({
-          metadata: expect.objectContaining({ 
+          metadata: expect.objectContaining({
             key: 'test-key',
             ttl: CACHE_TTL.USER_PROFILE,
-            error: 'Cache write failed'
-          })
+            error: 'Cache write failed',
+          }),
         })
       );
     });

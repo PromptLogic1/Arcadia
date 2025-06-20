@@ -606,6 +606,132 @@ describe('bingoBoardEditService', () => {
         })
       );
     });
+
+    it('should handle case when updatedBoard is null without error', async () => {
+      const mockUpdateFrom = {
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockUpdateFrom);
+
+      const result = await bingoBoardEditService.updateBoard(
+        'board-123',
+        { title: 'New Title' },
+        5
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Board update failed - no data returned');
+    });
+
+    it('should handle validation failure for updated board', async () => {
+      const updatedBoard = {
+        id: 'board-123',
+        // Missing required fields to trigger validation failure
+        title: 'Updated Title',
+      };
+
+      const mockUpdateFrom = {
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: updatedBoard,
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockUpdateFrom);
+
+      // Mock validation to fail
+      (bingoBoardSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: false,
+        error: new Error('Validation failed'),
+      });
+
+      const result = await bingoBoardEditService.updateBoard(
+        'board-123',
+        { title: 'Updated Title' },
+        5
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid updated board data format');
+      expect(log.error).toHaveBeenCalledWith(
+        'Updated board validation failed',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            updatedBoard,
+            service: 'bingoBoardEditService',
+          }),
+        })
+      );
+    });
+
+    it('should handle transformation failure for updated board', async () => {
+      const updatedBoard = {
+        id: 'board-123',
+        creator_id: 'user-456',
+        game_type: 'All Games',
+        size: 5,
+        board_state: [],
+        settings: {},
+        title: 'Updated Title',
+        difficulty: 'easy',
+        is_public: true,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T01:00:00Z',
+        version: 6,
+      };
+
+      const mockUpdateFrom = {
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: updatedBoard,
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockUpdateFrom);
+
+      // Mock board state validation to fail (for _transformDbBoardToDomain)
+      (zBoardState.safeParse as jest.Mock).mockReturnValueOnce({
+        success: false,
+      });
+
+      const result = await bingoBoardEditService.updateBoard(
+        'board-123',
+        { title: 'Updated Title' },
+        5
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to transform updated board data');
+    });
   });
 
   describe('createCard', () => {
@@ -694,6 +820,88 @@ describe('bingoBoardEditService', () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             cardData,
+            service: 'bingoBoardEditService',
+          }),
+        })
+      );
+    });
+
+    it('should handle case when newCard is null without error', async () => {
+      const cardData: CardInsertData = {
+        title: 'Null Card',
+        description: null,
+        game_type: 'All Games',
+        difficulty: 'easy',
+        tags: null,
+        creator_id: 'user-123',
+        is_public: false,
+      };
+
+      const mockCreateFrom = {
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockCreateFrom);
+
+      const result = await bingoBoardEditService.createCard(cardData);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Card creation failed - no data returned');
+    });
+
+    it('should handle validation failure for new card', async () => {
+      const cardData: CardInsertData = {
+        title: 'Invalid Card',
+        description: null,
+        game_type: 'All Games',
+        difficulty: 'easy',
+        tags: null,
+        creator_id: 'user-123',
+        is_public: false,
+      };
+
+      const newCard = {
+        id: 'card-new',
+        // Missing required fields to trigger validation failure
+        title: 'Invalid Card',
+      };
+
+      const mockCreateFrom = {
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: newCard,
+              error: null,
+            }),
+          }),
+        }),
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockCreateFrom);
+
+      // Mock validation to fail
+      (bingoCardSchema.safeParse as jest.Mock).mockReturnValueOnce({
+        success: false,
+        error: new Error('Validation failed'),
+      });
+
+      const result = await bingoBoardEditService.createCard(cardData);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid new card data format');
+      expect(log.error).toHaveBeenCalledWith(
+        'New card validation failed',
+        expect.any(Error),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            newCard,
             service: 'bingoBoardEditService',
           }),
         })

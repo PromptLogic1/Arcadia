@@ -58,9 +58,11 @@ jest.mock('crypto', () => ({
 // Mock authService - need to import and re-export
 const mockAuthService = {
   getSession: jest.fn(),
-  onAuthStateChange: jest.fn((_callback: (event: string, session: unknown) => void) => ({
-    unsubscribe: jest.fn(),
-  })),
+  onAuthStateChange: jest.fn(
+    (_callback: (event: string, session: unknown) => void) => ({
+      unsubscribe: jest.fn(),
+    })
+  ),
 };
 
 jest.mock('@/services/auth.service', () => ({
@@ -81,11 +83,11 @@ describe('Session and Token Handling', () => {
   beforeEach(() => {
     // @ts-expect-error - mocking window
     delete global.window;
-    
+
     // Set Redis environment variables for tests
     process.env.UPSTASH_REDIS_REST_URL = 'https://test-redis.upstash.io';
     process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
-    
+
     jest.clearAllMocks();
     // Reset Redis mock responses to successful defaults
     (mockRedisClient.get as any).mockResolvedValue(null);
@@ -95,7 +97,7 @@ describe('Session and Token Handling', () => {
     (mockRedisClient.sadd as any).mockResolvedValue(1);
     (mockRedisClient.expire as any).mockResolvedValue(1);
     (mockRedisClient.del as any).mockResolvedValue(1);
-    
+
     // Reset auth service mocks
     (mockAuthService.getSession as any).mockClear();
     (mockAuthService.onAuthStateChange as any).mockClear();
@@ -140,7 +142,7 @@ describe('Session and Token Handling', () => {
     test('should blacklist a session', async () => {
       // Import the function inside the test after mocks are set up
       const { blacklistSession } = await import('@/lib/session-blacklist');
-      
+
       const sessionToken = 'session-token-123';
       const userId = 'user-123';
 
@@ -149,14 +151,14 @@ describe('Session and Token Handling', () => {
         userId,
         'Password changed'
       );
-      
+
       expect(result.success).toBe(true);
       expect(result.error).toBeUndefined();
     });
 
     test('should check if session is blacklisted', async () => {
       const { isSessionBlacklisted } = await import('@/lib/session-blacklist');
-      
+
       // Mock blacklisted session
       (mockRedisClient.get as any).mockResolvedValueOnce(
         JSON.stringify({
@@ -174,7 +176,7 @@ describe('Session and Token Handling', () => {
 
     test('should handle non-blacklisted session', async () => {
       const { isSessionBlacklisted } = await import('@/lib/session-blacklist');
-      
+
       (mockRedisClient.get as any).mockResolvedValueOnce(null);
 
       const result = await isSessionBlacklisted('valid-token');
@@ -185,7 +187,7 @@ describe('Session and Token Handling', () => {
 
     test('should track user sessions', async () => {
       const { trackUserSession } = await import('@/lib/session-blacklist');
-      
+
       const sessionToken = 'session-token-123';
       const userId = 'user-123';
 
@@ -197,8 +199,10 @@ describe('Session and Token Handling', () => {
     });
 
     test('should blacklist all user sessions', async () => {
-      const { blacklistAllUserSessions } = await import('@/lib/session-blacklist');
-      
+      const { blacklistAllUserSessions } = await import(
+        '@/lib/session-blacklist'
+      );
+
       // Mock existing sessions
       (mockRedisClient.smembers as any).mockResolvedValueOnce([
         'hash1',
@@ -219,10 +223,13 @@ describe('Session and Token Handling', () => {
 
     test('should handle Redis unavailable gracefully', async () => {
       const { blacklistSession } = await import('@/lib/session-blacklist');
-      
+
       // Import the mocked redis module and modify its behavior
       const redisModule = await import('@/lib/redis');
-      const mockIsRedisConfigured = redisModule.isRedisConfigured as jest.MockedFunction<typeof redisModule.isRedisConfigured>;
+      const mockIsRedisConfigured =
+        redisModule.isRedisConfigured as jest.MockedFunction<
+          typeof redisModule.isRedisConfigured
+        >;
       (mockIsRedisConfigured as any).mockReturnValueOnce(false);
 
       const result = await blacklistSession('token', 'user-123');
@@ -236,7 +243,7 @@ describe('Session and Token Handling', () => {
   describe('Auth Service Session Integration', () => {
     test('should get current session via auth service', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       const mockSession = {
         user: { id: 'user-123', email: 'test@example.com' },
       };
@@ -255,7 +262,7 @@ describe('Session and Token Handling', () => {
 
     test('should handle no session case', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       (mockAuthService.getSession as any).mockResolvedValueOnce({
         success: true,
         data: null,
@@ -270,7 +277,7 @@ describe('Session and Token Handling', () => {
 
     test('should handle session retrieval errors', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       (mockAuthService.getSession as any).mockResolvedValueOnce({
         success: false,
         data: null,
@@ -287,31 +294,37 @@ describe('Session and Token Handling', () => {
   describe('Auth State Changes', () => {
     test('should handle auth state change events', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       const mockCallback = jest.fn();
       const mockSubscription = { unsubscribe: jest.fn() };
-      
-      (mockAuthService.onAuthStateChange as any).mockReturnValueOnce(mockSubscription);
+
+      (mockAuthService.onAuthStateChange as any).mockReturnValueOnce(
+        mockSubscription
+      );
 
       const subscription = authService.onAuthStateChange(mockCallback);
 
       // Verify subscription was created
-      expect(mockAuthService.onAuthStateChange).toHaveBeenCalledWith(mockCallback);
+      expect(mockAuthService.onAuthStateChange).toHaveBeenCalledWith(
+        mockCallback
+      );
       expect(subscription).toHaveProperty('unsubscribe');
       expect(typeof subscription.unsubscribe).toBe('function');
     });
 
     test('should handle SIGNED_IN event', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       const callback = jest.fn();
       let storedCallback: any;
-      
-      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce((cb: any) => {
-        storedCallback = cb;
-        return { unsubscribe: jest.fn() };
-      });
-      
+
+      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce(
+        (cb: any) => {
+          storedCallback = cb;
+          return { unsubscribe: jest.fn() };
+        }
+      );
+
       authService.onAuthStateChange(callback);
 
       // Simulate signed in event by calling the stored callback
@@ -323,15 +336,17 @@ describe('Session and Token Handling', () => {
 
     test('should handle SIGNED_OUT event', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       const callback = jest.fn();
       let storedCallback: any;
-      
-      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce((cb: any) => {
-        storedCallback = cb;
-        return { unsubscribe: jest.fn() };
-      });
-      
+
+      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce(
+        (cb: any) => {
+          storedCallback = cb;
+          return { unsubscribe: jest.fn() };
+        }
+      );
+
       authService.onAuthStateChange(callback);
 
       // Simulate signed out event
@@ -342,15 +357,17 @@ describe('Session and Token Handling', () => {
 
     test('should handle TOKEN_REFRESHED event', async () => {
       const { authService } = await import('@/services/auth.service');
-      
+
       const callback = jest.fn();
       let storedCallback: any;
-      
-      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce((cb: any) => {
-        storedCallback = cb;
-        return { unsubscribe: jest.fn() };
-      });
-      
+
+      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce(
+        (cb: any) => {
+          storedCallback = cb;
+          return { unsubscribe: jest.fn() };
+        }
+      );
+
       authService.onAuthStateChange(callback);
 
       // Simulate token refresh
@@ -387,7 +404,7 @@ describe('Session and Token Handling', () => {
 
     test('should hash session tokens for blacklisting', async () => {
       const { blacklistSession } = await import('@/lib/session-blacklist');
-      
+
       await blacklistSession('plain-text-token', 'user-123');
 
       // Verify crypto was used to hash the token
@@ -396,7 +413,7 @@ describe('Session and Token Handling', () => {
 
     test('should handle session token size appropriately', async () => {
       const { blacklistSession } = await import('@/lib/session-blacklist');
-      
+
       // Supabase handles token storage via secure httpOnly cookies
       // We just need to ensure we're not trying to store tokens in places with size limits
       const largeToken = 'x'.repeat(4096); // 4KB

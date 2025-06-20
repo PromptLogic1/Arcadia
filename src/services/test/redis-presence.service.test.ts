@@ -6,9 +6,7 @@ import { redisPresenceService } from '../redis-presence.service';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { log } from '@/lib/logger';
 import type { Redis } from '@upstash/redis';
-import type {
-  PresenceSubscriptionOptions,
-} from '../redis-presence.service';
+import type { PresenceSubscriptionOptions } from '../redis-presence.service';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
@@ -41,7 +39,7 @@ describe('RedisPresenceService', () => {
     jest.clearAllMocks();
     mockIsRedisConfigured.mockReturnValue(true);
     mockGetRedisClient.mockReturnValue(mockRedis as unknown as Redis);
-    
+
     // Clear any subscriptions
     (redisPresenceService as any).subscriptions.clear();
   });
@@ -118,7 +116,9 @@ describe('RedisPresenceService', () => {
     });
 
     it('should handle Redis errors during join', async () => {
-      mockRedis.setex.mockRejectedValueOnce(new Error('Redis connection failed'));
+      mockRedis.setex.mockRejectedValueOnce(
+        new Error('Redis connection failed')
+      );
 
       const result = await redisPresenceService.joinBoardPresence(
         boardId,

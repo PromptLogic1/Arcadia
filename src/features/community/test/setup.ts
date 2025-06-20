@@ -1,5 +1,10 @@
 import { beforeEach, afterEach } from '@jest/globals';
-import { resetAllMocks, mockSupabase, mockRateLimiter, mockCache } from './mocks';
+import {
+  resetAllMocks,
+  mockSupabase,
+  mockRateLimiter,
+  mockCache,
+} from './mocks';
 import { resetFactoryCounters } from './factories';
 
 // Global test setup for Community feature tests
@@ -53,6 +58,7 @@ interface CustomMatchers<R = unknown> {
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-empty-interface
     interface Matchers<R> extends CustomMatchers<R> {}
   }
 }
@@ -212,7 +218,11 @@ export const expectToThrowAsync = async (
     await fn();
     throw new Error('Expected function to throw');
   } catch (error) {
-    if (errorMessage && error instanceof Error && !error.message.includes(errorMessage)) {
+    if (
+      errorMessage &&
+      error instanceof Error &&
+      !error.message.includes(errorMessage)
+    ) {
       throw new Error(
         `Expected error message to contain "${errorMessage}", got: ${error.message}`
       );

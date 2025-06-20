@@ -285,7 +285,7 @@ describe('Auth Service', () => {
 
     test('should handle missing user in response', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
-      
+
       global.mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: null,
@@ -299,7 +299,7 @@ describe('Auth Service', () => {
 
     test('should handle unexpected errors during sign in', async () => {
       const credentials = { email: 'test@example.com', password: 'Test123!' };
-      
+
       global.mockSupabaseClient.auth.signInWithPassword.mockRejectedValue(
         new Error('Network error')
       );
@@ -313,10 +313,10 @@ describe('Auth Service', () => {
 
   describe('signUp', () => {
     test('should sign up user successfully', async () => {
-      const credentials = { 
-        email: 'newuser@example.com', 
+      const credentials = {
+        email: 'newuser@example.com',
         password: 'Test123!',
-        username: 'newuser'
+        username: 'newuser',
       };
       const mockUser: User = {
         id: 'user-456',
@@ -344,10 +344,10 @@ describe('Auth Service', () => {
     });
 
     test('should handle email verification requirement', async () => {
-      const credentials = { 
-        email: 'unverified@example.com', 
+      const credentials = {
+        email: 'unverified@example.com',
         password: 'Test123!',
-        username: 'unverified'
+        username: 'unverified',
       };
       const mockUser: User = {
         id: 'user-789',
@@ -372,11 +372,11 @@ describe('Auth Service', () => {
     });
 
     test('should handle missing user in sign up response', async () => {
-      const credentials = { 
-        email: 'test@example.com', 
-        password: 'Test123!'
+      const credentials = {
+        email: 'test@example.com',
+        password: 'Test123!',
       };
-      
+
       global.mockSupabaseClient.auth.signUp.mockResolvedValue({
         data: { user: null, session: null },
         error: null,
@@ -389,9 +389,9 @@ describe('Auth Service', () => {
     });
 
     test('should handle sign up errors', async () => {
-      const credentials = { 
-        email: 'existing@example.com', 
-        password: 'Test123!'
+      const credentials = {
+        email: 'existing@example.com',
+        password: 'Test123!',
       };
       const mockError: AuthError = {
         message: 'User already registered',
@@ -411,11 +411,11 @@ describe('Auth Service', () => {
     });
 
     test('should handle unexpected errors during sign up', async () => {
-      const credentials = { 
-        email: 'test@example.com', 
-        password: 'Test123!'
+      const credentials = {
+        email: 'test@example.com',
+        password: 'Test123!',
       };
-      
+
       global.mockSupabaseClient.auth.signUp.mockRejectedValue(
         new Error('Network timeout')
       );
@@ -498,10 +498,12 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn(() => mockFromChain),
         eq: jest.fn(() => mockFromChain),
-        single: jest.fn(() => Promise.resolve({
-          data: mockUserData,
-          error: null,
-        })),
+        single: jest.fn(() =>
+          Promise.resolve({
+            data: mockUserData,
+            error: null,
+          })
+        ),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -518,10 +520,12 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn(() => mockFromChain),
         eq: jest.fn(() => mockFromChain),
-        single: jest.fn(() => Promise.resolve({
-          data: null,
-          error: new Error('User not found'),
-        })),
+        single: jest.fn(() =>
+          Promise.resolve({
+            data: null,
+            error: new Error('User not found'),
+          })
+        ),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -536,10 +540,12 @@ describe('Auth Service', () => {
       const mockFromChain = {
         select: jest.fn(() => mockFromChain),
         eq: jest.fn(() => mockFromChain),
-        single: jest.fn(() => Promise.resolve({
-          data: { invalid: 'data' },
-          error: null,
-        })),
+        single: jest.fn(() =>
+          Promise.resolve({
+            data: { invalid: 'data' },
+            error: null,
+          })
+        ),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -548,9 +554,9 @@ describe('Auth Service', () => {
       jest.resetModules();
       jest.doMock('@/lib/validation/schemas/users', () => ({
         userSchema: {
-          safeParse: jest.fn(() => ({ 
-            success: false, 
-            error: new Error('Validation failed') 
+          safeParse: jest.fn(() => ({
+            success: false,
+            error: new Error('Validation failed'),
           })),
         },
       }));
@@ -620,10 +626,12 @@ describe('Auth Service', () => {
         update: jest.fn(() => mockFromChain),
         eq: jest.fn(() => mockFromChain),
         select: jest.fn(() => mockFromChain),
-        single: jest.fn(() => Promise.resolve({
-          data: mockUpdatedData,
-          error: null,
-        })),
+        single: jest.fn(() =>
+          Promise.resolve({
+            data: mockUpdatedData,
+            error: null,
+          })
+        ),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -644,10 +652,12 @@ describe('Auth Service', () => {
         update: jest.fn(() => mockFromChain),
         eq: jest.fn(() => mockFromChain),
         select: jest.fn(() => mockFromChain),
-        single: jest.fn(() => Promise.resolve({
-          data: null,
-          error: new Error('Username already taken'),
-        })),
+        single: jest.fn(() =>
+          Promise.resolve({
+            data: null,
+            error: new Error('Username already taken'),
+          })
+        ),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -664,10 +674,12 @@ describe('Auth Service', () => {
         update: jest.fn(() => mockFromChain),
         eq: jest.fn(() => mockFromChain),
         select: jest.fn(() => mockFromChain),
-        single: jest.fn(() => Promise.resolve({
-          data: { invalid: 'data' },
-          error: null,
-        })),
+        single: jest.fn(() =>
+          Promise.resolve({
+            data: { invalid: 'data' },
+            error: null,
+          })
+        ),
       };
 
       global.mockSupabaseClient.from.mockReturnValue(mockFromChain);
@@ -676,9 +688,9 @@ describe('Auth Service', () => {
       jest.resetModules();
       jest.doMock('@/lib/validation/schemas/users', () => ({
         userSchema: {
-          safeParse: jest.fn(() => ({ 
-            success: false, 
-            error: new Error('Validation failed') 
+          safeParse: jest.fn(() => ({
+            success: false,
+            error: new Error('Validation failed'),
           })),
         },
       }));
@@ -830,7 +842,8 @@ describe('Auth Service', () => {
       authService.onAuthStateChange(mockCallback);
 
       // Get the callback that was passed to onAuthStateChange
-      const authStateCallback = global.mockSupabaseClient.auth.onAuthStateChange.mock.calls[0][0];
+      const authStateCallback =
+        global.mockSupabaseClient.auth.onAuthStateChange.mock.calls[0][0];
 
       // Test with session
       const mockSession = {
@@ -863,7 +876,8 @@ describe('Auth Service', () => {
       authService.onAuthStateChange(mockCallback);
 
       // Get the callback that was passed to onAuthStateChange
-      const authStateCallback = global.mockSupabaseClient.auth.onAuthStateChange.mock.calls[0][0];
+      const authStateCallback =
+        global.mockSupabaseClient.auth.onAuthStateChange.mock.calls[0][0];
 
       // Test with null session (covers lines 452-453)
       authStateCallback('SIGNED_OUT', null);

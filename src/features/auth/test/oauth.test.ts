@@ -85,11 +85,13 @@ describe('OAuth Authentication', () => {
       };
 
       // Mock the auth service method
-      mockSignInWithOAuth.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockResponse,
-        error: null,
-      }));
+      mockSignInWithOAuth.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockResponse,
+          error: null,
+        })
+      );
 
       const result = await (authService as any).signInWithOAuth('google');
 
@@ -111,11 +113,13 @@ describe('OAuth Authentication', () => {
       };
 
       // Mock successful OAuth callback
-      mockGetCurrentUser.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockUserData,
-        error: null,
-      }));
+      mockGetCurrentUser.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockUserData,
+          error: null,
+        })
+      );
 
       const result = await authService.getCurrentUser();
 
@@ -148,11 +152,13 @@ describe('OAuth Authentication', () => {
         provider: 'github',
       };
 
-      mockSignInWithOAuth.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockResponse,
-        error: null,
-      }));
+      mockSignInWithOAuth.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockResponse,
+          error: null,
+        })
+      );
 
       const result = await (authService as any).signInWithOAuth('github');
 
@@ -173,11 +179,13 @@ describe('OAuth Authentication', () => {
         userRole: 'user',
       };
 
-      mockGetCurrentUser.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockUserData,
-        error: null,
-      }));
+      mockGetCurrentUser.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockUserData,
+          error: null,
+        })
+      );
 
       const result = await authService.getCurrentUser();
 
@@ -195,11 +203,13 @@ describe('OAuth Authentication', () => {
         userRole: 'user',
       };
 
-      mockGetCurrentUser.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockUserData,
-        error: null,
-      }));
+      mockGetCurrentUser.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockUserData,
+          error: null,
+        })
+      );
 
       const result = await authService.getCurrentUser();
 
@@ -216,11 +226,13 @@ describe('OAuth Authentication', () => {
         provider: 'discord',
       };
 
-      mockSignInWithOAuth.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockResponse,
-        error: null,
-      }));
+      mockSignInWithOAuth.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockResponse,
+          error: null,
+        })
+      );
 
       const result = await (authService as any).signInWithOAuth('discord');
 
@@ -239,11 +251,13 @@ describe('OAuth Authentication', () => {
         userRole: 'user',
       };
 
-      mockGetCurrentUser.mockImplementation(() => Promise.resolve({
-        success: true,
-        data: mockUserData,
-        error: null,
-      }));
+      mockGetCurrentUser.mockImplementation(() =>
+        Promise.resolve({
+          success: true,
+          data: mockUserData,
+          error: null,
+        })
+      );
 
       const result = await authService.getCurrentUser();
 
@@ -255,11 +269,13 @@ describe('OAuth Authentication', () => {
 
   describe('OAuth Error Handling', () => {
     test('should handle authorization denial', async () => {
-      mockSignInWithOAuth.mockImplementation(() => Promise.resolve({
-        success: false,
-        data: null,
-        error: 'The user denied the request',
-      }));
+      mockSignInWithOAuth.mockImplementation(() =>
+        Promise.resolve({
+          success: false,
+          data: null,
+          error: 'The user denied the request',
+        })
+      );
 
       const result = await (authService as any).signInWithOAuth('google');
 
@@ -269,11 +285,13 @@ describe('OAuth Authentication', () => {
 
     test('should handle invalid authorization code', async () => {
       // This would be handled by Supabase returning an error on callback
-      mockGetCurrentUser.mockImplementation(() => Promise.resolve({
-        success: false,
-        data: null,
-        error: 'Invalid authorization code',
-      }));
+      mockGetCurrentUser.mockImplementation(() =>
+        Promise.resolve({
+          success: false,
+          data: null,
+          error: 'Invalid authorization code',
+        })
+      );
 
       const result = await authService.getCurrentUser();
 
@@ -282,11 +300,13 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle network errors', async () => {
-      mockSignInWithOAuth.mockImplementation(() => Promise.resolve({
-        success: false,
-        data: null,
-        error: 'Network error',
-      }));
+      mockSignInWithOAuth.mockImplementation(() =>
+        Promise.resolve({
+          success: false,
+          data: null,
+          error: 'Network error',
+        })
+      );
 
       const result = await (authService as any).signInWithOAuth('github');
 
@@ -295,11 +315,13 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle rate limiting', async () => {
-      mockSignInWithOAuth.mockImplementation(() => Promise.resolve({
-        success: false,
-        data: null,
-        error: 'Too many requests. Please try again later.',
-      }));
+      mockSignInWithOAuth.mockImplementation(() =>
+        Promise.resolve({
+          success: false,
+          data: null,
+          error: 'Too many requests. Please try again later.',
+        })
+      );
 
       const result = await (authService as any).signInWithOAuth('github');
 

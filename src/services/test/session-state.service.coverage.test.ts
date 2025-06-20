@@ -1,9 +1,9 @@
 /**
  * Additional Coverage Tests for Session State Service
- * 
+ *
  * Focusing on uncovered branches and edge cases to improve coverage
  * from 91.76% lines, 75.8% branches to 95%+ coverage.
- * 
+ *
  * Target uncovered lines: 187-195, 372-375, 408-409
  */
 
@@ -45,8 +45,8 @@ jest.mock('@/lib/realtime-manager', () => ({
 
 // Mock error guards
 jest.mock('@/lib/error-guards', () => ({
-  isError: jest.fn((error) => error instanceof Error),
-  getErrorMessage: jest.fn((error) => 
+  isError: jest.fn(error => error instanceof Error),
+  getErrorMessage: jest.fn(error =>
     error instanceof Error ? error.message : String(error)
   ),
 }));
@@ -459,9 +459,15 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockUnsubscribe = jest.fn();
 
       let sessionUpdateCallback: (...args: unknown[]) => unknown = () => {};
-      
+
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
+        (
+          channelName: string,
+          config: {
+            onUpdate?: (...args: unknown[]) => unknown;
+            onError?: (...args: unknown[]) => unknown;
+          }
+        ) => {
           if (channelName.includes('_sessions')) {
             if (config.onUpdate) {
               sessionUpdateCallback = config.onUpdate;
@@ -490,11 +496,13 @@ describe('SessionStateService - Additional Coverage', () => {
       });
 
       // Mock getSessionPlayers to return success
-      jest.spyOn(sessionStateService, 'getSessionPlayers').mockResolvedValueOnce({
-        success: true,
-        data: [],
-        error: null,
-      });
+      jest
+        .spyOn(sessionStateService, 'getSessionPlayers')
+        .mockResolvedValueOnce({
+          success: true,
+          data: [],
+          error: null,
+        });
 
       // Trigger the session update callback
       await sessionUpdateCallback();
@@ -508,9 +516,15 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockUnsubscribe = jest.fn();
 
       let sessionUpdateCallback: (...args: unknown[]) => unknown = () => {};
-      
+
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
+        (
+          channelName: string,
+          config: {
+            onUpdate?: (...args: unknown[]) => unknown;
+            onError?: (...args: unknown[]) => unknown;
+          }
+        ) => {
           if (channelName.includes('_sessions')) {
             if (config.onUpdate) {
               sessionUpdateCallback = config.onUpdate;
@@ -540,11 +554,13 @@ describe('SessionStateService - Additional Coverage', () => {
       });
 
       // Mock getSessionPlayers to return failure
-      jest.spyOn(sessionStateService, 'getSessionPlayers').mockResolvedValueOnce({
-        success: false,
-        data: null,
-        error: 'Player fetch failed',
-      });
+      jest
+        .spyOn(sessionStateService, 'getSessionPlayers')
+        .mockResolvedValueOnce({
+          success: false,
+          data: null,
+          error: 'Player fetch failed',
+        });
 
       // Trigger the session update callback
       await sessionUpdateCallback();
@@ -558,9 +574,15 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockUnsubscribe = jest.fn();
 
       let playerUpdateCallback: (...args: unknown[]) => unknown = () => {};
-      
+
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
+        (
+          channelName: string,
+          config: {
+            onUpdate?: (...args: unknown[]) => unknown;
+            onError?: (...args: unknown[]) => unknown;
+          }
+        ) => {
           if (channelName.includes('_players')) {
             if (config.onUpdate) {
               playerUpdateCallback = config.onUpdate;
@@ -573,11 +595,13 @@ describe('SessionStateService - Additional Coverage', () => {
       sessionStateService.subscribeToSession('session-123', mockCallback);
 
       // Mock getSessionPlayers to return success
-      jest.spyOn(sessionStateService, 'getSessionPlayers').mockResolvedValueOnce({
-        success: true,
-        data: [],
-        error: null,
-      });
+      jest
+        .spyOn(sessionStateService, 'getSessionPlayers')
+        .mockResolvedValueOnce({
+          success: true,
+          data: [],
+          error: null,
+        });
 
       // Create a fresh mock for this specific test
       const freshMockSupabase = createMockSupabaseClient();
@@ -607,9 +631,15 @@ describe('SessionStateService - Additional Coverage', () => {
       const mockUnsubscribe = jest.fn();
 
       let playerUpdateCallback: (...args: unknown[]) => unknown = () => {};
-      
+
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
+        (
+          channelName: string,
+          config: {
+            onUpdate?: (...args: unknown[]) => unknown;
+            onError?: (...args: unknown[]) => unknown;
+          }
+        ) => {
           if (channelName.includes('_players')) {
             if (config.onUpdate) {
               playerUpdateCallback = config.onUpdate;
@@ -622,11 +652,13 @@ describe('SessionStateService - Additional Coverage', () => {
       sessionStateService.subscribeToSession('session-123', mockCallback);
 
       // Mock getSessionPlayers to return failure
-      jest.spyOn(sessionStateService, 'getSessionPlayers').mockResolvedValueOnce({
-        success: false,
-        data: null,
-        error: 'Player fetch failed',
-      });
+      jest
+        .spyOn(sessionStateService, 'getSessionPlayers')
+        .mockResolvedValueOnce({
+          success: false,
+          data: null,
+          error: 'Player fetch failed',
+        });
 
       // Create a fresh mock for this specific test
       const freshMockSupabase = createMockSupabaseClient();
@@ -658,9 +690,15 @@ describe('SessionStateService - Additional Coverage', () => {
 
       let sessionErrorCallback: (...args: unknown[]) => unknown = () => {};
       let playerErrorCallback: (...args: unknown[]) => unknown = () => {};
-      
+
       (safeRealtimeManager.subscribe as jest.Mock).mockImplementation(
-        (channelName: string, config: { onUpdate?: (...args: unknown[]) => unknown; onError?: (...args: unknown[]) => unknown }) => {
+        (
+          channelName: string,
+          config: {
+            onUpdate?: (...args: unknown[]) => unknown;
+            onError?: (...args: unknown[]) => unknown;
+          }
+        ) => {
           if (channelName.includes('_sessions')) {
             if (config.onError) {
               sessionErrorCallback = config.onError;
@@ -708,19 +746,20 @@ describe('SessionStateService - Additional Coverage', () => {
       },
     ];
 
-    const mockBoardState: Database['public']['CompositeTypes']['board_cell'][] = [
-      {
-        cell_id: 'cell-1',
-        text: 'Test Card',
-        colors: [],
-        completed_by: [],
-        blocked: false,
-        is_marked: false,
-        version: 1,
-        last_updated: Date.now(),
-        last_modified_by: null,
-      },
-    ];
+    const mockBoardState: Database['public']['CompositeTypes']['board_cell'][] =
+      [
+        {
+          cell_id: 'cell-1',
+          text: 'Test Card',
+          colors: [],
+          completed_by: [],
+          blocked: false,
+          is_marked: false,
+          version: 1,
+          last_updated: Date.now(),
+          last_modified_by: null,
+        },
+      ];
 
     it('should handle session with undefined version (fallback to 0)', () => {
       const sessionWithoutVersion = factories.bingoSession({
@@ -817,7 +856,7 @@ describe('SessionStateService - Additional Coverage', () => {
   describe('generateSessionCode - Edge Cases', () => {
     it('should generate codes with consistent character set', () => {
       const validChars = /^[A-Z0-9]{6}$/;
-      
+
       for (let i = 0; i < 100; i++) {
         const code = sessionStateService.generateSessionCode();
         expect(code).toMatch(validChars);
@@ -828,11 +867,11 @@ describe('SessionStateService - Additional Coverage', () => {
     it('should have good randomness distribution', () => {
       const codes = new Set();
       const iterations = 1000;
-      
+
       for (let i = 0; i < iterations; i++) {
         codes.add(sessionStateService.generateSessionCode());
       }
-      
+
       // Should have high uniqueness (> 95%)
       expect(codes.size / iterations).toBeGreaterThan(0.95);
     });
@@ -875,7 +914,9 @@ describe('SessionStateService - Additional Coverage', () => {
       }
 
       // Empty object without id should return null
-      expect(sessionStateService.transformSessionState({} as any, [], [])).toBeNull();
+      expect(
+        sessionStateService.transformSessionState({} as any, [], [])
+      ).toBeNull();
     });
 
     it('should handle service response structure validation', async () => {

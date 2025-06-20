@@ -373,14 +373,12 @@ describe('SessionService', () => {
             mockFrom.mockReturnValue({
               select: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
-              single: jest
-                .fn()
-                .mockResolvedValue(
-                  createSupabaseSuccessResponse({
-                    id: 'test',
-                    board_title: 'Test',
-                  })
-                ),
+              single: jest.fn().mockResolvedValue(
+                createSupabaseSuccessResponse({
+                  id: 'test',
+                  board_title: 'Test',
+                })
+              ),
             });
           },
         },

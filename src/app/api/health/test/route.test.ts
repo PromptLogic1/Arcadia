@@ -94,11 +94,9 @@ describe('Health Check Route', () => {
         from: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
-        single: jest
-          .fn()
-          .mockResolvedValue({
-            error: new Error('Database connection failed'),
-          }),
+        single: jest.fn().mockResolvedValue({
+          error: new Error('Database connection failed'),
+        }),
       };
       mockCreateClient.mockReturnValue(mockSupabaseClient as any);
 

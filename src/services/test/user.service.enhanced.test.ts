@@ -798,7 +798,9 @@ describe('UserService - Enhanced Coverage Tests', () => {
       const followerId = 'user-123';
       const followingId = 'user-456';
 
-      const notFoundError = new Error('No rows returned') as Error & { code: string };
+      const notFoundError = new Error('No rows returned') as Error & {
+        code: string;
+      };
       notFoundError.code = 'PGRST116';
 
       mockFrom.mockReturnValue({

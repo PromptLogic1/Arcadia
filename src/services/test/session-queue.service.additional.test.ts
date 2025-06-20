@@ -100,7 +100,10 @@ describe('SessionQueueService - Additional Coverage', () => {
     });
 
     it('handles database error when checking existing entry', async () => {
-      const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+      const mockUser = mockSupabaseUser({
+        id: 'user-123',
+        email: 'test@example.com',
+      });
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;
@@ -126,17 +129,17 @@ describe('SessionQueueService - Additional Coverage', () => {
         })),
       });
 
-      await sessionQueueService.addToQueue(
-        'session-123',
-        playerData
-      );
+      await sessionQueueService.addToQueue('session-123', playerData);
 
       // Should continue despite error checking existing entry
       expect(mockFrom).toHaveBeenCalledWith('bingo_session_queue');
     });
 
     it('handles insert operation failure', async () => {
-      const mockUser = mockSupabaseUser({ id: 'user-123', email: 'test@example.com' });
+      const mockUser = mockSupabaseUser({
+        id: 'user-123',
+        email: 'test@example.com',
+      });
       const mockAuth = mockSupabase.auth as jest.Mocked<
         typeof mockSupabase.auth
       >;

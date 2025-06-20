@@ -28,7 +28,7 @@ describe('redisPresenceService coverage tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock setup
     mockRedis = {
       setex: jest.fn().mockResolvedValue('OK'),
@@ -57,7 +57,9 @@ describe('redisPresenceService coverage tests', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       // Clean up
       delete (global as any).window;
@@ -74,7 +76,9 @@ describe('redisPresenceService coverage tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Presence service unavailable');
-      expect(log.warn).toHaveBeenCalledWith('Redis not configured - presence tracking unavailable');
+      expect(log.warn).toHaveBeenCalledWith(
+        'Redis not configured - presence tracking unavailable'
+      );
     });
 
     it('should handle missing user presence', async () => {
@@ -186,7 +190,11 @@ describe('redisPresenceService coverage tests', () => {
         'Failed to update user presence',
         expect.any(Error),
         expect.objectContaining({
-          metadata: { boardId: 'board-123', userId: 'user-456', status: 'busy' },
+          metadata: {
+            boardId: 'board-123',
+            userId: 'user-456',
+            status: 'busy',
+          },
         })
       );
     });
@@ -203,7 +211,9 @@ describe('redisPresenceService coverage tests', () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Presence operations are only available on the server');
+      expect(result.error).toBe(
+        'Presence operations are only available on the server'
+      );
 
       // Clean up
       delete (global as any).window;
@@ -257,13 +267,15 @@ describe('redisPresenceService coverage tests', () => {
       mockRedis.smembers.mockResolvedValue(['user-1', 'user-2', 'user-3']);
       mockRedis.get
         .mockResolvedValueOnce('invalid-json')
-        .mockResolvedValueOnce(JSON.stringify({
-          userId: 'user-2',
-          displayName: 'Valid User',
-          status: 'online',
-          lastSeen: Date.now(),
-          joinedAt: Date.now(),
-        }))
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            userId: 'user-2',
+            displayName: 'Valid User',
+            status: 'online',
+            lastSeen: Date.now(),
+            joinedAt: Date.now(),
+          })
+        )
         .mockResolvedValueOnce(null);
 
       const result = await redisPresenceService.getBoardPresence('board-123');
@@ -282,13 +294,15 @@ describe('redisPresenceService coverage tests', () => {
       mockRedis.smembers.mockResolvedValue(['user-1', 'user-2']);
       mockRedis.get
         .mockResolvedValueOnce(JSON.stringify({ invalidData: true }))
-        .mockResolvedValueOnce(JSON.stringify({
-          userId: 'user-2',
-          displayName: 'Valid User',
-          status: 'away',
-          lastSeen: Date.now(),
-          joinedAt: Date.now(),
-        }));
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            userId: 'user-2',
+            displayName: 'Valid User',
+            status: 'away',
+            lastSeen: Date.now(),
+            joinedAt: Date.now(),
+          })
+        );
 
       const result = await redisPresenceService.getBoardPresence('board-123');
 
@@ -405,13 +419,15 @@ describe('redisPresenceService coverage tests', () => {
       mockRedis.get
         .mockResolvedValueOnce('invalid-json{')
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(JSON.stringify({
-          userId: 'user-123',
-          displayName: 'Test User',
-          status: 'online',
-          lastSeen: Date.now(),
-          joinedAt: Date.now(),
-        }));
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            userId: 'user-123',
+            displayName: 'Test User',
+            status: 'online',
+            lastSeen: Date.now(),
+            joinedAt: Date.now(),
+          })
+        );
 
       const result = await redisPresenceService.getUserPresence('user-123');
 
@@ -691,7 +707,8 @@ describe('redisPresenceService coverage tests', () => {
       // Mock cleanup failure
       mockRedis.del.mockRejectedValue(new Error('Cleanup error'));
 
-      const cleanupResult = await redisPresenceService.cleanup('board-123:user-456');
+      const cleanupResult =
+        await redisPresenceService.cleanup('board-123:user-456');
 
       expect(cleanupResult.success).toBe(false);
       expect(cleanupResult.error).toBe('Cleanup error');
@@ -700,19 +717,20 @@ describe('redisPresenceService coverage tests', () => {
 
     it('should handle non-Error exceptions in cleanup', async () => {
       // Create a subscription
-      await redisPresenceService.joinBoardPresence(
-        'board-123',
-        'user-456',
-        { displayName: 'Test User' }
-      );
+      await redisPresenceService.joinBoardPresence('board-123', 'user-456', {
+        displayName: 'Test User',
+      });
 
       // Mock string error
       mockRedis.del.mockRejectedValue('String cleanup error');
 
-      const cleanupResult = await redisPresenceService.cleanup('board-123:user-456');
+      const cleanupResult =
+        await redisPresenceService.cleanup('board-123:user-456');
 
       expect(cleanupResult.success).toBe(false);
-      expect(cleanupResult.error).toBe('Failed to cleanup presence subscription');
+      expect(cleanupResult.error).toBe(
+        'Failed to cleanup presence subscription'
+      );
       expect(log.error).toHaveBeenCalledWith(
         'Failed to cleanup presence subscription',
         expect.any(Error),

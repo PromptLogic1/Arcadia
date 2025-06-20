@@ -496,9 +496,7 @@ test.describe('Performance Marketing Metrics', () => {
 
     // Calculate engagement metrics
     const clickEvents = events.filter(e => e.action === 'click').length;
-    const scrollEvents = events.filter(e =>
-      e.name.includes('scroll')
-    ).length;
+    const scrollEvents = events.filter(e => e.name.includes('scroll')).length;
 
     console.log('Engagement metrics:');
     console.log(`  Time on page: ${timeOnPage}ms`);
