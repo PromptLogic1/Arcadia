@@ -213,11 +213,21 @@ describe('Sessions Service Main', () => {
         success: true,
         data: mockSession,
       });
+      
+      // Mock the transformations
+      const transformedState = [{ transformed: true }];
+      const transformedSettings = { transformed: true };
+      mockTransformBoardState.mockReturnValue(transformedState);
+      mockTransformSessionSettings.mockReturnValue(transformedSettings);
 
       const result = await sessionsService.getSessionById(sessionId);
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockSession);
+      expect(result.data).toEqual({
+        ...mockSession,
+        current_state: transformedState,
+        settings: transformedSettings,
+      });
       expect(mockBingoSessionSchema.safeParse).toHaveBeenCalledWith(
         mockSession
       );
@@ -491,16 +501,22 @@ describe('Sessions Service Main', () => {
 
     it('filters by game category when not "All Games"', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
+      const mockEq = jest.fn().mockReturnThis();
+      const mockIn = jest.fn().mockReturnThis();
+      const mockSelect = jest.fn().mockReturnThis();
+      const mockOrder = jest.fn().mockReturnThis();
+      const mockRange = jest.fn().mockResolvedValue({
+        data: mockSessionStats,
+        error: null,
+        count: 1,
+      });
+      
       mockFrom.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({
-          data: mockSessionStats,
-          error: null,
-          count: 1,
-        }),
+        select: mockSelect,
+        eq: mockEq,
+        in: mockIn,
+        order: mockOrder,
+        range: mockRange,
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -512,20 +528,27 @@ describe('Sessions Service Main', () => {
         gameCategory: 'Bingo' as never,
       });
 
-      expect(mockFrom().eq).toHaveBeenCalledWith('board_game_type', 'Bingo');
+      expect(mockEq).toHaveBeenCalledWith('board_game_type', 'Bingo');
     });
 
     it('skips game category filter when "All Games"', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
+      const mockEq = jest.fn().mockReturnThis();
+      const mockIn = jest.fn().mockReturnThis();
+      const mockSelect = jest.fn().mockReturnThis();
+      const mockOrder = jest.fn().mockReturnThis();
+      const mockRange = jest.fn().mockResolvedValue({
+        data: mockSessionStats,
+        error: null,
+        count: 1,
+      });
+      
       mockFrom.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({
-          data: mockSessionStats,
-          error: null,
-          count: 1,
-        }),
+        select: mockSelect,
+        eq: mockEq,
+        in: mockIn,
+        order: mockOrder,
+        range: mockRange,
       });
 
       mockSessionStatsArraySchema.safeParse.mockReturnValue({
@@ -537,7 +560,8 @@ describe('Sessions Service Main', () => {
         gameCategory: 'All Games' as never,
       });
 
-      expect(mockFrom().eq).not.toHaveBeenCalledWith(
+      // Should not filter by board_game_type when category is 'All Games'
+      expect(mockEq).not.toHaveBeenCalledWith(
         'board_game_type',
         'All Games'
       );

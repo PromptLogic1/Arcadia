@@ -53,17 +53,23 @@ jest.mock('@/services/redis.service', () => ({
 jest.mock('@/lib/validation/schemas/bingo', () => ({
   zBoardState: {
     safeParse: jest.fn(),
-    catch: jest.fn(),
+    catch: jest.fn().mockReturnValue({
+      parse: jest.fn().mockImplementation((data) => data || [])
+    }),
+    parse: jest.fn().mockImplementation((data) => data || [])
   },
   zBoardSettings: {
     safeParse: jest.fn(),
-    catch: jest.fn(),
+    catch: jest.fn().mockReturnValue({
+      parse: jest.fn().mockImplementation((data) => data || {})
+    }),
+    parse: jest.fn().mockImplementation((data) => data || {})
   },
 }));
 
 jest.mock('@/lib/validation/transforms', () => ({
-  transformBoardState: jest.fn(),
-  transformBoardSettings: jest.fn(),
+  transformBoardState: jest.fn().mockImplementation((data) => data || []),
+  transformBoardSettings: jest.fn().mockImplementation((data) => data || {}),
 }));
 
 import { createClient } from '@/lib/supabase';
@@ -86,46 +92,52 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
       success: true,
       data: {},
     });
-    (transformBoardState as jest.Mock).mockImplementation(data => data);
-    (transformBoardSettings as jest.Mock).mockImplementation(data => data);
+    // Mock the catch method to return a mock that can parse
+    (zBoardState.catch as jest.Mock).mockReturnValue({
+      parse: jest.fn().mockImplementation((data) => data || [])
+    });
+    (zBoardSettings.catch as jest.Mock).mockReturnValue({
+      parse: jest.fn().mockImplementation((data) => data || {
+        team_mode: null,
+        lockout: null,
+        sound_enabled: null,
+        win_conditions: null,
+      })
+    });
+    (transformBoardState as jest.Mock).mockImplementation(data => data || []);
+    (transformBoardSettings as jest.Mock).mockImplementation(data => data || {});
   });
 
   describe('Creator Type Guard - Lines 40-54', () => {
     it('should validate creator info object correctly', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
-      const mockAuth = mockSupabase.auth as jest.Mocked<
-        typeof mockSupabase.auth
-      >;
-
-      // Mock auth for createBoard
-      mockAuth.getUser.mockResolvedValue({
-        data: {
-          user: mockSupabaseUser({ id: 'user-123', email: 'test@example.com' }),
+      const boardWithCreator = {
+        ...factories.bingoBoard({ id: 'board-123' }),
+        creator: {
+          id: 'user-123',
+          username: 'testuser',
+          avatar_url: 'https://example.com/avatar.jpg'
         },
-        error: null,
-      });
-
-      // Mock board creation
-      const newBoard = factories.bingoBoard({
-        title: 'Test Board',
-        creator_id: 'user-123',
-      });
+      };
 
       mockFrom.mockReturnValue({
-        insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         single: jest
           .fn()
-          .mockResolvedValue(createSupabaseSuccessResponse(newBoard)),
+          .mockResolvedValue(
+            createSupabaseSuccessResponse(boardWithCreator)
+          ),
       });
 
-      const result = await bingoBoardsService.createBoard({
-        title: 'Test Board',
-        game_type: 'All Games',
-        difficulty: 'medium',
-      });
+      const result = await bingoBoardsService.getBoardWithCreator('board-123');
 
       expect(result.success).toBe(true);
+      expect(result.data?.creator).toEqual({
+        id: 'user-123',
+        username: 'testuser',
+        avatar_url: 'https://example.com/avatar.jpg'
+      });
     });
 
     it('should handle invalid creator info with missing properties', async () => {
@@ -236,10 +248,13 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
 
       const mockFrom = mockSupabase.from as jest.Mock;
 
-      // Force transformation to fail
-      (transformBoardState as jest.Mock).mockImplementation(() => {
-        throw new Error('Transformation failed');
-      });
+      // Force transformation to fail by making the parse throw
+      const mockZodCatch = {
+        parse: jest.fn().mockImplementation(() => {
+          throw new Error('Transformation failed');
+        })
+      };
+      (zBoardState.catch as jest.Mock).mockReturnValueOnce(mockZodCatch);
 
       const board = factories.bingoBoard({ id: 'board-123' });
 
@@ -254,6 +269,7 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
       const result = await bingoBoardsService.getBoardById('board-123');
 
       expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
       expect(log.debug).toHaveBeenCalledWith(
         'Unexpected board transformation error',
         expect.objectContaining({
@@ -447,7 +463,7 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
       expect(result.error).toBe('Board not found');
       expect(log.error).toHaveBeenCalledWith(
         'Failed to fetch board for cloning',
-        expect.any(Error),
+        expect.objectContaining({ message: 'Board not found' }),
         expect.objectContaining({
           metadata: expect.objectContaining({
             service: 'bingo-boards',
@@ -499,7 +515,18 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
           .mockResolvedValue(createSupabaseSuccessResponse(originalBoard)),
       });
 
-      const corruptedClonedBoard = { invalid: 'data' };
+      // Return a board that will fail transformation
+      const corruptedClonedBoard = {
+        id: 'cloned-board',
+        // Missing required fields will cause transformation to fail
+      };
+      
+      // Make the transformation return null for invalid data
+      const originalTransform = (transformBoardState as jest.Mock).getMockImplementation();
+      (transformBoardState as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('Invalid board structure');
+      });
+      
       mockFrom.mockReturnValueOnce({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
@@ -517,6 +544,9 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to transform cloned board');
+      
+      // Restore original mock
+      (transformBoardState as jest.Mock).mockImplementation(originalTransform);
     });
   });
 
@@ -604,7 +634,7 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
       expect(result.error).toBe('Board not found');
       expect(log.error).toHaveBeenCalledWith(
         'Failed to fetch board for voting',
-        expect.any(Error),
+        expect.objectContaining({ message: 'Board not found' }),
         expect.objectContaining({
           metadata: expect.objectContaining({
             service: 'bingo-boards',
@@ -652,7 +682,20 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
           .mockResolvedValue(createSupabaseSuccessResponse({ votes: 5 })),
       });
 
-      const corruptedBoard = { invalid: 'data' };
+      // Return a board that will fail transformation
+      const corruptedBoard = {
+        id: 'board-123',
+        // Missing required fields
+      };
+      
+      // Make transformation return null for this test
+      const mockZodCatch = {
+        parse: jest.fn().mockImplementation(() => {
+          throw new Error('Invalid data');
+        })
+      };
+      (zBoardState.catch as jest.Mock).mockReturnValueOnce(mockZodCatch);
+      
       mockFrom.mockReturnValueOnce({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -769,7 +812,7 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
       expect(result.error).toBe('Database error');
       expect(log.error).toHaveBeenCalledWith(
         'Failed to update board state',
-        expect.any(Error),
+        expect.objectContaining({ message: 'Database error' }),
         expect.objectContaining({
           metadata: expect.objectContaining({
             service: 'bingo-boards',
@@ -783,7 +826,20 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
     it('should handle invalid board data after state update', async () => {
       const mockFrom = mockSupabase.from as jest.Mock;
 
-      const corruptedBoard = { invalid: 'data' };
+      // Return a board that will fail transformation
+      const corruptedBoard = {
+        id: 'board-123',
+        // Missing required fields
+      };
+      
+      // Make transformation return null
+      const mockZodCatch = {
+        parse: jest.fn().mockImplementation(() => {
+          throw new Error('Invalid data');
+        })
+      };
+      (zBoardState.catch as jest.Mock).mockReturnValueOnce(mockZodCatch);
+      
       mockFrom.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -1111,7 +1167,20 @@ describe('BingoBoardsService - Enhanced Coverage Tests', () => {
         userId: 'user-123',
       };
 
-      const corruptedBoard = { invalid: 'data' };
+      // Return a board that will fail transformation
+      const corruptedBoard = {
+        id: 'board-123',
+        // Missing required fields
+      };
+      
+      // Make transformation return null
+      const mockZodCatch = {
+        parse: jest.fn().mockImplementation(() => {
+          throw new Error('Invalid data');
+        })
+      };
+      (zBoardState.catch as jest.Mock).mockReturnValueOnce(mockZodCatch);
+      
       mockFrom.mockReturnValue({
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),

@@ -89,10 +89,13 @@ describe('BoardCard', () => {
     it('shows public board indicator when board is public', () => {
       render(<BoardCard board={mockBoard} />);
 
-      // Look for the public board indicator by checking for the tooltip text
-      // The tooltip is revealed on hover, so we check for the trigger element
-      const publicIndicator = screen.getByText('Public Board - Visible to all players');
+      // Look for the public board indicator by checking for the tooltip trigger element
+      // The tooltip trigger is a div with cursor-help styling
+      const publicIndicator = document.querySelector('.cursor-help');
       expect(publicIndicator).toBeInTheDocument();
+      
+      // Verify it has the correct styling for a public board indicator
+      expect(publicIndicator).toHaveClass('border-yellow-500/50');
     });
 
     it('hides public board indicator when board is private', () => {
@@ -100,7 +103,7 @@ describe('BoardCard', () => {
       render(<BoardCard board={privateBoard} />);
 
       // Check that the public board indicator is not present for private boards
-      const publicIndicator = screen.queryByText('Public Board - Visible to all players');
+      const publicIndicator = document.querySelector('.cursor-help');
       expect(publicIndicator).not.toBeInTheDocument();
     });
   });

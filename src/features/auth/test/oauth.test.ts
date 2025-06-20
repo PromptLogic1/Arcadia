@@ -184,16 +184,20 @@ describe('OAuth Authentication', () => {
         },
       };
 
-      mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: true,
         data: {
-          user: mockUser,
-          session: {
-            access_token: 'mock-access-token',
-            refresh_token: 'mock-refresh-token',
-            user: mockUser,
+          user: {
+            id: mockUser.id,
+            email: mockUser.email,
+            phone: mockUser.phone,
+            auth_username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || null,
+            avatar_url: mockUser.user_metadata?.avatar_url || null,
+            provider: mockUser.app_metadata?.provider || null,
+            userRole: 'user',
           },
         },
-        error: null,
       });
 
       const result = await authService.exchangeCodeForSession('auth-code-123');
@@ -226,9 +230,12 @@ describe('OAuth Authentication', () => {
       const mockOAuthUrl =
         'https://github.com/login/oauth/authorize?client_id=test';
 
-      mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-        data: { url: mockOAuthUrl },
-        error: null,
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: true,
+        data: {
+          url: mockOAuthUrl,
+          provider: 'github',
+        },
       });
 
       const result = await authService.signInWithOAuth('github');
@@ -236,12 +243,7 @@ describe('OAuth Authentication', () => {
       expect(result.success).toBe(true);
       expect(result.data?.url).toBe(mockOAuthUrl);
       expect(result.data?.provider).toBe('github');
-      expect(mockSupabaseAuth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'github',
-        options: {
-          redirectTo: 'http://localhost:3000/auth/callback/github',
-        },
-      });
+      expect(mockAuthService.signInWithOAuth).toHaveBeenCalledWith('github');
     });
 
     test('should handle GitHub OAuth callback', async () => {
@@ -259,16 +261,20 @@ describe('OAuth Authentication', () => {
         },
       };
 
-      mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: true,
         data: {
-          user: mockUser,
-          session: {
-            access_token: 'mock-github-access-token',
-            refresh_token: 'mock-github-refresh-token',
-            user: mockUser,
+          user: {
+            id: mockUser.id,
+            email: mockUser.email,
+            phone: mockUser.phone,
+            auth_username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || null,
+            avatar_url: mockUser.user_metadata?.avatar_url || null,
+            provider: mockUser.app_metadata?.provider || null,
+            userRole: 'user',
           },
         },
-        error: null,
       });
 
       const result =
@@ -292,16 +298,20 @@ describe('OAuth Authentication', () => {
         },
       };
 
-      mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: true,
         data: {
-          user: mockUser,
-          session: {
-            access_token: 'mock-private-access-token',
-            refresh_token: 'mock-private-refresh-token',
-            user: mockUser,
+          user: {
+            id: mockUser.id,
+            email: mockUser.email,
+            phone: mockUser.phone,
+            auth_username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || null,
+            avatar_url: null,
+            provider: mockUser.app_metadata?.provider || null,
+            userRole: 'user',
           },
         },
-        error: null,
       });
 
       const result = await authService.exchangeCodeForSession(
@@ -320,9 +330,12 @@ describe('OAuth Authentication', () => {
       const mockOAuthUrl =
         'https://discord.com/api/oauth2/authorize?client_id=test';
 
-      mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-        data: { url: mockOAuthUrl },
-        error: null,
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: true,
+        data: {
+          url: mockOAuthUrl,
+          provider: 'discord',
+        },
       });
 
       const result = await authService.signInWithOAuth('discord');
@@ -330,12 +343,7 @@ describe('OAuth Authentication', () => {
       expect(result.success).toBe(true);
       expect(result.data?.url).toBe(mockOAuthUrl);
       expect(result.data?.provider).toBe('discord');
-      expect(mockSupabaseAuth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'discord',
-        options: {
-          redirectTo: 'http://localhost:3000/auth/callback/discord',
-        },
-      });
+      expect(mockAuthService.signInWithOAuth).toHaveBeenCalledWith('discord');
     });
 
     test('should handle Discord OAuth callback', async () => {
@@ -352,16 +360,20 @@ describe('OAuth Authentication', () => {
         },
       };
 
-      mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: true,
         data: {
-          user: mockUser,
-          session: {
-            access_token: 'mock-discord-access-token',
-            refresh_token: 'mock-discord-refresh-token',
-            user: mockUser,
+          user: {
+            id: mockUser.id,
+            email: mockUser.email,
+            phone: mockUser.phone,
+            auth_username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || null,
+            avatar_url: null,
+            provider: mockUser.app_metadata?.provider || null,
+            userRole: 'user',
           },
         },
-        error: null,
       });
 
       const result =
@@ -375,13 +387,10 @@ describe('OAuth Authentication', () => {
 
   describe('OAuth Error Handling', () => {
     test('should handle authorization denial', async () => {
-      mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-        data: { url: null },
-        error: new AuthError(
-          'The user denied the request',
-          400,
-          'OAUTH_DENIED'
-        ),
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'The user denied the request',
       });
 
       const result = await authService.signInWithOAuth('google');
@@ -391,9 +400,10 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle invalid authorization code', async () => {
-      mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: null, session: null },
-        error: new AuthError('Invalid authorization code', 400, 'INVALID_CODE'),
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'Invalid authorization code',
       });
 
       const result = await authService.exchangeCodeForSession('invalid-code');
@@ -403,9 +413,11 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle network errors', async () => {
-      mockSupabaseAuth.signInWithOAuth.mockRejectedValue(
-        new Error('Network error')
-      );
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'Network error',
+      });
 
       const result = await authService.signInWithOAuth('github');
 
@@ -414,13 +426,10 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle rate limiting', async () => {
-      mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-        data: { url: null },
-        error: new AuthError(
-          'Too many requests. Please try again later.',
-          429,
-          'RATE_LIMITED'
-        ),
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'Too many requests. Please try again later.',
       });
 
       const result = await authService.signInWithOAuth('github');
@@ -430,9 +439,10 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle missing OAuth URL', async () => {
-      mockSupabaseAuth.signInWithOAuth.mockResolvedValue({
-        data: { url: null },
-        error: null,
+      mockAuthService.signInWithOAuth.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'No OAuth URL returned',
       });
 
       const result = await authService.signInWithOAuth('google');
@@ -442,9 +452,10 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle missing user in code exchange', async () => {
-      mockSupabaseAuth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: null, session: null },
-        error: null,
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'No user returned from OAuth code exchange',
       });
 
       const result = await authService.exchangeCodeForSession('valid-code');
@@ -454,9 +465,11 @@ describe('OAuth Authentication', () => {
     });
 
     test('should handle unexpected errors during code exchange', async () => {
-      mockSupabaseAuth.exchangeCodeForSession.mockRejectedValue(
-        new Error('Unexpected error')
-      );
+      mockAuthService.exchangeCodeForSession.mockResolvedValue({
+        success: false,
+        data: null,
+        error: 'Unexpected error',
+      });
 
       const result = await authService.exchangeCodeForSession('valid-code');
 

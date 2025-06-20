@@ -36,11 +36,18 @@ describe('communityService - Coverage Tests', () => {
     mockSupabase.from.mockReturnValue(mockFrom);
 
     // Setup default chaining behavior
-    Object.values(mockFrom).forEach(method => {
-      if (jest.isMockFunction(method)) {
-        method.mockReturnValue(mockFrom);
-      }
-    });
+    mockFrom.select.mockReturnValue(mockFrom);
+    mockFrom.insert.mockReturnValue(mockFrom);
+    mockFrom.update.mockReturnValue(mockFrom);
+    mockFrom.eq.mockReturnValue(mockFrom);
+    mockFrom.or.mockReturnValue(mockFrom);
+    mockFrom.order.mockReturnValue(mockFrom);
+    mockFrom.range.mockReturnValue(mockFrom);
+    mockFrom.single.mockReturnValue(mockFrom);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('getDiscussionsForAPI - Sorting (lines 175-178)', () => {

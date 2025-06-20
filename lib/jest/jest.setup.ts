@@ -338,6 +338,10 @@ jest.mock('@/services/auth.service', () => ({
       success: true,
       data: { user: null, session: null },
     }),
+    signInWithEmail: jest.fn().mockResolvedValue({
+      success: true,
+      data: { user: null, session: null },
+    }),
     signInWithOAuth: jest.fn().mockResolvedValue({ success: true, data: null }),
     signUp: jest
       .fn()
@@ -349,6 +353,7 @@ jest.mock('@/services/auth.service', () => ({
     updateUserData: jest.fn().mockResolvedValue({ success: true, data: null }),
     getUserData: jest.fn().mockResolvedValue({ success: true, data: null }),
     exchangeCodeForSession: jest.fn().mockResolvedValue({ success: true, data: null }),
+    refreshSession: jest.fn().mockResolvedValue({ success: true, data: null }),
     onAuthStateChange: jest.fn().mockReturnValue({ unsubscribe: jest.fn() }),
   },
 }));

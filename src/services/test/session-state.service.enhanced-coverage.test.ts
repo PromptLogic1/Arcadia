@@ -617,12 +617,19 @@ describe('SessionStateService - Enhanced Branch Coverage', () => {
       const mockFrom = mockSupabase.from as jest.Mock;
 
       // Mock promise rejection in the order chain
-      mockFrom.mockReturnValue({
+      // The key is that the final method in the chain needs to reject
+      const mockQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         is: jest.fn().mockReturnThis(),
-        order: jest.fn().mockRejectedValue(new Error('Async operation failed')),
-      });
+        order: jest.fn().mockReturnThis(),
+        // Make the thenable method (implicit Promise behavior) reject
+        then: jest.fn().mockImplementation(() => 
+          Promise.reject(new Error('Async operation failed'))
+        ),
+      };
+
+      mockFrom.mockReturnValue(mockQuery);
 
       const result = await sessionStateService.getSessionPlayers('session-123');
 

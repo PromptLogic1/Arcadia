@@ -67,6 +67,10 @@ describe('bingoCardsService', () => {
     mockFrom.single.mockReturnValue(mockFrom);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('getCardsByIds', () => {
     it('should return cards for valid IDs', async () => {
       const mockCards: BingoCard[] = [

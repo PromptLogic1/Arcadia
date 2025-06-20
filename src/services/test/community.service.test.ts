@@ -50,6 +50,10 @@ describe('communityService', () => {
     mockFrom.single.mockReturnValue(mockFrom);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('getDiscussionsForAPI', () => {
     it('should fetch discussions for API with default parameters', async () => {
       const mockDiscussions = [

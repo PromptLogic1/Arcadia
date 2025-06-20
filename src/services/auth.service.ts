@@ -548,6 +548,54 @@ export const authService = {
   },
 
   /**
+   * Refresh the current session
+   */
+  async refreshSession(): Promise<
+    ServiceResponse<{ user: { id: string; email?: string | null } }>
+  > {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.refreshSession();
+
+      if (error) {
+        log.error('Failed to refresh session', error, {
+          metadata: { service: 'auth.service', method: 'refreshSession' },
+        });
+        return createServiceError(error.message);
+      }
+
+      if (!data.session) {
+        return createServiceError('No session to refresh');
+      }
+
+      return createServiceSuccess({
+        user: {
+          id: data.session.user.id,
+          email: data.session.user.email || null,
+        },
+      });
+    } catch (error) {
+      log.error(
+        'Unexpected error refreshing session',
+        isError(error) ? error : new Error(String(error)),
+        {
+          metadata: { service: 'auth.service', method: 'refreshSession' },
+        }
+      );
+      return createServiceError(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Alias for signIn method (for backward compatibility)
+   */
+  async signInWithEmail(
+    credentials: SignInCredentials
+  ): Promise<ServiceResponse<AuthResponseData>> {
+    return this.signIn(credentials);
+  },
+
+  /**
    * Subscribe to auth state changes
    */
   onAuthStateChange(

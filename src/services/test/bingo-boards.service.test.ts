@@ -152,6 +152,10 @@ describe('BingoBoardsService', () => {
     delete (global as any).window;
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('createBoard', () => {
     const mockUser = mockSupabaseUser({
       id: 'user-123',
