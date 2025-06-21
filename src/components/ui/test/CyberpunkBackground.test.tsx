@@ -57,6 +57,20 @@ describe('CyberpunkBackground', () => {
       expect(screen.getByTestId('child')).toBeInTheDocument();
     });
 
+    test('should accept and apply data-testid prop', () => {
+      render(
+        <CyberpunkBackground data-testid="test-background">
+          <div>content</div>
+        </CyberpunkBackground>
+      );
+
+      // Test that data-testid prop is properly applied
+      const background = screen.getByTestId('test-background');
+      expect(background).toBeInTheDocument();
+      expect(background).toHaveAttribute('data-variant', 'grid');
+      expect(background).toHaveAttribute('data-intensity', 'subtle');
+    });
+
     test('children should be properly layered above background', () => {
       render(
         <CyberpunkBackground>

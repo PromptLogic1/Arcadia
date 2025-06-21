@@ -10,7 +10,6 @@
  */
 
 import { authService } from '../auth.service';
-import { createClient } from '@/lib/supabase';
 import { log } from '@/lib/logger';
 import { AuthError } from '@supabase/auth-js';
 

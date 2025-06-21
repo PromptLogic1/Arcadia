@@ -218,6 +218,25 @@ describe('Helper Functions', () => {
 
       expect(card.creator_id).toBeNull();
     });
+
+    test('creates different timestamps for consecutive calls', () => {
+      const card1 = createEmptyBingoCard();
+      // Small delay to ensure different timestamps
+      const card2 = createEmptyBingoCard();
+
+      expect(card1.created_at).toBeTruthy();
+      expect(card2.created_at).toBeTruthy();
+      // They should be very close but could be different
+      expect(typeof card1.created_at).toBe('string');
+      expect(typeof card2.created_at).toBe('string');
+    });
+
+    test('handles all game categories correctly', () => {
+      GAME_CATEGORIES.forEach(gameType => {
+        const card = createEmptyBingoCard(gameType);
+        expect(card.game_type).toBe(gameType);
+      });
+    });
   });
 
   describe('createNewBingoCard', () => {
@@ -297,6 +316,83 @@ describe('Helper Functions', () => {
       expect(card.created_at).toBe(customTime);
       expect(card.updated_at).toBe(customTime);
     });
+
+    test('handles partial data objects correctly', () => {
+      const partialData = {
+        title: 'Partial Card',
+        votes: 10,
+        // Missing other fields
+      };
+
+      const card = createNewBingoCard(partialData);
+
+      expect(card.title).toBe('Partial Card');
+      expect(card.votes).toBe(10);
+      expect(card.difficulty).toBe('medium'); // Default
+      expect(card.game_type).toBe('All Games'); // Default
+      expect(card.is_public).toBe(false); // Default
+      expect(card.description).toBeNull(); // Default
+    });
+
+    test('handles null values in data', () => {
+      const dataWithNulls = {
+        description: null,
+        tags: null,
+        creator_id: null,
+      };
+
+      const card = createNewBingoCard(dataWithNulls);
+
+      expect(card.description).toBeNull();
+      expect(card.tags).toBeNull();
+      expect(card.creator_id).toBeNull();
+    });
+
+    test('handles array data correctly', () => {
+      const tagsArray = ['tag1', 'tag2', 'tag3'];
+      const data = {
+        tags: tagsArray,
+      };
+
+      const card = createNewBingoCard(data);
+
+      expect(card.tags).toEqual(tagsArray);
+    });
+
+    test('handles boolean edge cases correctly', () => {
+      // Test explicit false
+      const dataFalse = { is_public: false };
+      const cardFalse = createNewBingoCard(dataFalse);
+      expect(cardFalse.is_public).toBe(false);
+
+      // Test explicit true
+      const dataTrue = { is_public: true };
+      const cardTrue = createNewBingoCard(dataTrue);
+      expect(cardTrue.is_public).toBe(true);
+    });
+
+    test('handles zero and negative numbers correctly', () => {
+      const data = {
+        votes: 0,
+      };
+
+      const card = createNewBingoCard(data);
+      expect(card.votes).toBe(0);
+
+      const negativeData = {
+        votes: -5,
+      };
+
+      const negativeCard = createNewBingoCard(negativeData);
+      expect(negativeCard.votes).toBe(-5);
+    });
+
+    test('handles all difficulty levels', () => {
+      DIFFICULTIES.forEach(difficulty => {
+        const card = createNewBingoCard({ difficulty });
+        expect(card.difficulty).toBe(difficulty);
+      });
+    });
   });
 
   describe('isValidUUID', () => {
@@ -305,14 +401,27 @@ describe('Helper Functions', () => {
       expect(isValidUUID('')).toBe(false);
     });
 
+    test('returns false for undefined', () => {
+      expect(isValidUUID(undefined as never)).toBe(false);
+    });
+
     test('returns false for temporary IDs', () => {
       expect(isValidUUID('temp-123-abc')).toBe(false);
       expect(isValidUUID('cell-456-def')).toBe(false);
+      expect(isValidUUID('temp-1234567890-abcdefghi')).toBe(false);
     });
 
     test('returns true for valid UUID format', () => {
-      const validUUID = '123e4567-e89b-12d3-a456-426614174000';
-      expect(isValidUUID(validUUID)).toBe(true);
+      const validUUIDs = [
+        '123e4567-e89b-12d3-a456-426614174000',
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+        'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+      ];
+
+      validUUIDs.forEach(uuid => {
+        expect(isValidUUID(uuid)).toBe(true);
+      });
     });
 
     test('returns true for valid UUID with mixed case', () => {
@@ -321,22 +430,48 @@ describe('Helper Functions', () => {
     });
 
     test('returns false for invalid UUID format', () => {
-      expect(isValidUUID('not-a-uuid')).toBe(false);
-      expect(isValidUUID('123-456-789')).toBe(false);
-      expect(isValidUUID('123e4567-e89b-12d3-a456')).toBe(false); // Too short
-      expect(isValidUUID('123e4567-e89b-12d3-a456-426614174000-extra')).toBe(
-        false
-      ); // Too long
+      const invalidUUIDs = [
+        'not-a-uuid',
+        '123-456-789',
+        '123e4567-e89b-12d3-a456', // Too short
+        '123e4567-e89b-12d3-a456-426614174000-extra', // Too long
+        '123e4567-e89b-12d3-a456-42661417400', // One char short
+        '123e4567-e89b-12d3-a456-4266141740000', // One char long
+      ];
+
+      invalidUUIDs.forEach(uuid => {
+        expect(isValidUUID(uuid)).toBe(false);
+      });
     });
 
     test('returns false for UUID with invalid characters', () => {
       expect(isValidUUID('123g4567-e89b-12d3-a456-426614174000')).toBe(false); // 'g' not valid hex
       expect(isValidUUID('123e4567_e89b_12d3_a456_426614174000')).toBe(false); // Wrong separators
+      expect(isValidUUID('123e4567-e89b-12d3-a456-42661417400@')).toBe(false); // Invalid character
+    });
+
+    test('returns false for UUIDs with wrong hyphen positions', () => {
+      const wrongFormats = [
+        '123e4567e89b-12d3-a456-426614174000', // Wrong hyphen position
+        '123e4567-e89b12d3-a456-426614174000', // Missing hyphen
+        '123e4567-e89b-12d3a456-426614174000', // Missing hyphen
+        '123e4567-e89b-12d3-a456426614174000', // Missing hyphen
+      ];
+
+      wrongFormats.forEach(uuid => {
+        expect(isValidUUID(uuid)).toBe(false);
+      });
     });
 
     test('handles edge cases', () => {
       expect(isValidUUID('00000000-0000-0000-0000-000000000000')).toBe(true); // All zeros
       expect(isValidUUID('ffffffff-ffff-ffff-ffff-ffffffffffff')).toBe(true); // All f's
+      expect(isValidUUID('FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF')).toBe(true); // All F's uppercase
+    });
+
+    test('correctly validates standard UUID v4 format', () => {
+      // Standard UUID v4 format with version and variant bits
+      expect(isValidUUID('550e8400-e29b-41d4-a716-446655440000')).toBe(true);
     });
   });
 });

@@ -67,7 +67,7 @@ test.describe('Performance Monitoring Infrastructure', () => {
             },
           };
 
-          let collectedMetrics = 0;
+          const collectedMetrics = 0;
           const requiredMetrics = new Set<string>();
           const collectedSet = new Set<string>();
 

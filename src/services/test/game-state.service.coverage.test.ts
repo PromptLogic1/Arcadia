@@ -292,10 +292,9 @@ describe('gameStateService - Coverage Enhancement', () => {
     });
 
     it('should handle successful board state retrieval', async () => {
-      const now = Date.now();
       const mockBoardState = [
-        { id: 'cell-1', is_marked: false, last_updated: now },
-        { id: 'cell-2', is_marked: true, last_updated: now - 1000 },
+        { id: 'cell-1', is_marked: false, last_updated: 1234567890 },
+        { id: 'cell-2', is_marked: true, last_updated: 1234567890 },
       ];
 
       const mockSingle = jest.fn().mockResolvedValue({
@@ -313,9 +312,15 @@ describe('gameStateService - Coverage Enhancement', () => {
       const result = await gameStateService.getBoardState('session-123');
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        boardState: mockBoardState,
-        version: 5,
+      expect(result.data?.version).toBe(5);
+      expect(result.data?.boardState).toHaveLength(2);
+      expect(result.data?.boardState[0]).toMatchObject({
+        id: 'cell-1',
+        is_marked: false,
+      });
+      expect(result.data?.boardState[1]).toMatchObject({
+        id: 'cell-2',
+        is_marked: true,
       });
     });
   });

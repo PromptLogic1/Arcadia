@@ -575,9 +575,7 @@ describe('SessionQueueService - Additional Coverage', () => {
     it('handles unexpected errors in try-catch', async () => {
       jest
         .spyOn(sessionQueueService, 'updateQueueEntry')
-        .mockImplementation(() => {
-          throw new Error('Unexpected rejection error');
-        });
+        .mockRejectedValueOnce(new Error('Unexpected rejection error'));
 
       const result = await sessionQueueService.rejectPlayer('entry-123');
 

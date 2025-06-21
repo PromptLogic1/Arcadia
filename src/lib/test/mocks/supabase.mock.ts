@@ -235,6 +235,10 @@ export const createMockSupabaseClient = (
         data: { user: null, session: null },
         error: null,
       }),
+      signInWithOAuth: jest.fn().mockResolvedValue({
+        data: { url: null, provider: null },
+        error: null,
+      }),
       signUp: jest.fn().mockResolvedValue({
         data: { user: null, session: null },
         error: null,

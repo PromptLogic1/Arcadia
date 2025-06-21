@@ -187,6 +187,31 @@ describe('userService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Update failed');
     });
+
+    it('should handle unexpected exceptions during update (lines 127-134)', async () => {
+      // Mock createClient to throw an exception during update operation
+      (createClient as jest.Mock).mockImplementationOnce(() => {
+        throw new TypeError('Cannot read property "from" of undefined');
+      });
+
+      const result = await userService.updateUserProfile('user-123', {
+        username: 'newusername',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Cannot read property "from" of undefined');
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error updating user profile',
+        expect.any(TypeError),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'updateUserProfile',
+            userId: 'user-123',
+          }),
+        })
+      );
+    });
   });
 
   describe('getUserStats', () => {
@@ -1520,6 +1545,29 @@ describe('userService', () => {
         avatar_url: null,
         updated_at: expect.any(String),
       });
+    });
+
+    it('should handle unexpected exceptions during avatar removal (lines 551-558)', async () => {
+      // Mock createClient to throw an exception during removeAvatar operation
+      (createClient as jest.Mock).mockImplementationOnce(() => {
+        throw new ReferenceError('Supabase client is not properly initialized');
+      });
+
+      const result = await userService.removeAvatar('user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Supabase client is not properly initialized');
+      expect(log.error).toHaveBeenCalledWith(
+        'Unexpected error removing avatar',
+        expect.any(ReferenceError),
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            service: 'user.service',
+            method: 'removeAvatar',
+            userId: 'user-123',
+          }),
+        })
+      );
     });
   });
 

@@ -373,6 +373,7 @@ const Header: React.FC = () => {
                   : 'border-transparent text-cyan-200/90 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300'
               }`}
               aria-current={isActive(item.href) ? 'page' : undefined}
+              data-testid={`mobile-nav-${item.label.toLowerCase().replace(' ', '-')}`}
               onClick={closeMenu}
             >
               {item.label}

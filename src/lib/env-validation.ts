@@ -58,12 +58,14 @@ const envSchema = z.object({
   // Feature flags
   NEXT_PUBLIC_ENABLE_REALTIME: z
     .string()
-    .transform(val => val === 'true')
-    .default('true'),
+    .optional()
+    .default('true')
+    .transform(val => val === 'true'),
   NEXT_PUBLIC_ENABLE_ANALYTICS: z
     .string()
-    .transform(val => val === 'true')
-    .default('true'),
+    .optional()
+    .default('true')
+    .transform(val => val === 'true'),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -123,41 +125,46 @@ export const env = validateEnv();
 /**
  * Helper to check if Redis is configured
  */
-export function isRedisConfigured(): boolean {
-  return Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
+export function isRedisConfigured(envOverride?: Env): boolean {
+  const currentEnv = envOverride || env;
+  return Boolean(currentEnv.UPSTASH_REDIS_REST_URL && currentEnv.UPSTASH_REDIS_REST_TOKEN);
 }
 
 /**
  * Helper to check if Sentry is configured
  */
-export function isSentryConfigured(): boolean {
-  return Boolean(env.NEXT_PUBLIC_SENTRY_DSN);
+export function isSentryConfigured(envOverride?: Env): boolean {
+  const currentEnv = envOverride || env;
+  return Boolean(currentEnv.NEXT_PUBLIC_SENTRY_DSN);
 }
 
 /**
  * Helper to get the deployment URL
  */
-export function getDeploymentUrl(): string {
+export function getDeploymentUrl(envOverride?: Env): string {
+  const currentEnv = envOverride || env;
   return (
-    env.NEXT_PUBLIC_DEPLOYMENT_URL ||
-    (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : env.NEXT_PUBLIC_APP_URL)
+    currentEnv.NEXT_PUBLIC_DEPLOYMENT_URL ||
+    (currentEnv.VERCEL_URL ? `https://${currentEnv.VERCEL_URL}` : currentEnv.NEXT_PUBLIC_APP_URL)
   );
 }
 
 /**
  * Helper to check if we're in production
  */
-export function isProduction(): boolean {
+export function isProduction(envOverride?: Env): boolean {
+  const currentEnv = envOverride || env;
   return (
-    env.NODE_ENV === 'production' || env.NEXT_PUBLIC_APP_ENV === 'production'
+    currentEnv.NODE_ENV === 'production' || currentEnv.NEXT_PUBLIC_APP_ENV === 'production'
   );
 }
 
 /**
  * Helper to check if we're in development
  */
-export function isDevelopment(): boolean {
+export function isDevelopment(envOverride?: Env): boolean {
+  const currentEnv = envOverride || env;
   return (
-    env.NODE_ENV === 'development' && env.NEXT_PUBLIC_APP_ENV === 'development'
+    currentEnv.NODE_ENV === 'development' && currentEnv.NEXT_PUBLIC_APP_ENV === 'development'
   );
 }

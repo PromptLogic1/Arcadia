@@ -12,7 +12,6 @@ import {
   setupSupabaseMock,
   createSupabaseSuccessResponse,
   createSupabaseErrorResponse,
-  mockSupabaseUser,
 } from '@/lib/test/mocks/supabase.mock';
 import { factories } from '@/lib/test/factories';
 import { log } from '@/lib/logger';

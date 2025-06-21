@@ -11,8 +11,8 @@ import {
   validateRequestBody,
   isValidationError,
 } from '@/lib/validation/middleware';
-import { sessionsService } from '@/src/services/sessions.service';
-import { userService } from '@/src/services/user.service';
+import { sessionsService } from '@/services/sessions.service';
+import { userService } from '@/services/user.service';
 import { toError, getErrorMessage } from '@/lib/error-guards';
 
 export const POST = withRateLimit(

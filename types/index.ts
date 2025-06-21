@@ -7,7 +7,7 @@ import type * as DatabaseTypes from './database.types';
 
 // Re-export essential database types directly (primary source of truth)
 export type {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   Database,
   Tables,
   TablesInsert,

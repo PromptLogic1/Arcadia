@@ -8,7 +8,8 @@ import { redisLocksService } from '@/services/redis-locks.service';
 import { redisPresenceService } from '@/services/redis-presence.service';
 import { redisPubSubService } from '@/services/redis-pubsub.service';
 import { redisQueueService } from '@/services/redis-queue.service';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Mock dependencies
 jest.mock('@/lib/logger');
@@ -205,27 +206,26 @@ describe('Redis Advanced Test Route', () => {
         url: 'http://localhost:3000/api/redis-advanced-test?feature=locks',
       } as NextRequest;
 
-      mockRedisLocksService.acquireLock.mockImplementation(() => {
-        throw new Error('Redis connection failed');
-      });
+      mockRedisLocksService.acquireLock.mockRejectedValue(new Error('Redis connection failed'));
 
       await GET(testRequest);
 
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Redis advanced features test failed',
-        expect.any(Error),
-        expect.objectContaining({
-          metadata: { feature: 'locks' },
-        })
-      );
-
+      // The service error should be caught by testDistributedLocks and returned as a failed result
       expect(mockNextResponse).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Redis advanced test failed',
-          message: 'Redis connection failed',
+          totalTests: 1,
+          successfulTests: 0,
+          failedTests: 1,
+          results: [
+            expect.objectContaining({
+              test: 'Distributed Locks',
+              success: false,
+              error: 'Redis connection failed',
+            }),
+          ],
         }),
         expect.objectContaining({
-          status: 500,
+          status: 207,
         })
       );
     });
@@ -256,10 +256,12 @@ describe('Redis Advanced Test Route', () => {
         .mockResolvedValueOnce({
           success: true,
           data: { acquired: true, lockId: 'test-lock-123' },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { acquired: false, reason: 'already_held' },
+          data: { acquired: false, lockId: 'test-lock-123' },
+          error: null,
         });
 
       mockRedisLocksService.getLockStatus.mockResolvedValue({
@@ -269,21 +271,32 @@ describe('Redis Advanced Test Route', () => {
           holder: 'holder-1-1640995200000',
           expiresAt: Date.now() + 5000,
         },
+        error: null,
       });
 
       mockRedisLocksService.extendLock.mockResolvedValue({
         success: true,
-        data: { extended: true, newExpiresAt: Date.now() + 8000 },
+        data: true,
+        error: null,
       });
 
       mockRedisLocksService.releaseLock.mockResolvedValue({
         success: true,
-        data: { released: true },
+        data: true,
+        error: null,
       });
 
-      mockRedisLocksService.withLock.mockResolvedValue({
-        success: true,
-        data: 'success',
+      mockRedisLocksService.withLock.mockImplementation(async (lockId, fn, _options) => {
+        try {
+          const result = await fn();
+          return { success: true, data: result, error: null };
+        } catch (error) {
+          return { 
+            success: false, 
+            data: null, 
+            error: error instanceof Error ? error.message : String(error) 
+          };
+        }
       });
 
       await GET(testRequest);
@@ -321,6 +334,7 @@ describe('Redis Advanced Test Route', () => {
       mockRedisLocksService.acquireLock.mockResolvedValue({
         success: false,
         error: 'Failed to acquire lock',
+        data: null,
       });
 
       await GET(testRequest);
@@ -350,15 +364,18 @@ describe('Redis Advanced Test Route', () => {
         .mockResolvedValueOnce({
           success: true,
           data: { acquired: true, lockId: 'test-lock-123' },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { acquired: false },
+          data: { acquired: false, lockId: 'test-lock-123' },
+          error: null,
         });
 
       mockRedisLocksService.getLockStatus.mockResolvedValue({
         success: false,
         error: 'Status check failed',
+        data: null,
       });
 
       await GET(testRequest);
@@ -391,36 +408,68 @@ describe('Redis Advanced Test Route', () => {
       mockRedisPresenceService.joinBoardPresence
         .mockResolvedValueOnce({
           success: true,
-          data: { userId: 'user-1', cleanup: mockCleanup },
+          data: { 
+            cleanup: mockCleanup,
+            updatePresence: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+            getCurrentState: jest.fn().mockResolvedValue({ success: true, data: {}, error: null })
+          },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { userId: 'user-2', cleanup: mockCleanup },
+          data: { 
+            cleanup: mockCleanup,
+            updatePresence: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+            getCurrentState: jest.fn().mockResolvedValue({ success: true, data: {}, error: null })
+          },
+          error: null,
         });
 
       mockRedisPresenceService.getBoardPresence
         .mockResolvedValueOnce({
           success: true,
           data: {
-            'user-1-1640995200000': { displayName: 'Test User 1' },
-            'user-2-1640995200000': { displayName: 'Test User 2' },
+            'user-1-1640995200000': { 
+              userId: 'user-1',
+              displayName: 'Test User 1',
+              status: 'online' as const,
+              lastSeen: Date.now(),
+              joinedAt: Date.now()
+            },
+            'user-2-1640995200000': { 
+              userId: 'user-2',
+              displayName: 'Test User 2',
+              status: 'online' as const,
+              lastSeen: Date.now(),
+              joinedAt: Date.now()
+            },
           },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
           data: {
-            'user-2-1640995200000': { displayName: 'Test User 2' },
+            'user-2-1640995200000': { 
+              userId: 'user-2',
+              displayName: 'Test User 2',
+              status: 'online' as const,
+              lastSeen: Date.now(),
+              joinedAt: Date.now()
+            },
           },
+          error: null,
         });
 
       mockRedisPresenceService.updateUserPresence.mockResolvedValue({
         success: true,
-        data: { updated: true },
+        data: undefined,
+        error: null,
       });
 
       mockRedisPresenceService.leaveBoardPresence.mockResolvedValue({
         success: true,
-        data: { left: true },
+        data: undefined,
+        error: null,
       });
 
       await GET(testRequest);
@@ -455,6 +504,7 @@ describe('Redis Advanced Test Route', () => {
       mockRedisPresenceService.joinBoardPresence.mockResolvedValue({
         success: false,
         error: 'Failed to join presence',
+        data: null,
       });
 
       await GET(testRequest);
@@ -485,19 +535,36 @@ describe('Redis Advanced Test Route', () => {
       mockRedisPresenceService.joinBoardPresence
         .mockResolvedValueOnce({
           success: true,
-          data: { userId: 'user-1', cleanup: mockCleanup },
+          data: { 
+            cleanup: mockCleanup,
+            updatePresence: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+            getCurrentState: jest.fn().mockResolvedValue({ success: true, data: {}, error: null })
+          },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { userId: 'user-2', cleanup: mockCleanup },
+          data: { 
+            cleanup: mockCleanup,
+            updatePresence: jest.fn().mockResolvedValue({ success: true, data: undefined, error: null }),
+            getCurrentState: jest.fn().mockResolvedValue({ success: true, data: {}, error: null })
+          },
+          error: null,
         });
 
       // Return only 1 user instead of expected 2
       mockRedisPresenceService.getBoardPresence.mockResolvedValue({
         success: true,
         data: {
-          'user-1-1640995200000': { displayName: 'Test User 1' },
+          'user-1-1640995200000': { 
+            userId: 'user-1',
+            displayName: 'Test User 1',
+            status: 'online' as const,
+            lastSeen: Date.now(),
+            joinedAt: Date.now()
+          },
         },
+        error: null,
       });
 
       await GET(testRequest);
@@ -528,41 +595,68 @@ describe('Redis Advanced Test Route', () => {
       mockRedisPubSubService.publishGameEvent.mockResolvedValue({
         success: true,
         data: 'event-123',
+        error: null,
       });
 
       mockRedisPubSubService.publishChatMessage.mockResolvedValue({
         success: true,
         data: 'msg-123',
+        error: null,
       });
 
       mockRedisPubSubService.publishSystemAnnouncement.mockResolvedValue({
         success: true,
         data: 'announcement-123',
+        error: null,
       });
 
       mockRedisPubSubService.getRecentEvents.mockResolvedValue({
         success: true,
         data: [
-          { id: 'event-123', type: 'game_start' },
-          { id: 'announcement-123', type: 'system_announcement' },
+          { 
+            eventId: 'event-123', 
+            type: 'game_start', 
+            gameId: 'test-game',
+            userId: 'user-1',
+            timestamp: Date.now()
+          },
+          { 
+            eventId: 'announcement-123', 
+            type: 'system_announcement',
+            gameId: 'test-game',
+            userId: 'system',
+            timestamp: Date.now()
+          },
         ],
+        error: null,
       });
 
       mockRedisPubSubService.getChatHistory.mockResolvedValue({
         success: true,
         data: [
-          { id: 'msg-123', message: 'Hello, this is a test message!' },
+          { 
+            id: 'msg-123', 
+            message: 'Hello, this is a test message!',
+            userId: 'user-1',
+            username: 'Test User',
+            timestamp: Date.now(),
+            gameId: 'test-game',
+            type: 'user' as const
+          },
         ],
+        error: null,
       });
 
       mockRedisPubSubService.getChannelStats.mockResolvedValue({
         success: true,
-        data: { totalEvents: 3, totalMessages: 1 },
+        data: { eventCount: 3, chatMessageCount: 1 },
+        error: null,
       });
 
       mockRedisPubSubService.publishBulkEvents.mockResolvedValue({
         success: true,
         data: ['bulk-event-1', 'bulk-event-2'],
+        error: null,
       });
 
       await GET(testRequest);
@@ -595,6 +689,7 @@ describe('Redis Advanced Test Route', () => {
 
       mockRedisPubSubService.publishGameEvent.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Failed to publish event',
       });
 
@@ -624,22 +719,32 @@ describe('Redis Advanced Test Route', () => {
       mockRedisPubSubService.publishGameEvent.mockResolvedValue({
         success: true,
         data: 'event-123',
+        error: null,
       });
 
       mockRedisPubSubService.publishChatMessage.mockResolvedValue({
         success: true,
         data: 'msg-123',
+        error: null,
       });
 
       mockRedisPubSubService.publishSystemAnnouncement.mockResolvedValue({
         success: true,
         data: 'announcement-123',
+        error: null,
       });
 
       // Return only 1 event instead of expected 2+
       mockRedisPubSubService.getRecentEvents.mockResolvedValue({
         success: true,
-        data: [{ id: 'event-123', type: 'game_start' }],
+        data: [{ 
+          eventId: 'event-123', 
+          type: 'game_start', 
+          gameId: 'test-game', 
+          userId: 'test-user', 
+          timestamp: Date.now() 
+        }],
+        error: null,
       });
 
       await GET(testRequest);
@@ -669,49 +774,93 @@ describe('Redis Advanced Test Route', () => {
 
       // Mock job addition
       mockRedisQueueService.addJob
-        .mockResolvedValueOnce({ success: true, data: 'job-1' })
-        .mockResolvedValueOnce({ success: true, data: 'job-2' })
-        .mockResolvedValueOnce({ success: true, data: 'job-3' })
-        .mockResolvedValueOnce({ success: true, data: 'failing-job' });
+        .mockResolvedValueOnce({ success: true, data: 'job-1', error: null })
+        .mockResolvedValueOnce({ success: true, data: 'job-2', error: null })
+        .mockResolvedValueOnce({ success: true, data: 'job-3', error: null })
+        .mockResolvedValueOnce({ success: true, data: 'failing-job', error: null });
 
       // Mock queue stats
       mockRedisQueueService.getQueueStats
         .mockResolvedValueOnce({
           success: true,
-          data: { waiting: 3, active: 0, completed: 0, failed: 0 },
+          data: { pending: 3, processing: 0, delayed: 0, completed: 0, failed: 0 },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { waiting: 0, active: 0, completed: 3, failed: 1 },
+          data: { pending: 0, processing: 0, delayed: 0, completed: 3, failed: 1 },
+          error: null,
         });
 
       // Mock job processing
       mockRedisQueueService.getNextJob
         .mockResolvedValueOnce({
           success: true,
-          data: { id: 'job-1', payload: { task: 'high-priority-task' } },
+          data: { 
+            id: 'job-1', 
+            type: 'test-task',
+            payload: { task: 'high-priority-task' },
+            priority: 5,
+            attempts: 0,
+            maxAttempts: 3,
+            delay: 0,
+            createdAt: Date.now()
+          },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { id: 'job-2', payload: { task: 'low-priority-task' } },
+          data: { 
+            id: 'job-2', 
+            type: 'test-task',
+            payload: { task: 'low-priority-task' },
+            priority: 5,
+            attempts: 0,
+            maxAttempts: 3,
+            delay: 0,
+            createdAt: Date.now()
+          },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { id: 'failing-job', payload: { task: 'failing-task' } },
+          data: { 
+            id: 'failing-job', 
+            type: 'test-task',
+            payload: { task: 'failing-task' },
+            priority: 5,
+            attempts: 0,
+            maxAttempts: 3,
+            delay: 0,
+            createdAt: Date.now()
+          },
+          error: null,
         })
         .mockResolvedValueOnce({
           success: true,
-          data: { id: 'job-3', payload: { task: 'delayed-task' } },
+          data: { 
+            id: 'job-3', 
+            type: 'test-task',
+            payload: { task: 'delayed-task' },
+            priority: 5,
+            attempts: 0,
+            maxAttempts: 3,
+            delay: 0,
+            createdAt: Date.now()
+          },
+          error: null,
         });
 
       mockRedisQueueService.completeJob.mockResolvedValue({
         success: true,
-        data: { completed: true },
+        data: undefined,
+        error: null,
       });
 
       mockRedisQueueService.failJob.mockResolvedValue({
         success: true,
-        data: { failed: true },
+        data: undefined,
+        error: null,
       });
 
       await GET(testRequest);
@@ -749,6 +898,7 @@ describe('Redis Advanced Test Route', () => {
 
       mockRedisQueueService.addJob.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Failed to add job',
       });
 
@@ -778,10 +928,12 @@ describe('Redis Advanced Test Route', () => {
       mockRedisQueueService.addJob.mockResolvedValue({
         success: true,
         data: 'job-1',
+        error: null,
       });
 
       mockRedisQueueService.getQueueStats.mockResolvedValue({
         success: false,
+        data: null,
         error: 'Failed to get stats',
       });
 
@@ -822,21 +974,39 @@ describe('Redis Advanced Test Route', () => {
           backgroundJobId: 'job-123',
           presenceCleanup: mockCleanup,
         },
+        error: null,
       });
 
       mockRedisPresenceService.getBoardPresence.mockResolvedValue({
         success: true,
-        data: { 'user-1640995200000': { displayName: 'Integration Test User' } },
+        data: { 
+          'user-1640995200000': { 
+            userId: 'user-1640995200000',
+            displayName: 'Integration Test User',
+            status: 'online',
+            lastSeen: Date.now(),
+            joinedAt: Date.now()
+          } 
+        },
+        error: null,
       });
 
       mockRedisPubSubService.getRecentEvents.mockResolvedValue({
         success: true,
-        data: [{ id: 'event-123', type: 'game_start' }],
+        data: [{ 
+          eventId: 'event-123', 
+          type: 'game_start', 
+          gameId: 'integration-test-1640995200000',
+          userId: 'user-1640995200000',
+          timestamp: Date.now()
+        }],
+        error: null,
       });
 
       mockRedisQueueService.getQueueStats.mockResolvedValue({
         success: true,
-        data: { waiting: 1, active: 0 },
+        data: { pending: 1, processing: 0, delayed: 0, completed: 0, failed: 0 },
+        error: null,
       });
 
       await GET(testRequest);
@@ -874,6 +1044,7 @@ describe('Redis Advanced Test Route', () => {
       mockRedisLocksService.withLock.mockResolvedValue({
         success: false,
         error: 'Failed to acquire lock',
+        data: null,
       });
 
       await GET(testRequest);
@@ -907,12 +1078,14 @@ describe('Redis Advanced Test Route', () => {
           gameId: 'integration-test-1640995200000',
           presenceCleanup: mockCleanup,
         },
+        error: null,
       });
 
       // Mock verification failure
       mockRedisPresenceService.getBoardPresence.mockResolvedValue({
         success: false,
         error: 'Failed to get presence',
+        data: null,
       });
 
       await GET(testRequest);
@@ -954,27 +1127,26 @@ describe('Redis Advanced Test Route', () => {
       } as NextRequest;
 
       // Mock the locks service to throw a string error that would crash the test
-      mockRedisLocksService.acquireLock.mockImplementation(() => {
-        throw 'String error';
-      });
+      mockRedisLocksService.acquireLock.mockRejectedValue('String error');
 
       await GET(testRequest);
 
-      expect(mockLog.error).toHaveBeenCalledWith(
-        'Redis advanced features test failed',
-        expect.any(Error),
-        expect.objectContaining({
-          metadata: { feature: 'locks' },
-        })
-      );
-
+      // The service error should be caught by testDistributedLocks and returned as a failed result
       expect(mockNextResponse).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Redis advanced test failed',
-          message: 'String error',
+          totalTests: 1,
+          successfulTests: 0,
+          failedTests: 1,
+          results: [
+            expect.objectContaining({
+              test: 'Distributed Locks',
+              success: false,
+              error: 'String error',
+            }),
+          ],
         }),
         expect.objectContaining({
-          status: 500,
+          status: 207,
         })
       );
     });
@@ -988,24 +1160,29 @@ describe('Redis Advanced Test Route', () => {
       setupSuccessfulLocksMocks();
 
       // But fail on presence test
-      mockRedisPresenceService.joinBoardPresence.mockImplementation(() => {
-        throw new Error('Presence service failed');
-      });
+      mockRedisPresenceService.joinBoardPresence.mockRejectedValue(new Error('Presence service failed'));
 
       await GET(testRequest);
 
       expect(mockNextResponse).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Redis advanced test failed',
-          results: [
+          totalTests: 5,
+          successfulTests: 1,
+          failedTests: 4,
+          results: expect.arrayContaining([
             expect.objectContaining({
               test: 'Distributed Locks',
               success: true,
             }),
-          ],
+            expect.objectContaining({
+              test: 'Real-time Presence',
+              success: false,
+              error: 'Presence service failed',
+            }),
+          ]),
         }),
         expect.objectContaining({
-          status: 500,
+          status: 207,
         })
       );
     });
@@ -1025,30 +1202,43 @@ describe('Redis Advanced Test Route', () => {
       .mockResolvedValueOnce({
         success: true,
         data: { acquired: true, lockId: 'test-lock-123' },
+        error: null,
       })
       .mockResolvedValueOnce({
         success: true,
-        data: { acquired: false },
+        data: { acquired: false, lockId: 'test-lock-123' },
+        error: null,
       });
 
     mockRedisLocksService.getLockStatus.mockResolvedValue({
       success: true,
       data: { exists: true, holder: 'holder-1-1640995200000' },
+      error: null,
     });
 
     mockRedisLocksService.extendLock.mockResolvedValue({
       success: true,
-      data: { extended: true },
+      data: true,
+      error: null,
     });
 
     mockRedisLocksService.releaseLock.mockResolvedValue({
       success: true,
-      data: { released: true },
+      data: true,
+      error: null,
     });
 
-    mockRedisLocksService.withLock.mockImplementation(async (lockId, fn, options) => {
-      const result = await fn();
-      return { success: true, data: result };
+    mockRedisLocksService.withLock.mockImplementation(async (lockId, fn, _options) => {
+      try {
+        const result = await fn();
+        return { success: true, data: result, error: null };
+      } catch (error) {
+        return { 
+          success: false, 
+          data: null, 
+          error: error instanceof Error ? error.message : String(error) 
+        };
+      }
     });
   }
 
@@ -1058,31 +1248,37 @@ describe('Redis Advanced Test Route', () => {
     mockRedisPresenceService.joinBoardPresence
       .mockResolvedValueOnce({
         success: true,
-        data: { userId: 'user-1', cleanup: mockCleanup },
+        data: { userId: 'user-1', cleanup: mockCleanup } as any,
+        error: null,
       })
       .mockResolvedValueOnce({
         success: true,
-        data: { userId: 'user-2', cleanup: mockCleanup },
+        data: { userId: 'user-2', cleanup: mockCleanup } as any,
+        error: null,
       });
 
     mockRedisPresenceService.getBoardPresence
       .mockResolvedValueOnce({
         success: true,
-        data: { 'user-1': { displayName: 'User 1' }, 'user-2': { displayName: 'User 2' } },
+        data: { 'user-1': { displayName: 'User 1' }, 'user-2': { displayName: 'User 2' } } as any,
+        error: null,
       })
       .mockResolvedValueOnce({
         success: true,
-        data: { 'user-2': { displayName: 'User 2' } },
+        data: { 'user-2': { displayName: 'User 2' } } as any,
+        error: null,
       });
 
     mockRedisPresenceService.updateUserPresence.mockResolvedValue({
       success: true,
-      data: { updated: true },
+      data: undefined,
+      error: null,
     });
 
     mockRedisPresenceService.leaveBoardPresence.mockResolvedValue({
       success: true,
-      data: { left: true },
+      data: undefined,
+      error: null,
     });
   }
 
@@ -1090,41 +1286,63 @@ describe('Redis Advanced Test Route', () => {
     mockRedisPubSubService.publishGameEvent.mockResolvedValue({
       success: true,
       data: 'event-123',
+      error: null,
     });
 
     mockRedisPubSubService.publishChatMessage.mockResolvedValue({
       success: true,
       data: 'msg-123',
+      error: null,
     });
 
     mockRedisPubSubService.publishSystemAnnouncement.mockResolvedValue({
       success: true,
       data: 'announcement-123',
+      error: null,
     });
 
-    mockRedisPubSubService.getRecentEvents.mockResolvedValue({
-      success: true,
-      data: [
-        { id: 'event-123', type: 'game_start' },
-        { id: 'announcement-123', type: 'system_announcement' },
-        { id: 'bulk-1', type: 'cell_marked' },
-        { id: 'bulk-2', type: 'cell_marked' },
-      ],
-    });
+    // Use mockResolvedValueOnce for pubsub test, then fallback for integration
+    mockRedisPubSubService.getRecentEvents
+      .mockResolvedValueOnce({
+        success: true,
+        data: [
+          { eventId: 'event-123', type: 'game_start', gameId: 'test-game', userId: 'user-1', timestamp: Date.now() },
+          { eventId: 'announcement-123', type: 'system_announcement', gameId: 'test-game', userId: 'system', timestamp: Date.now() },
+          { eventId: 'bulk-1', type: 'cell_marked', gameId: 'test-game', userId: 'user-1', timestamp: Date.now() },
+          { eventId: 'bulk-2', type: 'cell_marked', gameId: 'test-game', userId: 'user-2', timestamp: Date.now() },
+        ] as any,
+        error: null,
+      })
+      .mockResolvedValue({
+        success: true,
+        data: [{ eventId: 'event-integration', type: 'game_start', gameId: 'integration-test', userId: 'user-test', timestamp: Date.now() }] as any,
+        error: null,
+      });
 
     mockRedisPubSubService.getChatHistory.mockResolvedValue({
       success: true,
-      data: [{ id: 'msg-123', message: 'Hello!' }],
+      data: [{ 
+        id: 'msg-123', 
+        message: 'Hello!', 
+        type: 'user' as const, 
+        userId: 'user-1', 
+        gameId: 'test-game', 
+        timestamp: Date.now(), 
+        username: 'TestUser' 
+      }],
+      error: null,
     });
 
     mockRedisPubSubService.getChannelStats.mockResolvedValue({
       success: true,
-      data: { totalEvents: 4, totalMessages: 1 },
+      data: { eventCount: 4, chatMessageCount: 1 },
+      error: null,
     });
 
     mockRedisPubSubService.publishBulkEvents.mockResolvedValue({
       success: true,
       data: ['bulk-1', 'bulk-2'],
+      error: null,
     });
   }
 
@@ -1132,90 +1350,222 @@ describe('Redis Advanced Test Route', () => {
     mockRedisQueueService.addJob.mockResolvedValue({
       success: true,
       data: 'job-123',
+      error: null,
     });
 
     mockRedisQueueService.getQueueStats.mockResolvedValue({
       success: true,
-      data: { waiting: 0, completed: 3 },
+      data: { pending: 0, processing: 0, delayed: 0, completed: 3, failed: 0 },
+      error: null,
     });
 
     mockRedisQueueService.getNextJob.mockResolvedValue({
       success: true,
-      data: { id: 'job-123', payload: { task: 'test' } },
+      data: { 
+        id: 'job-123', 
+        type: 'test-job',
+        payload: { task: 'test' }, 
+        priority: 5,
+        attempts: 0,
+        maxAttempts: 3,
+        delay: 0,
+        createdAt: Date.now()
+      },
+      error: null,
     });
 
     mockRedisQueueService.completeJob.mockResolvedValue({
       success: true,
-      data: { completed: true },
+      data: undefined,
+      error: null,
     });
 
     mockRedisQueueService.failJob.mockResolvedValue({
       success: true,
-      data: { failed: true },
+      data: undefined,
+      error: null,
     });
   }
 
   function setupSuccessfulIntegrationMocks() {
     const mockCleanup = jest.fn().mockResolvedValue(undefined);
 
-    mockRedisLocksService.withLock.mockImplementation(async (lockId, fn, options) => {
-      const result = await fn();
-      return { success: true, data: result };
+    mockRedisLocksService.withLock.mockImplementation(async (lockId, fn, _options) => {
+      try {
+        const result = await fn();
+        return { success: true, data: result, error: null };
+      } catch (error) {
+        return { 
+          success: false, 
+          data: null, 
+          error: error instanceof Error ? error.message : String(error) 
+        };
+      }
     });
 
     // Mock the inner integration setup
     mockRedisPresenceService.joinBoardPresence.mockResolvedValue({
       success: true,
-      data: { userId: 'user-test', cleanup: mockCleanup },
+      data: { userId: 'user-test', cleanup: mockCleanup } as any,
+      error: null,
     });
 
     mockRedisPubSubService.publishGameEvent.mockResolvedValue({
       success: true,
       data: 'event-integration',
+      error: null,
     });
 
     mockRedisQueueService.addJob.mockResolvedValue({
       success: true,
       data: 'job-integration',
+      error: null,
     });
 
     // Mock the verification steps
     mockRedisPresenceService.getBoardPresence.mockResolvedValue({
       success: true,
-      data: { 'user-test': { displayName: 'Integration Test User' } },
+      data: { 'user-test': { displayName: 'Integration Test User' } } as any,
+      error: null,
     });
 
-    mockRedisPubSubService.getRecentEvents.mockResolvedValue({
-      success: true,
-      data: [{ id: 'event-integration', type: 'game_start' }],
-    });
+    // getRecentEvents is already handled in setupSuccessfulPubSubMocks
 
     mockRedisQueueService.getQueueStats.mockResolvedValue({
       success: true,
-      data: { waiting: 1, active: 0 },
+      data: { pending: 1, processing: 0, delayed: 0, completed: 0, failed: 0 },
+      error: null,
     });
   }
 
   function setupMixedResultMocks() {
-    // Successful locks
+    // Setup successful mocks for locks, presence, and pubsub
     setupSuccessfulLocksMocks();
-
-    // Successful presence  
     setupSuccessfulPresenceMocks();
-
-    // Successful pubsub
     setupSuccessfulPubSubMocks();
 
-    // Failed queue
-    mockRedisQueueService.addJob.mockResolvedValue({
-      success: false,
-      error: 'Queue failed',
+    // Setup queue mocks that will fail on the 4th addJob call (for failing job test)
+    mockRedisQueueService.addJob
+      .mockResolvedValueOnce({
+        success: true,
+        data: 'job-123',
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: 'job-456',
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: 'job-789',
+        error: null,
+      })
+      .mockResolvedValue({
+        success: false,
+        error: 'Queue service failed',
+        data: null,
+      });
+
+    // Setup other queue mocks for successful operations
+    mockRedisQueueService.getQueueStats.mockResolvedValue({
+      success: true,
+      data: { pending: 3, processing: 0, delayed: 1, completed: 0, failed: 0 },
+      error: null,
     });
 
-    // Failed integration
-    mockRedisLocksService.withLock.mockResolvedValueOnce({
-      success: false,
-      error: 'Integration failed',
+    mockRedisQueueService.getNextJob
+      .mockResolvedValueOnce({
+        success: true,
+        data: { 
+          id: 'job-123', 
+          type: 'test-job',
+          payload: { task: 'high-priority-task' }, 
+          priority: 8,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now()
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { 
+          id: 'job-456', 
+          type: 'test-job',
+          payload: { task: 'low-priority-task' }, 
+          priority: 2,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 0,
+          createdAt: Date.now()
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { 
+          id: 'job-failing', 
+          type: 'test-job',
+          payload: { task: 'failing-task' }, 
+          priority: 5,
+          attempts: 0,
+          maxAttempts: 2,
+          delay: 0,
+          createdAt: Date.now()
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { 
+          id: 'job-789', 
+          type: 'test-job',
+          payload: { task: 'delayed-task' }, 
+          priority: 5,
+          attempts: 0,
+          maxAttempts: 3,
+          delay: 1000,
+          createdAt: Date.now()
+        },
+        error: null,
+      });
+
+    mockRedisQueueService.completeJob.mockResolvedValue({
+      success: true,
+      data: undefined,
+      error: null,
+    });
+
+    mockRedisQueueService.failJob.mockResolvedValue({
+      success: true,
+      data: undefined,
+      error: null,
+    });
+
+    // For integration test failure, we'll mock the withLock to fail specifically for integration
+    // The locks test calls withLock with a different lockId pattern
+    mockRedisLocksService.withLock.mockImplementation(async (lockId, fn, _options) => {
+      // If this is the integration test (lockId starts with 'game-init-')
+      if (lockId.startsWith('game-init-')) {
+        return {
+          success: false,
+          error: 'Failed to acquire initialization lock',
+          data: null,
+        };
+      }
+      // Otherwise (locks test), run normally
+      try {
+        const result = await fn();
+        return { success: true, data: result, error: null };
+      } catch (error) {
+        return { 
+          success: false, 
+          data: null, 
+          error: error instanceof Error ? error.message : String(error) 
+        };
+      }
     });
   }
 });

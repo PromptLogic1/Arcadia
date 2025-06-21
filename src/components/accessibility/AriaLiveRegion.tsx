@@ -16,16 +16,15 @@ export function AriaLiveRegion({
   const [currentMessage, setCurrentMessage] = useState(message);
 
   useEffect(() => {
-    if (message) {
-      setCurrentMessage(message);
+    // Always update the current message, including empty strings
+    setCurrentMessage(message);
 
-      if (clearAfter > 0) {
-        const timer = setTimeout(() => {
-          setCurrentMessage('');
-        }, clearAfter);
+    if (message && clearAfter > 0) {
+      const timer = setTimeout(() => {
+        setCurrentMessage('');
+      }, clearAfter);
 
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
     // Return undefined when no cleanup is needed
     return undefined;

@@ -119,7 +119,9 @@ const useSessionQueueStore = createWithEqualityFn<
         try {
           // Generate the invite link
           const baseUrl =
-            typeof window !== 'undefined' ? window.location.origin : '';
+            typeof window !== 'undefined' && window.location?.origin
+              ? window.location.origin
+              : '';
           const link = `${baseUrl}/join/${sessionId}`;
 
           set(

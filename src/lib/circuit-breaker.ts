@@ -75,6 +75,9 @@ export class CircuitBreaker<_T = unknown> {
     // Check if we should attempt the operation
     if (!this.canAttempt()) {
       if (fallback) {
+        log.debug(`Circuit breaker ${this.name} using fallback`, {
+          metadata: { state: this.state, error: new Error(`Circuit breaker ${this.name} is OPEN`) },
+        });
         return await fallback();
       }
       throw new Error(`Circuit breaker ${this.name} is OPEN`);
@@ -133,8 +136,8 @@ export class CircuitBreaker<_T = unknown> {
 
     switch (this.state) {
       case CircuitState.CLOSED:
-        // Check if we should open the circuit
-        if (this.failures.length >= this.options.failureThreshold) {
+        // Check if we should open the circuit (only when there are failures)
+        if (this.failures.length > 0 && (this.options.failureThreshold === 0 || this.failures.length >= this.options.failureThreshold)) {
           this.setState(CircuitState.OPEN);
           this.lastFailureTime = now;
         }
@@ -142,7 +145,7 @@ export class CircuitBreaker<_T = unknown> {
 
       case CircuitState.OPEN:
         // Check if we should try half-open
-        if (now - this.lastFailureTime >= this.options.recoveryTime) {
+        if (this.lastFailureTime > 0 && now - this.lastFailureTime >= this.options.recoveryTime) {
           this.setState(CircuitState.HALF_OPEN);
           this.successCount = 0;
         }
@@ -193,7 +196,10 @@ export class CircuitBreaker<_T = unknown> {
         break;
 
       case CircuitState.CLOSED:
-        // Will check threshold in updateState
+        // Check threshold immediately - for zero threshold, any failure opens circuit
+        if (this.options.failureThreshold === 0 || this.failures.length >= this.options.failureThreshold) {
+          this.setState(CircuitState.OPEN);
+        }
         break;
     }
   }

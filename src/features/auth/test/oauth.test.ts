@@ -15,7 +15,6 @@
 
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import type { Provider } from '@supabase/supabase-js';
-import { AuthError } from '@supabase/auth-js';
 
 // Mock logger
 jest.mock('@/lib/logger', () => ({
@@ -44,38 +43,8 @@ type OAuthUserMetadata = {
   };
 };
 
-type OAuthUser = {
-  id: string;
-  email: string | null;
-  phone: string | null;
-  email_confirmed_at?: string | null;
-  user_metadata?: OAuthUserMetadata;
-  app_metadata?: {
-    provider?: string;
-  };
-};
 
-type OAuthSession = {
-  access_token: string;
-  refresh_token: string;
-  user: OAuthUser;
-};
 
-// Type definitions for mock functions
-type SignInWithOAuthResponse = Promise<{
-  data: { url: string | null } | null;
-  error: AuthError | null;
-}>;
-
-type ExchangeCodeForSessionResponse = Promise<{
-  data: { user: OAuthUser | null; session: OAuthSession | null } | null;
-  error: AuthError | null;
-}>;
-
-type GetUserResponse = Promise<{
-  data: { user: OAuthUser | null } | null;
-  error: AuthError | null;
-}>;
 
 // Import authService - using global mocks from jest.setup.ts
 import { authService } from '@/services/auth.service';
@@ -120,10 +89,12 @@ describe('OAuth Authentication', () => {
     mockAuthService.signInWithOAuth.mockResolvedValue({
       success: true,
       data: null,
+      error: null,
     });
     mockAuthService.exchangeCodeForSession.mockResolvedValue({
       success: true,
       data: null,
+      error: null,
     });
   });
 
@@ -159,6 +130,7 @@ describe('OAuth Authentication', () => {
           url: mockOAuthUrl,
           provider: 'google',
         },
+        error: null,
       });
 
       const result = await authService.signInWithOAuth('google');
@@ -192,12 +164,13 @@ describe('OAuth Authentication', () => {
             email: mockUser.email,
             phone: mockUser.phone,
             auth_username: mockUser.user_metadata?.username || null,
-            username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || undefined,
             avatar_url: mockUser.user_metadata?.avatar_url || null,
             provider: mockUser.app_metadata?.provider || null,
             userRole: 'user',
           },
         },
+        error: null,
       });
 
       const result = await authService.exchangeCodeForSession('auth-code-123');
@@ -236,6 +209,7 @@ describe('OAuth Authentication', () => {
           url: mockOAuthUrl,
           provider: 'github',
         },
+        error: null,
       });
 
       const result = await authService.signInWithOAuth('github');
@@ -269,12 +243,13 @@ describe('OAuth Authentication', () => {
             email: mockUser.email,
             phone: mockUser.phone,
             auth_username: mockUser.user_metadata?.username || null,
-            username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || undefined,
             avatar_url: mockUser.user_metadata?.avatar_url || null,
             provider: mockUser.app_metadata?.provider || null,
             userRole: 'user',
           },
         },
+        error: null,
       });
 
       const result =
@@ -306,12 +281,13 @@ describe('OAuth Authentication', () => {
             email: mockUser.email,
             phone: mockUser.phone,
             auth_username: mockUser.user_metadata?.username || null,
-            username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || undefined,
             avatar_url: null,
             provider: mockUser.app_metadata?.provider || null,
             userRole: 'user',
           },
         },
+        error: null,
       });
 
       const result = await authService.exchangeCodeForSession(
@@ -336,6 +312,7 @@ describe('OAuth Authentication', () => {
           url: mockOAuthUrl,
           provider: 'discord',
         },
+        error: null,
       });
 
       const result = await authService.signInWithOAuth('discord');
@@ -368,12 +345,13 @@ describe('OAuth Authentication', () => {
             email: mockUser.email,
             phone: mockUser.phone,
             auth_username: mockUser.user_metadata?.username || null,
-            username: mockUser.user_metadata?.username || null,
+            username: mockUser.user_metadata?.username || undefined,
             avatar_url: null,
             provider: mockUser.app_metadata?.provider || null,
             userRole: 'user',
           },
         },
+        error: null,
       });
 
       const result =

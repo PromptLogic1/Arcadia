@@ -105,14 +105,15 @@ describe('Account Deletion Workflows', () => {
 
     it('should calculate remaining grace period time', () => {
       const getRemainingGracePeriod = (
-        request: DeletionRequest
+        request: DeletionRequest,
+        currentTime: number = Date.now()
       ): {
         days: number;
         hours: number;
         minutes: number;
         expired: boolean;
       } => {
-        const remaining = request.scheduled_for - Date.now();
+        const remaining = request.scheduled_for - currentTime;
 
         if (remaining <= 0) {
           return { days: 0, hours: 0, minutes: 0, expired: true };
@@ -129,17 +130,21 @@ describe('Account Deletion Workflows', () => {
         return { days, hours, minutes, expired: false };
       };
 
+      // Use a fixed time for consistent testing
+      const fixedTime = 1640995200000; // Fixed timestamp for testing
       const request: DeletionRequest = {
         user_id: 'user-123',
-        requested_at: Date.now() - 25 * 24 * 60 * 60 * 1000, // 25 days ago
+        requested_at: fixedTime - 25 * 24 * 60 * 60 * 1000, // 25 days ago
         confirmed: true,
-        scheduled_for: Date.now() + 5 * 24 * 60 * 60 * 1000, // 5 days from now
+        scheduled_for: fixedTime + 5 * 24 * 60 * 60 * 1000, // Exactly 5 days from fixedTime
         status: 'pending',
       };
 
-      const remaining = getRemainingGracePeriod(request);
+      const remaining = getRemainingGracePeriod(request, fixedTime);
       expect(remaining.expired).toBe(false);
       expect(remaining.days).toBe(5);
+      expect(remaining.hours).toBe(0);
+      expect(remaining.minutes).toBe(0);
     });
 
     it('should allow cancellation during grace period', () => {

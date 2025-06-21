@@ -18,7 +18,10 @@ export function AsyncBoundary({
   loadingMessage = 'Loading...',
 }: AsyncBoundaryProps) {
   const defaultLoadingFallback = (
-    <div className="flex min-h-[200px] flex-col items-center justify-center space-y-4">
+    <div 
+      className="flex min-h-[200px] flex-col items-center justify-center space-y-4"
+      data-testid="async-boundary-loading-container"
+    >
       <LoadingSpinner />
       <p className="text-sm text-gray-400">{loadingMessage}</p>
     </div>

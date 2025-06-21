@@ -423,7 +423,7 @@ describe('queueService', () => {
     });
 
     it('should handle database error', async () => {
-      const error = new Error('Database error');
+      const error = new Error('Database error') as Error & { code: string };
       error.code = 'DB_ERROR';
       // Mock chain for select().eq().eq().single() with error
       const selectChain = {

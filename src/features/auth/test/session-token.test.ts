@@ -22,22 +22,24 @@ import {
   afterEach,
 } from '@jest/globals';
 
+// Note: Type imports removed as they were unused - dynamic imports handle their own typing
+
 // IMPORTANT: Mock modules BEFORE any imports that might use them
 
 // Mock Redis for session blacklisting tests
 const mockRedisClient = {
-  setex: (jest.fn() as any).mockResolvedValue('OK'),
-  srem: (jest.fn() as any).mockResolvedValue(1),
-  get: (jest.fn() as any).mockResolvedValue(null),
-  sadd: (jest.fn() as any).mockResolvedValue(1),
-  expire: (jest.fn() as any).mockResolvedValue(1),
-  smembers: (jest.fn() as any).mockResolvedValue([]),
-  del: (jest.fn() as any).mockResolvedValue(1),
+  setex: jest.fn() as jest.MockedFunction<any>,
+  srem: jest.fn() as jest.MockedFunction<any>,
+  get: jest.fn() as jest.MockedFunction<any>,
+  sadd: jest.fn() as jest.MockedFunction<any>,
+  expire: jest.fn() as jest.MockedFunction<any>,
+  smembers: jest.fn() as jest.MockedFunction<any>,
+  del: jest.fn() as jest.MockedFunction<any>,
 };
 
 // Mock the underlying @upstash/redis module
 jest.mock('@upstash/redis', () => ({
-  Redis: (jest.fn() as any).mockImplementation(() => mockRedisClient),
+  Redis: jest.fn().mockImplementation(() => mockRedisClient),
 }));
 
 jest.mock('@/lib/redis', () => ({
@@ -46,23 +48,27 @@ jest.mock('@/lib/redis', () => ({
 }));
 
 // Mock crypto module with dynamic import support
-const mockCreateHash = (jest.fn() as any)(() => ({
-  update: (jest.fn() as any).mockReturnThis(),
-  digest: jest.fn(() => 'mocked-hash-value'),
+const mockUpdateFn = jest.fn().mockReturnThis();
+const mockDigestFn = jest.fn(() => 'mocked-hash-value');
+const mockCreateHash = jest.fn(() => ({
+  update: mockUpdateFn,
+  digest: mockDigestFn,
 }));
 
-jest.mock('crypto', () => ({
+// Mock both regular and dynamic imports of crypto
+const cryptoMock = {
   createHash: mockCreateHash,
-}));
+};
+
+jest.mock('crypto', () => cryptoMock);
+
+// Use doMock for dynamic imports
+jest.doMock('crypto', () => cryptoMock);
 
 // Mock authService - need to import and re-export
 const mockAuthService = {
-  getSession: jest.fn(),
-  onAuthStateChange: jest.fn(
-    (_callback: (event: string, session: unknown) => void) => ({
-      unsubscribe: jest.fn(),
-    })
-  ),
+  getSession: jest.fn() as jest.MockedFunction<any>,
+  onAuthStateChange: jest.fn() as jest.MockedFunction<any>,
 };
 
 jest.mock('@/services/auth.service', () => ({
@@ -81,8 +87,8 @@ afterEach(() => {
 
 describe('Session and Token Handling', () => {
   beforeEach(() => {
-    // @ts-expect-error - mocking window
-    delete global.window;
+    // Mock server environment by removing window
+    delete (global as any).window;
 
     // Set Redis environment variables for tests
     process.env.UPSTASH_REDIS_REST_URL = 'https://test-redis.upstash.io';
@@ -90,17 +96,24 @@ describe('Session and Token Handling', () => {
 
     jest.clearAllMocks();
     // Reset Redis mock responses to successful defaults
-    (mockRedisClient.get as any).mockResolvedValue(null);
-    (mockRedisClient.smembers as any).mockResolvedValue([]);
-    (mockRedisClient.setex as any).mockResolvedValue('OK');
-    (mockRedisClient.srem as any).mockResolvedValue(1);
-    (mockRedisClient.sadd as any).mockResolvedValue(1);
-    (mockRedisClient.expire as any).mockResolvedValue(1);
-    (mockRedisClient.del as any).mockResolvedValue(1);
+    (mockRedisClient.get as jest.MockedFunction<any>).mockResolvedValue(null);
+    (mockRedisClient.smembers as jest.MockedFunction<any>).mockResolvedValue([]);
+    (mockRedisClient.setex as jest.MockedFunction<any>).mockResolvedValue('OK');
+    (mockRedisClient.srem as jest.MockedFunction<any>).mockResolvedValue(1);
+    (mockRedisClient.sadd as jest.MockedFunction<any>).mockResolvedValue(1);
+    (mockRedisClient.expire as jest.MockedFunction<any>).mockResolvedValue(1);
+    (mockRedisClient.del as jest.MockedFunction<any>).mockResolvedValue(1);
+
+    // Reset crypto mocks
+    mockCreateHash.mockClear();
+    mockUpdateFn.mockClear();
+    mockUpdateFn.mockReturnThis();
+    mockDigestFn.mockClear();
+    mockDigestFn.mockReturnValue('mocked-hash-value');
 
     // Reset auth service mocks
-    (mockAuthService.getSession as any).mockClear();
-    (mockAuthService.onAuthStateChange as any).mockClear();
+    (mockAuthService.getSession as jest.MockedFunction<any>).mockClear();
+    (mockAuthService.onAuthStateChange as jest.MockedFunction<any>).mockClear();
   });
 
   describe('Supabase Session Structure', () => {
@@ -160,7 +173,7 @@ describe('Session and Token Handling', () => {
       const { isSessionBlacklisted } = await import('@/lib/session-blacklist');
 
       // Mock blacklisted session
-      (mockRedisClient.get as any).mockResolvedValueOnce(
+      (mockRedisClient.get as jest.MockedFunction<any>).mockResolvedValueOnce(
         JSON.stringify({
           userId: 'user-123',
           reason: 'Security policy',
@@ -177,7 +190,7 @@ describe('Session and Token Handling', () => {
     test('should handle non-blacklisted session', async () => {
       const { isSessionBlacklisted } = await import('@/lib/session-blacklist');
 
-      (mockRedisClient.get as any).mockResolvedValueOnce(null);
+      (mockRedisClient.get as jest.MockedFunction<any>).mockResolvedValueOnce(null);
 
       const result = await isSessionBlacklisted('valid-token');
 
@@ -194,8 +207,8 @@ describe('Session and Token Handling', () => {
       const result = await trackUserSession(sessionToken, userId);
 
       expect(result.success).toBe(true);
-      expect(mockRedisClient.sadd).toHaveBeenCalled();
-      expect(mockRedisClient.expire).toHaveBeenCalled();
+      expect(mockRedisClient.sadd as jest.MockedFunction<any>).toHaveBeenCalled();
+      expect(mockRedisClient.expire as jest.MockedFunction<any>).toHaveBeenCalled();
     });
 
     test('should blacklist all user sessions', async () => {
@@ -204,7 +217,7 @@ describe('Session and Token Handling', () => {
       );
 
       // Mock existing sessions
-      (mockRedisClient.smembers as any).mockResolvedValueOnce([
+      (mockRedisClient.smembers as jest.MockedFunction<any>).mockResolvedValueOnce([
         'hash1',
         'hash2',
         'hash3',
@@ -217,8 +230,8 @@ describe('Session and Token Handling', () => {
 
       expect(result.success).toBe(true);
       expect(result.blacklistedCount).toBe(3);
-      expect(mockRedisClient.setex).toHaveBeenCalledTimes(3);
-      expect(mockRedisClient.del).toHaveBeenCalled();
+      expect(mockRedisClient.setex as jest.MockedFunction<any>).toHaveBeenCalledTimes(3);
+      expect(mockRedisClient.del as jest.MockedFunction<any>).toHaveBeenCalled();
     });
 
     test('should handle Redis unavailable gracefully', async () => {
@@ -230,7 +243,7 @@ describe('Session and Token Handling', () => {
         redisModule.isRedisConfigured as jest.MockedFunction<
           typeof redisModule.isRedisConfigured
         >;
-      (mockIsRedisConfigured as any).mockReturnValueOnce(false);
+      mockIsRedisConfigured.mockReturnValueOnce(false);
 
       const result = await blacklistSession('token', 'user-123');
 
@@ -248,7 +261,7 @@ describe('Session and Token Handling', () => {
         user: { id: 'user-123', email: 'test@example.com' },
       };
 
-      (mockAuthService.getSession as any).mockResolvedValueOnce({
+      (mockAuthService.getSession as jest.MockedFunction<any>).mockResolvedValueOnce({
         success: true,
         data: mockSession,
         error: null,
@@ -263,7 +276,7 @@ describe('Session and Token Handling', () => {
     test('should handle no session case', async () => {
       const { authService } = await import('@/services/auth.service');
 
-      (mockAuthService.getSession as any).mockResolvedValueOnce({
+      (mockAuthService.getSession as jest.MockedFunction<any>).mockResolvedValueOnce({
         success: true,
         data: null,
         error: null,
@@ -278,7 +291,7 @@ describe('Session and Token Handling', () => {
     test('should handle session retrieval errors', async () => {
       const { authService } = await import('@/services/auth.service');
 
-      (mockAuthService.getSession as any).mockResolvedValueOnce({
+      (mockAuthService.getSession as jest.MockedFunction<any>).mockResolvedValueOnce({
         success: false,
         data: null,
         error: 'Network error',
@@ -298,14 +311,14 @@ describe('Session and Token Handling', () => {
       const mockCallback = jest.fn();
       const mockSubscription = { unsubscribe: jest.fn() };
 
-      (mockAuthService.onAuthStateChange as any).mockReturnValueOnce(
+      (mockAuthService.onAuthStateChange as jest.MockedFunction<any>).mockReturnValueOnce(
         mockSubscription
       );
 
       const subscription = authService.onAuthStateChange(mockCallback);
 
       // Verify subscription was created
-      expect(mockAuthService.onAuthStateChange).toHaveBeenCalledWith(
+      expect(mockAuthService.onAuthStateChange as jest.MockedFunction<any>).toHaveBeenCalledWith(
         mockCallback
       );
       expect(subscription).toHaveProperty('unsubscribe');
@@ -318,7 +331,7 @@ describe('Session and Token Handling', () => {
       const callback = jest.fn();
       let storedCallback: any;
 
-      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce(
+      (mockAuthService.onAuthStateChange as jest.MockedFunction<any>).mockImplementationOnce(
         (cb: any) => {
           storedCallback = cb;
           return { unsubscribe: jest.fn() };
@@ -340,7 +353,7 @@ describe('Session and Token Handling', () => {
       const callback = jest.fn();
       let storedCallback: any;
 
-      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce(
+      (mockAuthService.onAuthStateChange as jest.MockedFunction<any>).mockImplementationOnce(
         (cb: any) => {
           storedCallback = cb;
           return { unsubscribe: jest.fn() };
@@ -361,7 +374,7 @@ describe('Session and Token Handling', () => {
       const callback = jest.fn();
       let storedCallback: any;
 
-      (mockAuthService.onAuthStateChange as jest.Mock).mockImplementationOnce(
+      (mockAuthService.onAuthStateChange as jest.MockedFunction<any>).mockImplementationOnce(
         (cb: any) => {
           storedCallback = cb;
           return { unsubscribe: jest.fn() };

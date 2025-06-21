@@ -36,23 +36,28 @@ export function throttleWithTrailing<T extends (...args: unknown[]) => unknown>(
 ): (...args: Parameters<T>) => void {
   let lastFunc: NodeJS.Timeout | null = null;
   let lastRan: number | null = null;
+  let isThrottled = false;
 
   return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
-    if (!lastRan) {
+    if (!isThrottled) {
+      // Immediate execution
       func.apply(this, args);
       lastRan = Date.now();
+      isThrottled = true;
+      
+      setTimeout(() => {
+        isThrottled = false;
+      }, limit);
     } else {
+      // Schedule trailing call
       if (lastFunc) clearTimeout(lastFunc);
 
-      const remainingTime = limit - (Date.now() - lastRan);
       lastFunc = setTimeout(
         () => {
-          if (lastRan !== null && Date.now() - lastRan >= limit) {
-            func.apply(this, args);
-            lastRan = Date.now();
-          }
+          func.apply(this, args);
+          lastRan = Date.now();
         },
-        Math.max(0, remainingTime)
+        limit - (Date.now() - (lastRan || 0))
       );
     }
   };

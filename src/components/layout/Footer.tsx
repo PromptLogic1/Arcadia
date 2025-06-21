@@ -47,6 +47,7 @@ const Footer = () => {
         variant="circuit"
         intensity="medium"
         className="relative w-full overflow-hidden border-t border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-slate-950 to-black/95 backdrop-blur-sm"
+        data-testid="footer-cyberpunk-background"
       >
         <FloatingElements
           variant="particles"
@@ -65,6 +66,7 @@ const Footer = () => {
                 <Link
                   href="/"
                   className="group mb-4 inline-flex items-center text-cyan-400 transition-all duration-300 hover:text-fuchsia-400"
+                  data-testid="footer-brand-link"
                 >
                   <GamepadIcon className="mr-2 h-6 w-6 flex-shrink-0 transition-colors duration-300 group-hover:text-fuchsia-400 sm:h-8 sm:w-8" />
                   <NeonText
@@ -110,6 +112,7 @@ const Footer = () => {
                       <Link
                         href={href}
                         className="group relative text-cyan-100/80 transition-all duration-300 hover:translate-x-1 hover:text-cyan-100"
+                        data-testid={`footer-platform-link-${href.replace('/', '')}`}
                       >
                         <span className="relative z-10">{label}</span>
                         <span className="absolute inset-0 rounded bg-gradient-to-r from-cyan-400/0 via-cyan-400/10 to-cyan-400/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -130,6 +133,7 @@ const Footer = () => {
                       <Link
                         href={href}
                         className="group relative text-cyan-100/80 transition-all duration-300 hover:translate-x-1 hover:text-cyan-100"
+                        data-testid={`footer-support-link-${href.replace('/', '')}`}
                       >
                         <span className="relative z-10">{label}</span>
                         <span className="absolute inset-0 rounded bg-gradient-to-r from-purple-400/0 via-purple-400/10 to-purple-400/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -150,6 +154,7 @@ const Footer = () => {
                       <Link
                         href={href}
                         className="group relative text-cyan-100/80 transition-all duration-300 hover:translate-x-1 hover:text-cyan-100"
+                        data-testid={`footer-legal-link-${href.replace('/', '')}`}
                       >
                         <span className="relative z-10">{label}</span>
                         <span className="absolute inset-0 rounded bg-gradient-to-r from-emerald-400/0 via-emerald-400/10 to-emerald-400/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />

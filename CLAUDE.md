@@ -56,7 +56,7 @@
 - **NO** `any` or type assertions (`as SomeType`)
 - **ONLY** `as const` is allowed
 - **ALL** values strictly typed at compiler level
-- **USE** `/types/database-generated.ts` as single source of truth for DB types
+- **USE** `/types/database.types.ts` as single source of truth for DB types
 
 ### 2. Validation
 

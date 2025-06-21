@@ -214,20 +214,48 @@ export function createGameHistory(
   const now = Date.now();
   const results: GameResult[] = [];
 
+  // Use deterministic distribution for more predictable tests
+  const winsNeeded = Math.floor(count * winRate);
+  const losses = count - winsNeeded;
+
+  // Create win/loss pattern
+  const gameResults = [
+    ...Array(winsNeeded).fill(true),
+    ...Array(losses).fill(false),
+  ];
+
+  // Shuffle for realistic distribution using simple seeded approach
+  for (let i = gameResults.length - 1; i > 0; i--) {
+    // Use userId and index for deterministic "randomness"
+    const seed = userId.charCodeAt(0) + i;
+    const j = (seed * 9301 + 49297) % 233280;
+    const randomIndex = j / 233280;
+    const swapIndex = Math.floor(randomIndex * (i + 1));
+    [gameResults[i], gameResults[swapIndex]] = [gameResults[swapIndex], gameResults[i]];
+  }
+
   for (let i = 0; i < count; i++) {
-    const isWin = Math.random() < winRate;
+    const isWin = gameResults[i];
     const scoreVariance = avgScore * 0.3;
+    
+    // Use seeded approach for score variance
+    const scoreSeed = (userId.charCodeAt(0) + i * 7) % 1000;
+    const scoreRandom = scoreSeed / 1000;
     const score = Math.round(
-      avgScore + (Math.random() - 0.5) * scoreVariance * 2
+      avgScore + (scoreRandom - 0.5) * scoreVariance * 2
     );
-    const timeAgo = Math.random() * timeRange * 24 * 60 * 60 * 1000;
+    
+    // Use seeded approach for time variance
+    const timeSeed = (userId.charCodeAt(0) + i * 13) % 1000;
+    const timeRandom = timeSeed / 1000;
+    const timeAgo = timeRandom * timeRange * 24 * 60 * 60 * 1000;
 
     results.push(
       createGameResult({
         user_id: userId,
-        placement: isWin ? 1 : Math.floor(Math.random() * 3) + 2,
+        placement: isWin ? 1 : Math.floor((scoreSeed % 3)) + 2,
         final_score: score,
-        time_to_win: isWin ? 180 + Math.floor(Math.random() * 420) : null, // 3-10 minutes for wins only
+        time_to_win: isWin ? 180 + Math.floor(timeRandom * 420) : null, // 3-10 minutes for wins only
         created_at: new Date(now - timeAgo).toISOString(),
       })
     );

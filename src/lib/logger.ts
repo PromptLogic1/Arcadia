@@ -103,11 +103,21 @@ const createCustomLogger = (): LoggerMethods => {
       let logLine = `${color}[${new Date(time).toLocaleTimeString()}] ${level.toUpperCase()}${resetColor}: ${msg}`;
 
       if (context) {
-        logLine += ` | Context: ${JSON.stringify(context)}`;
+        try {
+          logLine += ` | Context: ${JSON.stringify(context)}`;
+        } catch {
+          // Handle circular references gracefully
+          logLine += ` | Context: [Object with circular reference]`;
+        }
       }
 
       if (Object.keys(rest).length > 0) {
-        logLine += ` | Data: ${JSON.stringify(rest)}`;
+        try {
+          logLine += ` | Data: ${JSON.stringify(rest)}`;
+        } catch {
+          // Handle circular references gracefully
+          logLine += ` | Data: [Object with circular reference]`;
+        }
       }
 
       if (err) {
@@ -173,8 +183,13 @@ const createCustomLogger = (): LoggerMethods => {
 const activeLogger: LoggerMethods = createCustomLogger();
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
-  private isProduction = process.env.NODE_ENV === 'production';
+  private get isDevelopment(): boolean {
+    return process.env.NODE_ENV === 'development';
+  }
+  
+  private get isProduction(): boolean {
+    return process.env.NODE_ENV === 'production';
+  }
 
   private shouldLog(_level: LogLevel): boolean {
     // Level filtering is handled by the underlying logger
@@ -242,8 +257,8 @@ class Logger {
         this.captureSentryMessage(message, 'error');
       }
 
-      // In production, you might want to send errors to a monitoring service
-      if (this.isProduction && error) {
+      // Send to monitoring service for all errors (dev shows warning, prod would send to service)
+      if (error) {
         this.sendToMonitoringService(
           this.createLogEntry('error', message, context, error)
         );
@@ -307,7 +322,7 @@ class Logger {
     if (this.isDevelopment) {
       // Use our simple console output to avoid any dependency issues
       console.warn(
-        '[Logger] Sending to monitoring service (dev mode)',
+        'Sending to monitoring service (dev mode)',
         logEntry
       );
     }

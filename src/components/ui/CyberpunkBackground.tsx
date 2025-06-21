@@ -3,13 +3,12 @@
 import React, { useMemo, memo } from 'react';
 import { cn } from '@/lib/utils';
 
-interface CyberpunkBackgroundProps {
+interface CyberpunkBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'grid' | 'circuit' | 'particles';
   intensity?: 'subtle' | 'medium';
   animated?: boolean;
   className?: string;
   children?: React.ReactNode;
-  id?: string;
 }
 
 interface ParticleStyle {
@@ -55,7 +54,7 @@ export const CyberpunkBackground: React.FC<CyberpunkBackgroundProps> = memo(
     animated = true,
     className,
     children,
-    id,
+    ...props
   }) => {
     const opacity = INTENSITY_OPACITY[intensity];
 
@@ -134,7 +133,12 @@ export const CyberpunkBackground: React.FC<CyberpunkBackgroundProps> = memo(
     }, [variant, shouldAnimate, gridStyle, circuitStyle]);
 
     return (
-      <div id={id} className={cn('relative', className)}>
+      <div 
+        {...props}
+        data-variant={variant}
+        data-intensity={intensity}
+        className={cn('relative', className)}
+      >
         {backgroundElement}
         {children && <div className="relative z-10">{children}</div>}
       </div>

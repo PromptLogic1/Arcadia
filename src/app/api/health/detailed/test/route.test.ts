@@ -6,10 +6,12 @@ import { GET } from '../route';
 import { getRedisClient, isRedisConfigured } from '@/lib/redis';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import * as os from 'os';
 
 // Mock dependencies
 jest.mock('@/lib/redis');
 jest.mock('@supabase/supabase-js');
+jest.mock('os');
 jest.mock('next/server', () => ({
   NextResponse: {
     json: jest.fn((data, init) => ({
@@ -639,6 +641,7 @@ describe('Health Detailed Route', () => {
         heapTotal: 100 * 1024 * 1024, // 100MB
         rss: 150 * 1024 * 1024, // 150MB
         external: 10 * 1024 * 1024, // 10MB
+        arrayBuffers: 5 * 1024 * 1024, // 5MB
       };
       const mockCpuUsage = {
         user: 100000, // 100ms in microseconds
@@ -689,8 +692,7 @@ describe('Health Detailed Route', () => {
     });
 
     it('should handle load average unavailability gracefully', async () => {
-      const os = require('os');
-      os.loadavg.mockImplementation(() => {
+      (os.loadavg as jest.Mock).mockImplementation(() => {
         throw new Error('Load average not available');
       });
 

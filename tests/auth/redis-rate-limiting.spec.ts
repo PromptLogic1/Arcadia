@@ -232,7 +232,7 @@ test.describe('Redis Rate Limiting Integration', () => {
         await page.waitForTimeout(200);
       }
 
-      let errorMessage = await getAuthErrorMessage(page);
+      const errorMessage = await getAuthErrorMessage(page);
       const loginRateLimited = errorMessage?.match(/rate.*limit|too.*many/i);
 
       // Test password reset (should be independent)

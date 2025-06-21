@@ -211,6 +211,14 @@ describe('/api/bingo/sessions/[id]/complete route handler', () => {
 
     describe('authentication', () => {
       test('should return 401 for unauthenticated users', async () => {
+        // Mock validation to succeed so we can test auth
+        mockValidationMiddleware.validateRequestBody.mockResolvedValue({
+          success: true,
+          data: {
+            winnerId: 'user-123',
+          },
+        });
+
         (authService.getCurrentUser as jest.Mock).mockResolvedValue({
           data: null,
           success: false,
